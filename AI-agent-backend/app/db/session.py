@@ -1,0 +1,84 @@
+"""
+数据库会话管理
+配置SQLAlchemy数据库连接和会话
+"""
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.pool import StaticPool
+from app.core.config import settings
+from app.core.logger import get_logger
+
+logger = get_logger(__name__)
+
+# 创建数据库引擎
+if settings.DATABASE_URL.startswith("sqlite"):
+    # SQLite配置
+    engine = create_engine(
+        settings.DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+        echo=settings.DATABASE_ECHO
+    )
+else:
+    # 其他数据库配置
+    engine = create_engine(
+        settings.database_url_sync,
+        echo=settings.DATABASE_ECHO,
+        pool_pre_ping=True,
+        pool_recycle=3600
+    )
+
+# 创建会话工厂
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def get_db() -> Session:
+    """
+    获取数据库会话
+    用于FastAPI依赖注入
+    
+    Yields:
+        数据库会话对象
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    except Exception as e:
+        logger.error(f"Database session error: {str(e)}")
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def create_tables():
+    """
+    创建所有数据库表
+    """
+    from app.db.base import Base
+    
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created successfully")
+    except Exception as e:
+        logger.error(f"Error creating database tables: {str(e)}")
+        raise
+
+
+def drop_tables():
+    """
+    删除所有数据库表
+    """
+    from app.db.base import Base
+    
+    try:
+        Base.metadata.drop_all(bind=engine)
+        logger.info("Database tables dropped successfully")
+    except Exception as e:
+        logger.error(f"Error dropping database tables: {str(e)}")
+        raise
+
+
+# 导出数据库相关对象
+__all__ = ["engine", "SessionLocal", "get_db", "create_tables", "drop_tables"]
