@@ -4,11 +4,13 @@
 """
 
 from typing import Optional, List, Dict, Any
-from sqlalchemy.orm import Session
+
 from sqlalchemy import and_, or_, desc
+from sqlalchemy.orm import Session
+
+from app.core.logger import get_logger
 from app.entity.indicator_parameter import IndicatorParameter
 from app.repository.base import BaseRepository
-from app.core.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -4,9 +4,10 @@
 """
 
 import sys
-import os
 from pathlib import Path
+
 from loguru import logger
+
 from app.core.config import settings
 
 

@@ -4,14 +4,16 @@
 """
 
 from typing import Optional
+
+from app.repository.user_repository import UserRepository
 from fastapi import Request, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from app.core.security import verify_token
-from app.repository.user_repository import UserRepository
-from app.db.session import get_db
+
 from app.core.logger import get_logger
-from app.utils.exceptions import AuthenticationException, TokenExpiredException, InvalidTokenException
+from app.core.security import verify_token
+from app.db.session import get_db
+from app.utils.exceptions import AuthenticationException, InvalidTokenException
 
 logger = get_logger(__name__)
 

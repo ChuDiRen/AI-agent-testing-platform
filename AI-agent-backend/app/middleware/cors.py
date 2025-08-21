@@ -5,6 +5,7 @@ CORS中间件配置
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
 from app.core.logger import get_logger
 

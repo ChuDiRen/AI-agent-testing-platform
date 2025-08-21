@@ -3,10 +3,14 @@ DTO层基类
 定义数据传输对象的基础结构
 """
 
-from typing import Any, Dict, Optional, List
-from pydantic import BaseModel, Field, validator
 from datetime import datetime
 from enum import Enum
+from typing import Any, Optional, List, Generic, TypeVar
+
+from pydantic import BaseModel, Field, validator
+
+# 定义泛型类型变量
+T = TypeVar('T')
 
 
 class BaseRequest(BaseModel):
@@ -134,13 +138,13 @@ class SearchRequest(PaginationRequest, SortRequest):
         return v
 
 
-class ApiResponse(BaseResponse):
+class ApiResponse(BaseResponse, Generic[T]):
     """
     统一API响应格式
     """
     success: bool = Field(description="是否成功")
     message: str = Field(description="响应消息")
-    data: Optional[Any] = Field(default=None, description="响应数据")
+    data: Optional[T] = Field(default=None, description="响应数据")
     error_code: Optional[str] = Field(default=None, description="错误代码")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="响应时间")
     

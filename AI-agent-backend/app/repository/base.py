@@ -3,12 +3,14 @@ Repository层基类
 封装通用的数据库CRUD操作
 """
 
-from typing import Generic, TypeVar, Type, Optional, List, Dict, Any, Union
-from sqlalchemy.orm import Session
+from typing import Generic, TypeVar, Type, Optional, List, Dict, Any
+
 from sqlalchemy import and_, or_, desc, asc, func
 from sqlalchemy.exc import SQLAlchemyError
-from app.entity.base import BaseEntity
+from sqlalchemy.orm import Session
+
 from app.core.logger import get_logger
+from app.entity.base import BaseEntity
 
 # 定义泛型类型
 EntityType = TypeVar("EntityType", bound=BaseEntity)

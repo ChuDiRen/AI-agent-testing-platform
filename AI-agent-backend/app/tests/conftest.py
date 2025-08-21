@@ -3,10 +3,11 @@ Pytest配置文件
 定义测试夹具和配置
 """
 
-import pytest
 import os
 import sys
 from typing import Generator
+
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
@@ -17,7 +18,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from main import app
 from app.db.base import Base
 from app.db.session import get_db
-from app.core.config import settings
 from app.entity.user import User
 from app.repository.user_repository import UserRepository
 from app.service.user_service import UserService
@@ -185,6 +185,69 @@ def sample_indicator_parameter_data() -> dict:
         "parameter_group": "test_group",
         "sort_order": 1
     }
+
+
+@pytest.fixture
+def sample_rbac_user_data() -> dict:
+    """
+    示例RBAC用户数据夹具
+    """
+    return {
+        "username": "rbacuser",
+        "password": "123456",
+        "email": "rbac@example.com",
+        "mobile": "13800138000",
+        "ssex": "0",
+        "description": "RBAC测试用户"
+    }
+
+
+@pytest.fixture
+def sample_role_data() -> dict:
+    """
+    示例角色数据夹具
+    """
+    return {
+        "role_name": "测试角色",
+        "remark": "这是一个测试角色"
+    }
+
+
+@pytest.fixture
+def sample_menu_data() -> dict:
+    """
+    示例菜单数据夹具
+    """
+    return {
+        "parent_id": 0,
+        "menu_name": "测试菜单",
+        "menu_type": "0",
+        "path": "/test",
+        "component": "Test",
+        "perms": "test:view",
+        "icon": "el-icon-test",
+        "order_num": 1
+    }
+
+
+@pytest.fixture
+def sample_department_data() -> dict:
+    """
+    示例部门数据夹具
+    """
+    return {
+        "parent_id": 0,
+        "dept_name": "测试部门",
+        "order_num": 1
+    }
+
+
+@pytest.fixture
+def db_session(test_db: Session) -> Session:
+    """
+    数据库会话别名夹具（为了兼容RBAC测试）
+    """
+    return test_db
 
 
 @pytest.fixture(autouse=True)

@@ -5,9 +5,10 @@ Redis客户端工具
 
 import json
 import pickle
-from typing import Any, Optional, Union, List, Dict
-from datetime import timedelta
+from typing import Any, Optional, List, Dict
+
 import redis
+
 from app.core.config import settings
 from app.core.logger import get_logger
 

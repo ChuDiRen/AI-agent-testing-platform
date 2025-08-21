@@ -3,12 +3,14 @@ Service层基类
 实现通用的业务逻辑处理
 """
 
-from typing import Generic, TypeVar, Type, Optional, List, Dict, Any
 from abc import ABC, abstractmethod
+from typing import Generic, TypeVar, Optional, List, Dict, Any
+
 from sqlalchemy.orm import Session
-from app.repository.base import BaseRepository
-from app.entity.base import BaseEntity
+
 from app.core.logger import get_logger
+from app.entity.base import BaseEntity
+from app.repository.base import BaseRepository
 from app.utils.exceptions import ValidationException, BusinessException
 
 # 定义泛型类型

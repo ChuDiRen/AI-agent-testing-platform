@@ -3,11 +3,11 @@
 使用Pydantic Settings管理配置
 """
 
-from typing import List, Optional
-from pydantic_settings import BaseSettings
-from pydantic import validator
 from functools import lru_cache
-import os
+from typing import List, Optional
+
+from pydantic import validator
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):

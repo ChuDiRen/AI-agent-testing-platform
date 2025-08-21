@@ -3,11 +3,13 @@ Entity层基类
 定义实体对象的基础功能和通用方法
 """
 
-from abc import ABC, abstractmethod, ABCMeta
-from typing import Dict, Any, Optional
+from abc import ABC, ABCMeta
 from datetime import datetime
-from app.db.base import Base
+from typing import Dict, Any
+
 from sqlalchemy.ext.declarative import DeclarativeMeta
+
+from app.db.base import Base
 
 
 class CombinedMeta(DeclarativeMeta, ABCMeta):

@@ -6,6 +6,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
+
 from app.core.config import settings
 from app.core.logger import get_logger
 
@@ -57,9 +58,17 @@ def create_tables():
     创建所有数据库表
     """
     from app.db.base import Base
-    
+    from app.entity.rbac_base import RBACBase
+
+    # 导入所有RBAC实体以确保它们被注册到metadata中
+
     try:
+        # 创建原有的表
         Base.metadata.create_all(bind=engine)
+
+        # 创建RBAC表
+        RBACBase.metadata.create_all(bind=engine)
+
         logger.info("Database tables created successfully")
     except Exception as e:
         logger.error(f"Error creating database tables: {str(e)}")
@@ -71,9 +80,15 @@ def drop_tables():
     删除所有数据库表
     """
     from app.db.base import Base
-    
+    from app.entity.rbac_base import RBACBase
+
     try:
+        # 删除原有的表
         Base.metadata.drop_all(bind=engine)
+
+        # 删除RBAC表
+        RBACBase.metadata.drop_all(bind=engine)
+
         logger.info("Database tables dropped successfully")
     except Exception as e:
         logger.error(f"Error dropping database tables: {str(e)}")

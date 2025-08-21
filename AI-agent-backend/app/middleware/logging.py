@@ -3,11 +3,13 @@
 记录HTTP请求和响应日志
 """
 
-import time
 import json
+import time
 from typing import Callable
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+
 from app.core.logger import get_logger
 from app.utils.helpers import get_client_ip
 

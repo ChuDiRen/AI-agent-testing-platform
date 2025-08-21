@@ -3,8 +3,10 @@
 定义指标参数相关的数据库模型
 """
 
+from typing import Dict, Any
+
 from sqlalchemy import Column, String, Integer, Text, Index
-from typing import Optional, Dict, Any
+
 from .base import BaseEntity
 
 

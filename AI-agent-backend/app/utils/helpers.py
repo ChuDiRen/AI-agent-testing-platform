@@ -3,12 +3,14 @@
 提供常用的助手函数
 """
 
-import uuid
-import re
 import hashlib
+import re
+import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
+
 from email_validator import validate_email, EmailNotValidError
+
 from app.core.logger import get_logger
 
 logger = get_logger(__name__)

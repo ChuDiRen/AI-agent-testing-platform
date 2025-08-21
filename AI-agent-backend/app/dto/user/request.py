@@ -4,7 +4,9 @@
 """
 
 from typing import Optional
+
 from pydantic import Field, validator, EmailStr
+
 from app.dto.base import BaseRequest, SearchRequest
 
 

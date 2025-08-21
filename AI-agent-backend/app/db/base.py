@@ -3,10 +3,10 @@
 SQLAlchemy声明性基类，所有模型都继承自此基类
 """
 
-from sqlalchemy.ext.declarative import as_declarative, declared_attr
-from sqlalchemy import Column, Integer, DateTime, String
 from datetime import datetime
-from typing import Any
+
+from sqlalchemy import Column, Integer, DateTime, String
+from sqlalchemy.ext.declarative import as_declarative, declared_attr
 
 
 @as_declarative()

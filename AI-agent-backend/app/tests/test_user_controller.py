@@ -6,8 +6,9 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from app.tests.test_base import BaseTestCase
+
 from app.entity.user import User
+from app.tests.test_base import BaseTestCase
 
 
 class TestUserController(BaseTestCase):

@@ -3,17 +3,21 @@ AI Agent Backend - 主应用入口
 企业级五层架构FastAPI应用
 """
 
+from contextlib import asynccontextmanager
+
+import uvicorn
 from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from contextlib import asynccontextmanager
-import uvicorn
 
+from app.controller.department_controller import router as department_router
+from app.controller.menu_controller import router as menu_router
+from app.controller.rbac_user_controller import router as rbac_user_router
+from app.controller.role_controller import router as role_router
 from app.core.config import settings
 from app.core.logger import get_logger
 from app.db.session import create_tables
-from app.controller.user_controller import router as user_router
 from app.utils.exceptions import BaseAPIException
 
 logger = get_logger(__name__)
@@ -153,7 +157,10 @@ async def root():
 
 
 # 注册路由
-app.include_router(user_router, prefix=settings.API_V1_PREFIX)
+app.include_router(role_router, prefix=settings.API_V1_PREFIX)
+app.include_router(menu_router, prefix=settings.API_V1_PREFIX)
+app.include_router(department_router, prefix=settings.API_V1_PREFIX)
+app.include_router(rbac_user_router, prefix=settings.API_V1_PREFIX)
 
 
 # 中间件：请求日志
