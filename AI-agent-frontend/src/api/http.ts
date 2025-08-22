@@ -1,131 +1,133 @@
 //http.ts
 import axios, { InternalAxiosRequestConfig, AxiosResponse } from 'axios'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { NProgressStart, NProgressDone } from '@/utils/nprogress'
 import { BASE_URL } from './baseUrl'
-import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import { getToken, removeToken } from '@/utils/auth'
+import router from '@/router'
 
-const router = useRouter()
+// 后端API响应格式
+interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  message: string
+  error_code?: string
+  timestamp: string
+}
 
-// 设置请求头和请求路径
-axios.defaults.baseURL = BASE_URL
-axios.defaults.timeout = 10000
-axios.defaults.headers.post['Content-Type'] = 'application/json;charset=UTF-8'
-axios.interceptors.request.use(
-  (config): InternalAxiosRequestConfig<any> => {
+// 创建axios实例
+const http = axios.create({
+  baseURL: BASE_URL || 'http://localhost:8000/api/v1',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
+
+// 请求拦截器
+http.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    // 开始进度条
+    NProgressStart()
+    
+    // 添加认证token
     const token = getToken()
     if (token) {
-      config.headers.Authorization = token
+      config.headers.Authorization = `Bearer ${token}`
     }
+    
     return config
   },
-  (err) => {
-    return err
+  (error) => {
+    NProgressDone()
+    return Promise.reject(error)
   }
 )
-// 响应拦截
-axios.interceptors.response.use(
-  (res): AxiosResponse<any, any> => {
-    if (res.data.code == 401) {
-      removeToken()
-      router.push({
-        path: '/login'
-      }).catch(e => console.log(e))
-    } else if (res.data.code != 200) {
-      ElMessage({
-        type: 'error',
-        message: res.data.msg || '操作失败',
-      })
-      console.error(res.data)
+
+// 响应拦截器
+http.interceptors.response.use(
+  (response: AxiosResponse<ApiResponse>) => {
+    NProgressDone()
+    
+    const { data } = response
+    
+    // 检查业务状态码
+    if (!data.success) {
+      ElMessage.error(data.message || '操作失败')
+      return Promise.reject(new Error(data.message))
     }
-    return res
+    
+    return data
   },
-  (err) => {
-    const { status, data } = err.response
-    ElMessage({
-      type: 'error',
-      message: data?.msg || '操作失败',
-    })
+  (error) => {
+    NProgressDone()
+    
+    const { status, data } = error.response || {}
+    
     if (status === 401) {
+      ElMessage.error('登录已过期，请重新登录')
       removeToken()
-      router.push({
-        path: '/login'
-      }).catch(e => console.log(e))
+      router.push('/login')
+    } else if (status === 403) {
+      ElMessage.error('权限不足')
+    } else if (status >= 500) {
+      ElMessage.error('服务器错误，请稍后重试')
+    } else {
+      ElMessage.error(data?.message || '请求失败')
     }
-    return err.response // 返回接口返回的错误信息
+    
+    return Promise.reject(error)
   }
 )
 
-interface ResType<T> {
-  code: number
-  data?: T
-  msg: string
-  err?: string
-}
-interface Http {
-  get<T>(url: string, params?: unknown): Promise<ResType<T>>
-  post<T>(url: string, params?: any): Promise<ResType<T>>
-  upload<T>(url: string, params: unknown): Promise<ResType<T>>
-  download(url: string): void
+// HTTP请求方法类型
+interface HttpMethods {
+  get<T = any>(url: string, params?: any): Promise<ApiResponse<T>>
+  post<T = any>(url: string, data?: any): Promise<ApiResponse<T>>
+  put<T = any>(url: string, data?: any): Promise<ApiResponse<T>>
+  delete<T = any>(url: string, params?: any): Promise<ApiResponse<T>>
+  upload<T = any>(url: string, formData: FormData): Promise<ApiResponse<T>>
+  download(url: string, filename?: string): void
 }
 
-const http: Http = {
-  get(url, params) {
-    return new Promise((resolve, reject) => {
-      NProgressStart()
-      axios
-        .get(url, { params })
-        .then((res) => {
-          NProgressDone()
-          resolve(res.data)
-        })
-        .catch((err) => {
-          NProgressDone()
-          reject(err.data)
-        })
+// 扩展axios实例方法
+const httpMethods: HttpMethods = {
+  get<T = any>(url: string, params?: any): Promise<ApiResponse<T>> {
+    return http.get(url, { params })
+  },
+
+  post<T = any>(url: string, data?: any): Promise<ApiResponse<T>> {
+    return http.post(url, data)
+  },
+
+  put<T = any>(url: string, data?: any): Promise<ApiResponse<T>> {
+    return http.put(url, data)
+  },
+
+  delete<T = any>(url: string, params?: any): Promise<ApiResponse<T>> {
+    return http.delete(url, { params })
+  },
+
+  upload<T = any>(url: string, formData: FormData): Promise<ApiResponse<T>> {
+    return http.post(url, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
     })
   },
-  post(url, params) {
-    return new Promise((resolve, reject) => {
-      NProgressStart()
-      axios
-        .post(url, JSON.stringify(params))
-        .then((res) => {
-          NProgressDone()
-          resolve(res.data)
-        })
-        .catch((err) => {
-          NProgressDone()
-          reject(err.data)
-        })
-    })
-  },
-  upload(url, params) {
-    return new Promise((resolve, reject) => {
-      NProgressStart()
-      axios
-        .post(url, params, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
-        .then((res) => {
-          NProgressDone()
-          resolve(res.data)
-        })
-        .catch((err) => {
-          NProgressDone()
-          reject(err.data)
-        })
-    })
-  },
-  download(url) {
-    const iframe = document.createElement('iframe')
-    iframe.style.display = 'none'
-    iframe.src = url
-    iframe.onload = function () {
-      document.body.removeChild(iframe)
+
+  download(url: string, filename?: string): void {
+    const link = document.createElement('a')
+    link.href = url
+    if (filename) {
+      link.download = filename
     }
-    document.body.appendChild(iframe)
-  },
+    link.target = '_blank'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 }
-export default http
+
+export default httpMethods
+export type { ApiResponse }

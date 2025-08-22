@@ -1,11 +1,17 @@
 import http from '@/api/http'
-import * as T from './types'
+import type { LoginRequest, LoginResponse, ApiResponse } from '@/api/types'
 
-const loginApi: T.ILoginApi = {
+// 保持向后兼容
+export interface ILoginApi {
+  login(params: LoginRequest): Promise<ApiResponse<LoginResponse>>
+}
+
+const loginApi: ILoginApi = {
   login(params) {
-    return http.post('/login', params)
+    return http.post<LoginResponse>('/users/login', params)
   }
 }
+
 export {
   loginApi,
 }
