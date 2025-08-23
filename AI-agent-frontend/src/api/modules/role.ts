@@ -8,8 +8,8 @@ import type {
   RoleUpdateRequest,
   RoleMenuAssignRequest,
   RolePermissionResponse,
+  RoleListResponse,
   PageQuery,
-  PageData,
   ApiResponse 
 } from '@/api/types'
 
@@ -24,8 +24,8 @@ export class RoleApi {
    */
   static async getRoleList(params?: PageQuery & {
     keyword?: string
-  }): Promise<ApiResponse<PageData<RoleInfo>>> {
-    return http.get<PageData<RoleInfo>>('/roles', params)
+  }): Promise<ApiResponse<RoleListResponse>> {
+    return http.get<RoleListResponse>('/roles', params)
   }
 
   /**

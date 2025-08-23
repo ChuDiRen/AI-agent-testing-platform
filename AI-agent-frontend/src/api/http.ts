@@ -1,5 +1,6 @@
 //http.ts
-import axios, { InternalAxiosRequestConfig, AxiosResponse } from 'axios'
+import axios from 'axios'
+import type { InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { NProgressStart, NProgressDone } from '@/utils/nprogress'
 import { BASE_URL } from './baseUrl'
@@ -57,7 +58,7 @@ http.interceptors.response.use(
       return Promise.reject(new Error(data.message))
     }
     
-    return data
+    return data as any
   },
   (error) => {
     NProgressDone()
@@ -93,19 +94,19 @@ interface HttpMethods {
 // 扩展axios实例方法
 const httpMethods: HttpMethods = {
   get<T = any>(url: string, params?: any): Promise<ApiResponse<T>> {
-    return http.get(url, { params })
+    return http.get(url, { params }) as unknown as Promise<ApiResponse<T>>
   },
 
   post<T = any>(url: string, data?: any): Promise<ApiResponse<T>> {
-    return http.post(url, data)
+    return http.post(url, data) as unknown as Promise<ApiResponse<T>>
   },
 
   put<T = any>(url: string, data?: any): Promise<ApiResponse<T>> {
-    return http.put(url, data)
+    return http.put(url, data) as unknown as Promise<ApiResponse<T>>
   },
 
   delete<T = any>(url: string, params?: any): Promise<ApiResponse<T>> {
-    return http.delete(url, { params })
+    return http.delete(url, { params }) as unknown as Promise<ApiResponse<T>>
   },
 
   upload<T = any>(url: string, formData: FormData): Promise<ApiResponse<T>> {
@@ -113,7 +114,7 @@ const httpMethods: HttpMethods = {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
-    })
+    }) as unknown as Promise<ApiResponse<T>>
   },
 
   download(url: string, filename?: string): void {

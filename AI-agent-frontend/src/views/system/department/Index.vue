@@ -274,19 +274,20 @@ import { Search, Refresh, Plus, DCaret, CaretRight, OfficeBuilding } from '@elem
 import FormDialog from '@/components/Common/FormDialog.vue'
 import { DepartmentApi } from '@/api/modules/department'
 import { UserApi } from '@/api/modules/user'
-import type { DepartmentInfo, DepartmentCreateRequest, DepartmentUpdateRequest, DepartmentTreeNode, UserInfo } from '@/api/types'
+import type { DeptInfo, DeptCreateRequest, DeptUpdateRequest, DeptTreeNode, UserInfo } from '@/api/types'
 
 // 表单引用
 const formRef = ref<FormInstance>()
-const tableRef = ref<ElTable>()
+const tableRef = ref<InstanceType<typeof ElTable>>()
 
 // 数据和状态
 const loading = ref(false)
 const formLoading = ref(false)
-const tableData = ref<DepartmentInfo[]>([])
-const deptTreeOptions = ref<DepartmentTreeNode[]>([])
+const tableData = ref<DeptTreeNode[]>([])
+const deptTreeOptions = ref<DeptTreeNode[]>([])
+const selectedDepts = ref<DeptTreeNode[]>([])
 const userOptions = ref<UserInfo[]>([])
-const currentDept = ref<DepartmentInfo | null>(null)
+const currentDept = ref<DeptTreeNode | null>(null)
 
 // 对话框状态
 const formDialogVisible = ref(false)
@@ -299,7 +300,7 @@ const searchForm = reactive({
 })
 
 // 表单数据
-const formData = reactive<DepartmentCreateRequest>({
+const formData = reactive<Record<string, any>>({
   parent_id: null,
   dept_name: '',
   dept_code: '',
@@ -356,14 +357,11 @@ const initFormData = () => {
 const loadDeptList = async () => {
   try {
     loading.value = true
-    const params = {
-      keyword: searchForm.keyword || undefined,
-      is_active: searchForm.is_active
-    }
-    
-    const response = await DepartmentApi.getDepartmentTree(params)
+    const response = await DepartmentApi.getDepartmentTree()
     if (response.success && response.data) {
-      tableData.value = response.data
+      tableData.value = Array.isArray(response.data) ? response.data : []
+    } else {
+      tableData.value = []
     }
   } catch (error) {
     console.error('加载部门列表失败:', error)
@@ -378,7 +376,9 @@ const loadDeptTreeOptions = async () => {
   try {
     const response = await DepartmentApi.getDepartmentTree()
     if (response.success && response.data) {
-      deptTreeOptions.value = response.data
+      deptTreeOptions.value = Array.isArray(response.data) ? response.data : []
+    } else {
+      deptTreeOptions.value = []
     }
   } catch (error) {
     console.error('加载部门树选项失败:', error)
@@ -390,7 +390,9 @@ const loadUserOptions = async () => {
   try {
     const response = await UserApi.getAllUsers()
     if (response.success && response.data) {
-      userOptions.value = response.data
+      userOptions.value = Array.isArray(response.data) ? response.data : []
+    } else {
+      userOptions.value = []
     }
   } catch (error) {
     console.error('加载用户选项失败:', error)
@@ -412,30 +414,30 @@ const handleReset = () => {
 // 展开全部
 const expandAll = () => {
   nextTick(() => {
-    const expandNodes = (data: DepartmentInfo[]) => {
-      data.forEach(node => {
-        tableRef.value?.toggleRowExpansion(node, true)
-        if (node.children && node.children.length > 0) {
+    const expandNodes = (data: any[]) => {
+      (data || []).forEach((node: any) => {
+        tableRef.value?.toggleRowExpansion?.(node, true)
+        if (node?.children && node.children.length > 0) {
           expandNodes(node.children)
         }
       })
     }
-    expandNodes(tableData.value)
+    expandNodes(tableData.value || [])
   })
 }
 
 // 折叠全部
 const collapseAll = () => {
   nextTick(() => {
-    const collapseNodes = (data: DepartmentInfo[]) => {
-      data.forEach(node => {
-        tableRef.value?.toggleRowExpansion(node, false)
-        if (node.children && node.children.length > 0) {
+    const collapseNodes = (data: any[]) => {
+      (data || []).forEach((node: any) => {
+        tableRef.value?.toggleRowExpansion?.(node, false)
+        if (node?.children && node.children.length > 0) {
           collapseNodes(node.children)
         }
       })
     }
-    collapseNodes(tableData.value)
+    collapseNodes(tableData.value || [])
   })
 }
 
@@ -449,7 +451,7 @@ const handleAdd = () => {
 }
 
 // 新增子部门
-const handleAddChild = (row: DepartmentInfo) => {
+const handleAddChild = (row: any) => {
   isEdit.value = false
   initFormData()
   formData.parent_id = row.dept_id
@@ -459,7 +461,7 @@ const handleAddChild = (row: DepartmentInfo) => {
 }
 
 // 编辑
-const handleEdit = (row: DepartmentInfo) => {
+const handleEdit = (row: any) => {
   isEdit.value = true
   Object.assign(formData, {
     parent_id: row.parent_id,
@@ -479,7 +481,7 @@ const handleEdit = (row: DepartmentInfo) => {
 }
 
 // 删除
-const handleDelete = async (row: DepartmentInfo) => {
+const handleDelete = async (row: any) => {
   // 检查是否有子部门
   if (row.children && row.children.length > 0) {
     ElMessage.warning('该部门包含子部门，请先删除子部门')
@@ -519,7 +521,7 @@ const handleFormConfirm = async () => {
     formLoading.value = true
     
     if (isEdit.value && currentDept.value) {
-      const updateData: DepartmentUpdateRequest = { ...formData }
+      const updateData = { ...formData }
       const response = await DepartmentApi.updateDepartment(currentDept.value.dept_id, updateData)
       if (response.success) {
         ElMessage.success('更新成功')

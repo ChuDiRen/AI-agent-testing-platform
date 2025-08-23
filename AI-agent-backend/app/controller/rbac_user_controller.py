@@ -77,7 +77,7 @@ async def create_user(
         )
         
         logger.info(f"User created successfully: {user.USERNAME}")
-        return ApiResponse.success(data=user_response, message="用户创建成功")
+        return ApiResponse.success_response(data=user_response, message="用户创建成功")
         
     except ValueError as e:
         logger.warning(f"User creation failed: {str(e)}")
@@ -144,7 +144,7 @@ async def login(
         )
         
         logger.info(f"User logged in successfully: {user.USERNAME}")
-        return ApiResponse.success(data=login_response, message="登录成功")
+        return ApiResponse.success_response(data=login_response, message="登录成功")
         
     except HTTPException:
         raise
@@ -188,7 +188,7 @@ async def get_users(
         
         user_list_response = UserListResponse(users=user_responses)
         
-        return ApiResponse.success(data=user_list_response, message="获取用户列表成功")
+        return ApiResponse.success_response(data=user_list_response, message="获取用户列表成功")
         
     except Exception as e:
         logger.error(f"Error getting users: {str(e)}")
@@ -233,7 +233,7 @@ async def get_user(
             last_login_time=user.LAST_LOGIN_TIME
         )
         
-        return ApiResponse.success(data=user_response, message="获取用户详情成功")
+        return ApiResponse.success_response(data=user_response, message="获取用户详情成功")
         
     except HTTPException:
         raise
@@ -294,7 +294,7 @@ async def update_user(
         )
         
         logger.info(f"User updated successfully: {user_id}")
-        return ApiResponse.success(data=user_response, message="用户更新成功")
+        return ApiResponse.success_response(data=user_response, message="用户更新成功")
 
     except HTTPException:
         raise
@@ -334,7 +334,7 @@ async def change_password(
             )
 
         logger.info(f"Password changed successfully for user: {user_id}")
-        return ApiResponse.success(data=True, message="密码修改成功")
+        return ApiResponse.success_response(data=True, message="密码修改成功")
 
     except HTTPException:
         raise
@@ -367,7 +367,7 @@ async def lock_user(
             )
 
         logger.info(f"User locked successfully: {user_id}")
-        return ApiResponse.success(data=True, message="用户锁定成功")
+        return ApiResponse.success_response(data=True, message="用户锁定成功")
 
     except HTTPException:
         raise
@@ -400,7 +400,7 @@ async def unlock_user(
             )
 
         logger.info(f"User unlocked successfully: {user_id}")
-        return ApiResponse.success(data=True, message="用户解锁成功")
+        return ApiResponse.success_response(data=True, message="用户解锁成功")
 
     except HTTPException:
         raise
@@ -435,7 +435,7 @@ async def assign_roles_to_user(
             )
 
         logger.info(f"Roles assigned to user successfully: {user_id}")
-        return ApiResponse.success(data=True, message="角色分配成功")
+        return ApiResponse.success_response(data=True, message="角色分配成功")
 
     except HTTPException:
         raise
@@ -485,7 +485,7 @@ async def get_user_roles(
             roles=role_data
         )
 
-        return ApiResponse.success(data=user_role_response, message="获取用户角色成功")
+        return ApiResponse.success_response(data=user_role_response, message="获取用户角色成功")
 
     except HTTPException:
         raise
@@ -494,4 +494,37 @@ async def get_user_roles(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取用户角色失败"
+        )
+
+
+@router.get("/{user_id}/permissions", response_model=ApiResponse[list], summary="获取用户权限")
+async def get_user_permissions(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    获取用户权限列表
+
+    - **user_id**: 用户ID
+    """
+    try:
+        user_service = RBACUserService(db)
+        user = user_service.get_user_by_id(user_id)
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="用户不存在"
+            )
+
+        permissions = user_service.get_user_permissions(user_id)
+        return ApiResponse.success_response(data=permissions, message="获取用户权限成功")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting user permissions for user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取用户权限失败"
         )

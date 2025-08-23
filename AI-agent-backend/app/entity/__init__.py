@@ -4,7 +4,6 @@
 
 from .base import BaseEntity
 from .department import Department
-from .indicator_parameter import IndicatorParameter
 from .menu import Menu
 from .role import Role
 from .role_menu import RoleMenu
@@ -18,6 +17,5 @@ __all__ = [
     "Menu",
     "Department",
     "UserRole",
-    "RoleMenu",
-    "IndicatorParameter"
+    "RoleMenu"
 ]

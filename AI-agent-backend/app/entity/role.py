@@ -76,11 +76,11 @@ class Role(RBACBase):
             角色信息字典
         """
         return {
-            "ROLE_ID": self.ROLE_ID,
-            "ROLE_NAME": self.ROLE_NAME,
-            "REMARK": self.REMARK,
-            "CREATE_TIME": self.CREATE_TIME.isoformat() if self.CREATE_TIME else None,
-            "MODIFY_TIME": self.MODIFY_TIME.isoformat() if self.MODIFY_TIME else None
+            "role_id": self.ROLE_ID,
+            "role_name": self.ROLE_NAME,
+            "remark": self.REMARK,
+            "create_time": self.CREATE_TIME.isoformat() if self.CREATE_TIME else None,
+            "modify_time": self.MODIFY_TIME.isoformat() if self.MODIFY_TIME else None
         }
 
     def __repr__(self):

@@ -6,6 +6,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from typing import List
 
 from app.core.logger import get_logger
 from app.db.session import get_db
@@ -58,7 +59,7 @@ async def create_department(
         )
         
         logger.info(f"Department created successfully: {department.DEPT_NAME}")
-        return ApiResponse.success(data=dept_response, message="部门创建成功")
+        return ApiResponse.success_response(data=dept_response, message="部门创建成功")
         
     except ValueError as e:
         logger.warning(f"Department creation failed: {str(e)}")
@@ -74,7 +75,7 @@ async def create_department(
         )
 
 
-@router.get("/tree", response_model=ApiResponse[DepartmentTreeResponse], summary="获取部门树")
+@router.get("/tree", response_model=ApiResponse[List[DepartmentTreeNode]], summary="获取部门树")
 async def get_department_tree(
     db: Session = Depends(get_db)
 ):
@@ -87,20 +88,19 @@ async def get_department_tree(
         
         # 转换为响应格式
         def convert_to_tree_node(node_data):
+            children = node_data.get("children") or []
             return DepartmentTreeNode(
-                dept_id=node_data["dept_id"],
-                parent_id=node_data["parent_id"],
-                dept_name=node_data["dept_name"],
-                order_num=node_data["order_num"],
-                create_time=node_data["create_time"],
-                modify_time=node_data["modify_time"],
-                children=[convert_to_tree_node(child) for child in node_data["children"]]
+                dept_id=node_data.get("dept_id"),
+                parent_id=node_data.get("parent_id"),
+                dept_name=node_data.get("dept_name"),
+                order_num=node_data.get("order_num"),
+                create_time=node_data.get("create_time"),
+                modify_time=node_data.get("modify_time"),
+                children=[convert_to_tree_node(child) for child in children]
             )
         
-        tree = [convert_to_tree_node(node) for node in tree_data]
-        tree_response = DepartmentTreeResponse(tree=tree)
-        
-        return ApiResponse.success(data=tree_response, message="获取部门树成功")
+        tree_nodes = [convert_to_tree_node(node) for node in (tree_data or [])]
+        return ApiResponse.success_response(data=tree_nodes, message="获取部门树成功")
         
     except Exception as e:
         logger.error(f"Error getting department tree: {str(e)}")
@@ -136,7 +136,7 @@ async def get_departments(
         
         dept_list_response = DepartmentListResponse(departments=dept_responses)
         
-        return ApiResponse.success(data=dept_list_response, message="获取部门列表成功")
+        return ApiResponse.success_response(data=dept_list_response, message="获取部门列表成功")
         
     except Exception as e:
         logger.error(f"Error getting departments: {str(e)}")
@@ -175,7 +175,7 @@ async def get_department(
             modify_time=department.MODIFY_TIME
         )
         
-        return ApiResponse.success(data=dept_response, message="获取部门详情成功")
+        return ApiResponse.success_response(data=dept_response, message="获取部门详情成功")
         
     except HTTPException:
         raise
@@ -224,7 +224,7 @@ async def update_department(
         )
         
         logger.info(f"Department updated successfully: {dept_id}")
-        return ApiResponse.success(data=dept_response, message="部门更新成功")
+        return ApiResponse.success_response(data=dept_response, message="部门更新成功")
         
     except ValueError as e:
         logger.warning(f"Department update failed: {str(e)}")
@@ -263,7 +263,7 @@ async def delete_department(
             )
         
         logger.info(f"Department deleted successfully: {dept_id}")
-        return ApiResponse.success(data=True, message="部门删除成功")
+        return ApiResponse.success_response(data=True, message="部门删除成功")
         
     except ValueError as e:
         logger.warning(f"Department deletion failed: {str(e)}")
@@ -313,7 +313,7 @@ async def get_department_status(
             can_delete=can_delete
         )
         
-        return ApiResponse.success(data=status_response, message="获取部门状态成功")
+        return ApiResponse.success_response(data=status_response, message="获取部门状态成功")
         
     except HTTPException:
         raise

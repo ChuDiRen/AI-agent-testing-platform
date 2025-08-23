@@ -28,7 +28,7 @@
         class="dialog-form"
       >
         <el-row :gutter="gutter">
-          <template v-for="field in fields" :key="field.prop">
+          <template v-for="field in (fields || [])" :key="field.prop">
             <el-col :span="field.span || defaultSpan">
               <el-form-item
                 :label="field.label"
@@ -82,7 +82,7 @@
                   v-bind="field.props"
                 >
                   <el-option
-                    v-for="option in field.options"
+                    v-for="option in (field.options || [])"
                     :key="option.value"
                     :label="option.label"
                     :value="option.value"
@@ -98,7 +98,7 @@
                   v-bind="field.props"
                 >
                   <el-radio
-                    v-for="option in field.options"
+                    v-for="option in (field.options || [])"
                     :key="option.value"
                     :label="option.value"
                     :disabled="option.disabled"
@@ -115,7 +115,7 @@
                   v-bind="field.props"
                 >
                   <el-checkbox
-                    v-for="option in field.options"
+                    v-for="option in (field.options || [])"
                     :key="option.value"
                     :label="option.value"
                     :disabled="option.disabled"
@@ -235,7 +235,7 @@ export interface FormDialogProps {
   appendToBody?: boolean
   
   // 表单属性
-  fields: FormField[]
+  fields?: FormField[]
   formData?: Record<string, any>
   rules?: Record<string, FormRule[]>
   labelWidth?: string
@@ -264,7 +264,8 @@ const props = withDefaults(defineProps<FormDialogProps>(), {
   disabled: false,
   loading: false,
   gutter: 20,
-  defaultSpan: 24
+  defaultSpan: 24,
+  fields: () => []
 })
 
 const emit = defineEmits<{
@@ -297,9 +298,10 @@ const initFormData = () => {
     delete formData[key]
   })
   
-  // 设置默认值
-  props.fields.forEach(field => {
-    formData[field.prop] = field.defaultValue ?? (field.multiple ? [] : '')
+  // 设置默认值（安全遍历）
+  const fields = Array.isArray(props.fields) ? props.fields : []
+  fields.forEach((field) => {
+    formData[field.prop] = field?.defaultValue ?? (field?.multiple ? [] : '')
   })
   
   // 合并传入的数据
@@ -309,7 +311,7 @@ const initFormData = () => {
 }
 
 // 监听表单字段变化
-watch(() => props.fields, initFormData, { immediate: true, deep: true })
+watch(() => props.fields ?? [], initFormData, { immediate: true, deep: true })
 
 // 监听外部数据变化
 watch(() => props.formData, (newVal) => {

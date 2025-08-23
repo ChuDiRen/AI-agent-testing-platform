@@ -3,7 +3,7 @@
 
 from .exceptions import *
 from .helpers import *
-from .redis_client import RedisClient, redis_client
+from .redis_client import *
 
 __all__ = [
     # helpers
@@ -14,7 +14,7 @@ __all__ = [
     "remove_duplicates", "safe_cast", "is_valid_json", "truncate_string",
     "get_client_ip",
     # redis
-    "RedisClient", "redis_client",
+    "CacheClient", "cache_client",
     # exceptions
     "BaseAPIException", "ValidationException", "BusinessException",
     "AuthenticationException", "AuthorizationException", "NotFoundException",

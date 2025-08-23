@@ -26,8 +26,8 @@ export class AuthApi {
    * 获取当前用户信息
    * @returns 用户信息
    */
-  static async getCurrentUser(): Promise<ApiResponse<UserInfo>> {
-    return http.get<UserInfo>('/users/current')
+  static async getCurrentUser(userId: number): Promise<ApiResponse<UserInfo>> {
+    return http.get<UserInfo>(`/users/${userId}`)
   }
 
   /**
@@ -36,7 +36,12 @@ export class AuthApi {
    * @returns 权限列表
    */
   static async getUserPermissions(userId: number): Promise<ApiResponse<string[]>> {
-    return http.get<string[]>(`/users/${userId}/permissions`)
+    const res = await http.get<{ menus: any[]; permissions: string[] }>(`/menus/user/${userId}`)
+    if ((res as any)?.success) {
+      const data = (res as any).data
+      return { ...(res as any), data: data?.permissions || [] }
+    }
+    return res as any
   }
 
   /**
@@ -45,7 +50,12 @@ export class AuthApi {
    * @returns 菜单列表
    */
   static async getUserMenus(userId: number): Promise<ApiResponse<any[]>> {
-    return http.get<any[]>(`/users/${userId}/menus`)
+    const res = await http.get<{ menus: any[]; permissions: string[] }>(`/menus/user/${userId}`)
+    if ((res as any)?.success) {
+      const data = (res as any).data
+      return { ...(res as any), data: data?.menus || [] }
+    }
+    return res as any
   }
 
   /**

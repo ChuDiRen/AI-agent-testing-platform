@@ -98,18 +98,30 @@ export interface PasswordChangeRequest {
 export interface RoleInfo {
   role_id: number
   role_name: string
+  role_code: string
+  description?: string
+  data_scope: string
+  data_scope_name?: string
+  sort: number
+  is_active: boolean
   remark?: string
   create_time: string
   modify_time?: string
 }
 
-// 角色创建请求
+/**
+ * 角色创建请求
+ * 与后端一致：仅需要 role_name 与 remark
+ */
 export interface RoleCreateRequest {
   role_name: string
   remark?: string
 }
 
-// 角色更新请求
+/**
+ * 角色更新请求
+ * 与后端一致：仅可更新 role_name 与 remark
+ */
 export interface RoleUpdateRequest {
   role_name?: string
   remark?: string
@@ -128,12 +140,23 @@ export interface RolePermissionResponse {
   menu_ids: number[]
 }
 
+/**
+ * 角色列表分页响应（后端返回 roles 数组）
+ */
+export interface RoleListResponse {
+  roles: RoleInfo[]
+  total: number
+  page: number
+  size: number
+  pages: number
+}
+
 // 菜单信息
 export interface MenuInfo {
   menu_id: number
   parent_id: number
   menu_name: string
-  menu_type: '0' | '1' // 0:菜单 1:按钮
+  menu_type: '0' | '1' // 0: 菜单, 1: 按钮
   path?: string
   component?: string
   perms?: string
@@ -141,6 +164,7 @@ export interface MenuInfo {
   order_num?: number
   create_time: string
   modify_time?: string
+  children?: MenuInfo[]
 }
 
 // 菜单树节点
@@ -215,14 +239,19 @@ export interface UserRoleAssignRequest {
 
 // 表格列配置
 export interface TableColumn {
-  prop: string
-  label: string
+  prop?: string
+  label?: string
   width?: number | string
   minWidth?: number | string
   fixed?: 'left' | 'right' | boolean
   sortable?: boolean
   formatter?: (row: any, column: any, cellValue: any, index: number) => string
   slot?: string
+  type?: 'selection' | 'index' | 'expand'
+  align?: 'left' | 'center' | 'right'
+  headerAlign?: 'left' | 'center' | 'right'
+  showOverflowTooltip?: boolean
+  render?: any
 }
 
 // 搜索表单字段配置
@@ -230,8 +259,29 @@ export interface SearchField {
   prop: string
   label: string
   component: string
+  labelWidth?: string
+  placeholder?: string
+  clearable?: boolean
+  disabled?: boolean
+  multiple?: boolean
+  dateType?: string
+  format?: string
+  valueFormat?: string
+  rangeSeparator?: string
+  startPlaceholder?: string
+  endPlaceholder?: string
+  min?: number
+  max?: number
+  step?: number
+  data?: any[]
+  checkStrictly?: boolean
+  nodeKey?: string
+  treeProps?: Record<string, any>
+  cascaderProps?: Record<string, any>
+  slot?: string
+  defaultValue?: any
   props?: Record<string, any>
-  options?: Array<{ label: string; value: any }>
+  options?: Array<{ label: string; value: any; disabled?: boolean }>
 }
 
 // 表单规则

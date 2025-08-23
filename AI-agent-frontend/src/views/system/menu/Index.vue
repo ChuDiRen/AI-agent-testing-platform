@@ -92,10 +92,10 @@
         <el-table-column prop="menu_type" label="菜单类型" width="100" align="center">
           <template #default="{ row }">
             <el-tag 
-              :type="row.menu_type === 'directory' ? 'warning' : row.menu_type === 'menu' ? 'primary' : 'info'"
+              :type="row.menu_type === '0' ? 'primary' : 'info'"
               size="small"
             >
-              {{ row.menu_type === 'directory' ? '目录' : row.menu_type === 'menu' ? '菜单' : '按钮' }}
+              {{ row.menu_type === '0' ? '菜单' : '按钮' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -104,9 +104,9 @@
         
         <el-table-column prop="component" label="组件路径" min-width="180" show-overflow-tooltip />
         
-        <el-table-column prop="permission" label="权限标识" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="perms" label="权限标识" min-width="150" show-overflow-tooltip />
         
-        <el-table-column prop="sort" label="排序" width="80" align="center" />
+        <el-table-column prop="order_num" label="排序" width="80" align="center" />
         
         <el-table-column prop="is_active" label="状态" width="80" align="center">
           <template #default="{ row }">
@@ -135,7 +135,7 @@
               link
               @click="handleAddChild(row)"
               v-permission="['menu:create']"
-              v-if="row.menu_type !== 'button'"
+              v-if="row.menu_type !== '1'"
             >
               新增子菜单
             </el-button>
@@ -184,9 +184,8 @@
           <el-col :span="12">
             <el-form-item label="菜单类型" prop="menu_type">
               <el-radio-group v-model="formData.menu_type" @change="handleMenuTypeChange">
-                <el-radio label="directory">目录</el-radio>
-                <el-radio label="menu">菜单</el-radio>
-                <el-radio label="button">按钮</el-radio>
+                <el-radio label="0">菜单</el-radio>
+                <el-radio label="1">按钮</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -220,7 +219,7 @@
           </el-col>
         </el-row>
         
-        <el-row :gutter="20" v-if="formData.menu_type !== 'button'">
+        <el-row :gutter="20" v-if="formData.menu_type !== '1'">
           <el-col :span="12">
             <el-form-item label="路由地址" prop="path">
               <el-input 
@@ -230,7 +229,7 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12" v-if="formData.menu_type === 'menu'">
+          <el-col :span="12" v-if="formData.menu_type === '0'">
             <el-form-item label="组件路径" prop="component">
               <el-input 
                 v-model="formData.component" 
@@ -243,18 +242,18 @@
         
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="权限标识" prop="permission">
+            <el-form-item label="权限标识" prop="perms">
               <el-input 
-                v-model="formData.permission" 
+                v-model="formData.perms" 
                 placeholder="请输入权限标识"
                 maxlength="100"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="排序" prop="sort">
+            <el-form-item label="排序" prop="order_num">
               <el-input-number 
-                v-model="formData.sort" 
+                v-model="formData.order_num" 
                 :min="0" 
                 :max="999"
                 placeholder="请输入排序"
@@ -263,45 +262,6 @@
           </el-col>
         </el-row>
         
-        <el-row :gutter="20" v-if="formData.menu_type === 'menu'">
-          <el-col :span="12">
-            <el-form-item label="是否缓存">
-              <el-switch 
-                v-model="formData.is_cache"
-                active-text="是"
-                inactive-text="否"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="是否隐藏">
-              <el-switch 
-                v-model="formData.is_hidden"
-                active-text="是"
-                inactive-text="否"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        
-        <el-form-item label="状态" prop="is_active">
-          <el-switch 
-            v-model="formData.is_active"
-            active-text="启用"
-            inactive-text="禁用"
-          />
-        </el-form-item>
-        
-        <el-form-item label="备注" prop="remark">
-          <el-input 
-            v-model="formData.remark" 
-            type="textarea"
-            placeholder="请输入备注"
-            :rows="3"
-            maxlength="200"
-            show-word-limit
-          />
-        </el-form-item>
       </el-form>
     </FormDialog>
   </div>
@@ -317,7 +277,7 @@ import type { MenuInfo, MenuCreateRequest, MenuUpdateRequest, MenuTreeNode } fro
 
 // 表单引用
 const formRef = ref<FormInstance>()
-const tableRef = ref<ElTable>()
+const tableRef = ref<typeof ElTable>()
 
 // 数据和状态
 const loading = ref(false)
@@ -337,19 +297,15 @@ const searchForm = reactive({
 })
 
 // 表单数据
-const formData = reactive<MenuCreateRequest>({
-  parent_id: null,
+const formData = reactive({
+  parent_id: 0,
   menu_name: '',
-  menu_type: 'menu',
+  menu_type: '0' as '0' | '1',
   icon: '',
   path: '',
   component: '',
-  permission: '',
-  sort: 0,
-  is_cache: true,
-  is_hidden: false,
-  is_active: true,
-  remark: ''
+  perms: '',
+  order_num: 0
 })
 
 // 表单验证规则
@@ -361,13 +317,13 @@ const formRules = computed(() => ({
   menu_type: [
     { required: true, message: '请选择菜单类型', trigger: 'change' }
   ],
-  path: formData.menu_type !== 'button' ? [
+  path: formData.menu_type !== '1' ? [
     { required: true, message: '请输入路由地址', trigger: 'blur' }
   ] : [],
-  component: formData.menu_type === 'menu' ? [
+  component: formData.menu_type === '0' ? [
     { required: true, message: '请输入组件路径', trigger: 'blur' }
   ] : [],
-  permission: [
+  perms: [
     { max: 100, message: '权限标识不能超过 100 个字符', trigger: 'blur' }
   ]
 }))
@@ -382,18 +338,14 @@ const menuTreeProps = {
 // 初始化表单数据
 const initFormData = () => {
   Object.assign(formData, {
-    parent_id: null,
+    parent_id: 0,
     menu_name: '',
-    menu_type: 'menu',
+    menu_type: '0' as '0' | '1',
     icon: '',
     path: '',
     component: '',
-    permission: '',
-    sort: 0,
-    is_cache: true,
-    is_hidden: false,
-    is_active: true,
-    remark: ''
+    perms: '',
+    order_num: 0
   })
 }
 
@@ -406,9 +358,12 @@ const loadMenuList = async () => {
       is_active: searchForm.is_active
     }
     
-    const response = await MenuApi.getMenuTree(params)
-    if (response.success && response.data) {
-      tableData.value = response.data
+    const response = await MenuApi.getMenuTree()
+    if (response.success) {
+      const data = (Array.isArray(response.data) ? response.data : (response.data as any)?.tree) || []
+      tableData.value = data
+    } else {
+      tableData.value = []
     }
   } catch (error) {
     console.error('加载菜单列表失败:', error)
@@ -422,18 +377,21 @@ const loadMenuList = async () => {
 const loadMenuTreeOptions = async () => {
   try {
     const response = await MenuApi.getMenuTree()
-    if (response.success && response.data) {
+    if (response.success) {
+      const data = (Array.isArray(response.data) ? response.data : (response.data as any)?.tree) || []
       // 过滤出按钮类型，只显示目录和菜单
-      menuTreeOptions.value = filterMenuOptions(response.data)
+      menuTreeOptions.value = filterMenuOptions(data)
+    } else {
+      menuTreeOptions.value = []
     }
   } catch (error) {
     console.error('加载菜单树选项失败:', error)
   }
 }
 
-// 过滤菜单选项（只显示目录和菜单）
+// 过滤菜单选项（只显示菜单，不显示按钮）
 const filterMenuOptions = (menus: MenuTreeNode[]): MenuTreeNode[] => {
-  return menus.filter(menu => menu.menu_type !== 'button').map(menu => ({
+  return menus.filter(menu => menu.menu_type !== '1').map(menu => ({
     ...menu,
     children: menu.children ? filterMenuOptions(menu.children) : []
   }))
@@ -508,12 +466,8 @@ const handleEdit = (row: MenuInfo) => {
     icon: row.icon || '',
     path: row.path || '',
     component: row.component || '',
-    permission: row.permission || '',
-    sort: row.sort,
-    is_cache: row.is_cache,
-    is_hidden: row.is_hidden,
-    is_active: row.is_active,
-    remark: row.remark || ''
+    perms: row.perms || '',
+    order_num: row.order_num || 0
   })
   currentMenu.value = row
   formDialogVisible.value = true
@@ -586,14 +540,13 @@ const handleFormConfirm = async () => {
 
 // 菜单类型变化
 const handleMenuTypeChange = (type: string) => {
-  if (type === 'button') {
+  if (type === '1') {
+    // 按钮类型
     formData.path = ''
     formData.component = ''
-    formData.is_cache = false
-    formData.is_hidden = false
-  } else if (type === 'directory') {
-    formData.component = 'Layout'
-    formData.is_cache = false
+  } else if (type === '0') {
+    // 菜单类型
+    // 可以设置默认值
   }
 }
 
@@ -661,3 +614,4 @@ onMounted(() => {
 :deep(.el-tree-select) {
   width: 100%;
 }
+</style>

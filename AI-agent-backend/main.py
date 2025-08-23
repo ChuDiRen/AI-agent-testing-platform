@@ -3,8 +3,11 @@ AI Agent Backend - 主应用入口
 企业级五层架构FastAPI应用
 """
 
-from contextlib import asynccontextmanager
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -30,7 +33,7 @@ async def lifespan(app: FastAPI):
     """
     # 启动时执行
     logger.info("Starting AI Agent Backend...")
-    
+
     # 创建数据库表
     try:
         create_tables()
@@ -38,11 +41,11 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to create database tables: {str(e)}")
         raise
-    
+
     logger.info("AI Agent Backend started successfully")
-    
+
     yield
-    
+
     # 关闭时执行
     logger.info("Shutting down AI Agent Backend...")
 
@@ -62,9 +65,11 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=False,  # 通配符与凭据不能同时使用
     allow_methods=settings.ALLOWED_METHODS,
     allow_headers=settings.ALLOWED_HEADERS,
+    expose_headers=["X-Total-Count", "X-Page-Count"],
+    max_age=3600,
 )
 
 
@@ -163,6 +168,25 @@ app.include_router(department_router, prefix=settings.API_V1_PREFIX)
 app.include_router(rbac_user_router, prefix=settings.API_V1_PREFIX)
 
 
+# CORS 预检与兜底响应头
+@app.middleware("http")
+async def cors_preflight(request: Request, call_next):
+    # 预检请求直接放行并返回必要头
+    if request.method == "OPTIONS":
+        headers = {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": ",".join(settings.ALLOWED_METHODS),
+            "Access-Control-Allow-Headers": "*" if "*" in settings.ALLOWED_HEADERS else ",".join(settings.ALLOWED_HEADERS),
+            "Access-Control-Max-Age": "3600",
+        }
+        return JSONResponse(status_code=200, content=None, headers=headers)
+    # 正常请求继续
+    response = await call_next(request)
+    # 兜底添加CORS响应头
+    response.headers.setdefault("Access-Control-Allow-Origin", "*")
+    response.headers.setdefault("Access-Control-Expose-Headers", "X-Total-Count, X-Page-Count")
+    return response
+
 # 中间件：请求日志
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -171,23 +195,22 @@ async def log_requests(request: Request, call_next):
     """
     # 记录请求开始
     logger.info(f"Request: {request.method} {request.url}")
-    
+
     # 处理请求
     response = await call_next(request)
-    
+
     # 记录响应
     logger.info(f"Response: {response.status_code}")
-    
+
     return response
 
 
 if __name__ == "__main__":
-    # 直接运行应用
     uvicorn.run(
-        "main:app",
+        "main:app",  # 使用导入字符串格式以支持reload
         host=settings.HOST,
         port=settings.PORT,
-        reload=settings.RELOAD and settings.is_development,
         log_level=settings.LOG_LEVEL.lower(),
-        access_log=True
+        access_log=True,
+        reload=True
     )

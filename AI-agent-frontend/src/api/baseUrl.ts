@@ -1,6 +1,6 @@
-// baseUrl.ts
+ // baseUrl.ts
 const baseUrl: any = {
-  development: 'http://localhost:8000/api/v1',
+  development: '/api/v1',
   production: 'https://your-production-api.com/api/v1',
 }
 

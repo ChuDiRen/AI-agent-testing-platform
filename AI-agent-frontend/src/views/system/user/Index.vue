@@ -68,7 +68,7 @@
       :columns="tableColumns"
       :pagination="pagination"
       :show-selection="true"
-      :show-index="true"
+      :show-index="false"
       @selection-change="handleSelectionChange"
       @page-change="handlePageChange"
       @size-change="handleSizeChange"
@@ -489,14 +489,14 @@ const handleAdd = () => {
 }
 
 // 编辑用户
-const handleEdit = (row: UserInfo) => {
+const handleEdit = (row: UserInfo, index?: number) => {
   isEdit.value = true
   currentUser.value = { ...row }
   userDialogVisible.value = true
 }
 
 // 删除用户
-const handleDelete = async (row: UserInfo) => {
+const handleDelete = async (row: UserInfo, index?: number) => {
   try {
     await ElMessageBox.confirm(
       `确定要删除用户 "${row.username}" 吗？`,

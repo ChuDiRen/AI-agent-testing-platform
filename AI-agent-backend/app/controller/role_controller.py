@@ -54,7 +54,7 @@ async def create_role(
         )
         
         logger.info(f"Role created successfully: {role.ROLE_NAME}")
-        return ApiResponse.success(data=role_response, message="角色创建成功")
+        return ApiResponse.success_response(data=role_response, message="角色创建成功")
         
     except ValueError as e:
         logger.warning(f"Role creation failed: {str(e)}")
@@ -89,11 +89,11 @@ async def get_roles(
         # 转换为响应格式
         roles = [
             RoleResponse(
-                role_id=role_data["ROLE_ID"],
-                role_name=role_data["ROLE_NAME"],
-                remark=role_data["REMARK"],
-                create_time=role_data["CREATE_TIME"],
-                modify_time=role_data["MODIFY_TIME"]
+                role_id=role_data["role_id"],
+                role_name=role_data["role_name"],
+                remark=role_data["remark"],
+                create_time=role_data["create_time"],
+                modify_time=role_data["modify_time"]
             )
             for role_data in result["roles"]
         ]
@@ -106,7 +106,7 @@ async def get_roles(
             pages=result["pages"]
         )
         
-        return ApiResponse.success(data=role_list_response, message="获取角色列表成功")
+        return ApiResponse.success_response(data=role_list_response, message="获取角色列表成功")
         
     except Exception as e:
         logger.error(f"Error getting roles: {str(e)}")
@@ -144,7 +144,7 @@ async def get_role(
             modify_time=role.MODIFY_TIME
         )
         
-        return ApiResponse.success(data=role_response, message="获取角色详情成功")
+        return ApiResponse.success_response(data=role_response, message="获取角色详情成功")
         
     except HTTPException:
         raise
@@ -192,7 +192,7 @@ async def update_role(
         )
         
         logger.info(f"Role updated successfully: {role_id}")
-        return ApiResponse.success(data=role_response, message="角色更新成功")
+        return ApiResponse.success_response(data=role_response, message="角色更新成功")
         
     except ValueError as e:
         logger.warning(f"Role update failed: {str(e)}")
@@ -231,7 +231,7 @@ async def delete_role(
             )
         
         logger.info(f"Role deleted successfully: {role_id}")
-        return ApiResponse.success(data=True, message="角色删除成功")
+        return ApiResponse.success_response(data=True, message="角色删除成功")
         
     except ValueError as e:
         logger.warning(f"Role deletion failed: {str(e)}")
@@ -272,7 +272,7 @@ async def assign_menus_to_role(
             )
         
         logger.info(f"Menus assigned to role successfully: {role_id}")
-        return ApiResponse.success(data=True, message="菜单权限分配成功")
+        return ApiResponse.success_response(data=True, message="菜单权限分配成功")
         
     except HTTPException:
         raise
@@ -314,7 +314,7 @@ async def get_role_permissions(
             menu_ids=menu_ids
         )
         
-        return ApiResponse.success(data=permission_response, message="获取角色权限成功")
+        return ApiResponse.success_response(data=permission_response, message="获取角色权限成功")
         
     except HTTPException:
         raise

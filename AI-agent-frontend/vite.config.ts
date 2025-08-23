@@ -31,7 +31,14 @@ export default ({ mode }: any) => {
       host: '0.0.0.0',
       port: 8000,
       open: true,
-      proxy: {}
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8000',
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path.replace(/^\/api/, '/api')
+        }
+      }
     },
     // 生产环境打包配置
     // 去除 console debugger

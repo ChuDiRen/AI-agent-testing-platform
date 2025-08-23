@@ -6,6 +6,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from typing import List
 
 from app.core.logger import get_logger
 from app.db.session import get_db
@@ -72,7 +73,7 @@ async def create_menu(
         )
         
         logger.info(f"Menu created successfully: {menu.MENU_NAME}")
-        return ApiResponse.success(data=menu_response, message="菜单创建成功")
+        return ApiResponse.success_response(data=menu_response, message="菜单创建成功")
         
     except Exception as e:
         logger.error(f"Unexpected error creating menu: {str(e)}")
@@ -82,7 +83,7 @@ async def create_menu(
         )
 
 
-@router.get("/tree", response_model=ApiResponse[MenuTreeResponse], summary="获取菜单树")
+@router.get("/tree", response_model=ApiResponse[List[MenuTreeNode]], summary="获取菜单树")
 async def get_menu_tree(
     db: Session = Depends(get_db)
 ):
@@ -95,23 +96,23 @@ async def get_menu_tree(
         
         # 转换为响应格式
         def convert_to_tree_node(node_data):
+            children = node_data.get("children") or []
             return MenuTreeNode(
-                menu_id=node_data["menu_id"],
-                parent_id=node_data["parent_id"],
-                menu_name=node_data["menu_name"],
-                path=node_data["path"],
-                component=node_data["component"],
-                perms=node_data["perms"],
-                icon=node_data["icon"],
-                menu_type=node_data["type"],
-                order_num=node_data["order_num"],
-                children=[convert_to_tree_node(child) for child in node_data["children"]]
+                menu_id=node_data.get("menu_id"),
+                parent_id=node_data.get("parent_id"),
+                menu_name=node_data.get("menu_name"),
+                path=node_data.get("path"),
+                component=node_data.get("component"),
+                perms=node_data.get("perms"),
+                icon=node_data.get("icon"),
+                menu_type=node_data.get("type"),
+                order_num=node_data.get("order_num"),
+                children=[convert_to_tree_node(child) for child in children]
             )
         
-        tree = [convert_to_tree_node(node) for node in tree_data]
-        tree_response = MenuTreeResponse(tree=tree)
+        tree_nodes = [convert_to_tree_node(node) for node in (tree_data or [])]
         
-        return ApiResponse.success(data=tree_response, message="获取菜单树成功")
+        return ApiResponse.success_response(data=tree_nodes, message="获取菜单树成功")
         
     except Exception as e:
         logger.error(f"Error getting menu tree: {str(e)}")
@@ -155,7 +156,7 @@ async def get_menu(
             modify_time=menu.MODIFY_TIME
         )
         
-        return ApiResponse.success(data=menu_response, message="获取菜单详情成功")
+        return ApiResponse.success_response(data=menu_response, message="获取菜单详情成功")
         
     except HTTPException:
         raise
@@ -217,7 +218,7 @@ async def update_menu(
         )
         
         logger.info(f"Menu updated successfully: {menu_id}")
-        return ApiResponse.success(data=menu_response, message="菜单更新成功")
+        return ApiResponse.success_response(data=menu_response, message="菜单更新成功")
         
     except HTTPException:
         raise
@@ -250,7 +251,7 @@ async def delete_menu(
             )
         
         logger.info(f"Menu deleted successfully: {menu_id}")
-        return ApiResponse.success(data=True, message="菜单删除成功")
+        return ApiResponse.success_response(data=True, message="菜单删除成功")
         
     except ValueError as e:
         logger.warning(f"Menu deletion failed: {str(e)}")
@@ -318,7 +319,7 @@ async def get_user_menus(
             permissions=user_permissions
         )
         
-        return ApiResponse.success(data=user_menu_response, message="获取用户菜单成功")
+        return ApiResponse.success_response(data=user_menu_response, message="获取用户菜单成功")
         
     except Exception as e:
         logger.error(f"Error getting user menus for user {user_id}: {str(e)}")

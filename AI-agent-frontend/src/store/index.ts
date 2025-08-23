@@ -1,7 +1,7 @@
 /**
  * Store模块统一导出
  */
-export { useUserStore, userStore } from '@/store/user'
+export { useUserStore } from '@/store/user'
 export { useSystemStore } from '@/store/modules/system'
 
 // 导出store实例

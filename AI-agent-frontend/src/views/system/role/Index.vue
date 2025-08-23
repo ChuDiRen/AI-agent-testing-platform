@@ -58,9 +58,12 @@
         :columns="tableColumns"
         :loading="loading"
         :pagination="pagination"
-        @selection-change="handleSelectionChange"
-        @page-change="handlePageChange"
-        @size-change="handleSizeChange"
+        :show-selection="true"
+        :row-key="'role_id'"
+        :action-width="200"
+        @selectionChange="handleSelectionChange"
+        @pageChange="handlePageChange"
+        @sizeChange="handleSizeChange"
       >
         <template #status="{ row }">
           <el-tag :type="row.is_active ? 'success' : 'danger'">
@@ -114,6 +117,7 @@
       v-model="formDialogVisible"
       :title="isEdit ? '编辑角色' : '新增角色'"
       :loading="formLoading"
+      :fields="[]"
       @confirm="handleFormConfirm"
     >
       <el-form
@@ -126,55 +130,19 @@
           <el-input 
             v-model="formData.role_name" 
             placeholder="请输入角色名称"
-            maxlength="50"
+            maxlength="10"
             show-word-limit
           />
         </el-form-item>
         
-        <el-form-item label="角色编码" prop="role_code">
+        <el-form-item label="角色描述" prop="remark">
           <el-input 
-            v-model="formData.role_code" 
-            placeholder="请输入角色编码"
-            maxlength="50"
-            show-word-limit
-          />
-        </el-form-item>
-        
-        <el-form-item label="角色描述" prop="description">
-          <el-input 
-            v-model="formData.description" 
+            v-model="formData.remark" 
             type="textarea"
             placeholder="请输入角色描述"
             :rows="3"
-            maxlength="200"
+            maxlength="100"
             show-word-limit
-          />
-        </el-form-item>
-        
-        <el-form-item label="授权范围" prop="data_scope">
-          <el-select v-model="formData.data_scope" placeholder="请选择授权范围">
-            <el-option label="全部数据权限" value="1" />
-            <el-option label="自定义数据权限" value="2" />
-            <el-option label="本部门数据权限" value="3" />
-            <el-option label="本部门及以下数据权限" value="4" />
-            <el-option label="仅本人数据权限" value="5" />
-          </el-select>
-        </el-form-item>
-        
-        <el-form-item label="排序" prop="sort">
-          <el-input-number 
-            v-model="formData.sort" 
-            :min="0" 
-            :max="999"
-            placeholder="请输入排序"
-          />
-        </el-form-item>
-        
-        <el-form-item label="状态" prop="is_active">
-          <el-switch 
-            v-model="formData.is_active"
-            active-text="启用"
-            inactive-text="禁用"
           />
         </el-form-item>
       </el-form>
@@ -267,7 +235,7 @@ import type { RoleInfo, RoleCreateRequest, RoleUpdateRequest, MenuTreeNode, Tabl
 
 // 表单引用
 const formRef = ref<FormInstance>()
-const menuTreeRef = ref<ElTree>()
+const menuTreeRef = ref<typeof ElTree>()
 
 // 数据和状态
 const loading = ref(false)
@@ -296,52 +264,34 @@ const searchForm = reactive({
 // 分页信息
 const pagination = reactive({
   page: 1,
-  page_size: 10,
+  size: 10,
   total: 0
 })
 
 // 表单数据
-const formData = reactive<RoleCreateRequest>({
+const formData = reactive({
   role_name: '',
-  role_code: '',
-  description: '',
-  data_scope: '1',
-  sort: 0,
-  is_active: true
+  remark: ''
 })
 
 // 表单验证规则
 const formRules = {
   role_name: [
     { required: true, message: '请输入角色名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '角色名称长度在 2 到 50 个字符', trigger: 'blur' }
+    { min: 2, max: 10, message: '角色名称长度在 2 到 10 个字符', trigger: 'blur' }
   ],
-  role_code: [
-    { required: true, message: '请输入角色编码', trigger: 'blur' },
-    { min: 2, max: 50, message: '角色编码长度在 2 到 50 个字符', trigger: 'blur' },
-    { pattern: /^[a-zA-Z0-9_-]+$/, message: '角色编码只能包含字母、数字、下划线和中划线', trigger: 'blur' }
-  ],
-  description: [
-    { max: 200, message: '描述不能超过 200 个字符', trigger: 'blur' }
-  ],
-  data_scope: [
-    { required: true, message: '请选择授权范围', trigger: 'change' }
+  remark: [
+    { max: 100, message: '描述不能超过 100 个字符', trigger: 'blur' }
   ]
 }
 
 // 表格列配置
-const tableColumns: TableColumn[] = [
-  { type: 'selection', width: 50 },
+const tableColumns = ref<TableColumn[]>([
   { prop: 'role_id', label: 'ID', width: 80 },
   { prop: 'role_name', label: '角色名称', minWidth: 120 },
-  { prop: 'role_code', label: '角色编码', minWidth: 120 },
-  { prop: 'description', label: '描述', minWidth: 150, showOverflowTooltip: true },
-  { prop: 'data_scope_name', label: '数据范围', width: 120 },
-  { prop: 'sort', label: '排序', width: 80 },
-  { prop: 'is_active', label: '状态', width: 80, slot: 'status' },
-  { prop: 'created_at', label: '创建时间', width: 180 },
-  { label: '操作', width: 200, fixed: 'right', slot: 'actions' }
-]
+  { prop: 'remark', label: '描述', minWidth: 150, showOverflowTooltip: true },
+  { prop: 'create_time', label: '创建时间', width: 180 },
+])
 
 // 菜单树配置
 const menuTreeProps = {
@@ -353,11 +303,7 @@ const menuTreeProps = {
 const initFormData = () => {
   Object.assign(formData, {
     role_name: '',
-    role_code: '',
-    description: '',
-    data_scope: '1',
-    sort: 0,
-    is_active: true
+    remark: ''
   })
 }
 
@@ -367,18 +313,24 @@ const loadRoleList = async () => {
     loading.value = true
     const params = {
       page: pagination.page,
-      page_size: pagination.page_size,
+      size: pagination.size,
       keyword: searchForm.keyword || undefined
     }
     
     const response = await RoleApi.getRoleList(params)
     if (response.success && response.data) {
-      tableData.value = response.data.items
-      pagination.total = response.data.total
+      // 后端返回的是 RoleListResponse 格式，包含 roles 数组
+      tableData.value = Array.isArray(response.data.roles) ? response.data.roles : []
+      pagination.total = response.data.total || 0
+    } else {
+      tableData.value = []
+      pagination.total = 0
     }
   } catch (error) {
     console.error('加载角色列表失败:', error)
     ElMessage.error('加载角色列表失败')
+    tableData.value = []
+    pagination.total = 0
   } finally {
     loading.value = false
   }
@@ -389,10 +341,13 @@ const loadMenuTree = async () => {
   try {
     const response = await MenuApi.getMenuTree()
     if (response.success && response.data) {
-      menuTreeData.value = response.data
+      menuTreeData.value = Array.isArray(response.data) ? response.data : []
+    } else {
+      menuTreeData.value = []
     }
   } catch (error) {
     console.error('加载菜单树失败:', error)
+    menuTreeData.value = []
   }
 }
 
@@ -417,15 +372,11 @@ const handleAdd = () => {
 }
 
 // 编辑
-const handleEdit = (row: RoleInfo) => {
+const handleEdit = (row: any) => {
   isEdit.value = true
   Object.assign(formData, {
     role_name: row.role_name,
-    role_code: row.role_code,
-    description: row.description || '',
-    data_scope: row.data_scope,
-    sort: row.sort,
-    is_active: row.is_active
+    remark: row.remark || ''
   })
   currentRole.value = row
   formDialogVisible.value = true
@@ -482,7 +433,7 @@ const handleDelete = async (row: RoleInfo) => {
 
 // 批量删除
 const handleBatchDelete = async () => {
-  if (selectedRoles.value.length === 0) {
+  if (!selectedRoles.value || selectedRoles.value.length === 0) {
     ElMessage.warning('请选择要删除的角色')
     return
   }
@@ -498,7 +449,7 @@ const handleBatchDelete = async () => {
       }
     )
     
-    const roleIds = selectedRoles.value.map(role => role.role_id)
+    const roleIds = (selectedRoles.value || []).map(role => role.role_id)
     const response = await RoleApi.batchDeleteRoles(roleIds)
     if (response.success) {
       ElMessage.success('批量删除成功')
@@ -522,7 +473,7 @@ const handleFormConfirm = async () => {
     formLoading.value = true
     
     if (isEdit.value && currentRole.value) {
-      const updateData: RoleUpdateRequest = { ...formData }
+      const updateData = { ...formData }
       const response = await RoleApi.updateRole(currentRole.value.role_id, updateData)
       if (response.success) {
         ElMessage.success('更新成功')
@@ -555,7 +506,8 @@ const handlePermission = async (row: RoleInfo) => {
     const response = await RoleApi.getRoleMenus(row.role_id)
     if (response.success && response.data) {
       nextTick(() => {
-        menuTreeRef.value?.setCheckedKeys(response.data)
+        const menuIds = Array.isArray(response.data) ? response.data : []
+        menuTreeRef.value?.setCheckedKeys(menuIds)
         updateMenuCheckStatus()
       })
     }
@@ -569,8 +521,8 @@ const handlePermission = async (row: RoleInfo) => {
 // 菜单全选/反选
 const handleMenuCheckAll = (checked: boolean) => {
   if (checked) {
-    const allKeys = getAllMenuKeys(menuTreeData.value)
-    menuTreeRef.value?.setCheckedKeys(allKeys)
+    const allKeys = getAllMenuKeys(menuTreeData.value || [])
+    menuTreeRef.value?.setCheckedKeys(allKeys || [])
   } else {
     menuTreeRef.value?.setCheckedKeys([])
   }
@@ -585,9 +537,9 @@ const handleMenuCheck = () => {
 // 更新菜单选中状态
 const updateMenuCheckStatus = () => {
   const checkedKeys = menuTreeRef.value?.getCheckedKeys(false) || []
-  const allKeys = getAllMenuKeys(menuTreeData.value)
+  const allKeys = getAllMenuKeys(menuTreeData.value || [])
   
-  menuCheckAll.value = checkedKeys.length === allKeys.length
+  menuCheckAll.value = checkedKeys.length > 0 && checkedKeys.length === allKeys.length
   menuIndeterminate.value = checkedKeys.length > 0 && checkedKeys.length < allKeys.length
 }
 
@@ -595,14 +547,17 @@ const updateMenuCheckStatus = () => {
 const getAllMenuKeys = (menus: MenuTreeNode[]): number[] => {
   const keys: number[] = []
   const traverse = (nodes: MenuTreeNode[]) => {
-    nodes.forEach(node => {
-      keys.push(node.menu_id)
-      if (node.children && node.children.length > 0) {
-        traverse(node.children)
+    if (!nodes || !Array.isArray(nodes)) return
+    (nodes || []).forEach(node => {
+      if (node && node.menu_id) {
+        keys.push(node.menu_id)
+        if (node.children && Array.isArray(node.children) && node.children.length > 0) {
+          traverse(node.children)
+        }
       }
     })
   }
-  traverse(menus)
+  traverse(menus || [])
   return keys
 }
 
@@ -629,8 +584,8 @@ const handlePermissionSave = async () => {
   try {
     permissionLoading.value = true
     
-    const checkedKeys = menuTreeRef.value?.getCheckedKeys(false) as number[]
-    const halfCheckedKeys = menuTreeRef.value?.getHalfCheckedKeys() as number[]
+    const checkedKeys = (menuTreeRef.value?.getCheckedKeys(false) as number[]) || []
+    const halfCheckedKeys = (menuTreeRef.value?.getHalfCheckedKeys() as number[]) || []
     const menuIds = [...checkedKeys, ...halfCheckedKeys]
     
     const response = await RoleApi.assignRoleMenus(currentRole.value.role_id, {
@@ -662,7 +617,7 @@ const handlePageChange = (page: number) => {
 
 // 页面大小变化
 const handleSizeChange = (size: number) => {
-  pagination.page_size = size
+  pagination.size = size
   pagination.page = 1
   loadRoleList()
 }

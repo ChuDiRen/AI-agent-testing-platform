@@ -5,7 +5,6 @@
 from .base import BaseRepository
 from .base_repository import BaseRepository as RBACBaseRepository
 from .department_repository import DepartmentRepository
-from .indicator_parameter_repository import IndicatorParameterRepository
 from .menu_repository import MenuRepository
 from .role_menu_repository import RoleMenuRepository
 from .role_repository import RoleRepository
@@ -18,6 +17,5 @@ __all__ = [
     "MenuRepository",
     "DepartmentRepository",
     "UserRoleRepository",
-    "RoleMenuRepository",
-    "IndicatorParameterRepository"
+    "RoleMenuRepository"
 ]

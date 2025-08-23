@@ -12,6 +12,7 @@ from app.core.logger import get_logger
 from app.entity.menu import Menu
 from app.repository.menu_repository import MenuRepository
 from app.repository.role_menu_repository import RoleMenuRepository
+from app.utils.redis_client import cache_client
 
 logger = get_logger(__name__)
 
@@ -274,17 +275,29 @@ class MenuService:
         Returns:
             权限标识列表
         """
+        cache_key = f"user_permissions_{user_id}"
+        cached_permissions = cache_client.get(cache_key)
+        if cached_permissions is not None:
+            logger.debug(f"Returning cached permissions for user {user_id}")
+            return cached_permissions
+
         from app.repository.user_role_repository import UserRoleRepository
-        
+
         # 获取用户的所有角色
         user_role_repository = UserRoleRepository(self.db)
         roles = user_role_repository.get_roles_by_user_id(user_id)
-        
+
         # 获取所有角色的权限
         all_permissions = []
         for role in roles:
             permissions = self.role_menu_repository.get_permissions_by_role_id(role.ROLE_ID)
             all_permissions.extend(permissions)
-        
-        # 去重并返回
-        return list(set(all_permissions))
+
+        # 去重
+        unique_permissions = list(set(all_permissions))
+
+        # 存入缓存
+        cache_client.set(cache_key, unique_permissions, ttl=3600)  # 缓存1小时
+        logger.debug(f"Cached new permissions for user {user_id}")
+
+        return unique_permissions

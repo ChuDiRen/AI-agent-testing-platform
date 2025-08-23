@@ -40,7 +40,7 @@
       />
 
       <!-- 数据列 -->
-      <template v-for="column in columns" :key="column.prop">
+      <template v-for="column in (columns || [])" :key="column.prop || column.label">
         <el-table-column
           :prop="column.prop"
           :label="column.label"

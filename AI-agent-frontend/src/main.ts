@@ -2,6 +2,10 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router/index'
 import pinia from "@/store/store"
+import { setupPermissionDirectives } from '@/directives/permission'
+import ElementPlus from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import 'element-plus/dist/index.css'
 
 // 公共样式引入
 import './assets/style/reset.scss'
@@ -11,5 +15,7 @@ const app = createApp(App)
 
 app.use(router)
 app.use(pinia)
+app.use(ElementPlus, { locale: zhCn })
+setupPermissionDirectives(app)
 
 app.mount('#app')

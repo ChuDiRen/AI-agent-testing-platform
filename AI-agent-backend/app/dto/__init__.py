@@ -11,10 +11,8 @@ from .base import (
     PaginatedResponse
 )
 from .department_dto import *
-from .indicator_parameter import *
 from .menu_dto import *
 from .role_dto import *
-from .user import *
 from .user_dto import *
 
 __all__ = [

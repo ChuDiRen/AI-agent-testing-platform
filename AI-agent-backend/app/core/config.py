@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     
     # 服务器配置
     HOST: str = "0.0.0.0"
-    PORT: int = 8000
+    PORT: int = 8001  # 改为8001避免端口冲突
     RELOAD: bool = True
     
     # 数据库配置
@@ -49,11 +49,7 @@ class Settings(BaseSettings):
     LOG_RETENTION: str = "30 days"
     
     # CORS配置
-    ALLOWED_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://localhost:8080",
-        "http://localhost:8000"
-    ]
+    ALLOWED_ORIGINS: List[str] = ["*"]  # 开发环境使用通配符
     ALLOWED_METHODS: List[str] = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     ALLOWED_HEADERS: List[str] = ["*"]
     
