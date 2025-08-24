@@ -93,8 +93,8 @@ class DepartmentService:
         # 构建部门树
         dept_dict = {}
         for dept in all_departments:
-            dept_dict[dept.dept_id] = {
-                "dept_id": dept.dept_id,
+            dept_dict[dept.id] = {  # 修复：使用正确的属性名
+                "dept_id": dept.id,  # 修复：使用正确的属性名
                 "parent_id": dept.parent_id,
                 "dept_name": dept.dept_name,
                 "order_num": dept.order_num,

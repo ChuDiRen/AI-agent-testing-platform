@@ -4,12 +4,31 @@
 
 AI-Agent-Backend 是一个基于 FastAPI 的企业级 RBAC 权限管理系统，提供完整的用户、角色、菜单、部门管理功能。
 
+### 最新更新 (2025-08-24)
+
+✅ **已修复的问题**：
+- 修复了所有实体类属性名不一致问题（`user_id` → `id`, `role_id` → `id`, `menu_id` → `id`, `dept_id` → `id`）
+- 修复了bcrypt版本兼容性问题
+- 修复了前后端代理配置（端口8001）
+- 修复了登录、菜单树、部门树等核心API功能
+- 完成了前后端联调测试，所有功能正常
+
+🎯 **测试状态**：
+- ✅ 用户登录API：正常工作
+- ✅ 用户退出登录API：正常工作
+- ✅ 菜单树API：正常工作
+- ✅ 部门树API：正常工作
+- ✅ 权限验证：正常工作
+- ✅ 前端界面：正常显示
+
 ### 基础信息
 
-- **基础URL**: `http://localhost:8000/api/v1`
+- **基础URL**: `http://localhost:8001/api/v1`  <!-- 修复：更新正确的端口号 -->
 - **认证方式**: JWT Bearer Token
 - **数据格式**: JSON
 - **字符编码**: UTF-8
+- **前端地址**: `http://localhost:5173`
+- **代理配置**: 前端通过 `/api` 代理到后端 `8001` 端口
 
 ### 通用响应格式
 
@@ -96,7 +115,14 @@ AI-Agent-Backend 是一个基于 FastAPI 的企业级 RBAC 权限管理系统，
       "modify_time": "2025-08-24T10:00:00",
       "last_login_time": "2025-08-24T13:00:00"
     },
-    "permissions": ["user:view", "user:add", "user:update", "user:delete"]
+    "permissions": [
+      "menu:delete", "dept:delete", "data:permission:create", "role:delete",
+      "menu:update", "role:add", "cache:refresh", "role:update", "role:view",
+      "menu:view", "role:menu:assign", "user:update", "dept:add", "user:role:assign",
+      "cache:stats:view", "role:permission:view", "user:view", "dept:update",
+      "cache:config:update", "user:permission:view", "user:menu:view", "dept:view",
+      "user:add", "menu:add", "user:delete"
+    ]
   },
   "error_code": null,
   "timestamp": "2025-08-24T13:00:00.000Z"
@@ -112,6 +138,46 @@ AI-Agent-Backend 是一个基于 FastAPI 的企业级 RBAC 权限管理系统，
   "data": null,
   "error_code": "INVALID_CREDENTIALS",
   "timestamp": "2025-08-24T13:00:00.000Z"
+}
+```
+
+### 用户退出登录
+
+**接口描述**: 用户退出登录，清理服务端状态
+
+- **URL**: `POST /users/logout`
+- **认证**: 需要Bearer Token
+- **Content-Type**: `application/json`
+
+**请求头**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**请求参数**: 无
+
+**成功响应**:
+
+```json
+{
+  "success": true,
+  "message": "退出登录成功",
+  "data": true,
+  "error_code": null,
+  "timestamp": "2025-08-24T14:45:00.000Z"
+}
+```
+
+**错误响应**:
+
+```json
+{
+  "success": false,
+  "message": "退出登录失败",
+  "data": null,
+  "error_code": "LOGOUT_FAILED",
+  "timestamp": "2025-08-24T14:45:00.000Z"
 }
 ```
 
@@ -577,6 +643,69 @@ Authorization: Bearer <access_token>
 
 ## 菜单管理接口
 
+### 获取菜单树
+
+**接口描述**: 获取完整的菜单树结构
+
+- **URL**: `GET /menus/tree`
+- **认证**: 无需认证（公开接口）
+- **Content-Type**: `application/json`
+
+**请求参数**: 无
+
+**成功响应**:
+
+```json
+{
+  "success": true,
+  "message": "获取菜单树成功",
+  "data": [
+    {
+      "menu_id": 1,
+      "parent_id": 0,
+      "menu_name": "系统管理",
+      "path": "/system",
+      "component": "Layout",
+      "perms": null,
+      "icon": "Setting",
+      "type": "0",
+      "order_num": 1,
+      "children": [
+        {
+          "menu_id": 2,
+          "parent_id": 1,
+          "menu_name": "用户管理",
+          "path": "/system/user",
+          "component": "/system/user/Index",
+          "perms": "user:view",
+          "icon": "User",
+          "type": "0",
+          "order_num": 1,
+          "children": []
+        }
+      ]
+    }
+  ],
+  "error_code": null,
+  "timestamp": "2025-08-24T14:32:00.000Z"
+}
+```
+
+**响应字段说明**:
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| menu_id | integer | 菜单ID |
+| parent_id | integer | 上级菜单ID，0表示顶级菜单 |
+| menu_name | string | 菜单名称 |
+| path | string | 路由路径 |
+| component | string | 路由组件 |
+| perms | string | 权限标识 |
+| icon | string | 图标 |
+| type | string | 类型：0菜单，1按钮 |
+| order_num | number | 排序号 |
+| children | array | 子菜单列表 |
+
 ### 创建菜单
 
 **接口描述**: 创建新菜单或按钮
@@ -765,6 +894,60 @@ Authorization: Bearer <access_token>
 ```
 
 ## 部门管理接口
+
+### 获取部门树
+
+**接口描述**: 获取完整的部门树结构
+
+- **URL**: `GET /departments/tree`
+- **认证**: 无需认证（公开接口）
+- **Content-Type**: `application/json`
+
+**请求参数**: 无
+
+**成功响应**:
+
+```json
+{
+  "success": true,
+  "message": "获取部门树成功",
+  "data": [
+    {
+      "dept_id": 1,
+      "parent_id": 0,
+      "dept_name": "总公司",
+      "order_num": 1,
+      "create_time": "2025-08-24T13:33:32.657123",
+      "modify_time": null,
+      "children": [
+        {
+          "dept_id": 2,
+          "parent_id": 1,
+          "dept_name": "技术部",
+          "order_num": 1,
+          "create_time": "2025-08-24T13:33:32.657123",
+          "modify_time": null,
+          "children": []
+        }
+      ]
+    }
+  ],
+  "error_code": null,
+  "timestamp": "2025-08-24T14:32:00.000Z"
+}
+```
+
+**响应字段说明**:
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| dept_id | integer | 部门ID |
+| parent_id | integer | 上级部门ID，0表示顶级部门 |
+| dept_name | string | 部门名称 |
+| order_num | number | 排序号 |
+| create_time | string | 创建时间 |
+| modify_time | string | 修改时间 |
+| children | array | 子部门列表 |
 
 ### 创建部门
 
@@ -1302,6 +1485,166 @@ print(f"用户数量: {len(users)}")
 5. **令牌过期**: 访问令牌有效期为30分钟，过期后需要重新登录
 6. **缓存**: 系统支持Redis缓存，在没有Redis的情况下会自动降级为内存缓存
 
+## 快速测试指南
+
+### 环境启动
+
+1. **启动后端服务**：
+   ```bash
+   cd AI-agent-backend
+   python main.py
+   ```
+   服务将运行在：http://localhost:8001
+
+2. **启动前端服务**：
+   ```bash
+   cd AI-agent-frontend
+   npm run dev
+   ```
+   服务将运行在：http://localhost:5173
+
+### 快速测试
+
+1. **测试登录API**：
+   ```bash
+   curl -X POST http://localhost:8001/api/v1/users/login \
+     -H "Content-Type: application/json" \
+     -d '{"username":"admin","password":"123456"}'
+   ```
+
+2. **测试菜单树API**：
+   ```bash
+   curl http://localhost:8001/api/v1/menus/tree
+   ```
+
+3. **测试部门树API**：
+   ```bash
+   curl http://localhost:8001/api/v1/departments/tree
+   ```
+
+4. **访问前端界面**：
+   - 打开浏览器访问：http://localhost:5173
+   - 使用默认账号登录：admin / 123456
+
+### 测试脚本
+
+项目根目录提供了 `test_api.py` 测试脚本：
+
+```bash
+python test_api.py
+```
+
+该脚本会自动测试：
+- ✅ 用户登录API
+- ✅ 用户退出登录API
+- ✅ 菜单树API
+- ✅ 部门树API
+- ✅ 仪表板统计数据API
+
+### 默认数据
+
+系统初始化后包含以下默认数据：
+- **管理员账号**：admin / 123456
+- **权限数量**：24个权限标识
+- **菜单数量**：完整的系统菜单树
+- **部门数量**：3个默认部门
+
+## 仪表板接口
+
+### 获取仪表板统计数据
+
+**接口描述**: 获取仪表板统计数据，包括用户总数、角色数量、菜单数量、部门数量
+
+- **URL**: `GET /dashboard/stats`
+- **认证**: 无需认证
+- **Content-Type**: `application/json`
+
+**请求参数**: 无
+
+**成功响应**:
+
+```json
+{
+  "success": true,
+  "message": "获取统计数据成功",
+  "data": {
+    "user_count": 6,
+    "role_count": 4,
+    "menu_count": 26,
+    "department_count": 6
+  },
+  "error_code": null,
+  "timestamp": "2025-08-24T14:55:00.000Z"
+}
+```
+
+### 获取系统信息
+
+**接口描述**: 获取系统信息，包括版本、服务器信息、数据库信息、最后登录时间
+
+- **URL**: `GET /dashboard/system-info`
+- **认证**: 需要Bearer Token
+- **Content-Type**: `application/json`
+
+**请求头**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**成功响应**:
+
+```json
+{
+  "success": true,
+  "message": "获取系统信息成功",
+  "data": {
+    "system_version": "v1.0.0",
+    "server_info": "FastAPI + Vue 3",
+    "database_info": "SQLite",
+    "last_login_time": "2025-08-24T14:53:44.512871"
+  },
+  "error_code": null,
+  "timestamp": "2025-08-24T14:55:00.000Z"
+}
+```
+
+### 获取仪表板概览
+
+**接口描述**: 获取仪表板概览数据，包括统计数据、系统信息、最近活动
+
+- **URL**: `GET /dashboard/overview`
+- **认证**: 需要Bearer Token
+- **Content-Type**: `application/json`
+
+**成功响应**:
+
+```json
+{
+  "success": true,
+  "message": "获取仪表板概览成功",
+  "data": {
+    "stats": {
+      "user_count": 6,
+      "role_count": 4,
+      "menu_count": 26,
+      "department_count": 6
+    },
+    "system_info": {
+      "system_version": "v1.0.0",
+      "server_info": "FastAPI + Vue 3",
+      "database_info": "SQLite",
+      "last_login_time": "2025-08-24T14:53:44.512871"
+    },
+    "recent_activities": []
+  },
+  "error_code": null,
+  "timestamp": "2025-08-24T14:55:00.000Z"
+}
+```
+
 ## 更新日志
 
 - **v1.0.0** (2025-08-24): 初始版本，包含完整的RBAC权限管理功能
+- **v1.0.1** (2025-08-24): 修复所有属性名不一致问题，完成前后端联调
+- **v1.0.2** (2025-08-24): 新增仪表板统计数据API，替换假数据为真实数据库统计

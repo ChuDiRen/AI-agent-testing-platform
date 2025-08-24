@@ -129,15 +129,15 @@ const routes: RouteRecordRaw[] = [
           }
         ]
       },
-      // {
-      //   path: '/logs',
-      //   name: 'Logs',
-      //   component: () => import('@/views/logs/Index.vue'),
-      //   meta: {
-      //     title: '日志管理',
-      //     icon: 'Operation'
-      //   }
-      // }
+      {
+        path: '/logs',
+        name: 'Logs',
+        component: () => import('@/views/logs/Index.vue'),
+        meta: {
+          title: '日志管理',
+          icon: 'Operation'
+        }
+      }
     ]
   },
   {

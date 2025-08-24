@@ -50,7 +50,7 @@ async def create_department(
         
         # 转换为响应格式
         dept_response = DepartmentResponse(
-            dept_id=department.dept_id,
+            dept_id=department.id,  # 修复：使用正确的属性名
             parent_id=department.parent_id,
             dept_name=department.dept_name,
             order_num=department.order_num,
@@ -124,7 +124,7 @@ async def get_departments(
         # 转换为响应格式
         dept_responses = [
             DepartmentResponse(
-                dept_id=dept.dept_id,
+                dept_id=dept.id,  # 修复：使用正确的属性名
                 parent_id=dept.parent_id,
                 dept_name=dept.dept_name,
                 order_num=dept.order_num,
@@ -167,7 +167,7 @@ async def get_department(
             )
         
         dept_response = DepartmentResponse(
-            dept_id=department.dept_id,
+            dept_id=department.id,  # 修复：使用正确的属性名
             parent_id=department.parent_id,
             dept_name=department.dept_name,
             order_num=department.order_num,
@@ -215,7 +215,7 @@ async def update_department(
             )
         
         dept_response = DepartmentResponse(
-            dept_id=department.dept_id,
+            dept_id=department.id,  # 修复：使用正确的属性名
             parent_id=department.parent_id,
             dept_name=department.dept_name,
             order_num=department.order_num,
@@ -306,7 +306,7 @@ async def get_department_status(
         can_delete = department_service.can_delete(dept_id)
         
         status_response = DepartmentStatusResponse(
-            dept_id=department.dept_id,
+            dept_id=department.id,  # 修复：使用正确的属性名
             dept_name=department.dept_name,
             has_children=has_children,
             has_users=has_users,

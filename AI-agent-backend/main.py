@@ -19,6 +19,8 @@ from app.controller.menu_controller import router as menu_router
 from app.controller.rbac_user_controller import router as rbac_user_router
 from app.controller.role_controller import router as role_router
 from app.controller.permission_controller import router as permission_router
+from app.controller.dashboard_controller import router as dashboard_router
+from app.controller.log_controller import router as log_router
 from app.core.config import settings
 from app.core.logger import get_logger
 from app.db.session import create_tables
@@ -168,6 +170,8 @@ app.include_router(menu_router, prefix=settings.API_V1_PREFIX)
 app.include_router(department_router, prefix=settings.API_V1_PREFIX)
 app.include_router(rbac_user_router, prefix=settings.API_V1_PREFIX)
 app.include_router(permission_router, prefix=settings.API_V1_PREFIX)
+app.include_router(dashboard_router, prefix=settings.API_V1_PREFIX)
+app.include_router(log_router, prefix=settings.API_V1_PREFIX)
 
 
 # CORS 预检与兜底响应头

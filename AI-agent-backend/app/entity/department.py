@@ -81,12 +81,12 @@ class Department(BaseEntity):
     def to_dict(self) -> dict:
         """
         转换为字典格式
-        
+
         Returns:
             部门信息字典
         """
         return {
-            "dept_id": self.dept_id,
+            "dept_id": self.id,  # 修复：使用正确的属性名
             "parent_id": self.parent_id,
             "dept_name": self.dept_name,
             "order_num": self.order_num,
@@ -98,4 +98,4 @@ class Department(BaseEntity):
         """
         字符串表示
         """
-        return f"<Department(dept_id={self.dept_id}, dept_name='{self.dept_name}')>"
+        return f"<Department(dept_id={self.id}, dept_name='{self.dept_name}')>"  # 修复：使用正确的属性名

@@ -114,19 +114,19 @@
           <div class="info-list">
             <div class="info-item">
               <span class="info-label">系统版本:</span>
-              <span class="info-value">v1.0.0</span>
+              <span class="info-value">{{ systemInfo.system_version }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">服务器:</span>
-              <span class="info-value">FastAPI + Vue 3</span>
+              <span class="info-value">{{ systemInfo.server_info }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">数据库:</span>
-              <span class="info-value">SQLite / PostgreSQL</span>
+              <span class="info-value">{{ systemInfo.database_info }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">最后登录:</span>
-              <span class="info-value">{{ userStore.userInfo?.last_login_time || '首次登录' }}</span>
+              <span class="info-value">{{ systemInfo.last_login_time || '首次登录' }}</span>
             </div>
           </div>
         </el-card>
@@ -149,6 +149,10 @@
               <el-icon><Menu /></el-icon>
               菜单管理
             </el-button>
+            <el-button type="primary" @click="$router.push('/system/dept')">
+              <el-icon><OfficeBuilding /></el-icon>
+              部门管理
+            </el-button>
             <el-button type="info" @click="$router.push('/logs')">
               <el-icon><Operation /></el-icon>
               日志管理
@@ -163,6 +167,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { DashboardApi, type DashboardStats, type SystemInfo } from '@/api/modules/dashboard'
+import { ElMessage } from 'element-plus'
 import {
   User,
   UserFilled,
@@ -183,6 +189,17 @@ const statsData = ref({
   deptCount: 0
 })
 
+// 系统信息
+const systemInfo = ref<SystemInfo>({
+  system_version: 'v1.0.0',
+  server_info: 'FastAPI + Vue 3',
+  database_info: 'SQLite',
+  last_login_time: undefined
+})
+
+// 加载状态
+const loading = ref(false)
+
 // 当前日期
 const currentDate = computed(() => {
   return new Date().toLocaleDateString('zh-CN', {
@@ -193,16 +210,47 @@ const currentDate = computed(() => {
   })
 })
 
+// 获取仪表板统计数据
+const loadDashboardStats = async () => {
+  try {
+    loading.value = true
+    const response = await DashboardApi.getStats()
+
+    if (response.success && response.data) {
+      statsData.value = {
+        userCount: response.data.user_count,
+        roleCount: response.data.role_count,
+        menuCount: response.data.menu_count,
+        deptCount: response.data.department_count
+      }
+    }
+  } catch (error) {
+    console.error('获取仪表板统计数据失败:', error)
+    ElMessage.error('获取统计数据失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 获取系统信息
+const loadSystemInfo = async () => {
+  try {
+    const response = await DashboardApi.getSystemInfo()
+
+    if (response.success && response.data) {
+      systemInfo.value = response.data
+    }
+  } catch (error) {
+    console.error('获取系统信息失败:', error)
+  }
+}
+
 // 初始化数据
 onMounted(async () => {
-  // 模拟获取统计数据
-  // 实际项目中应该调用API接口
-  statsData.value = {
-    userCount: 128,
-    roleCount: 8,
-    menuCount: 24,
-    deptCount: 12
-  }
+  await Promise.all([
+    loadDashboardStats(),
+    loadSystemInfo()
+  ])
 })
 </script>
 

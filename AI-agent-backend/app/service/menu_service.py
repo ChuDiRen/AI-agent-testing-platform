@@ -92,8 +92,8 @@ class MenuService:
         # 构建菜单树
         menu_dict = {}
         for menu in all_menus:
-            menu_dict[menu.menu_id] = {
-                "menu_id": menu.menu_id,
+            menu_dict[menu.id] = {  # 修复：使用正确的属性名
+                "menu_id": menu.id,  # 修复：使用正确的属性名
                 "parent_id": menu.parent_id,
                 "menu_name": menu.menu_name,
                 "path": menu.PATH,
@@ -255,13 +255,13 @@ class MenuService:
         # 获取所有角色的菜单权限
         all_menus = []
         for role in roles:
-            menus = self.role_menu_repository.get_menus_by_role_id(role.role_id)
+            menus = self.role_menu_repository.get_menus_by_role_id(role.id)  # 修复：使用正确的属性名
             all_menus.extend(menus)
-        
+
         # 去重
         unique_menus = {}
         for menu in all_menus:
-            unique_menus[menu.menu_id] = menu
+            unique_menus[menu.id] = menu  # 修复：使用正确的属性名
         
         return list(unique_menus.values())
 
@@ -290,7 +290,7 @@ class MenuService:
         # 获取所有角色的权限
         all_permissions = []
         for role in roles:
-            permissions = self.role_menu_repository.get_permissions_by_role_id(role.role_id)
+            permissions = self.role_menu_repository.get_permissions_by_role_id(role.id)  # 修复：使用正确的属性名
             all_permissions.extend(permissions)
 
         # 去重

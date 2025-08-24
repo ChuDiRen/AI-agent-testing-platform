@@ -147,7 +147,7 @@ class MenuRepository(BaseRepository[Menu]):
         from app.entity.role_menu import RoleMenu
         
         return self.db.query(Menu).join(
-            RoleMenu, Menu.menu_id == RoleMenu.menu_id
+            RoleMenu, Menu.id == RoleMenu.menu_id  # 修复：使用正确的属性名
         ).filter(
             RoleMenu.role_id == role_id
         ).order_by(Menu.order_num).all()

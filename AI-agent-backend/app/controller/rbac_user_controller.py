@@ -23,6 +23,8 @@ from app.dto.user_dto import (
     LoginResponse
 )
 from app.service.rbac_user_service import RBACUserService
+from app.middleware.auth import get_current_user
+from app.entity.user import User
 
 logger = get_logger(__name__)
 
@@ -156,6 +158,38 @@ async def login(
         )
 
 
+@router.post("/logout", response_model=ApiResponse[bool], summary="用户退出登录")
+async def logout(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    用户退出登录
+
+    Args:
+        current_user: 当前登录用户
+        db: 数据库会话
+
+    Returns:
+        退出登录结果
+    """
+    try:
+        # 在实际应用中，这里可以：
+        # 1. 将token加入黑名单（如果使用Redis）
+        # 2. 记录退出日志
+        # 3. 清理用户相关缓存
+
+        logger.info(f"User logged out successfully: {current_user.username}")
+        return ApiResponse.success_response(data=True, message="退出登录成功")
+
+    except Exception as e:
+        logger.error(f"Unexpected error during logout: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="退出登录失败"
+        )
+
+
 @router.get("/", response_model=ApiResponse[UserListResponse], summary="获取用户列表")
 async def get_users(
     db: Session = Depends(get_db)
@@ -219,7 +253,7 @@ async def get_user(
             )
         
         user_response = UserResponse(
-            user_id=user.user_id,
+            user_id=user.id,  # 修复：使用正确的属性名
             username=user.username,
             email=user.email,
             mobile=user.mobile,
@@ -279,7 +313,7 @@ async def update_user(
             )
         
         user_response = UserResponse(
-            user_id=user.user_id,
+            user_id=user.id,  # 修复：使用正确的属性名
             username=user.username,
             email=user.email,
             mobile=user.mobile,

@@ -421,6 +421,48 @@ def create_rbac_initial_data(db):
         db.add(data_permission_create_btn)
         db.flush()
 
+        # 日志管理菜单
+        log_menu = Menu(
+            parent_id=system_menu.id,
+            menu_name="日志管理",
+            menu_type="0",
+            path="/system/logs",
+            component="system/logs/Index",
+            perms="log:view",
+            icon="el-icon-document",
+            order_num=5
+        )
+        db.add(log_menu)
+        db.flush()
+
+        # 日志管理按钮
+        log_view_btn = Menu(
+            parent_id=log_menu.id,
+            menu_name="查看日志",
+            menu_type="1",
+            perms="log:view"
+        )
+        db.add(log_view_btn)
+        db.flush()
+
+        log_delete_btn = Menu(
+            parent_id=log_menu.id,
+            menu_name="清空日志",
+            menu_type="1",
+            perms="log:delete"
+        )
+        db.add(log_delete_btn)
+        db.flush()
+
+        log_export_btn = Menu(
+            parent_id=log_menu.id,
+            menu_name="导出日志",
+            menu_type="1",
+            perms="log:export"
+        )
+        db.add(log_export_btn)
+        db.flush()
+
         # 4. 创建用户
         # 管理员用户
         admin_user = User(
@@ -557,7 +599,11 @@ def create_rbac_initial_data(db):
             role_permission_view_btn.id,
             user_role_assign_btn.id,
             role_menu_assign_btn.id,
-            data_permission_create_btn.id
+            data_permission_create_btn.id,
+            log_menu.id,
+            log_view_btn.id,
+            log_delete_btn.id,
+            log_export_btn.id
         ]
 
         for menu_id in admin_menu_ids:

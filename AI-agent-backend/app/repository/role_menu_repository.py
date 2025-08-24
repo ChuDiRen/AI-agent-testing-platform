@@ -185,7 +185,7 @@ class RoleMenuRepository(BaseRepository[RoleMenu]):
             权限标识列表
         """
         permissions = self.db.query(Menu.perms).join(
-            RoleMenu, Menu.menu_id == RoleMenu.menu_id
+            RoleMenu, Menu.id == RoleMenu.menu_id  # 修复：使用正确的属性名
         ).filter(
             RoleMenu.role_id == role_id,
             Menu.perms.isnot(None)  # 只获取有权限标识的菜单

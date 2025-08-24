@@ -217,7 +217,7 @@ class RBACAuth:
         ):
             # 检查权限
             user_service = RBACUserService(db)
-            user_permissions = user_service.get_user_permissions(current_user.user_id)
+            user_permissions = user_service.get_user_permissions(current_user.id)
             
             if permission not in user_permissions:
                 # 记录权限拒绝审计日志
@@ -352,6 +352,14 @@ def require_role_data_permission():
 def require_dept_data_permission():
     """需要部门数据权限"""
     return rbac_auth.require_data_permission("DEPT", "VIEW")
+
+def require_log_view_with_audit():
+    """需要日志查看权限（带审计日志）"""
+    return rbac_auth.require_permission_with_audit("log:view", "LOG")
+
+def require_log_delete_with_audit():
+    """需要日志删除权限（带审计日志）"""
+    return rbac_auth.require_permission_with_audit("log:delete", "LOG")
 
 
 

@@ -64,6 +64,7 @@ def create_tables():
         User, Role, Menu, Department, UserRole, RoleMenu,
         AuditLog, PermissionCache, DataPermissionRule
     )
+    from app.entity.system_log import SystemLog
 
     try:
         # 创建所有表
