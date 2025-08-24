@@ -30,8 +30,8 @@ class PermissionController:
     """权限管理控制器类"""
     
     def __init__(self):
-        self.permission_cache_service = PermissionCacheService()
-        # 其他服务需要数据库会话，延迟初始化
+        # 所有服务需要数据库会话，延迟初始化
+        self.permission_cache_service = None
         self.audit_service = None
         self.data_permission_service = None
         self.user_service = None

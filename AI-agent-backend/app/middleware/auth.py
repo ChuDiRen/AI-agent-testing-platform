@@ -38,7 +38,7 @@ class RBACAuth:
     def __init__(self):
         self.logger = get_logger(self.__class__.__name__)
         # 服务将在需要时延迟初始化，因为它们需要数据库会话
-        self.permission_cache_service = PermissionCacheService()
+        self.permission_cache_service = None
 
     async def get_current_user_with_audit(
         self,
