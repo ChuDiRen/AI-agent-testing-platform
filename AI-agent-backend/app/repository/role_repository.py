@@ -61,7 +61,7 @@ class RoleRepository(BaseRepository[Role]):
         """
         query = self.db.query(Role).filter(Role.role_name == role_name)
         if exclude_id:
-            query = query.filter(Role.role_id != exclude_id)
+            query = query.filter(Role.id != exclude_id)  # 修复：使用正确的属性名
         return query.first() is not None
 
     def search_by_name(self, keyword: str) -> List[Role]:

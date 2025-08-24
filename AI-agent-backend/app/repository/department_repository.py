@@ -88,7 +88,7 @@ class DepartmentRepository(BaseRepository[Department]):
         """
         query = self.db.query(Department).filter(Department.dept_name == dept_name)
         if exclude_id:
-            query = query.filter(Department.dept_id != exclude_id)
+            query = query.filter(Department.id != exclude_id)  # 修复：使用正确的属性名
         return query.first() is not None
 
     def search_by_name(self, keyword: str) -> List[Department]:

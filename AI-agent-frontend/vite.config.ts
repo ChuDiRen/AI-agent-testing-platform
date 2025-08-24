@@ -29,11 +29,11 @@ export default ({ mode }: any) => {
     // 启动服务配置
     server: {
       host: '0.0.0.0',
-      port: 8000,
+      port: 5173, // 修复端口冲突，使用Vite默认端口
       open: true,
       proxy: {
         '/api': {
-          target: 'http://localhost:8000',
+          target: 'http://localhost:8001', // 代理到后端服务（端口8001）
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api/, '/api')

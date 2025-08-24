@@ -77,32 +77,32 @@ const routes: RouteRecordRaw[] = [
           }
         ]
       },
-      {
-        path: '/test',
-        name: 'Test',
-        meta: {
-          title: '测试管理',
-          icon: 'DataAnalysis'
-        },
-        children: [
-          {
-            path: '/test/cases',
-            name: 'TestCases',
-            component: () => import('@/views/test/cases/Index.vue'),
-            meta: {
-              title: '测试用例'
-            }
-          },
-          {
-            path: '/test/reports',
-            name: 'TestReports',
-            component: () => import('@/views/test/reports/Index.vue'),
-            meta: {
-              title: '测试报告'
-            }
-          }
-        ]
-      },
+      // {
+      //   path: '/test',
+      //   name: 'Test',
+      //   meta: {
+      //     title: '测试管理',
+      //     icon: 'DataAnalysis'
+      //   },
+      //   children: [
+      //     {
+      //       path: '/test/cases',
+      //       name: 'TestCases',
+      //       component: () => import('@/views/test/cases/Index.vue'),
+      //       meta: {
+      //         title: '测试用例'
+      //       }
+      //     },
+      //     {
+      //       path: '/test/reports',
+      //       name: 'TestReports',
+      //       component: () => import('@/views/test/reports/Index.vue'),
+      //       meta: {
+      //         title: '测试报告'
+      //       }
+      //     }
+      //   ]
+      // },
       {
         path: '/agent',
         name: 'Agent',
@@ -129,15 +129,15 @@ const routes: RouteRecordRaw[] = [
           }
         ]
       },
-      {
-        path: '/logs',
-        name: 'Logs',
-        component: () => import('@/views/logs/Index.vue'),
-        meta: {
-          title: '日志管理',
-          icon: 'Operation'
-        }
-      }
+      // {
+      //   path: '/logs',
+      //   name: 'Logs',
+      //   component: () => import('@/views/logs/Index.vue'),
+      //   meta: {
+      //     title: '日志管理',
+      //     icon: 'Operation'
+      //   }
+      // }
     ]
   },
   {

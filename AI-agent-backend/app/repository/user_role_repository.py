@@ -63,7 +63,7 @@ class UserRoleRepository(BaseRepository[UserRole]):
             角色列表
         """
         return self.db.query(Role).join(
-            UserRole, Role.role_id == UserRole.role_id
+            UserRole, Role.id == UserRole.role_id
         ).filter(UserRole.user_id == user_id).all()
 
     def exists(self, user_id: int, role_id: int) -> bool:

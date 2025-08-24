@@ -70,12 +70,12 @@ class Role(BaseEntity):
     def to_dict(self) -> dict:
         """
         转换为字典格式
-        
+
         Returns:
             角色信息字典
         """
         return {
-            "role_id": self.role_id,
+            "role_id": self.id,  # 修复：使用正确的属性名
             "role_name": self.role_name,
             "remark": self.remark,
             "create_time": self.create_time.isoformat() if self.create_time else None,

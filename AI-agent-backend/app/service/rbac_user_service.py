@@ -133,7 +133,9 @@ class RBACUserService:
         
         # 更新最后登录时间
         user.update_last_login()
-        self.user_repository.update(user)
+        # 直接提交数据库会话，因为user对象已经被修改
+        self.db.commit()
+        self.db.refresh(user)
         
         logger.info(f"User authenticated successfully: {username}")
         return user
@@ -371,7 +373,7 @@ class RBACUserService:
             菜单列表
         """
         from app.entity.menu import Menu
-        return self.db.query(Menu).filter(Menu.menu_id.in_(menu_ids)).all()
+        return self.db.query(Menu).filter(Menu.id.in_(menu_ids)).all()  # 修复：使用正确的属性名
 
     def get_all_menus(self):
         """

@@ -115,14 +115,14 @@ async def login(
             )
         
         # 生成访问令牌
-        access_token = create_access_token(data={"sub": str(user.user_id)})
-        
+        access_token = create_access_token(data={"sub": str(user.id)})
+
         # 获取用户权限
-        permissions = user_service.get_user_permissions(user.user_id)
-        
+        permissions = user_service.get_user_permissions(user.id)
+
         # 构建用户信息
         user_info = UserResponse(
-            user_id=user.user_id,
+            user_id=user.id,
             username=user.username,
             email=user.email,
             mobile=user.mobile,

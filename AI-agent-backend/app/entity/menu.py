@@ -140,12 +140,12 @@ class Menu(BaseEntity):
     def to_dict(self) -> dict:
         """
         转换为字典格式
-        
+
         Returns:
             菜单信息字典
         """
         return {
-            "menu_id": self.menu_id,
+            "menu_id": self.id,  # 修复：使用正确的属性名
             "parent_id": self.parent_id,
             "menu_name": self.menu_name,
             "PATH": self.PATH,
@@ -162,4 +162,4 @@ class Menu(BaseEntity):
         """
         字符串表示
         """
-        return f"<Menu(menu_id={self.menu_id}, menu_name='{self.menu_name}', TYPE='{self.TYPE}')>"
+        return f"<Menu(menu_id={self.id}, menu_name='{self.menu_name}', TYPE='{self.TYPE}')>"  # 修复：使用正确的属性名
