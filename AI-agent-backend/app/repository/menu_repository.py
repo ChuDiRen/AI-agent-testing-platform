@@ -9,7 +9,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.entity.menu import Menu
-from app.repository.base_repository import BaseRepository
+from app.repository.base import BaseRepository
 
 
 class MenuRepository(BaseRepository[Menu]):
@@ -38,8 +38,8 @@ class MenuRepository(BaseRepository[Menu]):
             子菜单列表
         """
         return self.db.query(Menu).filter(
-            Menu.PARENT_ID == parent_id
-        ).order_by(Menu.ORDER_NUM).all()
+            Menu.parent_id == parent_id
+        ).order_by(Menu.order_num).all()
 
     def get_top_level_menus(self) -> List[Menu]:
         """
@@ -59,7 +59,7 @@ class MenuRepository(BaseRepository[Menu]):
         """
         return self.db.query(Menu).filter(
             Menu.TYPE == '0'
-        ).order_by(Menu.ORDER_NUM).all()
+        ).order_by(Menu.order_num).all()
 
     def get_buttons_only(self) -> List[Menu]:
         """
@@ -70,7 +70,7 @@ class MenuRepository(BaseRepository[Menu]):
         """
         return self.db.query(Menu).filter(
             Menu.TYPE == '1'
-        ).order_by(Menu.ORDER_NUM).all()
+        ).order_by(Menu.order_num).all()
 
     def get_by_permission(self, permission: str) -> Optional[Menu]:
         """
@@ -82,7 +82,7 @@ class MenuRepository(BaseRepository[Menu]):
         Returns:
             菜单对象或None
         """
-        return self.db.query(Menu).filter(Menu.PERMS == permission).first()
+        return self.db.query(Menu).filter(Menu.perms == permission).first()
 
     def get_menu_tree(self) -> List[Menu]:
         """
@@ -92,7 +92,7 @@ class MenuRepository(BaseRepository[Menu]):
             菜单树列表
         """
         # 获取所有菜单，按ORDER_NUM排序
-        all_menus = self.db.query(Menu).order_by(Menu.ORDER_NUM).all()
+        all_menus = self.db.query(Menu).order_by(Menu.order_num).all()
         
         # 构建菜单树（这里返回所有菜单，前端可以根据PARENT_ID构建树形结构）
         return all_menus
@@ -108,8 +108,8 @@ class MenuRepository(BaseRepository[Menu]):
             匹配的菜单列表
         """
         return self.db.query(Menu).filter(
-            Menu.MENU_NAME.like(f"%{keyword}%")
-        ).order_by(Menu.ORDER_NUM).all()
+            Menu.menu_name.like(f"%{keyword}%")
+        ).order_by(Menu.order_num).all()
 
     def get_permissions_by_role_id(self, role_id: int) -> List[str]:
         """
@@ -124,11 +124,11 @@ class MenuRepository(BaseRepository[Menu]):
         from app.entity.role_menu import RoleMenu
         
         # 联表查询获取角色对应的权限
-        permissions = self.db.query(Menu.PERMS).join(
-            RoleMenu, Menu.MENU_ID == RoleMenu.MENU_ID
+        permissions = self.db.query(Menu.perms).join(
+            RoleMenu, Menu.menu_id == RoleMenu.menu_id
         ).filter(
-            RoleMenu.ROLE_ID == role_id,
-            Menu.PERMS.isnot(None)  # 只获取有权限标识的菜单
+            RoleMenu.role_id == role_id,
+            Menu.perms.isnot(None)  # 只获取有权限标识的菜单
         ).all()
         
         # 提取权限标识字符串
@@ -147,7 +147,7 @@ class MenuRepository(BaseRepository[Menu]):
         from app.entity.role_menu import RoleMenu
         
         return self.db.query(Menu).join(
-            RoleMenu, Menu.MENU_ID == RoleMenu.MENU_ID
+            RoleMenu, Menu.menu_id == RoleMenu.menu_id
         ).filter(
-            RoleMenu.ROLE_ID == role_id
-        ).order_by(Menu.ORDER_NUM).all()
+            RoleMenu.role_id == role_id
+        ).order_by(Menu.order_num).all()

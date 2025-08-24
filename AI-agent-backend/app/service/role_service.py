@@ -114,7 +114,7 @@ class RoleService:
             return None
         
         # 如果要更新角色名称，检查是否已存在
-        if role_name and role_name != role.ROLE_NAME:
+        if role_name and role_name != role.role_name:
             if self.role_repository.exists_by_name(role_name, exclude_id=role_id):
                 raise ValueError(f"角色名称 '{role_name}' 已存在")
         

@@ -7,22 +7,22 @@
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 
-from .rbac_base import RBACBase
+from .base import BaseEntity
 
 
-class RoleMenu(RBACBase):
+class RoleMenu(BaseEntity):
     """
     角色菜单关联实体类 - 对应t_role_menu表
     用于关联角色和菜单表，实现多对多关系
     """
-    __tablename__ = "t_role_menu"
+    __tablename__ = "role_menu"
     __allow_unmapped__ = True  # 允许未映射的注解
 
     # 角色ID - 外键，关联角色表
-    ROLE_ID = Column(Integer, ForeignKey('t_role.ROLE_ID'), primary_key=True, comment="角色ID")
+    role_id = Column(Integer, ForeignKey('role.role_id'), primary_key=True, comment="角色ID")
 
     # 菜单/按钮ID - 外键，关联菜单表
-    MENU_ID = Column(Integer, ForeignKey('t_menu.MENU_ID'), primary_key=True, comment="菜单/按钮ID")
+    menu_id = Column(Integer, ForeignKey('menu.menu_id'), primary_key=True, comment="菜单/按钮ID")
 
     # 关联关系
     # 关联到角色实体
@@ -39,8 +39,8 @@ class RoleMenu(RBACBase):
             role_id: 角色ID
             menu_id: 菜单ID
         """
-        self.ROLE_ID = role_id
-        self.MENU_ID = menu_id
+        self.role_id = role_id
+        self.menu_id = menu_id
 
     def to_dict(self) -> dict:
         """
@@ -50,12 +50,12 @@ class RoleMenu(RBACBase):
             角色菜单关联信息字典
         """
         return {
-            "ROLE_ID": self.ROLE_ID,
-            "MENU_ID": self.MENU_ID
+            "role_id": self.role_id,
+            "menu_id": self.menu_id
         }
 
     def __repr__(self):
         """
         字符串表示
         """
-        return f"<RoleMenu(ROLE_ID={self.ROLE_ID}, MENU_ID={self.MENU_ID})>"
+        return f"<RoleMenu(role_id={self.role_id}, menu_id={self.menu_id})>"

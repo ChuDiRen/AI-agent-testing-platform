@@ -9,6 +9,8 @@ from .role import Role
 from .role_menu import RoleMenu
 from .user import User
 from .user_role import UserRole
+from .audit_log import AuditLog
+from .permission_cache import PermissionCache, DataPermissionRule
 
 __all__ = [
     "BaseEntity",
@@ -17,5 +19,8 @@ __all__ = [
     "Menu",
     "Department",
     "UserRole",
-    "RoleMenu"
+    "RoleMenu",
+    "AuditLog",
+    "PermissionCache",
+    "DataPermissionRule"
 ]

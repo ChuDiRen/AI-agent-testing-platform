@@ -12,7 +12,7 @@ from app.core.logger import get_logger
 from app.core.security import get_password_hash, verify_password
 from app.entity.role import Role
 from app.entity.user import User
-from app.repository.base_repository import BaseRepository
+from app.repository.base import BaseRepository
 from app.repository.role_repository import RoleRepository
 from app.repository.user_role_repository import UserRoleRepository
 
@@ -60,7 +60,7 @@ class RBACUserService:
             ValueError: 用户名已存在
         """
         # 检查用户名是否已存在
-        existing_user = self.db.query(User).filter(User.USERNAME == username).first()
+        existing_user = self.db.query(User).filter(User.username == username).first()
         if existing_user:
             raise ValueError(f"用户名 '{username}' 已存在")
         
@@ -105,7 +105,7 @@ class RBACUserService:
         Returns:
             用户对象或None
         """
-        return self.db.query(User).filter(User.USERNAME == username).first()
+        return self.db.query(User).filter(User.username == username).first()
 
     def authenticate_user(self, username: str, password: str) -> Optional[User]:
         """
@@ -127,7 +127,7 @@ class RBACUserService:
             logger.warning(f"User is locked: {username}")
             return None
         
-        if not verify_password(password, user.PASSWORD):
+        if not verify_password(password, user.password):
             logger.warning(f"Invalid password for user: {username}")
             return None
         
@@ -190,7 +190,7 @@ class RBACUserService:
             return False
         
         # 验证旧密码
-        if not verify_password(old_password, user.PASSWORD):
+        if not verify_password(old_password, user.password):
             logger.warning(f"Invalid old password for user: {user_id}")
             return False
         
@@ -344,4 +344,94 @@ class RBACUserService:
         # 这里可以根据用户名、邮箱等字段搜索
         # 简化实现，只按用户名搜索
         users = self.user_repository.get_all()
-        return [user for user in users if keyword.lower() in user.USERNAME.lower()]
+        return [user for user in users if keyword.lower() in user.username.lower()]
+
+    def get_role_menus(self, role_id: int):
+        """
+        获取角色的菜单权限
+        
+        Args:
+            role_id: 角色ID
+            
+        Returns:
+            角色菜单关联列表
+        """
+        from app.repository.role_menu_repository import RoleMenuRepository
+        role_menu_repository = RoleMenuRepository(self.db)
+        return role_menu_repository.get_menus_by_role_id(role_id)
+
+    def get_menus_by_ids(self, menu_ids: List[int]):
+        """
+        根据菜单ID列表获取菜单
+        
+        Args:
+            menu_ids: 菜单ID列表
+            
+        Returns:
+            菜单列表
+        """
+        from app.entity.menu import Menu
+        return self.db.query(Menu).filter(Menu.menu_id.in_(menu_ids)).all()
+
+    def get_all_menus(self):
+        """
+        获取所有菜单
+        
+        Returns:
+            菜单列表
+        """
+        from app.entity.menu import Menu
+        return self.db.query(Menu).all()
+
+    def get_users_by_role(self, role_id: int):
+        """
+        获取拥有指定角色的用户
+        
+        Args:
+            role_id: 角色ID
+            
+        Returns:
+            用户角色关联列表
+        """
+        return self.user_role_repository.get_users_by_role_id(role_id)
+
+    def assign_role_to_user(self, user_id: int, role_id: int) -> bool:
+        """
+        为用户分配单个角色
+        
+        Args:
+            user_id: 用户ID
+            role_id: 角色ID
+            
+        Returns:
+            是否分配成功
+        """
+        try:
+            self.user_role_repository.assign_role_to_user(user_id, role_id)
+            self.db.commit()
+            logger.info(f"Assigned role {role_id} to user {user_id}")
+            return True
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Error assigning role to user: {str(e)}")
+            return False
+
+    def clear_user_roles(self, user_id: int) -> bool:
+        """
+        清除用户的所有角色
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            是否清除成功
+        """
+        try:
+            self.user_role_repository.remove_all_roles_from_user(user_id)
+            self.db.commit()
+            logger.info(f"Cleared all roles for user {user_id}")
+            return True
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Error clearing user roles: {str(e)}")
+            return False

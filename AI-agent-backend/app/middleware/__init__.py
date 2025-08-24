@@ -3,46 +3,32 @@
 # 包含自定义中间件、CORS、认证等
 
 from .auth import (
-    AuthMiddleware,
-    auth_middleware,
-    get_current_user_id,
-    require_authentication,
+    rbac_auth,
     get_current_user,
-    require_admin,
-    require_superuser,
-    require_verified_user,
-    optional_authentication
+    get_current_user_with_audit,
+    require_user_view_with_audit,
+    require_user_add_with_audit,
+    require_user_update_with_audit,
+    require_user_delete_with_audit,
+    require_user_data_permission,
+    require_role_data_permission,
+    require_dept_data_permission
 )
 from .cors import setup_cors
 from .logging import LoggingMiddleware, create_logging_middleware
-from .rbac_auth import (
-    rbac_auth,
-    get_current_user as rbac_get_current_user,
-    require_user_view,
-    require_user_add,
-    require_user_update,
-    require_user_delete,
-    require_admin_role
-)
 
 __all__ = [
     "setup_cors",
-    "AuthMiddleware",
-    "auth_middleware",
-    "get_current_user_id",
-    "require_authentication",
-    "get_current_user",
-    "require_admin",
-    "require_superuser",
-    "require_verified_user",
-    "optional_authentication",
     "LoggingMiddleware",
     "create_logging_middleware",
     "rbac_auth",
-    "rbac_get_current_user",
-    "require_user_view",
-    "require_user_add",
-    "require_user_update",
-    "require_user_delete",
-    "require_admin_role"
+    "get_current_user",
+    "get_current_user_with_audit",
+    "require_user_view_with_audit",
+    "require_user_add_with_audit",
+    "require_user_update_with_audit",
+    "require_user_delete_with_audit",
+    "require_user_data_permission",
+    "require_role_data_permission",
+    "require_dept_data_permission"
 ]

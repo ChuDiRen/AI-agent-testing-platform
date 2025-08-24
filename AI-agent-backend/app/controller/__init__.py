@@ -7,6 +7,7 @@ from .department_controller import router as department_router
 from .menu_controller import router as menu_router
 from .rbac_user_controller import router as rbac_user_router
 from .role_controller import router as role_router
+from .permission_controller import router as permission_router
 
 __all__ = [
     "BaseController",

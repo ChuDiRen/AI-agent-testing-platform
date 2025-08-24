@@ -62,21 +62,21 @@ async def create_user(
         
         # 转换为响应格式
         user_response = UserResponse(
-            user_id=user.USER_ID,
-            username=user.USERNAME,
-            email=user.EMAIL,
-            mobile=user.MOBILE,
-            dept_id=user.DEPT_ID,
-            status=user.STATUS,
-            ssex=user.SSEX,
-            avatar=user.AVATAR,
-            description=user.DESCRIPTION,
-            create_time=user.CREATE_TIME,
-            modify_time=user.MODIFY_TIME,
-            last_login_time=user.LAST_LOGIN_TIME
+            user_id=user.user_id,
+            username=user.username,
+            email=user.email,
+            mobile=user.mobile,
+            dept_id=user.dept_id,
+            status=user.status,
+            ssex=user.ssex,
+            avatar=user.avatar,
+            description=user.description,
+            create_time=user.create_time,
+            modify_time=user.modify_time,
+            last_login_time=user.last_login_time
         )
         
-        logger.info(f"User created successfully: {user.USERNAME}")
+        logger.info(f"User created successfully: {user.username}")
         return ApiResponse.success_response(data=user_response, message="用户创建成功")
         
     except ValueError as e:
@@ -115,25 +115,25 @@ async def login(
             )
         
         # 生成访问令牌
-        access_token = create_access_token(data={"sub": str(user.USER_ID)})
+        access_token = create_access_token(data={"sub": str(user.user_id)})
         
         # 获取用户权限
-        permissions = user_service.get_user_permissions(user.USER_ID)
+        permissions = user_service.get_user_permissions(user.user_id)
         
         # 构建用户信息
         user_info = UserResponse(
-            user_id=user.USER_ID,
-            username=user.USERNAME,
-            email=user.EMAIL,
-            mobile=user.MOBILE,
-            dept_id=user.DEPT_ID,
-            status=user.STATUS,
-            ssex=user.SSEX,
-            avatar=user.AVATAR,
-            description=user.DESCRIPTION,
-            create_time=user.CREATE_TIME,
-            modify_time=user.MODIFY_TIME,
-            last_login_time=user.LAST_LOGIN_TIME
+            user_id=user.user_id,
+            username=user.username,
+            email=user.email,
+            mobile=user.mobile,
+            dept_id=user.dept_id,
+            status=user.status,
+            ssex=user.ssex,
+            avatar=user.avatar,
+            description=user.description,
+            create_time=user.create_time,
+            modify_time=user.modify_time,
+            last_login_time=user.last_login_time
         )
         
         login_response = LoginResponse(
@@ -143,7 +143,7 @@ async def login(
             permissions=permissions
         )
         
-        logger.info(f"User logged in successfully: {user.USERNAME}")
+        logger.info(f"User logged in successfully: {user.username}")
         return ApiResponse.success_response(data=login_response, message="登录成功")
         
     except HTTPException:
@@ -170,18 +170,18 @@ async def get_users(
         # 转换为响应格式
         user_responses = [
             UserResponse(
-                user_id=user.USER_ID,
-                username=user.USERNAME,
-                email=user.EMAIL,
-                mobile=user.MOBILE,
-                dept_id=user.DEPT_ID,
-                status=user.STATUS,
-                ssex=user.SSEX,
-                avatar=user.AVATAR,
-                description=user.DESCRIPTION,
-                create_time=user.CREATE_TIME,
-                modify_time=user.MODIFY_TIME,
-                last_login_time=user.LAST_LOGIN_TIME
+                user_id=user.user_id,
+                username=user.username,
+                email=user.email,
+                mobile=user.mobile,
+                dept_id=user.dept_id,
+                status=user.status,
+                ssex=user.ssex,
+                avatar=user.avatar,
+                description=user.description,
+                create_time=user.create_time,
+                modify_time=user.modify_time,
+                last_login_time=user.last_login_time
             )
             for user in users
         ]
@@ -219,18 +219,18 @@ async def get_user(
             )
         
         user_response = UserResponse(
-            user_id=user.USER_ID,
-            username=user.USERNAME,
-            email=user.EMAIL,
-            mobile=user.MOBILE,
-            dept_id=user.DEPT_ID,
-            status=user.STATUS,
-            ssex=user.SSEX,
-            avatar=user.AVATAR,
-            description=user.DESCRIPTION,
-            create_time=user.CREATE_TIME,
-            modify_time=user.MODIFY_TIME,
-            last_login_time=user.LAST_LOGIN_TIME
+            user_id=user.user_id,
+            username=user.username,
+            email=user.email,
+            mobile=user.mobile,
+            dept_id=user.dept_id,
+            status=user.status,
+            ssex=user.ssex,
+            avatar=user.avatar,
+            description=user.description,
+            create_time=user.create_time,
+            modify_time=user.modify_time,
+            last_login_time=user.last_login_time
         )
         
         return ApiResponse.success_response(data=user_response, message="获取用户详情成功")
@@ -279,18 +279,18 @@ async def update_user(
             )
         
         user_response = UserResponse(
-            user_id=user.USER_ID,
-            username=user.USERNAME,
-            email=user.EMAIL,
-            mobile=user.MOBILE,
-            dept_id=user.DEPT_ID,
-            status=user.STATUS,
-            ssex=user.SSEX,
-            avatar=user.AVATAR,
-            description=user.DESCRIPTION,
-            create_time=user.CREATE_TIME,
-            modify_time=user.MODIFY_TIME,
-            last_login_time=user.LAST_LOGIN_TIME
+            user_id=user.user_id,
+            username=user.username,
+            email=user.email,
+            mobile=user.mobile,
+            dept_id=user.dept_id,
+            status=user.status,
+            ssex=user.ssex,
+            avatar=user.avatar,
+            description=user.description,
+            create_time=user.create_time,
+            modify_time=user.modify_time,
+            last_login_time=user.last_login_time
         )
         
         logger.info(f"User updated successfully: {user_id}")
@@ -472,16 +472,16 @@ async def get_user_roles(
         # 转换角色信息
         role_data = [
             {
-                "role_id": role.ROLE_ID,
-                "role_name": role.ROLE_NAME,
-                "remark": role.REMARK
+                "role_id": role.role_id,
+                "role_name": role.role_name,
+                "remark": role.remark
             }
             for role in roles
         ]
 
         user_role_response = UserRoleResponse(
-            user_id=user.USER_ID,
-            username=user.USERNAME,
+            user_id=user.user_id,
+            username=user.username,
             roles=role_data
         )
 

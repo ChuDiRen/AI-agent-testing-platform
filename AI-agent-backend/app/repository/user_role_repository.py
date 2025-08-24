@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.entity.role import Role
 from app.entity.user_role import UserRole
-from app.repository.base_repository import BaseRepository
+from app.repository.base import BaseRepository
 
 
 class UserRoleRepository(BaseRepository[UserRole]):
@@ -38,7 +38,7 @@ class UserRoleRepository(BaseRepository[UserRole]):
         Returns:
             用户角色关联列表
         """
-        return self.db.query(UserRole).filter(UserRole.USER_ID == user_id).all()
+        return self.db.query(UserRole).filter(UserRole.user_id == user_id).all()
 
     def get_by_role_id(self, role_id: int) -> List[UserRole]:
         """
@@ -50,7 +50,7 @@ class UserRoleRepository(BaseRepository[UserRole]):
         Returns:
             用户角色关联列表
         """
-        return self.db.query(UserRole).filter(UserRole.ROLE_ID == role_id).all()
+        return self.db.query(UserRole).filter(UserRole.role_id == role_id).all()
 
     def get_roles_by_user_id(self, user_id: int) -> List[Role]:
         """
@@ -63,8 +63,8 @@ class UserRoleRepository(BaseRepository[UserRole]):
             角色列表
         """
         return self.db.query(Role).join(
-            UserRole, Role.ROLE_ID == UserRole.ROLE_ID
-        ).filter(UserRole.USER_ID == user_id).all()
+            UserRole, Role.role_id == UserRole.role_id
+        ).filter(UserRole.user_id == user_id).all()
 
     def exists(self, user_id: int, role_id: int) -> bool:
         """
@@ -78,8 +78,8 @@ class UserRoleRepository(BaseRepository[UserRole]):
             True表示存在，False表示不存在
         """
         return self.db.query(UserRole).filter(
-            UserRole.USER_ID == user_id,
-            UserRole.ROLE_ID == role_id
+            UserRole.user_id == user_id,
+            UserRole.role_id == role_id
         ).first() is not None
 
     def delete_by_user_id(self, user_id: int) -> int:
@@ -92,8 +92,8 @@ class UserRoleRepository(BaseRepository[UserRole]):
         Returns:
             删除的记录数
         """
-        count = self.db.query(UserRole).filter(UserRole.USER_ID == user_id).count()
-        self.db.query(UserRole).filter(UserRole.USER_ID == user_id).delete()
+        count = self.db.query(UserRole).filter(UserRole.user_id == user_id).count()
+        self.db.query(UserRole).filter(UserRole.user_id == user_id).delete()
         return count
 
     def delete_by_role_id(self, role_id: int) -> int:
@@ -106,8 +106,8 @@ class UserRoleRepository(BaseRepository[UserRole]):
         Returns:
             删除的记录数
         """
-        count = self.db.query(UserRole).filter(UserRole.ROLE_ID == role_id).count()
-        self.db.query(UserRole).filter(UserRole.ROLE_ID == role_id).delete()
+        count = self.db.query(UserRole).filter(UserRole.role_id == role_id).count()
+        self.db.query(UserRole).filter(UserRole.role_id == role_id).delete()
         return count
 
     def delete_specific(self, user_id: int, role_id: int) -> bool:
@@ -122,8 +122,8 @@ class UserRoleRepository(BaseRepository[UserRole]):
             True表示删除成功，False表示记录不存在
         """
         result = self.db.query(UserRole).filter(
-            UserRole.USER_ID == user_id,
-            UserRole.ROLE_ID == role_id
+            UserRole.user_id == user_id,
+            UserRole.role_id == role_id
         ).delete()
         return result > 0
 

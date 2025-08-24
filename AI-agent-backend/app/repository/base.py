@@ -24,16 +24,16 @@ class BaseRepository(Generic[EntityType]):
     提供通用的CRUD操作方法
     """
 
-    def __init__(self, model: Type[EntityType], db: Session):
+    def __init__(self, db: Session, model: Type[EntityType]):
         """
         初始化Repository
-        
+
         Args:
-            model: 实体模型类
             db: 数据库会话
+            model: 实体模型类
         """
-        self.model = model
         self.db = db
+        self.model = model
 
     def create(self, entity: EntityType) -> EntityType:
         """

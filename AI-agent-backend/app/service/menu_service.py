@@ -92,16 +92,16 @@ class MenuService:
         # 构建菜单树
         menu_dict = {}
         for menu in all_menus:
-            menu_dict[menu.MENU_ID] = {
-                "menu_id": menu.MENU_ID,
-                "parent_id": menu.PARENT_ID,
-                "menu_name": menu.MENU_NAME,
+            menu_dict[menu.menu_id] = {
+                "menu_id": menu.menu_id,
+                "parent_id": menu.parent_id,
+                "menu_name": menu.menu_name,
                 "path": menu.PATH,
                 "component": menu.COMPONENT,
-                "perms": menu.PERMS,
-                "icon": menu.ICON,
+                "perms": menu.perms,
+                "icon": menu.icon,
                 "type": menu.TYPE,
-                "order_num": menu.ORDER_NUM,
+                "order_num": menu.order_num,
                 "children": []
             }
         
@@ -255,13 +255,13 @@ class MenuService:
         # 获取所有角色的菜单权限
         all_menus = []
         for role in roles:
-            menus = self.role_menu_repository.get_menus_by_role_id(role.ROLE_ID)
+            menus = self.role_menu_repository.get_menus_by_role_id(role.role_id)
             all_menus.extend(menus)
         
         # 去重
         unique_menus = {}
         for menu in all_menus:
-            unique_menus[menu.MENU_ID] = menu
+            unique_menus[menu.menu_id] = menu
         
         return list(unique_menus.values())
 
@@ -290,7 +290,7 @@ class MenuService:
         # 获取所有角色的权限
         all_permissions = []
         for role in roles:
-            permissions = self.role_menu_repository.get_permissions_by_role_id(role.ROLE_ID)
+            permissions = self.role_menu_repository.get_permissions_by_role_id(role.role_id)
             all_permissions.extend(permissions)
 
         # 去重

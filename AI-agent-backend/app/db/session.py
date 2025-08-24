@@ -58,16 +58,16 @@ def create_tables():
     创建所有数据库表
     """
     from app.db.base import Base
-    from app.entity.rbac_base import RBACBase
 
-    # 导入所有RBAC实体以确保它们被注册到metadata中
+    # 导入所有实体以确保它们被注册到metadata中
+    from app.entity import (
+        User, Role, Menu, Department, UserRole, RoleMenu,
+        AuditLog, PermissionCache, DataPermissionRule
+    )
 
     try:
-        # 创建原有的表
+        # 创建所有表
         Base.metadata.create_all(bind=engine)
-
-        # 创建RBAC表
-        RBACBase.metadata.create_all(bind=engine)
 
         logger.info("Database tables created successfully")
     except Exception as e:
@@ -80,14 +80,10 @@ def drop_tables():
     删除所有数据库表
     """
     from app.db.base import Base
-    from app.entity.rbac_base import RBACBase
 
     try:
-        # 删除原有的表
+        # 删除所有表
         Base.metadata.drop_all(bind=engine)
-
-        # 删除RBAC表
-        RBACBase.metadata.drop_all(bind=engine)
 
         logger.info("Database tables dropped successfully")
     except Exception as e:

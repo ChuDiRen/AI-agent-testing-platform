@@ -7,11 +7,16 @@ from .department_service import DepartmentService
 from .menu_service import MenuService
 from .rbac_user_service import RBACUserService
 from .role_service import RoleService
+from .audit_log_service import AuditLogService
+from .data_permission_service import DataPermissionService
+from .permission_cache_service import PermissionCacheService
 
 __all__ = [
     "BaseService",
     "RoleService",
     "MenuService",
     "DepartmentService",
-    "RBACUserService"
+    "RBACUserService",
+    "AuditLogService",
+    "DataPermissionService"
 ]

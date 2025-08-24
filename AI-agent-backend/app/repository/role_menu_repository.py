@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.entity.menu import Menu
 from app.entity.role_menu import RoleMenu
-from app.repository.base_repository import BaseRepository
+from app.repository.base import BaseRepository
 
 
 class RoleMenuRepository(BaseRepository[RoleMenu]):
@@ -38,7 +38,7 @@ class RoleMenuRepository(BaseRepository[RoleMenu]):
         Returns:
             角色菜单关联列表
         """
-        return self.db.query(RoleMenu).filter(RoleMenu.ROLE_ID == role_id).all()
+        return self.db.query(RoleMenu).filter(RoleMenu.role_id == role_id).all()
 
     def get_by_menu_id(self, menu_id: int) -> List[RoleMenu]:
         """
@@ -50,7 +50,7 @@ class RoleMenuRepository(BaseRepository[RoleMenu]):
         Returns:
             角色菜单关联列表
         """
-        return self.db.query(RoleMenu).filter(RoleMenu.MENU_ID == menu_id).all()
+        return self.db.query(RoleMenu).filter(RoleMenu.menu_id == menu_id).all()
 
     def get_menus_by_role_id(self, role_id: int) -> List[Menu]:
         """
@@ -63,8 +63,8 @@ class RoleMenuRepository(BaseRepository[RoleMenu]):
             菜单列表
         """
         return self.db.query(Menu).join(
-            RoleMenu, Menu.MENU_ID == RoleMenu.MENU_ID
-        ).filter(RoleMenu.ROLE_ID == role_id).order_by(Menu.ORDER_NUM).all()
+            RoleMenu, Menu.menu_id == RoleMenu.menu_id
+        ).filter(RoleMenu.role_id == role_id).order_by(Menu.order_num).all()
 
     def get_menu_ids_by_role_id(self, role_id: int) -> List[int]:
         """
@@ -76,7 +76,7 @@ class RoleMenuRepository(BaseRepository[RoleMenu]):
         Returns:
             菜单ID列表
         """
-        result = self.db.query(RoleMenu.MENU_ID).filter(RoleMenu.ROLE_ID == role_id).all()
+        result = self.db.query(RoleMenu.menu_id).filter(RoleMenu.role_id == role_id).all()
         return [menu_id[0] for menu_id in result]
 
     def exists(self, role_id: int, menu_id: int) -> bool:
@@ -91,8 +91,8 @@ class RoleMenuRepository(BaseRepository[RoleMenu]):
             True表示存在，False表示不存在
         """
         return self.db.query(RoleMenu).filter(
-            RoleMenu.ROLE_ID == role_id,
-            RoleMenu.MENU_ID == menu_id
+            RoleMenu.role_id == role_id,
+            RoleMenu.menu_id == menu_id
         ).first() is not None
 
     def delete_by_role_id(self, role_id: int) -> int:
@@ -105,8 +105,8 @@ class RoleMenuRepository(BaseRepository[RoleMenu]):
         Returns:
             删除的记录数
         """
-        count = self.db.query(RoleMenu).filter(RoleMenu.ROLE_ID == role_id).count()
-        self.db.query(RoleMenu).filter(RoleMenu.ROLE_ID == role_id).delete()
+        count = self.db.query(RoleMenu).filter(RoleMenu.role_id == role_id).count()
+        self.db.query(RoleMenu).filter(RoleMenu.role_id == role_id).delete()
         return count
 
     def delete_by_menu_id(self, menu_id: int) -> int:
@@ -119,8 +119,8 @@ class RoleMenuRepository(BaseRepository[RoleMenu]):
         Returns:
             删除的记录数
         """
-        count = self.db.query(RoleMenu).filter(RoleMenu.MENU_ID == menu_id).count()
-        self.db.query(RoleMenu).filter(RoleMenu.MENU_ID == menu_id).delete()
+        count = self.db.query(RoleMenu).filter(RoleMenu.menu_id == menu_id).count()
+        self.db.query(RoleMenu).filter(RoleMenu.menu_id == menu_id).delete()
         return count
 
     def delete_specific(self, role_id: int, menu_id: int) -> bool:
@@ -135,8 +135,8 @@ class RoleMenuRepository(BaseRepository[RoleMenu]):
             True表示删除成功，False表示记录不存在
         """
         result = self.db.query(RoleMenu).filter(
-            RoleMenu.ROLE_ID == role_id,
-            RoleMenu.MENU_ID == menu_id
+            RoleMenu.role_id == role_id,
+            RoleMenu.menu_id == menu_id
         ).delete()
         return result > 0
 
@@ -184,11 +184,11 @@ class RoleMenuRepository(BaseRepository[RoleMenu]):
         Returns:
             权限标识列表
         """
-        permissions = self.db.query(Menu.PERMS).join(
-            RoleMenu, Menu.MENU_ID == RoleMenu.MENU_ID
+        permissions = self.db.query(Menu.perms).join(
+            RoleMenu, Menu.menu_id == RoleMenu.menu_id
         ).filter(
-            RoleMenu.ROLE_ID == role_id,
-            Menu.PERMS.isnot(None)  # 只获取有权限标识的菜单
+            RoleMenu.role_id == role_id,
+            Menu.perms.isnot(None)  # 只获取有权限标识的菜单
         ).all()
         
         # 提取权限标识字符串

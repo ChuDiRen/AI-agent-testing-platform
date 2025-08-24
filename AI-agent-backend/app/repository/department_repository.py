@@ -9,7 +9,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.entity.department import Department
-from app.repository.base_repository import BaseRepository
+from app.repository.base import BaseRepository
 
 
 class DepartmentRepository(BaseRepository[Department]):
@@ -37,7 +37,7 @@ class DepartmentRepository(BaseRepository[Department]):
         Returns:
             部门对象或None
         """
-        return self.db.query(Department).filter(Department.DEPT_NAME == dept_name).first()
+        return self.db.query(Department).filter(Department.dept_name == dept_name).first()
 
     def get_by_parent_id(self, parent_id: int) -> List[Department]:
         """
@@ -50,8 +50,8 @@ class DepartmentRepository(BaseRepository[Department]):
             子部门列表
         """
         return self.db.query(Department).filter(
-            Department.PARENT_ID == parent_id
-        ).order_by(Department.ORDER_NUM).all()
+            Department.parent_id == parent_id
+        ).order_by(Department.order_num).all()
 
     def get_top_level_departments(self) -> List[Department]:
         """
@@ -70,7 +70,7 @@ class DepartmentRepository(BaseRepository[Department]):
             部门树列表
         """
         # 获取所有部门，按ORDER_NUM排序
-        all_departments = self.db.query(Department).order_by(Department.ORDER_NUM).all()
+        all_departments = self.db.query(Department).order_by(Department.order_num).all()
         
         # 构建部门树（这里返回所有部门，前端可以根据PARENT_ID构建树形结构）
         return all_departments
@@ -86,9 +86,9 @@ class DepartmentRepository(BaseRepository[Department]):
         Returns:
             True表示存在，False表示不存在
         """
-        query = self.db.query(Department).filter(Department.DEPT_NAME == dept_name)
+        query = self.db.query(Department).filter(Department.dept_name == dept_name)
         if exclude_id:
-            query = query.filter(Department.DEPT_ID != exclude_id)
+            query = query.filter(Department.dept_id != exclude_id)
         return query.first() is not None
 
     def search_by_name(self, keyword: str) -> List[Department]:
@@ -102,8 +102,8 @@ class DepartmentRepository(BaseRepository[Department]):
             匹配的部门列表
         """
         return self.db.query(Department).filter(
-            Department.DEPT_NAME.like(f"%{keyword}%")
-        ).order_by(Department.ORDER_NUM).all()
+            Department.dept_name.like(f"%{keyword}%")
+        ).order_by(Department.order_num).all()
 
     def has_children(self, dept_id: int) -> bool:
         """
@@ -116,7 +116,7 @@ class DepartmentRepository(BaseRepository[Department]):
             True表示有子部门，False表示没有
         """
         return self.db.query(Department).filter(
-            Department.PARENT_ID == dept_id
+            Department.parent_id == dept_id
         ).first() is not None
 
     def has_users(self, dept_id: int) -> bool:
@@ -132,7 +132,7 @@ class DepartmentRepository(BaseRepository[Department]):
         from app.entity.user import User
         
         return self.db.query(User).filter(
-            User.DEPT_ID == dept_id
+            User.dept_id == dept_id
         ).first() is not None
 
     def can_delete(self, dept_id: int) -> bool:

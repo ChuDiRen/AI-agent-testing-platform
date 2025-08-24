@@ -59,20 +59,20 @@ async def create_menu(
         
         # 转换为响应格式
         menu_response = MenuResponse(
-            menu_id=menu.MENU_ID,
-            parent_id=menu.PARENT_ID,
-            menu_name=menu.MENU_NAME,
+            menu_id=menu.menu_id,
+            parent_id=menu.parent_id,
+            menu_name=menu.menu_name,
             path=menu.PATH,
             component=menu.COMPONENT,
-            perms=menu.PERMS,
-            icon=menu.ICON,
+            perms=menu.perms,
+            icon=menu.icon,
             menu_type=menu.TYPE,
-            order_num=menu.ORDER_NUM,
-            create_time=menu.CREATE_TIME,
-            modify_time=menu.MODIFY_TIME
+            order_num=menu.order_num,
+            create_time=menu.create_time,
+            modify_time=menu.modify_time
         )
         
-        logger.info(f"Menu created successfully: {menu.MENU_NAME}")
+        logger.info(f"Menu created successfully: {menu.menu_name}")
         return ApiResponse.success_response(data=menu_response, message="菜单创建成功")
         
     except Exception as e:
@@ -143,17 +143,17 @@ async def get_menu(
             )
         
         menu_response = MenuResponse(
-            menu_id=menu.MENU_ID,
-            parent_id=menu.PARENT_ID,
-            menu_name=menu.MENU_NAME,
+            menu_id=menu.menu_id,
+            parent_id=menu.parent_id,
+            menu_name=menu.menu_name,
             path=menu.PATH,
             component=menu.COMPONENT,
-            perms=menu.PERMS,
-            icon=menu.ICON,
+            perms=menu.perms,
+            icon=menu.icon,
             menu_type=menu.TYPE,
-            order_num=menu.ORDER_NUM,
-            create_time=menu.CREATE_TIME,
-            modify_time=menu.MODIFY_TIME
+            order_num=menu.order_num,
+            create_time=menu.create_time,
+            modify_time=menu.modify_time
         )
         
         return ApiResponse.success_response(data=menu_response, message="获取菜单详情成功")
@@ -204,17 +204,17 @@ async def update_menu(
             )
         
         menu_response = MenuResponse(
-            menu_id=menu.MENU_ID,
-            parent_id=menu.PARENT_ID,
-            menu_name=menu.MENU_NAME,
+            menu_id=menu.menu_id,
+            parent_id=menu.parent_id,
+            menu_name=menu.menu_name,
             path=menu.PATH,
             component=menu.COMPONENT,
-            perms=menu.PERMS,
-            icon=menu.ICON,
+            perms=menu.perms,
+            icon=menu.icon,
             menu_type=menu.TYPE,
-            order_num=menu.ORDER_NUM,
-            create_time=menu.CREATE_TIME,
-            modify_time=menu.MODIFY_TIME
+            order_num=menu.order_num,
+            create_time=menu.create_time,
+            modify_time=menu.modify_time
         )
         
         logger.info(f"Menu updated successfully: {menu_id}")
@@ -291,16 +291,16 @@ async def get_user_menus(
         # 转换为树形结构
         menu_dict = {}
         for menu in user_menus:
-            menu_dict[menu.MENU_ID] = MenuTreeNode(
-                menu_id=menu.MENU_ID,
-                parent_id=menu.PARENT_ID,
-                menu_name=menu.MENU_NAME,
+            menu_dict[menu.menu_id] = MenuTreeNode(
+                menu_id=menu.menu_id,
+                parent_id=menu.parent_id,
+                menu_name=menu.menu_name,
                 path=menu.PATH,
                 component=menu.COMPONENT,
-                perms=menu.PERMS,
-                icon=menu.ICON,
+                perms=menu.perms,
+                icon=menu.icon,
                 menu_type=menu.TYPE,
-                order_num=menu.ORDER_NUM,
+                order_num=menu.order_num,
                 children=[]
             )
         

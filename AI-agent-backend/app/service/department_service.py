@@ -93,13 +93,13 @@ class DepartmentService:
         # 构建部门树
         dept_dict = {}
         for dept in all_departments:
-            dept_dict[dept.DEPT_ID] = {
-                "dept_id": dept.DEPT_ID,
-                "parent_id": dept.PARENT_ID,
-                "dept_name": dept.DEPT_NAME,
-                "order_num": dept.ORDER_NUM,
-                "create_time": dept.CREATE_TIME.isoformat() if dept.CREATE_TIME else None,
-                "modify_time": dept.MODIFY_TIME.isoformat() if dept.MODIFY_TIME else None,
+            dept_dict[dept.dept_id] = {
+                "dept_id": dept.dept_id,
+                "parent_id": dept.parent_id,
+                "dept_name": dept.dept_name,
+                "order_num": dept.order_num,
+                "create_time": dept.create_time.isoformat() if dept.create_time else None,
+                "modify_time": dept.modify_time.isoformat() if dept.modify_time else None,
                 "children": []
             }
         
@@ -157,7 +157,7 @@ class DepartmentService:
             return None
         
         # 如果要更新部门名称，检查是否已存在
-        if dept_name and dept_name != department.DEPT_NAME:
+        if dept_name and dept_name != department.dept_name:
             if self.department_repository.exists_by_name(dept_name, exclude_id=dept_id):
                 raise ValueError(f"部门名称 '{dept_name}' 已存在")
         

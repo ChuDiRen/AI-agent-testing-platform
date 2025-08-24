@@ -50,15 +50,15 @@ async def create_department(
         
         # 转换为响应格式
         dept_response = DepartmentResponse(
-            dept_id=department.DEPT_ID,
-            parent_id=department.PARENT_ID,
-            dept_name=department.DEPT_NAME,
-            order_num=department.ORDER_NUM,
-            create_time=department.CREATE_TIME,
-            modify_time=department.MODIFY_TIME
+            dept_id=department.dept_id,
+            parent_id=department.parent_id,
+            dept_name=department.dept_name,
+            order_num=department.order_num,
+            create_time=department.create_time,
+            modify_time=department.modify_time
         )
         
-        logger.info(f"Department created successfully: {department.DEPT_NAME}")
+        logger.info(f"Department created successfully: {department.dept_name}")
         return ApiResponse.success_response(data=dept_response, message="部门创建成功")
         
     except ValueError as e:
@@ -124,12 +124,12 @@ async def get_departments(
         # 转换为响应格式
         dept_responses = [
             DepartmentResponse(
-                dept_id=dept.DEPT_ID,
-                parent_id=dept.PARENT_ID,
-                dept_name=dept.DEPT_NAME,
-                order_num=dept.ORDER_NUM,
-                create_time=dept.CREATE_TIME,
-                modify_time=dept.MODIFY_TIME
+                dept_id=dept.dept_id,
+                parent_id=dept.parent_id,
+                dept_name=dept.dept_name,
+                order_num=dept.order_num,
+                create_time=dept.create_time,
+                modify_time=dept.modify_time
             )
             for dept in departments
         ]
@@ -167,12 +167,12 @@ async def get_department(
             )
         
         dept_response = DepartmentResponse(
-            dept_id=department.DEPT_ID,
-            parent_id=department.PARENT_ID,
-            dept_name=department.DEPT_NAME,
-            order_num=department.ORDER_NUM,
-            create_time=department.CREATE_TIME,
-            modify_time=department.MODIFY_TIME
+            dept_id=department.dept_id,
+            parent_id=department.parent_id,
+            dept_name=department.dept_name,
+            order_num=department.order_num,
+            create_time=department.create_time,
+            modify_time=department.modify_time
         )
         
         return ApiResponse.success_response(data=dept_response, message="获取部门详情成功")
@@ -215,12 +215,12 @@ async def update_department(
             )
         
         dept_response = DepartmentResponse(
-            dept_id=department.DEPT_ID,
-            parent_id=department.PARENT_ID,
-            dept_name=department.DEPT_NAME,
-            order_num=department.ORDER_NUM,
-            create_time=department.CREATE_TIME,
-            modify_time=department.MODIFY_TIME
+            dept_id=department.dept_id,
+            parent_id=department.parent_id,
+            dept_name=department.dept_name,
+            order_num=department.order_num,
+            create_time=department.create_time,
+            modify_time=department.modify_time
         )
         
         logger.info(f"Department updated successfully: {dept_id}")
@@ -306,8 +306,8 @@ async def get_department_status(
         can_delete = department_service.can_delete(dept_id)
         
         status_response = DepartmentStatusResponse(
-            dept_id=department.DEPT_ID,
-            dept_name=department.DEPT_NAME,
+            dept_id=department.dept_id,
+            dept_name=department.dept_name,
             has_children=has_children,
             has_users=has_users,
             can_delete=can_delete

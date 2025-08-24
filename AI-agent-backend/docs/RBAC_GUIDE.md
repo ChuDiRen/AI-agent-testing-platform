@@ -177,31 +177,31 @@ GET /api/v1/departments/tree
 
 系统提供了完整的权限验证中间件，支持以下验证方式：
 
-### 基础认证
+### 基础认证（带审计日志）
 ```python
-from app.middleware.rbac_auth import get_current_user
+from app.middleware.auth import get_current_user_with_audit
 
 @router.get("/protected")
-async def protected_endpoint(current_user=Depends(get_current_user)):
+async def protected_endpoint(current_user=Depends(get_current_user_with_audit)):
     return {"message": "这是受保护的接口"}
 ```
 
-### 权限验证
+### 权限验证（带审计日志）
 ```python
-from app.middleware.rbac_auth import require_user_view
+from app.middleware.auth import require_user_view_with_audit
 
 @router.get("/users")
-async def get_users(current_user=Depends(require_user_view())):
+async def get_users(current_user=Depends(require_user_view_with_audit())):
     return {"users": []}
 ```
 
-### 角色验证
+### 数据权限验证
 ```python
-from app.middleware.rbac_auth import require_admin_role
+from app.middleware.auth import require_user_data_permission
 
-@router.delete("/users/{user_id}")
-async def delete_user(user_id: int, current_user=Depends(require_admin_role())):
-    return {"message": "用户删除成功"}
+@router.get("/users")
+async def get_users(current_user=Depends(require_user_data_permission())):
+    return {"users": []}
 ```
 
 ## 初始数据

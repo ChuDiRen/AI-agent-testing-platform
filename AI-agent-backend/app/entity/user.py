@@ -9,55 +9,55 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, CHAR, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
-from .rbac_base import RBACBase
+from .base import BaseEntity
 
 
-class User(RBACBase):
+class User(BaseEntity):
     """
     用户实体类 - 对应t_user表
     定义用户的基本信息和行为
     """
-    __tablename__ = "users"
+    __tablename__ = "user"
     __allow_unmapped__ = True  # 允许未映射的注解
 
     # 用户ID - 主键，自增
-    USER_ID = Column(Integer, primary_key=True, comment="用户ID")
+    user_id = Column(Integer, primary_key=True, comment="用户ID")
 
     # 用户名 - 必填，最大50个字符，唯一
-    USERNAME = Column(String(50), nullable=False, unique=True, index=True, comment="用户名")
+    username = Column(String(50), nullable=False, unique=True, index=True, comment="用户名")
 
     # 密码 - 必填，最大128个字符，加密存储
-    PASSWORD = Column(String(128), nullable=False, comment="密码")
+    password = Column(String(128), nullable=False, comment="密码")
 
     # 部门ID - 可选，关联部门表
-    DEPT_ID = Column(Integer, ForeignKey('t_dept.DEPT_ID'), nullable=True, comment="部门ID")
+    dept_id = Column(Integer, ForeignKey('department.dept_id'), nullable=True, comment="部门ID")
 
     # 邮箱 - 可选，最大128个字符
-    EMAIL = Column(String(128), nullable=True, comment="邮箱")
+    email = Column(String(128), nullable=True, comment="邮箱")
 
     # 联系电话 - 可选，最大20个字符
-    MOBILE = Column(String(20), nullable=True, comment="联系电话")
+    mobile = Column(String(20), nullable=True, comment="联系电话")
 
     # 状态 - 必填，1个字符，0锁定 1有效
-    STATUS = Column(CHAR(1), nullable=False, default='1', comment="状态 0锁定 1有效")
+    status = Column(CHAR(1), nullable=False, default='1', comment="状态 0锁定 1有效")
 
     # 创建时间 - 必填，默认当前时间
-    CREATE_TIME = Column(DateTime, nullable=False, default=datetime.utcnow, comment="创建时间")
+    create_time = Column(DateTime, nullable=False, default=datetime.utcnow, comment="创建时间")
 
     # 修改时间 - 可选，更新时自动设置
-    MODIFY_TIME = Column(DateTime, nullable=True, onupdate=datetime.utcnow, comment="修改时间")
+    modify_time = Column(DateTime, nullable=True, onupdate=datetime.utcnow, comment="修改时间")
 
     # 最近访问时间 - 可选
-    LAST_LOGIN_TIME = Column(DateTime, nullable=True, comment="最近访问时间")
+    last_login_time = Column(DateTime, nullable=True, comment="最近访问时间")
 
     # 性别 - 可选，1个字符，0男 1女 2保密
-    SSEX = Column(CHAR(1), nullable=True, comment="性别 0男 1女 2保密")
+    ssex = Column(CHAR(1), nullable=True, comment="性别 0男 1女 2保密")
 
     # 头像 - 可选，最大100个字符
-    AVATAR = Column(String(100), nullable=True, comment="头像")
+    avatar = Column(String(100), nullable=True, comment="头像")
 
     # 描述 - 可选，最大100个字符
-    DESCRIPTION = Column(String(100), nullable=True, comment="描述")
+    description = Column(String(100), nullable=True, comment="描述")
 
     # 关联关系
     # 用户-角色关联（一个用户可以有多个角色）
@@ -82,16 +82,16 @@ class User(RBACBase):
             avatar: 头像
             description: 描述
         """
-        self.USERNAME = username
-        self.PASSWORD = password
-        self.EMAIL = email
-        self.MOBILE = mobile
-        self.DEPT_ID = dept_id
-        self.SSEX = ssex
-        self.AVATAR = avatar
-        self.DESCRIPTION = description
-        self.STATUS = '1'  # 默认有效状态
-        self.CREATE_TIME = datetime.utcnow()
+        self.username = username
+        self.password = password
+        self.email = email
+        self.mobile = mobile
+        self.dept_id = dept_id
+        self.ssex = ssex
+        self.avatar = avatar
+        self.description = description
+        self.status = '1'  # 默认有效状态
+        self.create_time = datetime.utcnow()
 
     def is_active(self) -> bool:
         """
@@ -100,7 +100,7 @@ class User(RBACBase):
         Returns:
             True表示有效，False表示锁定
         """
-        return self.STATUS == '1'
+        return self.status == '1'
 
     def is_locked(self) -> bool:
         """
@@ -109,27 +109,27 @@ class User(RBACBase):
         Returns:
             True表示锁定，False表示有效
         """
-        return self.STATUS == '0'
+        return self.status == '0'
 
     def lock_user(self):
         """
         锁定用户
         """
-        self.STATUS = '0'
-        self.MODIFY_TIME = datetime.utcnow()
+        self.status = '0'
+        self.modify_time = datetime.utcnow()
 
     def unlock_user(self):
         """
         解锁用户
         """
-        self.STATUS = '1'
-        self.MODIFY_TIME = datetime.utcnow()
+        self.status = '1'
+        self.modify_time = datetime.utcnow()
 
     def update_last_login(self):
         """
         更新最后登录时间
         """
-        self.LAST_LOGIN_TIME = datetime.utcnow()
+        self.last_login_time = datetime.utcnow()
 
     def change_password(self, new_password: str):
         """
@@ -138,8 +138,8 @@ class User(RBACBase):
         Args:
             new_password: 新的加密密码
         """
-        self.PASSWORD = new_password
-        self.MODIFY_TIME = datetime.utcnow()
+        self.password = new_password
+        self.modify_time = datetime.utcnow()
 
     def update_info(self, email: str = None, mobile: str = None,
                    ssex: str = None, avatar: str = None, description: str = None):
@@ -154,16 +154,16 @@ class User(RBACBase):
             description: 描述
         """
         if email is not None:
-            self.EMAIL = email
+            self.email = email
         if mobile is not None:
-            self.MOBILE = mobile
+            self.mobile = mobile
         if ssex is not None:
-            self.SSEX = ssex
+            self.ssex = ssex
         if avatar is not None:
-            self.AVATAR = avatar
+            self.avatar = avatar
         if description is not None:
-            self.DESCRIPTION = description
-        self.MODIFY_TIME = datetime.utcnow()
+            self.description = description
+        self.modify_time = datetime.utcnow()
 
     def get_gender_display(self) -> str:
         """
@@ -173,7 +173,7 @@ class User(RBACBase):
             性别显示文本
         """
         gender_map = {'0': '男', '1': '女', '2': '保密'}
-        return gender_map.get(self.SSEX, '未知')
+        return gender_map.get(self.ssex, '未知')
 
     def to_dict(self) -> dict:
         """
@@ -183,18 +183,18 @@ class User(RBACBase):
             用户信息字典
         """
         return {
-            "USER_ID": self.USER_ID,
-            "USERNAME": self.USERNAME,
-            "DEPT_ID": self.DEPT_ID,
-            "EMAIL": self.EMAIL,
-            "MOBILE": self.MOBILE,
-            "STATUS": self.STATUS,
-            "CREATE_TIME": self.CREATE_TIME.isoformat() if self.CREATE_TIME else None,
-            "MODIFY_TIME": self.MODIFY_TIME.isoformat() if self.MODIFY_TIME else None,
-            "LAST_LOGIN_TIME": self.LAST_LOGIN_TIME.isoformat() if self.LAST_LOGIN_TIME else None,
-            "SSEX": self.SSEX,
-            "AVATAR": self.AVATAR,
-            "DESCRIPTION": self.DESCRIPTION
+            "user_id": self.user_id,
+            "username": self.username,
+            "dept_id": self.dept_id,
+            "email": self.email,
+            "mobile": self.mobile,
+            "status": self.status,
+            "create_time": self.create_time.isoformat() if self.create_time else None,
+            "modify_time": self.modify_time.isoformat() if self.modify_time else None,
+            "last_login_time": self.last_login_time.isoformat() if self.last_login_time else None,
+            "ssex": self.ssex,
+            "avatar": self.avatar,
+            "description": self.description
         }
 
     def to_dict_safe(self) -> dict:
@@ -212,4 +212,4 @@ class User(RBACBase):
         """
         字符串表示
         """
-        return f"<User(USER_ID={self.USER_ID}, USERNAME='{self.USERNAME}', STATUS='{self.STATUS}')>"
+        return f"<User(user_id={self.user_id}, username='{self.username}', status='{self.status}')>"

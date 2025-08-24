@@ -9,7 +9,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.entity.role import Role
-from app.repository.base_repository import BaseRepository
+from app.repository.base import BaseRepository
 
 
 class RoleRepository(BaseRepository[Role]):
@@ -37,7 +37,7 @@ class RoleRepository(BaseRepository[Role]):
         Returns:
             角色对象或None
         """
-        return self.db.query(Role).filter(Role.ROLE_NAME == role_name).first()
+        return self.db.query(Role).filter(Role.role_name == role_name).first()
 
     def get_all_active(self) -> List[Role]:
         """
@@ -59,9 +59,9 @@ class RoleRepository(BaseRepository[Role]):
         Returns:
             True表示存在，False表示不存在
         """
-        query = self.db.query(Role).filter(Role.ROLE_NAME == role_name)
+        query = self.db.query(Role).filter(Role.role_name == role_name)
         if exclude_id:
-            query = query.filter(Role.ROLE_ID != exclude_id)
+            query = query.filter(Role.role_id != exclude_id)
         return query.first() is not None
 
     def search_by_name(self, keyword: str) -> List[Role]:
@@ -75,7 +75,7 @@ class RoleRepository(BaseRepository[Role]):
             匹配的角色列表
         """
         return self.db.query(Role).filter(
-            Role.ROLE_NAME.like(f"%{keyword}%")
+            Role.role_name.like(f"%{keyword}%")
         ).all()
 
     def get_roles_with_pagination(self, page: int = 1, size: int = 10) -> tuple[List[Role], int]:

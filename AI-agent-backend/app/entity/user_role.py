@@ -7,22 +7,22 @@
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 
-from .rbac_base import RBACBase
+from .base import BaseEntity
 
 
-class UserRole(RBACBase):
+class UserRole(BaseEntity):
     """
     用户角色关联实体类 - 对应t_user_role表
     用于关联用户和角色表，实现多对多关系
     """
-    __tablename__ = "t_user_role"
+    __tablename__ = "user_role"
     __allow_unmapped__ = True  # 允许未映射的注解
 
     # 用户ID - 外键，关联用户表
-    USER_ID = Column(Integer, ForeignKey('users.USER_ID'), primary_key=True, comment="用户ID")
+    user_id = Column(Integer, ForeignKey('user.user_id'), primary_key=True, comment="用户ID")
 
     # 角色ID - 外键，关联角色表
-    ROLE_ID = Column(Integer, ForeignKey('t_role.ROLE_ID'), primary_key=True, comment="角色ID")
+    role_id = Column(Integer, ForeignKey('role.role_id'), primary_key=True, comment="角色ID")
 
     # 关联关系
     # 关联到用户实体
@@ -39,8 +39,8 @@ class UserRole(RBACBase):
             user_id: 用户ID
             role_id: 角色ID
         """
-        self.USER_ID = user_id
-        self.ROLE_ID = role_id
+        self.user_id = user_id
+        self.role_id = role_id
 
     def to_dict(self) -> dict:
         """
@@ -50,12 +50,12 @@ class UserRole(RBACBase):
             用户角色关联信息字典
         """
         return {
-            "USER_ID": self.USER_ID,
-            "ROLE_ID": self.ROLE_ID
+            "user_id": self.user_id,
+            "role_id": self.role_id
         }
 
     def __repr__(self):
         """
         字符串表示
         """
-        return f"<UserRole(USER_ID={self.USER_ID}, ROLE_ID={self.ROLE_ID})>"
+        return f"<UserRole(user_id={self.user_id}, role_id={self.role_id})>"

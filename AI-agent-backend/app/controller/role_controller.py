@@ -46,14 +46,14 @@ async def create_role(
         
         # 转换为响应格式
         role_response = RoleResponse(
-            role_id=role.ROLE_ID,
-            role_name=role.ROLE_NAME,
-            remark=role.REMARK,
-            create_time=role.CREATE_TIME,
-            modify_time=role.MODIFY_TIME
+            role_id=role.role_id,
+            role_name=role.role_name,
+            remark=role.remark,
+            create_time=role.create_time,
+            modify_time=role.modify_time
         )
         
-        logger.info(f"Role created successfully: {role.ROLE_NAME}")
+        logger.info(f"Role created successfully: {role.role_name}")
         return ApiResponse.success_response(data=role_response, message="角色创建成功")
         
     except ValueError as e:
@@ -137,11 +137,11 @@ async def get_role(
             )
         
         role_response = RoleResponse(
-            role_id=role.ROLE_ID,
-            role_name=role.ROLE_NAME,
-            remark=role.REMARK,
-            create_time=role.CREATE_TIME,
-            modify_time=role.MODIFY_TIME
+            role_id=role.role_id,
+            role_name=role.role_name,
+            remark=role.remark,
+            create_time=role.create_time,
+            modify_time=role.modify_time
         )
         
         return ApiResponse.success_response(data=role_response, message="获取角色详情成功")
@@ -184,11 +184,11 @@ async def update_role(
             )
         
         role_response = RoleResponse(
-            role_id=role.ROLE_ID,
-            role_name=role.ROLE_NAME,
-            remark=role.REMARK,
-            create_time=role.CREATE_TIME,
-            modify_time=role.MODIFY_TIME
+            role_id=role.role_id,
+            role_name=role.role_name,
+            remark=role.remark,
+            create_time=role.create_time,
+            modify_time=role.modify_time
         )
         
         logger.info(f"Role updated successfully: {role_id}")
@@ -308,8 +308,8 @@ async def get_role_permissions(
         menu_ids = role_service.get_role_menu_ids(role_id)
         
         permission_response = RolePermissionResponse(
-            role_id=role.ROLE_ID,
-            role_name=role.ROLE_NAME,
+            role_id=role.role_id,
+            role_name=role.role_name,
             permissions=permissions,
             menu_ids=menu_ids
         )
