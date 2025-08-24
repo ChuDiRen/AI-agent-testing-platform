@@ -20,8 +20,7 @@ class Menu(BaseEntity):
     __tablename__ = "menu"
     __allow_unmapped__ = True  # 允许未映射的注解
 
-    # 菜单/按钮ID - 主键，自增
-    menu_id = Column(Integer, primary_key=True, comment="菜单/按钮ID")
+    # 使用Base类的id作为主键，没有别名
 
     # 上级菜单ID - 必填，0表示顶级菜单
     parent_id = Column(Integer, nullable=False, comment="上级菜单ID")

@@ -74,13 +74,21 @@ def create_superuser(db):
             logger.info("Superuser already exists")
             return
         
+        # 获取技术部ID（如果不存在则创建）
+        from app.entity.department import Department
+        tech_dept = db.query(Department).filter(Department.dept_name == "技术部").first()
+        if not tech_dept:
+            tech_dept = Department(parent_id=0, dept_name="技术部", order_num=1.0)
+            db.add(tech_dept)
+            db.flush()
+
         # 创建超级用户
         user = service.create_user(
             username="admin",
             password="123456",
             email="admin@example.com",
             mobile="17788888888",
-            dept_id=1,  # 假设开发部的ID为1
+            dept_id=tech_dept.id,
             ssex="0",
             avatar="default.jpg",
             description="系统管理员"
@@ -105,15 +113,53 @@ def create_rbac_initial_data(db):
         from app.entity.role_menu import RoleMenu
         from app.core.security import get_password_hash
 
-        # 1. 创建部门
-        dept = Department(parent_id=0, dept_name="开发部", order_num=1)
-        db.add(dept)
-        db.flush()  # 获取部门ID
+        # 1. 创建部门层级结构
+        # 顶级部门
+        tech_dept = Department(parent_id=0, dept_name="技术部", order_num=1.0)
+        db.add(tech_dept)
+        db.flush()
 
-        # 2. 创建角色
-        admin_role = Role(role_name="管理员", remark="系统管理员")
+        hr_dept = Department(parent_id=0, dept_name="人事部", order_num=2.0)
+        db.add(hr_dept)
+        db.flush()
+
+        finance_dept = Department(parent_id=0, dept_name="财务部", order_num=3.0)
+        db.add(finance_dept)
+        db.flush()
+
+        # 技术部子部门
+        dev_team = Department(parent_id=tech_dept.id, dept_name="开发组", order_num=1.1)
+        db.add(dev_team)
+        db.flush()
+
+        test_team = Department(parent_id=tech_dept.id, dept_name="测试组", order_num=1.2)
+        db.add(test_team)
+        db.flush()
+
+        ops_team = Department(parent_id=tech_dept.id, dept_name="运维组", order_num=1.3)
+        db.add(ops_team)
+        db.flush()
+
+        # 2. 创建角色体系
+        # 管理员角色
+        admin_role = Role(role_name="管理员", remark="系统管理员，拥有所有权限")
         db.add(admin_role)
-        db.flush()  # 获取角色ID
+        db.flush()
+
+        # 普通用户角色
+        user_role = Role(role_name="普通用户", remark="普通用户，只有基本查看权限")
+        db.add(user_role)
+        db.flush()
+
+        # 部门经理角色
+        manager_role = Role(role_name="部门经理", remark="部门经理，管理本部门用户")
+        db.add(manager_role)
+        db.flush()
+
+        # 开发人员角色
+        developer_role = Role(role_name="开发人员", remark="开发人员，有开发相关权限")
+        db.add(developer_role)
+        db.flush()
 
         # 3. 创建菜单
         # 系统管理菜单
@@ -131,7 +177,7 @@ def create_rbac_initial_data(db):
 
         # 用户管理菜单
         user_menu = Menu(
-            parent_id=system_menu.menu_id,
+            parent_id=system_menu.id,
             menu_name="用户管理",
             menu_type="0",
             path="/system/user",
@@ -375,13 +421,14 @@ def create_rbac_initial_data(db):
         db.add(data_permission_create_btn)
         db.flush()
 
-        # 4. 创建管理员用户
+        # 4. 创建用户
+        # 管理员用户
         admin_user = User(
             username="admin",
             password=get_password_hash("123456"),
             email="admin@example.com",
             mobile="17788888888",
-            dept_id=dept.dept_id,
+            dept_id=tech_dept.dept_id,
             ssex="0",
             avatar="default.jpg",
             description="系统管理员"
@@ -389,12 +436,102 @@ def create_rbac_initial_data(db):
         db.add(admin_user)
         db.flush()
 
+        # 技术部经理
+        tech_manager = User(
+            username="tech_manager",
+            password=get_password_hash("123456"),
+            email="tech.manager@example.com",
+            mobile="17788888889",
+            dept_id=tech_dept.dept_id,
+            ssex="1",
+            avatar="default.jpg",
+            description="技术部经理"
+        )
+        db.add(tech_manager)
+        db.flush()
+
+        # 开发人员
+        developer1 = User(
+            username="developer1",
+            password=get_password_hash("123456"),
+            email="dev1@example.com",
+            mobile="17788888890",
+            dept_id=dev_team.dept_id,
+            ssex="0",
+            avatar="default.jpg",
+            description="前端开发工程师"
+        )
+        db.add(developer1)
+        db.flush()
+
+        developer2 = User(
+            username="developer2",
+            password=get_password_hash("123456"),
+            email="dev2@example.com",
+            mobile="17788888891",
+            dept_id=dev_team.dept_id,
+            ssex="1",
+            avatar="default.jpg",
+            description="后端开发工程师"
+        )
+        db.add(developer2)
+        db.flush()
+
+        # 测试人员
+        tester = User(
+            username="tester",
+            password=get_password_hash("123456"),
+            email="tester@example.com",
+            mobile="17788888892",
+            dept_id=test_team.dept_id,
+            ssex="1",
+            avatar="default.jpg",
+            description="测试工程师"
+        )
+        db.add(tester)
+        db.flush()
+
+        # 普通用户
+        normal_user = User(
+            username="user",
+            password=get_password_hash("123456"),
+            email="user@example.com",
+            mobile="17788888893",
+            dept_id=hr_dept.dept_id,
+            ssex="0",
+            avatar="default.jpg",
+            description="普通用户"
+        )
+        db.add(normal_user)
+        db.flush()
+
         # 5. 分配角色给用户
-        user_role = UserRole(user_id=admin_user.user_id, role_id=admin_role.role_id)
-        db.add(user_role)
+        # 管理员角色
+        admin_user_role = UserRole(user_id=admin_user.user_id, role_id=admin_role.role_id)
+        db.add(admin_user_role)
+
+        # 技术部经理角色
+        tech_manager_user_role = UserRole(user_id=tech_manager.user_id, role_id=manager_role.role_id)
+        db.add(tech_manager_user_role)
+
+        # 开发人员角色
+        dev1_user_role = UserRole(user_id=developer1.user_id, role_id=developer_role.role_id)
+        db.add(dev1_user_role)
+
+        dev2_user_role = UserRole(user_id=developer2.user_id, role_id=developer_role.role_id)
+        db.add(dev2_user_role)
+
+        # 测试人员角色
+        tester_user_role = UserRole(user_id=tester.user_id, role_id=user_role.role_id)
+        db.add(tester_user_role)
+
+        # 普通用户角色
+        normal_user_role = UserRole(user_id=normal_user.user_id, role_id=user_role.role_id)
+        db.add(normal_user_role)
 
         # 6. 分配菜单权限给角色
-        menu_ids = [
+        # 管理员角色 - 拥有所有权限
+        admin_menu_ids = [
             system_menu.menu_id,
             user_menu.menu_id,
             user_add_btn.menu_id,
@@ -412,7 +549,6 @@ def create_rbac_initial_data(db):
             dept_add_btn.menu_id,
             dept_update_btn.menu_id,
             dept_delete_btn.menu_id,
-            # 权限缓存管理相关权限
             cache_stats_btn.menu_id,
             cache_refresh_btn.menu_id,
             cache_config_btn.menu_id,
@@ -424,8 +560,47 @@ def create_rbac_initial_data(db):
             data_permission_create_btn.menu_id
         ]
 
-        for menu_id in menu_ids:
+        for menu_id in admin_menu_ids:
             role_menu_rel = RoleMenu(role_id=admin_role.role_id, menu_id=menu_id)
+            db.add(role_menu_rel)
+
+        # 部门经理角色 - 有用户管理权限
+        manager_menu_ids = [
+            system_menu.menu_id,
+            user_menu.menu_id,
+            user_add_btn.menu_id,
+            user_update_btn.menu_id,
+            dept_menu.menu_id,
+            user_permission_view_btn.menu_id,
+            user_menu_view_btn.menu_id
+        ]
+
+        for menu_id in manager_menu_ids:
+            role_menu_rel = RoleMenu(role_id=manager_role.role_id, menu_id=menu_id)
+            db.add(role_menu_rel)
+
+        # 开发人员角色 - 有基本查看权限
+        developer_menu_ids = [
+            system_menu.menu_id,
+            user_menu.menu_id,
+            dept_menu.menu_id,
+            user_permission_view_btn.menu_id,
+            user_menu_view_btn.menu_id
+        ]
+
+        for menu_id in developer_menu_ids:
+            role_menu_rel = RoleMenu(role_id=developer_role.role_id, menu_id=menu_id)
+            db.add(role_menu_rel)
+
+        # 普通用户角色 - 只有基本查看权限
+        user_menu_ids = [
+            user_menu.menu_id,
+            user_permission_view_btn.menu_id,
+            user_menu_view_btn.menu_id
+        ]
+
+        for menu_id in user_menu_ids:
+            role_menu_rel = RoleMenu(role_id=user_role.role_id, menu_id=menu_id)
             db.add(role_menu_rel)
 
         logger.info("RBAC initial data created successfully")

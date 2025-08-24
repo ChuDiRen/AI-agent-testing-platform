@@ -4,7 +4,7 @@
 严格按照博客t_user_role表结构设计
 """
 
-from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from .base import BaseEntity
@@ -18,11 +18,14 @@ class UserRole(BaseEntity):
     __tablename__ = "user_role"
     __allow_unmapped__ = True  # 允许未映射的注解
 
+    # 主键ID - 自增主键
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+
     # 用户ID - 外键，关联用户表
-    user_id = Column(Integer, ForeignKey('user.user_id'), primary_key=True, comment="用户ID")
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False, comment="用户ID")
 
     # 角色ID - 外键，关联角色表
-    role_id = Column(Integer, ForeignKey('role.role_id'), primary_key=True, comment="角色ID")
+    role_id = Column(Integer, ForeignKey('role.id'), nullable=False, comment="角色ID")
 
     # 关联关系
     # 关联到用户实体
@@ -30,6 +33,12 @@ class UserRole(BaseEntity):
     
     # 关联到角色实体
     role = relationship("Role", back_populates="user_roles")
+
+    # 表约束 - 确保用户和角色的组合唯一
+    __table_args__ = (
+        UniqueConstraint('user_id', 'role_id', name='uk_user_role'),
+        {'comment': '用户角色关联表'}
+    )
 
     def __init__(self, user_id: int, role_id: int):
         """

@@ -20,8 +20,7 @@ class Role(BaseEntity):
     __tablename__ = "role"
     __allow_unmapped__ = True  # 允许未映射的注解
 
-    # 角色ID - 主键，自增
-    role_id = Column(Integer, primary_key=True, comment="角色ID")
+    # 使用Base类的id作为主键，没有别名
     
     # 角色名称 - 必填，最大10个字符
     role_name = Column(String(10), nullable=False, comment="角色名称")

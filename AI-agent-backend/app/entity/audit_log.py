@@ -15,8 +15,9 @@ class AuditLog(BaseEntity):
     记录系统中所有重要操作的审计信息
     """
     __tablename__ = "audit_log"
+    __allow_unmapped__ = True  # 允许未映射的注解
 
-    LOG_ID = Column(Integer, primary_key=True, autoincrement=True, comment="日志ID")
+    # 使用Base类的id作为主键，没有别名
     USER_ID = Column(Integer, nullable=True, comment="操作用户ID")
     USERNAME = Column(String(50), nullable=True, comment="操作用户名")
     OPERATION_TYPE = Column(String(50), nullable=False, comment="操作类型(CREATE/UPDATE/DELETE/LOGIN/LOGOUT)")

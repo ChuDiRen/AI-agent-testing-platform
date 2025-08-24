@@ -15,8 +15,9 @@ class PermissionCache(BaseEntity):
     管理权限缓存的配置信息和缓存状态
     """
     __tablename__ = "permission_cache"
+    __allow_unmapped__ = True  # 允许未映射的注解
 
-    CACHE_ID = Column(Integer, primary_key=True, autoincrement=True, comment="缓存配置ID")
+    # 使用Base类的id作为主键，没有别名
     CACHE_KEY = Column(String(200), nullable=False, unique=True, comment="缓存键名")
     CACHE_TYPE = Column(String(50), nullable=False, comment="缓存类型(USER_PERMISSION/ROLE_PERMISSION/MENU_TREE)")
     CACHE_VALUE = Column(Text, nullable=True, comment="缓存值(JSON格式)")
@@ -92,8 +93,12 @@ class DataPermissionRule(BaseEntity):
     定义基于部门和角色的数据访问控制规则
     """
     __tablename__ = "data_permission_rule"
+    __allow_unmapped__ = True  # 允许未映射的注解
 
-    RULE_ID = Column(Integer, primary_key=True, autoincrement=True, comment="规则ID")
+    # 使用Base类的id作为主键，RULE_ID作为别名
+    @property
+    def RULE_ID(self):
+        return self.id
     RULE_NAME = Column(String(100), nullable=False, comment="规则名称")
     RULE_CODE = Column(String(50), nullable=False, unique=True, comment="规则代码")
     RESOURCE_TYPE = Column(String(50), nullable=False, comment="资源类型(USER/ROLE/DEPT/MENU)")

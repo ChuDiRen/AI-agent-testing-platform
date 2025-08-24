@@ -20,8 +20,7 @@ class User(BaseEntity):
     __tablename__ = "user"
     __allow_unmapped__ = True  # 允许未映射的注解
 
-    # 用户ID - 主键，自增
-    user_id = Column(Integer, primary_key=True, comment="用户ID")
+    # 使用Base类的id作为主键，没有别名
 
     # 用户名 - 必填，最大50个字符，唯一
     username = Column(String(50), nullable=False, unique=True, index=True, comment="用户名")
@@ -30,7 +29,7 @@ class User(BaseEntity):
     password = Column(String(128), nullable=False, comment="密码")
 
     # 部门ID - 可选，关联部门表
-    dept_id = Column(Integer, ForeignKey('department.dept_id'), nullable=True, comment="部门ID")
+    dept_id = Column(Integer, ForeignKey('department.id'), nullable=True, comment="部门ID")
 
     # 邮箱 - 可选，最大128个字符
     email = Column(String(128), nullable=True, comment="邮箱")

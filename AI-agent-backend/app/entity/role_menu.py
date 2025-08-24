@@ -4,7 +4,7 @@
 严格按照博客t_role_menu表结构设计
 """
 
-from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from .base import BaseEntity
@@ -18,11 +18,14 @@ class RoleMenu(BaseEntity):
     __tablename__ = "role_menu"
     __allow_unmapped__ = True  # 允许未映射的注解
 
+    # 主键ID - 自增主键
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+
     # 角色ID - 外键，关联角色表
-    role_id = Column(Integer, ForeignKey('role.role_id'), primary_key=True, comment="角色ID")
+    role_id = Column(Integer, ForeignKey('role.id'), nullable=False, comment="角色ID")
 
     # 菜单/按钮ID - 外键，关联菜单表
-    menu_id = Column(Integer, ForeignKey('menu.menu_id'), primary_key=True, comment="菜单/按钮ID")
+    menu_id = Column(Integer, ForeignKey('menu.id'), nullable=False, comment="菜单/按钮ID")
 
     # 关联关系
     # 关联到角色实体
