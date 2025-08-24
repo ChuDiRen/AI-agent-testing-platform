@@ -23,10 +23,38 @@ from app.controller.dashboard_controller import router as dashboard_router
 from app.controller.log_controller import router as log_router
 from app.core.config import settings
 from app.core.logger import get_logger
-from app.db.session import create_tables
+from app.db.session import create_tables, SessionLocal
 from app.utils.exceptions import BaseAPIException
 
 logger = get_logger(__name__)
+
+
+def check_and_init_data():
+    """
+    检查并初始化数据库数据
+    """
+    db = SessionLocal()
+    try:
+        # 检查是否已有用户数据
+        from app.entity.user import User
+        user_count = db.query(User).count()
+
+        if user_count == 0:
+            logger.info("No users found, initializing database with default data...")
+
+            # 导入并运行初始化脚本
+            from scripts.init_db import create_initial_data
+            create_initial_data()
+
+            logger.info("Database initialized with default data successfully")
+        else:
+            logger.info(f"Database already has {user_count} users, skipping initialization")
+
+    except Exception as e:
+        logger.error(f"Failed to check/initialize data: {str(e)}")
+        # 不抛出异常，让应用继续启动
+    finally:
+        db.close()
 
 
 @asynccontextmanager
@@ -44,6 +72,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to create database tables: {str(e)}")
         raise
+
+    # 检查并初始化数据
+    check_and_init_data()
 
     logger.info("AI Agent Backend started successfully")
 

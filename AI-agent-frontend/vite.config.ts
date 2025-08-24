@@ -40,6 +40,14 @@ export default ({ mode }: any) => {
         }
       }
     },
+    // CSS预处理器配置
+    css: {
+      preprocessorOptions: {
+        scss: {
+          api: 'modern-compiler' // 使用现代Sass编译器API
+        }
+      }
+    },
     // 生产环境打包配置
     // 去除 console debugger
     build: {

@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="uv (AI-agent-testing-platform)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="uv (AI-agent-testing-platform)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11 (AI-agent-testing-platform)" project-jdk-type="Python SDK" />
 </project>

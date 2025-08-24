@@ -330,8 +330,30 @@ class CacheClient:
             return False
 
 
-# 创建全局缓存客户端实例
-cache_client = CacheClient()
+# Copyright (c) 2025 左岚. All rights reserved.
+
+# 全局缓存客户端实例（延迟初始化）
+_cache_client_instance: Optional[CacheClient] = None
+
+
+def get_cache_client() -> CacheClient:
+    """
+    获取缓存客户端实例（单例模式，延迟初始化）
+    这样可以避免在模块导入时就创建实例，防止multiprocessing问题
+    """
+    global _cache_client_instance
+    if _cache_client_instance is None:
+        _cache_client_instance = CacheClient()
+    return _cache_client_instance
+
+
+def reset_cache_client() -> None:
+    """
+    重置缓存客户端实例（主要用于测试）
+    """
+    global _cache_client_instance
+    _cache_client_instance = None
+
 
 # 导出缓存客户端
-__all__ = ["CacheClient", "cache_client"]
+__all__ = ["CacheClient", "get_cache_client", "reset_cache_client"]

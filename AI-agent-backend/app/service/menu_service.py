@@ -12,7 +12,7 @@ from app.core.logger import get_logger
 from app.entity.menu import Menu
 from app.repository.menu_repository import MenuRepository
 from app.repository.role_menu_repository import RoleMenuRepository
-from app.utils.redis_client import cache_client
+from app.utils.redis_client import get_cache_client
 
 logger = get_logger(__name__)
 
@@ -276,6 +276,7 @@ class MenuService:
             权限标识列表
         """
         cache_key = f"user_permissions_{user_id}"
+        cache_client = get_cache_client()  # 获取缓存客户端实例
         cached_permissions = cache_client.get(cache_key)
         if cached_permissions is not None:
             logger.debug(f"Returning cached permissions for user {user_id}")
