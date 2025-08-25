@@ -1,3 +1,4 @@
+// Copyright (c) 2025 左岚. All rights reserved.
 //http.ts
 import axios from 'axios'
 import type { InternalAxiosRequestConfig, AxiosResponse } from 'axios'
@@ -6,6 +7,7 @@ import { NProgressStart, NProgressDone } from '@/utils/nprogress'
 import { BASE_URL } from './baseUrl'
 import { getToken, removeToken } from '@/utils/auth'
 import router from '@/router'
+import { NETWORK_CONFIG, shouldRetry, getRetryDelay } from '@/config/network'
 
 // 后端API响应格式
 interface ApiResponse<T = any> {
@@ -19,7 +21,7 @@ interface ApiResponse<T = any> {
 // 创建axios实例
 const http = axios.create({
   baseURL: BASE_URL || 'http://localhost:8000/api/v1',
-  timeout: 10000,
+  timeout: NETWORK_CONFIG.DEFAULT_TIMEOUT, // 使用配置中心的超时时间
   headers: {
     'Content-Type': 'application/json'
   }
@@ -49,22 +51,38 @@ http.interceptors.request.use(
 http.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
     NProgressDone()
-    
+
     const { data } = response
-    
+
     // 检查业务状态码
     if (!data.success) {
       ElMessage.error(data.message || '操作失败')
       return Promise.reject(new Error(data.message))
     }
-    
+
     return data as any
   },
-  (error) => {
+  async (error) => {
     NProgressDone()
-    
-    const { status, data } = error.response || {}
-    
+
+    const { config, response, code } = error
+    const { status, data } = response || {}
+
+    // 处理网络超时和连接错误，自动重试
+    const retryCount = config.__retryCount || 0
+
+    if (shouldRetry(error, retryCount)) {
+      config.__retryCount = retryCount + 1
+      console.log(`请求重试第${retryCount + 1}次...`)
+
+      // 延迟重试，避免频繁请求
+      await new Promise(resolve => setTimeout(resolve, getRetryDelay(retryCount)))
+
+      return http(config)
+    } else if (code === 'ECONNABORTED' || code === 'NETWORK_ERROR' || !response) {
+      ElMessage.error('网络连接超时，请检查网络或稍后重试')
+    }
+
     if (status === 401) {
       ElMessage.error('登录已过期，请重新登录')
       removeToken()
@@ -73,10 +91,12 @@ http.interceptors.response.use(
       ElMessage.error('权限不足')
     } else if (status >= 500) {
       ElMessage.error('服务器错误，请稍后重试')
+    } else if (!response) {
+      ElMessage.error('网络连接失败，请检查网络连接')
     } else {
       ElMessage.error(data?.message || '请求失败')
     }
-    
+
     return Promise.reject(error)
   }
 )

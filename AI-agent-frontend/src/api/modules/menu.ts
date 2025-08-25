@@ -36,7 +36,7 @@ export class MenuApi {
    * @returns 菜单详情
    */
   static async getMenuById(menuId: number): Promise<ApiResponse<MenuInfo>> {
-    return http.get<MenuInfo>(`/menus/${menuId}`)
+    return http.post<MenuInfo>('/menus/details', { menu_id: menuId })
   }
 
   /**
@@ -45,7 +45,7 @@ export class MenuApi {
    * @returns 创建结果
    */
   static async createMenu(data: MenuCreateRequest): Promise<ApiResponse<MenuInfo>> {
-    return http.post<MenuInfo>('/menus', data)
+    return http.post<MenuInfo>('/menus/create', data)
   }
 
   /**

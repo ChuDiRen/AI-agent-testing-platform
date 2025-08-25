@@ -13,11 +13,14 @@ from app.dto.base import ApiResponse
 from app.dto.dashboard_dto import (
     DashboardStatsResponse,
     SystemInfoResponse,
-    DashboardOverviewResponse
+    DashboardOverviewResponse,
+    DashboardStatsRequest,
+    SystemInfoRequest,
+    DashboardOverviewRequest
 )
-from app.service.dashboard_service import DashboardService
-from app.middleware.auth import get_current_user
 from app.entity.user import User
+from app.middleware.auth import get_current_user
+from app.service.dashboard_service import DashboardService
 
 logger = get_logger(__name__)
 
@@ -25,13 +28,18 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/dashboard", tags=["仪表板"])
 
 
-@router.get("/stats", response_model=ApiResponse[DashboardStatsResponse], summary="获取仪表板统计数据")
+@router.get("/statistics", response_model=ApiResponse[DashboardStatsResponse], summary="获取仪表板统计数据")
 async def get_dashboard_stats(
+    request: DashboardStatsRequest = None,
     db: Session = Depends(get_db)
 ):
     """
     获取仪表板统计数据
-    
+
+    Args:
+        request: 统计数据请求参数（可选）
+        db: 数据库会话
+
     Returns:
         仪表板统计数据，包括用户总数、角色数量、菜单数量、部门数量
     """
@@ -49,18 +57,20 @@ async def get_dashboard_stats(
         )
 
 
-@router.get("/system-info", response_model=ApiResponse[SystemInfoResponse], summary="获取系统信息")
+@router.get("/system", response_model=ApiResponse[SystemInfoResponse], summary="获取系统信息")
 async def get_system_info(
+    request: SystemInfoRequest = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     获取系统信息
-    
+
     Args:
+        request: 系统信息请求参数（可选）
         current_user: 当前登录用户
         db: 数据库会话
-        
+
     Returns:
         系统信息，包括版本、服务器信息、数据库信息、最后登录时间
     """
@@ -78,18 +88,20 @@ async def get_system_info(
         )
 
 
-@router.get("/overview", response_model=ApiResponse[DashboardOverviewResponse], summary="获取仪表板概览")
+@router.get("", response_model=ApiResponse[DashboardOverviewResponse], summary="获取仪表板概览")
 async def get_dashboard_overview(
+    request: DashboardOverviewRequest = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     获取仪表板概览数据
-    
+
     Args:
+        request: 概览数据请求参数（可选）
         current_user: 当前登录用户
         db: 数据库会话
-        
+
     Returns:
         仪表板概览数据，包括统计数据、系统信息、最近活动
     """

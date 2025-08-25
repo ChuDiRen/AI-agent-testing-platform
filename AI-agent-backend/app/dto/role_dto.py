@@ -10,6 +10,38 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 
 
+class RoleIdRequest(BaseModel):
+    """
+    角色ID请求DTO
+    """
+    role_id: int = Field(..., description="角色ID")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "role_id": 1
+            }
+        }
+
+
+class RoleListRequest(BaseModel):
+    """
+    角色列表请求DTO
+    """
+    page: int = Field(1, ge=1, description="页码")
+    size: int = Field(20, ge=1, le=100, description="每页大小")
+    keyword: Optional[str] = Field(None, description="关键词搜索")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "page": 1,
+                "size": 20,
+                "keyword": "管理员"
+            }
+        }
+
+
 class RoleCreateRequest(BaseModel):
     """
     创建角色请求DTO
@@ -29,6 +61,54 @@ class RoleCreateRequest(BaseModel):
 class RoleUpdateRequest(BaseModel):
     """
     更新角色请求DTO
+    """
+    role_id: int = Field(..., description="角色ID")
+    role_name: Optional[str] = Field(None, min_length=1, max_length=10, description="角色名称")
+    remark: Optional[str] = Field(None, max_length=100, description="角色描述")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "role_id": 1,
+                "role_name": "管理员",
+                "remark": "系统管理员角色"
+            }
+        }
+
+
+class RoleDeleteRequest(BaseModel):
+    """
+    删除角色请求DTO
+    """
+    role_id: int = Field(..., description="角色ID")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "role_id": 1
+            }
+        }
+
+
+class RoleMenuAssignRequest(BaseModel):
+    """
+    角色菜单分配请求DTO
+    """
+    role_id: int = Field(..., description="角色ID")
+    menu_ids: List[int] = Field(..., description="菜单ID列表")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "role_id": 1,
+                "menu_ids": [1, 2, 3, 4, 5]
+            }
+        }
+
+
+class RoleUpdateRequestOld(BaseModel):
+    """
+    更新角色请求DTO（旧版本）
     """
     role_name: Optional[str] = Field(None, min_length=1, max_length=10, description="角色名称")
     remark: Optional[str] = Field(None, max_length=100, description="角色描述")

@@ -10,6 +10,52 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 
 
+class DepartmentIdRequest(BaseModel):
+    """
+    部门ID请求DTO
+    """
+    dept_id: int = Field(..., description="部门ID")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "dept_id": 1
+            }
+        }
+
+
+class DepartmentListRequest(BaseModel):
+    """
+    部门列表请求DTO
+    """
+    page: int = Field(1, ge=1, description="页码")
+    size: int = Field(20, ge=1, le=100, description="每页大小")
+    dept_name: Optional[str] = Field(None, description="部门名称筛选")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "page": 1,
+                "size": 20,
+                "dept_name": "开发部"
+            }
+        }
+
+
+class DepartmentDeleteRequest(BaseModel):
+    """
+    删除部门请求DTO
+    """
+    dept_id: int = Field(..., description="部门ID")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "dept_id": 1
+            }
+        }
+
+
 class DepartmentCreateRequest(BaseModel):
     """
     创建部门请求DTO
@@ -32,12 +78,14 @@ class DepartmentUpdateRequest(BaseModel):
     """
     更新部门请求DTO
     """
+    dept_id: int = Field(..., description="部门ID")
     dept_name: Optional[str] = Field(None, min_length=1, max_length=100, description="部门名称")
     order_num: Optional[float] = Field(None, description="排序号")
 
     class Config:
         json_schema_extra = {
             "example": {
+                "dept_id": 1,
                 "dept_name": "技术开发部",
                 "order_num": 1
             }

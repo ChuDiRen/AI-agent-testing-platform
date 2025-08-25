@@ -4,9 +4,10 @@
 处理部门相关的HTTP请求
 """
 
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
 
 from app.core.logger import get_logger
 from app.db.session import get_db
@@ -15,10 +16,12 @@ from app.dto.department_dto import (
     DepartmentCreateRequest,
     DepartmentUpdateRequest,
     DepartmentResponse,
-    DepartmentTreeResponse,
     DepartmentTreeNode,
     DepartmentListResponse,
-    DepartmentStatusResponse
+    DepartmentStatusResponse,
+    DepartmentIdRequest,
+    DepartmentListRequest,
+    DepartmentDeleteRequest
 )
 from app.service.department_service import DepartmentService
 
@@ -28,7 +31,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/departments", tags=["部门管理"])
 
 
-@router.post("/", response_model=ApiResponse[DepartmentResponse], summary="创建部门")
+@router.post("", response_model=ApiResponse[DepartmentResponse], summary="创建部门")
 async def create_department(
     request: DepartmentCreateRequest,
     db: Session = Depends(get_db)
@@ -110,12 +113,17 @@ async def get_department_tree(
         )
 
 
-@router.get("/", response_model=ApiResponse[DepartmentListResponse], summary="获取部门列表")
+@router.get("", response_model=ApiResponse[DepartmentListResponse], summary="获取部门列表")
 async def get_departments(
+    request: DepartmentListRequest = None,
     db: Session = Depends(get_db)
 ):
     """
-    获取所有部门列表
+    获取部门列表（支持分页和筛选）
+
+    - **page**: 页码（可选）
+    - **size**: 每页大小（可选）
+    - **dept_name**: 部门名称筛选（可选）
     """
     try:
         department_service = DepartmentService(db)
@@ -146,19 +154,19 @@ async def get_departments(
         )
 
 
-@router.get("/{dept_id}", response_model=ApiResponse[DepartmentResponse], summary="获取部门详情")
+@router.post("/details", response_model=ApiResponse[DepartmentResponse], summary="获取部门详情")
 async def get_department(
-    dept_id: int,
+    request: DepartmentIdRequest,
     db: Session = Depends(get_db)
 ):
     """
     根据ID获取部门详情
-    
-    - **dept_id**: 部门ID
+
+    - **dept_id**: 部门ID（请求体传参）
     """
     try:
         department_service = DepartmentService(db)
-        department = department_service.get_department_by_id(dept_id)
+        department = department_service.get_department_by_id(request.dept_id)
         
         if not department:
             raise HTTPException(
@@ -187,23 +195,22 @@ async def get_department(
         )
 
 
-@router.put("/{dept_id}", response_model=ApiResponse[DepartmentResponse], summary="更新部门")
+@router.put("", response_model=ApiResponse[DepartmentResponse], summary="更新部门")
 async def update_department(
-    dept_id: int,
     request: DepartmentUpdateRequest,
     db: Session = Depends(get_db)
 ):
     """
     更新部门信息
-    
-    - **dept_id**: 部门ID
+
+    - **dept_id**: 部门ID（请求体传参）
     - **dept_name**: 新的部门名称（可选）
     - **order_num**: 新的排序号（可选）
     """
     try:
         department_service = DepartmentService(db)
         department = department_service.update_department(
-            dept_id=dept_id,
+            dept_id=request.dept_id,
             dept_name=request.dept_name,
             order_num=request.order_num
         )
@@ -242,19 +249,19 @@ async def update_department(
         )
 
 
-@router.delete("/{dept_id}", response_model=ApiResponse[bool], summary="删除部门")
+@router.delete("", response_model=ApiResponse[bool], summary="删除部门")
 async def delete_department(
-    dept_id: int,
+    request: DepartmentDeleteRequest,
     db: Session = Depends(get_db)
 ):
     """
     删除部门
-    
-    - **dept_id**: 部门ID
+
+    - **dept_id**: 部门ID（请求体传参）
     """
     try:
         department_service = DepartmentService(db)
-        success = department_service.delete_department(dept_id)
+        success = department_service.delete_department(request.dept_id)
         
         if not success:
             raise HTTPException(
@@ -281,19 +288,19 @@ async def delete_department(
         )
 
 
-@router.get("/{dept_id}/status", response_model=ApiResponse[DepartmentStatusResponse], summary="获取部门状态")
+@router.post("/status", response_model=ApiResponse[DepartmentStatusResponse], summary="获取部门状态")
 async def get_department_status(
-    dept_id: int,
+    request: DepartmentIdRequest,
     db: Session = Depends(get_db)
 ):
     """
     获取部门状态信息（是否有子部门、是否有用户、是否可删除）
-    
-    - **dept_id**: 部门ID
+
+    - **dept_id**: 部门ID（请求体传参）
     """
     try:
         department_service = DepartmentService(db)
-        department = department_service.get_department_by_id(dept_id)
+        department = department_service.get_department_by_id(request.dept_id)
         
         if not department:
             raise HTTPException(

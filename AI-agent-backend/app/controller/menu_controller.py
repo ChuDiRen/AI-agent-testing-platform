@@ -4,9 +4,10 @@
 处理菜单相关的HTTP请求
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
 from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 from app.core.logger import get_logger
 from app.db.session import get_db
@@ -15,9 +16,11 @@ from app.dto.menu_dto import (
     MenuCreateRequest,
     MenuUpdateRequest,
     MenuResponse,
-    MenuTreeResponse,
     MenuTreeNode,
-    UserMenuResponse
+    UserMenuResponse,
+    MenuIdRequest,
+    MenuDeleteRequest,
+    UserMenuRequest
 )
 from app.service.menu_service import MenuService
 
@@ -27,7 +30,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/menus", tags=["菜单管理"])
 
 
-@router.post("/", response_model=ApiResponse[MenuResponse], summary="创建菜单")
+@router.post("", response_model=ApiResponse[MenuResponse], summary="创建菜单")
 async def create_menu(
     request: MenuCreateRequest,
     db: Session = Depends(get_db)
@@ -122,19 +125,19 @@ async def get_menu_tree(
         )
 
 
-@router.get("/{menu_id}", response_model=ApiResponse[MenuResponse], summary="获取菜单详情")
+@router.post("/details", response_model=ApiResponse[MenuResponse], summary="获取菜单详情")
 async def get_menu(
-    menu_id: int,
+    request: MenuIdRequest,
     db: Session = Depends(get_db)
 ):
     """
     根据ID获取菜单详情
-    
-    - **menu_id**: 菜单ID
+
+    - **menu_id**: 菜单ID（请求体传参）
     """
     try:
         menu_service = MenuService(db)
-        menu = menu_service.get_menu_by_id(menu_id)
+        menu = menu_service.get_menu_by_id(request.menu_id)
         
         if not menu:
             raise HTTPException(
@@ -168,16 +171,15 @@ async def get_menu(
         )
 
 
-@router.put("/{menu_id}", response_model=ApiResponse[MenuResponse], summary="更新菜单")
+@router.put("", response_model=ApiResponse[MenuResponse], summary="更新菜单")
 async def update_menu(
-    menu_id: int,
     request: MenuUpdateRequest,
     db: Session = Depends(get_db)
 ):
     """
     更新菜单信息
-    
-    - **menu_id**: 菜单ID
+
+    - **menu_id**: 菜单ID（请求体传参）
     - **menu_name**: 新的菜单名称（可选）
     - **path**: 新的路由路径（可选）
     - **component**: 新的路由组件（可选）
@@ -188,7 +190,7 @@ async def update_menu(
     try:
         menu_service = MenuService(db)
         menu = menu_service.update_menu(
-            menu_id=menu_id,
+            menu_id=request.menu_id,
             menu_name=request.menu_name,
             path=request.path,
             component=request.component,
@@ -230,19 +232,19 @@ async def update_menu(
         )
 
 
-@router.delete("/{menu_id}", response_model=ApiResponse[bool], summary="删除菜单")
+@router.delete("", response_model=ApiResponse[bool], summary="删除菜单")
 async def delete_menu(
-    menu_id: int,
+    request: MenuDeleteRequest,
     db: Session = Depends(get_db)
 ):
     """
     删除菜单
-    
-    - **menu_id**: 菜单ID
+
+    - **menu_id**: 菜单ID（请求体传参）
     """
     try:
         menu_service = MenuService(db)
-        success = menu_service.delete_menu(menu_id)
+        success = menu_service.delete_menu(request.menu_id)
         
         if not success:
             raise HTTPException(
@@ -269,21 +271,21 @@ async def delete_menu(
         )
 
 
-@router.get("/user/{user_id}", response_model=ApiResponse[UserMenuResponse], summary="获取用户菜单")
+@router.post("/user-menus", response_model=ApiResponse[UserMenuResponse], summary="获取用户菜单")
 async def get_user_menus(
-    user_id: int,
+    request: UserMenuRequest,
     db: Session = Depends(get_db)
 ):
     """
     获取用户的菜单权限
-    
-    - **user_id**: 用户ID
+
+    - **user_id**: 用户ID（请求体传参）
     """
     try:
         menu_service = MenuService(db)
         
         # 获取用户菜单
-        user_menus = menu_service.get_user_menus(user_id)
+        user_menus = menu_service.get_user_menus(request.user_id)
         
         # 获取用户权限
         user_permissions = menu_service.get_user_permissions(user_id)

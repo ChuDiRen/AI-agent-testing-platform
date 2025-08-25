@@ -5,9 +5,55 @@
 """
 
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 
 from pydantic import BaseModel, Field
+
+
+class DashboardStatsRequest(BaseModel):
+    """
+    仪表板统计数据请求DTO
+    """
+    date_range: Optional[str] = Field(None, description="日期范围筛选")
+    department_id: Optional[int] = Field(None, description="部门ID筛选")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "date_range": "7d",  # 7天、30天、90天等
+                "department_id": 1
+            }
+        }
+
+
+class SystemInfoRequest(BaseModel):
+    """
+    系统信息请求DTO
+    """
+    include_performance: Optional[bool] = Field(False, description="是否包含性能信息")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "include_performance": True
+            }
+        }
+
+
+class DashboardOverviewRequest(BaseModel):
+    """
+    仪表板概览请求DTO
+    """
+    activity_limit: Optional[int] = Field(10, ge=1, le=50, description="最近活动数量限制")
+    date_range: Optional[str] = Field(None, description="日期范围筛选")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "activity_limit": 10,
+                "date_range": "7d"
+            }
+        }
 
 
 class DashboardStatsResponse(BaseModel):

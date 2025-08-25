@@ -20,11 +20,14 @@ from app.dto.user_dto import (
     UserRoleAssignRequest,
     UserRoleResponse,
     LoginRequest,
-    LoginResponse
+    LoginResponse,
+    UserIdRequest,
+    UserListRequest,
+    UserDeleteRequest
 )
-from app.service.rbac_user_service import RBACUserService
-from app.middleware.auth import get_current_user
 from app.entity.user import User
+from app.middleware.auth import get_current_user
+from app.service.rbac_user_service import RBACUserService
 
 logger = get_logger(__name__)
 
@@ -32,7 +35,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/users", tags=["用户管理"])
 
 
-@router.post("/", response_model=ApiResponse[UserResponse], summary="创建用户")
+@router.post("", response_model=ApiResponse[UserResponse], summary="创建用户")
 async def create_user(
     request: UserCreateRequest,
     db: Session = Depends(get_db)
@@ -190,12 +193,13 @@ async def logout(
         )
 
 
-@router.get("/", response_model=ApiResponse[UserListResponse], summary="获取用户列表")
+@router.get("", response_model=ApiResponse[UserListResponse], summary="获取用户列表")
 async def get_users(
+    request: UserListRequest,
     db: Session = Depends(get_db)
 ):
     """
-    获取所有用户列表
+    获取用户列表（支持分页和筛选）
     """
     try:
         user_service = RBACUserService(db)
@@ -232,19 +236,19 @@ async def get_users(
         )
 
 
-@router.get("/{user_id}", response_model=ApiResponse[UserResponse], summary="获取用户详情")
+@router.post("/details", response_model=ApiResponse[UserResponse], summary="获取用户详情")
 async def get_user(
-    user_id: int,
+    request: UserIdRequest,
     db: Session = Depends(get_db)
 ):
     """
     根据ID获取用户详情
-    
-    - **user_id**: 用户ID
+
+    - **user_id**: 用户ID（请求体传参）
     """
     try:
         user_service = RBACUserService(db)
-        user = user_service.get_user_by_id(user_id)
+        user = user_service.get_user_by_id(request.user_id)
         
         if not user:
             raise HTTPException(
@@ -272,16 +276,14 @@ async def get_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting user {user_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取用户详情失败"
         )
 
 
-@router.put("/{user_id}", response_model=ApiResponse[UserResponse], summary="更新用户")
+@router.put("", response_model=ApiResponse[UserResponse], summary="更新用户")
 async def update_user(
-    user_id: int,
     request: UserUpdateRequest,
     db: Session = Depends(get_db)
 ):
@@ -298,7 +300,7 @@ async def update_user(
     try:
         user_service = RBACUserService(db)
         user = user_service.update_user(
-            user_id=user_id,
+            user_id=request.user_id,
             email=request.email,
             mobile=request.mobile,
             ssex=request.ssex,
@@ -326,17 +328,47 @@ async def update_user(
             modify_time=user.modify_time,
             last_login_time=user.last_login_time
         )
-        
-        logger.info(f"User updated successfully: {user_id}")
         return ApiResponse.success_response(data=user_response, message="用户更新成功")
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error updating user {user_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="更新用户失败"
+        )
+
+
+@router.delete("", response_model=ApiResponse[bool], summary="删除用户")
+async def delete_user(
+    request: UserDeleteRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    删除用户
+
+    - **user_id**: 用户ID（请求体传参）
+    """
+    try:
+        user_service = RBACUserService(db)
+        success = user_service.delete_user()
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="用户不存在"
+            )
+
+        logger.info(f"User deleted successfully: {request.user_id}")
+        return ApiResponse.success_response(data=True, message="用户删除成功")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error deleting user {request.user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="删除用户失败"
         )
 
 
@@ -446,21 +478,20 @@ async def unlock_user(
         )
 
 
-@router.post("/{user_id}/roles", response_model=ApiResponse[bool], summary="分配角色")
+@router.post("/roles", response_model=ApiResponse[bool], summary="分配角色")
 async def assign_roles_to_user(
-    user_id: int,
     request: UserRoleAssignRequest,
     db: Session = Depends(get_db)
 ):
     """
     为用户分配角色
 
-    - **user_id**: 用户ID
+    - **user_id**: 用户ID（请求体传参）
     - **role_ids**: 角色ID列表
     """
     try:
         user_service = RBACUserService(db)
-        success = user_service.assign_roles_to_user(user_id, request.role_ids)
+        success = user_service.assign_roles_to_user(request.user_id, request.role_ids)
 
         if not success:
             raise HTTPException(
@@ -468,32 +499,31 @@ async def assign_roles_to_user(
                 detail="用户不存在或角色不存在"
             )
 
-        logger.info(f"Roles assigned to user successfully: {user_id}")
+        logger.info(f"Roles assigned to user successfully: {request.user_id}")
         return ApiResponse.success_response(data=True, message="角色分配成功")
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error assigning roles to user {user_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="分配角色失败"
         )
 
 
-@router.get("/{user_id}/roles", response_model=ApiResponse[UserRoleResponse], summary="获取用户角色")
+@router.post("/roles/query", response_model=ApiResponse[UserRoleResponse], summary="获取用户角色")
 async def get_user_roles(
-    user_id: int,
+    request: UserIdRequest,
     db: Session = Depends(get_db)
 ):
     """
     获取用户的角色列表
 
-    - **user_id**: 用户ID
+    - **user_id**: 用户ID（请求体传参）
     """
     try:
         user_service = RBACUserService(db)
-        user = user_service.get_user_by_id(user_id)
+        user = user_service.get_user_by_id(request.user_id)
 
         if not user:
             raise HTTPException(
@@ -501,12 +531,12 @@ async def get_user_roles(
                 detail="用户不存在"
             )
 
-        roles = user_service.get_user_roles(user_id)
+        roles = user_service.get_user_roles(request.user_id)
 
         # 转换角色信息
         role_data = [
             {
-                "role_id": role.role_id,
+                "role_id": role.id,
                 "role_name": role.role_name,
                 "remark": role.remark
             }
@@ -524,26 +554,25 @@ async def get_user_roles(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting user roles for user {user_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取用户角色失败"
         )
 
 
-@router.get("/{user_id}/permissions", response_model=ApiResponse[list], summary="获取用户权限")
+@router.post("/permissions/query", response_model=ApiResponse[list], summary="获取用户权限")
 async def get_user_permissions(
-    user_id: int,
+    request: UserIdRequest,
     db: Session = Depends(get_db)
 ):
     """
     获取用户权限列表
 
-    - **user_id**: 用户ID
+    - **user_id**: 用户ID（请求体传参）
     """
     try:
         user_service = RBACUserService(db)
-        user = user_service.get_user_by_id(user_id)
+        user = user_service.get_user_by_id(request.user_id)
 
         if not user:
             raise HTTPException(
@@ -551,14 +580,13 @@ async def get_user_permissions(
                 detail="用户不存在"
             )
 
-        permissions = user_service.get_user_permissions(user_id)
+        permissions = user_service.get_user_permissions(request.user_id)
         return ApiResponse.success_response(data=permissions, message="获取用户权限成功")
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting user permissions for user {user_id}: {str(e)}")
-        raise HTTPException(
+         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取用户权限失败"
         )

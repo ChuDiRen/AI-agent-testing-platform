@@ -5,8 +5,8 @@
 """
 
 from datetime import datetime
-from typing import Optional, List
 from enum import Enum
+from typing import Optional, List
 
 from pydantic import BaseModel, Field
 
@@ -18,6 +18,36 @@ class LogLevel(str, Enum):
     WARNING = "WARNING"
     ERROR = "ERROR"
     CRITICAL = "CRITICAL"
+
+
+class LogIdRequest(BaseModel):
+    """
+    日志ID请求DTO
+    """
+    log_id: int = Field(..., description="日志ID")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "log_id": 1
+            }
+        }
+
+
+class LogClearRequest(BaseModel):
+    """
+    清空日志请求DTO
+    """
+    before_date: Optional[datetime] = Field(None, description="清空指定日期之前的日志")
+    level: Optional[LogLevel] = Field(None, description="只清空指定级别的日志")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "before_date": "2025-08-20T00:00:00",
+                "level": "DEBUG"
+            }
+        }
 
 
 class LogQueryRequest(BaseModel):
@@ -32,7 +62,7 @@ class LogQueryRequest(BaseModel):
     user: Optional[str] = Field(None, description="用户名")
     page: int = Field(1, ge=1, description="页码")
     size: int = Field(20, ge=1, le=100, description="每页大小")
-    
+
     class Config:
         json_schema_extra = {
             "example": {

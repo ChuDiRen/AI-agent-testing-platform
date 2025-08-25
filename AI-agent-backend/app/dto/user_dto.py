@@ -10,6 +10,42 @@ from typing import Optional, List
 from pydantic import BaseModel, Field, validator
 
 
+class UserIdRequest(BaseModel):
+    """
+    用户ID请求DTO
+    """
+    user_id: int = Field(..., description="用户ID")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "user_id": 1
+            }
+        }
+
+
+class UserListRequest(BaseModel):
+    """
+    用户列表请求DTO
+    """
+    page: int = Field(1, ge=1, description="页码")
+    size: int = Field(20, ge=1, le=100, description="每页大小")
+    username: Optional[str] = Field(None, description="用户名筛选")
+    dept_id: Optional[int] = Field(None, description="部门ID筛选")
+    status: Optional[str] = Field(None, description="状态筛选")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "page": 1,
+                "size": 20,
+                "username": "admin",
+                "dept_id": 1,
+                "status": "1"
+            }
+        }
+
+
 class UserCreateRequest(BaseModel):
     """
     创建用户请求DTO
@@ -48,6 +84,48 @@ class UserUpdateRequest(BaseModel):
     """
     更新用户请求DTO
     """
+    user_id: int = Field(..., description="用户ID")
+    username: Optional[str] = Field(None, min_length=3, max_length=50, description="用户名")
+    email: Optional[str] = Field(None, max_length=128, description="邮箱")
+    mobile: Optional[str] = Field(None, max_length=20, description="手机号")
+    dept_id: Optional[int] = Field(None, description="部门ID")
+    ssex: Optional[str] = Field(None, pattern="^[012]$", description="性别：0男 1女 2保密")
+    avatar: Optional[str] = Field(None, max_length=100, description="头像")
+    description: Optional[str] = Field(None, max_length=100, description="描述")
+
+    @validator('ssex')
+    def validate_ssex(cls, v):
+        if v is not None and v not in ['0', '1', '2']:
+            raise ValueError('性别必须是 0(男)、1(女) 或 2(保密)')
+        return v
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "user_id": 1,
+                "username": "testuser",
+                "email": "test@example.com",
+                "mobile": "13800138000",
+                "dept_id": 1,
+                "ssex": "0",
+                "avatar": "default.jpg",
+                "description": "测试用户"
+            }
+        }
+
+
+class UserDeleteRequest(BaseModel):
+    """
+    删除用户请求DTO
+    """
+    user_id: int = Field(..., description="用户ID")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "user_id": 1
+            }
+        }
     email: Optional[str] = Field(None, max_length=128, description="邮箱")
     mobile: Optional[str] = Field(None, max_length=20, description="手机号")
     ssex: Optional[str] = Field(None, pattern="^[012]$", description="性别：0男 1女 2保密")
@@ -158,11 +236,13 @@ class UserRoleAssignRequest(BaseModel):
     """
     用户角色分配请求DTO
     """
+    user_id: int = Field(..., description="用户ID")
     role_ids: List[int] = Field(..., description="角色ID列表")
 
     class Config:
         json_schema_extra = {
             "example": {
+                "user_id": 1,
                 "role_ids": [1, 2, 3]
             }
         }

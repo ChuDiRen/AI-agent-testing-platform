@@ -5,13 +5,13 @@
 """
 
 import math
-from datetime import datetime, timedelta
-from typing import List, Optional, Tuple
-from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Optional
+
 from sqlalchemy import func, and_, or_, desc
+from sqlalchemy.orm import Session
 
 from app.core.logger import get_logger
-from app.entity.system_log import SystemLog
 from app.dto.log_dto import (
     LogQueryRequest,
     LogResponse,
@@ -19,6 +19,7 @@ from app.dto.log_dto import (
     LogStatsResponse,
     LogLevel
 )
+from app.entity.system_log import SystemLog
 
 logger = get_logger(__name__)
 

@@ -78,21 +78,19 @@ export class LogsApi {
    * @returns 日志列表
    */
   static async getLogs(params?: LogQueryParams): Promise<ApiResponse<LogListResponse>> {
-    // 构建查询字符串
-    const searchParams = new URLSearchParams()
-
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          searchParams.append(key, String(value))
-        }
-      })
+    // 使用POST请求，参数通过请求体传递
+    const requestBody = {
+      page: params?.page || 1,
+      size: params?.size || 20,
+      level: params?.level,
+      start_time: params?.start_time,
+      end_time: params?.end_time,
+      keyword: params?.keyword,
+      module: params?.module,
+      user: params?.user
     }
 
-    const queryString = searchParams.toString()
-    const url = queryString ? `/logs?${queryString}` : '/logs'
-
-    return http.get<LogListResponse>(url)
+    return http.post<LogListResponse>('/logs/list', requestBody)
   }
 
   /**
@@ -101,7 +99,7 @@ export class LogsApi {
    * @returns 日志详情
    */
   static async getLogDetail(id: number): Promise<ApiResponse<LogInfo>> {
-    return http.get<LogInfo>(`/logs/${id}`)
+    return http.post<LogInfo>('/logs/details', { log_id: id })
   }
 
   /**
@@ -109,7 +107,7 @@ export class LogsApi {
    * @returns 日志统计信息
    */
   static async getLogStats(): Promise<ApiResponse<LogStats>> {
-    return http.get<LogStats>('/logs/stats/overview')
+    return http.get<LogStats>('/logs/statistics')
   }
 
   /**
@@ -118,8 +116,8 @@ export class LogsApi {
    * @returns 清空结果
    */
   static async clearLogs(beforeDate?: string): Promise<ApiResponse<{ deleted_count: number }>> {
-    const params = beforeDate ? { before_date: beforeDate } : {}
-    return http.delete<{ deleted_count: number }>('/logs/clear', { params })
+    const requestBody = beforeDate ? { before_date: beforeDate } : {}
+    return http.post<{ deleted_count: number }>('/logs/clear', requestBody)
   }
 }
 

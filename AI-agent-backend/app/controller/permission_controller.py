@@ -4,23 +4,23 @@
 """
 
 from typing import List, Dict, Any, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 
 from app.core.logger import get_logger
 from app.db.session import get_db
+from app.dto.base import BaseResponse
+from app.entity.user import User
 from app.middleware.auth import (
     get_current_user_with_audit,
     rbac_auth
 )
-from app.service.permission_cache_service import PermissionCacheService
 from app.service.audit_log_service import AuditLogService
 from app.service.data_permission_service import DataPermissionService
+from app.service.menu_service import MenuService
 from app.service.rbac_user_service import RBACUserService
 from app.service.role_service import RoleService
-from app.service.menu_service import MenuService
-from app.dto.base import BaseResponse
-from app.entity.user import User
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/permission", tags=["权限管理"])
@@ -83,10 +83,10 @@ async def get_user_permissions(
     """获取指定用户的权限列表"""
     try:
         # 检查权限
-        if current_user.user_id != user_id:
+        if current_user.id != user_id:
             # 需要管理员权限才能查看其他用户权限
             user_service = permission_controller._get_user_service(db)
-            if not user_service.has_permission(current_user.user_id, "user:permission:view"):
+            if not user_service.has_permission(current_user.id, "user:permission:view"):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="权限不足，无法查看其他用户权限"

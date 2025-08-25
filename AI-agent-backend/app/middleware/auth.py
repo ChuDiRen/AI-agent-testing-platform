@@ -4,26 +4,19 @@ RBAC权限验证中间件
 实现细粒度权限控制、数据权限过滤和审计日志记录
 """
 
-import json
-import time
-from typing import List, Optional, Dict, Any, Callable
-from datetime import datetime
 from functools import wraps
+from typing import Callable
 
 from fastapi import HTTPException, status, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
 
 from app.core.logger import get_logger
 from app.core.security import verify_token
 from app.db.session import get_db
-from app.service.rbac_user_service import RBACUserService
 from app.service.audit_log_service import AuditLogService
 from app.service.data_permission_service import DataPermissionService
-from app.service.permission_cache_service import PermissionCacheService
-from app.entity.audit_log import AuditLog
-from app.entity.permission_cache import DataPermissionRule
+from app.service.rbac_user_service import RBACUserService
 
 logger = get_logger(__name__)
 security = HTTPBearer()
@@ -187,7 +180,7 @@ class RBACAuth:
                 
                 # 检查权限
                 user_service = RBACUserService(db)
-                user_permissions = user_service.get_user_permissions(current_user.user_id)
+                user_permissions = user_service.get_user_permissions(current_user.id)
                 
                 if permission not in user_permissions:
                     raise HTTPException(
@@ -218,18 +211,24 @@ class RBACAuth:
             # 检查权限
             user_service = RBACUserService(db)
             user_permissions = user_service.get_user_permissions(current_user.id)
-            
+
+            # 添加调试日志
+            self.logger.info(f"User {current_user.id} permissions: {user_permissions}")
+            self.logger.info(f"Required permission: {permission}")
+
             if permission not in user_permissions:
                 # 记录权限拒绝审计日志
                 await self._log_permission_denied(request, current_user, permission, resource_type, db)
+                self.logger.warning(f"Permission denied for user {current_user.id}: required {permission}, has {user_permissions}")
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"权限不足，需要权限: {permission}"
                 )
-            
+
             # 记录权限验证成功审计日志
             await self._log_permission_granted(request, current_user, permission, resource_type, db)
-            
+            self.logger.info(f"Permission granted for user {current_user.id}: {permission}")
+
             return current_user
         
         return dependency
@@ -253,7 +252,7 @@ class RBACAuth:
             # 获取数据权限规则
             data_permission_service = DataPermissionService(db)
             rules = data_permission_service.get_user_data_permission_rules(
-                current_user.user_id, resource_type, operation
+                current_user.id, resource_type, operation
             )
             
             if not rules:
@@ -289,7 +288,7 @@ class RBACAuth:
         try:
             audit_service = AuditLogService(db)
             await audit_service.log_permission_check(
-                user_id=user.user_id,
+                user_id=user.id,
                 username=user.username,
                 permission=permission,
                 resource_type=resource_type,
@@ -305,7 +304,7 @@ class RBACAuth:
         try:
             audit_service = AuditLogService(db)
             await audit_service.log_permission_check(
-                user_id=user.user_id,
+                user_id=user.id,
                 username=user.username,
                 permission=permission,
                 resource_type=resource_type,

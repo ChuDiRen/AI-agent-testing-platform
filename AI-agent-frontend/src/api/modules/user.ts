@@ -27,7 +27,14 @@ export class UserApi {
     status?: '0' | '1'
     keyword?: string
   }): Promise<ApiResponse<PageData<UserInfo>>> {
-    return http.get<PageData<UserInfo>>('/users', params)
+    const requestBody = {
+      page: params?.page || 1,
+      size: params?.size || 20,
+      dept_id: params?.dept_id,
+      status: params?.status,
+      username: params?.keyword
+    }
+    return http.post<PageData<UserInfo>>('/users/list', requestBody)
   }
 
   /**
@@ -44,7 +51,7 @@ export class UserApi {
    * @returns 用户详情
    */
   static async getUserById(userId: number): Promise<ApiResponse<UserInfo>> {
-    return http.get<UserInfo>(`/users/${userId}`)
+    return http.post<UserInfo>('/users/details', { user_id: userId })
   }
 
   /**
@@ -53,7 +60,7 @@ export class UserApi {
    * @returns 创建结果
    */
   static async createUser(data: UserCreateRequest): Promise<ApiResponse<UserInfo>> {
-    return http.post<UserInfo>('/users', data)
+    return http.post<UserInfo>('/users/create', data)
   }
 
   /**
@@ -63,7 +70,8 @@ export class UserApi {
    * @returns 更新结果
    */
   static async updateUser(userId: number, data: UserUpdateRequest): Promise<ApiResponse<UserInfo>> {
-    return http.put<UserInfo>(`/users/${userId}`, data)
+    const requestBody = { user_id: userId, ...data }
+    return http.post<UserInfo>('/users/update', requestBody)
   }
 
   /**
@@ -72,7 +80,7 @@ export class UserApi {
    * @returns 删除结果
    */
   static async deleteUser(userId: number): Promise<ApiResponse<boolean>> {
-    return http.delete<boolean>(`/users/${userId}`)
+    return http.post<boolean>('/users/delete', { user_id: userId })
   }
 
   /**

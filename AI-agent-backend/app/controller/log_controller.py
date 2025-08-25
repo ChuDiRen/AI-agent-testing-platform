@@ -6,6 +6,7 @@
 
 from datetime import datetime
 from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
@@ -17,11 +18,12 @@ from app.dto.log_dto import (
     LogResponse,
     LogListResponse,
     LogStatsResponse,
-    LogLevel
+    LogIdRequest,
+    LogClearRequest
 )
-from app.service.log_service import LogService
-from app.middleware.auth import get_current_user, require_log_view_with_audit, require_log_delete_with_audit
 from app.entity.user import User
+from app.middleware.auth import get_current_user, require_log_view_with_audit
+from app.service.log_service import LogService
 
 logger = get_logger(__name__)
 
@@ -29,22 +31,15 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/logs", tags=["日志管理"])
 
 
-@router.get("/", response_model=ApiResponse[LogListResponse], summary="获取日志列表")
+@router.get("", response_model=ApiResponse[LogListResponse], summary="获取日志列表")
 async def get_logs(
-    level: Optional[LogLevel] = Query(None, description="日志级别"),
-    start_time: Optional[datetime] = Query(None, description="开始时间"),
-    end_time: Optional[datetime] = Query(None, description="结束时间"),
-    keyword: Optional[str] = Query(None, description="关键词搜索"),
-    module: Optional[str] = Query(None, description="模块名称"),
-    user: Optional[str] = Query(None, description="用户名"),
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页大小"),
+    request: LogQueryRequest,
     current_user: User = Depends(require_log_view_with_audit()),
     db: Session = Depends(get_db)
 ):
     """
     获取日志列表
-    
+
     Args:
         level: 日志级别
         start_time: 开始时间
@@ -56,23 +51,15 @@ async def get_logs(
         size: 每页大小
         current_user: 当前登录用户
         db: 数据库会话
-        
+
     Returns:
         日志列表
     """
     try:
+        logger.info(f"Log controller called by user {current_user.id}")
         log_service = LogService(db)
 
-        query_request = LogQueryRequest(
-            level=level,
-            start_time=start_time,
-            end_time=end_time,
-            keyword=keyword,
-            module=module,
-            user=user,
-            page=page,
-            size=size
-        )
+        query_request = request
 
         result = log_service.query_logs(query_request)
 
@@ -86,26 +73,26 @@ async def get_logs(
         )
 
 
-@router.get("/{log_id}", response_model=ApiResponse[LogResponse], summary="获取日志详情")
+@router.post("/details", response_model=ApiResponse[LogResponse], summary="获取日志详情")
 async def get_log_detail(
-    log_id: int,
+    request: LogIdRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     获取日志详情
-    
+
     Args:
-        log_id: 日志ID
+        request: 日志ID请求（请求体传参）
         current_user: 当前登录用户
         db: 数据库会话
-        
+
     Returns:
         日志详情
     """
     try:
         log_service = LogService(db)
-        log_detail = log_service.get_log_by_id(log_id)
+        log_detail = log_service.get_log_by_id(request.log_id)
         
         if not log_detail:
             raise HTTPException(
@@ -125,7 +112,7 @@ async def get_log_detail(
         )
 
 
-@router.get("/stats/overview", response_model=ApiResponse[LogStatsResponse], summary="获取日志统计")
+@router.get("/statistics", response_model=ApiResponse[LogStatsResponse], summary="获取日志统计")
 async def get_log_stats(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -154,26 +141,26 @@ async def get_log_stats(
         )
 
 
-@router.delete("/clear", response_model=ApiResponse[dict], summary="清空日志")
+@router.delete("", response_model=ApiResponse[dict], summary="清空日志")
 async def clear_logs(
-    before_date: Optional[datetime] = Query(None, description="清空指定日期之前的日志"),
+    request: LogClearRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     清空日志
-    
+
     Args:
-        before_date: 清空指定日期之前的日志，如果为None则清空所有日志
+        request: 清空日志请求（请求体传参）
         current_user: 当前登录用户
         db: 数据库会话
-        
+
     Returns:
         清空结果
     """
     try:
         log_service = LogService(db)
-        deleted_count = log_service.clear_logs(before_date)
+        deleted_count = log_service.clear_logs(request.before_date)
         
         # 记录操作日志
         log_service.create_log(

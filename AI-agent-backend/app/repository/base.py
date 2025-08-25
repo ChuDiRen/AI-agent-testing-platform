@@ -5,7 +5,7 @@ Repository层基类
 
 from typing import Generic, TypeVar, Type, Optional, List, Dict, Any
 
-from sqlalchemy import and_, or_, desc, asc, func
+from sqlalchemy import and_, func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 

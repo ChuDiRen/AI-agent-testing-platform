@@ -60,11 +60,6 @@ def create_tables():
     from app.db.base import Base
 
     # 导入所有实体以确保它们被注册到metadata中
-    from app.entity import (
-        User, Role, Menu, Department, UserRole, RoleMenu,
-        AuditLog, PermissionCache, DataPermissionRule
-    )
-    from app.entity.system_log import SystemLog
 
     try:
         # 创建所有表

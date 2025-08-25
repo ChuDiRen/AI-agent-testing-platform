@@ -10,6 +10,48 @@ from typing import Optional, List
 from pydantic import BaseModel, Field, validator
 
 
+class MenuIdRequest(BaseModel):
+    """
+    菜单ID请求DTO
+    """
+    menu_id: int = Field(..., description="菜单ID")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "menu_id": 1
+            }
+        }
+
+
+class MenuDeleteRequest(BaseModel):
+    """
+    删除菜单请求DTO
+    """
+    menu_id: int = Field(..., description="菜单ID")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "menu_id": 1
+            }
+        }
+
+
+class UserMenuRequest(BaseModel):
+    """
+    用户菜单请求DTO
+    """
+    user_id: int = Field(..., description="用户ID")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "user_id": 1
+            }
+        }
+
+
 class MenuCreateRequest(BaseModel):
     """
     创建菜单请求DTO
@@ -48,6 +90,7 @@ class MenuUpdateRequest(BaseModel):
     """
     更新菜单请求DTO
     """
+    menu_id: int = Field(..., description="菜单ID")
     menu_name: Optional[str] = Field(None, min_length=1, max_length=50, description="菜单/按钮名称")
     path: Optional[str] = Field(None, max_length=255, description="路由路径")
     component: Optional[str] = Field(None, max_length=255, description="路由组件")
@@ -58,6 +101,7 @@ class MenuUpdateRequest(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
+                "menu_id": 1,
                 "menu_name": "系统管理",
                 "path": "/system",
                 "component": "Layout",

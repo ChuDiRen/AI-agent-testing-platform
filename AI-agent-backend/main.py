@@ -3,8 +3,9 @@ AI Agent Backend - 主应用入口
 企业级五层架构FastAPI应用
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from contextlib import asynccontextmanager
@@ -16,7 +17,7 @@ from fastapi.responses import JSONResponse
 
 from app.controller.department_controller import router as department_router
 from app.controller.menu_controller import router as menu_router
-from app.controller.rbac_user_controller import router as rbac_user_router
+from app.controller.user_controller import router as rbac_user_router
 from app.controller.role_controller import router as role_router
 from app.controller.permission_controller import router as permission_router
 from app.controller.dashboard_controller import router as dashboard_router
@@ -92,7 +93,8 @@ app = FastAPI(
     docs_url=settings.DOCS_URL if not settings.is_production else None,
     redoc_url=settings.REDOC_URL if not settings.is_production else None,
     openapi_url=settings.OPENAPI_URL if not settings.is_production else None,
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False  # 禁用自动重定向斜杠，避免认证信息丢失
 )
 
 # 配置CORS中间件

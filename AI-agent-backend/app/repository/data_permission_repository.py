@@ -5,12 +5,13 @@
 """
 
 from typing import List, Optional, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc
 
-from app.repository.base import BaseRepository
-from app.entity.permission_cache import DataPermissionRule
+from sqlalchemy import and_, or_, desc
+from sqlalchemy.orm import Session
+
 from app.core.logger import get_logger
+from app.entity.permission_cache import DataPermissionRule
+from app.repository.base import BaseRepository
 
 logger = get_logger(__name__)
 

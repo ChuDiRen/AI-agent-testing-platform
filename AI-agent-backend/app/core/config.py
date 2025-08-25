@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     
     # 服务器配置
     HOST: str = "0.0.0.0"
-    PORT: int = 8001  # 改为8001避免端口冲突
+    PORT: int = 8000  # 标准后端端口
     RELOAD: bool = True
     
     # 数据库配置

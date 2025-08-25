@@ -25,7 +25,12 @@ export class RoleApi {
   static async getRoleList(params?: PageQuery & {
     keyword?: string
   }): Promise<ApiResponse<RoleListResponse>> {
-    return http.get<RoleListResponse>('/roles', params)
+    const requestBody = {
+      page: params?.page || 1,
+      size: params?.size || 20,
+      keyword: params?.keyword
+    }
+    return http.post<RoleListResponse>('/roles/list', requestBody)
   }
 
   /**
@@ -42,7 +47,7 @@ export class RoleApi {
    * @returns 角色详情
    */
   static async getRoleById(roleId: number): Promise<ApiResponse<RoleInfo>> {
-    return http.get<RoleInfo>(`/roles/${roleId}`)
+    return http.post<RoleInfo>('/roles/details', { role_id: roleId })
   }
 
   /**
@@ -51,7 +56,7 @@ export class RoleApi {
    * @returns 创建结果
    */
   static async createRole(data: RoleCreateRequest): Promise<ApiResponse<RoleInfo>> {
-    return http.post<RoleInfo>('/roles', data)
+    return http.post<RoleInfo>('/roles/create', data)
   }
 
   /**
@@ -61,7 +66,8 @@ export class RoleApi {
    * @returns 更新结果
    */
   static async updateRole(roleId: number, data: RoleUpdateRequest): Promise<ApiResponse<RoleInfo>> {
-    return http.put<RoleInfo>(`/roles/${roleId}`, data)
+    const requestBody = { role_id: roleId, ...data }
+    return http.post<RoleInfo>('/roles/update', requestBody)
   }
 
   /**
@@ -70,7 +76,7 @@ export class RoleApi {
    * @returns 删除结果
    */
   static async deleteRole(roleId: number): Promise<ApiResponse<boolean>> {
-    return http.delete<boolean>(`/roles/${roleId}`)
+    return http.post<boolean>('/roles/delete', { role_id: roleId })
   }
 
   /**

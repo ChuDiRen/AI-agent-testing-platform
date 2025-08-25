@@ -4,22 +4,22 @@
 处理仪表板相关的业务逻辑
 """
 
-from datetime import datetime
 from typing import List, Optional
-from sqlalchemy.orm import Session
+
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from app.core.logger import get_logger
-from app.entity.user import User
-from app.entity.role import Role
-from app.entity.menu import Menu
-from app.entity.department import Department
 from app.dto.dashboard_dto import (
     DashboardStatsResponse,
     SystemInfoResponse,
     RecentActivityResponse,
     DashboardOverviewResponse
 )
+from app.entity.department import Department
+from app.entity.menu import Menu
+from app.entity.role import Role
+from app.entity.user import User
 
 logger = get_logger(__name__)
 

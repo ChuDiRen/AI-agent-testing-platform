@@ -3,7 +3,6 @@
 系统日志实体类
 """
 
-from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import Column, Integer, String, DateTime, Text, Index

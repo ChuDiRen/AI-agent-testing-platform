@@ -4,7 +4,7 @@
 处理角色相关的HTTP请求
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.logger import get_logger
@@ -16,7 +16,10 @@ from app.dto.role_dto import (
     RoleResponse,
     RoleListResponse,
     RoleMenuAssignRequest,
-    RolePermissionResponse
+    RolePermissionResponse,
+    RoleIdRequest,
+    RoleListRequest,
+    RoleDeleteRequest
 )
 from app.service.role_service import RoleService
 
@@ -26,7 +29,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/roles", tags=["角色管理"])
 
 
-@router.post("/", response_model=ApiResponse[RoleResponse], summary="创建角色")
+@router.post("", response_model=ApiResponse[RoleResponse], summary="创建角色")
 async def create_role(
     request: RoleCreateRequest,
     db: Session = Depends(get_db)
@@ -70,17 +73,17 @@ async def create_role(
         )
 
 
-@router.get("/", response_model=ApiResponse[RoleListResponse], summary="获取角色列表")
+@router.get("", response_model=ApiResponse[RoleListResponse], summary="获取角色列表")
 async def get_roles(
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(10, ge=1, le=100, description="每页大小"),
+    request: RoleListRequest,
     db: Session = Depends(get_db)
 ):
     """
-    分页获取角色列表
-    
+    获取角色列表（支持分页和搜索）
+
     - **page**: 页码（从1开始）
     - **size**: 每页大小（1-100）
+    - **keyword**: 关键词搜索
     """
     try:
         role_service = RoleService(db)
@@ -116,19 +119,19 @@ async def get_roles(
         )
 
 
-@router.get("/{role_id}", response_model=ApiResponse[RoleResponse], summary="获取角色详情")
+@router.post("/details", response_model=ApiResponse[RoleResponse], summary="获取角色详情")
 async def get_role(
-    role_id: int,
+    request: RoleIdRequest,
     db: Session = Depends(get_db)
 ):
     """
     根据ID获取角色详情
-    
-    - **role_id**: 角色ID
+
+    - **role_id**: 角色ID（请求体传参）
     """
     try:
         role_service = RoleService(db)
-        role = role_service.get_role_by_id(role_id)
+        role = role_service.get_role_by_id(request.role_id)
         
         if not role:
             raise HTTPException(
@@ -156,23 +159,22 @@ async def get_role(
         )
 
 
-@router.put("/{role_id}", response_model=ApiResponse[RoleResponse], summary="更新角色")
+@router.put("", response_model=ApiResponse[RoleResponse], summary="更新角色")
 async def update_role(
-    role_id: int,
     request: RoleUpdateRequest,
     db: Session = Depends(get_db)
 ):
     """
     更新角色信息
-    
-    - **role_id**: 角色ID
+
+    - **role_id**: 角色ID（请求体传参）
     - **role_name**: 新的角色名称（可选）
     - **remark**: 新的角色描述（可选）
     """
     try:
         role_service = RoleService(db)
         role = role_service.update_role(
-            role_id=role_id,
+            role_id=request.role_id,
             role_name=request.role_name,
             remark=request.remark
         )
@@ -210,19 +212,19 @@ async def update_role(
         )
 
 
-@router.delete("/{role_id}", response_model=ApiResponse[bool], summary="删除角色")
+@router.delete("", response_model=ApiResponse[bool], summary="删除角色")
 async def delete_role(
-    role_id: int,
+    request: RoleDeleteRequest,
     db: Session = Depends(get_db)
 ):
     """
     删除角色
-    
-    - **role_id**: 角色ID
+
+    - **role_id**: 角色ID（请求体传参）
     """
     try:
         role_service = RoleService(db)
-        success = role_service.delete_role(role_id)
+        success = role_service.delete_role(request.role_id)
         
         if not success:
             raise HTTPException(
@@ -249,21 +251,20 @@ async def delete_role(
         )
 
 
-@router.post("/{role_id}/menus", response_model=ApiResponse[bool], summary="分配菜单权限")
+@router.post("/menus", response_model=ApiResponse[bool], summary="分配菜单权限")
 async def assign_menus_to_role(
-    role_id: int,
     request: RoleMenuAssignRequest,
     db: Session = Depends(get_db)
 ):
     """
     为角色分配菜单权限
-    
-    - **role_id**: 角色ID
+
+    - **role_id**: 角色ID（请求体传参）
     - **menu_ids**: 菜单ID列表
     """
     try:
         role_service = RoleService(db)
-        success = role_service.assign_menus_to_role(role_id, request.menu_ids)
+        success = role_service.assign_menus_to_role(request.role_id, request.menu_ids)
         
         if not success:
             raise HTTPException(
@@ -284,15 +285,15 @@ async def assign_menus_to_role(
         )
 
 
-@router.get("/{role_id}/permissions", response_model=ApiResponse[RolePermissionResponse], summary="获取角色权限")
+@router.post("/permissions/query", response_model=ApiResponse[RolePermissionResponse], summary="获取角色权限")
 async def get_role_permissions(
-    role_id: int,
+    request: RoleIdRequest,
     db: Session = Depends(get_db)
 ):
     """
     获取角色的权限信息
-    
-    - **role_id**: 角色ID
+
+    - **role_id**: 角色ID（请求体传参）
     """
     try:
         role_service = RoleService(db)
@@ -304,7 +305,7 @@ async def get_role_permissions(
                 detail="角色不存在"
             )
         
-        permissions = role_service.get_role_permissions(role_id)
+        permissions = role_service.get_role_permissions(request.role_id)
         menu_ids = role_service.get_role_menu_ids(role_id)
         
         permission_response = RolePermissionResponse(

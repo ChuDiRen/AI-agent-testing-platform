@@ -4,7 +4,7 @@
 严格按照博客t_role_menu表结构设计
 """
 
-from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 
 from .base import BaseEntity

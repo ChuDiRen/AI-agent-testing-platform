@@ -20,7 +20,7 @@ export class DepartmentApi {
    * @returns 部门列表
    */
   static async getDepartmentList(): Promise<ApiResponse<DeptInfo[]>> {
-    return http.get<DeptInfo[]>('/departments')
+    return http.post<DeptInfo[]>('/departments/list', {})
   }
 
   /**
@@ -37,7 +37,7 @@ export class DepartmentApi {
    * @returns 部门详情
    */
   static async getDepartmentById(deptId: number): Promise<ApiResponse<DeptInfo>> {
-    return http.get<DeptInfo>(`/departments/${deptId}`)
+    return http.post<DeptInfo>('/departments/details', { dept_id: deptId })
   }
 
   /**
@@ -46,7 +46,7 @@ export class DepartmentApi {
    * @returns 创建结果
    */
   static async createDepartment(data: DeptCreateRequest): Promise<ApiResponse<DeptInfo>> {
-    return http.post<DeptInfo>('/departments', data)
+    return http.post<DeptInfo>('/departments/create', data)
   }
 
   /**

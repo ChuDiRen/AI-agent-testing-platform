@@ -65,6 +65,11 @@ class User(BaseEntity):
     # 用户-部门关联（一个用户属于一个部门）
     department = relationship("Department", back_populates="users")
 
+    @property
+    def user_id(self) -> int:
+        """用户ID属性，返回主键id的值"""
+        return self.id
+
     def __init__(self, username: str, password: str, email: str = None,
                  mobile: str = None, dept_id: int = None, ssex: str = None,
                  avatar: str = None, description: str = None):
@@ -182,7 +187,7 @@ class User(BaseEntity):
             用户信息字典
         """
         return {
-            "user_id": self.user_id,
+            "user_id": self.id,
             "username": self.username,
             "dept_id": self.dept_id,
             "email": self.email,
@@ -211,4 +216,4 @@ class User(BaseEntity):
         """
         字符串表示
         """
-        return f"<User(user_id={self.user_id}, username='{self.username}', status='{self.status}')>"
+        return f"<User(user_id={self.id}, username='{self.username}', status='{self.status}')>"

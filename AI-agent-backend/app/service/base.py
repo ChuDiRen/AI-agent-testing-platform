@@ -6,8 +6,6 @@ Service层基类
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, Optional, List, Dict, Any
 
-from sqlalchemy.orm import Session
-
 from app.core.logger import get_logger
 from app.entity.base import BaseEntity
 from app.repository.base import BaseRepository
