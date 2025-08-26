@@ -29,7 +29,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/roles", tags=["角色管理"])
 
 
-@router.post("", response_model=ApiResponse[RoleResponse], summary="创建角色")
+@router.post("/create-role", response_model=ApiResponse[RoleResponse], summary="创建角色")
 async def create_role(
     request: RoleCreateRequest,
     db: Session = Depends(get_db)
@@ -73,8 +73,8 @@ async def create_role(
         )
 
 
-@router.get("", response_model=ApiResponse[RoleListResponse], summary="获取角色列表")
-async def get_roles(
+@router.post("/get-role-list", response_model=ApiResponse[RoleListResponse], summary="获取角色列表")
+async def get_role_list(
     request: RoleListRequest,
     db: Session = Depends(get_db)
 ):
@@ -87,7 +87,7 @@ async def get_roles(
     """
     try:
         role_service = RoleService(db)
-        result = role_service.get_roles_with_pagination(page=page, size=size)
+        result = role_service.get_roles_with_pagination(page=request.page, size=request.size)
         
         # 转换为响应格式
         roles = [
@@ -119,8 +119,8 @@ async def get_roles(
         )
 
 
-@router.post("/details", response_model=ApiResponse[RoleResponse], summary="获取角色详情")
-async def get_role(
+@router.post("/get-role-info", response_model=ApiResponse[RoleResponse], summary="获取角色详情")
+async def get_role_info(
     request: RoleIdRequest,
     db: Session = Depends(get_db)
 ):
@@ -152,14 +152,14 @@ async def get_role(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting role {role_id}: {str(e)}")
+        logger.error(f"Error getting role {request.role_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取角色详情失败"
         )
 
 
-@router.put("", response_model=ApiResponse[RoleResponse], summary="更新角色")
+@router.post("/update-role", response_model=ApiResponse[RoleResponse], summary="更新角色")
 async def update_role(
     request: RoleUpdateRequest,
     db: Session = Depends(get_db)
@@ -205,14 +205,14 @@ async def update_role(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error updating role {role_id}: {str(e)}")
+        logger.error(f"Unexpected error updating role {request.role_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="更新角色失败"
         )
 
 
-@router.delete("", response_model=ApiResponse[bool], summary="删除角色")
+@router.post("/delete-role", response_model=ApiResponse[bool], summary="删除角色")
 async def delete_role(
     request: RoleDeleteRequest,
     db: Session = Depends(get_db)
@@ -232,9 +232,9 @@ async def delete_role(
                 detail="角色不存在"
             )
         
-        logger.info(f"Role deleted successfully: {role_id}")
+        logger.info(f"Role deleted successfully: {request.role_id}")
         return ApiResponse.success_response(data=True, message="角色删除成功")
-        
+
     except ValueError as e:
         logger.warning(f"Role deletion failed: {str(e)}")
         raise HTTPException(
@@ -244,15 +244,15 @@ async def delete_role(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error deleting role {role_id}: {str(e)}")
+        logger.error(f"Unexpected error deleting role {request.role_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="删除角色失败"
         )
 
 
-@router.post("/menus", response_model=ApiResponse[bool], summary="分配菜单权限")
-async def assign_menus_to_role(
+@router.post("/assign-role-menus", response_model=ApiResponse[bool], summary="分配菜单权限")
+async def assign_role_menus(
     request: RoleMenuAssignRequest,
     db: Session = Depends(get_db)
 ):
@@ -272,20 +272,20 @@ async def assign_menus_to_role(
                 detail="角色不存在"
             )
         
-        logger.info(f"Menus assigned to role successfully: {role_id}")
+        logger.info(f"Menus assigned to role successfully: {request.role_id}")
         return ApiResponse.success_response(data=True, message="菜单权限分配成功")
-        
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error assigning menus to role {role_id}: {str(e)}")
+        logger.error(f"Error assigning menus to role {request.role_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="分配菜单权限失败"
         )
 
 
-@router.post("/permissions/query", response_model=ApiResponse[RolePermissionResponse], summary="获取角色权限")
+@router.post("/get-role-permissions", response_model=ApiResponse[RolePermissionResponse], summary="获取角色权限")
 async def get_role_permissions(
     request: RoleIdRequest,
     db: Session = Depends(get_db)
@@ -297,7 +297,7 @@ async def get_role_permissions(
     """
     try:
         role_service = RoleService(db)
-        role = role_service.get_role_by_id(role_id)
+        role = role_service.get_role_by_id(request.role_id)
         
         if not role:
             raise HTTPException(
@@ -306,21 +306,21 @@ async def get_role_permissions(
             )
         
         permissions = role_service.get_role_permissions(request.role_id)
-        menu_ids = role_service.get_role_menu_ids(role_id)
-        
+        menu_ids = role_service.get_role_menu_ids(request.role_id)
+
         permission_response = RolePermissionResponse(
             role_id=role.role_id,
             role_name=role.role_name,
             permissions=permissions,
             menu_ids=menu_ids
         )
-        
+
         return ApiResponse.success_response(data=permission_response, message="获取角色权限成功")
-        
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting role permissions {role_id}: {str(e)}")
+        logger.error(f"Error getting role permissions {request.role_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取角色权限失败"

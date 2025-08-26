@@ -30,7 +30,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/menus", tags=["菜单管理"])
 
 
-@router.post("", response_model=ApiResponse[MenuResponse], summary="创建菜单")
+@router.post("/create-menu", response_model=ApiResponse[MenuResponse], summary="创建菜单")
 async def create_menu(
     request: MenuCreateRequest,
     db: Session = Depends(get_db)
@@ -86,7 +86,7 @@ async def create_menu(
         )
 
 
-@router.get("/tree", response_model=ApiResponse[List[MenuTreeNode]], summary="获取菜单树")
+@router.post("/get-menu-tree", response_model=ApiResponse[List[MenuTreeNode]], summary="获取菜单树")
 async def get_menu_tree(
     db: Session = Depends(get_db)
 ):
@@ -125,8 +125,8 @@ async def get_menu_tree(
         )
 
 
-@router.post("/details", response_model=ApiResponse[MenuResponse], summary="获取菜单详情")
-async def get_menu(
+@router.post("/get-menu-info", response_model=ApiResponse[MenuResponse], summary="获取菜单详情")
+async def get_menu_info(
     request: MenuIdRequest,
     db: Session = Depends(get_db)
 ):
@@ -171,7 +171,7 @@ async def get_menu(
         )
 
 
-@router.put("", response_model=ApiResponse[MenuResponse], summary="更新菜单")
+@router.post("/update-menu", response_model=ApiResponse[MenuResponse], summary="更新菜单")
 async def update_menu(
     request: MenuUpdateRequest,
     db: Session = Depends(get_db)
@@ -232,7 +232,7 @@ async def update_menu(
         )
 
 
-@router.delete("", response_model=ApiResponse[bool], summary="删除菜单")
+@router.post("/delete-menu", response_model=ApiResponse[bool], summary="删除菜单")
 async def delete_menu(
     request: MenuDeleteRequest,
     db: Session = Depends(get_db)
@@ -252,9 +252,9 @@ async def delete_menu(
                 detail="菜单不存在"
             )
         
-        logger.info(f"Menu deleted successfully: {menu_id}")
+        logger.info(f"Menu deleted successfully: {request.menu_id}")
         return ApiResponse.success_response(data=True, message="菜单删除成功")
-        
+
     except ValueError as e:
         logger.warning(f"Menu deletion failed: {str(e)}")
         raise HTTPException(
@@ -264,14 +264,14 @@ async def delete_menu(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error deleting menu {menu_id}: {str(e)}")
+        logger.error(f"Unexpected error deleting menu {request.menu_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="删除菜单失败"
         )
 
 
-@router.post("/user-menus", response_model=ApiResponse[UserMenuResponse], summary="获取用户菜单")
+@router.post("/get-user-menus", response_model=ApiResponse[UserMenuResponse], summary="获取用户菜单")
 async def get_user_menus(
     request: UserMenuRequest,
     db: Session = Depends(get_db)

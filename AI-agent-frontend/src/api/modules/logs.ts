@@ -90,7 +90,7 @@ export class LogsApi {
       user: params?.user
     }
 
-    return http.post<LogListResponse>('/logs/list', requestBody)
+    return http.post<LogListResponse>('/logs/get-log-list', requestBody)
   }
 
   /**
@@ -99,7 +99,7 @@ export class LogsApi {
    * @returns 日志详情
    */
   static async getLogDetail(id: number): Promise<ApiResponse<LogInfo>> {
-    return http.post<LogInfo>('/logs/details', { log_id: id })
+    return http.post<LogInfo>('/logs/get-log-info', { log_id: id })
   }
 
   /**
@@ -107,7 +107,7 @@ export class LogsApi {
    * @returns 日志统计信息
    */
   static async getLogStats(): Promise<ApiResponse<LogStats>> {
-    return http.get<LogStats>('/logs/statistics')
+    return http.post<LogStats>('/logs/get-log-statistics', {})
   }
 
   /**
@@ -117,7 +117,7 @@ export class LogsApi {
    */
   static async clearLogs(beforeDate?: string): Promise<ApiResponse<{ deleted_count: number }>> {
     const requestBody = beforeDate ? { before_date: beforeDate } : {}
-    return http.post<{ deleted_count: number }>('/logs/clear', requestBody)
+    return http.post<{ deleted_count: number }>('/logs/clear-logs', requestBody)
   }
 }
 

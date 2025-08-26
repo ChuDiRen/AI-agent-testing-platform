@@ -4,10 +4,7 @@
 处理日志相关的HTTP请求
 """
 
-from datetime import datetime
-from typing import Optional
-
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.logger import get_logger
@@ -31,8 +28,8 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/logs", tags=["日志管理"])
 
 
-@router.get("", response_model=ApiResponse[LogListResponse], summary="获取日志列表")
-async def get_logs(
+@router.post("/get-log-list", response_model=ApiResponse[LogListResponse], summary="获取日志列表")
+async def get_log_list(
     request: LogQueryRequest,
     current_user: User = Depends(require_log_view_with_audit()),
     db: Session = Depends(get_db)
@@ -73,8 +70,8 @@ async def get_logs(
         )
 
 
-@router.post("/details", response_model=ApiResponse[LogResponse], summary="获取日志详情")
-async def get_log_detail(
+@router.post("/get-log-info", response_model=ApiResponse[LogResponse], summary="获取日志详情")
+async def get_log_info(
     request: LogIdRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -105,15 +102,15 @@ async def get_log_detail(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting log detail {log_id}: {str(e)}")
+        logger.error(f"Error getting log detail {request.log_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取日志详情失败"
         )
 
 
-@router.get("/statistics", response_model=ApiResponse[LogStatsResponse], summary="获取日志统计")
-async def get_log_stats(
+@router.post("/get-log-statistics", response_model=ApiResponse[LogStatsResponse], summary="获取日志统计")
+async def get_log_statistics(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -141,7 +138,7 @@ async def get_log_stats(
         )
 
 
-@router.delete("", response_model=ApiResponse[dict], summary="清空日志")
+@router.post("/clear-logs", response_model=ApiResponse[dict], summary="清空日志")
 async def clear_logs(
     request: LogClearRequest,
     current_user: User = Depends(get_current_user),
@@ -169,7 +166,7 @@ async def clear_logs(
             message=f"管理员清空了 {deleted_count} 条日志",
             user=current_user.username,
             user_id=current_user.id,
-            details=f"清空条件: before_date={before_date}"
+            details=f"清空条件: before_date={request.before_date}"
         )
         
         return ApiResponse.success_response(

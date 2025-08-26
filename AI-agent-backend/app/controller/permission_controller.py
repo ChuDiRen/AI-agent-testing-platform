@@ -3,9 +3,9 @@
 提供权限配置、批量授权、权限查询等API接口
 """
 
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.logger import get_logger
@@ -23,7 +23,7 @@ from app.service.rbac_user_service import RBACUserService
 from app.service.role_service import RoleService
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/permission", tags=["权限管理"])
+router = APIRouter(prefix="/permissions", tags=["权限管理"])
 
 
 class PermissionController:
@@ -73,15 +73,21 @@ class PermissionController:
 permission_controller = PermissionController()
 
 
-@router.get("/user/{user_id}/permissions", summary="获取用户权限列表")
+@router.post("/get-user-permissions", summary="获取用户权限列表")
 async def get_user_permissions(
-    user_id: int,
-    request: Request,
+    request: Dict[str, Any],
     current_user: User = Depends(get_current_user_with_audit),
     db: Session = Depends(get_db)
 ):
     """获取指定用户的权限列表"""
     try:
+        user_id = request.get("user_id")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="用户ID不能为空"
+            )
+
         # 检查权限
         if current_user.id != user_id:
             # 需要管理员权限才能查看其他用户权限
@@ -91,10 +97,10 @@ async def get_user_permissions(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="权限不足，无法查看其他用户权限"
                 )
-        
+
         # 获取用户权限
         permissions = await permission_controller.permission_cache_service.get_user_permissions(user_id)
-        
+
         return BaseResponse(
             code=200,
             message="获取用户权限成功",
@@ -111,15 +117,21 @@ async def get_user_permissions(
         )
 
 
-@router.get("/user/{user_id}/menus", summary="获取用户菜单树")
+@router.post("/get-user-menus", summary="获取用户菜单树")
 async def get_user_menus(
-    user_id: int,
-    request: Request,
+    request: Dict[str, Any],
     current_user: User = Depends(get_current_user_with_audit),
     db: Session = Depends(get_db)
 ):
     """获取指定用户的菜单树"""
     try:
+        user_id = request.get("user_id")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="用户ID不能为空"
+            )
+
         # 检查权限
         if current_user.user_id != user_id:
             user_service = permission_controller._get_user_service(db)
@@ -128,10 +140,10 @@ async def get_user_menus(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="权限不足，无法查看其他用户菜单"
                 )
-        
+
         # 获取用户菜单
         menus = await permission_controller.permission_cache_service.get_user_menus(user_id)
-        
+
         return BaseResponse(
             code=200,
             message="获取用户菜单成功",
@@ -148,18 +160,24 @@ async def get_user_menus(
         )
 
 
-@router.get("/role/{role_id}/permissions", summary="获取角色权限列表")
+@router.post("/get-role-permissions", summary="获取角色权限列表")
 async def get_role_permissions(
-    role_id: int,
-    request: Request,
+    request: Dict[str, Any],
     current_user: User = Depends(rbac_auth.require_permission_with_audit("role:permission:view", "ROLE")),
     db: Session = Depends(get_db)
 ):
     """获取指定角色的权限列表"""
     try:
+        role_id = request.get("role_id")
+        if not role_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="角色ID不能为空"
+            )
+
         # 获取角色权限
         permissions = await permission_controller.permission_cache_service.get_role_permissions(role_id)
-        
+
         return BaseResponse(
             code=200,
             message="获取角色权限成功",
@@ -176,13 +194,13 @@ async def get_role_permissions(
         )
 
 
-@router.get("/menus/tree", summary="获取完整菜单树")
-async def get_menu_tree(
-    request: Request,
+@router.post("/get-permission-menu-tree", summary="获取权限管理菜单树")
+async def get_permission_menu_tree(
+    request: Dict[str, Any],
     current_user: User = Depends(rbac_auth.require_permission_with_audit("menu:view", "MENU")),
     db: Session = Depends(get_db)
 ):
-    """获取完整菜单树结构"""
+    """获取权限管理相关的菜单树结构"""
     try:
         # 获取菜单树
         menu_tree = await permission_controller.permission_cache_service.get_menu_tree()
@@ -203,21 +221,28 @@ async def get_menu_tree(
         )
 
 
-@router.post("/user/{user_id}/roles/batch", summary="批量分配用户角色")
+@router.post("/batch-assign-user-roles", summary="批量分配用户角色")
 async def batch_assign_user_roles(
-    user_id: int,
-    role_ids: List[int],
-    request: Request,
+    request: Dict[str, Any],
     current_user: User = Depends(rbac_auth.require_permission_with_audit("user:role:assign", "USER")),
     db: Session = Depends(get_db)
 ):
     """批量分配用户角色"""
     try:
+        user_id = request.get("user_id")
+        role_ids = request.get("role_ids", [])
+
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="用户ID不能为空"
+            )
+
         user_service = permission_controller._get_user_service(db)
-        
+
         # 清除现有角色
         user_service.clear_user_roles(user_id)
-        
+
         # 分配新角色
         for role_id in role_ids:
             user_service.assign_role_to_user(user_id, role_id)
@@ -241,21 +266,28 @@ async def batch_assign_user_roles(
         )
 
 
-@router.post("/role/{role_id}/menus/batch", summary="批量分配角色菜单权限")
+@router.post("/batch-assign-role-menus", summary="批量分配角色菜单权限")
 async def batch_assign_role_menus(
-    role_id: int,
-    menu_ids: List[int],
-    request: Request,
+    request: Dict[str, Any],
     current_user: User = Depends(rbac_auth.require_permission_with_audit("role:menu:assign", "ROLE")),
     db: Session = Depends(get_db)
 ):
     """批量分配角色菜单权限"""
     try:
+        role_id = request.get("role_id")
+        menu_ids = request.get("menu_ids", [])
+
+        if not role_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="角色ID不能为空"
+            )
+
         role_service = permission_controller._get_role_service(db)
-        
+
         # 清除现有菜单权限
         role_service.clear_role_menus(role_id)
-        
+
         # 分配新菜单权限
         for menu_id in menu_ids:
             role_service.assign_menu_to_role(role_id, menu_id)
@@ -279,24 +311,23 @@ async def batch_assign_role_menus(
         )
 
 
-@router.post("/data-permission/rules", summary="创建数据权限规则")
+@router.post("/create-data-permission-rule", summary="创建数据权限规则")
 async def create_data_permission_rule(
-    rule_data: Dict[str, Any],
-    request: Request,
+    request: Dict[str, Any],
     current_user: User = Depends(rbac_auth.require_permission_with_audit("data:permission:create", "DATA_PERMISSION")),
     db: Session = Depends(get_db)
 ):
     """创建数据权限规则"""
     try:
         rule = await permission_controller.data_permission_service.create_data_permission_rule(
-            resource_type=rule_data.get("resource_type"),
-            permission_type=rule_data.get("permission_type"),
-            user_ids=rule_data.get("user_ids"),
-            role_ids=rule_data.get("role_ids"),
-            dept_ids=rule_data.get("dept_ids"),
-            rule_expression=rule_data.get("rule_expression"),
-            priority=rule_data.get("priority", 1),
-            description=rule_data.get("description")
+            resource_type=request.get("resource_type"),
+            permission_type=request.get("permission_type"),
+            user_ids=request.get("user_ids"),
+            role_ids=request.get("role_ids"),
+            dept_ids=request.get("dept_ids"),
+            rule_expression=request.get("rule_expression"),
+            priority=request.get("priority", 1),
+            description=request.get("description")
         )
         
         return BaseResponse(
@@ -315,9 +346,9 @@ async def create_data_permission_rule(
         )
 
 
-@router.get("/cache/stats", summary="获取权限缓存统计")
-async def get_cache_stats(
-    request: Request,
+@router.post("/get-cache-statistics", summary="获取权限缓存统计")
+async def get_cache_statistics(
+    request: Dict[str, Any],
     current_user: User = Depends(rbac_auth.require_permission_with_audit("cache:stats:view", "CACHE")),
     db: Session = Depends(get_db)
 ):
@@ -341,15 +372,15 @@ async def get_cache_stats(
         )
 
 
-@router.post("/cache/refresh", summary="刷新权限缓存")
+@router.post("/refresh-permission-cache", summary="刷新权限缓存")
 async def refresh_permission_cache(
-    request: Request,
-    cache_type: Optional[str] = Query(None, description="缓存类型：user_permissions, user_menus, role_permissions, menu_tree, all"),
+    request: Dict[str, Any],
     current_user: User = Depends(rbac_auth.require_permission_with_audit("cache:refresh", "CACHE")),
     db: Session = Depends(get_db)
 ):
     """刷新权限缓存"""
     try:
+        cache_type = request.get("cache_type")
         if cache_type == "all" or cache_type is None:
             await permission_controller.permission_cache_service.refresh_all_cache()
             message = "刷新所有权限缓存成功"
@@ -377,25 +408,24 @@ async def refresh_permission_cache(
         )
 
 
-@router.post("/cache/config", summary="设置缓存配置")
+@router.post("/set-cache-config", summary="设置缓存配置")
 async def set_cache_config(
-    config_data: Dict[str, Any],
-    request: Request,
+    request: Dict[str, Any],
     current_user: User = Depends(rbac_auth.require_permission_with_audit("cache:config:update", "CACHE")),
     db: Session = Depends(get_db)
 ):
     """设置缓存配置"""
     try:
         await permission_controller.permission_cache_service.set_cache_config(
-            cache_type=config_data.get("cache_type"),
-            ttl=config_data.get("ttl"),
-            enabled=config_data.get("enabled", True)
+            cache_type=request.get("cache_type"),
+            ttl=request.get("ttl"),
+            enabled=request.get("enabled", True)
         )
-        
+
         return BaseResponse(
             code=200,
             message="设置缓存配置成功",
-            data=config_data
+            data=request
         )
         
     except HTTPException:

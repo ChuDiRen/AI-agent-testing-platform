@@ -34,7 +34,7 @@ export class UserApi {
       status: params?.status,
       username: params?.keyword
     }
-    return http.post<PageData<UserInfo>>('/users/list', requestBody)
+    return http.post<PageData<UserInfo>>('/users/get-user-list', requestBody)
   }
 
   /**
@@ -51,7 +51,7 @@ export class UserApi {
    * @returns 用户详情
    */
   static async getUserById(userId: number): Promise<ApiResponse<UserInfo>> {
-    return http.post<UserInfo>('/users/details', { user_id: userId })
+    return http.post<UserInfo>('/users/get-user-info', { user_id: userId })
   }
 
   /**
@@ -60,7 +60,7 @@ export class UserApi {
    * @returns 创建结果
    */
   static async createUser(data: UserCreateRequest): Promise<ApiResponse<UserInfo>> {
-    return http.post<UserInfo>('/users/create', data)
+    return http.post<UserInfo>('/users/create-user', data)
   }
 
   /**
@@ -71,7 +71,7 @@ export class UserApi {
    */
   static async updateUser(userId: number, data: UserUpdateRequest): Promise<ApiResponse<UserInfo>> {
     const requestBody = { user_id: userId, ...data }
-    return http.post<UserInfo>('/users/update', requestBody)
+    return http.post<UserInfo>('/users/update-user', requestBody)
   }
 
   /**

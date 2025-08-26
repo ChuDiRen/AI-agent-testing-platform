@@ -3,6 +3,7 @@
 使用loguru进行日志管理
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -21,6 +22,10 @@ def setup_logging():
     # 确保日志目录存在
     log_dir = Path(settings.LOG_FILE).parent
     log_dir.mkdir(parents=True, exist_ok=True)
+
+    # 为避免多进程冲突，在日志文件名中包含进程ID
+    log_file_path = Path(settings.LOG_FILE)
+    process_log_file = log_file_path.parent / f"{log_file_path.stem}_{os.getpid()}{log_file_path.suffix}"
     
     # 控制台日志格式
     console_format = (
@@ -50,7 +55,7 @@ def setup_logging():
     
     # 添加文件处理器
     logger.add(
-        settings.LOG_FILE,
+        str(process_log_file),
         format=file_format,
         level=settings.LOG_LEVEL,
         rotation=settings.LOG_ROTATION,
@@ -58,11 +63,13 @@ def setup_logging():
         compression="zip",
         backtrace=True,
         diagnose=True,
-        encoding="utf-8"
+        encoding="utf-8",
+        enqueue=True,  # 使用队列避免多进程冲突
+        catch=True     # 捕获日志记录过程中的异常
     )
     
     # 添加错误日志文件处理器
-    error_log_file = str(Path(settings.LOG_FILE).parent / "error.log")
+    error_log_file = str(Path(settings.LOG_FILE).parent / f"error_{os.getpid()}.log")
     logger.add(
         error_log_file,
         format=file_format,
@@ -72,7 +79,9 @@ def setup_logging():
         compression="zip",
         backtrace=True,
         diagnose=True,
-        encoding="utf-8"
+        encoding="utf-8",
+        enqueue=True,  # 使用队列避免多进程冲突
+        catch=True     # 捕获日志记录过程中的异常
     )
 
 

@@ -27,7 +27,7 @@ export class AuthApi {
    * @returns 用户信息
    */
   static async getCurrentUser(userId: number): Promise<ApiResponse<UserInfo>> {
-    return http.post<UserInfo>('/users/details', { user_id: userId })
+    return http.post<UserInfo>('/users/get-user-info', { user_id: userId })
   }
 
   /**

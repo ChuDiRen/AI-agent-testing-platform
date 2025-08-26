@@ -4,22 +4,26 @@
 
 AI-Agent-Backend 是一个基于 FastAPI 的企业级 RBAC 权限管理系统，提供完整的用户、角色、菜单、部门管理功能。
 
-### 最新更新 (2025-08-24)
+### 最新更新 (2025-08-26)
 
-✅ **已修复的问题**：
+✅ **已完成的重大更新**：
+- 完成所有接口的业务语义化命名重构
+- 统一使用POST方法和请求体传参
+- 接口路径更加见名知意，体现具体业务功能
 - 修复了所有实体类属性名不一致问题（`user_id` → `id`, `role_id` → `id`, `menu_id` → `id`, `dept_id` → `id`）
 - 修复了bcrypt版本兼容性问题
 - 修复了前后端代理配置（端口8001）
 - 修复了登录、菜单树、部门树等核心API功能
 - 完成了前后端联调测试，所有功能正常
 
-🎯 **测试状态**：
-- ✅ 用户登录API：正常工作
-- ✅ 用户退出登录API：正常工作
-- ✅ 菜单树API：正常工作
-- ✅ 部门树API：正常工作
-- ✅ 权限验证：正常工作
-- ✅ 前端界面：正常显示
+🎯 **接口重构状态**：
+- ✅ 用户管理接口：已完成业务语义化重命名
+- ✅ 角色管理接口：已完成业务语义化重命名
+- ✅ 菜单管理接口：已完成业务语义化重命名
+- ✅ 部门管理接口：已完成业务语义化重命名
+- ✅ 权限管理接口：已完成业务语义化重命名
+- ✅ 仪表板接口：已完成业务语义化重命名
+- ✅ 日志管理接口：已完成业务语义化重命名
 
 ### 基础信息
 
@@ -74,7 +78,7 @@ AI-Agent-Backend 是一个基于 FastAPI 的企业级 RBAC 权限管理系统，
 
 **接口描述**: 用户登录获取访问令牌
 
-- **URL**: `POST /users/login`
+- **URL**: `POST /users/user-login`
 - **认证**: 无需认证
 - **Content-Type**: `application/json`
 
@@ -145,7 +149,7 @@ AI-Agent-Backend 是一个基于 FastAPI 的企业级 RBAC 权限管理系统，
 
 **接口描述**: 用户退出登录，清理服务端状态
 
-- **URL**: `POST /users/logout`
+- **URL**: `POST /users/user-logout`
 - **认证**: 需要Bearer Token
 - **Content-Type**: `application/json`
 
@@ -187,7 +191,7 @@ Authorization: Bearer <access_token>
 
 **接口描述**: 创建新用户
 
-- **URL**: `POST /users/`
+- **URL**: `POST /users/create-user`
 - **认证**: 需要Bearer Token
 - **权限**: 需要用户创建权限
 - **Content-Type**: `application/json`

@@ -30,7 +30,7 @@ export class RoleApi {
       size: params?.size || 20,
       keyword: params?.keyword
     }
-    return http.post<RoleListResponse>('/roles/list', requestBody)
+    return http.post<RoleListResponse>('/roles/get-role-list', requestBody)
   }
 
   /**
@@ -47,7 +47,7 @@ export class RoleApi {
    * @returns 角色详情
    */
   static async getRoleById(roleId: number): Promise<ApiResponse<RoleInfo>> {
-    return http.post<RoleInfo>('/roles/details', { role_id: roleId })
+    return http.post<RoleInfo>('/roles/get-role-info', { role_id: roleId })
   }
 
   /**
@@ -56,7 +56,7 @@ export class RoleApi {
    * @returns 创建结果
    */
   static async createRole(data: RoleCreateRequest): Promise<ApiResponse<RoleInfo>> {
-    return http.post<RoleInfo>('/roles/create', data)
+    return http.post<RoleInfo>('/roles/create-role', data)
   }
 
   /**
@@ -67,7 +67,7 @@ export class RoleApi {
    */
   static async updateRole(roleId: number, data: RoleUpdateRequest): Promise<ApiResponse<RoleInfo>> {
     const requestBody = { role_id: roleId, ...data }
-    return http.post<RoleInfo>('/roles/update', requestBody)
+    return http.post<RoleInfo>('/roles/update-role', requestBody)
   }
 
   /**

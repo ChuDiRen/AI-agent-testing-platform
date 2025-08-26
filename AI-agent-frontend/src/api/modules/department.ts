@@ -20,7 +20,7 @@ export class DepartmentApi {
    * @returns 部门列表
    */
   static async getDepartmentList(): Promise<ApiResponse<DeptInfo[]>> {
-    return http.post<DeptInfo[]>('/departments/list', {})
+    return http.post<DeptInfo[]>('/departments/get-department-list', {})
   }
 
   /**
@@ -28,7 +28,7 @@ export class DepartmentApi {
    * @returns 部门树
    */
   static async getDepartmentTree(): Promise<ApiResponse<DeptTreeNode[]>> {
-    return http.get<DeptTreeNode[]>('/departments/tree')
+    return http.post<DeptTreeNode[]>('/departments/get-department-tree', {})
   }
 
   /**
@@ -37,7 +37,7 @@ export class DepartmentApi {
    * @returns 部门详情
    */
   static async getDepartmentById(deptId: number): Promise<ApiResponse<DeptInfo>> {
-    return http.post<DeptInfo>('/departments/details', { dept_id: deptId })
+    return http.post<DeptInfo>('/departments/get-department-info', { dept_id: deptId })
   }
 
   /**
@@ -46,7 +46,7 @@ export class DepartmentApi {
    * @returns 创建结果
    */
   static async createDepartment(data: DeptCreateRequest): Promise<ApiResponse<DeptInfo>> {
-    return http.post<DeptInfo>('/departments/create', data)
+    return http.post<DeptInfo>('/departments/create-department', data)
   }
 
   /**
@@ -56,7 +56,8 @@ export class DepartmentApi {
    * @returns 更新结果
    */
   static async updateDepartment(deptId: number, data: DeptUpdateRequest): Promise<ApiResponse<DeptInfo>> {
-    return http.put<DeptInfo>(`/departments/${deptId}`, data)
+    const requestBody = { dept_id: deptId, ...data }
+    return http.post<DeptInfo>('/departments/update-department', requestBody)
   }
 
   /**
@@ -65,7 +66,7 @@ export class DepartmentApi {
    * @returns 删除结果
    */
   static async deleteDepartment(deptId: number): Promise<ApiResponse<boolean>> {
-    return http.delete<boolean>(`/departments/${deptId}`)
+    return http.post<boolean>('/departments/delete-department', { dept_id: deptId })
   }
 
   /**

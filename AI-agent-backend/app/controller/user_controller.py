@@ -35,7 +35,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/users", tags=["用户管理"])
 
 
-@router.post("", response_model=ApiResponse[UserResponse], summary="创建用户")
+@router.post("/create-user", response_model=ApiResponse[UserResponse], summary="创建用户")
 async def create_user(
     request: UserCreateRequest,
     db: Session = Depends(get_db)
@@ -98,8 +98,8 @@ async def create_user(
         )
 
 
-@router.post("/login", response_model=ApiResponse[LoginResponse], summary="用户登录")
-async def login(
+@router.post("/user-login", response_model=ApiResponse[LoginResponse], summary="用户登录")
+async def user_login(
     request: LoginRequest,
     db: Session = Depends(get_db)
 ):
@@ -161,8 +161,8 @@ async def login(
         )
 
 
-@router.post("/logout", response_model=ApiResponse[bool], summary="用户退出登录")
-async def logout(
+@router.post("/user-logout", response_model=ApiResponse[bool], summary="用户退出登录")
+async def user_logout(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -193,8 +193,8 @@ async def logout(
         )
 
 
-@router.get("", response_model=ApiResponse[UserListResponse], summary="获取用户列表")
-async def get_users(
+@router.post("/get-user-list", response_model=ApiResponse[UserListResponse], summary="获取用户列表")
+async def get_user_list(
     request: UserListRequest,
     db: Session = Depends(get_db)
 ):
@@ -236,8 +236,8 @@ async def get_users(
         )
 
 
-@router.post("/details", response_model=ApiResponse[UserResponse], summary="获取用户详情")
-async def get_user(
+@router.post("/get-user-info", response_model=ApiResponse[UserResponse], summary="获取用户详情")
+async def get_user_info(
     request: UserIdRequest,
     db: Session = Depends(get_db)
 ):
@@ -282,7 +282,7 @@ async def get_user(
         )
 
 
-@router.put("", response_model=ApiResponse[UserResponse], summary="更新用户")
+@router.post("/update-user", response_model=ApiResponse[UserResponse], summary="更新用户")
 async def update_user(
     request: UserUpdateRequest,
     db: Session = Depends(get_db)
@@ -339,7 +339,7 @@ async def update_user(
         )
 
 
-@router.delete("", response_model=ApiResponse[bool], summary="删除用户")
+@router.post("/delete-user", response_model=ApiResponse[bool], summary="删除用户")
 async def delete_user(
     request: UserDeleteRequest,
     db: Session = Depends(get_db)
@@ -372,9 +372,8 @@ async def delete_user(
         )
 
 
-@router.put("/{user_id}/password", response_model=ApiResponse[bool], summary="修改密码")
+@router.post("/change-password", response_model=ApiResponse[bool], summary="修改密码")
 async def change_password(
-    user_id: int,
     request: PasswordChangeRequest,
     db: Session = Depends(get_db)
 ):
@@ -388,7 +387,7 @@ async def change_password(
     try:
         user_service = RBACUserService(db)
         success = user_service.change_password(
-            user_id=user_id,
+            user_id=request.user_id,
             old_password=request.old_password,
             new_password=request.new_password
         )
@@ -399,13 +398,13 @@ async def change_password(
                 detail="旧密码错误或用户不存在"
             )
 
-        logger.info(f"Password changed successfully for user: {user_id}")
+        logger.info(f"Password changed successfully for user: {request.user_id}")
         return ApiResponse.success_response(data=True, message="密码修改成功")
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error changing password for user {user_id}: {str(e)}")
+        logger.error(f"Error changing password for user {request.user_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="修改密码失败"
@@ -478,8 +477,8 @@ async def unlock_user(
         )
 
 
-@router.post("/roles", response_model=ApiResponse[bool], summary="分配角色")
-async def assign_roles_to_user(
+@router.post("/assign-user-roles", response_model=ApiResponse[bool], summary="分配角色")
+async def assign_user_roles(
     request: UserRoleAssignRequest,
     db: Session = Depends(get_db)
 ):
@@ -511,7 +510,7 @@ async def assign_roles_to_user(
         )
 
 
-@router.post("/roles/query", response_model=ApiResponse[UserRoleResponse], summary="获取用户角色")
+@router.post("/get-user-roles", response_model=ApiResponse[UserRoleResponse], summary="获取用户角色")
 async def get_user_roles(
     request: UserIdRequest,
     db: Session = Depends(get_db)
@@ -560,33 +559,3 @@ async def get_user_roles(
         )
 
 
-@router.post("/permissions/query", response_model=ApiResponse[list], summary="获取用户权限")
-async def get_user_permissions(
-    request: UserIdRequest,
-    db: Session = Depends(get_db)
-):
-    """
-    获取用户权限列表
-
-    - **user_id**: 用户ID（请求体传参）
-    """
-    try:
-        user_service = RBACUserService(db)
-        user = user_service.get_user_by_id(request.user_id)
-
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="用户不存在"
-            )
-
-        permissions = user_service.get_user_permissions(request.user_id)
-        return ApiResponse.success_response(data=permissions, message="获取用户权限成功")
-
-    except HTTPException:
-        raise
-    except Exception as e:
-         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="获取用户权限失败"
-        )

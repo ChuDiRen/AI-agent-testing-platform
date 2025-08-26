@@ -31,7 +31,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/departments", tags=["部门管理"])
 
 
-@router.post("", response_model=ApiResponse[DepartmentResponse], summary="创建部门")
+@router.post("/create-department", response_model=ApiResponse[DepartmentResponse], summary="创建部门")
 async def create_department(
     request: DepartmentCreateRequest,
     db: Session = Depends(get_db)
@@ -78,7 +78,7 @@ async def create_department(
         )
 
 
-@router.get("/tree", response_model=ApiResponse[List[DepartmentTreeNode]], summary="获取部门树")
+@router.post("/get-department-tree", response_model=ApiResponse[List[DepartmentTreeNode]], summary="获取部门树")
 async def get_department_tree(
     db: Session = Depends(get_db)
 ):
@@ -113,8 +113,8 @@ async def get_department_tree(
         )
 
 
-@router.get("", response_model=ApiResponse[DepartmentListResponse], summary="获取部门列表")
-async def get_departments(
+@router.post("/get-department-list", response_model=ApiResponse[DepartmentListResponse], summary="获取部门列表")
+async def get_department_list(
     request: DepartmentListRequest = None,
     db: Session = Depends(get_db)
 ):
@@ -154,8 +154,8 @@ async def get_departments(
         )
 
 
-@router.post("/details", response_model=ApiResponse[DepartmentResponse], summary="获取部门详情")
-async def get_department(
+@router.post("/get-department-info", response_model=ApiResponse[DepartmentResponse], summary="获取部门详情")
+async def get_department_info(
     request: DepartmentIdRequest,
     db: Session = Depends(get_db)
 ):
@@ -188,14 +188,14 @@ async def get_department(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting department {dept_id}: {str(e)}")
+        logger.error(f"Error getting department {request.dept_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取部门详情失败"
         )
 
 
-@router.put("", response_model=ApiResponse[DepartmentResponse], summary="更新部门")
+@router.post("/update-department", response_model=ApiResponse[DepartmentResponse], summary="更新部门")
 async def update_department(
     request: DepartmentUpdateRequest,
     db: Session = Depends(get_db)
@@ -230,7 +230,7 @@ async def update_department(
             modify_time=department.modify_time
         )
         
-        logger.info(f"Department updated successfully: {dept_id}")
+        logger.info(f"Department updated successfully: {request.dept_id}")
         return ApiResponse.success_response(data=dept_response, message="部门更新成功")
         
     except ValueError as e:
@@ -242,14 +242,14 @@ async def update_department(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error updating department {dept_id}: {str(e)}")
+        logger.error(f"Unexpected error updating department {request.dept_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="更新部门失败"
         )
 
 
-@router.delete("", response_model=ApiResponse[bool], summary="删除部门")
+@router.post("/delete-department", response_model=ApiResponse[bool], summary="删除部门")
 async def delete_department(
     request: DepartmentDeleteRequest,
     db: Session = Depends(get_db)
@@ -269,9 +269,9 @@ async def delete_department(
                 detail="部门不存在"
             )
         
-        logger.info(f"Department deleted successfully: {dept_id}")
+        logger.info(f"Department deleted successfully: {request.dept_id}")
         return ApiResponse.success_response(data=True, message="部门删除成功")
-        
+
     except ValueError as e:
         logger.warning(f"Department deletion failed: {str(e)}")
         raise HTTPException(
@@ -281,7 +281,7 @@ async def delete_department(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error deleting department {dept_id}: {str(e)}")
+        logger.error(f"Unexpected error deleting department {request.dept_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="删除部门失败"

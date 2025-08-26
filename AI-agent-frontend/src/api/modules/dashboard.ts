@@ -52,7 +52,7 @@ export class DashboardApi {
    * @returns 统计数据
    */
   static async getStats(): Promise<ApiResponse<DashboardStats>> {
-    return http.get<DashboardStats>('/dashboard/stats')
+    return http.post<DashboardStats>('/dashboard/get-statistics-data', {})
   }
 
   /**
@@ -60,7 +60,7 @@ export class DashboardApi {
    * @returns 系统信息
    */
   static async getSystemInfo(): Promise<ApiResponse<SystemInfo>> {
-    return http.get<SystemInfo>('/dashboard/system-info')
+    return http.post<SystemInfo>('/dashboard/get-system-info', {})
   }
 
   /**
@@ -68,7 +68,7 @@ export class DashboardApi {
    * @returns 概览数据
    */
   static async getOverview(): Promise<ApiResponse<DashboardOverview>> {
-    return http.get<DashboardOverview>('/dashboard/overview')
+    return http.post<DashboardOverview>('/dashboard/get-overview-data', {})
   }
 }
 

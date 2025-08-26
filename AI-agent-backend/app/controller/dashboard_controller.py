@@ -28,8 +28,8 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/dashboard", tags=["仪表板"])
 
 
-@router.get("/statistics", response_model=ApiResponse[DashboardStatsResponse], summary="获取仪表板统计数据")
-async def get_dashboard_stats(
+@router.post("/get-statistics-data", response_model=ApiResponse[DashboardStatsResponse], summary="获取仪表板统计数据")
+async def get_statistics_data(
     request: DashboardStatsRequest = None,
     db: Session = Depends(get_db)
 ):
@@ -57,7 +57,7 @@ async def get_dashboard_stats(
         )
 
 
-@router.get("/system", response_model=ApiResponse[SystemInfoResponse], summary="获取系统信息")
+@router.post("/get-system-info", response_model=ApiResponse[SystemInfoResponse], summary="获取系统信息")
 async def get_system_info(
     request: SystemInfoRequest = None,
     current_user: User = Depends(get_current_user),
@@ -88,8 +88,8 @@ async def get_system_info(
         )
 
 
-@router.get("", response_model=ApiResponse[DashboardOverviewResponse], summary="获取仪表板概览")
-async def get_dashboard_overview(
+@router.post("/get-overview-data", response_model=ApiResponse[DashboardOverviewResponse], summary="获取仪表板概览")
+async def get_overview_data(
     request: DashboardOverviewRequest = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
