@@ -463,6 +463,29 @@ def create_rbac_initial_data(db):
         db.add(log_export_btn)
         db.flush()
 
+        # 仪表板菜单
+        dashboard_menu = Menu(
+            parent_id=0,
+            menu_name="仪表板",
+            menu_type="0",
+            path="/dashboard",
+            component="dashboard/Index",
+            icon="el-icon-data-line",
+            order_num=0
+        )
+        db.add(dashboard_menu)
+        db.flush()
+
+        # 系统信息查看权限
+        system_info_btn = Menu(
+            parent_id=dashboard_menu.id,
+            menu_name="系统信息",
+            menu_type="1",
+            perms="system:info:view"
+        )
+        db.add(system_info_btn)
+        db.flush()
+
         # 4. 创建用户
         # 管理员用户
         admin_user = User(
@@ -574,6 +597,8 @@ def create_rbac_initial_data(db):
         # 6. 分配菜单权限给角色
         # 管理员角色 - 拥有所有权限
         admin_menu_ids = [
+            dashboard_menu.id,
+            system_info_btn.id,
             system_menu.id,
             user_menu.id,
             user_add_btn.id,
@@ -612,6 +637,8 @@ def create_rbac_initial_data(db):
 
         # 部门经理角色 - 有用户管理权限
         manager_menu_ids = [
+            dashboard_menu.id,
+            system_info_btn.id,
             system_menu.id,
             user_menu.id,
             user_add_btn.id,
@@ -627,6 +654,8 @@ def create_rbac_initial_data(db):
 
         # 开发人员角色 - 有基本查看权限
         developer_menu_ids = [
+            dashboard_menu.id,
+            system_info_btn.id,
             system_menu.id,
             user_menu.id,
             dept_menu.id,
@@ -640,6 +669,8 @@ def create_rbac_initial_data(db):
 
         # 普通用户角色 - 只有基本查看权限
         user_menu_ids = [
+            dashboard_menu.id,
+            system_info_btn.id,
             user_menu.id,
             user_permission_view_btn.id,
             user_menu_view_btn.id

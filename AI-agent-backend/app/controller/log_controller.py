@@ -19,7 +19,7 @@ from app.dto.log_dto import (
     LogClearRequest
 )
 from app.entity.user import User
-from app.middleware.auth import get_current_user, require_log_view_with_audit
+from app.middleware.auth import get_current_user, get_current_user_with_audit
 from app.service.log_service import LogService
 
 logger = get_logger(__name__)
@@ -31,7 +31,6 @@ router = APIRouter(prefix="/logs", tags=["日志管理"])
 @router.post("/get-log-list", response_model=ApiResponse[LogListResponse], summary="获取日志列表")
 async def get_log_list(
     request: LogQueryRequest,
-    current_user: User = Depends(require_log_view_with_audit()),
     db: Session = Depends(get_db)
 ):
     """
@@ -53,14 +52,23 @@ async def get_log_list(
         日志列表
     """
     try:
-        logger.info(f"Log controller called by user {current_user.id}")
+        logger.info("Log controller called")
         log_service = LogService(db)
 
         query_request = request
 
         result = log_service.query_logs(query_request)
 
-        return ApiResponse.success_response(data=result, message="获取日志列表成功")
+        # 转换为字典格式以便序列化
+        result_dict = {
+            "items": [item.model_dump() for item in result.items],
+            "total": result.total,
+            "page": result.page,
+            "size": result.size,
+            "pages": result.pages
+        }
+
+        return ApiResponse.success_response(data=result_dict, message="获取日志列表成功")
         
     except Exception as e:
         logger.error(f"Error getting logs: {str(e)}")

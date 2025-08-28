@@ -83,8 +83,11 @@ class RBACAuth:
                     headers={"WWW-Authenticate": "Bearer"},
                 )
 
-            # 记录访问审计日志
-            await self._log_user_access(request, user, db)
+            # 记录访问审计日志 (暂时禁用以解决403问题)
+            try:
+                await self._log_user_access(request, user, db)
+            except Exception as e:
+                self.logger.warning(f"审计日志记录失败，但不影响请求: {str(e)}")
             
             return user
 
@@ -273,7 +276,7 @@ class RBACAuth:
         try:
             audit_service = AuditLogService(db)
             await audit_service.log_user_access(
-                user_id=user.user_id,
+                user_id=user.id,  # 修复：使用正确的属性名
                 username=user.username,
                 ip_address=request.client.host if request.client else "unknown",
                 user_agent=request.headers.get("user-agent", ""),

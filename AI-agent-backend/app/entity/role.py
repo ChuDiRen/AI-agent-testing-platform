@@ -78,8 +78,8 @@ class Role(BaseEntity):
             "role_id": self.id,  # 修复：使用正确的属性名
             "role_name": self.role_name,
             "remark": self.remark,
-            "create_time": self.create_time.isoformat() if self.create_time else None,
-            "modify_time": self.modify_time.isoformat() if self.modify_time else None
+            "create_time": self.create_time.isoformat() if hasattr(self.create_time, 'isoformat') and self.create_time else str(self.create_time) if self.create_time else None,
+            "modify_time": self.modify_time.isoformat() if hasattr(self.modify_time, 'isoformat') and self.modify_time else str(self.modify_time) if self.modify_time else None
         }
 
     def __repr__(self):

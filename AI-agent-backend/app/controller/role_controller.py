@@ -95,8 +95,8 @@ async def get_role_list(
                 "role_id": role_data["role_id"],
                 "role_name": role_data["role_name"],
                 "remark": role_data["remark"],
-                "create_time": role_data["create_time"].isoformat() if role_data["create_time"] else None,
-                "modify_time": role_data["modify_time"].isoformat() if role_data["modify_time"] else None
+                "create_time": role_data["create_time"].isoformat() if hasattr(role_data["create_time"], 'isoformat') and role_data["create_time"] else role_data["create_time"],
+                "modify_time": role_data["modify_time"].isoformat() if hasattr(role_data["modify_time"], 'isoformat') and role_data["modify_time"] else role_data["modify_time"]
             }
             for role_data in result["roles"]
         ]
