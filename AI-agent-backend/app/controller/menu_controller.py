@@ -62,7 +62,7 @@ async def create_menu(
         
         # 转换为响应格式
         menu_response = MenuResponse(
-            menu_id=menu.menu_id,
+            menu_id=menu.id,
             parent_id=menu.parent_id,
             menu_name=menu.menu_name,
             path=menu.PATH,
@@ -146,7 +146,7 @@ async def get_menu_info(
             )
         
         menu_response = MenuResponse(
-            menu_id=menu.menu_id,
+            menu_id=menu.id,
             parent_id=menu.parent_id,
             menu_name=menu.menu_name,
             path=menu.PATH,
@@ -206,7 +206,7 @@ async def update_menu(
             )
         
         menu_response = MenuResponse(
-            menu_id=menu.menu_id,
+            menu_id=menu.id,
             parent_id=menu.parent_id,
             menu_name=menu.menu_name,
             path=menu.PATH,
@@ -288,13 +288,13 @@ async def get_user_menus(
         user_menus = menu_service.get_user_menus(request.user_id)
         
         # 获取用户权限
-        user_permissions = menu_service.get_user_permissions(user_id)
+        user_permissions = menu_service.get_user_permissions(request.user_id)
         
         # 转换为树形结构
         menu_dict = {}
         for menu in user_menus:
-            menu_dict[menu.menu_id] = MenuTreeNode(
-                menu_id=menu.menu_id,
+            menu_dict[menu.id] = MenuTreeNode(
+                menu_id=menu.id,
                 parent_id=menu.parent_id,
                 menu_name=menu.menu_name,
                 path=menu.PATH,
@@ -324,7 +324,7 @@ async def get_user_menus(
         return ApiResponse.success_response(data=user_menu_response, message="获取用户菜单成功")
         
     except Exception as e:
-        logger.error(f"Error getting user menus for user {user_id}: {str(e)}")
+        logger.error(f"Error getting user menus for user {request.user_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取用户菜单失败"

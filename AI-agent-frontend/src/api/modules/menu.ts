@@ -19,7 +19,7 @@ export class MenuApi {
    * @returns 菜单列表
    */
   static async getMenuList(): Promise<ApiResponse<MenuInfo[]>> {
-    return http.get<MenuInfo[]>('/menus')
+    return http.post<MenuInfo[]>('/menus/get-menu-list')
   }
 
   /**
@@ -27,7 +27,7 @@ export class MenuApi {
    * @returns 菜单树
    */
   static async getMenuTree(): Promise<ApiResponse<MenuTreeNode[]>> {
-    return http.get<MenuTreeNode[]>('/menus/tree')
+    return http.post<MenuTreeNode[]>('/menus/get-menu-tree')
   }
 
   /**
@@ -36,7 +36,7 @@ export class MenuApi {
    * @returns 菜单详情
    */
   static async getMenuById(menuId: number): Promise<ApiResponse<MenuInfo>> {
-    return http.post<MenuInfo>('/menus/details', { menu_id: menuId })
+    return http.post<MenuInfo>('/menus/get-menu-info', { menu_id: menuId })
   }
 
   /**
@@ -45,7 +45,7 @@ export class MenuApi {
    * @returns 创建结果
    */
   static async createMenu(data: MenuCreateRequest): Promise<ApiResponse<MenuInfo>> {
-    return http.post<MenuInfo>('/menus/create', data)
+    return http.post<MenuInfo>('/menus/create-menu', data)
   }
 
   /**
@@ -55,7 +55,7 @@ export class MenuApi {
    * @returns 更新结果
    */
   static async updateMenu(menuId: number, data: MenuUpdateRequest): Promise<ApiResponse<MenuInfo>> {
-    return http.put<MenuInfo>(`/menus/${menuId}`, data)
+    return http.post<MenuInfo>('/menus/update-menu', { menu_id: menuId, ...data })
   }
 
   /**
@@ -64,7 +64,7 @@ export class MenuApi {
    * @returns 删除结果
    */
   static async deleteMenu(menuId: number): Promise<ApiResponse<boolean>> {
-    return http.delete<boolean>(`/menus/${menuId}`)
+    return http.post<boolean>('/menus/delete-menu', { menu_id: menuId })
   }
 
   /**
@@ -73,7 +73,7 @@ export class MenuApi {
    * @returns 用户菜单树
    */
   static async getUserMenuTree(userId: number): Promise<ApiResponse<MenuTreeNode[]>> {
-    return http.get<MenuTreeNode[]>(`/menus/user/${userId}`)
+    return http.post<MenuTreeNode[]>('/menus/get-user-menus', { user_id: userId })
   }
 
   /**

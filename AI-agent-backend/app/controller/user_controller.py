@@ -98,7 +98,7 @@ async def create_user(
         )
 
 
-@router.post("/user-login", response_model=ApiResponse[LoginResponse], summary="用户登录")
+@router.post("/login", response_model=ApiResponse[LoginResponse], summary="用户登录")
 async def user_login(
     request: LoginRequest,
     db: Session = Depends(get_db)
@@ -161,7 +161,7 @@ async def user_login(
         )
 
 
-@router.post("/user-logout", response_model=ApiResponse[bool], summary="用户退出登录")
+@router.post("/logout", response_model=ApiResponse[bool], summary="用户退出登录")
 async def user_logout(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)

@@ -138,10 +138,10 @@ export const useUserStore = defineStore('user', {
     // 获取用户菜单
     async getUserMenus(): Promise<void> {
       if (!this.userInfo?.user_id) return
-      
+
       try {
-        const response = await MenuApi.getMenuTree()
-        
+        const response = await MenuApi.getUserMenuTree(this.userInfo.user_id)
+
         if (response.success && response.data) {
           this.setMenus(response.data)
         }

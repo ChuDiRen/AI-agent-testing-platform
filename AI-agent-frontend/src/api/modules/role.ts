@@ -38,7 +38,11 @@ export class RoleApi {
    * @returns 角色列表
    */
   static async getAllRoles(): Promise<ApiResponse<RoleInfo[]>> {
-    return http.get<RoleInfo[]>('/roles/all')
+    const response = await http.post<RoleListResponse>('/roles/get-role-list', { page: 1, size: 1000 })
+    if (response.success && response.data) {
+      return { ...response, data: response.data.roles || [] }
+    }
+    return response as any
   }
 
   /**
@@ -76,7 +80,7 @@ export class RoleApi {
    * @returns 删除结果
    */
   static async deleteRole(roleId: number): Promise<ApiResponse<boolean>> {
-    return http.post<boolean>('/roles/delete', { role_id: roleId })
+    return http.post<boolean>('/roles/delete-role', { role_id: roleId })
   }
 
   /**

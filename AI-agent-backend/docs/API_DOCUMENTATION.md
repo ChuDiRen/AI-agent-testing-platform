@@ -78,7 +78,7 @@ AI-Agent-Backend 是一个基于 FastAPI 的企业级 RBAC 权限管理系统，
 
 **接口描述**: 用户登录获取访问令牌
 
-- **URL**: `POST /users/user-login`
+- **URL**: `POST /users/login`
 - **认证**: 无需认证
 - **Content-Type**: `application/json`
 
@@ -1498,7 +1498,7 @@ print(f"用户数量: {len(users)}")
    cd AI-agent-backend
    python main.py
    ```
-   服务将运行在：http://localhost:8001
+   服务将运行在：http://localhost:8000
 
 2. **启动前端服务**：
    ```bash
@@ -1511,7 +1511,7 @@ print(f"用户数量: {len(users)}")
 
 1. **测试登录API**：
    ```bash
-   curl -X POST http://localhost:8001/api/v1/users/login \
+   curl -X POST http://localhost:8000/api/v1/users/login \
      -H "Content-Type: application/json" \
      -d '{"username":"admin","password":"123456"}'
    ```

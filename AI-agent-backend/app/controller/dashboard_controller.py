@@ -19,7 +19,7 @@ from app.dto.dashboard_dto import (
     DashboardOverviewRequest
 )
 from app.entity.user import User
-from app.middleware.auth import get_current_user
+from app.middleware.auth import get_current_user_with_audit
 from app.service.dashboard_service import DashboardService
 
 logger = get_logger(__name__)
@@ -60,7 +60,7 @@ async def get_statistics_data(
 @router.post("/get-system-info", response_model=ApiResponse[SystemInfoResponse], summary="获取系统信息")
 async def get_system_info(
     request: SystemInfoRequest = None,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_with_audit),
     db: Session = Depends(get_db)
 ):
     """
@@ -91,7 +91,7 @@ async def get_system_info(
 @router.post("/get-overview-data", response_model=ApiResponse[DashboardOverviewResponse], summary="获取仪表板概览")
 async def get_overview_data(
     request: DashboardOverviewRequest = None,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_with_audit),
     db: Session = Depends(get_db)
 ):
     """

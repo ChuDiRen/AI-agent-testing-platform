@@ -437,3 +437,72 @@ class AuditLogService(BaseService):
             is_success=is_success,
             error_message=error_message
         )
+
+    async def log_user_access(
+        self, user_id: int, username: str, ip_address: str,
+        user_agent: str, endpoint: str, method: str
+    ) -> Optional[AuditLog]:
+        """
+        记录用户访问日志
+
+        Args:
+            user_id: 用户ID
+            username: 用户名
+            ip_address: IP地址
+            user_agent: 用户代理
+            endpoint: 访问端点
+            method: 请求方法
+
+        Returns:
+            创建的审计日志对象
+        """
+        return self.create_audit_log(
+            user_id=user_id,
+            username=username,
+            operation_type="ACCESS",
+            resource_type="ENDPOINT",
+            resource_id=endpoint,
+            resource_name=endpoint,
+            operation_desc=f"用户访问 {method} {endpoint}",
+            request_method=method,
+            request_url=endpoint,
+            response_status=200,
+            is_success=True,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+
+    async def log_permission_check(
+        self, user_id: int, username: str, permission: str,
+        resource_type: str, result: str, ip_address: str, endpoint: str
+    ) -> Optional[AuditLog]:
+        """
+        记录权限检查日志
+
+        Args:
+            user_id: 用户ID
+            username: 用户名
+            permission: 权限标识
+            resource_type: 资源类型
+            result: 检查结果 (GRANTED/DENIED)
+            ip_address: IP地址
+            endpoint: 访问端点
+
+        Returns:
+            创建的审计日志对象
+        """
+        is_success = result == "GRANTED"
+        return self.create_audit_log(
+            user_id=user_id,
+            username=username,
+            operation_type="PERMISSION_CHECK",
+            resource_type=resource_type,
+            resource_id=permission,
+            resource_name=permission,
+            operation_desc=f"权限检查: {permission} - {result}",
+            request_url=endpoint,
+            response_status=200 if is_success else 403,
+            is_success=is_success,
+            ip_address=ip_address,
+            error_message=None if is_success else f"权限 {permission} 被拒绝"
+        )

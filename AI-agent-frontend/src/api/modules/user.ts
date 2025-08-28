@@ -42,7 +42,7 @@ export class UserApi {
    * @returns 用户列表
    */
   static async getAllUsers(): Promise<ApiResponse<UserInfo[]>> {
-    return http.get<UserInfo[]>('/users/all')
+    return http.post<UserInfo[]>('/users/get-user-list', { page: 1, size: 1000 })
   }
 
   /**
@@ -147,7 +147,12 @@ export class UserApi {
    * @returns 权限列表
    */
   static async getUserPermissions(userId: number): Promise<ApiResponse<string[]>> {
-    return http.get<string[]>(`/users/${userId}/permissions`)
+    // 通过菜单接口获取用户权限
+    const response = await http.post<any>('/menus/get-user-menus', { user_id: userId })
+    if (response.success && response.data) {
+      return { ...response, data: response.data.permissions || [] }
+    }
+    return response
   }
 
   /**
@@ -156,7 +161,11 @@ export class UserApi {
    * @returns 菜单树
    */
   static async getUserMenus(userId: number): Promise<ApiResponse<any[]>> {
-    return http.get<any[]>(`/users/${userId}/menus`)
+    const response = await http.post<any>('/menus/get-user-menus', { user_id: userId })
+    if (response.success && response.data) {
+      return { ...response, data: response.data.menus || [] }
+    }
+    return response
   }
 
   /**

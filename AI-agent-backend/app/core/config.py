@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     
     # 服务器配置
     HOST: str = "0.0.0.0"
-    PORT: int = 8001  # 标准后端端口
+    PORT: int = 8000  # 标准后端端口
     RELOAD: bool = True
     
     # 数据库配置
@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_PASSWORD: Optional[str] = None
     REDIS_DB: int = 0
-    REDIS_ENABLED: bool = True  # 是否启用Redis
+    REDIS_ENABLED: bool = False  # 开发环境禁用Redis，使用内存缓存
     
     # JWT配置
     SECRET_KEY: str = "dev-secret-key-change-this-in-production-environment"

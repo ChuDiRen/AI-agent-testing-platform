@@ -149,7 +149,7 @@
               <el-icon><Menu /></el-icon>
               菜单管理
             </el-button>
-            <el-button type="primary" @click="$router.push('/system/dept')">
+            <el-button type="primary" @click="$router.push('/system/department')">
               <el-icon><OfficeBuilding /></el-icon>
               部门管理
             </el-button>
@@ -385,10 +385,13 @@ onMounted(async () => {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      
+
       .el-button {
         justify-content: flex-start;
-        
+        width: 100% !important; // 强制所有按钮宽度一致
+        min-width: 100% !important; // 确保最小宽度一致
+        box-sizing: border-box; // 包含边框和内边距
+
         .el-icon {
           margin-right: 8px;
         }
