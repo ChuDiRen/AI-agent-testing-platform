@@ -217,7 +217,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, nextTick } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { InfoFilled } from '@element-plus/icons-vue'
 import type { FormField, FormRule } from '@/api/types'
 

@@ -115,10 +115,10 @@ import {
   Tools,
   Operation
 } from '@element-plus/icons-vue'
-import { useUserStore, useSystemStore } from '@/store'
+import { useSystemStore } from '@/store'
 
 const route = useRoute()
-const userStore = useUserStore()
+// const userStore = useUserStore() // 暂时注释掉未使用的store
 const systemStore = useSystemStore()
 
 // 当前路由

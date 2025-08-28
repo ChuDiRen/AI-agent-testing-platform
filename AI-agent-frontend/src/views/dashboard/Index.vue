@@ -166,8 +166,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { DashboardApi, type DashboardStats, type SystemInfo } from '@/api/modules/dashboard'
+// import { useRouter } from 'vue-router' // 暂时注释掉未使用的router
+import { DashboardApi, type SystemInfo } from '@/api/modules/dashboard'
 import { ElMessage } from 'element-plus'
 import {
   User,
@@ -178,7 +178,7 @@ import {
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store'
 
-const router = useRouter()
+// const router = useRouter() // 暂时注释掉未使用的router
 const userStore = useUserStore()
 
 // 统计数据

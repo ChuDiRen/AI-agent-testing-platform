@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.logger import get_logger
 from app.db.session import get_db
-from app.dto.base import ApiResponse
+from app.dto.base import ApiResponse, Success, Fail
 from app.dto.menu_dto import (
     MenuCreateRequest,
     MenuUpdateRequest,
@@ -97,25 +97,8 @@ async def get_menu_tree(
         menu_service = MenuService(db)
         tree_data = menu_service.get_menu_tree()
         
-        # 转换为响应格式
-        def convert_to_tree_node(node_data):
-            children = node_data.get("children") or []
-            return MenuTreeNode(
-                menu_id=node_data.get("menu_id"),
-                parent_id=node_data.get("parent_id"),
-                menu_name=node_data.get("menu_name"),
-                path=node_data.get("path"),
-                component=node_data.get("component"),
-                perms=node_data.get("perms"),
-                icon=node_data.get("icon"),
-                menu_type=node_data.get("type"),
-                order_num=node_data.get("order_num"),
-                children=[convert_to_tree_node(child) for child in children]
-            )
-        
-        tree_nodes = [convert_to_tree_node(node) for node in (tree_data or [])]
-        
-        return ApiResponse.success_response(data=tree_nodes, message="获取菜单树成功")
+        # 直接返回字典格式的树形数据
+        return Success(code=200, msg="获取菜单树成功", data=tree_data or [])
         
     except Exception as e:
         logger.error(f"Error getting menu tree: {str(e)}")
@@ -290,38 +273,41 @@ async def get_user_menus(
         # 获取用户权限
         user_permissions = menu_service.get_user_permissions(request.user_id)
         
-        # 转换为树形结构
+        # 转换为字典格式的树形结构
+        def menu_to_dict(menu):
+            return {
+                "menu_id": menu.id,
+                "parent_id": menu.parent_id,
+                "menu_name": menu.menu_name,
+                "path": menu.PATH,
+                "component": menu.COMPONENT,
+                "perms": menu.perms,
+                "icon": menu.icon,
+                "menu_type": menu.TYPE,
+                "order_num": menu.order_num,
+                "children": []
+            }
+
         menu_dict = {}
         for menu in user_menus:
-            menu_dict[menu.id] = MenuTreeNode(
-                menu_id=menu.id,
-                parent_id=menu.parent_id,
-                menu_name=menu.menu_name,
-                path=menu.PATH,
-                component=menu.COMPONENT,
-                perms=menu.perms,
-                icon=menu.icon,
-                menu_type=menu.TYPE,
-                order_num=menu.order_num,
-                children=[]
-            )
-        
+            menu_dict[menu.id] = menu_to_dict(menu)
+
         # 构建父子关系
         tree = []
         for menu_node in menu_dict.values():
-            if menu_node.parent_id == 0:
+            if menu_node["parent_id"] == 0:
                 tree.append(menu_node)
             else:
-                parent = menu_dict.get(menu_node.parent_id)
+                parent = menu_dict.get(menu_node["parent_id"])
                 if parent:
-                    parent.children.append(menu_node)
-        
-        user_menu_response = UserMenuResponse(
-            menus=tree,
-            permissions=user_permissions
-        )
-        
-        return ApiResponse.success_response(data=user_menu_response, message="获取用户菜单成功")
+                    parent["children"].append(menu_node)
+
+        response_data = {
+            "menus": tree,
+            "permissions": user_permissions
+        }
+
+        return Success(code=200, msg="获取用户菜单成功", data=response_data)
         
     except Exception as e:
         logger.error(f"Error getting user menus for user {request.user_id}: {str(e)}")

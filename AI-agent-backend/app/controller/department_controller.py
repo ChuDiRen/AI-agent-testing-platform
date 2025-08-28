@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.logger import get_logger
 from app.db.session import get_db
-from app.dto.base import ApiResponse
+from app.dto.base import ApiResponse, Success, Fail
 from app.dto.department_dto import (
     DepartmentCreateRequest,
     DepartmentUpdateRequest,
@@ -89,21 +89,8 @@ async def get_department_tree(
         department_service = DepartmentService(db)
         tree_data = department_service.get_department_tree()
         
-        # 转换为响应格式
-        def convert_to_tree_node(node_data):
-            children = node_data.get("children") or []
-            return DepartmentTreeNode(
-                dept_id=node_data.get("dept_id"),
-                parent_id=node_data.get("parent_id"),
-                dept_name=node_data.get("dept_name"),
-                order_num=node_data.get("order_num"),
-                create_time=node_data.get("create_time"),
-                modify_time=node_data.get("modify_time"),
-                children=[convert_to_tree_node(child) for child in children]
-            )
-        
-        tree_nodes = [convert_to_tree_node(node) for node in (tree_data or [])]
-        return ApiResponse.success_response(data=tree_nodes, message="获取部门树成功")
+        # 直接返回字典格式的树形数据
+        return Success(code=200, msg="获取部门树成功", data=tree_data or [])
         
     except Exception as e:
         logger.error(f"Error getting department tree: {str(e)}")

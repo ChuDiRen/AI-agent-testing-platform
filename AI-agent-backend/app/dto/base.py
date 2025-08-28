@@ -8,6 +8,7 @@ from enum import Enum
 from typing import Any, Optional, List, Generic, TypeVar
 
 from pydantic import BaseModel, Field, validator
+from fastapi.responses import JSONResponse
 
 # 定义泛型类型变量
 T = TypeVar('T')
@@ -138,54 +139,96 @@ class SearchRequest(PaginationRequest, SortRequest):
         return v
 
 
+class Success(JSONResponse):
+    """成功响应"""
+    def __init__(
+        self,
+        code: int = 200,
+        msg: Optional[str] = "OK",
+        data: Optional[Any] = None,
+        **kwargs,
+    ):
+        content = {"code": code, "msg": msg, "data": data}
+        content.update(kwargs)
+        super().__init__(content=content, status_code=200)
+
+
+class Fail(JSONResponse):
+    """失败响应"""
+    def __init__(
+        self,
+        code: int = 400,
+        msg: Optional[str] = None,
+        data: Optional[Any] = None,
+        **kwargs,
+    ):
+        content = {"code": code, "msg": msg, "data": data}
+        content.update(kwargs)
+        super().__init__(content=content, status_code=200)
+
+
+class SuccessExtra(JSONResponse):
+    """分页成功响应"""
+    def __init__(
+        self,
+        code: int = 200,
+        msg: Optional[str] = None,
+        data: Optional[Any] = None,
+        total: int = 0,
+        page: int = 1,
+        page_size: int = 20,
+        **kwargs,
+    ):
+        content = {
+            "code": code,
+            "msg": msg,
+            "data": data,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        }
+        content.update(kwargs)
+        super().__init__(content=content, status_code=200)
+
+
 class ApiResponse(BaseResponse, Generic[T]):
     """
-    统一API响应格式
+    统一API响应格式 - 兼容类
     """
     success: bool = Field(description="是否成功")
     message: str = Field(description="响应消息")
     data: Optional[T] = Field(default=None, description="响应数据")
     error_code: Optional[str] = Field(default=None, description="错误代码")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="响应时间")
-    
+
     @classmethod
-    def success_response(cls, data: Any = None, message: str = "Success") -> "ApiResponse":
+    def success_response(cls, data: Any = None, message: str = "操作成功") -> Success:
         """
         创建成功响应
-        
+
         Args:
             data: 响应数据
             message: 响应消息
-            
+
         Returns:
             成功响应对象
         """
-        return cls(
-            success=True,
-            message=message,
-            data=data
-        )
-    
+        return Success(code=200, msg=message, data=data)
+
     @classmethod
-    def error_response(cls, message: str, error_code: Optional[str] = None, 
-                      data: Any = None) -> "ApiResponse":
+    def error_response(cls, message: str, code: int = 400, data: Any = None) -> Fail:
         """
         创建错误响应
-        
+
         Args:
             message: 错误消息
-            error_code: 错误代码
+            code: 错误代码
             data: 错误数据
-            
+
         Returns:
             错误响应对象
         """
-        return cls(
-            success=False,
-            message=message,
-            error_code=error_code,
-            data=data
-        )
+        return Fail(code=code, msg=message, data=data)
 
 
 class PaginatedResponse(BaseResponse):

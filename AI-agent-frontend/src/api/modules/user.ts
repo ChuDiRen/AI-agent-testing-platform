@@ -80,7 +80,7 @@ export class UserApi {
    * @returns 删除结果
    */
   static async deleteUser(userId: number): Promise<ApiResponse<boolean>> {
-    return http.post<boolean>('/users/delete', { user_id: userId })
+    return http.post<boolean>('/users/delete-user', { user_id: userId })
   }
 
   /**
@@ -174,7 +174,7 @@ export class UserApi {
    * @returns 文件下载
    */
   static async exportUsers(params?: any): Promise<void> {
-    const response = await http.get('/users/export', params)
+    await http.get('/users/export', params)
     // 处理文件下载
     // 实际实现中需要根据响应处理文件下载
   }

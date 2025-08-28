@@ -67,7 +67,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance } from 'element-plus'
-import { User, Lock } from '@element-plus/icons-vue'
+// import { User, Lock } from '@element-plus/icons-vue' // 暂时注释掉未使用的图标
 import { useUserStore } from '@/store'
 
 const router = useRouter()

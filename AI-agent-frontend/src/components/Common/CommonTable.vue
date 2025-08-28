@@ -62,7 +62,7 @@
           </template>
           
           <template #default="scope" v-else-if="column.formatter">
-            <span v-html="column.formatter(scope.row, scope.column, scope.row[column.prop], scope.$index)" />
+            <span v-html="column.formatter?.(scope.row, scope.column, scope.row[column.prop], scope.$index)" />
           </template>
           
           <template #default="scope" v-else-if="column.render">
@@ -124,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import type { TableColumn } from '@/api/types'
 
 export interface TableProps {

@@ -153,7 +153,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { Search, Refresh, ArrowUp } from '@element-plus/icons-vue'
 import type { SearchField } from '@/api/types'
 
@@ -223,13 +223,13 @@ watch(formData, (newVal) => {
   emit('update:modelValue', { ...newVal })
 }, { deep: true })
 
-// 显示的字段
-const visibleFields = computed(() => {
-  if (!props.showToggle || expanded.value || props.fields.length <= props.toggleCount) {
-    return props.fields
-  }
-  return props.fields.slice(0, props.toggleCount)
-})
+// 显示的字段 - 暂时注释掉未使用的计算属性
+// const visibleFields = computed(() => {
+//   if (!props.showToggle || expanded.value || props.fields.length <= props.toggleCount) {
+//     return props.fields
+//   }
+//   return props.fields.slice(0, props.toggleCount)
+// })
 
 // 搜索
 const handleSearch = () => {

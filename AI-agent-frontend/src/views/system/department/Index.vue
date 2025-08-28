@@ -268,13 +268,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type ElTable } from 'element-plus'
 import { Search, Refresh, Plus, DCaret, CaretRight, OfficeBuilding } from '@element-plus/icons-vue'
 import FormDialog from '@/components/Common/FormDialog.vue'
 import { DepartmentApi } from '@/api/modules/department'
 import { UserApi } from '@/api/modules/user'
-import type { DeptInfo, DeptCreateRequest, DeptUpdateRequest, DeptTreeNode, UserInfo } from '@/api/types'
+import type { DeptTreeNode, UserInfo } from '@/api/types'
 
 // 表单引用
 const formRef = ref<FormInstance>()
@@ -285,7 +285,7 @@ const loading = ref(false)
 const formLoading = ref(false)
 const tableData = ref<DeptTreeNode[]>([])
 const deptTreeOptions = ref<DeptTreeNode[]>([])
-const selectedDepts = ref<DeptTreeNode[]>([])
+// const selectedDepts = ref<DeptTreeNode[]>([]) // 暂时注释掉未使用的变量
 const userOptions = ref<UserInfo[]>([])
 const currentDept = ref<DeptTreeNode | null>(null)
 
@@ -529,7 +529,7 @@ const handleFormConfirm = async () => {
         loadDeptList()
       }
     } else {
-      const response = await DepartmentApi.createDepartment(formData)
+      const response = await DepartmentApi.createDepartment(formData as any)
       if (response.success) {
         ElMessage.success('创建成功')
         formDialogVisible.value = false

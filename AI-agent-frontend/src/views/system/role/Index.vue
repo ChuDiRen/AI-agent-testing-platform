@@ -196,7 +196,7 @@
                 :default-expand-all="false"
                 @check="handleMenuCheck"
               >
-                <template #default="{ node, data }">
+                <template #default="{ data }">
                   <span class="menu-node">
                     <el-icon v-if="data.icon" class="menu-icon">
                       <component :is="data.icon" />
@@ -224,14 +224,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type ElTree } from 'element-plus'
 import { Search, Refresh, Plus, Delete } from '@element-plus/icons-vue'
 import CommonTable from '@/components/Common/CommonTable.vue'
 import FormDialog from '@/components/Common/FormDialog.vue'
 import { RoleApi } from '@/api/modules/role'
 import { MenuApi } from '@/api/modules/menu'
-import type { RoleInfo, RoleCreateRequest, RoleUpdateRequest, MenuTreeNode, TableColumn } from '@/api/types'
+import type { RoleInfo, MenuTreeNode, TableColumn } from '@/api/types'
 
 // 表单引用
 const formRef = ref<FormInstance>()

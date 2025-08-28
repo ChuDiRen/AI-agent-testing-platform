@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.logger import get_logger
 from app.db.session import get_db
-from app.dto.base import ApiResponse
+from app.dto.base import ApiResponse, Success, Fail
 from app.dto.dashboard_dto import (
     DashboardStatsResponse,
     SystemInfoResponse,
@@ -46,8 +46,16 @@ async def get_statistics_data(
     try:
         dashboard_service = DashboardService(db)
         stats = dashboard_service.get_dashboard_stats()
-        
-        return ApiResponse.success_response(data=stats, message="获取统计数据成功")
+
+        # 转换为字典格式
+        stats_dict = {
+            "user_count": stats.user_count,
+            "role_count": stats.role_count,
+            "menu_count": stats.menu_count,
+            "department_count": stats.department_count
+        }
+
+        return Success(code=200, msg="获取统计数据成功", data=stats_dict)
         
     except Exception as e:
         logger.error(f"Error getting dashboard stats: {str(e)}")
@@ -77,8 +85,16 @@ async def get_system_info(
     try:
         dashboard_service = DashboardService(db)
         system_info = dashboard_service.get_system_info(current_user.id)
-        
-        return ApiResponse.success_response(data=system_info, message="获取系统信息成功")
+
+        # 转换为字典格式
+        system_info_dict = {
+            "version": system_info.version,
+            "server_info": system_info.server_info,
+            "database_info": system_info.database_info,
+            "last_login_time": system_info.last_login_time.isoformat() if system_info.last_login_time else None
+        }
+
+        return Success(code=200, msg="获取系统信息成功", data=system_info_dict)
         
     except Exception as e:
         logger.error(f"Error getting system info: {str(e)}")
@@ -108,8 +124,24 @@ async def get_overview_data(
     try:
         dashboard_service = DashboardService(db)
         overview = dashboard_service.get_dashboard_overview(current_user.id)
-        
-        return ApiResponse.success_response(data=overview, message="获取仪表板概览成功")
+
+        # 转换为字典格式
+        overview_dict = {
+            "stats": {
+                "user_count": overview.stats.user_count,
+                "role_count": overview.stats.role_count,
+                "menu_count": overview.stats.menu_count,
+                "department_count": overview.stats.department_count
+            },
+            "system_info": {
+                "version": overview.system_info.version,
+                "server_info": overview.system_info.server_info,
+                "database_info": overview.system_info.database_info,
+                "last_login_time": overview.system_info.last_login_time.isoformat() if overview.system_info.last_login_time else None
+            }
+        }
+
+        return Success(code=200, msg="获取仪表板概览成功", data=overview_dict)
         
     except Exception as e:
         logger.error(f"Error getting dashboard overview: {str(e)}")

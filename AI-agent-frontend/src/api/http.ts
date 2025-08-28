@@ -2,7 +2,7 @@
 //http.ts
 import axios from 'axios'
 import type { InternalAxiosRequestConfig, AxiosResponse } from 'axios'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { NProgressStart, NProgressDone } from '@/utils/nprogress'
 import { BASE_URL } from './baseUrl'
 import { getToken, removeToken } from '@/utils/auth'
@@ -49,18 +49,35 @@ http.interceptors.request.use(
 
 // 响应拦截器
 http.interceptors.response.use(
-  (response: AxiosResponse<ApiResponse>) => {
+  (response: AxiosResponse<any>) => {
     NProgressDone()
 
     const { data } = response
 
-    // 检查业务状态码
-    if (!data.success) {
-      ElMessage.error(data.message || '操作失败')
-      return Promise.reject(new Error(data.message))
+    // 适配新的返回格式 {code, msg, data}
+    if (data.code !== undefined) {
+      // 新格式：检查code是否为200
+      if (data.code !== 200) {
+        ElMessage.error(data.msg || '操作失败')
+        return Promise.reject(new Error(data.msg))
+      }
+      // 转换为前端期望的格式
+      return {
+        success: true,
+        message: data.msg,
+        data: data.data,
+        total: data.total,
+        page: data.page,
+        page_size: data.page_size
+      } as any
+    } else {
+      // 兼容旧格式：检查success字段
+      if (!data.success) {
+        ElMessage.error(data.message || '操作失败')
+        return Promise.reject(new Error(data.message))
+      }
+      return data as any
     }
-
-    return data as any
   },
   async (error) => {
     NProgressDone()

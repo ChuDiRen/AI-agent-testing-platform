@@ -273,7 +273,7 @@ import { ElMessage, ElMessageBox, type FormInstance, type ElTable } from 'elemen
 import { Search, Refresh, Plus, DCaret, CaretRight } from '@element-plus/icons-vue'
 import FormDialog from '@/components/Common/FormDialog.vue'
 import { MenuApi } from '@/api/modules/menu'
-import type { MenuInfo, MenuCreateRequest, MenuUpdateRequest, MenuTreeNode } from '@/api/types'
+import type { MenuInfo, MenuTreeNode } from '@/api/types'
 
 // 表单引用
 const formRef = ref<FormInstance>()
@@ -353,10 +353,10 @@ const initFormData = () => {
 const loadMenuList = async () => {
   try {
     loading.value = true
-    const params = {
-      keyword: searchForm.keyword || undefined,
-      is_active: searchForm.is_active
-    }
+    // const params = {
+    //   keyword: searchForm.keyword || undefined,
+    //   is_active: searchForm.is_active
+    // } // 暂时注释掉未使用的参数
     
     const response = await MenuApi.getMenuTree()
     if (response.success) {
@@ -515,7 +515,7 @@ const handleFormConfirm = async () => {
     formLoading.value = true
     
     if (isEdit.value && currentMenu.value) {
-      const updateData: MenuUpdateRequest = { ...formData }
+      const updateData: any = { ...formData }
       const response = await MenuApi.updateMenu(currentMenu.value.menu_id, updateData)
       if (response.success) {
         ElMessage.success('更新成功')

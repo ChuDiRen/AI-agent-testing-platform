@@ -74,7 +74,7 @@ const breadcrumbItems = computed(() => {
   
   // 构建面包屑路径
   let currentPath = ''
-  pathArray.forEach((path, index) => {
+  pathArray.forEach((path) => {
     currentPath += `/${path}`
     const routeInfo = routeTitleMap[currentPath]
     

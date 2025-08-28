@@ -102,11 +102,11 @@
       </template>
       
       <!-- 操作列 -->
-      <template #actions="{ row, index }">
+      <template #actions="{ row }">
         <el-button
           type="primary"
           size="small"
-          @click="handleEdit(row, index)"
+          @click="handleEdit(row)"
         >
           编辑
         </el-button>
@@ -134,7 +134,7 @@
         <el-button
           type="danger"
           size="small"
-          @click="handleDelete(row, index)"
+          @click="handleDelete(row)"
         >
           删除
         </el-button>
@@ -203,8 +203,6 @@ import FormDialog from '@/components/Common/FormDialog.vue'
 import { UserApi } from '@/api/modules/user'
 import type {
   UserInfo,
-  UserCreateRequest,
-  UserUpdateRequest,
   TableColumn,
   SearchField,
   FormField,
@@ -385,54 +383,29 @@ const getUserList = async () => {
   try {
     loading.value = true
     const params = {
-      ...searchParams,
       page: pagination.page,
-      size: pagination.size
+      size: pagination.size,
+      keyword: searchParams.keyword,
+      status: searchParams.status as '0' | '1' | undefined,
+      dept_id: searchParams.dept_id ? Number(searchParams.dept_id) : undefined
     }
-    
-    // 这里暂时使用模拟数据，实际使用时解开注释
-    // const response = await UserApi.getUserList(params)
-    // if (response.success && response.data) {
-    //   userList.value = response.data.items
-    //   pagination.total = response.data.total
-    // }
-    
-    // 模拟数据
-    userList.value = [
-      {
-        user_id: 1,
-        username: 'admin',
-        email: 'admin@example.com',
-        mobile: '13800138000',
-        dept_id: 1,
-        dept_name: '技术部',
-        status: '0',
-        ssex: '0',
-        avatar: '',
-        description: '系统管理员',
-        create_time: '2024-01-01 10:00:00',
-        modify_time: '2024-01-01 10:00:00',
-        last_login_time: '2024-01-15 09:30:00'
-      },
-      {
-        user_id: 2,
-        username: 'user1',
-        email: 'user1@example.com',
-        mobile: '13800138001',
-        dept_id: 2,
-        dept_name: '产品部',
-        status: '0',
-        ssex: '1',
-        avatar: '',
-        description: '普通用户',
-        create_time: '2024-01-02 10:00:00',
-        modify_time: '2024-01-02 10:00:00',
-        last_login_time: '2024-01-14 14:20:00'
-      }
-    ]
-    pagination.total = 2
+
+    // 调用真实API接口
+    const response = await UserApi.getUserList(params)
+    if (response.success && response.data) {
+      // 适配新的返回格式
+      userList.value = Array.isArray(response.data) ? response.data : (response.data.items || [])
+      pagination.total = response.total || response.data?.total || 0
+    } else {
+      ElMessage.error(response.message || '获取用户列表失败')
+      userList.value = []
+      pagination.total = 0
+    }
   } catch (error) {
+    console.error('获取用户列表失败:', error)
     ElMessage.error('获取用户列表失败')
+    userList.value = []
+    pagination.total = 0
   } finally {
     loading.value = false
   }
@@ -489,14 +462,14 @@ const handleAdd = () => {
 }
 
 // 编辑用户
-const handleEdit = (row: UserInfo, index?: number) => {
+const handleEdit = (row: UserInfo) => {
   isEdit.value = true
   currentUser.value = { ...row }
   userDialogVisible.value = true
 }
 
 // 删除用户
-const handleDelete = async (row: UserInfo, index?: number) => {
+const handleDelete = async (row: UserInfo) => {
   try {
     await ElMessageBox.confirm(
       `确定要删除用户 "${row.username}" 吗？`,
@@ -508,7 +481,7 @@ const handleDelete = async (row: UserInfo, index?: number) => {
       }
     )
     
-    // await UserApi.deleteUser(row.user_id)
+    await UserApi.deleteUser(row.user_id)
     ElMessage.success('删除成功')
     getUserList()
   } catch (error: any) {
@@ -537,8 +510,9 @@ const handleBatchDelete = async () => {
     )
     
     const userIds = selectedUsers.value.map(user => user.user_id)
-    // await UserApi.batchDeleteUsers(userIds)
+    await UserApi.batchDeleteUsers(userIds)
     ElMessage.success('批量删除成功')
+    selectedUsers.value = []
     getUserList()
   } catch (error: any) {
     if (error !== 'cancel') {
@@ -563,7 +537,7 @@ const handleToggleStatus = async (row: UserInfo) => {
       }
     )
     
-    // await UserApi.toggleUserStatus(row.user_id, newStatus)
+    await UserApi.toggleUserStatus(row.user_id, newStatus)
     ElMessage.success(`${action}成功`)
     getUserList()
   } catch (error: any) {
@@ -586,7 +560,7 @@ const handleResetPassword = async (row: UserInfo) => {
       }
     )
     
-    // await UserApi.resetPassword(row.user_id, '123456')
+    await UserApi.resetPassword(row.user_id, '123456')
     ElMessage.success('密码重置成功')
   } catch (error: any) {
     if (error !== 'cancel') {
@@ -650,11 +624,11 @@ const handleUserFormConfirm = async (data: any) => {
     if (isEdit.value) {
       // 编辑用户
       const { password, ...updateData } = data
-      // await UserApi.updateUser(currentUser.value.user_id!, updateData)
+      await UserApi.updateUser(currentUser.value.user_id!, updateData)
       ElMessage.success('用户更新成功')
     } else {
       // 新增用户
-      // await UserApi.createUser(data)
+      await UserApi.createUser(data)
       ElMessage.success('用户创建成功')
     }
     
@@ -703,13 +677,13 @@ const beforeUpload = (file: File) => {
 }
 
 // 导入成功
-const handleImportSuccess = (response: any) => {
+const handleImportSuccess = () => {
   ElMessage.success('导入成功')
   getUserList()
 }
 
 // 导入失败
-const handleImportError = (error: any) => {
+const handleImportError = () => {
   ElMessage.error('导入失败')
 }
 

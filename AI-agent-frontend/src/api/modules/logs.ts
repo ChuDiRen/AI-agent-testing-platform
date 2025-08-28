@@ -7,13 +7,15 @@ import type { ApiResponse } from '@/api/types'
 /**
  * 日志级别枚举
  */
-export enum LogLevel {
-  DEBUG = 'DEBUG',
-  INFO = 'INFO',
-  WARNING = 'WARNING',
-  ERROR = 'ERROR',
-  CRITICAL = 'CRITICAL'
-}
+export const LogLevel = {
+  DEBUG: 'DEBUG',
+  INFO: 'INFO',
+  WARNING: 'WARNING',
+  ERROR: 'ERROR',
+  CRITICAL: 'CRITICAL'
+} as const
+
+export type LogLevel = typeof LogLevel[keyof typeof LogLevel]
 
 /**
  * 日志查询参数接口

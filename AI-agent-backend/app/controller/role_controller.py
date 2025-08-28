@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.logger import get_logger
 from app.db.session import get_db
-from app.dto.base import ApiResponse
+from app.dto.base import ApiResponse, Success, Fail
 from app.dto.role_dto import (
     RoleCreateRequest,
     RoleUpdateRequest,
@@ -89,27 +89,27 @@ async def get_role_list(
         role_service = RoleService(db)
         result = role_service.get_roles_with_pagination(page=request.page, size=request.size)
         
-        # 转换为响应格式
+        # 转换为字典格式
         roles = [
-            RoleResponse(
-                role_id=role_data["role_id"],
-                role_name=role_data["role_name"],
-                remark=role_data["remark"],
-                create_time=role_data["create_time"],
-                modify_time=role_data["modify_time"]
-            )
+            {
+                "role_id": role_data["role_id"],
+                "role_name": role_data["role_name"],
+                "remark": role_data["remark"],
+                "create_time": role_data["create_time"].isoformat() if role_data["create_time"] else None,
+                "modify_time": role_data["modify_time"].isoformat() if role_data["modify_time"] else None
+            }
             for role_data in result["roles"]
         ]
-        
-        role_list_response = RoleListResponse(
-            roles=roles,
-            total=result["total"],
-            page=result["page"],
-            size=result["size"],
-            pages=result["pages"]
-        )
-        
-        return ApiResponse.success_response(data=role_list_response, message="获取角色列表成功")
+
+        response_data = {
+            "roles": roles,
+            "total": result["total"],
+            "page": result["page"],
+            "size": result["size"],
+            "pages": result["pages"]
+        }
+
+        return Success(code=200, msg="获取角色列表成功", data=response_data)
         
     except Exception as e:
         logger.error(f"Error getting roles: {str(e)}")

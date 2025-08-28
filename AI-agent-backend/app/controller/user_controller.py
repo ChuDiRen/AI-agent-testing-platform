@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.logger import get_logger
 from app.core.security import create_access_token
 from app.db.session import get_db
-from app.dto.base import ApiResponse
+from app.dto.base import ApiResponse, Success, Fail, SuccessExtra
 from app.dto.user_dto import (
     UserCreateRequest,
     UserUpdateRequest,
@@ -65,24 +65,24 @@ async def create_user(
             description=request.description
         )
         
-        # 转换为响应格式
-        user_response = UserResponse(
-            user_id=user.user_id,
-            username=user.username,
-            email=user.email,
-            mobile=user.mobile,
-            dept_id=user.dept_id,
-            status=user.status,
-            ssex=user.ssex,
-            avatar=user.avatar,
-            description=user.description,
-            create_time=user.create_time,
-            modify_time=user.modify_time,
-            last_login_time=user.last_login_time
-        )
-        
+        # 转换为字典格式
+        user_dict = {
+            "user_id": user.user_id,
+            "username": user.username,
+            "email": user.email,
+            "mobile": user.mobile,
+            "dept_id": user.dept_id,
+            "status": user.status,
+            "ssex": user.ssex,
+            "avatar": user.avatar,
+            "description": user.description,
+            "create_time": user.create_time.isoformat() if user.create_time else None,
+            "modify_time": user.modify_time.isoformat() if user.modify_time else None,
+            "last_login_time": user.last_login_time.isoformat() if user.last_login_time else None
+        }
+
         logger.info(f"User created successfully: {user.username}")
-        return ApiResponse.success_response(data=user_response, message="用户创建成功")
+        return Success(code=200, msg="用户创建成功", data=user_dict)
         
     except ValueError as e:
         logger.warning(f"User creation failed: {str(e)}")
@@ -126,30 +126,31 @@ async def user_login(
         permissions = user_service.get_user_permissions(user.id)
 
         # 构建用户信息
-        user_info = UserResponse(
-            user_id=user.id,
-            username=user.username,
-            email=user.email,
-            mobile=user.mobile,
-            dept_id=user.dept_id,
-            status=user.status,
-            ssex=user.ssex,
-            avatar=user.avatar,
-            description=user.description,
-            create_time=user.create_time,
-            modify_time=user.modify_time,
-            last_login_time=user.last_login_time
-        )
-        
-        login_response = LoginResponse(
-            access_token=access_token,
-            token_type="bearer",
-            user_info=user_info,
-            permissions=permissions
-        )
-        
+        # 转换为字典格式
+        user_info = {
+            "user_id": user.user_id,
+            "username": user.username,
+            "email": user.email,
+            "mobile": user.mobile,
+            "dept_id": user.dept_id,
+            "status": user.status,
+            "ssex": user.ssex,
+            "avatar": user.avatar,
+            "description": user.description,
+            "create_time": user.create_time.isoformat() if user.create_time else None,
+            "modify_time": user.modify_time.isoformat() if user.modify_time else None,
+            "last_login_time": user.last_login_time.isoformat() if user.last_login_time else None
+        }
+
+        login_data = {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user_info": user_info,
+            "permissions": permissions
+        }
+
         logger.info(f"User logged in successfully: {user.username}")
-        return ApiResponse.success_response(data=login_response, message="登录成功")
+        return Success(code=200, msg="登录成功", data=login_data)
         
     except HTTPException:
         raise
@@ -183,7 +184,7 @@ async def user_logout(
         # 3. 清理用户相关缓存
 
         logger.info(f"User logged out successfully: {current_user.username}")
-        return ApiResponse.success_response(data=True, message="退出登录成功")
+        return Success(code=200, msg="退出登录成功", data=True)
 
     except Exception as e:
         logger.error(f"Unexpected error during logout: {str(e)}")
@@ -204,29 +205,34 @@ async def get_user_list(
     try:
         user_service = RBACUserService(db)
         users = user_service.get_all_users()
-        
+
         # 转换为响应格式
-        user_responses = [
-            UserResponse(
-                user_id=user.user_id,
-                username=user.username,
-                email=user.email,
-                mobile=user.mobile,
-                dept_id=user.dept_id,
-                status=user.status,
-                ssex=user.ssex,
-                avatar=user.avatar,
-                description=user.description,
-                create_time=user.create_time,
-                modify_time=user.modify_time,
-                last_login_time=user.last_login_time
-            )
-            for user in users
-        ]
-        
-        user_list_response = UserListResponse(users=user_responses)
-        
-        return ApiResponse.success_response(data=user_list_response, message="获取用户列表成功")
+        user_list = []
+        for user in users:
+            user_dict = {
+                "user_id": user.user_id,
+                "username": user.username,
+                "email": user.email,
+                "mobile": user.mobile,
+                "ssex": user.ssex,
+                "avatar": user.avatar,
+                "description": user.description,
+                "dept_id": user.dept_id,
+                "status": user.status,
+                "create_time": user.create_time.isoformat() if user.create_time else None,
+                "modify_time": user.modify_time.isoformat() if user.modify_time else None,
+                "last_login_time": user.last_login_time.isoformat() if user.last_login_time else None
+            }
+            user_list.append(user_dict)
+
+        return SuccessExtra(
+            code=200,
+            msg="获取用户列表成功",
+            data=user_list,
+            total=len(user_list),
+            page=request.page if hasattr(request, 'page') else 1,
+            page_size=request.size if hasattr(request, 'size') else len(user_list)
+        )
         
     except Exception as e:
         logger.error(f"Error getting users: {str(e)}")
@@ -256,22 +262,23 @@ async def get_user_info(
                 detail="用户不存在"
             )
         
-        user_response = UserResponse(
-            user_id=user.id,  # 修复：使用正确的属性名
-            username=user.username,
-            email=user.email,
-            mobile=user.mobile,
-            dept_id=user.dept_id,
-            status=user.status,
-            ssex=user.ssex,
-            avatar=user.avatar,
-            description=user.description,
-            create_time=user.create_time,
-            modify_time=user.modify_time,
-            last_login_time=user.last_login_time
-        )
-        
-        return ApiResponse.success_response(data=user_response, message="获取用户详情成功")
+        # 转换为字典格式
+        user_dict = {
+            "user_id": user.user_id,
+            "username": user.username,
+            "email": user.email,
+            "mobile": user.mobile,
+            "dept_id": user.dept_id,
+            "status": user.status,
+            "ssex": user.ssex,
+            "avatar": user.avatar,
+            "description": user.description,
+            "create_time": user.create_time.isoformat() if user.create_time else None,
+            "modify_time": user.modify_time.isoformat() if user.modify_time else None,
+            "last_login_time": user.last_login_time.isoformat() if user.last_login_time else None
+        }
+
+        return Success(code=200, msg="获取用户详情成功", data=user_dict)
         
     except HTTPException:
         raise
@@ -314,21 +321,22 @@ async def update_user(
                 detail="用户不存在"
             )
         
-        user_response = UserResponse(
-            user_id=user.id,  # 修复：使用正确的属性名
-            username=user.username,
-            email=user.email,
-            mobile=user.mobile,
-            dept_id=user.dept_id,
-            status=user.status,
-            ssex=user.ssex,
-            avatar=user.avatar,
-            description=user.description,
-            create_time=user.create_time,
-            modify_time=user.modify_time,
-            last_login_time=user.last_login_time
-        )
-        return ApiResponse.success_response(data=user_response, message="用户更新成功")
+        # 转换为字典格式
+        user_dict = {
+            "user_id": user.user_id,
+            "username": user.username,
+            "email": user.email,
+            "mobile": user.mobile,
+            "dept_id": user.dept_id,
+            "status": user.status,
+            "ssex": user.ssex,
+            "avatar": user.avatar,
+            "description": user.description,
+            "create_time": user.create_time.isoformat() if user.create_time else None,
+            "modify_time": user.modify_time.isoformat() if user.modify_time else None,
+            "last_login_time": user.last_login_time.isoformat() if user.last_login_time else None
+        }
+        return Success(code=200, msg="用户更新成功", data=user_dict)
 
     except HTTPException:
         raise
@@ -351,7 +359,7 @@ async def delete_user(
     """
     try:
         user_service = RBACUserService(db)
-        success = user_service.delete_user()
+        success = user_service.delete_user(request.user_id)
 
         if not success:
             raise HTTPException(
@@ -360,7 +368,7 @@ async def delete_user(
             )
 
         logger.info(f"User deleted successfully: {request.user_id}")
-        return ApiResponse.success_response(data=True, message="用户删除成功")
+        return Success(code=200, msg="用户删除成功", data=True)
 
     except HTTPException:
         raise
