@@ -86,12 +86,40 @@ onMounted(async () => {
 }
 
 // 响应式设计
+@media (max-width: 1200px) {
+  .main-content {
+    .page-content {
+      padding: 15px;
+    }
+  }
+}
+
+@media (max-width: 992px) {
+  .main-content {
+    .page-content {
+      padding: 12px;
+    }
+  }
+}
+
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0;
-    
+
     &.collapsed {
       margin-left: 0;
+    }
+
+    .page-content {
+      padding: 10px;
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .main-content {
+    .page-content {
+      padding: 8px;
     }
   }
 }

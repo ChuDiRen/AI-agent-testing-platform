@@ -26,14 +26,28 @@ export class UserApi {
     dept_id?: number
     status?: '0' | '1'
     keyword?: string
+    ssex?: '0' | '1' | '2'
   }): Promise<ApiResponse<PageData<UserInfo>>> {
-    const requestBody = {
+    // 构建请求体，只包含有效参数
+    const requestBody: any = {
       page: params?.page || 1,
-      size: params?.size || 20,
-      dept_id: params?.dept_id,
-      status: params?.status,
-      username: params?.keyword
+      size: params?.size || 20
     }
+
+    // 只添加有值的参数
+    if (params?.dept_id) {
+      requestBody.dept_id = params.dept_id
+    }
+    if (params?.status !== null && params?.status !== undefined && params?.status !== '') {
+      requestBody.status = params.status
+    }
+    if (params?.keyword) {
+      requestBody.username = params.keyword
+    }
+    if (params?.ssex !== null && params?.ssex !== undefined && params?.ssex !== '') {
+      requestBody.ssex = params.ssex
+    }
+
     return http.post<PageData<UserInfo>>('/users/get-user-list', requestBody)
   }
 

@@ -383,17 +383,23 @@ onMounted(async () => {
     
     .quick-links {
       display: flex;
-      flex-direction: column;
-      gap: 10px;
+      flex-direction: column; // 垂直排列（纵向）
+      align-items: stretch; // 确保所有按钮拉伸到相同宽度
+      gap: 10px; // 按钮间距
 
       .el-button {
-        justify-content: flex-start;
+        justify-content: flex-start; // 按钮内容左对齐，保持一致方向
         width: 100% !important; // 强制所有按钮宽度一致
         min-width: 100% !important; // 确保最小宽度一致
+        max-width: 100% !important; // 防止按钮超出容器宽度
         box-sizing: border-box; // 包含边框和内边距
+        display: flex !important; // 确保按钮内部使用flex布局
+        align-items: center; // 垂直居中对齐
+        text-align: left; // 文字左对齐
 
         .el-icon {
           margin-right: 8px;
+          flex-shrink: 0; // 防止图标被压缩
         }
       }
     }
@@ -401,17 +407,231 @@ onMounted(async () => {
 }
 
 // 响应式设计
+@media (max-width: 1200px) {
+  .dashboard {
+    .welcome-section {
+      .welcome-content {
+        h2 {
+          font-size: 22px;
+        }
+
+        p {
+          font-size: 13px;
+        }
+      }
+    }
+
+    .stats-grid {
+      :deep(.el-col) {
+        margin-bottom: 12px;
+      }
+    }
+  }
+}
+
+@media (max-width: 992px) {
+  .dashboard {
+    .welcome-section {
+      .welcome-content {
+        h2 {
+          font-size: 20px;
+        }
+
+        p {
+          font-size: 12px;
+        }
+      }
+    }
+
+    .quick-actions {
+      :deep(.el-col) {
+        margin-bottom: 12px;
+      }
+    }
+
+    .system-info {
+      .info-list {
+        .info-item {
+          padding: 10px 0;
+
+          .info-label,
+          .info-value {
+            font-size: 13px;
+          }
+        }
+      }
+    }
+  }
+}
+
 @media (max-width: 768px) {
   .dashboard {
+    .welcome-section {
+      text-align: center;
+      padding: 15px;
+
+      .welcome-content {
+        h2 {
+          font-size: 18px;
+          margin-bottom: 8px;
+        }
+
+        p {
+          font-size: 11px;
+        }
+      }
+    }
+
     .welcome-stats {
       :deep(.el-col) {
         margin-bottom: 15px;
       }
     }
-    
+
     .quick-actions {
       :deep(.el-col) {
         margin-bottom: 15px;
+      }
+
+      .action-card {
+        .action-content {
+          padding: 15px;
+
+          .action-icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+          }
+
+          .action-text {
+            h3 {
+              font-size: 16px;
+              margin-bottom: 6px;
+            }
+
+            p {
+              font-size: 12px;
+            }
+          }
+        }
+      }
+    }
+
+    .system-info {
+      .info-list {
+        .info-item {
+          padding: 8px 0;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+
+          .info-label {
+            font-size: 12px;
+            font-weight: 600;
+          }
+
+          .info-value {
+            font-size: 12px;
+          }
+        }
+      }
+
+      .quick-links {
+        gap: 8px;
+
+        .el-button {
+          padding: 8px 12px;
+          font-size: 12px;
+
+          .el-icon {
+            margin-right: 6px;
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .dashboard {
+    .welcome-section {
+      padding: 12px;
+
+      .welcome-content {
+        h2 {
+          font-size: 16px;
+          margin-bottom: 6px;
+        }
+
+        p {
+          font-size: 10px;
+        }
+      }
+    }
+
+    .stats-grid {
+      :deep(.el-col) {
+        margin-bottom: 10px;
+      }
+
+      .stat-card {
+        .stat-content {
+          padding: 12px;
+
+          .stat-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+          }
+
+          .stat-text {
+            .stat-number {
+              font-size: 20px;
+              margin-bottom: 4px;
+            }
+
+            .stat-label {
+              font-size: 10px;
+            }
+          }
+        }
+      }
+    }
+
+    .quick-actions {
+      .action-card {
+        .action-content {
+          padding: 12px;
+
+          .action-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+          }
+
+          .action-text {
+            h3 {
+              font-size: 14px;
+              margin-bottom: 4px;
+            }
+
+            p {
+              font-size: 10px;
+            }
+          }
+        }
+      }
+    }
+
+    .system-info {
+      .quick-links {
+        gap: 6px;
+
+        .el-button {
+          padding: 6px 10px;
+          font-size: 11px;
+
+          .el-icon {
+            margin-right: 4px;
+          }
+        }
       }
     }
   }

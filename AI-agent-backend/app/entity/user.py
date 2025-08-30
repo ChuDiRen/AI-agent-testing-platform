@@ -37,8 +37,8 @@ class User(BaseEntity):
     # 联系电话 - 可选，最大20个字符
     mobile = Column(String(20), nullable=True, comment="联系电话")
 
-    # 状态 - 必填，1个字符，0锁定 1有效
-    status = Column(CHAR(1), nullable=False, default='1', comment="状态 0锁定 1有效")
+    # 状态 - 必填，1个字符，1启用 0禁用
+    status = Column(CHAR(1), nullable=False, default='1', comment="状态 1启用 0禁用")
 
     # 创建时间 - 必填，默认当前时间
     create_time = Column(DateTime, nullable=False, default=datetime.utcnow, comment="创建时间")
@@ -145,22 +145,31 @@ class User(BaseEntity):
         self.password = new_password
         self.modify_time = datetime.utcnow()
 
-    def update_info(self, email: str = None, mobile: str = None,
-                   ssex: str = None, avatar: str = None, description: str = None):
+    def update_info(self, username: str = None, email: str = None, mobile: str = None,
+                   dept_id: int = None, status: str = None, ssex: str = None, avatar: str = None, description: str = None):
         """
         更新用户信息
 
         Args:
+            username: 用户名
             email: 邮箱
             mobile: 手机号
+            dept_id: 部门ID
+            status: 状态
             ssex: 性别
             avatar: 头像
             description: 描述
         """
+        if username is not None:
+            self.username = username
         if email is not None:
             self.email = email
         if mobile is not None:
             self.mobile = mobile
+        if dept_id is not None:
+            self.dept_id = dept_id
+        if status is not None:
+            self.status = status
         if ssex is not None:
             self.ssex = ssex
         if avatar is not None:

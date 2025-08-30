@@ -78,10 +78,10 @@
       <!-- 状态列 -->
       <template #status="{ row }">
         <el-tag
-          :type="row.status === '0' ? 'success' : 'danger'"
+          :type="row.status === '1' ? 'success' : 'danger'"
           size="small"
         >
-          {{ row.status === '0' ? '启用' : '禁用' }}
+          {{ row.status === '1' ? '启用' : '禁用' }}
         </el-tag>
       </template>
       
@@ -224,9 +224,9 @@ const roleList = ref<any[]>([])
 // 搜索参数
 const searchParams = reactive({
   keyword: '',
-  status: '',
-  dept_id: '',
-  ssex: ''
+  status: null,
+  dept_id: null,
+  ssex: null
 })
 
 // 分页参数
@@ -245,16 +245,18 @@ const searchFields: SearchField[] = [
     prop: 'keyword',
     label: '关键词',
     component: 'input',
-    placeholder: '用户名/邮箱/手机号'
+    placeholder: '用户名/邮箱/手机号',
+    defaultValue: ''
   },
   {
     prop: 'status',
     label: '状态',
     component: 'select',
     options: [
-      { label: '启用', value: '0' },
-      { label: '禁用', value: '1' }
-    ]
+      { label: '启用', value: '1' },
+      { label: '禁用', value: '0' }
+    ],
+    defaultValue: null
   },
   {
     prop: 'ssex',
@@ -264,7 +266,8 @@ const searchFields: SearchField[] = [
       { label: '男', value: '0' },
       { label: '女', value: '1' },
       { label: '保密', value: '2' }
-    ]
+    ],
+    defaultValue: null
   }
 ]
 
@@ -340,10 +343,10 @@ const userFormFields: FormField[] = [
     label: '状态',
     component: 'radio',
     span: 12,
-    defaultValue: '0',
+    defaultValue: '1',
     options: [
-      { label: '启用', value: '0' },
-      { label: '禁用', value: '1' }
+      { label: '启用', value: '1' },
+      { label: '禁用', value: '0' }
     ]
   },
   {
@@ -382,20 +385,32 @@ const getSexText = (sex: string) => {
 const getUserList = async () => {
   try {
     loading.value = true
-    const params = {
+    // 构建请求参数，过滤掉null和空字符串
+    const params: any = {
       page: pagination.page,
-      size: pagination.size,
-      keyword: searchParams.keyword,
-      status: searchParams.status as '0' | '1' | undefined,
-      dept_id: searchParams.dept_id ? Number(searchParams.dept_id) : undefined
+      size: pagination.size
+    }
+
+    // 只添加有效的筛选参数
+    if (searchParams.keyword && searchParams.keyword.trim()) {
+      params.keyword = searchParams.keyword.trim()
+    }
+    if (searchParams.status !== null && searchParams.status !== undefined && searchParams.status !== '') {
+      params.status = searchParams.status
+    }
+    if (searchParams.dept_id) {
+      params.dept_id = searchParams.dept_id
+    }
+    if (searchParams.ssex !== null && searchParams.ssex !== undefined && searchParams.ssex !== '') {
+      params.ssex = searchParams.ssex
     }
 
     // 调用真实API接口
     const response = await UserApi.getUserList(params)
     if (response.success && response.data) {
-      // 适配新的返回格式
-      userList.value = Array.isArray(response.data) ? response.data : (response.data.items || [])
-      pagination.total = response.total || response.data?.total || 0
+      // 适配响应拦截器转换后的格式
+      userList.value = Array.isArray(response.data) ? response.data : []
+      pagination.total = response.total || 0
     } else {
       ElMessage.error(response.message || '获取用户列表失败')
       userList.value = []
@@ -412,7 +427,11 @@ const getUserList = async () => {
 }
 
 // 搜索
-const handleSearch = () => {
+const handleSearch = (searchData?: Record<string, any>) => {
+  // 如果传入了搜索数据，更新searchParams
+  if (searchData) {
+    Object.assign(searchParams, searchData)
+  }
   pagination.page = 1
   getUserList()
 }
@@ -421,9 +440,9 @@ const handleSearch = () => {
 const handleReset = () => {
   Object.assign(searchParams, {
     keyword: '',
-    status: '',
-    dept_id: '',
-    ssex: ''
+    status: null,
+    dept_id: null,
+    ssex: null
   })
   pagination.page = 1
   getUserList()
@@ -753,16 +772,147 @@ onMounted(() => {
 }
 
 // 响应式设计
+@media (max-width: 1200px) {
+  .user-management {
+    .page-header {
+      padding: 15px 0;
+
+      h2 {
+        font-size: 22px;
+      }
+
+      p {
+        font-size: 13px;
+      }
+    }
+  }
+}
+
+@media (max-width: 992px) {
+  .user-management {
+    .action-bar {
+      flex-wrap: wrap;
+      gap: 10px;
+
+      .action-left {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+    }
+  }
+}
+
 @media (max-width: 768px) {
   .user-management {
+    .page-header {
+      padding: 12px 0;
+      text-align: center;
+
+      h2 {
+        font-size: 20px;
+        margin-bottom: 8px;
+      }
+
+      p {
+        font-size: 12px;
+      }
+    }
+
     .action-bar {
       flex-direction: column;
       gap: 12px;
-      
+
       .action-left {
         width: 100%;
         justify-content: center;
         flex-wrap: wrap;
+        gap: 8px;
+      }
+    }
+
+    // 表格在移动端的优化
+    :deep(.el-table) {
+      .el-table__header-wrapper,
+      .el-table__body-wrapper {
+        overflow-x: auto;
+      }
+
+      .el-table__header th,
+      .el-table__body td {
+        min-width: 80px;
+        white-space: nowrap;
+      }
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .user-management {
+    .page-header {
+      padding: 10px 0;
+
+      h2 {
+        font-size: 18px;
+        margin-bottom: 6px;
+      }
+
+      p {
+        font-size: 11px;
+      }
+    }
+
+    .action-bar {
+      .action-left {
+        .el-button {
+          padding: 8px 12px;
+          font-size: 12px;
+        }
+      }
+    }
+
+    // 移动端表格进一步优化
+    :deep(.el-table) {
+      font-size: 12px;
+
+      .el-table__header th {
+        padding: 8px 4px;
+        font-size: 11px;
+      }
+
+      .el-table__body td {
+        padding: 8px 4px;
+      }
+
+      .el-button {
+        padding: 4px 8px;
+        font-size: 11px;
+      }
+
+      .el-tag {
+        font-size: 10px;
+        padding: 2px 6px;
+      }
+    }
+
+    // 分页组件优化
+    :deep(.el-pagination) {
+      .el-pagination__sizes,
+      .el-pagination__jump {
+        display: none;
+      }
+
+      .el-pager li {
+        min-width: 28px;
+        height: 28px;
+        line-height: 28px;
+        font-size: 12px;
+      }
+
+      .btn-prev,
+      .btn-next {
+        min-width: 28px;
+        height: 28px;
+        line-height: 28px;
       }
     }
   }

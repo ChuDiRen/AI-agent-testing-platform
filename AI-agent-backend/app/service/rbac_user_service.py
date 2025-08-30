@@ -140,19 +140,22 @@ class RBACUserService:
         logger.info(f"User authenticated successfully: {username}")
         return user
 
-    def update_user(self, user_id: int, email: str = None, mobile: str = None,
-                   ssex: str = None, avatar: str = None, description: str = None) -> Optional[User]:
+    def update_user(self, user_id: int, username: str = None, email: str = None, mobile: str = None,
+                   dept_id: int = None, status: str = None, ssex: str = None, avatar: str = None, description: str = None) -> Optional[User]:
         """
         更新用户信息
-        
+
         Args:
             user_id: 用户ID
+            username: 用户名
             email: 邮箱
             mobile: 手机号
+            dept_id: 部门ID
+            status: 状态
             ssex: 性别
             avatar: 头像
             description: 描述
-            
+
         Returns:
             更新后的用户对象或None
         """
@@ -160,19 +163,29 @@ class RBACUserService:
         if not user:
             logger.warning(f"User not found with id: {user_id}")
             return None
-        
+
         # 更新用户信息
         user.update_info(
+            username=username,
             email=email,
             mobile=mobile,
+            dept_id=dept_id,
+            status=status,
             ssex=ssex,
             avatar=avatar,
             description=description
         )
-        
-        updated_user = self.user_repository.update(user)
-        logger.info(f"Updated user: {user_id}")
-        return updated_user
+
+        # 提交更改到数据库
+        try:
+            self.db.commit()
+            self.db.refresh(user)
+            logger.info(f"Updated user: {user_id}")
+            return user
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Error updating user {user_id}: {str(e)}")
+            raise
 
     def change_password(self, user_id: int, old_password: str, new_password: str) -> bool:
         """

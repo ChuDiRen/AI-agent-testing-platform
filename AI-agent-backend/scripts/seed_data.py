@@ -108,7 +108,7 @@ def create_more_users(db):
                 "password": get_password_hash("123456"),
                 "email": "frontend.lead@example.com",
                 "mobile": "17788888894",
-                "dept_id": frontend_dept.dept_id if frontend_dept else 1,
+                "dept_id": frontend_dept.id if frontend_dept else 1,
                 "ssex": "0",
                 "avatar": "default.jpg",
                 "description": "前端组组长"
@@ -118,7 +118,7 @@ def create_more_users(db):
                 "password": get_password_hash("123456"),
                 "email": "backend.lead@example.com",
                 "mobile": "17788888895",
-                "dept_id": backend_dept.dept_id if backend_dept else 1,
+                "dept_id": backend_dept.id if backend_dept else 1,
                 "ssex": "1",
                 "avatar": "default.jpg",
                 "description": "后端组组长"
@@ -128,7 +128,7 @@ def create_more_users(db):
                 "password": get_password_hash("123456"),
                 "email": "ui.designer@example.com",
                 "mobile": "17788888896",
-                "dept_id": frontend_dept.dept_id if frontend_dept else 1,
+                "dept_id": frontend_dept.id if frontend_dept else 1,
                 "ssex": "1",
                 "avatar": "default.jpg",
                 "description": "UI设计师"
@@ -138,7 +138,7 @@ def create_more_users(db):
                 "password": get_password_hash("123456"),
                 "email": "pm@example.com",
                 "mobile": "17788888897",
-                "dept_id": market_dept.dept_id if market_dept else 1,
+                "dept_id": market_dept.id if market_dept else 1,
                 "ssex": "0",
                 "avatar": "default.jpg",
                 "description": "产品经理"
@@ -148,7 +148,7 @@ def create_more_users(db):
                 "password": get_password_hash("123456"),
                 "email": "sales.manager@example.com",
                 "mobile": "17788888898",
-                "dept_id": sales_dept.dept_id if sales_dept else 1,
+                "dept_id": sales_dept.id if sales_dept else 1,
                 "ssex": "1",
                 "avatar": "default.jpg",
                 "description": "销售经理"
@@ -226,11 +226,11 @@ def assign_roles_to_users(db):
             if user and role:
                 existing = db.query(UserRole).filter(
                     UserRole.user_id == user.user_id,
-                    UserRole.role_id == role.role_id
+                    UserRole.role_id == role.id
                 ).first()
-                
+
                 if not existing:
-                    user_role = UserRole(user_id=user.user_id, role_id=role.role_id)
+                    user_role = UserRole(user_id=user.user_id, role_id=role.id)
                     db.add(user_role)
                     logger.info(f"为用户 {user.username} 分配角色 {role.role_name}")
         
@@ -263,7 +263,7 @@ def clear_demo_data():
             if role:
                 # 先删除角色菜单关联
                 from app.entity.role_menu import RoleMenu
-                db.query(RoleMenu).filter(RoleMenu.role_id == role.role_id).delete()
+                db.query(RoleMenu).filter(RoleMenu.role_id == role.id).delete()
                 # 删除角色
                 db.delete(role)
                 logger.info(f"删除演示角色: {role_name}")

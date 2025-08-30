@@ -263,11 +263,47 @@ const handleMenuSelect = (index: string) => {
 }
 
 // 响应式设计
+@media (max-width: 1200px) {
+  .app-sidebar {
+    width: 220px;
+
+    &.collapsed {
+      width: 64px;
+    }
+  }
+}
+
+@media (max-width: 992px) {
+  .app-sidebar {
+    width: 200px;
+
+    &.collapsed {
+      width: 64px;
+    }
+  }
+}
+
 @media (max-width: 768px) {
   .app-sidebar {
     transform: translateX(-100%);
     transition: transform 0.3s ease;
-    
+    width: 250px;
+    z-index: 1000;
+
+    &.mobile-open {
+      transform: translateX(0);
+    }
+
+    &.collapsed {
+      width: 250px;
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .app-sidebar {
+    width: 280px;
+
     &.mobile-open {
       transform: translateX(0);
     }

@@ -204,11 +204,46 @@ async def get_user_list(
     """
     try:
         user_service = RBACUserService(db)
-        users = user_service.get_all_users()
+
+        # 获取所有用户
+        all_users = user_service.get_all_users()
+
+        # 应用筛选条件
+        filtered_users = []
+        for user in all_users:
+            # 用户名筛选（支持用户名、邮箱、手机号模糊搜索）
+            if request.username:
+                keyword = request.username.lower()
+                if not (
+                    (user.username and keyword in user.username.lower()) or
+                    (user.email and keyword in user.email.lower()) or
+                    (user.mobile and keyword in user.mobile.lower())
+                ):
+                    continue
+
+            # 状态筛选
+            if request.status is not None and user.status != request.status:
+                continue
+
+            # 部门筛选
+            if request.dept_id is not None and user.dept_id != request.dept_id:
+                continue
+
+            # 性别筛选
+            if request.ssex is not None and user.ssex != request.ssex:
+                continue
+
+            filtered_users.append(user)
+
+        # 分页处理
+        total = len(filtered_users)
+        start_index = (request.page - 1) * request.size
+        end_index = start_index + request.size
+        paginated_users = filtered_users[start_index:end_index]
 
         # 转换为响应格式
         user_list = []
-        for user in users:
+        for user in paginated_users:
             user_dict = {
                 "user_id": user.user_id,
                 "username": user.username,
@@ -229,9 +264,9 @@ async def get_user_list(
             code=200,
             msg="获取用户列表成功",
             data=user_list,
-            total=len(user_list),
-            page=request.page if hasattr(request, 'page') else 1,
-            page_size=request.size if hasattr(request, 'size') else len(user_list)
+            total=total,
+            page=request.page,
+            page_size=request.size
         )
         
     except Exception as e:
@@ -296,10 +331,13 @@ async def update_user(
 ):
     """
     更新用户信息
-    
+
     - **user_id**: 用户ID
+    - **username**: 新的用户名（可选）
     - **email**: 新的邮箱（可选）
     - **mobile**: 新的手机号（可选）
+    - **dept_id**: 新的部门ID（可选）
+    - **status**: 新的状态（可选）
     - **ssex**: 新的性别（可选）
     - **avatar**: 新的头像（可选）
     - **description**: 新的描述（可选）
@@ -308,8 +346,11 @@ async def update_user(
         user_service = RBACUserService(db)
         user = user_service.update_user(
             user_id=request.user_id,
+            username=request.username,
             email=request.email,
             mobile=request.mobile,
+            dept_id=request.dept_id,
+            status=request.status,
             ssex=request.ssex,
             avatar=request.avatar,
             description=request.description

@@ -317,4 +317,151 @@ defineExpose({
     text-align: right;
   }
 }
+
+// 响应式设计
+@media (max-width: 1200px) {
+  .common-table {
+    .table-container {
+      :deep(.el-table) {
+        font-size: 13px;
+      }
+    }
+  }
+}
+
+@media (max-width: 992px) {
+  .common-table {
+    .table-container {
+      :deep(.el-table) {
+        font-size: 12px;
+
+        .el-table__header th,
+        .el-table__body td {
+          padding: 8px 6px;
+        }
+      }
+    }
+
+    .pagination-container {
+      text-align: center;
+
+      :deep(.el-pagination) {
+        .el-pagination__sizes {
+          order: -1;
+          margin-right: 10px;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .common-table {
+    .table-container {
+      overflow-x: auto;
+
+      :deep(.el-table) {
+        min-width: 600px;
+        font-size: 11px;
+
+        .el-table__header th,
+        .el-table__body td {
+          padding: 6px 4px;
+          min-width: 80px;
+          white-space: nowrap;
+        }
+
+        .el-button {
+          padding: 4px 8px;
+          font-size: 11px;
+          margin: 0 2px;
+        }
+
+        .el-tag {
+          font-size: 10px;
+          padding: 2px 6px;
+        }
+      }
+    }
+
+    .pagination-container {
+      margin-top: 15px;
+      text-align: center;
+
+      :deep(.el-pagination) {
+        .el-pagination__sizes,
+        .el-pagination__jump {
+          display: none;
+        }
+
+        .el-pager li {
+          min-width: 28px;
+          height: 28px;
+          line-height: 28px;
+          font-size: 12px;
+        }
+
+        .btn-prev,
+        .btn-next {
+          min-width: 28px;
+          height: 28px;
+          line-height: 28px;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .common-table {
+    .table-container {
+      :deep(.el-table) {
+        min-width: 500px;
+        font-size: 10px;
+
+        .el-table__header th,
+        .el-table__body td {
+          padding: 4px 2px;
+          min-width: 60px;
+        }
+
+        .el-button {
+          padding: 2px 6px;
+          font-size: 10px;
+          margin: 0 1px;
+        }
+
+        .el-tag {
+          font-size: 9px;
+          padding: 1px 4px;
+        }
+      }
+    }
+
+    .pagination-container {
+      margin-top: 10px;
+
+      :deep(.el-pagination) {
+        .el-pager li {
+          min-width: 24px;
+          height: 24px;
+          line-height: 24px;
+          font-size: 10px;
+        }
+
+        .btn-prev,
+        .btn-next {
+          min-width: 24px;
+          height: 24px;
+          line-height: 24px;
+          font-size: 10px;
+        }
+
+        .el-pagination__total {
+          font-size: 10px;
+        }
+      }
+    }
+  }
+}
 </style>

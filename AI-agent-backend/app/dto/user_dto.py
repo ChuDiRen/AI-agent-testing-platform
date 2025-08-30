@@ -33,6 +33,7 @@ class UserListRequest(BaseModel):
     username: Optional[str] = Field(None, description="用户名筛选")
     dept_id: Optional[int] = Field(None, description="部门ID筛选")
     status: Optional[str] = Field(None, description="状态筛选")
+    ssex: Optional[str] = Field(None, description="性别筛选：0男 1女 2保密")
 
     class Config:
         json_schema_extra = {
@@ -41,7 +42,8 @@ class UserListRequest(BaseModel):
                 "size": 20,
                 "username": "admin",
                 "dept_id": 1,
-                "status": "1"
+                "status": "0",
+                "ssex": "0"
             }
         }
 
@@ -89,9 +91,16 @@ class UserUpdateRequest(BaseModel):
     email: Optional[str] = Field(None, max_length=128, description="邮箱")
     mobile: Optional[str] = Field(None, max_length=20, description="手机号")
     dept_id: Optional[int] = Field(None, description="部门ID")
+    status: Optional[str] = Field(None, pattern="^[01]$", description="状态：0禁用 1启用")
     ssex: Optional[str] = Field(None, pattern="^[012]$", description="性别：0男 1女 2保密")
     avatar: Optional[str] = Field(None, max_length=100, description="头像")
     description: Optional[str] = Field(None, max_length=100, description="描述")
+
+    @validator('status')
+    def validate_status(cls, v):
+        if v is not None and v not in ['0', '1']:
+            raise ValueError('状态必须是 0(禁用) 或 1(启用)')
+        return v
 
     @validator('ssex')
     def validate_ssex(cls, v):

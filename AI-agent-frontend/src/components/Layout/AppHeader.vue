@@ -244,10 +244,40 @@ const handleUserMenuCommand = async (command: string) => {
 }
 
 // 响应式设计
+@media (max-width: 1200px) {
+  .app-header {
+    .header-left {
+      .logo {
+        .logo-text {
+          font-size: 18px;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 992px) {
+  .app-header {
+    padding: 0 16px;
+
+    .header-left {
+      .logo {
+        .logo-text {
+          font-size: 16px;
+        }
+      }
+    }
+
+    .header-right {
+      gap: 10px;
+    }
+  }
+}
+
 @media (max-width: 768px) {
   .app-header {
     padding: 0 15px;
-    
+
     .header-left {
       .logo {
         .logo-text {
@@ -255,12 +285,28 @@ const handleUserMenuCommand = async (command: string) => {
         }
       }
     }
-    
+
     .header-right {
       gap: 8px;
-      
+
       .username {
         display: none;
+      }
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .app-header {
+    padding: 0 12px;
+
+    .header-right {
+      gap: 6px;
+
+      .header-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
       }
     }
   }
