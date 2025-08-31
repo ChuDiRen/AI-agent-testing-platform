@@ -38,13 +38,13 @@ export class UserApi {
     if (params?.dept_id) {
       requestBody.dept_id = params.dept_id
     }
-    if (params?.status !== null && params?.status !== undefined && params?.status !== '') {
+    if (params?.status) {
       requestBody.status = params.status
     }
     if (params?.keyword) {
       requestBody.username = params.keyword
     }
-    if (params?.ssex !== null && params?.ssex !== undefined && params?.ssex !== '') {
+    if (params?.ssex) {
       requestBody.ssex = params.ssex
     }
 
@@ -188,9 +188,7 @@ export class UserApi {
    * @returns 文件下载
    */
   static async exportUsers(params?: any): Promise<void> {
-    await http.get('/users/export', params)
-    // 处理文件下载
-    // 实际实现中需要根据响应处理文件下载
+    await http.download('/users/export', params, '用户列表.xlsx')
   }
 
   /**

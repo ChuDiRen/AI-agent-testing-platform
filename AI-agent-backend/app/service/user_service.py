@@ -4,8 +4,11 @@ RBAC用户Service
 实现用户相关的RBAC业务逻辑
 """
 
-from typing import List, Optional, Tuple
+import io
+from typing import List, Optional, Tuple, Dict, Any
 
+import openpyxl
+from openpyxl.styles import Font, Alignment, PatternFill
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, selectinload
 
@@ -14,9 +17,11 @@ from app.core.security import get_password_hash, verify_password
 from app.entity.role import Role
 from app.entity.user import User
 from app.entity.user_role import UserRole
+from app.entity.department import Department
 from app.repository.base import BaseRepository
 from app.repository.role_repository import RoleRepository
 from app.repository.user_role_repository import UserRoleRepository
+from app.repository.department_repository import DepartmentRepository
 
 logger = get_logger(__name__)
 
@@ -38,6 +43,7 @@ class RBACUserService:
         self.user_repository = BaseRepository(db, User)
         self.user_role_repository = UserRoleRepository(db)
         self.role_repository = RoleRepository(db)
+        self.department_repository = DepartmentRepository(db)
 
     def create_user(self, username: str, password: str, email: str = None,
                    mobile: str = None, dept_id: int = None, ssex: str = None,
@@ -542,3 +548,222 @@ class RBACUserService:
             self.db.rollback()
             logger.error(f"Error clearing user roles: {str(e)}")
             return False
+
+    def export_users_to_excel(self, dept_id: Optional[int] = None, status: Optional[str] = None,
+                              ssex: Optional[str] = None, include_roles: bool = True) -> bytes:
+        """
+        导出用户数据到Excel文件
+        
+        Args:
+            dept_id: 部门ID筛选
+            status: 状态筛选
+            ssex: 性别筛选
+            include_roles: 是否包含角色信息
+            
+        Returns:
+            Excel文件的字节数据
+        """
+        try:
+            # 构建查询条件
+            query = self.db.query(User)
+            
+            if dept_id:
+                query = query.filter(User.dept_id == dept_id)
+            if status is not None:
+                query = query.filter(User.status == status)
+            if ssex is not None:
+                query = query.filter(User.ssex == ssex)
+                
+            users = query.all()
+            
+            # 获取部门信息映射
+            departments = {dept.id: dept.dept_name for dept in self.department_repository.get_all(limit=1000)}
+            
+            # 创建Excel工作簿
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "用户列表"
+            
+            # 定义表头
+            headers = [
+                "用户ID", "用户名", "邮箱", "手机号", "部门", "性别", "状态", 
+                "头像", "描述", "创建时间", "最后登录时间"
+            ]
+            
+            if include_roles:
+                headers.append("角色")
+                
+            # 设置表头样式
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+            header_alignment = Alignment(horizontal="center", vertical="center")
+            
+            for col_num, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col_num, value=header)
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+                
+            # 填充数据
+            for row_num, user in enumerate(users, 2):
+                # 性别映射
+                sex_map = {"0": "男", "1": "女", "2": "保密"}
+                status_map = {"0": "禁用", "1": "启用"}
+                
+                row_data = [
+                    user.user_id,
+                    user.username,
+                    user.email or "",
+                    user.mobile or "",
+                    departments.get(user.dept_id, ""),
+                    sex_map.get(user.ssex, ""),
+                    status_map.get(user.status, ""),
+                    user.avatar or "",
+                    user.description or "",
+                    user.create_time.strftime("%Y-%m-%d %H:%M:%S") if user.create_time else "",
+                    user.last_login_time.strftime("%Y-%m-%d %H:%M:%S") if user.last_login_time else ""
+                ]
+                
+                if include_roles:
+                    # 获取用户角色
+                    roles = self.get_user_roles(user.user_id)
+                    role_names = ", ".join([role.role_name for role in roles])
+                    row_data.append(role_names)
+                
+                for col_num, value in enumerate(row_data, 1):
+                    ws.cell(row=row_num, column=col_num, value=value)
+                    
+            # 调整列宽
+            for column in ws.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 30)
+                ws.column_dimensions[column_letter].width = adjusted_width
+                
+            # 保存到字节流
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+            
+            logger.info(f"Exported {len(users)} users to Excel")
+            return output.read()
+            
+        except Exception as e:
+            logger.error(f"Error exporting users to Excel: {str(e)}")
+            raise
+            
+    def import_users_from_excel(self, file_content: bytes, update_existing: bool = False) -> Dict[str, Any]:
+        """
+        从Excel文件导入用户数据
+        
+        Args:
+            file_content: Excel文件内容
+            update_existing: 是否更新已存在的用户
+            
+        Returns:
+            导入结果统计
+        """
+        try:
+            # 加载Excel文件
+            wb = openpyxl.load_workbook(io.BytesIO(file_content))
+            ws = wb.active
+            
+            total_count = 0
+            success_count = 0
+            failed_count = 0
+            error_messages = []
+            
+            # 获取部门映射（部门名称 -> 部门ID）
+            departments = {dept.dept_name: dept.id for dept in self.department_repository.get_all(limit=1000)}
+            
+            # 读取数据（跳过表头）
+            for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), 2):
+                if not any(row):  # 跳过空行
+                    continue
+                    
+                total_count += 1
+                
+                try:
+                    # 解析行数据
+                    username = str(row[1]).strip() if row[1] else ""
+                    email = str(row[2]).strip() if row[2] else None
+                    mobile = str(row[3]).strip() if row[3] else None
+                    dept_name = str(row[4]).strip() if row[4] else ""
+                    ssex_text = str(row[5]).strip() if row[5] else "保密"
+                    status_text = str(row[6]).strip() if row[6] else "启用"
+                    description = str(row[8]).strip() if row[8] else None
+                    
+                    # 验证必填字段
+                    if not username:
+                        error_messages.append(f"第{row_num}行：用户名不能为空")
+                        failed_count += 1
+                        continue
+                        
+                    # 转换性别
+                    sex_map = {"男": "0", "女": "1", "保密": "2"}
+                    ssex = sex_map.get(ssex_text, "2")
+                    
+                    # 转换状态
+                    status_map = {"启用": "1", "禁用": "0"}
+                    status = status_map.get(status_text, "1")
+                    
+                    # 获取部门ID
+                    dept_id = departments.get(dept_name) if dept_name else None
+                    
+                    # 检查用户是否已存在
+                    existing_user = self.db.query(User).filter(User.username == username).first()
+                    
+                    if existing_user:
+                        if update_existing:
+                            # 更新现有用户
+                            existing_user.email = email
+                            existing_user.mobile = mobile
+                            existing_user.dept_id = dept_id
+                            existing_user.ssex = ssex
+                            existing_user.status = status
+                            existing_user.description = description
+                            self.db.commit()
+                            success_count += 1
+                        else:
+                            error_messages.append(f"第{row_num}行：用户名 '{username}' 已存在")
+                            failed_count += 1
+                    else:
+                        # 创建新用户
+                        new_user = User(
+                            username=username,
+                            password_hash=get_password_hash("123456"),  # 默认密码
+                            email=email,
+                            mobile=mobile,
+                            dept_id=dept_id,
+                            ssex=ssex,
+                            status=status,
+                            description=description
+                        )
+                        self.db.add(new_user)
+                        self.db.commit()
+                        success_count += 1
+                        
+                except Exception as e:
+                    error_messages.append(f"第{row_num}行：{str(e)}")
+                    failed_count += 1
+                    self.db.rollback()
+                    
+            result = {
+                "total_count": total_count,
+                "success_count": success_count,
+                "failed_count": failed_count,
+                "error_messages": error_messages
+            }
+            
+            logger.info(f"Import completed: {success_count}/{total_count} users imported successfully")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error importing users from Excel: {str(e)}")
+            raise

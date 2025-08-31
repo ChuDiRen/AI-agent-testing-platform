@@ -5,7 +5,7 @@
 """
 
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 from pydantic import BaseModel, Field, validator
 
@@ -334,5 +334,75 @@ class LoginResponse(BaseModel):
                     "status": "1"
                 },
                 "permissions": ["user:view", "user:add", "user:update", "user:delete"]
+            }
+        }
+
+
+class UserExportRequest(BaseModel):
+    """
+    用户导出请求DTO
+    """
+    dept_id: Optional[int] = Field(None, description="部门ID筛选")
+    status: Optional[str] = Field(None, pattern="^[01]$", description="状态筛选：0禁用 1启用")
+    ssex: Optional[str] = Field(None, pattern="^[012]$", description="性别筛选：0男 1女 2保密")
+    include_roles: bool = Field(True, description="是否包含角色信息")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "dept_id": 1,
+                "status": "1",
+                "ssex": "0",
+                "include_roles": True
+            }
+        }
+
+
+class UserImportRequest(BaseModel):
+    """
+    用户导入请求DTO
+    """
+    file_data: List[Dict[str, Any]] = Field(..., description="导入的用户数据")
+    update_existing: bool = Field(False, description="是否更新已存在的用户")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "file_data": [
+                    {
+                        "username": "user1",
+                        "password": "123456",
+                        "email": "user1@example.com",
+                        "mobile": "13800138001",
+                        "dept_name": "技术部",
+                        "ssex": "0",
+                        "status": "1",
+                        "description": "导入用户1"
+                    }
+                ],
+                "update_existing": False
+            }
+        }
+
+
+class UserImportResponse(BaseModel):
+    """
+    用户导入响应DTO
+    """
+    total_count: int = Field(..., description="总记录数")
+    success_count: int = Field(..., description="成功导入数")
+    failed_count: int = Field(..., description="失败数")
+    error_messages: List[str] = Field(default_factory=list, description="错误信息列表")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "total_count": 10,
+                "success_count": 8,
+                "failed_count": 2,
+                "error_messages": [
+                    "第3行：用户名已存在",
+                    "第7行：邮箱格式不正确"
+                ]
             }
         }

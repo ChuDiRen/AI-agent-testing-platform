@@ -52,6 +52,11 @@ http.interceptors.response.use(
   (response: AxiosResponse<any>) => {
     NProgressDone()
 
+    // 如果是文件下载请求（blob类型），直接返回响应
+    if (response.config.responseType === 'blob') {
+      return response
+    }
+
     const { data } = response
 
     // 适配新的返回格式 {code, msg, data}
@@ -125,7 +130,7 @@ interface HttpMethods {
   put<T = any>(url: string, data?: any): Promise<ApiResponse<T>>
   delete<T = any>(url: string, params?: any): Promise<ApiResponse<T>>
   upload<T = any>(url: string, formData: FormData): Promise<ApiResponse<T>>
-  download(url: string, filename?: string): void
+  download(url: string, params?: any, filename?: string): Promise<void>
 }
 
 // 扩展axios实例方法
@@ -154,16 +159,58 @@ const httpMethods: HttpMethods = {
     }) as unknown as Promise<ApiResponse<T>>
   },
 
-  download(url: string, filename?: string): void {
-    const link = document.createElement('a')
-    link.href = url
-    if (filename) {
-      link.download = filename
+  async download(url: string, params?: any, filename?: string): Promise<void> {
+    try {
+      const response = await http.get(url, {
+        params,
+        responseType: 'blob',
+        headers: {
+          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+      })
+      
+      // 创建blob URL
+      const blob = new Blob([response.data])
+      const blobUrl = window.URL.createObjectURL(blob)
+      
+      // 从响应头获取文件名
+      const contentDisposition = response.headers['content-disposition']
+      let downloadFilename = filename
+      if (contentDisposition) {
+        // 优先处理 UTF-8 编码的文件名
+        const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/)
+        if (utf8Match) {
+          try {
+            downloadFilename = decodeURIComponent(utf8Match[1])
+          } catch (e) {
+            console.warn('Failed to decode UTF-8 filename:', e)
+          }
+        }
+        
+        // 如果没有UTF-8文件名或解码失败，尝试普通文件名
+        if (!utf8Match || downloadFilename === filename) {
+          const filenameMatch = contentDisposition.match(/filename=([^;]+)/)
+          if (filenameMatch) {
+            downloadFilename = filenameMatch[1].replace(/['"]/g, '').trim()
+          }
+        }
+      }
+      
+      // 创建下载链接
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = downloadFilename || 'download.xlsx'
+      document.body.appendChild(link)
+      link.click()
+      
+      // 清理
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(blobUrl)
+    } catch (error) {
+      console.error('Download failed:', error)
+      ElMessage.error('文件下载失败')
+      throw error
     }
-    link.target = '_blank'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
   }
 }
 

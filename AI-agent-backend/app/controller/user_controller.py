@@ -4,8 +4,11 @@ RBAC用户Controller
 处理用户相关的HTTP请求
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+import io
 
 from app.core.logger import get_logger
 from app.core.security import create_access_token
@@ -24,7 +27,9 @@ from app.dto.user_dto import (
     LoginResponse,
     UserIdRequest,
     UserListRequest,
-    UserDeleteRequest
+    UserDeleteRequest,
+    UserExportRequest,
+    UserImportResponse
 )
 from app.entity.user import User
 from app.middleware.auth import get_current_user
@@ -643,6 +648,166 @@ async def get_user_roles(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"获取用户角色失败: {str(e)}"
+        )
+
+
+@router.get("/export", summary="导出用户数据")
+async def export_users(
+    dept_id: Optional[int] = Query(None, description="部门ID筛选"),
+    user_status: Optional[str] = Query(None, description="状态筛选"),
+    ssex: Optional[str] = Query(None, description="性别筛选"),
+    include_roles: bool = Query(True, description="是否包含角色信息"),
+    db: Session = Depends(get_db)
+):
+    """
+    导出用户数据到Excel文件
+    
+    - **dept_id**: 部门ID筛选（可选）
+    - **user_status**: 状态筛选：0禁用 1启用（可选）
+    - **ssex**: 性别筛选：0男 1女 2保密（可选）
+    - **include_roles**: 是否包含角色信息（默认true）
+    """
+    try:
+        user_service = RBACUserService(db)
+        
+        # 导出用户数据
+        excel_data = user_service.export_users_to_excel(
+            dept_id=dept_id,
+            status=user_status,
+            ssex=ssex,
+            include_roles=include_roles
+        )
+        
+        # 创建文件名
+        from datetime import datetime
+        import urllib.parse
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # 使用英文文件名避免编码问题，同时提供UTF-8编码的中文文件名
+        safe_filename = f"users_list_{timestamp}.xlsx"
+        chinese_filename = f"用户列表_{timestamp}.xlsx"
+        encoded_filename = urllib.parse.quote(chinese_filename.encode('utf-8'))
+        
+        # 返回文件流
+        return StreamingResponse(
+            io.BytesIO(excel_data),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f"attachment; filename={safe_filename}; filename*=UTF-8''{encoded_filename}"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error exporting users: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="导出用户数据失败"
+        )
+
+
+@router.post("/import", response_model=ApiResponse[UserImportResponse], summary="导入用户数据")
+async def import_users(
+    file: UploadFile = File(..., description="Excel文件"),
+    update_existing: bool = Query(False, description="是否更新已存在的用户"),
+    db: Session = Depends(get_db)
+):
+    """
+    从Excel文件导入用户数据
+    
+    - **file**: Excel文件(.xlsx格式)
+    - **update_existing**: 是否更新已存在的用户（默认false）
+    
+    Excel文件格式要求：
+    - 第一行为表头：用户ID, 用户名, 邮箱, 手机号, 部门, 性别, 状态, 头像, 描述, 创建时间, 最后登录时间
+    - 从第二行开始为数据行
+    - 用户名为必填项
+    - 性别：男/女/保密
+    - 状态：启用/禁用
+    """
+    try:
+        # 检查文件类型
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="只支持Excel文件格式(.xlsx, .xls)"
+            )
+        
+        # 读取文件内容
+        file_content = await file.read()
+        
+        user_service = RBACUserService(db)
+        
+        # 导入用户数据
+        import_result = user_service.import_users_from_excel(
+            file_content=file_content,
+            update_existing=update_existing
+        )
+        
+        # 构建响应
+        response_data = UserImportResponse(
+            total_count=import_result["total_count"],
+            success_count=import_result["success_count"],
+            failed_count=import_result["failed_count"],
+            error_messages=import_result["error_messages"]
+        )
+        
+        logger.info(f"User import completed: {import_result['success_count']}/{import_result['total_count']} successful")
+        
+        return Success(
+            code=200,
+            msg=f"导入完成！成功：{import_result['success_count']}，失败：{import_result['failed_count']}",
+            data=response_data.model_dump()
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error importing users: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"导入用户数据失败: {str(e)}"
+        )
+
+
+@router.post("/batch-delete", response_model=ApiResponse[bool], summary="批量删除用户")
+async def batch_delete_users(
+    request: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    批量删除用户
+    
+    - **user_ids**: 用户ID列表
+    """
+    try:
+        user_ids = request.get("user_ids", [])
+        if not user_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="用户ID列表不能为空"
+            )
+        
+        user_service = RBACUserService(db)
+        
+        success_count = 0
+        for user_id in user_ids:
+            if user_service.delete_user(user_id):
+                success_count += 1
+        
+        logger.info(f"Batch deleted {success_count}/{len(user_ids)} users")
+        return Success(
+            code=200,
+            msg=f"批量删除完成！成功删除 {success_count} 个用户",
+            data=True
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error batch deleting users: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="批量删除用户失败"
         )
 
 

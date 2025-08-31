@@ -724,10 +724,22 @@ const handleUserFormCancel = () => {
 // 导出数据
 const handleExport = async () => {
   try {
-    // await UserApi.exportUsers(searchParams)
+    loading.value = true
+    // 构建导出参数
+    const exportParams: any = {}
+    
+    if (searchParams.dept_id) exportParams.dept_id = searchParams.dept_id
+    if (searchParams.status) exportParams.user_status = searchParams.status
+    if (searchParams.ssex) exportParams.ssex = searchParams.ssex
+    exportParams.include_roles = true
+    
+    await UserApi.exportUsers(exportParams)
     ElMessage.success('导出成功')
   } catch (error) {
+    console.error('导出失败:', error)
     ElMessage.error('导出失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -751,14 +763,37 @@ const beforeUpload = (file: File) => {
 }
 
 // 导入成功
-const handleImportSuccess = () => {
-  ElMessage.success('导入成功')
-  getUserList()
+const handleImportSuccess = (response: any) => {
+  console.log('Import response:', response)
+  if (response.success) {
+    const data = response.data
+    if (data.failed_count > 0) {
+      // 显示详细的导入结果
+      let message = `导入完成！成功：${data.success_count}，失败：${data.failed_count}`
+      if (data.error_messages && data.error_messages.length > 0) {
+        message += `\n错误信息：\n${data.error_messages.slice(0, 5).join('\n')}`
+        if (data.error_messages.length > 5) {
+          message += `\n...还有${data.error_messages.length - 5}个错误`
+        }
+      }
+      ElMessage.warning({
+        message,
+        duration: 10000,
+        showClose: true
+      })
+    } else {
+      ElMessage.success(`导入成功！共导入 ${data.success_count} 个用户`)
+    }
+    getUserList()
+  } else {
+    ElMessage.error(response.message || '导入失败')
+  }
 }
 
 // 导入失败
-const handleImportError = () => {
-  ElMessage.error('导入失败')
+const handleImportError = (error: any) => {
+  console.error('Import error:', error)
+  ElMessage.error('导入失败，请检查文件格式')
 }
 
 // 页面加载时获取数据
