@@ -175,6 +175,22 @@ class PasswordChangeRequest(BaseModel):
         }
 
 
+class PasswordResetRequest(BaseModel):
+    """
+    管理员重置密码请求DTO
+    """
+    user_id: int = Field(..., description="用户ID")
+    new_password: str = Field(..., min_length=6, max_length=20, description="新密码")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "user_id": 1,
+                "new_password": "123456"
+            }
+        }
+
+
 class UserResponse(BaseModel):
     """
     用户响应DTO

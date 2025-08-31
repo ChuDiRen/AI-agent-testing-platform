@@ -38,7 +38,7 @@ export class RoleApi {
    * @returns 角色列表
    */
   static async getAllRoles(): Promise<ApiResponse<RoleInfo[]>> {
-    const response = await http.post<RoleListResponse>('/roles/get-role-list', { page: 1, size: 1000 })
+    const response = await http.post<RoleListResponse>('/roles/get-role-list', { page: 1, size: 100 })
     if (response.success && response.data) {
       return { ...response, data: response.data.roles || [] }
     }

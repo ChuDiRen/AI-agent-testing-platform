@@ -123,7 +123,7 @@ export class UserApi {
    * @returns 重置结果
    */
   static async resetPassword(userId: number, newPassword: string): Promise<ApiResponse<boolean>> {
-    return http.post<boolean>(`/users/${userId}/reset-password`, { new_password: newPassword })
+    return http.post<boolean>('/users/reset-password', { user_id: userId, new_password: newPassword })
   }
 
   /**
@@ -133,7 +133,7 @@ export class UserApi {
    * @returns 操作结果
    */
   static async toggleUserStatus(userId: number, status: '0' | '1'): Promise<ApiResponse<boolean>> {
-    return http.put<boolean>(`/users/${userId}/status`, { status })
+    return http.post<boolean>('/users/update-user', { user_id: userId, status })
   }
 
   /**
@@ -141,8 +141,8 @@ export class UserApi {
    * @param userId 用户ID
    * @returns 角色列表
    */
-  static async getUserRoles(userId: number): Promise<ApiResponse<any[]>> {
-    return http.get<any[]>(`/users/${userId}/roles`)
+  static async getUserRoles(userId: number): Promise<ApiResponse<any>> {
+    return http.post<any>('/users/get-user-roles', { user_id: userId })
   }
 
   /**
@@ -152,7 +152,7 @@ export class UserApi {
    * @returns 分配结果
    */
   static async assignUserRoles(userId: number, data: UserRoleAssignRequest): Promise<ApiResponse<boolean>> {
-    return http.post<boolean>(`/users/${userId}/roles`, data)
+    return http.post<boolean>('/users/assign-user-roles', { user_id: userId, ...data })
   }
 
   /**

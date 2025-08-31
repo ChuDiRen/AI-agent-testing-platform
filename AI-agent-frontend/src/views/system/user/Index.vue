@@ -51,14 +51,6 @@
           </el-button>
         </el-upload>
       </div>
-      
-      <div class="action-right">
-        <el-button
-          :icon="Refresh"
-          @click="handleRefresh"
-          circle
-        />
-      </div>
     </div>
     
         <!-- 数据表格 -->
@@ -121,11 +113,11 @@
           分配角色
         </el-button>
         <el-button
-          :type="row.status === '0' ? 'danger' : 'success'"
+          :type="row.status === '0' ? 'success' : 'danger'"
           size="small"
           @click="handleToggleStatus(row)"
         >
-          {{ row.status === '0' ? '禁用' : '启用' }}
+          {{ row.status === '0' ? '启用' : '禁用' }}
         </el-button>
         <el-button
           type="info"
@@ -205,6 +197,7 @@ import CommonTable from '@/components/Common/CommonTable.vue'
 import SearchForm from '@/components/Common/SearchForm.vue'
 import FormDialog from '@/components/Common/FormDialog.vue'
 import { UserApi } from '@/api/modules/user'
+import { RoleApi } from '@/api/modules/role'
 import type {
   UserInfo,
   TableColumn,
@@ -479,7 +472,7 @@ const handleAdd = () => {
   isEdit.value = false
   currentUser.value = {
     ssex: '2',
-    status: '0'
+    status: '0' // 默认状态改为禁用
   }
   userDialogVisible.value = true
 }
@@ -547,7 +540,7 @@ const handleBatchDelete = async () => {
 // 切换用户状态
 const handleToggleStatus = async (row: UserInfo) => {
   const newStatus = row.status === '0' ? '1' : '0'
-  const action = newStatus === '0' ? '启用' : '禁用'
+  const action = row.status === '0' ? '启用' : '禁用'
   
   try {
     await ElMessageBox.confirm(
@@ -598,24 +591,17 @@ const handleAssignRole = async (row: UserInfo) => {
   
   // 获取角色列表和用户当前角色
   try {
-    // const [rolesResponse, userRolesResponse] = await Promise.all([
-    //   RoleApi.getAllRoles(),
-    //   UserApi.getUserRoles(row.user_id)
-    // ])
+    const [rolesResponse, userRolesResponse] = await Promise.all([
+      RoleApi.getAllRoles(),
+      UserApi.getUserRoles(row.user_id)
+    ])
     
-    // roleList.value = rolesResponse.data || []
-    // selectedRoles.value = userRolesResponse.data?.map(role => role.role_id) || []
-    
-    // 模拟数据
-    roleList.value = [
-      { role_id: 1, role_name: '管理员' },
-      { role_id: 2, role_name: '普通用户' },
-      { role_id: 3, role_name: '测试用户' }
-    ]
-    selectedRoles.value = [2]
+    roleList.value = rolesResponse.data || []
+    selectedRoles.value = userRolesResponse.data?.roles?.map(role => role.role_id) || []
     
     roleDialogVisible.value = true
   } catch (error) {
+    console.error('获取角色信息失败:', error)
     ElMessage.error('获取角色信息失败')
   }
 }
@@ -625,14 +611,15 @@ const handleRoleAssignConfirm = async () => {
   try {
     formLoading.value = true
     
-    // await UserApi.assignUserRoles(currentUser.value.user_id!, {
-    //   role_ids: selectedRoles.value
-    // })
+    await UserApi.assignUserRoles(currentUser.value.user_id!, {
+      role_ids: selectedRoles.value
+    })
     
     ElMessage.success('角色分配成功')
     roleDialogVisible.value = false
     getUserList()
   } catch (error) {
+    console.error('角色分配失败:', error)
     ElMessage.error('角色分配失败')
   } finally {
     formLoading.value = false

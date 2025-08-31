@@ -15,6 +15,7 @@ from app.dto.user_dto import (
     UserCreateRequest,
     UserUpdateRequest,
     PasswordChangeRequest,
+    PasswordResetRequest,
     UserResponse,
     UserListResponse,
     UserRoleAssignRequest,
@@ -460,6 +461,43 @@ async def change_password(
         )
 
 
+@router.post("/reset-password", response_model=ApiResponse[bool], summary="管理员重置密码")
+async def reset_password(
+    request: PasswordResetRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    管理员重置用户密码（无需旧密码）
+
+    - **user_id**: 用户ID
+    - **new_password**: 新密码
+    """
+    try:
+        user_service = RBACUserService(db)
+        success = user_service.reset_password(
+            user_id=request.user_id,
+            new_password=request.new_password
+        )
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="用户不存在"
+            )
+
+        logger.info(f"Password reset successfully for user: {request.user_id}")
+        return ApiResponse.success_response(data=True, message="密码重置成功")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error resetting password for user {request.user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="重置密码失败"
+        )
+
+
 @router.put("/{user_id}/lock", response_model=ApiResponse[bool], summary="锁定用户")
 async def lock_user(
     user_id: int,
@@ -570,8 +608,10 @@ async def get_user_roles(
     - **user_id**: 用户ID（请求体传参）
     """
     try:
+        logger.info(f"Getting roles for user_id: {request.user_id}")
         user_service = RBACUserService(db)
         user = user_service.get_user_by_id(request.user_id)
+        logger.info(f"Found user: {user.username if user else 'None'}")
 
         if not user:
             raise HTTPException(
@@ -580,13 +620,14 @@ async def get_user_roles(
             )
 
         roles = user_service.get_user_roles(request.user_id)
+        logger.info(f"Found {len(roles)} roles for user {request.user_id}")
 
         # 转换角色信息
         role_data = [
             {
                 "role_id": role.id,
                 "role_name": role.role_name,
-                "remark": role.remark
+                "remark": role.remark or ""
             }
             for role in roles
         ]
@@ -597,14 +638,15 @@ async def get_user_roles(
             roles=role_data
         )
 
-        return ApiResponse.success_response(data=user_role_response, message="获取用户角色成功")
+        return ApiResponse.success_response(data=user_role_response.model_dump(), message="获取用户角色成功")
 
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error getting user roles for user {request.user_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="获取用户角色失败"
+            detail=f"获取用户角色失败: {str(e)}"
         )
 
 

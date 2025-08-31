@@ -217,6 +217,74 @@ class RBACUserService:
         logger.info(f"Password changed for user: {user_id}")
         return True
 
+    def delete_user(self, user_id: int) -> bool:
+        """
+        删除用户
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            是否删除成功
+        """
+        try:
+            # 检查用户是否存在
+            user = self.user_repository.get_by_id(user_id)
+            if not user:
+                logger.warning(f"User not found with id: {user_id}")
+                return False
+            
+            # 先删除用户角色关联
+            self.user_role_repository.delete_by_user_id(user_id)
+            
+            # 删除用户
+            self.user_repository.delete(user_id)
+            
+            self.db.commit()
+            logger.info(f"Deleted user: {user_id}")
+            return True
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Error deleting user {user_id}: {str(e)}")
+            return False
+
+    def reset_password(self, user_id: int, new_password: str) -> bool:
+        """
+        管理员重置用户密码（无需旧密码）
+        
+        Args:
+            user_id: 用户ID
+            new_password: 新密码
+            
+        Returns:
+            是否重置成功
+        """
+        try:
+            logger.info(f"Starting password reset for user: {user_id}")
+            # 查找用户 - 使用id字段而不是user_id
+            user = self.db.query(User).filter(User.id == user_id).first()
+            if not user:
+                logger.warning(f"User not found with id: {user_id}")
+                return False
+            
+            logger.info(f"Found user: {user.username}, current password hash length: {len(user.password) if user.password else 'None'}")
+            
+            # 直接设置新密码（管理员权限，无需验证旧密码）
+            hashed_new_password = get_password_hash(new_password)
+            logger.info(f"Generated new password hash length: {len(hashed_new_password)}")
+            
+            user.change_password(hashed_new_password)
+            logger.info(f"Password updated in entity for user: {user_id}")
+            
+            # 提交数据库更改
+            self.db.commit()
+            self.db.refresh(user)
+            logger.info(f"Password reset completed successfully for user: {user_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error in reset_password for user {user_id}: {str(e)}")
+            return False
+
     def lock_user(self, user_id: int) -> bool:
         """
         锁定用户
