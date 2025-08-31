@@ -272,9 +272,9 @@ const tableColumns: TableColumn[] = [
   { prop: 'avatar', label: '头像', width: 60, slot: 'avatar' },
   { prop: 'ssex', label: '性别', width: 60, slot: 'ssex' },
   { prop: 'dept_name', label: '部门', width: 120 },
+  { prop: 'roles', label: '角色', width: 200, slot: 'roles' },
   { prop: 'status', label: '状态', width: 70, slot: 'status' },
   { prop: 'create_time', label: '创建时间', width: 140 },
-  { prop: 'roles', label: '角色', width: 200, slot: 'roles' },
   { prop: 'last_login_time', label: '最后登录', width: 140 }
 ]
 
