@@ -28,7 +28,8 @@ from app.dto.user_dto import (
 )
 from app.entity.user import User
 from app.middleware.auth import get_current_user
-from app.service.rbac_user_service import RBACUserService
+from app.service.user_service import RBACUserService
+from app.service.department_service import DepartmentService  # 引入部门服务  # 注释
 
 logger = get_logger(__name__)
 
@@ -206,45 +207,38 @@ async def get_user_list(
     try:
         user_service = RBACUserService(db)
 
-        # 获取所有用户
-        all_users = user_service.get_all_users()
+        # 数据库层筛选 + 分页，并预加载部门与角色  # 注释
+        paginated_users, total = user_service.query_users(
+            page=request.page,
+            size=request.size,
+            username=request.username,
+            dept_id=request.dept_id,
+            status=request.status,
+            ssex=request.ssex
+        )
 
-        # 应用筛选条件
-        filtered_users = []
-        for user in all_users:
-            # 用户名筛选（支持用户名、邮箱、手机号模糊搜索）
-            if request.username:
-                keyword = request.username.lower()
-                if not (
-                    (user.username and keyword in user.username.lower()) or
-                    (user.email and keyword in user.email.lower()) or
-                    (user.mobile and keyword in user.mobile.lower())
-                ):
-                    continue
+        # 批量准备部门名称映射，避免重复查询  # 注释
+        dept_service = DepartmentService(db)
+        dept_ids = {u.dept_id for u in paginated_users if u.dept_id}
+        dept_name_map = {}
+        if dept_ids:
+            for dept in dept_service.get_departments_by_ids(list(dept_ids)):
+                dept_name_map[dept.id] = dept.dept_name
 
-            # 状态筛选
-            if request.status is not None and user.status != request.status:
-                continue
-
-            # 部门筛选
-            if request.dept_id is not None and user.dept_id != request.dept_id:
-                continue
-
-            # 性别筛选
-            if request.ssex is not None and user.ssex != request.ssex:
-                continue
-
-            filtered_users.append(user)
-
-        # 分页处理
-        total = len(filtered_users)
-        start_index = (request.page - 1) * request.size
-        end_index = start_index + request.size
-        paginated_users = filtered_users[start_index:end_index]
+        # 批量获取角色映射，避免逐条查询  # 注释
+        user_ids = [u.user_id for u in paginated_users]
+        roles_map = user_service.get_roles_for_users(user_ids)
 
         # 转换为响应格式
         user_list = []
         for user in paginated_users:
+            # 查询用户角色并转换为精简结构  # 注释
+            roles = roles_map.get(user.user_id, [])
+            role_data = [
+                {"role_id": role.id, "role_name": role.role_name, "remark": role.remark or ""}
+                for role in roles
+            ]
+
             user_dict = {
                 "user_id": user.user_id,
                 "username": user.username,
@@ -254,10 +248,12 @@ async def get_user_list(
                 "avatar": user.avatar,
                 "description": user.description,
                 "dept_id": user.dept_id,
+                "dept_name": dept_name_map.get(user.dept_id),  # 部门名称  # 注释
                 "status": user.status,
                 "create_time": user.create_time.isoformat() if user.create_time else None,
                 "modify_time": user.modify_time.isoformat() if user.modify_time else None,
-                "last_login_time": user.last_login_time.isoformat() if user.last_login_time else None
+                "last_login_time": user.last_login_time.isoformat() if user.last_login_time else None,
+                "roles": role_data  # 追加角色数组
             }
             user_list.append(user_dict)
 

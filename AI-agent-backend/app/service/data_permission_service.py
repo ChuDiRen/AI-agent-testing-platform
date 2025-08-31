@@ -12,7 +12,7 @@ from app.core.logger import get_logger
 from app.entity.permission_cache import DataPermissionRule
 from app.repository.data_permission_repository import DataPermissionRepository
 from app.service.base import BaseService
-from app.service.rbac_user_service import RBACUserService
+from app.service.user_service import RBACUserService
 
 logger = get_logger(__name__)
 

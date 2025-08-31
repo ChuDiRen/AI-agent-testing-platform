@@ -16,7 +16,7 @@ from app.core.security import verify_token
 from app.db.session import get_db
 from app.service.audit_log_service import AuditLogService
 from app.service.data_permission_service import DataPermissionService
-from app.service.rbac_user_service import RBACUserService
+from app.service.user_service import RBACUserService
 
 logger = get_logger(__name__)
 security = HTTPBearer()

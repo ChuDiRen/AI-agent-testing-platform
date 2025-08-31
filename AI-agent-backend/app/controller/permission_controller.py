@@ -19,7 +19,7 @@ from app.middleware.auth import (
 from app.service.audit_log_service import AuditLogService
 from app.service.data_permission_service import DataPermissionService
 from app.service.menu_service import MenuService
-from app.service.rbac_user_service import RBACUserService
+from app.service.user_service import RBACUserService
 from app.service.role_service import RoleService
 
 logger = get_logger(__name__)

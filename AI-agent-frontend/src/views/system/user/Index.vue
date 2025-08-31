@@ -1,3 +1,5 @@
+# Copyright (c) 2025 左岚. All rights reserved.
+
 <template>
   <div class="user-management">
     <div class="page-header">
@@ -63,7 +65,7 @@
         :show-selection="true"
         :show-index="false"
         :show-actions="true"
-        :action-width="350"
+        :action-width="280"
         @selection-change="handleSelectionChange"
         @page-change="handlePageChange"
         @size-change="handleSizeChange"
@@ -86,7 +88,23 @@
           {{ getSexText(row.ssex) }}
         </span>
       </template>
-      
+
+      <!-- 角色列 -->
+      <template #roles="{ row }">
+        <div>
+          <el-tag
+            v-for="name in (rolesMap[row.user_id] || [])"
+            :key="name"
+            size="small"
+            type="info"
+            style="margin-right:4px;margin-bottom:2px;"
+          >
+            {{ name }}
+          </el-tag>
+          <span v-if="!(rolesMap[row.user_id] && rolesMap[row.user_id].length)">-</span>
+        </div>
+      </template>
+
       <!-- 头像列 -->
       <template #avatar="{ row }">
         <el-avatar
@@ -95,7 +113,7 @@
           :icon="UserFilled"
         />
       </template>
-      
+
       <!-- 操作列 -->
       <template #actions="{ row }">
         <el-button
@@ -104,13 +122,6 @@
           @click="handleEdit(row)"
         >
           编辑
-        </el-button>
-        <el-button
-          type="warning"
-          size="small"
-          @click="handleAssignRole(row)"
-        >
-          分配角色
         </el-button>
         <el-button
           :type="row.status === '0' ? 'success' : 'danger'"
@@ -145,40 +156,10 @@
       :form-data="currentUser"
       :rules="userFormRules"
       :loading="formLoading"
+      width="800px"
       @confirm="handleUserFormConfirm"
       @cancel="handleUserFormCancel"
     />
-    
-    <!-- 角色分配对话框 -->
-    <el-dialog
-      v-model="roleDialogVisible"
-      title="分配角色"
-      width="600px"
-    >
-      <div class="role-assign-content">
-        <p>为用户 <strong>{{ currentUser?.username }}</strong> 分配角色：</p>
-        <el-checkbox-group v-model="selectedRoles">
-          <el-checkbox
-            v-for="role in roleList"
-            :key="role.role_id"
-            :label="role.role_id"
-          >
-            {{ role.role_name }}
-          </el-checkbox>
-        </el-checkbox-group>
-      </div>
-      
-      <template #footer>
-        <el-button @click="roleDialogVisible = false">取消</el-button>
-        <el-button
-          type="primary"
-          @click="handleRoleAssignConfirm"
-          :loading="formLoading"
-        >
-          确定
-        </el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -190,7 +171,6 @@ import {
   Delete,
   Download,
   Upload,
-  Refresh,
   UserFilled
 } from '@element-plus/icons-vue'
 import CommonTable from '@/components/Common/CommonTable.vue'
@@ -198,12 +178,15 @@ import SearchForm from '@/components/Common/SearchForm.vue'
 import FormDialog from '@/components/Common/FormDialog.vue'
 import { UserApi } from '@/api/modules/user'
 import { RoleApi } from '@/api/modules/role'
+import { DepartmentApi } from '@/api/modules/department'
 import type {
   UserInfo,
   TableColumn,
   SearchField,
   FormField,
-  FormRule
+  FormRule,
+  DeptInfo,
+  RoleInfo
 } from '@/api/types'
 
 // 响应式数据
@@ -212,11 +195,11 @@ const formLoading = ref(false)
 const userList = ref<UserInfo[]>([])
 const selectedUsers = ref<UserInfo[]>([])
 const userDialogVisible = ref(false)
-const roleDialogVisible = ref(false)
 const isEdit = ref(false)
-const currentUser = ref<Partial<UserInfo>>({})
-const selectedRoles = ref<number[]>([])
-const roleList = ref<any[]>([])
+const currentUser = ref<Partial<UserInfo & { roles?: number[] }>>({})
+const departmentList = ref<DeptInfo[]>([])
+const roleList = ref<RoleInfo[]>([])
+const rolesMap = ref<Record<number, string[]>>({})
 
 // 搜索参数
 const searchParams = reactive({
@@ -256,6 +239,18 @@ const searchFields: SearchField[] = [
     defaultValue: null
   },
   {
+    prop: 'dept_id',
+    label: '部门',
+    component: 'select',
+    get options() {
+      return departmentList.value.map(dept => ({
+        label: dept.dept_name,
+        value: dept.dept_id
+      }))
+    },
+    defaultValue: null
+  },
+  {
     prop: 'ssex',
     label: '性别',
     component: 'select',
@@ -276,9 +271,10 @@ const tableColumns: TableColumn[] = [
   { prop: 'mobile', label: '手机号', width: 110 },
   { prop: 'avatar', label: '头像', width: 60, slot: 'avatar' },
   { prop: 'ssex', label: '性别', width: 60, slot: 'ssex' },
-  { prop: 'dept_name', label: '部门', width: 80 },
+  { prop: 'dept_name', label: '部门', width: 120 },
   { prop: 'status', label: '状态', width: 70, slot: 'status' },
   { prop: 'create_time', label: '创建时间', width: 140 },
+  { prop: 'roles', label: '角色', width: 200, slot: 'roles' },
   { prop: 'last_login_time', label: '最后登录', width: 140 }
 ]
 
@@ -300,13 +296,17 @@ const userFormFields: FormField[] = [
     label: '密码',
     component: 'input',
     inputType: 'password',
-    required: true,
+    get required() {
+      return !isEdit.value
+    },
     span: 12,
     showPassword: true,
-    rules: [
-      { required: true, message: '请输入密码', trigger: 'blur' },
-      { min: 6, max: 20, message: '密码长度在 6 到 20 个字符', trigger: 'blur' }
-    ]
+    get rules() {
+      return !isEdit.value ? [
+        { required: true, message: '请输入密码', trigger: 'blur' },
+        { min: 6, max: 20, message: '密码长度在 6 到 20 个字符', trigger: 'blur' }
+      ] : []
+    }
   },
   {
     prop: 'email',
@@ -322,6 +322,19 @@ const userFormFields: FormField[] = [
     label: '手机号',
     component: 'input',
     span: 12
+  },
+  {
+    prop: 'dept_id',
+    label: '所属部门',
+    component: 'select',
+    span: 12,
+    get options() {
+      return departmentList.value.map(dept => ({
+        label: dept.dept_name,
+        value: dept.dept_id
+      }))
+    },
+    placeholder: '请选择部门'
   },
   {
     prop: 'ssex',
@@ -340,11 +353,24 @@ const userFormFields: FormField[] = [
     label: '状态',
     component: 'radio',
     span: 12,
-    defaultValue: '1',
+    defaultValue: '0', // 默认状态改为禁用
     options: [
       { label: '启用', value: '1' },
       { label: '禁用', value: '0' }
     ]
+  },
+  {
+    prop: 'roles',
+    label: '分配角色',
+    component: 'checkbox',
+    span: 24,
+    get options() {
+      return roleList.value.map(role => ({
+        label: role.role_name,
+        value: role.role_id
+      }))
+    },
+    placeholder: '请选择角色'
   },
   {
     prop: 'description',
@@ -378,49 +404,90 @@ const getSexText = (sex: string) => {
   return sexMap[sex] || '未知'
 }
 
+// 加载部门列表
+const loadDepartmentList = async () => {
+  try {
+    const response = await DepartmentApi.getDepartmentList()
+    const raw: any = (response as any)?.data
+    const list = Array.isArray(raw) ? raw : (raw?.departments || raw?.items || [])
+    departmentList.value = Array.isArray(list) ? list : []
+  } catch (error) {
+    console.error('加载部门列表失败:', error)
+    departmentList.value = []
+  }
+}
+
+// 加载角色列表
+const loadRoleList = async () => {
+  try {
+    const response = await RoleApi.getAllRoles()
+    if (response.success && response.data) {
+      roleList.value = response.data
+    }
+  } catch (error) {
+    console.error('加载角色列表失败:', error)
+  }
+}
+
 // 获取用户列表
 const getUserList = async () => {
   try {
     loading.value = true
-    // 构建请求参数，过滤掉null和空字符串
     const params: any = {
       page: pagination.page,
       size: pagination.size
     }
+    if (searchParams.keyword && searchParams.keyword.trim()) params.keyword = searchParams.keyword.trim()
+    if (searchParams.status !== null && searchParams.status !== undefined && searchParams.status !== '') params.status = searchParams.status
+    if (searchParams.dept_id) params.dept_id = searchParams.dept_id
+    if (searchParams.ssex !== null && searchParams.ssex !== undefined && searchParams.ssex !== '') params.ssex = searchParams.ssex
 
-    // 只添加有效的筛选参数
-    if (searchParams.keyword && searchParams.keyword.trim()) {
-      params.keyword = searchParams.keyword.trim()
-    }
-    if (searchParams.status !== null && searchParams.status !== undefined && searchParams.status !== '') {
-      params.status = searchParams.status
-    }
-    if (searchParams.dept_id) {
-      params.dept_id = searchParams.dept_id
-    }
-    if (searchParams.ssex !== null && searchParams.ssex !== undefined && searchParams.ssex !== '') {
-      params.ssex = searchParams.ssex
-    }
-
-    // 调用真实API接口
     const response = await UserApi.getUserList(params)
     if (response.success && response.data) {
-      // 适配响应拦截器转换后的格式
-      userList.value = Array.isArray(response.data) ? response.data : []
+      const list: any[] = Array.isArray(response.data) ? response.data : []
+      userList.value = list
       pagination.total = (response as any).total || 0
+
+      // 若后端已返回 roles，则直接填充 rolesMap；否则降级为逐个请求
+      const ids = list.map(u => u.user_id)
+      const hasRoles = list.some(u => Array.isArray((u as any).roles))
+      if (hasRoles) {
+        const map: Record<number, string[]> = {}
+        list.forEach((u: any) => { map[u.user_id] = (u.roles || []).map((r: any) => r.role_name) })
+        rolesMap.value = map
+      } else {
+        await loadRolesForUsers(ids)
+      }
     } else {
       ElMessage.error(response.message || '获取用户列表失败')
       userList.value = []
       pagination.total = 0
+      rolesMap.value = {}
     }
   } catch (error) {
     console.error('获取用户列表失败:', error)
     ElMessage.error('获取用户列表失败')
     userList.value = []
     pagination.total = 0
+    rolesMap.value = {}
   } finally {
     loading.value = false
   }
+}
+
+// 批量加载角色（逐个请求，保证最小改动；若后端没返回roles时使用）
+const loadRolesForUsers = async (userIds: number[]) => {
+  const map: Record<number, string[]> = { ...rolesMap.value }
+  await Promise.all(userIds.map(async (id) => {
+    try {
+      const res = await UserApi.getUserRoles(id)
+      const names = (res?.data?.roles || []).map((r: any) => r.role_name)
+      map[id] = names
+    } catch (e) {
+      map[id] = []
+    }
+  }))
+  rolesMap.value = map
 }
 
 // 搜索
@@ -445,11 +512,6 @@ const handleReset = () => {
   getUserList()
 }
 
-// 刷新
-const handleRefresh = () => {
-  getUserList()
-}
-
 // 分页变化
 const handlePageChange = (page: number) => {
   pagination.page = page
@@ -468,20 +530,40 @@ const handleSelectionChange = (selection: UserInfo[]) => {
 }
 
 // 新增用户
-const handleAdd = () => {
+const handleAdd = async () => {
   isEdit.value = false
   currentUser.value = {
     ssex: '2',
-    status: '0' // 默认状态改为禁用
+    status: '0', // 默认状态改为禁用
+    roles: []
   }
+  await loadDepartmentList()
+  await loadRoleList()
   userDialogVisible.value = true
 }
 
 // 编辑用户
-const handleEdit = (row: UserInfo) => {
-  isEdit.value = true
-  currentUser.value = { ...row }
-  userDialogVisible.value = true
+const handleEdit = async (row: UserInfo) => {
+  try {
+    isEdit.value = true
+
+    // 预加载部门和角色选项，确保下拉显示真实名称
+    await loadDepartmentList()
+    await loadRoleList()
+
+    // 获取用户当前角色
+    const userRolesResponse = await UserApi.getUserRoles(row.user_id)
+    const userRoles = userRolesResponse.data?.roles?.map((role: any) => role.role_id) || []
+
+    currentUser.value = {
+      ...row,
+      roles: userRoles
+    }
+    userDialogVisible.value = true
+  } catch (error) {
+    console.error('获取用户角色信息失败:', error)
+    ElMessage.error('获取用户信息失败')
+  }
 }
 
 // 删除用户
@@ -585,66 +667,48 @@ const handleResetPassword = async (row: UserInfo) => {
   }
 }
 
-// 分配角色
-const handleAssignRole = async (row: UserInfo) => {
-  currentUser.value = row
-  
-  // 获取角色列表和用户当前角色
-  try {
-    const [rolesResponse, userRolesResponse] = await Promise.all([
-      RoleApi.getAllRoles(),
-      UserApi.getUserRoles(row.user_id)
-    ])
-    
-    roleList.value = rolesResponse.data || []
-    selectedRoles.value = userRolesResponse.data?.roles?.map(role => role.role_id) || []
-    
-    roleDialogVisible.value = true
-  } catch (error) {
-    console.error('获取角色信息失败:', error)
-    ElMessage.error('获取角色信息失败')
-  }
-}
-
-// 确认角色分配
-const handleRoleAssignConfirm = async () => {
-  try {
-    formLoading.value = true
-    
-    await UserApi.assignUserRoles(currentUser.value.user_id!, {
-      role_ids: selectedRoles.value
-    })
-    
-    ElMessage.success('角色分配成功')
-    roleDialogVisible.value = false
-    getUserList()
-  } catch (error) {
-    console.error('角色分配失败:', error)
-    ElMessage.error('角色分配失败')
-  } finally {
-    formLoading.value = false
-  }
-}
-
 // 用户表单确认
 const handleUserFormConfirm = async (data: any) => {
   try {
     formLoading.value = true
     
+    // 分离用户基本信息和角色信息
+    const { roles, password, ...userData } = data
+    
     if (isEdit.value) {
-      // 编辑用户
-      const { password, ...updateData } = data
-      await UserApi.updateUser(currentUser.value.user_id!, updateData)
+      // 编辑用户 - 更新基本信息
+      await UserApi.updateUser(currentUser.value.user_id!, userData)
+      
+      // 更新角色分配
+      if (roles !== undefined) {
+        await UserApi.assignUserRoles(currentUser.value.user_id!, {
+          role_ids: roles || []
+        })
+      }
+      
       ElMessage.success('用户更新成功')
     } else {
-      // 新增用户
-      await UserApi.createUser(data)
+      // 新增用户 - 包含密码
+      const createUserData = { ...userData, password }
+      const createResponse = await UserApi.createUser(createUserData)
+      
+      // 如果新增成功且指定了角色，分配角色
+      if (createResponse.success && roles && roles.length > 0) {
+        const newUserId = createResponse.data?.user_id
+        if (newUserId) {
+          await UserApi.assignUserRoles(newUserId, {
+            role_ids: roles
+          })
+        }
+      }
+      
       ElMessage.success('用户创建成功')
     }
     
     userDialogVisible.value = false
     getUserList()
   } catch (error) {
+    console.error('用户操作失败:', error)
     ElMessage.error(isEdit.value ? '用户更新失败' : '用户创建失败')
   } finally {
     formLoading.value = false
@@ -698,8 +762,12 @@ const handleImportError = () => {
 }
 
 // 页面加载时获取数据
-onMounted(() => {
-  getUserList()
+onMounted(async () => {
+  await Promise.all([
+    loadDepartmentList(),
+    loadRoleList(),
+    getUserList()
+  ])
 })
 </script>
 
@@ -745,26 +813,6 @@ onMounted(() => {
     .action-right {
       display: flex;
       gap: 8px;
-    }
-  }
-  
-  .role-assign-content {
-    padding: 20px 0;
-    
-    p {
-      margin-bottom: 16px;
-      color: #606266;
-    }
-    
-    .el-checkbox-group {
-      .el-checkbox {
-        display: block;
-        margin-bottom: 12px;
-        
-        &:last-child {
-          margin-bottom: 0;
-        }
-      }
     }
   }
 }

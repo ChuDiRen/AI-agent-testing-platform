@@ -24,7 +24,7 @@ class DepartmentService:
     def __init__(self, db: Session):
         """
         初始化部门Service
-        
+
         Args:
             db: 数据库会话
         """
@@ -34,48 +34,53 @@ class DepartmentService:
     def create_department(self, parent_id: int, dept_name: str, order_num: float = None) -> Department:
         """
         创建部门
-        
+
         Args:
             parent_id: 上级部门ID，0表示顶级部门
             dept_name: 部门名称
             order_num: 排序号
-            
+
         Returns:
             创建的部门对象
-            
+
         Raises:
             ValueError: 部门名称已存在
         """
         # 检查部门名称是否已存在
         if self.department_repository.exists_by_name(dept_name):
             raise ValueError(f"部门名称 '{dept_name}' 已存在")
-        
+
         # 创建部门
         department = Department(parent_id=parent_id, dept_name=dept_name, order_num=order_num)
         created_department = self.department_repository.create(department)
-        
+
         logger.info(f"Created department: {dept_name}")
         return created_department
 
     def get_department_by_id(self, dept_id: int) -> Optional[Department]:
         """
         根据ID获取部门
-        
+
         Args:
             dept_id: 部门ID
-            
+
         Returns:
             部门对象或None
         """
         return self.department_repository.get_by_id(dept_id)
 
+    def get_departments_by_ids(self, dept_ids: List[int]) -> List[Department]:
+        """批量根据ID获取部门列表  # 注释"""
+        return self.department_repository.get_by_ids(dept_ids)
+
+
     def get_department_by_name(self, dept_name: str) -> Optional[Department]:
         """
         根据名称获取部门
-        
+
         Args:
             dept_name: 部门名称
-            
+
         Returns:
             部门对象或None
         """
@@ -84,12 +89,12 @@ class DepartmentService:
     def get_department_tree(self) -> List[Dict[str, Any]]:
         """
         获取部门树结构
-        
+
         Returns:
             部门树列表
         """
         all_departments = self.department_repository.get_department_tree()
-        
+
         # 构建部门树
         dept_dict = {}
         for dept in all_departments:
@@ -102,7 +107,7 @@ class DepartmentService:
                 "modify_time": dept.modify_time.isoformat() if dept.modify_time else None,
                 "children": []
             }
-        
+
         # 构建父子关系
         tree = []
         for dept_data in dept_dict.values():
@@ -112,13 +117,13 @@ class DepartmentService:
                 parent = dept_dict.get(dept_data["parent_id"])
                 if parent:
                     parent["children"].append(dept_data)
-        
+
         return tree
 
     def get_top_level_departments(self) -> List[Department]:
         """
         获取顶级部门
-        
+
         Returns:
             顶级部门列表
         """
@@ -127,10 +132,10 @@ class DepartmentService:
     def get_children_departments(self, parent_id: int) -> List[Department]:
         """
         获取子部门
-        
+
         Args:
             parent_id: 父级部门ID
-            
+
         Returns:
             子部门列表
         """
@@ -139,15 +144,15 @@ class DepartmentService:
     def update_department(self, dept_id: int, dept_name: str = None, order_num: float = None) -> Optional[Department]:
         """
         更新部门信息
-        
+
         Args:
             dept_id: 部门ID
             dept_name: 新的部门名称
             order_num: 新的排序号
-            
+
         Returns:
             更新后的部门对象或None
-            
+
         Raises:
             ValueError: 部门名称已存在
         """
@@ -155,29 +160,29 @@ class DepartmentService:
         if not department:
             logger.warning(f"Department not found with id: {dept_id}")
             return None
-        
+
         # 如果要更新部门名称，检查是否已存在
         if dept_name and dept_name != department.dept_name:
             if self.department_repository.exists_by_name(dept_name, exclude_id=dept_id):
                 raise ValueError(f"部门名称 '{dept_name}' 已存在")
-        
+
         # 更新部门信息
         department.update_info(dept_name=dept_name, order_num=order_num)
         updated_department = self.department_repository.update(department)
-        
+
         logger.info(f"Updated department: {dept_id}")
         return updated_department
 
     def delete_department(self, dept_id: int) -> bool:
         """
         删除部门
-        
+
         Args:
             dept_id: 部门ID
-            
+
         Returns:
             是否删除成功
-            
+
         Raises:
             ValueError: 部门仍有子部门或用户
         """
@@ -187,22 +192,22 @@ class DepartmentService:
                 raise ValueError("部门仍有子部门，无法删除")
             if self.department_repository.has_users(dept_id):
                 raise ValueError("部门仍有用户，无法删除")
-        
+
         # 删除部门
         success = self.department_repository.delete(dept_id)
-        
+
         if success:
             logger.info(f"Deleted department: {dept_id}")
-        
+
         return success
 
     def search_departments(self, keyword: str) -> List[Department]:
         """
         搜索部门
-        
+
         Args:
             keyword: 搜索关键词
-            
+
         Returns:
             匹配的部门列表
         """
@@ -211,7 +216,7 @@ class DepartmentService:
     def get_all_departments(self) -> List[Department]:
         """
         获取所有部门
-        
+
         Returns:
             部门列表
         """
@@ -220,10 +225,10 @@ class DepartmentService:
     def has_children(self, dept_id: int) -> bool:
         """
         检查部门是否有子部门
-        
+
         Args:
             dept_id: 部门ID
-            
+
         Returns:
             True表示有子部门，False表示没有
         """
@@ -232,10 +237,10 @@ class DepartmentService:
     def has_users(self, dept_id: int) -> bool:
         """
         检查部门是否有用户
-        
+
         Args:
             dept_id: 部门ID
-            
+
         Returns:
             True表示有用户，False表示没有
         """
@@ -244,10 +249,10 @@ class DepartmentService:
     def can_delete(self, dept_id: int) -> bool:
         """
         检查部门是否可以删除
-        
+
         Args:
             dept_id: 部门ID
-            
+
         Returns:
             True表示可以删除，False表示不可以
         """

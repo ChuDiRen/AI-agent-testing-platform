@@ -1,159 +1,164 @@
+# Copyright (c) 2025 左岚. All rights reserved.
+
 <template>
   <div class="search-form">
     <el-form
       ref="formRef"
       :model="formData"
-      :inline="inline"
+      :inline="false"
       :label-width="labelWidth"
       class="search-form-content"
     >
-      <template v-for="field in fields" :key="field.prop">
-        <el-form-item
-          :label="field.label"
-          :prop="field.prop"
-          :label-width="field.labelWidth"
-        >
-          <!-- 输入框 -->
-          <el-input
-            v-if="field.component === 'input'"
-            v-model="formData[field.prop]"
-            :placeholder="field.placeholder || `请输入${field.label}`"
-            :clearable="field.clearable !== false"
-            :disabled="field.disabled"
-            v-bind="field.props"
-            @keyup.enter="handleSearch"
-          />
-          
-          <!-- 选择器 -->
-          <el-select
-            v-else-if="field.component === 'select'"
-            v-model="formData[field.prop]"
-            :placeholder="field.placeholder || `请选择${field.label}`"
-            :clearable="field.clearable !== false"
-            :disabled="field.disabled"
-            :multiple="field.multiple"
-            v-bind="field.props"
+      <div class="search-grid">
+        <template v-for="field in visibleFields" :key="field.prop">
+          <el-form-item
+            :label="field.label"
+            :prop="field.prop"
+            :label-width="field.labelWidth"
+            class="search-item"
           >
-            <el-option
-              v-for="option in field.options"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-              :disabled="option.disabled"
+            <!-- 输入框 -->
+            <el-input
+              v-if="field.component === 'input'"
+              v-model="formData[field.prop]"
+              :placeholder="field.placeholder || `请输入${field.label}`"
+              :clearable="field.clearable !== false"
+              :disabled="field.disabled"
+              v-bind="field.props"
+              @keyup.enter="handleSearch"
             />
-          </el-select>
-          
-          <!-- 日期选择器 -->
-          <el-date-picker
-            v-else-if="field.component === 'date'"
-            v-model="formData[field.prop]"
-            :type="field.dateType || 'date'"
-            :placeholder="field.placeholder || `请选择${field.label}`"
-            :clearable="field.clearable !== false"
-            :disabled="field.disabled"
-            :format="field.format"
-            :value-format="field.valueFormat"
-            v-bind="field.props"
-          />
-          
-          <!-- 日期范围选择器 -->
-          <el-date-picker
-            v-else-if="field.component === 'daterange'"
-            v-model="formData[field.prop]"
-            type="daterange"
-            :range-separator="field.rangeSeparator || '至'"
-            :start-placeholder="field.startPlaceholder || '开始日期'"
-            :end-placeholder="field.endPlaceholder || '结束日期'"
-            :clearable="field.clearable !== false"
-            :disabled="field.disabled"
-            :format="field.format"
-            :value-format="field.valueFormat"
-            v-bind="field.props"
-          />
-          
-          <!-- 数字输入框 -->
-          <el-input-number
-            v-else-if="field.component === 'number'"
-            v-model="formData[field.prop]"
-            :placeholder="field.placeholder"
-            :disabled="field.disabled"
-            :min="field.min"
-            :max="field.max"
-            :step="field.step"
-            v-bind="field.props"
-          />
-          
-          <!-- 树形选择器 -->
-          <el-tree-select
-            v-else-if="field.component === 'tree-select'"
-            v-model="formData[field.prop]"
-            :data="field.data"
-            :placeholder="field.placeholder || `请选择${field.label}`"
-            :clearable="field.clearable !== false"
-            :disabled="field.disabled"
-            :multiple="field.multiple"
-            :check-strictly="field.checkStrictly"
-            :node-key="field.nodeKey || 'id'"
-            :props="field.treeProps || { label: 'label', children: 'children' }"
-            v-bind="field.props"
-          />
-          
-          <!-- 级联选择器 -->
-          <el-cascader
-            v-else-if="field.component === 'cascader'"
-            v-model="formData[field.prop]"
-            :options="field.options"
-            :placeholder="field.placeholder || `请选择${field.label}`"
-            :clearable="field.clearable !== false"
-            :disabled="field.disabled"
-            :props="field.cascaderProps"
-            v-bind="field.props"
-          />
-          
-          <!-- 自定义插槽 -->
-          <slot
-            v-else-if="field.component === 'slot'"
-            :name="field.slot"
-            :field="field"
-            :value="formData[field.prop]"
-            :setValue="(val: any) => formData[field.prop] = val"
-          />
-        </el-form-item>
-      </template>
-      
-      <!-- 操作按钮 -->
-      <el-form-item>
-        <el-button
-          type="primary"
-          :icon="Search"
-          @click="handleSearch"
-          :loading="loading"
-        >
-          搜索
-        </el-button>
-        <el-button
-          :icon="Refresh"
-          @click="handleReset"
-        >
-          重置
-        </el-button>
-        <el-button
-          v-if="showToggle && fields.length > toggleCount"
-          type="text"
-          @click="toggleExpanded"
-        >
-          {{ expanded ? '收起' : '展开' }}
-          <el-icon class="toggle-icon" :class="{ 'expanded': expanded }">
-            <ArrowUp />
-          </el-icon>
-        </el-button>
-      </el-form-item>
+            
+            <!-- 选择器 -->
+            <el-select
+              v-else-if="field.component === 'select'"
+              v-model="formData[field.prop]"
+              :placeholder="field.placeholder || `请选择${field.label}`"
+              :clearable="field.clearable !== false"
+              :disabled="field.disabled"
+              :multiple="field.multiple"
+              v-bind="field.props"
+            >
+              <el-option
+                v-for="option in field.options"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+                :disabled="option.disabled"
+              />
+            </el-select>
+            
+            <!-- 日期选择器 -->
+            <el-date-picker
+              v-else-if="field.component === 'date'"
+              v-model="formData[field.prop]"
+              :type="field.dateType || 'date'"
+              :placeholder="field.placeholder || `请选择${field.label}`"
+              :clearable="field.clearable !== false"
+              :disabled="field.disabled"
+              :format="field.format"
+              :value-format="field.valueFormat"
+              v-bind="field.props"
+            />
+            
+            <!-- 日期范围选择器 -->
+            <el-date-picker
+              v-else-if="field.component === 'daterange'"
+              v-model="formData[field.prop]"
+              type="daterange"
+              :range-separator="field.rangeSeparator || '至'"
+              :start-placeholder="field.startPlaceholder || '开始日期'"
+              :end-placeholder="field.endPlaceholder || '结束日期'"
+              :clearable="field.clearable !== false"
+              :disabled="field.disabled"
+              :format="field.format"
+              :value-format="field.valueFormat"
+              v-bind="field.props"
+            />
+            
+            <!-- 数字输入框 -->
+            <el-input-number
+              v-else-if="field.component === 'number'"
+              v-model="formData[field.prop]"
+              :placeholder="field.placeholder"
+              :disabled="field.disabled"
+              :min="field.min"
+              :max="field.max"
+              :step="field.step"
+              v-bind="field.props"
+            />
+            
+            <!-- 树形选择器 -->
+            <el-tree-select
+              v-else-if="field.component === 'tree-select'"
+              v-model="formData[field.prop]"
+              :data="field.data"
+              :placeholder="field.placeholder || `请选择${field.label}`"
+              :clearable="field.clearable !== false"
+              :disabled="field.disabled"
+              :multiple="field.multiple"
+              :check-strictly="field.checkStrictly"
+              :node-key="field.nodeKey || 'id'"
+              :props="field.treeProps || { label: 'label', children: 'children' }"
+              v-bind="field.props"
+            />
+            
+            <!-- 级联选择器 -->
+            <el-cascader
+              v-else-if="field.component === 'cascader'"
+              v-model="formData[field.prop]"
+              :options="field.options"
+              :placeholder="field.placeholder || `请选择${field.label}`"
+              :clearable="field.clearable !== false"
+              :disabled="field.disabled"
+              :props="field.cascaderProps"
+              v-bind="field.props"
+            />
+            
+            <!-- 自定义插槽 -->
+            <slot
+              v-else-if="field.component === 'slot'"
+              :name="field.slot"
+              :field="field"
+              :value="formData[field.prop]"
+              :setValue="(val: any) => formData[field.prop] = val"
+            />
+          </el-form-item>
+        </template>
+        
+        <!-- 操作按钮 -->
+        <div class="search-actions">
+          <el-button
+            type="primary"
+            :icon="Search"
+            @click="handleSearch"
+            :loading="loading"
+          >
+            搜索
+          </el-button>
+          <el-button
+            :icon="Refresh"
+            @click="handleReset"
+          >
+            重置
+          </el-button>
+          <el-button
+            v-if="showToggle && fields.length > toggleCount"
+            type="text"
+            @click="toggleExpanded"
+          >
+            {{ expanded ? '收起' : '展开' }}
+            <el-icon class="toggle-icon" :class="{ 'expanded': expanded }">
+              <ArrowUp />
+            </el-icon>
+          </el-button>
+        </div>
+      </div>
     </el-form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import { Search, Refresh, ArrowUp } from '@element-plus/icons-vue'
 import type { SearchField } from '@/api/types'
 
@@ -223,13 +228,13 @@ watch(formData, (newVal) => {
   emit('update:modelValue', { ...newVal })
 }, { deep: true })
 
-// 显示的字段 - 暂时注释掉未使用的计算属性
-// const visibleFields = computed(() => {
-//   if (!props.showToggle || expanded.value || props.fields.length <= props.toggleCount) {
-//     return props.fields
-//   }
-//   return props.fields.slice(0, props.toggleCount)
-// })
+// 显示的字段
+const visibleFields = computed(() => {
+  if (!props.showToggle || expanded.value || props.fields.length <= props.toggleCount) {
+    return props.fields
+  }
+  return props.fields.slice(0, props.toggleCount)
+})
 
 // 搜索
 const handleSearch = () => {
@@ -287,11 +292,39 @@ defineExpose({
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   
   .search-form-content {
-    :deep(.el-form-item) {
-      margin-bottom: 16px;
+    .search-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px 20px;
+      align-items: end;
+      transition: all 0.3s ease;
       
-      .el-form-item__content {
-        width: 200px;
+              .search-item {
+          margin-bottom: 0;
+          opacity: 1;
+          transform: translateY(0);
+          transition: opacity 0.3s ease, transform 0.3s ease;
+        
+        :deep(.el-form-item__label) {
+          font-weight: 500;
+          color: #606266;
+          line-height: 32px;
+        }
+        
+        :deep(.el-form-item__content) {
+          width: 100%;
+        }
+      }
+      
+      .search-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-self: start;
+        
+        .el-button {
+          height: 32px;
+        }
       }
     }
     
@@ -301,6 +334,15 @@ defineExpose({
     :deep(.el-tree-select), 
     :deep(.el-cascader) {
       width: 100%;
+      height: 32px;
+    }
+    
+    :deep(.el-input__wrapper) {
+      height: 32px;
+    }
+    
+    :deep(.el-select .el-input .el-input__wrapper) {
+      height: 32px;
     }
   }
   
@@ -310,6 +352,95 @@ defineExpose({
     
     &.expanded {
       transform: rotate(180deg);
+    }
+  }
+}
+
+// 响应式布局
+@media (max-width: 1200px) {
+  .search-form {
+    .search-form-content .search-grid {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px 16px;
+    }
+  }
+}
+
+@media (max-width: 992px) {
+  .search-form {
+    padding: 16px;
+    
+    .search-form-content .search-grid {
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px 14px;
+      
+      .search-actions {
+        grid-column: 1 / -1; // 按钮区域占满整行
+        justify-self: center;
+        margin-top: 8px;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .search-form {
+    padding: 12px;
+    
+    .search-form-content .search-grid {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px 12px;
+      
+      .search-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+        
+        .el-button {
+          height: 28px;
+          font-size: 12px;
+          padding: 4px 12px;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .search-form {
+    padding: 10px;
+    
+    .search-form-content .search-grid {
+      grid-template-columns: 1fr; // 小屏幕单列布局
+      gap: 8px;
+      
+      .search-item {
+        :deep(.el-form-item__label) {
+          font-size: 12px;
+          line-height: 28px;
+        }
+      }
+      
+      .search-actions {
+        margin-top: 12px;
+        
+        .el-button {
+          flex: 1;
+          max-width: 80px;
+        }
+      }
+    }
+    
+    :deep(.el-input), 
+    :deep(.el-select), 
+    :deep(.el-date-editor), 
+    :deep(.el-tree-select), 
+    :deep(.el-cascader) {
+      height: 28px;
+      font-size: 12px;
+    }
+    
+    :deep(.el-input__wrapper) {
+      height: 28px;
     }
   }
 }

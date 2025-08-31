@@ -4,14 +4,16 @@ RBAC用户Service
 实现用户相关的RBAC业务逻辑
 """
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
-from sqlalchemy.orm import Session
+from sqlalchemy import func, or_
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.logger import get_logger
 from app.core.security import get_password_hash, verify_password
 from app.entity.role import Role
 from app.entity.user import User
+from app.entity.user_role import UserRole
 from app.repository.base import BaseRepository
 from app.repository.role_repository import RoleRepository
 from app.repository.user_role_repository import UserRoleRepository
@@ -28,7 +30,7 @@ class RBACUserService:
     def __init__(self, db: Session):
         """
         初始化RBAC用户Service
-        
+
         Args:
             db: 数据库会话
         """
@@ -42,7 +44,7 @@ class RBACUserService:
                    avatar: str = None, description: str = None) -> User:
         """
         创建用户
-        
+
         Args:
             username: 用户名
             password: 明文密码
@@ -52,10 +54,10 @@ class RBACUserService:
             ssex: 性别，'0'男 '1'女 '2'保密
             avatar: 头像
             description: 描述
-            
+
         Returns:
             创建的用户对象
-            
+
         Raises:
             ValueError: 用户名已存在
         """
@@ -63,10 +65,10 @@ class RBACUserService:
         existing_user = self.db.query(User).filter(User.username == username).first()
         if existing_user:
             raise ValueError(f"用户名 '{username}' 已存在")
-        
+
         # 加密密码
         hashed_password = get_password_hash(password)
-        
+
         # 创建用户
         user = User(
             username=username,
@@ -78,7 +80,7 @@ class RBACUserService:
             avatar=avatar,
             description=description
         )
-        
+
         created_user = self.user_repository.create(user)
         logger.info(f"Created user: {username}")
         return created_user
@@ -86,10 +88,10 @@ class RBACUserService:
     def get_user_by_id(self, user_id: int) -> Optional[User]:
         """
         根据ID获取用户
-        
+
         Args:
             user_id: 用户ID
-            
+
         Returns:
             用户对象或None
         """
@@ -110,11 +112,11 @@ class RBACUserService:
     def authenticate_user(self, username: str, password: str) -> Optional[User]:
         """
         用户认证
-        
+
         Args:
             username: 用户名
             password: 明文密码
-            
+
         Returns:
             认证成功的用户对象或None
         """
@@ -122,21 +124,21 @@ class RBACUserService:
         if not user:
             logger.warning(f"User not found: {username}")
             return None
-        
+
         if not user.is_active():
             logger.warning(f"User is locked: {username}")
             return None
-        
+
         if not verify_password(password, user.password):
             logger.warning(f"Invalid password for user: {username}")
             return None
-        
+
         # 更新最后登录时间
         user.update_last_login()
         # 直接提交数据库会话，因为user对象已经被修改
         self.db.commit()
         self.db.refresh(user)
-        
+
         logger.info(f"User authenticated successfully: {username}")
         return user
 
@@ -190,12 +192,12 @@ class RBACUserService:
     def change_password(self, user_id: int, old_password: str, new_password: str) -> bool:
         """
         修改密码
-        
+
         Args:
             user_id: 用户ID
             old_password: 旧密码
             new_password: 新密码
-            
+
         Returns:
             是否修改成功
         """
@@ -203,16 +205,16 @@ class RBACUserService:
         if not user:
             logger.warning(f"User not found with id: {user_id}")
             return False
-        
+
         # 验证旧密码
         if not verify_password(old_password, user.password):
             logger.warning(f"Invalid old password for user: {user_id}")
             return False
-        
+
         # 设置新密码
         hashed_new_password = get_password_hash(new_password)
         user.change_password(hashed_new_password)
-        
+
         self.user_repository.update(user)
         logger.info(f"Password changed for user: {user_id}")
         return True
@@ -220,10 +222,10 @@ class RBACUserService:
     def delete_user(self, user_id: int) -> bool:
         """
         删除用户
-        
+
         Args:
             user_id: 用户ID
-            
+
         Returns:
             是否删除成功
         """
@@ -233,13 +235,13 @@ class RBACUserService:
             if not user:
                 logger.warning(f"User not found with id: {user_id}")
                 return False
-            
+
             # 先删除用户角色关联
             self.user_role_repository.delete_by_user_id(user_id)
-            
+
             # 删除用户
             self.user_repository.delete(user_id)
-            
+
             self.db.commit()
             logger.info(f"Deleted user: {user_id}")
             return True
@@ -251,11 +253,11 @@ class RBACUserService:
     def reset_password(self, user_id: int, new_password: str) -> bool:
         """
         管理员重置用户密码（无需旧密码）
-        
+
         Args:
             user_id: 用户ID
             new_password: 新密码
-            
+
         Returns:
             是否重置成功
         """
@@ -266,16 +268,16 @@ class RBACUserService:
             if not user:
                 logger.warning(f"User not found with id: {user_id}")
                 return False
-            
+
             logger.info(f"Found user: {user.username}, current password hash length: {len(user.password) if user.password else 'None'}")
-            
+
             # 直接设置新密码（管理员权限，无需验证旧密码）
             hashed_new_password = get_password_hash(new_password)
             logger.info(f"Generated new password hash length: {len(hashed_new_password)}")
-            
+
             user.change_password(hashed_new_password)
             logger.info(f"Password updated in entity for user: {user_id}")
-            
+
             # 提交数据库更改
             self.db.commit()
             self.db.refresh(user)
@@ -288,10 +290,10 @@ class RBACUserService:
     def lock_user(self, user_id: int) -> bool:
         """
         锁定用户
-        
+
         Args:
             user_id: 用户ID
-            
+
         Returns:
             是否锁定成功
         """
@@ -299,20 +301,20 @@ class RBACUserService:
         if not user:
             logger.warning(f"User not found with id: {user_id}")
             return False
-        
+
         user.lock_user()
         self.user_repository.update(user)
-        
+
         logger.info(f"User locked: {user_id}")
         return True
 
     def unlock_user(self, user_id: int) -> bool:
         """
         解锁用户
-        
+
         Args:
             user_id: 用户ID
-            
+
         Returns:
             是否解锁成功
         """
@@ -320,21 +322,21 @@ class RBACUserService:
         if not user:
             logger.warning(f"User not found with id: {user_id}")
             return False
-        
+
         user.unlock_user()
         self.user_repository.update(user)
-        
+
         logger.info(f"User unlocked: {user_id}")
         return True
 
     def assign_roles_to_user(self, user_id: int, role_ids: List[int]) -> bool:
         """
         为用户分配角色
-        
+
         Args:
             user_id: 用户ID
             role_ids: 角色ID列表
-            
+
         Returns:
             是否分配成功
         """
@@ -344,61 +346,57 @@ class RBACUserService:
             if not user:
                 logger.warning(f"User not found with id: {user_id}")
                 return False
-            
+
             # 检查所有角色是否存在
             for role_id in role_ids:
                 role = self.role_repository.get_by_id(role_id)
                 if not role:
                     logger.warning(f"Role not found with id: {role_id}")
                     return False
-            
+
             # 分配角色
             self.user_role_repository.assign_roles_to_user(user_id, role_ids)
             self.db.commit()
-            
+
             logger.info(f"Assigned {len(role_ids)} roles to user: {user_id}")
             return True
-            
+
         except Exception as e:
             self.db.rollback()
             logger.error(f"Error assigning roles to user {user_id}: {str(e)}")
             return False
 
     def get_user_roles(self, user_id: int) -> List[Role]:
-        """
-        获取用户的角色列表
-        
-        Args:
-            user_id: 用户ID
-            
-        Returns:
-            角色列表
-        """
+        """获取单个用户的角色列表  # 注释"""
         return self.user_role_repository.get_roles_by_user_id(user_id)
+
+    def get_roles_for_users(self, user_ids: List[int]) -> dict:
+        """批量获取多个用户的角色，返回 {user_id: List[Role]}  # 注释"""
+        return self.user_role_repository.get_roles_by_user_ids(user_ids)
 
     def get_user_permissions(self, user_id: int) -> List[str]:
         """
         获取用户的权限标识列表
-        
+
         Args:
             user_id: 用户ID
-            
+
         Returns:
             权限标识列表
         """
         from app.service.menu_service import MenuService
-        
+
         menu_service = MenuService(self.db)
         return menu_service.get_user_permissions(user_id)
 
     def has_permission(self, user_id: int, permission: str) -> bool:
         """
         检查用户是否有指定权限
-        
+
         Args:
             user_id: 用户ID
             permission: 权限标识
-            
+
         Returns:
             是否有权限
         """
@@ -406,21 +404,47 @@ class RBACUserService:
         return permission in user_permissions
 
     def get_all_users(self) -> List[User]:
-        """
-        获取所有用户
-        
-        Returns:
-            用户列表
-        """
+        """获取所有用户（不带筛选，谨慎使用）  # 注释"""
         return self.user_repository.get_all()
+
+    def query_users(self, page: int, size: int,
+                    username: Optional[str] = None,
+                    dept_id: Optional[int] = None,
+                    status: Optional[str] = None,
+                    ssex: Optional[str] = None) -> Tuple[List[User], int]:
+        """基于数据库的分页与筛选，预加载部门与角色  # 注释"""
+        # 统一条件
+        conditions = [User.is_deleted == 0]
+        if username:
+            like = f"%{username}%"
+            conditions.append(or_(User.username.like(like), User.email.like(like), User.mobile.like(like)))
+        if dept_id is not None:
+            conditions.append(User.dept_id == dept_id)
+        if status is not None:
+            conditions.append(User.status == status)
+        if ssex is not None:
+            conditions.append(User.ssex == ssex)
+
+        # 统计总数
+        total = self.db.query(func.count(User.id)).filter(*conditions).scalar() or 0
+
+        # 预加载：部门 + 用户角色->角色
+        q = self.db.query(User).options(
+            selectinload(User.department),
+            selectinload(User.user_roles).selectinload(UserRole.role)
+        ).filter(*conditions).order_by(User.id)
+
+        start = (page - 1) * size
+        users = q.offset(start).limit(size).all()
+        return users, total
 
     def search_users(self, keyword: str) -> List[User]:
         """
         搜索用户
-        
+
         Args:
             keyword: 搜索关键词
-            
+
         Returns:
             匹配的用户列表
         """
@@ -432,10 +456,10 @@ class RBACUserService:
     def get_role_menus(self, role_id: int):
         """
         获取角色的菜单权限
-        
+
         Args:
             role_id: 角色ID
-            
+
         Returns:
             角色菜单关联列表
         """
@@ -446,10 +470,10 @@ class RBACUserService:
     def get_menus_by_ids(self, menu_ids: List[int]):
         """
         根据菜单ID列表获取菜单
-        
+
         Args:
             menu_ids: 菜单ID列表
-            
+
         Returns:
             菜单列表
         """
@@ -459,7 +483,7 @@ class RBACUserService:
     def get_all_menus(self):
         """
         获取所有菜单
-        
+
         Returns:
             菜单列表
         """
@@ -469,10 +493,10 @@ class RBACUserService:
     def get_users_by_role(self, role_id: int):
         """
         获取拥有指定角色的用户
-        
+
         Args:
             role_id: 角色ID
-            
+
         Returns:
             用户角色关联列表
         """
@@ -481,11 +505,11 @@ class RBACUserService:
     def assign_role_to_user(self, user_id: int, role_id: int) -> bool:
         """
         为用户分配单个角色
-        
+
         Args:
             user_id: 用户ID
             role_id: 角色ID
-            
+
         Returns:
             是否分配成功
         """
@@ -502,10 +526,10 @@ class RBACUserService:
     def clear_user_roles(self, user_id: int) -> bool:
         """
         清除用户的所有角色
-        
+
         Args:
             user_id: 用户ID
-            
+
         Returns:
             是否清除成功
         """

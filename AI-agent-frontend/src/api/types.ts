@@ -51,6 +51,7 @@ export interface UserInfo {
   create_time: string
   modify_time?: string
   last_login_time?: string
+  roles?: Array<{ role_id: number; role_name: string; remark?: string }>
 }
 
 // 登录请求参数

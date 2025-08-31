@@ -1,3 +1,5 @@
+# Copyright (c) 2025 左岚. All rights reserved.
+
 """
 DTO层基类
 定义数据传输对象的基础结构
@@ -9,6 +11,8 @@ from typing import Any, Optional, List, Generic, TypeVar
 
 from pydantic import BaseModel, Field, validator
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder  # 确保可序列化 Pydantic/Datetime
+
 
 # 定义泛型类型变量
 T = TypeVar('T')
@@ -19,7 +23,7 @@ class BaseRequest(BaseModel):
     请求DTO基类
     所有请求数据传输对象都应该继承此类
     """
-    
+
     class Config:
         # 允许使用字段别名
         validate_by_name = True
@@ -38,7 +42,7 @@ class BaseResponse(BaseModel):
     响应DTO基类
     所有响应数据传输对象都应该继承此类
     """
-    
+
     class Config:
         # 允许使用字段别名
         validate_by_name = True
@@ -56,18 +60,18 @@ class PaginationRequest(BaseRequest):
     """
     page: int = Field(default=1, ge=1, description="页码，从1开始")
     page_size: int = Field(default=20, ge=1, le=100, description="每页大小，最大100")
-    
+
     @validator('page_size')
     def validate_page_size(cls, v):
         if v > 100:
             raise ValueError('Page size cannot exceed 100')
         return v
-    
+
     @property
     def skip(self) -> int:
         """计算跳过的记录数"""
         return (self.page - 1) * self.page_size
-    
+
     @property
     def limit(self) -> int:
         """获取限制数量"""
@@ -84,22 +88,22 @@ class PaginationResponse(BaseResponse):
     total_pages: int = Field(description="总页数")
     has_next: bool = Field(description="是否有下一页")
     has_prev: bool = Field(description="是否有上一页")
-    
+
     @classmethod
     def create(cls, page: int, page_size: int, total: int) -> "PaginationResponse":
         """
         创建分页响应对象
-        
+
         Args:
             page: 当前页码
             page_size: 每页大小
             total: 总记录数
-            
+
         Returns:
             分页响应对象
         """
         total_pages = (total + page_size - 1) // page_size if total > 0 else 0
-        
+
         return cls(
             page=page,
             page_size=page_size,
@@ -129,7 +133,7 @@ class SearchRequest(PaginationRequest, SortRequest):
     搜索请求DTO
     """
     keyword: Optional[str] = Field(default=None, min_length=1, max_length=100, description="搜索关键词")
-    
+
     @validator('keyword')
     def validate_keyword(cls, v):
         if v is not None:
@@ -148,8 +152,9 @@ class Success(JSONResponse):
         data: Optional[Any] = None,
         **kwargs,
     ):
-        content = {"code": code, "msg": msg, "data": data}
-        content.update(kwargs)
+        payload = {"code": code, "msg": msg, "data": data}
+        payload.update(kwargs)
+        content = jsonable_encoder(payload)  # 保证数据可序列化
         super().__init__(content=content, status_code=200)
 
 
@@ -162,8 +167,9 @@ class Fail(JSONResponse):
         data: Optional[Any] = None,
         **kwargs,
     ):
-        content = {"code": code, "msg": msg, "data": data}
-        content.update(kwargs)
+        payload = {"code": code, "msg": msg, "data": data}
+        payload.update(kwargs)
+        content = jsonable_encoder(payload)  # 保证数据可序列化
         super().__init__(content=content, status_code=200)
 
 
@@ -237,23 +243,23 @@ class PaginatedResponse(BaseResponse):
     """
     items: List[Any] = Field(description="数据列表")
     pagination: PaginationResponse = Field(description="分页信息")
-    
+
     @classmethod
     def create(cls, items: List[Any], page: int, page_size: int, total: int) -> "PaginatedResponse":
         """
         创建分页数据响应
-        
+
         Args:
             items: 数据列表
             page: 当前页码
             page_size: 每页大小
             total: 总记录数
-            
+
         Returns:
             分页数据响应对象
         """
         pagination = PaginationResponse.create(page, page_size, total)
-        
+
         return cls(
             items=items,
             pagination=pagination
@@ -272,7 +278,7 @@ class IdsRequest(BaseRequest):
     多个ID请求DTO
     """
     ids: List[int] = Field(min_items=1, max_items=100, description="实体ID列表")
-    
+
     @validator('ids')
     def validate_ids(cls, v):
         # 去重并排序
@@ -293,7 +299,7 @@ class DateRangeRequest(BaseRequest):
     """
     start_date: Optional[datetime] = Field(default=None, description="开始日期")
     end_date: Optional[datetime] = Field(default=None, description="结束日期")
-    
+
     @validator('end_date')
     def validate_date_range(cls, v, values):
         start_date = values.get('start_date')
@@ -308,7 +314,7 @@ class BulkOperationRequest(BaseRequest):
     """
     ids: List[int] = Field(min_items=1, max_items=100, description="要操作的ID列表")
     operation: str = Field(description="操作类型")
-    
+
     @validator('ids')
     def validate_ids(cls, v):
         return sorted(list(set(v)))
@@ -323,7 +329,7 @@ class BulkOperationResponse(BaseResponse):
     failed_count: int = Field(description="失败数量")
     failed_ids: List[int] = Field(default_factory=list, description="失败的ID列表")
     errors: List[str] = Field(default_factory=list, description="错误信息列表")
-    
+
     @property
     def success_rate(self) -> float:
         """成功率"""
@@ -333,7 +339,7 @@ class BulkOperationResponse(BaseResponse):
 # 导出所有基础DTO类
 __all__ = [
     "BaseRequest",
-    "BaseResponse", 
+    "BaseResponse",
     "PaginationRequest",
     "PaginationResponse",
     "SortOrder",

@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from app.db.session import create_tables, drop_tables
 from app.core.logger import get_logger
-from app.service.rbac_user_service import RBACUserService
+from app.service.user_service import RBACUserService
 from app.db.session import SessionLocal
 
 logger = get_logger(__name__)

@@ -22,7 +22,7 @@ class UserRoleRepository(BaseRepository[UserRole]):
     def __init__(self, db: Session):
         """
         初始化用户角色关联Repository
-        
+
         Args:
             db: 数据库会话
         """
@@ -31,10 +31,10 @@ class UserRoleRepository(BaseRepository[UserRole]):
     def get_by_user_id(self, user_id: int) -> List[UserRole]:
         """
         根据用户ID查询用户角色关联
-        
+
         Args:
             user_id: 用户ID
-            
+
         Returns:
             用户角色关联列表
         """
@@ -43,10 +43,10 @@ class UserRoleRepository(BaseRepository[UserRole]):
     def get_by_role_id(self, role_id: int) -> List[UserRole]:
         """
         根据角色ID查询用户角色关联
-        
+
         Args:
             role_id: 角色ID
-            
+
         Returns:
             用户角色关联列表
         """
@@ -55,10 +55,10 @@ class UserRoleRepository(BaseRepository[UserRole]):
     def get_roles_by_user_id(self, user_id: int) -> List[Role]:
         """
         根据用户ID获取用户的所有角色
-        
+
         Args:
             user_id: 用户ID
-            
+
         Returns:
             角色列表
         """
@@ -66,14 +66,28 @@ class UserRoleRepository(BaseRepository[UserRole]):
             UserRole, Role.id == UserRole.role_id
         ).filter(UserRole.user_id == user_id).all()
 
+
+    def get_roles_by_user_ids(self, user_ids: List[int]) -> dict:
+        """批量获取多个用户的角色列表，返回 {user_id: [Role, ...]}  # 注释"""
+        if not user_ids:
+            return {}
+        # 一次性查出所有关联及角色
+        pairs = self.db.query(UserRole.user_id, Role).join(Role, Role.id == UserRole.role_id).filter(
+            UserRole.user_id.in_(user_ids)
+        ).all()
+        result: dict = {}
+        for uid, role in pairs:
+            result.setdefault(uid, []).append(role)
+        return result
+
     def exists(self, user_id: int, role_id: int) -> bool:
         """
         检查用户角色关联是否存在
-        
+
         Args:
             user_id: 用户ID
             role_id: 角色ID
-            
+
         Returns:
             True表示存在，False表示不存在
         """
@@ -85,10 +99,10 @@ class UserRoleRepository(BaseRepository[UserRole]):
     def delete_by_user_id(self, user_id: int) -> int:
         """
         删除用户的所有角色关联
-        
+
         Args:
             user_id: 用户ID
-            
+
         Returns:
             删除的记录数
         """
@@ -99,10 +113,10 @@ class UserRoleRepository(BaseRepository[UserRole]):
     def delete_by_role_id(self, role_id: int) -> int:
         """
         删除角色的所有用户关联
-        
+
         Args:
             role_id: 角色ID
-            
+
         Returns:
             删除的记录数
         """
@@ -113,11 +127,11 @@ class UserRoleRepository(BaseRepository[UserRole]):
     def delete_specific(self, user_id: int, role_id: int) -> bool:
         """
         删除特定的用户角色关联
-        
+
         Args:
             user_id: 用户ID
             role_id: 角色ID
-            
+
         Returns:
             True表示删除成功，False表示记录不存在
         """
@@ -130,14 +144,14 @@ class UserRoleRepository(BaseRepository[UserRole]):
     def assign_roles_to_user(self, user_id: int, role_ids: List[int]) -> None:
         """
         为用户分配角色（先清除原有角色，再分配新角色）
-        
+
         Args:
             user_id: 用户ID
             role_ids: 角色ID列表
         """
         # 先删除用户的所有角色
         self.delete_by_user_id(user_id)
-        
+
         # 分配新角色
         for role_id in role_ids:
             user_role = UserRole(user_id=user_id, role_id=role_id)
@@ -146,17 +160,17 @@ class UserRoleRepository(BaseRepository[UserRole]):
     def add_role_to_user(self, user_id: int, role_id: int) -> bool:
         """
         为用户添加角色（如果不存在的话）
-        
+
         Args:
             user_id: 用户ID
             role_id: 角色ID
-            
+
         Returns:
             True表示添加成功，False表示已存在
         """
         if self.exists(user_id, role_id):
             return False
-        
+
         user_role = UserRole(user_id=user_id, role_id=role_id)
         self.db.add(user_role)
         return True
