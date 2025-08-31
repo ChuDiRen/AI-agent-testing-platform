@@ -61,21 +61,24 @@
       </div>
     </div>
     
-    <!-- 数据表格 -->
-    <CommonTable
-      v-model:loading="loading"
-      :data="userList"
-      :columns="tableColumns"
-      :pagination="pagination"
-      :show-selection="true"
-      :show-index="false"
-      @selection-change="handleSelectionChange"
-      @page-change="handlePageChange"
-      @size-change="handleSizeChange"
-      @edit="handleEdit"
-      @delete="handleDelete"
-    >
-      <!-- 状态列 -->
+        <!-- 数据表格 -->
+    <div class="table-container">
+      <CommonTable
+        v-model:loading="loading"
+        :data="userList"
+        :columns="tableColumns"
+        :pagination="pagination"
+        :show-selection="true"
+        :show-index="false"
+        :show-actions="true"
+        :action-width="350"
+        @selection-change="handleSelectionChange"
+        @page-change="handlePageChange"
+        @size-change="handleSizeChange"
+        @edit="handleEdit"
+        @delete="handleDelete"
+      >
+        <!-- 状态列 -->
       <template #status="{ row }">
         <el-tag
           :type="row.status === '1' ? 'success' : 'danger'"
@@ -138,8 +141,9 @@
         >
           删除
         </el-button>
-      </template>
-    </CommonTable>
+              </template>
+      </CommonTable>
+    </div>
     
     <!-- 用户表单对话框 -->
     <FormDialog
@@ -273,16 +277,16 @@ const searchFields: SearchField[] = [
 
 // 表格列配置
 const tableColumns: TableColumn[] = [
-  { prop: 'user_id', label: 'ID', width: 80 },
-  { prop: 'username', label: '用户名', minWidth: 120 },
-  { prop: 'email', label: '邮箱', minWidth: 180 },
-  { prop: 'mobile', label: '手机号', width: 120 },
-  { prop: 'avatar', label: '头像', width: 80, slot: 'avatar' },
-  { prop: 'ssex', label: '性别', width: 80, slot: 'ssex' },
-  { prop: 'dept_name', label: '部门', width: 100 },
-  { prop: 'status', label: '状态', width: 80, slot: 'status' },
-  { prop: 'create_time', label: '创建时间', width: 160 },
-  { prop: 'last_login_time', label: '最后登录', width: 160 }
+  { prop: 'user_id', label: 'ID', width: 60, fixed: 'left' },
+  { prop: 'username', label: '用户名', width: 100, fixed: 'left' },
+  { prop: 'email', label: '邮箱', width: 160, fixed: 'left' },
+  { prop: 'mobile', label: '手机号', width: 110 },
+  { prop: 'avatar', label: '头像', width: 60, slot: 'avatar' },
+  { prop: 'ssex', label: '性别', width: 60, slot: 'ssex' },
+  { prop: 'dept_name', label: '部门', width: 80 },
+  { prop: 'status', label: '状态', width: 70, slot: 'status' },
+  { prop: 'create_time', label: '创建时间', width: 140 },
+  { prop: 'last_login_time', label: '最后登录', width: 140 }
 ]
 
 // 用户表单字段配置
@@ -410,7 +414,7 @@ const getUserList = async () => {
     if (response.success && response.data) {
       // 适配响应拦截器转换后的格式
       userList.value = Array.isArray(response.data) ? response.data : []
-      pagination.total = response.total || 0
+      pagination.total = (response as any).total || 0
     } else {
       ElMessage.error(response.message || '获取用户列表失败')
       userList.value = []
@@ -714,6 +718,13 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .user-management {
+  .table-container {
+    overflow-x: auto;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+  
   .page-header {
     margin-bottom: 20px;
     

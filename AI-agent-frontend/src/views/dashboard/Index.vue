@@ -382,24 +382,23 @@ onMounted(async () => {
     }
     
     .quick-links {
-      display: flex;
-      flex-direction: column; // 垂直排列（纵向）
-      align-items: stretch; // 确保所有按钮拉伸到相同宽度
-      gap: 10px; // 按钮间距
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 10px !important;
 
       .el-button {
-        justify-content: flex-start; // 按钮内容左对齐，保持一致方向
-        width: 100% !important; // 强制所有按钮宽度一致
-        min-width: 100% !important; // 确保最小宽度一致
-        max-width: 100% !important; // 防止按钮超出容器宽度
-        box-sizing: border-box; // 包含边框和内边距
-        display: flex !important; // 确保按钮内部使用flex布局
-        align-items: center; // 垂直居中对齐
-        text-align: left; // 文字左对齐
+        justify-content: flex-start !important;
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        text-align: left !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
 
         .el-icon {
-          margin-right: 8px;
-          flex-shrink: 0; // 防止图标被压缩
+          margin-right: 8px !important;
+          flex-shrink: 0 !important;
         }
       }
     }
