@@ -67,8 +67,11 @@ class RBACUserService:
         Raises:
             ValueError: 用户名已存在
         """
-        # 检查用户名是否已存在
-        existing_user = self.db.query(User).filter(User.username == username).first()
+        # 检查用户名是否已存在（只检查未删除的用户）
+        existing_user = self.db.query(User).filter(
+            User.username == username,
+            User.is_deleted == 0
+        ).first()
         if existing_user:
             raise ValueError(f"用户名 '{username}' 已存在")
 
@@ -113,7 +116,10 @@ class RBACUserService:
         Returns:
             用户对象或None
         """
-        return self.db.query(User).filter(User.username == username).first()
+        return self.db.query(User).filter(
+            User.username == username,
+            User.is_deleted == 0
+        ).first()
 
     def authenticate_user(self, username: str, password: str) -> Optional[User]:
         """
@@ -550,30 +556,37 @@ class RBACUserService:
             return False
 
     def export_users_to_excel(self, dept_id: Optional[int] = None, status: Optional[str] = None,
-                              ssex: Optional[str] = None, include_roles: bool = True) -> bytes:
+                              ssex: Optional[str] = None, include_roles: bool = True,
+                              user_ids: Optional[List[int]] = None) -> bytes:
         """
         导出用户数据到Excel文件
-        
+
         Args:
             dept_id: 部门ID筛选
             status: 状态筛选
             ssex: 性别筛选
             include_roles: 是否包含角色信息
-            
+            user_ids: 指定用户ID列表（如果提供，则只导出这些用户）
+
         Returns:
             Excel文件的字节数据
         """
         try:
             # 构建查询条件
-            query = self.db.query(User)
-            
-            if dept_id:
-                query = query.filter(User.dept_id == dept_id)
-            if status is not None:
-                query = query.filter(User.status == status)
-            if ssex is not None:
-                query = query.filter(User.ssex == ssex)
-                
+            query = self.db.query(User).filter(User.is_deleted == 0)  # 排除已删除用户
+
+            # 如果指定了用户ID列表，则只导出这些用户
+            if user_ids:
+                query = query.filter(User.id.in_(user_ids))
+            else:
+                # 否则根据筛选条件导出
+                if dept_id:
+                    query = query.filter(User.dept_id == dept_id)
+                if status is not None:
+                    query = query.filter(User.status == status)
+                if ssex is not None:
+                    query = query.filter(User.ssex == ssex)
+
             users = query.all()
             
             # 获取部门信息映射
@@ -716,9 +729,18 @@ class RBACUserService:
                     # 获取部门ID
                     dept_id = departments.get(dept_name) if dept_name else None
                     
-                    # 检查用户是否已存在
-                    existing_user = self.db.query(User).filter(User.username == username).first()
-                    
+                    # 检查用户是否已存在（只检查未删除的用户）
+                    existing_user = self.db.query(User).filter(
+                        User.username == username,
+                        User.is_deleted == 0
+                    ).first()
+
+                    # 检查是否有已删除的同名用户
+                    deleted_user = self.db.query(User).filter(
+                        User.username == username,
+                        User.is_deleted == 1
+                    ).first()
+
                     if existing_user:
                         if update_existing:
                             # 更新现有用户
@@ -733,18 +755,31 @@ class RBACUserService:
                         else:
                             error_messages.append(f"第{row_num}行：用户名 '{username}' 已存在")
                             failed_count += 1
+                    elif deleted_user:
+                        # 恢复已删除的用户
+                        deleted_user.email = email
+                        deleted_user.mobile = mobile
+                        deleted_user.dept_id = dept_id
+                        deleted_user.ssex = ssex
+                        deleted_user.status = status
+                        deleted_user.description = description
+                        deleted_user.password = get_password_hash("123456")  # 重置密码
+                        deleted_user.restore()  # 恢复用户（设置is_deleted=0）
+                        self.db.commit()
+                        success_count += 1
                     else:
                         # 创建新用户
                         new_user = User(
                             username=username,
-                            password_hash=get_password_hash("123456"),  # 默认密码
+                            password=get_password_hash("123456"),  # 默认密码
                             email=email,
                             mobile=mobile,
                             dept_id=dept_id,
                             ssex=ssex,
-                            status=status,
+                            avatar=None,
                             description=description
                         )
+                        new_user.status = status  # 设置状态
                         self.db.add(new_user)
                         self.db.commit()
                         success_count += 1

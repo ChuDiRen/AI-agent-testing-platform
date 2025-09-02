@@ -657,35 +657,53 @@ async def export_users(
     user_status: Optional[str] = Query(None, description="状态筛选"),
     ssex: Optional[str] = Query(None, description="性别筛选"),
     include_roles: bool = Query(True, description="是否包含角色信息"),
+    user_ids: Optional[str] = Query(None, description="指定用户ID列表，逗号分隔"),
     db: Session = Depends(get_db)
 ):
     """
     导出用户数据到Excel文件
-    
+
     - **dept_id**: 部门ID筛选（可选）
     - **user_status**: 状态筛选：0禁用 1启用（可选）
     - **ssex**: 性别筛选：0男 1女 2保密（可选）
     - **include_roles**: 是否包含角色信息（默认true）
+    - **user_ids**: 指定用户ID列表，逗号分隔（可选，如果提供则只导出这些用户）
     """
     try:
         user_service = RBACUserService(db)
-        
+
+        # 解析用户ID列表
+        parsed_user_ids = None
+        if user_ids:
+            try:
+                parsed_user_ids = [int(uid.strip()) for uid in user_ids.split(',') if uid.strip()]
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="用户ID格式错误，请使用逗号分隔的数字"
+                )
+
         # 导出用户数据
         excel_data = user_service.export_users_to_excel(
             dept_id=dept_id,
             status=user_status,
             ssex=ssex,
-            include_roles=include_roles
+            include_roles=include_roles,
+            user_ids=parsed_user_ids
         )
-        
+
         # 创建文件名
         from datetime import datetime
         import urllib.parse
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        # 使用英文文件名避免编码问题，同时提供UTF-8编码的中文文件名
-        safe_filename = f"users_list_{timestamp}.xlsx"
-        chinese_filename = f"用户列表_{timestamp}.xlsx"
+
+        # 根据导出类型生成不同的文件名
+        if parsed_user_ids:
+            safe_filename = f"selected_users_{timestamp}.xlsx"
+            chinese_filename = f"选中用户_{timestamp}.xlsx"
+        else:
+            safe_filename = f"users_list_{timestamp}.xlsx"
+            chinese_filename = f"用户列表_{timestamp}.xlsx"
         encoded_filename = urllib.parse.quote(chinese_filename.encode('utf-8'))
         
         # 返回文件流

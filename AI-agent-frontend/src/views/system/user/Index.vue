@@ -34,23 +34,56 @@
         >
           批量删除
         </el-button>
-        <el-button
-          type="success"
-          :icon="Download"
-          @click="handleExport"
-        >
-          导出数据
-        </el-button>
+        <el-dropdown @command="handleExportCommand">
+          <el-button type="success" :icon="Download">
+            导出数据
+            <el-icon class="el-icon--right">
+              <ArrowDown />
+            </el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item
+                command="selected"
+                :disabled="!selectedUsers.length"
+              >
+                导出选中数据 ({{ selectedUsers.length }}条)
+              </el-dropdown-item>
+              <el-dropdown-item command="all">
+                导出全部数据
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <el-dropdown @command="handleImportCommand">
+          <el-button type="warning" :icon="Upload">
+            导入数据
+            <el-icon class="el-icon--right">
+              <ArrowDown />
+            </el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="new">
+                导入新用户（跳过重复）
+              </el-dropdown-item>
+              <el-dropdown-item command="update">
+                导入并更新已存在用户
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+
+        <!-- 隐藏的文件上传组件 -->
         <el-upload
+          ref="uploadRef"
           :action="uploadAction"
           :show-file-list="false"
           :before-upload="beforeUpload"
           :on-success="handleImportSuccess"
           :on-error="handleImportError"
+          style="display: none"
         >
-          <el-button type="warning" :icon="Upload">
-            导入数据
-          </el-button>
         </el-upload>
       </div>
     </div>
@@ -58,6 +91,7 @@
         <!-- 数据表格 -->
     <div class="table-container">
       <CommonTable
+        ref="tableRef"
         v-model:loading="loading"
         :data="userList"
         :columns="tableColumns"
@@ -171,7 +205,8 @@ import {
   Delete,
   Download,
   Upload,
-  UserFilled
+  UserFilled,
+  ArrowDown
 } from '@element-plus/icons-vue'
 import CommonTable from '@/components/Common/CommonTable.vue'
 import SearchForm from '@/components/Common/SearchForm.vue'
@@ -200,6 +235,9 @@ const currentUser = ref<Partial<UserInfo & { roles?: number[] }>>({})
 const departmentList = ref<DeptInfo[]>([])
 const roleList = ref<RoleInfo[]>([])
 const rolesMap = ref<Record<number, string[]>>({})
+const uploadRef = ref()
+const updateExisting = ref(false)
+const tableRef = ref()
 
 // 搜索参数
 const searchParams = reactive({
@@ -721,20 +759,39 @@ const handleUserFormCancel = () => {
   currentUser.value = {}
 }
 
-// 导出数据
-const handleExport = async () => {
+// 导出数据命令处理
+const handleExportCommand = (command: string) => {
+  if (command === 'selected') {
+    handleExportSelected()
+  } else if (command === 'all') {
+    handleExportAll()
+  }
+}
+
+// 导出选中数据
+const handleExportSelected = async () => {
+  if (!selectedUsers.value.length) {
+    ElMessage.warning('请先选择要导出的用户')
+    return
+  }
+
   try {
     loading.value = true
     // 构建导出参数
-    const exportParams: any = {}
-    
-    if (searchParams.dept_id) exportParams.dept_id = searchParams.dept_id
-    if (searchParams.status) exportParams.user_status = searchParams.status
-    if (searchParams.ssex) exportParams.ssex = searchParams.ssex
-    exportParams.include_roles = true
-    
+    const exportParams: any = {
+      include_roles: true,
+      user_ids: selectedUsers.value.map(user => user.user_id).join(',')
+    }
+
     await UserApi.exportUsers(exportParams)
-    ElMessage.success('导出成功')
+    ElMessage.success(`导出选中的 ${selectedUsers.value.length} 条数据成功`)
+
+    // 导出成功后清空选中状态
+    selectedUsers.value = []
+    // 清空表格选中状态
+    if (tableRef.value) {
+      tableRef.value.clearSelection()
+    }
   } catch (error) {
     console.error('导出失败:', error)
     ElMessage.error('导出失败')
@@ -743,29 +800,99 @@ const handleExport = async () => {
   }
 }
 
+// 导出全部数据
+const handleExportAll = async () => {
+  try {
+    loading.value = true
+    // 构建导出参数
+    const exportParams: any = {}
+
+    if (searchParams.dept_id) exportParams.dept_id = searchParams.dept_id
+    if (searchParams.status) exportParams.user_status = searchParams.status
+    if (searchParams.ssex) exportParams.ssex = searchParams.ssex
+    exportParams.include_roles = true
+
+    await UserApi.exportUsers(exportParams)
+    ElMessage.success('导出全部数据成功')
+
+    // 导出成功后清空选中状态
+    selectedUsers.value = []
+    // 清空表格选中状态
+    if (tableRef.value) {
+      tableRef.value.clearSelection()
+    }
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 导入命令处理
+const handleImportCommand = (command: string) => {
+  updateExisting.value = command === 'update'
+  // 触发文件选择
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.xlsx,.xls'
+  input.onchange = (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0]
+    if (file && beforeUpload(file)) {
+      handleFileUpload(file)
+    }
+  }
+  input.click()
+}
+
 // 上传前检查
 const beforeUpload = (file: File) => {
-  const isExcel = file.type === 'application/vnd.ms-excel' || 
+  const isExcel = file.type === 'application/vnd.ms-excel' ||
                   file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  
+
   if (!isExcel) {
     ElMessage.error('只能上传Excel文件！')
     return false
   }
-  
+
   const isLt10M = file.size / 1024 / 1024 < 10
   if (!isLt10M) {
     ElMessage.error('文件大小不能超过 10MB！')
     return false
   }
-  
+
   return true
+}
+
+// 处理文件上传
+const handleFileUpload = async (file: File) => {
+  try {
+    loading.value = true
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const token = localStorage.getItem('token')
+    const response = await fetch(`/api/v1/users/import?update_existing=${updateExisting.value}`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    const result = await response.json()
+    handleImportSuccess(result)
+  } catch (error) {
+    handleImportError(error)
+  } finally {
+    loading.value = false
+  }
 }
 
 // 导入成功
 const handleImportSuccess = (response: any) => {
   console.log('Import response:', response)
-  if (response.success) {
+  if (response.code === 200) {
     const data = response.data
     if (data.failed_count > 0) {
       // 显示详细的导入结果
@@ -786,7 +913,7 @@ const handleImportSuccess = (response: any) => {
     }
     getUserList()
   } else {
-    ElMessage.error(response.message || '导入失败')
+    ElMessage.error(response.msg || '导入失败')
   }
 }
 

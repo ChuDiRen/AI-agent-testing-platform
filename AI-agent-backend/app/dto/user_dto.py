@@ -346,14 +346,16 @@ class UserExportRequest(BaseModel):
     status: Optional[str] = Field(None, pattern="^[01]$", description="状态筛选：0禁用 1启用")
     ssex: Optional[str] = Field(None, pattern="^[012]$", description="性别筛选：0男 1女 2保密")
     include_roles: bool = Field(True, description="是否包含角色信息")
-    
+    user_ids: Optional[List[int]] = Field(None, description="指定用户ID列表（如果提供则只导出这些用户）")
+
     class Config:
         json_schema_extra = {
             "example": {
                 "dept_id": 1,
                 "status": "1",
                 "ssex": "0",
-                "include_roles": True
+                "include_roles": True,
+                "user_ids": [1, 2, 3]
             }
         }
 
