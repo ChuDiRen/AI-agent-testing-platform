@@ -17,6 +17,7 @@ from app.db.session import get_db
 from app.service.audit_log_service import AuditLogService
 from app.service.data_permission_service import DataPermissionService
 from app.service.user_service import RBACUserService
+from app.core.token_blacklist import is_blacklisted
 
 logger = get_logger(__name__)
 security = HTTPBearer()
@@ -41,17 +42,6 @@ class RBACAuth:
     ):
         """
         获取当前用户并记录审计日志
-        
-        Args:
-            request: HTTP请求对象
-            credentials: HTTP认证凭据
-            db: 数据库会话
-            
-        Returns:
-            当前用户对象
-            
-        Raises:
-            HTTPException: 认证失败时抛出401错误
         """
         if not credentials:
             raise HTTPException(
@@ -61,6 +51,14 @@ class RBACAuth:
             )
 
         try:
+            # 检查黑名单
+            if is_blacklisted(credentials.credentials):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="token已失效",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
             # 验证token
             payload = verify_token(credentials.credentials)
             user_id = payload.get("sub")
@@ -108,13 +106,6 @@ class RBACAuth:
     ):
         """
         获取当前用户（不记录审计日志）
-        
-        Args:
-            credentials: HTTP认证凭据
-            db: 数据库会话
-            
-        Returns:
-            当前用户对象
         """
         if not credentials:
             raise HTTPException(
@@ -124,6 +115,14 @@ class RBACAuth:
             )
 
         try:
+            # 检查黑名单
+            if is_blacklisted(credentials.credentials):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="token已失效",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
             # 验证token
             payload = verify_token(credentials.credentials)
             user_id = payload.get("sub")

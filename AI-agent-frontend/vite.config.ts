@@ -31,6 +31,8 @@ export default ({ mode }: any) => {
       host: '0.0.0.0',
       port: 5173, // 标准前端端口
       open: true,
+      // 支持HTML5 history模式路由
+      historyApiFallback: true,
       proxy: {
         '/api': {
           target: 'http://localhost:8000', // 代理到后端服务（端口8000）

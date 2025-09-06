@@ -34,13 +34,10 @@ import { useUserStore, useSystemStore } from '@/store'
 const userStore = useUserStore()
 const systemStore = useSystemStore()
 
-// 初始化数据
+// 初始化数据（统一到一次性初始化，避免重复请求）
 onMounted(async () => {
-  // 如果用户已登录，获取用户信息和权限
   if (userStore.token) {
-    await userStore.getUserInfo()
-    await userStore.getUserPermissions()
-    await userStore.getUserMenus()
+    await userStore.initializeAfterLogin().catch(() => {})
   }
 })
 </script>

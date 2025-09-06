@@ -1,5 +1,5 @@
 <template>
-  <div v-if="hasPermission" class="permission-wrapper">
+  <div v-if="allowed" class="permission-wrapper">
     <slot />
   </div>
   <div v-else-if="fallback" class="permission-fallback">
@@ -11,7 +11,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useUserStore } from '@/store'
+import { hasPermission as hasPermUtil, hasRole as hasRoleUtil } from '@/utils/permission'
 
 interface PermissionProps {
   // 权限标识
@@ -28,51 +28,19 @@ const props = withDefaults(defineProps<PermissionProps>(), {
   mode: 'some'
 })
 
-const userStore = useUserStore()
-
-// 权限检查
-const hasPermission = computed(() => {
-  // 如果未登录，无权限
-  if (!userStore.isLoggedIn) {
-    return false
-  }
-
-  // 超级管理员拥有所有权限
-  if (userStore.hasRole('admin') || userStore.hasRole('super_admin')) {
-    return true
-  }
-
+// 复用统一的权限工具函数
+const allowed = computed(() => {
   let permissionCheck = true
   let roleCheck = true
 
-  // 检查权限
   if (props.permission) {
-    const permissions = Array.isArray(props.permission) ? props.permission : [props.permission]
-    
-    if (props.mode === 'every') {
-      permissionCheck = permissions.every(perm => userStore.hasPermission(perm))
-    } else {
-      permissionCheck = permissions.some(perm => userStore.hasPermission(perm))
+    permissionCheck = hasPermUtil(props.permission, props.mode)
     }
-  }
-
-  // 检查角色
   if (props.role) {
-    const roles = Array.isArray(props.role) ? props.role : [props.role]
-    
-    if (props.mode === 'every') {
-      roleCheck = roles.every(role => userStore.hasRole(role))
-    } else {
-      roleCheck = roles.some(role => userStore.hasRole(role))
-    }
+    roleCheck = hasRoleUtil(props.role, props.mode)
   }
 
-  // 如果同时指定了权限和角色，两者都需要满足
-  if (props.permission && props.role) {
-    return permissionCheck && roleCheck
-  }
-
-  // 如果只指定了权限或角色，满足其一即可
+  if (props.permission && props.role) return permissionCheck && roleCheck
   return props.permission ? permissionCheck : roleCheck
 })
 </script>

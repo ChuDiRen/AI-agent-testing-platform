@@ -39,7 +39,7 @@
         
         <el-form-item>
           <el-checkbox v-model="rememberMe" size="small">
-            记住密码
+            记住账号
           </el-checkbox>
         </el-form-item>
         
@@ -104,13 +104,11 @@ const handleLogin = async () => {
     const success = await userStore.login(loginForm.username, loginForm.password)
     
     if (success) {
-      // 如果勾选了记住密码，保存到localStorage
+      // 如果勾选了记住账号，仅保存用户名
       if (rememberMe.value) {
         localStorage.setItem('rememberedUsername', loginForm.username)
-        localStorage.setItem('rememberedPassword', loginForm.password)
       } else {
         localStorage.removeItem('rememberedUsername')
-        localStorage.removeItem('rememberedPassword')
       }
       
       // 登录成功，跳转到主页
@@ -124,11 +122,9 @@ const handleLogin = async () => {
 // 初始化记住的密码
 onMounted(() => {
   const rememberedUsername = localStorage.getItem('rememberedUsername')
-  const rememberedPassword = localStorage.getItem('rememberedPassword')
   
-  if (rememberedUsername && rememberedPassword) {
+  if (rememberedUsername) {
     loginForm.username = rememberedUsername
-    loginForm.password = rememberedPassword
     rememberMe.value = true
   }
   

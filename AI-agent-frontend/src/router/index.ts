@@ -1,7 +1,7 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/store'
-import { ElMessage } from 'element-plus'
+import notify from '@/utils/notify'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -163,41 +163,49 @@ const routes: RouteRecordRaw[] = [
 ]
 
 const router = createRouter({
-  history: createWebHashHistory(),
+  history: createWebHistory(),
   routes,
 })
 
 // 路由守卫
 router.beforeEach(async (to, _from, next) => {
   const userStore = useUserStore()
-  
+
   // 设置页面标题
   if (to.meta.title) {
     document.title = `${to.meta.title} - AI智能代理测试平台`
   }
-  
+
   // 检查是否需要认证
   if (to.meta.requiresAuth !== false) {
     if (!userStore.isLoggedIn) {
-      ElMessage.warning('请先登录')
+      notify.warning('请先登录')
       next('/login')
       return
     }
-    
+
+    // 懒加载用户权限/角色/菜单
+    try {
+      await userStore.ensureAccessDataLoaded()
+    } catch (e) {}
+
+    // 超级管理员跳过权限校验
+    const isAdmin = userStore.hasRole('admin') || userStore.hasRole('super_admin')
     // 检查权限
-    if (to.meta.permission && !userStore.hasPermission(to.meta.permission as string)) {
-      ElMessage.error('权限不足')
+    if (to.meta.permission && !isAdmin && !userStore.hasPermission(to.meta.permission as string)) {
+      notify.error('权限不足')
       next('/403')
       return
     }
+
   }
-  
+
   // 如果已登录，访问登录页面则跳转到首页
   if (to.path === '/login' && userStore.isLoggedIn) {
     next('/')
     return
   }
-  
+
   next()
 })
 

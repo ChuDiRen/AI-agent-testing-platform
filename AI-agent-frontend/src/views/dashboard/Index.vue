@@ -167,7 +167,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 // import { useRouter } from 'vue-router' // 暂时注释掉未使用的router
-import { DashboardApi, type SystemInfo } from '@/api/modules/dashboard'
+import { type SystemInfo } from '@/api/modules/dashboard'
+import { useDashboardStore } from '@/store/modules/dashboard'
 import { ElMessage } from 'element-plus'
 import {
   User,
@@ -182,20 +183,11 @@ import { useUserStore } from '@/store'
 const userStore = useUserStore()
 
 // 统计数据
-const statsData = ref({
-  userCount: 0,
-  roleCount: 0,
-  menuCount: 0,
-  deptCount: 0
-})
+const dashboardStore = useDashboardStore()
+const statsData = computed(() => dashboardStore.statsData)
 
 // 系统信息
-const systemInfo = ref<SystemInfo>({
-  system_version: 'v1.0.0',
-  server_info: 'FastAPI + Vue 3',
-  database_info: 'SQLite',
-  last_login_time: undefined
-})
+const systemInfo = computed<SystemInfo>(() => dashboardStore.systemInfo)
 
 // 加载状态
 const loading = ref(false)
@@ -210,20 +202,11 @@ const currentDate = computed(() => {
   })
 })
 
-// 获取仪表板统计数据
+// 获取仪表板统计数据（由store控制TTL）
 const loadDashboardStats = async () => {
   try {
     loading.value = true
-    const response = await DashboardApi.getStats()
-
-    if (response.success && response.data) {
-      statsData.value = {
-        userCount: response.data.user_count,
-        roleCount: response.data.role_count,
-        menuCount: response.data.menu_count,
-        deptCount: response.data.department_count
-      }
-    }
+    await dashboardStore.loadStats()
   } catch (error) {
     console.error('获取仪表板统计数据失败:', error)
     ElMessage.error('获取统计数据失败')
@@ -232,14 +215,10 @@ const loadDashboardStats = async () => {
   }
 }
 
-// 获取系统信息
+// 获取系统信息（由store控制TTL）
 const loadSystemInfo = async () => {
   try {
-    const response = await DashboardApi.getSystemInfo()
-
-    if (response.success && response.data) {
-      systemInfo.value = response.data
-    }
+    await dashboardStore.loadSystemInfo()
   } catch (error) {
     console.error('获取系统信息失败:', error)
   }

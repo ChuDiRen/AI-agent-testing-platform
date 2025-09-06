@@ -33,6 +33,19 @@ export const NETWORK_CONFIG = {
     NETWORK_ERROR: true, // 网络错误重试
     TIMEOUT: true, // 超时重试
     SERVER_ERROR: false, // 服务器错误不重试
+  },
+
+  // 请求去重与短期缓存（防止重复接口）
+  REQUEST_DEDUP: {
+    ENABLED: true, // 启用去重
+    DEFAULT_TTL: 2000, // 默认去重/缓存时效2秒
+    TTLS: {
+      '^/menus/get-user-menus$': 5000, // 用户菜单5秒
+      '^/users/get-user-roles$': 3000,  // 用户角色3秒
+      '^/users/get-user-info$': 3000,   // 用户信息3秒
+      '^/dashboard/get-system-info$': 3000, // 仪表盘系统信息3秒
+      '^/dashboard/get-statistics-data$': 3000 // 仪表盘统计3秒
+    }
   }
 }
 
@@ -51,18 +64,31 @@ export function shouldRetry(error: any, retryCount: number): boolean {
   if (retryCount >= NETWORK_CONFIG.MAX_RETRIES) {
     return false
   }
-  
+
   const { code, response } = error
-  
+
   // 网络错误或超时错误重试
   if (code === 'ECONNABORTED' || code === 'NETWORK_ERROR' || !response) {
     return NETWORK_CONFIG.RETRY_CONDITIONS.NETWORK_ERROR || NETWORK_CONFIG.RETRY_CONDITIONS.TIMEOUT
   }
-  
+
   // 服务器错误不重试
   if (response && response.status >= 500) {
     return NETWORK_CONFIG.RETRY_CONDITIONS.SERVER_ERROR
   }
-  
+
   return false
+}
+
+// 根据URL返回去重TTL
+export function getDedupeTTL(url: string): number {
+  const conf = NETWORK_CONFIG.REQUEST_DEDUP
+  if (!conf?.ENABLED) return 0
+  for (const pattern in conf.TTLS) {
+    try {
+      const re = new RegExp(pattern)
+      if (re.test(url)) return conf.TTLS[pattern as keyof typeof conf.TTLS]
+    } catch {}
+  }
+  return conf.DEFAULT_TTL
 }

@@ -2,12 +2,12 @@
 //http.ts
 import axios from 'axios'
 import type { InternalAxiosRequestConfig, AxiosResponse } from 'axios'
-import { ElMessage } from 'element-plus'
+import notify from '@/utils/notify'
 import { NProgressStart, NProgressDone } from '@/utils/nprogress'
 import { BASE_URL } from './baseUrl'
-import { getToken, removeToken } from '@/utils/auth'
+import { getToken, removeToken, getRefreshToken, setToken, setRefreshToken, removeRefreshToken } from '@/utils/auth'
 import router from '@/router'
-import { NETWORK_CONFIG, shouldRetry, getRetryDelay } from '@/config/network'
+import { NETWORK_CONFIG, shouldRetry, getRetryDelay, getDedupeTTL } from '@/config/network'
 
 // 后端API响应格式
 interface ApiResponse<T = any> {
@@ -18,27 +18,78 @@ interface ApiResponse<T = any> {
   timestamp: string
 }
 
+// 刷新token状态，避免并发风暴
+let isRefreshing = false
+let refreshPromise: Promise<any> | null = null
+const requestQueue: Array<(token: string | null) => void> = []
+
+function subscribeTokenRefresh(cb: (token: string | null) => void) {
+  requestQueue.push(cb)
+}
+
+function onRefreshed(token: string | null) {
+  requestQueue.forEach(cb => cb(token))
+  requestQueue.length = 0
+}
+
 // 创建axios实例
 const http = axios.create({
-  baseURL: BASE_URL || 'http://localhost:8000/api/v1',
+  baseURL: BASE_URL,
   timeout: NETWORK_CONFIG.DEFAULT_TIMEOUT, // 使用配置中心的超时时间
   headers: {
     'Content-Type': 'application/json'
   }
 })
 
+// 请求去重/缓存容器
+const inFlightMap = new Map<string, Promise<any>>()
+const cacheMap = new Map<string, { expire: number; data: any }>()
+function buildKey(method: string, url: string, payload?: any) {
+  const d = payload ? (typeof payload === 'string' ? payload : JSON.stringify(payload)) : ''
+  return `${method.toUpperCase()} ${url} | ${d}`
+}
+
+
+
+// 包装方法以支持请求去重与短缓存
+function wrap<T>(method: 'get'|'post'|'put'|'delete', url: string, payload?: any, config?: any): Promise<T> {
+  const ttl = getDedupeTTL(url)
+  const key = buildKey(method, url, method === 'get' ? config?.params : payload)
+  const now = Date.now()
+  if (ttl > 0) {
+    const cached = cacheMap.get(key)
+    if (cached && cached.expire > now) {
+      return Promise.resolve(cached.data)
+    }
+    const inflight = inFlightMap.get(key)
+    if (inflight) return inflight as any
+  }
+  const p = (http as any)[method](url, payload, config)
+  if (ttl > 0) inFlightMap.set(key, p)
+  return p.then((res: any) => {
+    if (ttl > 0) {
+      cacheMap.set(key, { expire: Date.now() + ttl, data: res })
+      inFlightMap.delete(key)
+    }
+    return res
+  }).catch((err: any) => {
+    if (ttl > 0) inFlightMap.delete(key)
+    throw err
+  })
+}
+
 // 请求拦截器
 http.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // 开始进度条
     NProgressStart()
-    
+
     // 添加认证token
     const token = getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-    
+
     return config
   },
   (error) => {
@@ -63,7 +114,7 @@ http.interceptors.response.use(
     if (data.code !== undefined) {
       // 新格式：检查code是否为200
       if (data.code !== 200) {
-        ElMessage.error(data.msg || '操作失败')
+        notify.error(data.msg || '操作失败')
         return Promise.reject(new Error(data.msg))
       }
       // 转换为前端期望的格式
@@ -78,7 +129,7 @@ http.interceptors.response.use(
     } else {
       // 兼容旧格式：检查success字段
       if (!data.success) {
-        ElMessage.error(data.message || '操作失败')
+        notify.error(data.message || '操作失败')
         return Promise.reject(new Error(data.message))
       }
       return data as any
@@ -87,14 +138,19 @@ http.interceptors.response.use(
   async (error) => {
     NProgressDone()
 
+    // 命中请求级缓存的短路
+    if (error?.__from_cache) {
+      return Promise.resolve(error.__cache_data)
+    }
+
     const { config, response, code } = error
     const { status, data } = response || {}
 
     // 处理网络超时和连接错误，自动重试
-    const retryCount = config.__retryCount || 0
+    const retryCount = (config as any).__retryCount || 0
 
     if (shouldRetry(error, retryCount)) {
-      config.__retryCount = retryCount + 1
+      ;(config as any).__retryCount = retryCount + 1
       console.log(`请求重试第${retryCount + 1}次...`)
 
       // 延迟重试，避免频繁请求
@@ -102,21 +158,87 @@ http.interceptors.response.use(
 
       return http(config)
     } else if (code === 'ECONNABORTED' || code === 'NETWORK_ERROR' || !response) {
-      ElMessage.error('网络连接超时，请检查网络或稍后重试')
+      notify.error('网络连接超时，请检查网络或稍后重试')
     }
 
+    // 401 处理：尝试无感刷新
     if (status === 401) {
-      ElMessage.error('登录已过期，请重新登录')
+      const originalRequest = config
+
+      // 如果已经在刷新中，挂起当前请求，等待刷新完成
+      if (isRefreshing && refreshPromise) {
+        return new Promise((resolve, reject) => {
+          subscribeTokenRefresh((newToken) => {
+            if (!newToken) {
+              reject(error)
+              return
+            }
+            originalRequest.headers.Authorization = `Bearer ${newToken}`
+            resolve(http(originalRequest))
+          })
+        })
+      }
+
+      // 否则发起刷新
+      isRefreshing = true
+      const currentRefreshToken = getRefreshToken()
+
+      if (!currentRefreshToken) {
+        notify.error('登录已过期，请重新登录')
+        removeToken()
+        removeRefreshToken()
+        router.push('/login')
+        isRefreshing = false
+        refreshPromise = null
+        return Promise.reject(error)
+      }
+
+      refreshPromise = (async () => {
+        try {
+          // 直接调用刷新接口
+          const res = await http.post('/users/refresh-token', { refresh_token: currentRefreshToken })
+          if ((res as any)?.success && (res as any)?.data?.access_token) {
+            const newAccessToken = (res as any).data.access_token as string
+            const newRefreshToken = (res as any).data.refresh_token as string | undefined
+            setToken(newAccessToken)
+            if (newRefreshToken) {
+              setRefreshToken(newRefreshToken)
+            }
+            onRefreshed(newAccessToken)
+            return newAccessToken
+          }
+          throw new Error('刷新令牌失败')
+        } catch (e) {
+          // 刷新失败：清理并跳转登录
       removeToken()
+          removeRefreshToken()
       router.push('/login')
-    } else if (status === 403) {
-      ElMessage.error('权限不足')
+          onRefreshed(null)
+          throw e
+        } finally {
+          isRefreshing = false
+          refreshPromise = null
+        }
+      })()
+
+      try {
+        const token = await refreshPromise
+        // 使用新的token重放原请求
+        originalRequest.headers.Authorization = `Bearer ${token}`
+        return http(originalRequest)
+      } catch (e) {
+        return Promise.reject(e)
+      }
+    }
+
+    if (status === 403) {
+      notify.error('权限不足')
     } else if (status >= 500) {
-      ElMessage.error('服务器错误，请稍后重试')
+      notify.error('服务器错误，请稍后重试')
     } else if (!response) {
-      ElMessage.error('网络连接失败，请检查网络连接')
+      notify.error('网络连接失败，请检查网络连接')
     } else {
-      ElMessage.error(data?.message || '请求失败')
+      notify.error(data?.message || '请求失败')
     }
 
     return Promise.reject(error)
@@ -136,19 +258,19 @@ interface HttpMethods {
 // 扩展axios实例方法
 const httpMethods: HttpMethods = {
   get<T = any>(url: string, params?: any): Promise<ApiResponse<T>> {
-    return http.get(url, { params }) as unknown as Promise<ApiResponse<T>>
+    return wrap<ApiResponse<T>>('get', url, undefined, { params })
   },
 
   post<T = any>(url: string, data?: any): Promise<ApiResponse<T>> {
-    return http.post(url, data) as unknown as Promise<ApiResponse<T>>
+    return wrap<ApiResponse<T>>('post', url, data)
   },
 
   put<T = any>(url: string, data?: any): Promise<ApiResponse<T>> {
-    return http.put(url, data) as unknown as Promise<ApiResponse<T>>
+    return wrap<ApiResponse<T>>('put', url, data)
   },
 
   delete<T = any>(url: string, params?: any): Promise<ApiResponse<T>> {
-    return http.delete(url, { params }) as unknown as Promise<ApiResponse<T>>
+    return wrap<ApiResponse<T>>('delete', url, undefined, { params })
   },
 
   upload<T = any>(url: string, formData: FormData): Promise<ApiResponse<T>> {
@@ -168,11 +290,11 @@ const httpMethods: HttpMethods = {
           'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         }
       })
-      
+
       // 创建blob URL
       const blob = new Blob([response.data])
       const blobUrl = window.URL.createObjectURL(blob)
-      
+
       // 从响应头获取文件名
       const contentDisposition = response.headers['content-disposition']
       let downloadFilename = filename
@@ -186,7 +308,7 @@ const httpMethods: HttpMethods = {
             console.warn('Failed to decode UTF-8 filename:', e)
           }
         }
-        
+
         // 如果没有UTF-8文件名或解码失败，尝试普通文件名
         if (!utf8Match || downloadFilename === filename) {
           const filenameMatch = contentDisposition.match(/filename=([^;]+)/)
@@ -195,20 +317,20 @@ const httpMethods: HttpMethods = {
           }
         }
       }
-      
+
       // 创建下载链接
       const link = document.createElement('a')
       link.href = blobUrl
       link.download = downloadFilename || 'download.xlsx'
       document.body.appendChild(link)
       link.click()
-      
+
       // 清理
       document.body.removeChild(link)
       window.URL.revokeObjectURL(blobUrl)
     } catch (error) {
       console.error('Download failed:', error)
-      ElMessage.error('文件下载失败')
+      notify.error('文件下载失败')
       throw error
     }
   }

@@ -319,6 +319,7 @@ class LoginResponse(BaseModel):
     """
     access_token: str = Field(..., description="访问令牌")
     token_type: str = Field(default="bearer", description="令牌类型")
+    refresh_token: Optional[str] = Field(None, description="刷新令牌")
     user_info: UserResponse = Field(..., description="用户信息")
     permissions: List[str] = Field(..., description="用户权限列表")
 
@@ -327,6 +328,7 @@ class LoginResponse(BaseModel):
             "example": {
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                 "token_type": "bearer",
+                "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                 "user_info": {
                     "user_id": 1,
                     "username": "admin",

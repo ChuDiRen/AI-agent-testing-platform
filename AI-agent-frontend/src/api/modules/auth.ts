@@ -62,16 +62,16 @@ export class AuthApi {
    * 刷新token
    * @returns 新的token信息
    */
-  static async refreshToken(): Promise<ApiResponse<{ access_token: string; token_type: string }>> {
-    return http.post('/users/refresh-token')
+  static async refreshToken(): Promise<ApiResponse<{ access_token: string; token_type: string; refresh_token?: string }>> {
+    return http.post<{ access_token: string; token_type: string; refresh_token?: string }>('/users/refresh-token')
   }
 
   /**
    * 用户退出登录
    * @returns 操作结果
    */
-  static async logout(): Promise<ApiResponse<boolean>> {
-    return http.post<boolean>('/users/logout')
+  static async logout(body?: { refresh_token?: string }): Promise<ApiResponse<boolean>> {
+    return http.post<boolean>('/users/logout', body || {})
   }
 }
 

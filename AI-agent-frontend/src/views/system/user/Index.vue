@@ -100,6 +100,7 @@
         :show-index="false"
         :show-actions="true"
         :action-width="280"
+        :min-table-width="1400"
         @selection-change="handleSelectionChange"
         @page-change="handlePageChange"
         @size-change="handleSizeChange"
@@ -940,8 +941,17 @@ onMounted(async () => {
     background: #fff;
     border-radius: 6px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+    // 强制显示横向滚动条轨迹，便于用户感知
+    :deep(.el-scrollbar__wrap) {
+      overflow-x: auto !important;
+    }
+    :deep(.el-table__body-wrapper),
+    :deep(.el-table__header-wrapper) {
+      overflow-x: auto !important;
+    }
   }
-  
+
   .page-header {
     margin-bottom: 20px;
     

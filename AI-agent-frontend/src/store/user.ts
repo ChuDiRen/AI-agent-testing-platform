@@ -1,9 +1,15 @@
+// Copyright (c) 2025 左岚. All rights reserved.
+
 import { defineStore } from 'pinia'
 import { AuthApi } from '@/api/modules/auth'
 import { UserApi } from '@/api/modules/user'
 import { MenuApi } from '@/api/modules/menu'
-import { getToken, setToken as setTokenStorage, removeToken } from '@/utils/auth'
+import { getToken, setToken as setTokenStorage, removeToken, setRefreshToken, removeRefreshToken } from '@/utils/auth'
 import type { UserInfo, MenuInfo } from '@/api/types'
+import { getRefreshToken } from '@/utils/auth'
+
+// 去重用的初始化进行中 Promise（不入持久化） # 注释
+let initInFlight: Promise<void> | null = null
 
 export interface UserState {
   token: string | null
@@ -12,6 +18,7 @@ export interface UserState {
   roles: string[]
   menus: MenuInfo[]
   loading: boolean
+  initialized?: boolean
 }
 
 export const useUserStore = defineStore('user', {
@@ -19,9 +26,11 @@ export const useUserStore = defineStore('user', {
     token: getToken() || null,
     userInfo: null,
     permissions: [],
+
     roles: [],
     menus: [],
-    loading: false
+    loading: false,
+    initialized: false
   }),
 
   getters: {
@@ -75,7 +84,24 @@ export const useUserStore = defineStore('user', {
       this.permissions = []
       this.roles = []
       this.menus = []
+      this.initialized = false
       removeToken()
+      removeRefreshToken()
+    },
+
+    // 规范化角色名，增加英文别名支持
+    normalizeRoleNames(sourceRoles: Array<{ role_name?: string } | string>): string[] {
+      const names: string[] = []
+      for (const r of sourceRoles) {
+        const name = typeof r === 'string' ? r : (r?.role_name || '')
+        if (!name) continue
+        names.push(name)
+        // 常见别名映射（根据后端角色中文名补充英文别名）
+        if (name.includes('超级管理员')) names.push('super_admin')
+        if (name.includes('管理员')) names.push('admin')
+      }
+      // 去重
+      return Array.from(new Set(names))
     },
 
     // 登录
@@ -83,14 +109,18 @@ export const useUserStore = defineStore('user', {
       try {
         this.loading = true
         const response = await AuthApi.login({ username, password })
-        
+
         if (response.success && response.data) {
-          const { access_token, user_info, permissions } = response.data
-          
+          const { access_token, refresh_token, user_info, permissions } = response.data as any
+
           this.setToken(access_token)
+          if (refresh_token) setRefreshToken(refresh_token)
           this.setUserInfo(user_info)
-          this.setPermissions(permissions)
-          
+          if (Array.isArray(permissions)) this.setPermissions(permissions)
+
+          // 登录后统一初始化（去重）
+          await this.initializeAfterLogin().catch(() => {})
+
           return true
         }
         return false
@@ -105,11 +135,11 @@ export const useUserStore = defineStore('user', {
     // 获取用户信息
     async getUserInfo(): Promise<void> {
       if (!this.token || !this.userInfo?.user_id) return
-      
+
       try {
         this.loading = true
         const response = await UserApi.getUserById(this.userInfo.user_id)
-        
+
         if (response.success && response.data) {
           this.setUserInfo(response.data)
         }
@@ -123,15 +153,30 @@ export const useUserStore = defineStore('user', {
     // 获取用户权限
     async getUserPermissions(): Promise<void> {
       if (!this.userInfo?.user_id) return
-      
+
       try {
         const response = await UserApi.getUserPermissions(this.userInfo.user_id)
-        
+
         if (response.success && response.data) {
           this.setPermissions(response.data)
         }
       } catch (error) {
         console.error('获取用户权限失败:', error)
+      }
+    },
+
+    // 获取用户角色
+    async getUserRoles(): Promise<void> {
+      if (!this.userInfo?.user_id) return
+
+      try {
+        const res = await UserApi.getUserRoles(this.userInfo.user_id)
+        if (res.success && (res.data as any)?.roles) {
+          const roleNames = this.normalizeRoleNames((res.data as any).roles)
+          this.setRoles(roleNames)
+        }
+      } catch (error) {
+        console.error('获取用户角色失败:', error)
       }
     },
 
@@ -150,11 +195,42 @@ export const useUserStore = defineStore('user', {
       }
     },
 
+    // 懒加载进入受保护路由所需数据（统一到初始化）
+    async ensureAccessDataLoaded(): Promise<void> {
+      if (!this.isLoggedIn) return
+      await this.initializeAfterLogin().catch(() => {})
+    },
+
+
+    // 统一初始化（幂等 + 去重）：登录成功或首个受保护路由进入时调用
+    async initializeAfterLogin(): Promise<void> {
+      if (!this.isLoggedIn) return
+      if (this.initialized) return
+      if (initInFlight) return initInFlight
+      initInFlight = (async () => {
+        try {
+          const tasks: Array<Promise<any>> = []
+          if (this.userInfo?.user_id) {
+            if (!this.roles?.length) tasks.push(this.getUserRoles())
+            if (!this.permissions?.length) tasks.push(this.getUserPermissions())
+            if (!this.menus?.length) tasks.push(this.getUserMenus())
+          }
+          if (tasks.length) await Promise.allSettled(tasks)
+          this.initialized = true
+        } finally {
+          initInFlight = null
+        }
+      })()
+      return initInFlight
+    },
+
     // 登出
     async logout(): Promise<void> {
       try {
-        // 调用登出接口
-        await AuthApi.logout()
+
+        // 调用登出接口（携带refresh_token黑名单）
+        const rt = getRefreshToken()
+        await AuthApi.logout(rt ? { refresh_token: rt } : undefined)
       } catch (error) {
         console.error('登出失败:', error)
       } finally {
@@ -162,15 +238,18 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    // 刷新token
+    // 刷新token（保留：若主动调用时使用，拦截器已兜底自动刷新）
     async refreshToken(): Promise<boolean> {
       if (!this.token) return false
-      
+
       try {
         const response = await AuthApi.refreshToken()
-        
+
         if (response.success && response.data) {
           this.setToken(response.data.access_token)
+          if ((response.data as any).refresh_token) {
+            setRefreshToken((response.data as any).refresh_token as string)
+          }
           return true
         }
         return false

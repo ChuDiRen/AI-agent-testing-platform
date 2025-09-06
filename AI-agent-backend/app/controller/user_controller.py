@@ -5,13 +5,13 @@ RBAC用户Controller
 """
 
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Query
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 import io
 
 from app.core.logger import get_logger
-from app.core.security import create_access_token
+from app.core.security import create_access_token, create_token_pair, refresh_access_token, verify_token, create_refresh_token
 from app.db.session import get_db
 from app.dto.base import ApiResponse, Success, Fail, SuccessExtra
 from app.dto.user_dto import (
@@ -35,6 +35,8 @@ from app.entity.user import User
 from app.middleware.auth import get_current_user
 from app.service.user_service import RBACUserService
 from app.service.department_service import DepartmentService  # 引入部门服务  # 注释
+from app.core.token_blacklist import add_to_blacklist, is_blacklisted
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 logger = get_logger(__name__)
 
@@ -126,8 +128,8 @@ async def user_login(
                 detail="用户名或密码错误"
             )
         
-        # 生成访问令牌
-        access_token = create_access_token(data={"sub": str(user.id)})
+        # 创建令牌对
+        token_pair = create_token_pair(user_id=user.id)
 
         # 获取用户权限
         permissions = user_service.get_user_permissions(user.id)
@@ -150,8 +152,9 @@ async def user_login(
         }
 
         login_data = {
-            "access_token": access_token,
-            "token_type": "bearer",
+            "access_token": token_pair["access_token"],
+            "refresh_token": token_pair.get("refresh_token"),
+            "token_type": token_pair.get("token_type", "bearer"),
             "user_info": user_info,
             "permissions": permissions
         }
@@ -169,28 +172,77 @@ async def user_login(
         )
 
 
-@router.post("/logout", response_model=ApiResponse[bool], summary="用户退出登录")
-async def user_logout(
-    current_user: User = Depends(get_current_user),
+@router.post("/refresh-token", summary="刷新访问令牌")
+async def refresh_token_endpoint(
+    request: dict,
     db: Session = Depends(get_db)
 ):
     """
-    用户退出登录
-
-    Args:
-        current_user: 当前登录用户
-        db: 数据库会话
-
-    Returns:
-        退出登录结果
+    使用refresh_token换取新的access_token。
+    请求体：{ "refresh_token": "..." }
     """
     try:
-        # 在实际应用中，这里可以：
-        # 1. 将token加入黑名单（如果使用Redis）
-        # 2. 记录退出日志
-        # 3. 清理用户相关缓存
+        refresh_token = request.get("refresh_token")
+        if not refresh_token:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="缺少refresh_token")
 
-        logger.info(f"User logged out successfully: {current_user.username}")
+        # 黑名单检查
+        if is_blacklisted(refresh_token):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="刷新令牌已失效")
+
+        # 验证并提取用户
+        payload = verify_token(refresh_token, token_type="refresh")
+        if not payload:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="刷新令牌无效或已过期")
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="刷新令牌无效")
+
+        # 作废旧refresh_token
+        add_to_blacklist(refresh_token)
+
+        # 颁发新的访问令牌和刷新令牌
+        new_access = create_access_token({"sub": user_id})
+        new_refresh = create_refresh_token({"sub": user_id})
+
+        return Success(code=200, msg="令牌刷新成功", data={
+            "access_token": new_access,
+            "token_type": "bearer",
+            "refresh_token": new_refresh
+        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during token refresh: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="刷新令牌失败")
+
+
+@router.post("/logout", response_model=ApiResponse[bool], summary="用户退出登录")
+async def user_logout(
+    body: Optional[dict] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
+    db: Session = Depends(get_db)
+):
+    """
+    用户退出登录：将access_token与refresh_token（如提供）加入黑名单
+    """
+    try:
+        # 黑名单当前访问令牌
+        try:
+            if credentials and credentials.credentials:
+                add_to_blacklist(credentials.credentials)
+        except Exception:
+            pass
+
+        # 黑名单刷新令牌
+        try:
+            refresh_token = (body or {}).get("refresh_token")
+            if refresh_token:
+                add_to_blacklist(refresh_token)
+        except Exception:
+            pass
+
+        logger.info("User logged out successfully")
         return Success(code=200, msg="退出登录成功", data=True)
 
     except Exception as e:
@@ -827,5 +879,6 @@ async def batch_delete_users(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="批量删除用户失败"
         )
+
 
 

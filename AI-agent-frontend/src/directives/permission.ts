@@ -9,59 +9,14 @@
  */
 
 import type { App, DirectiveBinding } from 'vue'
-import { useUserStore } from '@/store'
+import { hasPermission as checkPermissionUtil, hasRole as checkRoleUtil } from '@/utils/permission'
 
 interface PermissionElement extends HTMLElement {
   _originalDisplay?: string
   _originalVisibility?: string
 }
 
-// 权限检查函数
-function checkPermission(
-  permissions: string | string[],
-  mode: 'some' | 'every' = 'some'
-): boolean {
-  const userStore = useUserStore()
-  
-  // 如果未登录，无权限
-  if (!userStore.isLoggedIn) {
-    return false
-  }
-
-  // 超级管理员拥有所有权限
-  if (userStore.hasRole('admin') || userStore.hasRole('super_admin')) {
-    return true
-  }
-
-  const perms = Array.isArray(permissions) ? permissions : [permissions]
-  
-  if (mode === 'every') {
-    return perms.every(perm => userStore.hasPermission(perm))
-  } else {
-    return perms.some(perm => userStore.hasPermission(perm))
-  }
-}
-
-// 角色检查函数
-function checkRole(
-  roles: string | string[],
-  mode: 'some' | 'every' = 'some'
-): boolean {
-  const userStore = useUserStore()
-  
-  // 如果未登录，无权限
-  if (!userStore.isLoggedIn) {
-    return false
-  }
-
-  const roleList = Array.isArray(roles) ? roles : [roles]
-  
-  if (mode === 'every') {
-    return roleList.every(role => userStore.hasRole(role))
-  } else {
-    return roleList.some(role => userStore.hasRole(role))
-  }
-}
+// 逻辑改为调用工具函数，避免重复实现
 
 // 隐藏元素
 function hideElement(el: PermissionElement) {
@@ -91,9 +46,9 @@ const permissionDirective = {
       return
     }
 
-    const hasPermission = checkPermission(value, mode)
+    const allowed = checkPermissionUtil(value as any, mode as any)
     
-    if (!hasPermission) {
+    if (!allowed) {
       if (modifiers.hidden) {
         // 使用 visibility: hidden 隐藏（占位）
         if (!el._originalVisibility) {
@@ -120,9 +75,9 @@ const permissionDirective = {
       return
     }
 
-    const hasPermission = checkPermission(value, mode)
+    const allowed = checkPermissionUtil(value as any, mode as any)
     
-    if (!hasPermission) {
+    if (!allowed) {
       if (modifiers.hidden) {
         if (!el._originalVisibility) {
           el._originalVisibility = el.style.visibility || ''
@@ -151,9 +106,9 @@ const roleDirective = {
       return
     }
 
-    const hasRole = checkRole(value, mode)
+    const allowed = checkRoleUtil(value as any, mode as any)
     
-    if (!hasRole) {
+    if (!allowed) {
       if (modifiers.hidden) {
         if (!el._originalVisibility) {
           el._originalVisibility = el.style.visibility || ''
@@ -178,9 +133,9 @@ const roleDirective = {
       return
     }
 
-    const hasRole = checkRole(value, mode)
+    const allowed = checkRoleUtil(value as any, mode as any)
     
-    if (!hasRole) {
+    if (!allowed) {
       if (modifiers.hidden) {
         if (!el._originalVisibility) {
           el._originalVisibility = el.style.visibility || ''
@@ -204,4 +159,4 @@ export function setupPermissionDirectives(app: App) {
   app.directive('role', roleDirective)
 }
 
-export { checkPermission, checkRole }
+export { checkPermissionUtil as checkPermission, checkRoleUtil as checkRole }

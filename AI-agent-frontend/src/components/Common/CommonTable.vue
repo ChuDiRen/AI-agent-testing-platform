@@ -1,27 +1,30 @@
+<!-- Copyright (c) 2025 左岚. All rights reserved. -->
 <template>
   <div class="common-table">
-    <el-table
-      ref="tableRef"
-      :data="tableData"
-      :loading="loading"
-      :stripe="stripe"
-      :border="border"
-      :height="height"
-      :max-height="maxHeight"
-      :empty-text="emptyText"
-      :row-key="rowKey"
-      :tree-props="treeProps"
-      :expand-row-keys="expandRowKeys"
-      :default-expand-all="defaultExpandAll"
-      @selection-change="handleSelectionChange"
-      @sort-change="handleSortChange"
-      @row-click="handleRowClick"
-      @row-dblclick="handleRowDblClick"
-      v-bind="$attrs"
-      class="table-container"
-    >
-      <!-- 多选列 -->
-      <el-table-column
+    <div class="table-scroll" :style="{ '--min-table-width': minTableWidthCss }">
+      <el-table
+        ref="tableRef"
+        :data="tableData"
+        :loading="loading"
+        :stripe="stripe"
+        :border="border"
+        :height="height"
+        :max-height="maxHeight"
+        :empty-text="emptyText"
+        :row-key="rowKey"
+        :tree-props="treeProps"
+        :expand-row-keys="expandRowKeys"
+        :default-expand-all="defaultExpandAll"
+        @selection-change="handleSelectionChange"
+        @sort-change="handleSortChange"
+        @row-click="handleRowClick"
+        @row-dblclick="handleRowDblClick"
+        v-bind="$attrs"
+        :scrollbar-always-on="true"
+        class="table-container"
+      >
+        <!-- 多选列 -->
+        <el-table-column
         v-if="showSelection"
         type="selection"
         width="55"
@@ -60,11 +63,11 @@
               :$index="scope.$index"
             />
           </template>
-          
+
           <template #default="scope" v-else-if="column.formatter">
             <span v-html="column.formatter?.(scope.row, scope.column, scope.row[column.prop], scope.$index)" />
           </template>
-          
+
           <template #default="scope" v-else-if="column.render">
             <component :is="column.render" :row="scope.row" :index="scope.$index" />
           </template>
@@ -120,7 +123,8 @@
         @current-change="handleCurrentChange"
       />
     </div>
-  </div>
+  </div> <!-- end of table-scroll -->
+</div>
 </template>
 
 <script setup lang="ts">
@@ -170,6 +174,9 @@ export interface TableProps {
   paginationLayout?: string
   // 多选函数
   selectable?: (row: any, index: number) => boolean
+  // 横向滚动与最小宽度
+  enableXScroll?: boolean
+  minTableWidth?: number | string
 }
 
 const props = withDefaults(defineProps<TableProps>(), {
@@ -186,7 +193,9 @@ const props = withDefaults(defineProps<TableProps>(), {
   emptyText: '暂无数据',
   showPagination: true,
   pageSizes: () => [10, 20, 50, 100],
-  paginationLayout: 'total, sizes, prev, pager, next, jumper'
+  paginationLayout: 'total, sizes, prev, pager, next, jumper',
+  enableXScroll: true,
+  minTableWidth: 1200
 })
 
 const emit = defineEmits<{
@@ -204,6 +213,9 @@ const emit = defineEmits<{
   pageChange: [page: number]
   sizeChange: [size: number]
 }>()
+
+// 滚动容器样式控制
+const minTableWidthCss = computed(() => typeof props.minTableWidth === 'number' ? `${props.minTableWidth}px` : (props.minTableWidth || '1200px'))
 
 const tableRef = ref()
 
@@ -288,9 +300,18 @@ defineExpose({
 
 <style scoped lang="scss">
 .common-table {
+  .table-scroll {
+    width: 100%;
+    overflow-x: auto;
+  }
+
   .table-container {
     width: 100%;
-    
+
+    :deep(.el-table) {
+      min-width: var(--min-table-width, 1200px);
+    }
+
     :deep(.el-table__header-wrapper) {
       th {
         background-color: #fafafa;
@@ -298,7 +319,7 @@ defineExpose({
         font-weight: 500;
       }
     }
-    
+
     :deep(.el-table__body-wrapper) {
       .el-table__row {
         &:hover {
@@ -306,12 +327,12 @@ defineExpose({
         }
       }
     }
-    
+
     :deep(.el-button) {
       margin: 0 4px;
     }
   }
-  
+
   .pagination-container {
     margin-top: 20px;
     text-align: right;
