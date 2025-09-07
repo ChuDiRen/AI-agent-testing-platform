@@ -10,6 +10,7 @@ import 'element-plus/dist/index.css'
 // 公共样式引入
 import './assets/style/reset.scss'
 import './assets/style/global.scss'
+import './assets/style/table-fix.scss'
 
 const app = createApp(App)
 

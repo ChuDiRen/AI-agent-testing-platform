@@ -20,7 +20,7 @@
         @row-click="handleRowClick"
         @row-dblclick="handleRowDblClick"
         v-bind="$attrs"
-        :scrollbar-always-on="true"
+        :scrollbar-always-on="false"
         class="table-container"
       >
         <!-- 多选列 -->
@@ -176,7 +176,7 @@ export interface TableProps {
   selectable?: (row: any, index: number) => boolean
   // 横向滚动与最小宽度
   enableXScroll?: boolean
-  minTableWidth?: number | string
+  minTableWidth?: number | string | 'auto'
 }
 
 const props = withDefaults(defineProps<TableProps>(), {
@@ -195,7 +195,7 @@ const props = withDefaults(defineProps<TableProps>(), {
   pageSizes: () => [10, 20, 50, 100],
   paginationLayout: 'total, sizes, prev, pager, next, jumper',
   enableXScroll: true,
-  minTableWidth: 1200
+  minTableWidth: 'auto' // 改为自动
 })
 
 const emit = defineEmits<{
@@ -215,7 +215,10 @@ const emit = defineEmits<{
 }>()
 
 // 滚动容器样式控制
-const minTableWidthCss = computed(() => typeof props.minTableWidth === 'number' ? `${props.minTableWidth}px` : (props.minTableWidth || '1200px'))
+const minTableWidthCss = computed(() => {
+  if (props.minTableWidth === 'auto') return 'auto'
+  return typeof props.minTableWidth === 'number' ? `${props.minTableWidth}px` : (props.minTableWidth || 'auto')
+})
 
 const tableRef = ref()
 
@@ -300,16 +303,41 @@ defineExpose({
 
 <style scoped lang="scss">
 .common-table {
+  width: 100%;
+  min-width: 0;
+  
   .table-scroll {
     width: 100%;
     overflow-x: auto;
+    overflow-y: hidden;
+    
+    // 确保滚动条可见
+    &::-webkit-scrollbar {
+      height: 8px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+      
+      &:hover {
+        background: #a8a8a8;
+      }
+    }
   }
 
   .table-container {
     width: 100%;
+    min-width: var(--min-table-width, 1200px);
 
     :deep(.el-table) {
-      min-width: var(--min-table-width, 1200px);
+      width: 100%;
+      min-width: var(--min-table-width, 1650px);
     }
 
     :deep(.el-table__header-wrapper) {
@@ -437,7 +465,6 @@ defineExpose({
   .common-table {
     .table-container {
       :deep(.el-table) {
-        min-width: 500px;
         font-size: 10px;
 
         .el-table__header th,

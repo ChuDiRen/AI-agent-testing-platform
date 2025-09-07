@@ -31,4 +31,9 @@ button {
 
 input, textarea {
   outline: none;
+  pointer-events: auto; // 确保输入框可以接收事件
+  user-select: text; // 确保可以选择文本
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
 }

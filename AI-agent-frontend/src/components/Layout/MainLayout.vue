@@ -61,6 +61,7 @@ onMounted(async () => {
   flex-direction: column;
   margin-left: 250px;
   transition: margin-left 0.3s ease;
+  min-width: 0; // 确保内容区域可以正常缩放
   
   &.collapsed {
     margin-left: 64px;
@@ -72,6 +73,7 @@ onMounted(async () => {
     flex-direction: column;
     padding: 0;
     overflow: hidden;
+    min-width: 0;
   }
   
   .page-content {
@@ -79,6 +81,28 @@ onMounted(async () => {
     padding: 20px;
     background-color: #f5f7fa;
     overflow-y: auto;
+    overflow-x: auto; // 允许横向滚动
+    min-width: 0;
+    
+    // 确保内容区域的滚动条可见
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+      
+      &:hover {
+        background: #a8a8a8;
+      }
+    }
   }
 }
 
@@ -109,6 +133,7 @@ onMounted(async () => {
 
     .page-content {
       padding: 10px;
+      overflow-x: auto; // 移动端也确保横向滚动
     }
   }
 }

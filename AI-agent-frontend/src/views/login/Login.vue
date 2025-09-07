@@ -122,16 +122,43 @@ const handleLogin = async () => {
 // 初始化记住的密码
 onMounted(() => {
   const rememberedUsername = localStorage.getItem('rememberedUsername')
-  
+
   if (rememberedUsername) {
     loginForm.username = rememberedUsername
     rememberMe.value = true
   }
-  
+
   // 如果已经登录，直接跳转
   if (userStore.isLoggedIn) {
     router.push('/')
   }
+
+  // 调试：检查输入框是否可以获得焦点
+  setTimeout(() => {
+    const usernameInput = document.querySelector('input[placeholder="请输入用户名"]')
+    const passwordInput = document.querySelector('input[placeholder="请输入密码"]')
+
+    console.log('[Login Debug] 用户名输入框:', usernameInput)
+    console.log('[Login Debug] 密码输入框:', passwordInput)
+
+    if (usernameInput) {
+      console.log('[Login Debug] 用户名输入框属性:', {
+        disabled: usernameInput.disabled,
+        readonly: usernameInput.readOnly,
+        tabIndex: usernameInput.tabIndex,
+        style: usernameInput.style.cssText
+      })
+    }
+
+    if (passwordInput) {
+      console.log('[Login Debug] 密码输入框属性:', {
+        disabled: passwordInput.disabled,
+        readonly: passwordInput.readOnly,
+        tabIndex: passwordInput.tabIndex,
+        style: passwordInput.style.cssText
+      })
+    }
+  }, 1000)
 })
 </script>
 
@@ -183,18 +210,29 @@ onMounted(() => {
     
     .el-input {
       --el-input-border-radius: 10px;
-      
+      position: relative; // 确保输入框有正确的定位
+      z-index: 10; // 确保输入框在最上层
+
       :deep(.el-input__wrapper) {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         border: 1px solid #e4e7ed;
-        
+        pointer-events: auto; // 确保可以接收鼠标事件
+
         &:hover {
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
-        
+
         &.is-focus {
           box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
+      }
+
+      :deep(.el-input__inner) {
+        pointer-events: auto; // 确保输入框内部可以接收事件
+        user-select: text; // 确保可以选择文本
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
       }
     }
     

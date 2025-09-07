@@ -1,6 +1,50 @@
 {
   "port": 3100,
   "appPort": 5173,
-  "autoPlugins": true,
-  "plugins": []
+  "autoPlugins": false,
+  "plugins": [],
+  "openBrowser": true,
+  "browserUrl": "http://localhost:5173",
+  "framework": {
+    "name": "vue",
+    "version": "3.5.18",
+    "features": {
+      "typescript": true,
+      "router": true,
+      "store": "pinia",
+      "ui": "element-plus",
+      "css": "scss"
+    }
+  },
+  "development": {
+    "hotReload": true,
+    "sourceMap": true,
+    "debugMode": false,
+    "verbose": false
+  },
+  "server": {
+    "host": "localhost",
+    "cors": true,
+    "websocket": {
+      "pingInterval": 30000,
+      "pongTimeout": 5000,
+      "reconnectInterval": 3000,
+      "maxReconnectAttempts": 10
+    }
+  },
+  "agent": {
+    "contextAware": true,
+    "fileWatcher": true,
+    "codeAnalysis": true,
+    "suggestions": true
+  },
+  "ui": {
+    "theme": "auto",
+    "position": "bottom-right",
+    "minimized": false,
+    "shortcuts": {
+      "toggle": "Ctrl+Shift+S",
+      "focus": "Ctrl+Shift+F"
+    }
+  }
 }

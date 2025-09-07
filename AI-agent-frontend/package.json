@@ -5,12 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:full": "concurrently \"npm run dev\" \"npm run stagewise\" --names \"VITE,STAGEWISE\" --prefix-colors \"cyan,magenta\"",
+    "dev:no-open": "vite --host 0.0.0.0 --port 5173",
     "build": "vue-tsc -b && vite build",
     "build:dev": "vite build --mode development",
     "build:prod": "vite build --mode production",
     "preview": "vite preview",
     "lint": "eslint src --fix --ext .ts,.tsx,.vue,.js,.jsx",
-    "prettier": "prettier --write ."
+    "prettier": "prettier --write .",
+    "stagewise": "npx stagewise --silent",
+
+    "stagewise:dev": "npx stagewise --verbose",
+    "start:all": "powershell -ExecutionPolicy Bypass -File start-with-stagewise.ps1"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -31,12 +37,15 @@
     "@typescript-eslint/parser": "^8.40.0",
     "@vitejs/plugin-vue": "^5.1.0",
     "@vue/tsconfig": "^0.7.0",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.0.0",
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-vue": "^10.4.0",
     "prettier": "^3.6.2",
     "sass": "^1.90.0",
+    "stagewise": "^0.10.0",
     "terser": "^5.43.1",
     "typescript": "~5.8.3",
     "unplugin-auto-import": "^20.0.0",

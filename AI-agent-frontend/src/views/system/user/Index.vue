@@ -1,7 +1,7 @@
 # Copyright (c) 2025 左岚. All rights reserved.
 
 <template>
-  <div class="user-management">
+  <div class="user-management responsive-container">
     <div class="page-header">
       <h2>用户管理</h2>
       <p>管理系统用户，包括用户信息、角色分配等</p>
@@ -89,7 +89,7 @@
     </div>
     
         <!-- 数据表格 -->
-    <div class="table-container">
+    <div class="table-container table-wrapper">
       <CommonTable
         ref="tableRef"
         v-model:loading="loading"
@@ -100,7 +100,8 @@
         :show-index="false"
         :show-actions="true"
         :action-width="280"
-        :min-table-width="1400"
+        :action-min-width="280"
+        :min-table-width="'auto'"
         @selection-change="handleSelectionChange"
         @page-change="handlePageChange"
         @size-change="handleSizeChange"
@@ -302,19 +303,19 @@ const searchFields: SearchField[] = [
   }
 ]
 
-// 表格列配置
+// 表格列配置 - 使用灵活宽度设置
 const tableColumns: TableColumn[] = [
   { prop: 'user_id', label: 'ID', width: 60, fixed: 'left' },
-  { prop: 'username', label: '用户名', width: 100, fixed: 'left' },
-  { prop: 'email', label: '邮箱', width: 160, fixed: 'left' },
-  { prop: 'mobile', label: '手机号', width: 110 },
-  { prop: 'avatar', label: '头像', width: 60, slot: 'avatar' },
-  { prop: 'ssex', label: '性别', width: 60, slot: 'ssex' },
-  { prop: 'dept_name', label: '部门', width: 120 },
-  { prop: 'roles', label: '角色', width: 200, slot: 'roles' },
-  { prop: 'status', label: '状态', width: 70, slot: 'status' },
-  { prop: 'create_time', label: '创建时间', width: 140 },
-  { prop: 'last_login_time', label: '最后登录', width: 140 }
+  { prop: 'username', label: '用户名', width: 120, fixed: 'left' },
+  { prop: 'email', label: '邮箱', minWidth: 180 },
+  { prop: 'mobile', label: '手机号', minWidth: 120 },
+  { prop: 'avatar', label: '头像', width: 70, slot: 'avatar' },
+  { prop: 'ssex', label: '性别', width: 70, slot: 'ssex' },
+  { prop: 'dept_name', label: '部门', minWidth: 100 },
+  { prop: 'roles', label: '角色', minWidth: 150, slot: 'roles' },
+  { prop: 'status', label: '状态', width: 80, slot: 'status' },
+  { prop: 'create_time', label: '创建时间', minWidth: 140 },
+  { prop: 'last_login_time', label: '最后登录', minWidth: 140 }
 ]
 
 // 用户表单字段配置
@@ -936,19 +937,41 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .user-management {
+  width: 100%;
+  min-width: 0;
+  
   .table-container {
+    width: 100%;
     overflow-x: auto;
     background: #fff;
     border-radius: 6px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    margin-bottom: 16px;
+    position: relative; // 确保固定列正常显示
 
-    // 强制显示横向滚动条轨迹，便于用户感知
-    :deep(.el-scrollbar__wrap) {
-      overflow-x: auto !important;
+    // 确保表格容器能够正常滚动
+    :deep(.common-table) {
+      width: 100%;
+      min-width: 0;
     }
-    :deep(.el-table__body-wrapper),
-    :deep(.el-table__header-wrapper) {
-      overflow-x: auto !important;
+
+    :deep(.table-scroll) {
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    :deep(.el-table) {
+      width: 100%;
+    }
+
+    // 确保固定列的样式
+    :deep(.el-table__fixed-right) {
+      z-index: 10;
+    }
+
+    :deep(.el-table__fixed-left) {
+      z-index: 10;
     }
   }
 
@@ -1003,6 +1026,12 @@ onMounted(async () => {
         font-size: 13px;
       }
     }
+
+    .table-container {
+      :deep(.el-table) {
+        // 在中等屏幕下保持合适的最小宽度
+      }
+    }
   }
 }
 
@@ -1015,6 +1044,18 @@ onMounted(async () => {
       .action-left {
         flex-wrap: wrap;
         gap: 8px;
+      }
+    }
+
+    .table-container {
+      :deep(.el-table) {
+        // 在小屏幕下保持合适的最小宽度
+        font-size: 13px;
+      }
+
+      :deep(.el-button) {
+        padding: 6px 10px;
+        font-size: 12px;
       }
     }
   }
@@ -1039,26 +1080,46 @@ onMounted(async () => {
     .action-bar {
       flex-direction: column;
       gap: 12px;
+      padding: 12px;
 
       .action-left {
         width: 100%;
         justify-content: center;
         flex-wrap: wrap;
         gap: 8px;
+
+        .el-button {
+          font-size: 12px;
+          padding: 8px 12px;
+        }
       }
     }
 
-    // 表格在移动端的优化
-    :deep(.el-table) {
-      .el-table__header-wrapper,
-      .el-table__body-wrapper {
-        overflow-x: auto;
-      }
+    .table-container {
+      margin: 0 -10px;
+      border-radius: 0;
 
-      .el-table__header th,
-      .el-table__body td {
-        min-width: 80px;
-        white-space: nowrap;
+      :deep(.el-table) {
+        // 在移动端保持合适的最小宽度
+        font-size: 12px;
+
+        .el-table__header th,
+        .el-table__body td {
+          padding: 8px 6px;
+          min-width: 80px;
+          white-space: nowrap;
+        }
+
+        .el-button {
+          padding: 4px 8px;
+          font-size: 11px;
+          margin: 0 2px;
+        }
+
+        .el-tag {
+          font-size: 10px;
+          padding: 2px 6px;
+        }
       }
     }
   }
@@ -1080,35 +1141,42 @@ onMounted(async () => {
     }
 
     .action-bar {
+      padding: 10px;
+
       .action-left {
         .el-button {
-          padding: 8px 12px;
-          font-size: 12px;
+          padding: 6px 10px;
+          font-size: 11px;
         }
       }
     }
 
-    // 移动端表格进一步优化
-    :deep(.el-table) {
-      font-size: 12px;
+    .table-container {
+      margin: 0 -8px;
 
-      .el-table__header th {
-        padding: 8px 4px;
+      :deep(.el-table) {
+        // 在小移动端保持合适的最小宽度
         font-size: 11px;
-      }
 
-      .el-table__body td {
-        padding: 8px 4px;
-      }
+        .el-table__header th {
+          padding: 6px 4px;
+          font-size: 10px;
+        }
 
-      .el-button {
-        padding: 4px 8px;
-        font-size: 11px;
-      }
+        .el-table__body td {
+          padding: 6px 4px;
+        }
 
-      .el-tag {
-        font-size: 10px;
-        padding: 2px 6px;
+        .el-button {
+          padding: 2px 6px;
+          font-size: 10px;
+          margin: 0 1px;
+        }
+
+        .el-tag {
+          font-size: 9px;
+          padding: 1px 4px;
+        }
       }
     }
 

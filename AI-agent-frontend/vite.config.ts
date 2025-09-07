@@ -4,6 +4,52 @@ import path from 'path'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import type { Plugin } from 'vite'
+
+// Copyright (c) 2025 左岚. All rights reserved.
+// Stagewise 集成插件
+function stagewisePlugin(): Plugin {
+  return {
+    name: 'stagewise-integration',
+    configureServer(server) {
+      // 添加 Stagewise 相关的中间件
+      server.middlewares.use('/stagewise-toolbar-app', (req, res, next) => {
+        // 处理 Stagewise 工具栏请求
+        if (req.url?.includes('/server/ws')) {
+          // WebSocket 连接处理
+          next()
+        } else {
+          next()
+        }
+      })
+    },
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html, context) {
+        // 在开发模式下注入 Stagewise 工具栏
+        if (context.server) {
+          const stagewiseScript = `
+            <script type="module">
+              // Stagewise 工具栏初始化脚本
+              if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+                console.log('[Stagewise] 工具栏集成已启用');
+                // 动态加载 Stagewise 工具栏
+                window.__STAGEWISE_CONFIG__ = {
+                  enabled: true,
+                  port: 3100,
+                  appPort: 5173,
+                  framework: 'vue'
+                };
+              }
+            </script>
+          `
+          return html.replace('<head>', `<head>${stagewiseScript}`)
+        }
+        return html
+      }
+    }
+  }
+}
 
 // https://vite.dev/config/
 export default ({ mode }: any) => {
@@ -11,6 +57,7 @@ export default ({ mode }: any) => {
     return defineConfig({
     plugins: [
       vue(),
+      stagewisePlugin(), // Stagewise 深度集成插件
       AutoImport({
         imports: ['vue', 'vue-router'],
         dts: 'src/auto-import.d.ts',
@@ -30,7 +77,7 @@ export default ({ mode }: any) => {
     server: {
       host: '0.0.0.0',
       port: 5173, // 标准前端端口
-      open: true,
+      open: false, // 禁用 Vite 自动打开浏览器，让 Stagewise 处理
       // 支持HTML5 history模式路由
       historyApiFallback: true,
       proxy: {
@@ -39,6 +86,20 @@ export default ({ mode }: any) => {
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api/, '/api')
+        },
+        // Stagewise 工具栏和代理配置
+        '/stagewise-toolbar-app': {
+          target: 'http://localhost:3100', // Stagewise 服务端口
+          changeOrigin: true,
+          secure: false,
+          ws: true, // 支持 WebSocket
+        },
+        // Stagewise 代理配置（当 Stagewise 运行时）
+        '/__stagewise': {
+          target: 'http://localhost:3100',
+          changeOrigin: true,
+          secure: false,
+          ws: true,
         }
       }
     },
