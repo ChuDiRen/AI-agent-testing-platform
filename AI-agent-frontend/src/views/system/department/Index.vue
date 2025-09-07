@@ -144,12 +144,12 @@
     </el-card>
 
     <!-- 部门表单对话框 -->
-    <FormDialog
+    <el-dialog
       v-model="formDialogVisible"
       :title="isEdit ? '编辑部门' : '新增部门'"
-      :loading="formLoading"
-      @confirm="handleFormConfirm"
       width="600px"
+      :close-on-click-modal="false"
+      destroy-on-close
     >
       <el-form
         ref="formRef"
@@ -263,7 +263,22 @@
           />
         </el-form-item>
       </el-form>
-    </FormDialog>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="formDialogVisible = false" :disabled="formLoading">
+            取消
+          </el-button>
+          <el-button
+            type="primary"
+            @click="handleFormConfirm"
+            :loading="formLoading"
+          >
+            确定
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -271,7 +286,7 @@
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type ElTable } from 'element-plus'
 import { Search, Refresh, Plus, DCaret, CaretRight, OfficeBuilding } from '@element-plus/icons-vue'
-import FormDialog from '@/components/Common/FormDialog.vue'
+
 import { DepartmentApi } from '@/api/modules/department'
 import { UserApi } from '@/api/modules/user'
 import type { DeptTreeNode, UserInfo } from '@/api/types'
@@ -507,7 +522,9 @@ const handleDelete = async (row: any) => {
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('删除部门失败:', error)
-      ElMessage.error('删除部门失败')
+      // 显示具体的错误信息，兼容 FastAPI 的 detail 字段
+      const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || '删除部门失败'
+      ElMessage.error(errorMessage)
     }
   }
 }
@@ -536,9 +553,11 @@ const handleFormConfirm = async () => {
         loadDeptList()
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('保存部门失败:', error)
-    ElMessage.error('保存部门失败')
+    // 显示具体的错误信息，兼容 FastAPI 的 detail 字段
+    const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || '保存部门失败'
+    ElMessage.error(errorMessage)
   } finally {
     formLoading.value = false
   }
@@ -607,5 +626,17 @@ onMounted(() => {
 
 :deep(.el-tree-select) {
   width: 100%;
+}
+
+// 对话框样式
+:deep(.el-dialog) {
+  .el-dialog__body {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .dialog-footer {
+    text-align: right;
+  }
 }
 </style>

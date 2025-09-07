@@ -1,7 +1,7 @@
 // Copyright (c) 2025 左岚. All rights reserved.
 // baseUrl.ts
 const baseUrl: any = {
-  development: '/api/v1',
+  development: 'http://localhost:8000/api/v1', // 直接指向后端服务
   production: 'https://your-production-api.com/api/v1',
 }
 

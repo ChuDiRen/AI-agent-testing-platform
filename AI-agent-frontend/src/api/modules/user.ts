@@ -52,11 +52,11 @@ export class UserApi {
   }
 
   /**
-   * 获取所有用户列表（不分页）
+   * 获取所有用户列表（使用最大允许分页大小）
    * @returns 用户列表
    */
   static async getAllUsers(): Promise<ApiResponse<UserInfo[]>> {
-    return http.post<UserInfo[]>('/users/get-user-list', { page: 1, size: 1000 })
+    return http.post<UserInfo[]>('/users/get-user-list', { page: 1, size: 100 })
   }
 
   /**

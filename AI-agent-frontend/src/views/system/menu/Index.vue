@@ -154,12 +154,12 @@
     </el-card>
 
     <!-- 菜单表单对话框 -->
-    <FormDialog
+    <el-dialog
       v-model="formDialogVisible"
       :title="isEdit ? '编辑菜单' : '新增菜单'"
-      :loading="formLoading"
-      @confirm="handleFormConfirm"
       width="800px"
+      :close-on-click-modal="false"
+      destroy-on-close
     >
       <el-form
         ref="formRef"
@@ -257,13 +257,29 @@
                 :min="0" 
                 :max="999"
                 placeholder="请输入排序"
+                style="width: 100%"
               />
             </el-form-item>
           </el-col>
         </el-row>
         
       </el-form>
-    </FormDialog>
+      
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="handleFormCancel" :disabled="formLoading">
+            取消
+          </el-button>
+          <el-button
+            type="primary"
+            @click="handleFormConfirm"
+            :loading="formLoading"
+          >
+            确定
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -271,7 +287,7 @@
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type ElTable } from 'element-plus'
 import { Search, Refresh, Plus, DCaret, CaretRight } from '@element-plus/icons-vue'
-import FormDialog from '@/components/Common/FormDialog.vue'
+// import FormDialog from '@/components/Common/FormDialog.vue' // 不再使用FormDialog组件
 import { MenuApi } from '@/api/modules/menu'
 import type { MenuInfo, MenuTreeNode } from '@/api/types'
 
@@ -309,24 +325,35 @@ const formData = reactive({
 })
 
 // 表单验证规则
-const formRules = computed(() => ({
-  menu_name: [
-    { required: true, message: '请输入菜单名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '菜单名称长度在 2 到 50 个字符', trigger: 'blur' }
-  ],
-  menu_type: [
-    { required: true, message: '请选择菜单类型', trigger: 'change' }
-  ],
-  path: formData.menu_type !== '1' ? [
-    { required: true, message: '请输入路由地址', trigger: 'blur' }
-  ] : [],
-  component: formData.menu_type === '0' ? [
-    { required: true, message: '请输入组件路径', trigger: 'blur' }
-  ] : [],
-  perms: [
-    { max: 100, message: '权限标识不能超过 100 个字符', trigger: 'blur' }
-  ]
-}))
+const formRules = computed(() => {
+  const rules: Record<string, any[]> = {
+    menu_name: [
+      { required: true, message: '请输入菜单名称', trigger: 'blur' },
+      { min: 2, max: 50, message: '菜单名称长度在 2 到 50 个字符', trigger: 'blur' }
+    ],
+    menu_type: [
+      { required: true, message: '请选择菜单类型', trigger: 'change' }
+    ],
+    perms: [
+      { max: 100, message: '权限标识不能超过 100 个字符', trigger: 'blur' }
+    ]
+  }
+  
+  // 根据菜单类型动态添加验证规则
+  if (formData.menu_type !== '1') {
+    rules.path = [
+      { required: true, message: '请输入路由地址', trigger: 'blur' }
+    ]
+  }
+  
+  if (formData.menu_type === '0') {
+    rules.component = [
+      { required: true, message: '请输入组件路径', trigger: 'blur' }
+    ]
+  }
+  
+  return rules
+})
 
 // 菜单树配置
 const menuTreeProps = {
@@ -501,7 +528,9 @@ const handleDelete = async (row: MenuInfo) => {
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('删除菜单失败:', error)
-      ElMessage.error('删除菜单失败')
+      // 显示具体的错误信息，兼容 FastAPI 的 detail 字段
+      const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || '删除菜单失败'
+      ElMessage.error(errorMessage)
     }
   }
 }
@@ -536,6 +565,12 @@ const handleFormConfirm = async () => {
   } finally {
     formLoading.value = false
   }
+}
+
+// 表单取消
+const handleFormCancel = () => {
+  formDialogVisible.value = false
+  formRef.value?.clearValidate()
 }
 
 // 菜单类型变化
@@ -613,5 +648,17 @@ onMounted(() => {
 
 :deep(.el-tree-select) {
   width: 100%;
+}
+
+// 对话框样式
+:deep(.el-dialog) {
+  .el-dialog__body {
+    padding: 20px;
+  }
+  
+  .dialog-footer {
+    text-align: right;
+    padding-top: 10px;
+  }
 }
 </style>

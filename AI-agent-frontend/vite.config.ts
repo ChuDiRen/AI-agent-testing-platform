@@ -77,7 +77,7 @@ export default ({ mode }: any) => {
     server: {
       host: '0.0.0.0',
       port: 5173, // 标准前端端口
-      open: false, // 禁用 Vite 自动打开浏览器，让 Stagewise 处理
+      open: true, // 启用 Vite 自动打开浏览器
       // 支持HTML5 history模式路由
       historyApiFallback: true,
       proxy: {
@@ -86,20 +86,6 @@ export default ({ mode }: any) => {
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api/, '/api')
-        },
-        // Stagewise 工具栏和代理配置
-        '/stagewise-toolbar-app': {
-          target: 'http://localhost:3100', // Stagewise 服务端口
-          changeOrigin: true,
-          secure: false,
-          ws: true, // 支持 WebSocket
-        },
-        // Stagewise 代理配置（当 Stagewise 运行时）
-        '/__stagewise': {
-          target: 'http://localhost:3100',
-          changeOrigin: true,
-          secure: false,
-          ws: true,
         }
       }
     },

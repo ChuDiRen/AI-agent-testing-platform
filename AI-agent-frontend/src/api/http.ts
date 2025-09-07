@@ -238,7 +238,8 @@ http.interceptors.response.use(
     } else if (!response) {
       notify.error('网络连接失败，请检查网络连接')
     } else {
-      notify.error(data?.message || '请求失败')
+      // 兼容 FastAPI 的 detail 字段和标准的 message 字段
+      notify.error(data?.detail || data?.message || '请求失败')
     }
 
     return Promise.reject(error)

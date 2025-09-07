@@ -147,7 +147,7 @@ async def get_menu_info(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting menu {menu_id}: {str(e)}")
+        logger.error(f"Error getting menu {request.menu_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取菜单详情失败"
@@ -202,13 +202,13 @@ async def update_menu(
             modify_time=menu.modify_time
         )
         
-        logger.info(f"Menu updated successfully: {menu_id}")
+        logger.info(f"Menu updated successfully: {request.menu_id}")
         return ApiResponse.success_response(data=menu_response, message="菜单更新成功")
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error updating menu {menu_id}: {str(e)}")
+        logger.error(f"Unexpected error updating menu {request.menu_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="更新菜单失败"

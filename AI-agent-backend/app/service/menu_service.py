@@ -179,17 +179,26 @@ class MenuService:
             logger.warning(f"Menu not found with id: {menu_id}")
             return None
         
-        # 更新菜单信息
-        menu.update_info(
-            menu_name=menu_name,
-            path=path,
-            component=component,
-            perms=perms,
-            icon=icon,
-            order_num=order_num
-        )
-        
-        updated_menu = self.menu_repository.update(menu)
+        # 准备更新数据
+        update_data = {}
+        if menu_name is not None:
+            update_data['menu_name'] = menu_name
+        if path is not None:
+            update_data['PATH'] = path
+        if component is not None:
+            update_data['COMPONENT'] = component
+        if perms is not None:
+            update_data['perms'] = perms
+        if icon is not None:
+            update_data['icon'] = icon
+        if order_num is not None:
+            update_data['order_num'] = order_num
+
+        # 如果没有要更新的数据，直接返回原菜单
+        if not update_data:
+            return menu
+
+        updated_menu = self.menu_repository.update(menu_id, update_data)
         logger.info(f"Updated menu: {menu_id}")
         return updated_menu
 
