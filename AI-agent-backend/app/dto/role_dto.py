@@ -24,6 +24,20 @@ class RoleIdRequest(BaseModel):
         }
 
 
+class RoleBatchDeleteRequest(BaseModel):
+    """
+    批量删除角色请求DTO
+    """
+    role_ids: List[int] = Field(..., min_items=1, description="角色ID列表")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "role_ids": [1, 2, 3]
+            }
+        }
+
+
 class RoleListRequest(BaseModel):
     """
     角色列表请求DTO
@@ -86,6 +100,20 @@ class RoleDeleteRequest(BaseModel):
         json_schema_extra = {
             "example": {
                 "role_id": 1
+            }
+        }
+
+
+class RoleCopyRequest(BaseModel):
+    """
+    复制角色请求DTO
+    """
+    role_name: str = Field(..., min_length=1, max_length=10, description="新角色名称")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "role_name": "新角色名称"
             }
         }
 
@@ -175,18 +203,6 @@ class RoleListResponse(BaseModel):
         }
 
 
-class RoleMenuAssignRequest(BaseModel):
-    """
-    角色菜单分配请求DTO
-    """
-    menu_ids: List[int] = Field(..., description="菜单ID列表")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "menu_ids": [1, 2, 3, 4, 5]
-            }
-        }
 
 
 class RolePermissionResponse(BaseModel):

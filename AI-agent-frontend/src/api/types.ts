@@ -100,12 +100,6 @@ export interface PasswordChangeRequest {
 export interface RoleInfo {
   role_id: number
   role_name: string
-  role_code: string
-  description?: string
-  data_scope: string
-  data_scope_name?: string
-  sort: number
-  is_active: boolean
   remark?: string
   create_time: string
   modify_time?: string
@@ -143,14 +137,10 @@ export interface RolePermissionResponse {
 }
 
 /**
- * 角色列表分页响应（后端返回 roles 数组）
+ * 角色列表分页响应（与用户管理格式一致）
  */
-export interface RoleListResponse {
-  roles: RoleInfo[]
-  total: number
-  page: number
-  size: number
-  pages: number
+export interface RoleListResponse extends PageData<RoleInfo> {
+  // 继承PageData的所有属性
 }
 
 // 菜单信息

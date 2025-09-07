@@ -117,36 +117,10 @@
       v-model="formDialogVisible"
       :title="isEdit ? '编辑角色' : '新增角色'"
       :loading="formLoading"
-      :fields="[]"
+      :fields="formFields"
+      :form-data="formData"
       @confirm="handleFormConfirm"
-    >
-      <el-form
-        ref="formRef"
-        :model="formData"
-        :rules="formRules"
-        label-width="100px"
-      >
-        <el-form-item label="角色名称" prop="role_name">
-          <el-input 
-            v-model="formData.role_name" 
-            placeholder="请输入角色名称"
-            maxlength="10"
-            show-word-limit
-          />
-        </el-form-item>
-        
-        <el-form-item label="角色描述" prop="remark">
-          <el-input 
-            v-model="formData.remark" 
-            type="textarea"
-            placeholder="请输入角色描述"
-            :rows="3"
-            maxlength="100"
-            show-word-limit
-          />
-        </el-form-item>
-      </el-form>
-    </FormDialog>
+    />
 
     <!-- 权限配置对话框 -->
     <el-dialog
@@ -225,16 +199,15 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick } from 'vue'
-import { ElMessage, ElMessageBox, type FormInstance, type ElTree } from 'element-plus'
+import { ElMessage, ElMessageBox, type ElTree } from 'element-plus'
 import { Search, Refresh, Plus, Delete } from '@element-plus/icons-vue'
 import CommonTable from '@/components/Common/CommonTable.vue'
 import FormDialog from '@/components/Common/FormDialog.vue'
 import { RoleApi } from '@/api/modules/role'
 import { MenuApi } from '@/api/modules/menu'
-import type { RoleInfo, MenuTreeNode, TableColumn } from '@/api/types'
+import type { RoleInfo, MenuTreeNode, TableColumn, FormField } from '@/api/types'
 
-// 表单引用
-const formRef = ref<FormInstance>()
+// 菜单树引用
 const menuTreeRef = ref<typeof ElTree>()
 
 // 数据和状态
@@ -274,16 +247,7 @@ const formData = reactive({
   remark: ''
 })
 
-// 表单验证规则
-const formRules = {
-  role_name: [
-    { required: true, message: '请输入角色名称', trigger: 'blur' },
-    { min: 2, max: 10, message: '角色名称长度在 2 到 10 个字符', trigger: 'blur' }
-  ],
-  remark: [
-    { max: 100, message: '描述不能超过 100 个字符', trigger: 'blur' }
-  ]
-}
+
 
 // 表格列配置
 const tableColumns = ref<TableColumn[]>([
@@ -291,6 +255,40 @@ const tableColumns = ref<TableColumn[]>([
   { prop: 'role_name', label: '角色名称', minWidth: 120 },
   { prop: 'remark', label: '描述', minWidth: 150, showOverflowTooltip: true },
   { prop: 'create_time', label: '创建时间', width: 180 },
+])
+
+// 表单字段配置
+const formFields = ref<FormField[]>([
+  {
+    prop: 'role_name',
+    label: '角色名称',
+    component: 'input',
+    required: true,
+    placeholder: '请输入角色名称',
+    maxlength: 10,
+    rules: [
+      { required: true, message: '请输入角色名称', trigger: 'blur' },
+      { min: 2, max: 10, message: '角色名称长度在 2 到 10 个字符', trigger: 'blur' }
+    ],
+    props: {
+      'show-word-limit': true
+    }
+  },
+  {
+    prop: 'remark',
+    label: '角色描述',
+    component: 'input',
+    inputType: 'textarea',
+    placeholder: '请输入角色描述',
+    maxlength: 100,
+    rows: 3,
+    rules: [
+      { max: 100, message: '描述不能超过 100 个字符', trigger: 'blur' }
+    ],
+    props: {
+      'show-word-limit': true
+    }
+  }
 ])
 
 // 菜单树配置
@@ -319,9 +317,9 @@ const loadRoleList = async () => {
     
     const response = await RoleApi.getRoleList(params)
     if (response.success && response.data) {
-      // 后端返回的是 RoleListResponse 格式，包含 roles 数组
-      tableData.value = Array.isArray(response.data.roles) ? response.data.roles : []
-      pagination.total = response.data.total || 0
+      // 后端返回的是 PageData 格式，与用户管理一致
+      tableData.value = Array.isArray(response.data) ? response.data : []
+      pagination.total = (response as any).total || 0
     } else {
       tableData.value = []
       pagination.total = 0
@@ -374,6 +372,9 @@ const handleAdd = () => {
 // 编辑
 const handleEdit = (row: any) => {
   isEdit.value = true
+  // 重置表单数据
+  initFormData()
+  // 设置编辑数据
   Object.assign(formData, {
     role_name: row.role_name,
     remark: row.remark || ''
@@ -417,7 +418,7 @@ const handleDelete = async (row: RoleInfo) => {
         type: 'warning'
       }
     )
-    
+
     const response = await RoleApi.deleteRole(row.role_id)
     if (response.success) {
       ElMessage.success('删除成功')
@@ -426,7 +427,13 @@ const handleDelete = async (row: RoleInfo) => {
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('删除角色失败:', error)
-      ElMessage.error('删除角色失败')
+      // 检查是否是角色不存在的错误
+      if (error?.response?.status === 404 || error?.message?.includes('角色不存在')) {
+        ElMessage.warning('角色已不存在，将刷新列表')
+        loadRoleList() // 角色不存在时也要刷新列表
+      } else {
+        ElMessage.error('删除角色失败')
+      }
     }
   }
 }
@@ -452,28 +459,32 @@ const handleBatchDelete = async () => {
     const roleIds = (selectedRoles.value || []).map(role => role.role_id)
     const response = await RoleApi.batchDeleteRoles(roleIds)
     if (response.success) {
-      ElMessage.success('批量删除成功')
+      ElMessage.success(response.message || '批量删除成功')
       selectedRoles.value = []
       loadRoleList()
     }
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('批量删除角色失败:', error)
-      ElMessage.error('批量删除角色失败')
+      // 检查是否是具体的错误信息
+      if (error?.response?.data?.detail) {
+        ElMessage.error(error.response.data.detail)
+      } else if (error?.message) {
+        ElMessage.error(error.message)
+      } else {
+        ElMessage.error('批量删除角色失败')
+      }
     }
   }
 }
 
 // 表单提交
-const handleFormConfirm = async () => {
-  if (!formRef.value) return
-  
+const handleFormConfirm = async (data: any) => {
   try {
-    await formRef.value.validate()
     formLoading.value = true
     
     if (isEdit.value && currentRole.value) {
-      const updateData = { ...formData }
+      const updateData = { ...data }
       const response = await RoleApi.updateRole(currentRole.value.role_id, updateData)
       if (response.success) {
         ElMessage.success('更新成功')
@@ -481,7 +492,7 @@ const handleFormConfirm = async () => {
         loadRoleList()
       }
     } else {
-      const response = await RoleApi.createRole(formData)
+      const response = await RoleApi.createRole(data)
       if (response.success) {
         ElMessage.success('创建成功')
         formDialogVisible.value = false

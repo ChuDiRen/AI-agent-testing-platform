@@ -118,10 +118,16 @@ class RoleService:
             if self.role_repository.exists_by_name(role_name, exclude_id=role_id):
                 raise ValueError(f"角色名称 '{role_name}' 已存在")
         
+        # 准备更新数据
+        update_data = {}
+        if role_name is not None:
+            update_data['role_name'] = role_name
+        if remark is not None:
+            update_data['remark'] = remark
+
         # 更新角色信息
-        role.update_info(role_name=role_name, remark=remark)
-        updated_role = self.role_repository.update(role)
-        
+        updated_role = self.role_repository.update(role_id, update_data)
+
         logger.info(f"Updated role: {role_id}")
         return updated_role
 
@@ -153,6 +159,65 @@ class RoleService:
             logger.info(f"Deleted role: {role_id}")
         
         return success
+
+    def batch_delete_roles(self, role_ids: List[int]) -> Dict[str, Any]:
+        """
+        批量删除角色
+
+        Args:
+            role_ids: 角色ID列表
+
+        Returns:
+            删除结果统计
+        """
+        success_count = 0
+        failed_count = 0
+        failed_roles = []
+
+        for role_id in role_ids:
+            try:
+                # 检查角色是否存在
+                role = self.role_repository.get_by_id(role_id)
+                if not role:
+                    failed_count += 1
+                    failed_roles.append({"role_id": role_id, "reason": "角色不存在"})
+                    continue
+
+                # 检查是否有用户关联此角色
+                user_roles = self.user_role_repository.get_by_role_id(role_id)
+                if user_roles:
+                    failed_count += 1
+                    failed_roles.append({
+                        "role_id": role_id,
+                        "reason": f"角色仍有 {len(user_roles)} 个用户关联，无法删除"
+                    })
+                    continue
+
+                # 删除角色的菜单权限关联
+                self.role_menu_repository.delete_by_role_id(role_id)
+
+                # 删除角色
+                if self.role_repository.delete(role_id):
+                    success_count += 1
+                    logger.info(f"Batch deleted role: {role_id}")
+                else:
+                    failed_count += 1
+                    failed_roles.append({"role_id": role_id, "reason": "删除失败"})
+
+            except Exception as e:
+                failed_count += 1
+                failed_roles.append({"role_id": role_id, "reason": str(e)})
+                logger.error(f"Error batch deleting role {role_id}: {str(e)}")
+
+        result = {
+            "success_count": success_count,
+            "failed_count": failed_count,
+            "total_count": len(role_ids),
+            "failed_roles": failed_roles
+        }
+
+        logger.info(f"Batch delete roles result: {result}")
+        return result
 
     def search_roles(self, keyword: str) -> List[Role]:
         """
@@ -232,11 +297,57 @@ class RoleService:
     def get_role_menu_ids(self, role_id: int) -> List[int]:
         """
         获取角色的菜单ID列表
-        
+
         Args:
             role_id: 角色ID
-            
+
         Returns:
             菜单ID列表
         """
         return self.role_menu_repository.get_menu_ids_by_role_id(role_id)
+
+    def copy_role(self, source_role_id: int, new_role_name: str) -> Role:
+        """
+        复制角色（包括权限）
+
+        Args:
+            source_role_id: 源角色ID
+            new_role_name: 新角色名称
+
+        Returns:
+            新创建的角色对象
+
+        Raises:
+            ValueError: 源角色不存在或新角色名称已存在
+        """
+        try:
+            # 获取源角色
+            source_role = self.role_repository.get_by_id(source_role_id)
+            if not source_role:
+                raise ValueError(f"源角色不存在: {source_role_id}")
+
+            # 检查新角色名称是否已存在
+            if self.role_repository.exists_by_name(new_role_name):
+                raise ValueError(f"角色名称 '{new_role_name}' 已存在")
+
+            # 创建新角色
+            new_role = Role(
+                role_name=new_role_name,
+                remark=f"复制自: {source_role.role_name}"
+            )
+            created_role = self.role_repository.create(new_role)
+
+            # 复制菜单权限
+            source_menu_ids = self.get_role_menu_ids(source_role_id)
+            if source_menu_ids:
+                self.role_menu_repository.assign_menus_to_role(created_role.id, source_menu_ids)
+
+            self.db.commit()
+
+            logger.info(f"Copied role: {source_role_id} -> {created_role.id} with {len(source_menu_ids)} menus")
+            return created_role
+
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Error copying role {source_role_id}: {str(e)}")
+            raise

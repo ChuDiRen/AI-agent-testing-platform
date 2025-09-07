@@ -24,13 +24,13 @@ export class RoleApi {
    */
   static async getRoleList(params?: PageQuery & {
     keyword?: string
-  }): Promise<ApiResponse<RoleListResponse>> {
+  }): Promise<ApiResponse<PageData<RoleInfo>>> {
     const requestBody = {
       page: params?.page || 1,
       size: params?.size || 20,
       keyword: params?.keyword
     }
-    return http.post<RoleListResponse>('/roles/get-role-list', requestBody)
+    return http.post<PageData<RoleInfo>>('/roles/get-role-list', requestBody)
   }
 
   /**
@@ -38,9 +38,9 @@ export class RoleApi {
    * @returns 角色列表
    */
   static async getAllRoles(): Promise<ApiResponse<RoleInfo[]>> {
-    const response = await http.post<RoleListResponse>('/roles/get-role-list', { page: 1, size: 100 })
+    const response = await http.post<PageData<RoleInfo>>('/roles/get-role-list', { page: 1, size: 100 })
     if (response.success && response.data) {
-      return { ...response, data: response.data.roles || [] }
+      return { ...response, data: response.data.data || [] }
     }
     return response as any
   }
@@ -98,7 +98,7 @@ export class RoleApi {
    * @returns 权限列表
    */
   static async getRolePermissions(roleId: number): Promise<ApiResponse<RolePermissionResponse>> {
-    return http.get<RolePermissionResponse>(`/roles/${roleId}/permissions`)
+    return http.post<RolePermissionResponse>('/roles/get-role-permissions', { role_id: roleId })
   }
 
   /**
@@ -108,7 +108,7 @@ export class RoleApi {
    * @returns 分配结果
    */
   static async assignRoleMenus(roleId: number, data: RoleMenuAssignRequest): Promise<ApiResponse<boolean>> {
-    return http.post<boolean>(`/roles/${roleId}/menus`, data)
+    return http.post<boolean>('/roles/assign-role-menus', { role_id: roleId, ...data })
   }
 
   /**
@@ -117,7 +117,11 @@ export class RoleApi {
    * @returns 菜单权限
    */
   static async getRoleMenus(roleId: number): Promise<ApiResponse<number[]>> {
-    return http.get<number[]>(`/roles/${roleId}/menus`)
+    const response = await http.post<any>('/roles/get-role-permissions', { role_id: roleId })
+    if (response.success && response.data) {
+      return { ...response, data: response.data.menu_ids || [] }
+    }
+    return response as any
   }
 
   /**
