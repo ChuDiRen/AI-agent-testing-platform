@@ -231,19 +231,20 @@ class RoleService:
         """
         return self.role_repository.search_by_name(keyword)
 
-    def get_roles_with_pagination(self, page: int = 1, size: int = 10) -> Dict[str, Any]:
+    def get_roles_with_pagination(self, page: int = 1, size: int = 10, keyword: str = None) -> Dict[str, Any]:
         """
         分页获取角色
-        
+
         Args:
             page: 页码（从1开始）
             size: 每页大小
-            
+            keyword: 关键词搜索
+
         Returns:
             包含角色列表和分页信息的字典
         """
-        roles, total = self.role_repository.get_roles_with_pagination(page, size)
-        
+        roles, total = self.role_repository.get_roles_with_pagination(page, size, keyword)
+
         return {
             "roles": [role.to_dict() for role in roles],
             "total": total,

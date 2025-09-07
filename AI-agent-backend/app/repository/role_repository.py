@@ -79,23 +79,31 @@ class RoleRepository(BaseRepository[Role]):
             Role.is_deleted == 0
         ).all()
 
-    def get_roles_with_pagination(self, page: int = 1, size: int = 10) -> tuple[List[Role], int]:
+    def get_roles_with_pagination(self, page: int = 1, size: int = 10, keyword: str = None) -> tuple[List[Role], int]:
         """
         分页查询角色
 
         Args:
             page: 页码（从1开始）
             size: 每页大小
+            keyword: 关键词搜索
 
         Returns:
             (角色列表, 总数量)
         """
         offset = (page - 1) * size
 
-        # 查询总数（排除已删除的）
-        total = self.db.query(Role).filter(Role.is_deleted == 0).count()
+        # 构建基础查询条件
+        query = self.db.query(Role).filter(Role.is_deleted == 0)
 
-        # 查询当前页数据（排除已删除的）
-        roles = self.db.query(Role).filter(Role.is_deleted == 0).offset(offset).limit(size).all()
+        # 如果有关键词，添加搜索条件
+        if keyword:
+            query = query.filter(Role.role_name.like(f"%{keyword}%"))
+
+        # 查询总数
+        total = query.count()
+
+        # 查询当前页数据
+        roles = query.offset(offset).limit(size).all()
 
         return roles, total

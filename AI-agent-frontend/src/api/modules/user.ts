@@ -41,8 +41,8 @@ export class UserApi {
     if (params?.status) {
       requestBody.status = params.status
     }
-    if (params?.keyword) {
-      requestBody.username = params.keyword
+    if (params?.keyword && params.keyword.trim()) {
+      requestBody.username = params.keyword.trim()
     }
     if (params?.ssex) {
       requestBody.ssex = params.ssex

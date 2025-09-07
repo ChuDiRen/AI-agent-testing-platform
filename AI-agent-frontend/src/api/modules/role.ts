@@ -25,11 +25,16 @@ export class RoleApi {
   static async getRoleList(params?: PageQuery & {
     keyword?: string
   }): Promise<ApiResponse<PageData<RoleInfo>>> {
-    const requestBody = {
+    const requestBody: any = {
       page: params?.page || 1,
-      size: params?.size || 20,
-      keyword: params?.keyword
+      size: params?.size || 20
     }
+
+    // 只添加有值且去除空格后不为空的参数
+    if (params?.keyword && params.keyword.trim()) {
+      requestBody.keyword = params.keyword.trim()
+    }
+
     return http.post<PageData<RoleInfo>>('/roles/get-role-list', requestBody)
   }
 

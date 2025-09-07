@@ -312,9 +312,9 @@ const loadRoleList = async () => {
     const params = {
       page: pagination.page,
       size: pagination.size,
-      keyword: searchForm.keyword || undefined
+      keyword: searchForm.keyword && searchForm.keyword.trim() ? searchForm.keyword.trim() : undefined
     }
-    
+
     const response = await RoleApi.getRoleList(params)
     if (response.success && response.data) {
       // 后端返回的是 PageData 格式，与用户管理一致

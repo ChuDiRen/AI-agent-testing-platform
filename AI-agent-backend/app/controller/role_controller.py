@@ -89,7 +89,7 @@ async def get_role_list(
     """
     try:
         role_service = RoleService(db)
-        result = role_service.get_roles_with_pagination(page=request.page, size=request.size)
+        result = role_service.get_roles_with_pagination(page=request.page, size=request.size, keyword=request.keyword)
         
         # 转换为字典格式
         roles = [
