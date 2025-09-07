@@ -6,7 +6,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, DOUBLE, DateTime
+from sqlalchemy import Column, Integer, String, DOUBLE, DateTime, Boolean
 from sqlalchemy.orm import relationship
 
 from .base import BaseEntity
@@ -24,16 +24,16 @@ class Department(BaseEntity):
 
     # 上级部门ID - 必填，0表示顶级部门
     parent_id = Column(Integer, nullable=False, comment="上级部门ID")
-    
+
     # 部门名称 - 必填，最大100个字符
     dept_name = Column(String(100), nullable=False, comment="部门名称")
-    
+
     # 排序 - 可选，用于部门排序
     order_num = Column(DOUBLE(20), nullable=True, comment="排序")
-    
+
     # 创建时间 - 可选，默认当前时间
     create_time = Column(DateTime, nullable=True, default=datetime.utcnow, comment="创建时间")
-    
+
     # 修改时间 - 可选，更新时自动设置
     modify_time = Column(DateTime, nullable=True, onupdate=datetime.utcnow, comment="修改时间")
 
@@ -44,7 +44,7 @@ class Department(BaseEntity):
     def __init__(self, parent_id: int, dept_name: str, order_num: float = None):
         """
         初始化部门
-        
+
         Args:
             parent_id: 上级部门ID，0表示顶级部门
             dept_name: 部门名称
@@ -67,7 +67,7 @@ class Department(BaseEntity):
     def update_info(self, dept_name: str = None, order_num: float = None):
         """
         更新部门信息
-        
+
         Args:
             dept_name: 部门名称
             order_num: 排序号
@@ -86,7 +86,7 @@ class Department(BaseEntity):
             部门信息字典
         """
         return {
-            "dept_id": self.id,  # 修复：使用正确的属性名
+            "dept_id": self.id,
             "parent_id": self.parent_id,
             "dept_name": self.dept_name,
             "order_num": self.order_num,

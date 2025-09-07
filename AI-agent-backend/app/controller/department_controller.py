@@ -51,18 +51,18 @@ async def create_department(
             order_num=request.order_num
         )
         
-        # 转换为响应格式
-        dept_response = DepartmentResponse(
-            dept_id=department.id,  # 修复：使用正确的属性名
-            parent_id=department.parent_id,
-            dept_name=department.dept_name,
-            order_num=department.order_num,
-            create_time=department.create_time,
-            modify_time=department.modify_time
-        )
-        
+        # 转换为字典格式
+        dept_dict = {
+            "dept_id": department.id,
+            "parent_id": department.parent_id,
+            "dept_name": department.dept_name,
+            "order_num": department.order_num,
+            "create_time": department.create_time.isoformat() if department.create_time else None,
+            "modify_time": department.modify_time.isoformat() if department.modify_time else None
+        }
+
         logger.info(f"Department created successfully: {department.dept_name}")
-        return ApiResponse.success_response(data=dept_response, message="部门创建成功")
+        return Success(code=200, msg="部门创建成功", data=dept_dict)
         
     except ValueError as e:
         logger.warning(f"Department creation failed: {str(e)}")
@@ -114,24 +114,24 @@ async def get_department_list(
     """
     try:
         department_service = DepartmentService(db)
+
+        # 获取所有部门
         departments = department_service.get_all_departments()
-        
-        # 转换为响应格式
-        dept_responses = [
-            DepartmentResponse(
-                dept_id=dept.id,  # 修复：使用正确的属性名
-                parent_id=dept.parent_id,
-                dept_name=dept.dept_name,
-                order_num=dept.order_num,
-                create_time=dept.create_time,
-                modify_time=dept.modify_time
-            )
+
+        # 转换为字典格式
+        dept_list = [
+            {
+                "dept_id": dept.id,
+                "parent_id": dept.parent_id,
+                "dept_name": dept.dept_name,
+                "order_num": dept.order_num,
+                "create_time": dept.create_time.isoformat() if dept.create_time else None,
+                "modify_time": dept.modify_time.isoformat() if dept.modify_time else None
+            }
             for dept in departments
         ]
-        
-        dept_list_response = DepartmentListResponse(departments=dept_responses)
-        
-        return ApiResponse.success_response(data=dept_list_response, message="获取部门列表成功")
+
+        return Success(code=200, msg="获取部门列表成功", data=dept_list)
         
     except Exception as e:
         logger.error(f"Error getting departments: {str(e)}")
@@ -161,16 +161,17 @@ async def get_department_info(
                 detail="部门不存在"
             )
         
-        dept_response = DepartmentResponse(
-            dept_id=department.id,  # 修复：使用正确的属性名
-            parent_id=department.parent_id,
-            dept_name=department.dept_name,
-            order_num=department.order_num,
-            create_time=department.create_time,
-            modify_time=department.modify_time
-        )
-        
-        return ApiResponse.success_response(data=dept_response, message="获取部门详情成功")
+        # 转换为字典格式
+        dept_dict = {
+            "dept_id": department.id,
+            "parent_id": department.parent_id,
+            "dept_name": department.dept_name,
+            "order_num": department.order_num,
+            "create_time": department.create_time.isoformat() if department.create_time else None,
+            "modify_time": department.modify_time.isoformat() if department.modify_time else None
+        }
+
+        return Success(code=200, msg="获取部门详情成功", data=dept_dict)
         
     except HTTPException:
         raise
@@ -208,17 +209,18 @@ async def update_department(
                 detail="部门不存在"
             )
         
-        dept_response = DepartmentResponse(
-            dept_id=department.id,  # 修复：使用正确的属性名
-            parent_id=department.parent_id,
-            dept_name=department.dept_name,
-            order_num=department.order_num,
-            create_time=department.create_time,
-            modify_time=department.modify_time
-        )
-        
+        # 转换为字典格式
+        dept_dict = {
+            "dept_id": department.id,
+            "parent_id": department.parent_id,
+            "dept_name": department.dept_name,
+            "order_num": department.order_num,
+            "create_time": department.create_time.isoformat() if department.create_time else None,
+            "modify_time": department.modify_time.isoformat() if department.modify_time else None
+        }
+
         logger.info(f"Department updated successfully: {request.dept_id}")
-        return ApiResponse.success_response(data=dept_response, message="部门更新成功")
+        return Success(code=200, msg="部门更新成功", data=dept_dict)
         
     except ValueError as e:
         logger.warning(f"Department update failed: {str(e)}")
@@ -257,7 +259,7 @@ async def delete_department(
             )
         
         logger.info(f"Department deleted successfully: {request.dept_id}")
-        return ApiResponse.success_response(data=True, message="部门删除成功")
+        return Success(code=200, msg="部门删除成功", data=True)
 
     except ValueError as e:
         logger.warning(f"Department deletion failed: {str(e)}")
@@ -295,24 +297,25 @@ async def get_department_status(
                 detail="部门不存在"
             )
         
-        has_children = department_service.has_children(dept_id)
-        has_users = department_service.has_users(dept_id)
-        can_delete = department_service.can_delete(dept_id)
-        
-        status_response = DepartmentStatusResponse(
-            dept_id=department.id,  # 修复：使用正确的属性名
-            dept_name=department.dept_name,
-            has_children=has_children,
-            has_users=has_users,
-            can_delete=can_delete
-        )
-        
-        return ApiResponse.success_response(data=status_response, message="获取部门状态成功")
+        has_children = department_service.has_children(request.dept_id)
+        has_users = department_service.has_users(request.dept_id)
+        can_delete = department_service.can_delete(request.dept_id)
+
+        # 转换为字典格式
+        status_dict = {
+            "dept_id": department.id,
+            "dept_name": department.dept_name,
+            "has_children": has_children,
+            "has_users": has_users,
+            "can_delete": can_delete
+        }
+
+        return Success(code=200, msg="获取部门状态成功", data=status_dict)
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting department status {dept_id}: {str(e)}")
+        logger.error(f"Error getting department status {request.dept_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取部门状态失败"

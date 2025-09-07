@@ -60,23 +60,23 @@ async def create_menu(
             order_num=request.order_num
         )
         
-        # 转换为响应格式
-        menu_response = MenuResponse(
-            menu_id=menu.id,
-            parent_id=menu.parent_id,
-            menu_name=menu.menu_name,
-            path=menu.PATH,
-            component=menu.COMPONENT,
-            perms=menu.perms,
-            icon=menu.icon,
-            menu_type=menu.TYPE,
-            order_num=menu.order_num,
-            create_time=menu.create_time,
-            modify_time=menu.modify_time
-        )
-        
+        # 转换为字典格式
+        menu_dict = {
+            "menu_id": menu.id,
+            "parent_id": menu.parent_id,
+            "menu_name": menu.menu_name,
+            "path": menu.PATH,
+            "component": menu.COMPONENT,
+            "perms": menu.perms,
+            "icon": menu.icon,
+            "menu_type": menu.TYPE,
+            "order_num": menu.order_num,
+            "create_time": menu.create_time.isoformat() if menu.create_time else None,
+            "modify_time": menu.modify_time.isoformat() if menu.modify_time else None
+        }
+
         logger.info(f"Menu created successfully: {menu.menu_name}")
-        return ApiResponse.success_response(data=menu_response, message="菜单创建成功")
+        return Success(code=200, msg="菜单创建成功", data=menu_dict)
         
     except Exception as e:
         logger.error(f"Unexpected error creating menu: {str(e)}")
@@ -128,21 +128,22 @@ async def get_menu_info(
                 detail="菜单不存在"
             )
         
-        menu_response = MenuResponse(
-            menu_id=menu.id,
-            parent_id=menu.parent_id,
-            menu_name=menu.menu_name,
-            path=menu.PATH,
-            component=menu.COMPONENT,
-            perms=menu.perms,
-            icon=menu.icon,
-            menu_type=menu.TYPE,
-            order_num=menu.order_num,
-            create_time=menu.create_time,
-            modify_time=menu.modify_time
-        )
-        
-        return ApiResponse.success_response(data=menu_response, message="获取菜单详情成功")
+        # 转换为字典格式
+        menu_dict = {
+            "menu_id": menu.id,
+            "parent_id": menu.parent_id,
+            "menu_name": menu.menu_name,
+            "path": menu.PATH,
+            "component": menu.COMPONENT,
+            "perms": menu.perms,
+            "icon": menu.icon,
+            "menu_type": menu.TYPE,
+            "order_num": menu.order_num,
+            "create_time": menu.create_time.isoformat() if menu.create_time else None,
+            "modify_time": menu.modify_time.isoformat() if menu.modify_time else None
+        }
+
+        return Success(code=200, msg="获取菜单详情成功", data=menu_dict)
         
     except HTTPException:
         raise
@@ -188,22 +189,23 @@ async def update_menu(
                 detail="菜单不存在"
             )
         
-        menu_response = MenuResponse(
-            menu_id=menu.id,
-            parent_id=menu.parent_id,
-            menu_name=menu.menu_name,
-            path=menu.PATH,
-            component=menu.COMPONENT,
-            perms=menu.perms,
-            icon=menu.icon,
-            menu_type=menu.TYPE,
-            order_num=menu.order_num,
-            create_time=menu.create_time,
-            modify_time=menu.modify_time
-        )
-        
+        # 转换为字典格式
+        menu_dict = {
+            "menu_id": menu.id,
+            "parent_id": menu.parent_id,
+            "menu_name": menu.menu_name,
+            "path": menu.PATH,
+            "component": menu.COMPONENT,
+            "perms": menu.perms,
+            "icon": menu.icon,
+            "menu_type": menu.TYPE,
+            "order_num": menu.order_num,
+            "create_time": menu.create_time.isoformat() if menu.create_time else None,
+            "modify_time": menu.modify_time.isoformat() if menu.modify_time else None
+        }
+
         logger.info(f"Menu updated successfully: {request.menu_id}")
-        return ApiResponse.success_response(data=menu_response, message="菜单更新成功")
+        return Success(code=200, msg="菜单更新成功", data=menu_dict)
         
     except HTTPException:
         raise
@@ -236,7 +238,7 @@ async def delete_menu(
             )
         
         logger.info(f"Menu deleted successfully: {request.menu_id}")
-        return ApiResponse.success_response(data=True, message="菜单删除成功")
+        return Success(code=200, msg="菜单删除成功", data=True)
 
     except ValueError as e:
         logger.warning(f"Menu deletion failed: {str(e)}")

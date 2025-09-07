@@ -89,23 +89,7 @@
           </template>
         </el-table-column>
         
-        <el-table-column prop="dept_code" label="部门编码" min-width="120" />
-        
-        <el-table-column prop="leader_name" label="部门负责人" min-width="120" />
-        
-        <el-table-column prop="phone" label="联系电话" min-width="130" />
-        
-        <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
-        
-        <el-table-column prop="sort" label="排序" width="80" align="center" />
-        
-        <el-table-column prop="is_active" label="状态" width="80" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
-              {{ row.is_active ? '启用' : '禁用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
+        <el-table-column prop="order_num" label="排序" width="80" align="center" />
         
         <el-table-column prop="created_at" label="创建时间" width="180" align="center" />
         
@@ -181,62 +165,15 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="部门编码" prop="dept_code">
-              <el-input 
-                v-model="formData.dept_code" 
-                placeholder="请输入部门编码"
-                maxlength="50"
-                show-word-limit
-              />
-            </el-form-item>
           </el-col>
         </el-row>
         
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="部门负责人" prop="leader_id">
-              <el-select 
-                v-model="formData.leader_id" 
-                placeholder="请选择部门负责人"
-                clearable
-                filterable
-                style="width: 100%"
-              >
-                <el-option 
-                  v-for="user in userOptions" 
-                  :key="user.user_id" 
-                  :label="user.username" 
-                  :value="user.user_id" 
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="联系电话" prop="phone">
-              <el-input 
-                v-model="formData.phone" 
-                placeholder="请输入联系电话"
-                maxlength="20"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="邮箱" prop="email">
-              <el-input 
-                v-model="formData.email" 
-                placeholder="请输入邮箱"
-                maxlength="100"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="排序" prop="sort">
-              <el-input-number 
-                v-model="formData.sort" 
-                :min="0" 
+            <el-form-item label="排序" prop="order_num">
+              <el-input-number
+                v-model="formData.order_num"
+                :min="0"
                 :max="999"
                 placeholder="请输入排序"
               />
@@ -288,8 +225,7 @@ import { ElMessage, ElMessageBox, type FormInstance, type ElTable } from 'elemen
 import { Search, Refresh, Plus, DCaret, CaretRight, OfficeBuilding } from '@element-plus/icons-vue'
 
 import { DepartmentApi } from '@/api/modules/department'
-import { UserApi } from '@/api/modules/user'
-import type { DeptTreeNode, UserInfo } from '@/api/types'
+import type { DeptTreeNode } from '@/api/types'
 
 // 表单引用
 const formRef = ref<FormInstance>()
@@ -301,7 +237,7 @@ const formLoading = ref(false)
 const tableData = ref<DeptTreeNode[]>([])
 const deptTreeOptions = ref<DeptTreeNode[]>([])
 // const selectedDepts = ref<DeptTreeNode[]>([]) // 暂时注释掉未使用的变量
-const userOptions = ref<UserInfo[]>([])
+
 const currentDept = ref<DeptTreeNode | null>(null)
 
 // 对话框状态
@@ -318,13 +254,7 @@ const searchForm = reactive({
 const formData = reactive<Record<string, any>>({
   parent_id: null,
   dept_name: '',
-  dept_code: '',
-  leader_id: null,
-  phone: '',
-  email: '',
-  sort: 0,
-  is_active: true,
-  remark: ''
+  order_num: 0
 })
 
 // 表单验证规则
@@ -332,17 +262,6 @@ const formRules = {
   dept_name: [
     { required: true, message: '请输入部门名称', trigger: 'blur' },
     { min: 2, max: 50, message: '部门名称长度在 2 到 50 个字符', trigger: 'blur' }
-  ],
-  dept_code: [
-    { required: true, message: '请输入部门编码', trigger: 'blur' },
-    { min: 2, max: 50, message: '部门编码长度在 2 到 50 个字符', trigger: 'blur' },
-    { pattern: /^[a-zA-Z0-9_-]+$/, message: '部门编码只能包含字母、数字、下划线和中划线', trigger: 'blur' }
-  ],
-  phone: [
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
-  ],
-  email: [
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
   ]
 }
 
@@ -358,13 +277,7 @@ const initFormData = () => {
   Object.assign(formData, {
     parent_id: null,
     dept_name: '',
-    dept_code: '',
-    leader_id: null,
-    phone: '',
-    email: '',
-    sort: 0,
-    is_active: true,
-    remark: ''
+    order_num: 0
   })
 }
 
@@ -400,19 +313,7 @@ const loadDeptTreeOptions = async () => {
   }
 }
 
-// 加载用户选项
-const loadUserOptions = async () => {
-  try {
-    const response = await UserApi.getAllUsers()
-    if (response.success && response.data) {
-      userOptions.value = Array.isArray(response.data) ? response.data : []
-    } else {
-      userOptions.value = []
-    }
-  } catch (error) {
-    console.error('加载用户选项失败:', error)
-  }
-}
+
 
 // 搜索
 const handleSearch = () => {
@@ -462,7 +363,6 @@ const handleAdd = () => {
   initFormData()
   formDialogVisible.value = true
   loadDeptTreeOptions()
-  loadUserOptions()
 }
 
 // 新增子部门
@@ -472,7 +372,6 @@ const handleAddChild = (row: any) => {
   formData.parent_id = row.dept_id
   formDialogVisible.value = true
   loadDeptTreeOptions()
-  loadUserOptions()
 }
 
 // 编辑
@@ -481,18 +380,11 @@ const handleEdit = (row: any) => {
   Object.assign(formData, {
     parent_id: row.parent_id,
     dept_name: row.dept_name,
-    dept_code: row.dept_code,
-    leader_id: row.leader_id,
-    phone: row.phone || '',
-    email: row.email || '',
-    sort: row.sort,
-    is_active: row.is_active,
-    remark: row.remark || ''
+    order_num: row.order_num || 0
   })
   currentDept.value = row
   formDialogVisible.value = true
   loadDeptTreeOptions()
-  loadUserOptions()
 }
 
 // 删除

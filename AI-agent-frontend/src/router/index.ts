@@ -74,6 +74,15 @@ const routes: RouteRecordRaw[] = [
               title: '部门管理',
               permission: 'dept:view'
             }
+          },
+          {
+            path: '/system/logs',
+            name: 'SystemLogs',
+            component: () => import('@/views/system/logs/Index.vue'),
+            meta: {
+              title: '日志管理',
+              permission: 'log:view'
+            }
           }
         ]
       },
@@ -128,15 +137,6 @@ const routes: RouteRecordRaw[] = [
             }
           }
         ]
-      },
-      {
-        path: '/logs',
-        name: 'Logs',
-        component: () => import('@/views/logs/Index.vue'),
-        meta: {
-          title: '日志管理',
-          icon: 'Operation'
-        }
       }
     ]
   },

@@ -42,6 +42,11 @@
             <el-icon><OfficeBuilding /></el-icon>
             <template #title>部门管理</template>
           </el-menu-item>
+
+          <el-menu-item index="/system/logs">
+            <el-icon><Operation /></el-icon>
+            <template #title>日志管理</template>
+          </el-menu-item>
         </el-sub-menu>
         
         <!-- 测试管理 -->
@@ -80,11 +85,7 @@
           </el-menu-item>
         </el-sub-menu>
         
-        <!-- 日志管理 -->
-        <el-menu-item index="/logs">
-          <el-icon><Operation /></el-icon>
-          <template #title>日志管理</template>
-        </el-menu-item>
+
       </el-menu>
     </div>
     
