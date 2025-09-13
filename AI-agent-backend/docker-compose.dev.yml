@@ -16,7 +16,8 @@ services:
     environment:
       - ENVIRONMENT=development
       - DEBUG=True
-      - DATABASE_URL=sqlite:///./ai_agent_dev.db
+      - DATABASE_TYPE=sqlite
+      - SQLITE_FILE=./ai_agent_dev.db
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=dev-secret-key-for-development-only
       - LOG_LEVEL=DEBUG

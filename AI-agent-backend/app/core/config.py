@@ -26,9 +26,19 @@ class Settings(BaseSettings):
     PORT: int = 8000  # 标准后端端口
     RELOAD: bool = True
     
-    # 数据库配置
-    DATABASE_URL: str = "sqlite:///./ai_agent.db"
+    # 数据库类型配置
+    DATABASE_TYPE: str = "sqlite"  # 支持 "sqlite" 或 "postgresql"
     DATABASE_ECHO: bool = False  # 是否打印SQL语句
+
+    # SQLite 配置
+    SQLITE_FILE: str = "./ai_agent.db"
+
+    # PostgreSQL 配置
+    POSTGRES_HOST: str = "localhost"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = "password"
+    POSTGRES_DB: str = "ai_agent_db"
     
     # Redis配置（可选）
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -95,12 +105,22 @@ class Settings(BaseSettings):
     RATE_LIMIT_REQUESTS: int = 100
     RATE_LIMIT_WINDOW: int = 60  # 秒
     
-    @validator("DATABASE_URL")
-    def validate_database_url(cls, v):
-        """验证数据库URL"""
-        if not v:
-            raise ValueError("DATABASE_URL cannot be empty")
-        return v
+    @validator("DATABASE_TYPE")
+    def validate_database_type(cls, v):
+        """验证数据库类型"""
+        if v.lower() not in ["sqlite", "postgresql"]:
+            raise ValueError("DATABASE_TYPE must be 'sqlite' or 'postgresql'")
+        return v.lower()
+
+    @property
+    def DATABASE_URL(self) -> str:
+        """根据数据库类型自动生成数据库连接URL"""
+        if self.DATABASE_TYPE == "sqlite":
+            return f"sqlite:///{self.SQLITE_FILE}"
+        elif self.DATABASE_TYPE == "postgresql":
+            return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        else:
+            raise ValueError(f"Unsupported database type: {self.DATABASE_TYPE}")
     
     @validator("SECRET_KEY")
     def validate_secret_key(cls, v, values):
@@ -179,6 +199,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
+        extra = "ignore"  # 忽略额外字段
 
 
 @lru_cache()

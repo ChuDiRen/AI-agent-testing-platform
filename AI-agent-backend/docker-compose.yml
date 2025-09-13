@@ -15,7 +15,12 @@ services:
       - "8000:8000"
     environment:
       - ENVIRONMENT=production
-      - DATABASE_URL=postgresql://postgres:password@db:5432/ai_agent_db
+      - DATABASE_TYPE=postgresql
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=ai_agent_db
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=your-production-secret-key-change-this
       - LOG_LEVEL=INFO

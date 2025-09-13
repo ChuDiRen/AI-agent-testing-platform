@@ -116,7 +116,7 @@ AI-agent-backend/
 
 - Python 3.11+
 - Redis (可选，用于缓存)
-- PostgreSQL/MySQL (生产环境推荐)
+- PostgreSQL (生产环境推荐) 或 SQLite (开发环境)
 
 ### 安装依赖
 
@@ -143,6 +143,26 @@ cp .env.example .env
 
 # 编辑环境变量
 vim .env
+```
+
+#### 数据库配置
+
+项目支持通过环境变量控制数据库类型：
+
+**使用 SQLite（开发环境推荐）**：
+```bash
+DATABASE_TYPE=sqlite
+SQLITE_FILE=./ai_agent.db
+```
+
+**使用 PostgreSQL（生产环境推荐）**：
+```bash
+DATABASE_TYPE=postgresql
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_password
+POSTGRES_DB=ai_agent_db
 ```
 
 ### 初始化数据库
@@ -264,7 +284,29 @@ pytest app/tests/test_user_controller.py
 pytest --cov=app --cov-report=html
 ```
 
-### 数据库迁移
+### 数据库管理
+
+#### 数据库切换
+
+使用数据库切换脚本可以轻松在SQLite和PostgreSQL之间切换：
+
+```bash
+# 查看当前数据库配置
+python scripts/switch_database.py show
+
+# 切换到SQLite（开发环境）
+python scripts/switch_database.py sqlite --file ./ai_agent.db
+
+# 切换到PostgreSQL（生产环境）
+python scripts/switch_database.py postgresql \
+  --host localhost \
+  --port 5432 \
+  --user postgres \
+  --password your_password \
+  --database ai_agent_db
+```
+
+#### 数据库迁移
 
 ```bash
 # 创建迁移
