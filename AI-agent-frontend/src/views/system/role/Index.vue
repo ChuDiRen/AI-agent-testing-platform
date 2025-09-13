@@ -123,112 +123,36 @@
     />
 
     <!-- 权限配置对话框 -->
-    <el-dialog
+    <PermissionDialog
       v-model="permissionDialogVisible"
-      title="权限配置"
-      width="60%"
-      :close-on-click-modal="false"
-    >
-      <div class="permission-config">
-        <div class="role-info">
-          <span>角色：{{ currentRole?.role_name }}</span>
-        </div>
-        
-        <el-tabs v-model="activeTab">
-          <el-tab-pane label="菜单权限" name="menu">
-            <div class="menu-tree-container">
-              <div class="tree-header">
-                <el-checkbox 
-                  v-model="menuCheckAll" 
-                  :indeterminate="menuIndeterminate"
-                  @change="handleMenuCheckAll"
-                >
-                  全选/反选
-                </el-checkbox>
-                <el-button 
-                  type="primary" 
-                  size="small"
-                  @click="expandAllMenus"
-                >
-                  展开全部
-                </el-button>
-                <el-button 
-                  size="small"
-                  @click="collapseAllMenus"
-                >
-                  折叠全部
-                </el-button>
-              </div>
-              
-              <el-tree
-                ref="menuTreeRef"
-                :data="menuTreeData"
-                :props="menuTreeProps"
-                node-key="menu_id"
-                show-checkbox
-                :check-strictly="false"
-                :default-expand-all="false"
-                @check="handleMenuCheck"
-              >
-                <template #default="{ data }">
-                  <span class="menu-node">
-                    <el-icon v-if="data.icon" class="menu-icon">
-                      <component :is="data.icon" />
-                    </el-icon>
-                    <span>{{ data.menu_name }}</span>
-                    <el-tag v-if="data.menu_type === 'button'" size="small" type="info">
-                      按钮
-                    </el-tag>
-                  </span>
-                </template>
-              </el-tree>
-            </div>
-          </el-tab-pane>
-        </el-tabs>
-      </div>
-      
-      <template #footer>
-        <el-button @click="permissionDialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="handlePermissionSave" :loading="permissionLoading">
-          保 存
-        </el-button>
-      </template>
-    </el-dialog>
+      :role-info="currentRole"
+      @success="handlePermissionSuccess"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick } from 'vue'
-import { ElMessage, ElMessageBox, type ElTree } from 'element-plus'
+import { ref, reactive, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, Delete } from '@element-plus/icons-vue'
 import CommonTable from '@/components/Common/CommonTable.vue'
 import FormDialog from '@/components/Common/FormDialog.vue'
+import PermissionDialog from '@/components/Permission/PermissionDialog.vue'
 import { RoleApi } from '@/api/modules/role'
-import { MenuApi } from '@/api/modules/menu'
 import { formatStandardDateTime } from '@/utils/dateFormat'
-import type { RoleInfo, MenuTreeNode, TableColumn, FormField } from '@/api/types'
-
-// 菜单树引用
-const menuTreeRef = ref<typeof ElTree>()
+import type { RoleInfo, TableColumn, FormField } from '@/api/types'
 
 // 数据和状态
 const loading = ref(false)
 const formLoading = ref(false)
-const permissionLoading = ref(false)
 const tableData = ref<RoleInfo[]>([])
 const selectedRoles = ref<RoleInfo[]>([])
-const menuTreeData = ref<MenuTreeNode[]>([])
 const currentRole = ref<RoleInfo | null>(null)
 
 // 对话框状态
 const formDialogVisible = ref(false)
 const permissionDialogVisible = ref(false)
 const isEdit = ref(false)
-
-// 权限配置相关
-const activeTab = ref('menu')
-const menuCheckAll = ref(false)
-const menuIndeterminate = ref(false)
 
 // 搜索表单
 const searchForm = reactive({
@@ -292,12 +216,6 @@ const formFields = ref<FormField[]>([
   }
 ])
 
-// 菜单树配置
-const menuTreeProps = {
-  children: 'children',
-  label: 'menu_name'
-}
-
 // 初始化表单数据
 const initFormData = () => {
   Object.assign(formData, {
@@ -332,21 +250,6 @@ const loadRoleList = async () => {
     pagination.total = 0
   } finally {
     loading.value = false
-  }
-}
-
-// 加载菜单树
-const loadMenuTree = async () => {
-  try {
-    const response = await MenuApi.getMenuTree()
-    if (response.success && response.data) {
-      menuTreeData.value = Array.isArray(response.data) ? response.data : []
-    } else {
-      menuTreeData.value = []
-    }
-  } catch (error) {
-    console.error('加载菜单树失败:', error)
-    menuTreeData.value = []
   }
 }
 
@@ -509,111 +412,15 @@ const handleFormConfirm = async (data: any) => {
 }
 
 // 权限配置
-const handlePermission = async (row: RoleInfo) => {
+const handlePermission = (row: RoleInfo) => {
   currentRole.value = row
-  await loadMenuTree()
-  
-  // 加载角色已有权限
-  try {
-    const response = await RoleApi.getRoleMenus(row.role_id)
-    if (response.success && response.data) {
-      nextTick(() => {
-        const menuIds = Array.isArray(response.data) ? response.data : []
-        menuTreeRef.value?.setCheckedKeys(menuIds)
-        updateMenuCheckStatus()
-      })
-    }
-  } catch (error) {
-    console.error('加载角色权限失败:', error)
-  }
-  
   permissionDialogVisible.value = true
 }
 
-// 菜单全选/反选
-const handleMenuCheckAll = (checked: boolean) => {
-  if (checked) {
-    const allKeys = getAllMenuKeys(menuTreeData.value || [])
-    menuTreeRef.value?.setCheckedKeys(allKeys || [])
-  } else {
-    menuTreeRef.value?.setCheckedKeys([])
-  }
-  updateMenuCheckStatus()
-}
-
-// 菜单选中变化
-const handleMenuCheck = () => {
-  updateMenuCheckStatus()
-}
-
-// 更新菜单选中状态
-const updateMenuCheckStatus = () => {
-  const checkedKeys = menuTreeRef.value?.getCheckedKeys(false) || []
-  const allKeys = getAllMenuKeys(menuTreeData.value || [])
-  
-  menuCheckAll.value = checkedKeys.length > 0 && checkedKeys.length === allKeys.length
-  menuIndeterminate.value = checkedKeys.length > 0 && checkedKeys.length < allKeys.length
-}
-
-// 获取所有菜单键
-const getAllMenuKeys = (menus: MenuTreeNode[]): number[] => {
-  const keys: number[] = []
-  const traverse = (nodes: MenuTreeNode[]) => {
-    if (!nodes || !Array.isArray(nodes)) return
-    (nodes || []).forEach(node => {
-      if (node && node.menu_id) {
-        keys.push(node.menu_id)
-        if (node.children && Array.isArray(node.children) && node.children.length > 0) {
-          traverse(node.children)
-        }
-      }
-    })
-  }
-  traverse(menus || [])
-  return keys
-}
-
-// 展开全部菜单
-const expandAllMenus = () => {
-  const allKeys = getAllMenuKeys(menuTreeData.value)
-  allKeys.forEach(key => {
-    menuTreeRef.value?.store.nodesMap[key]?.expand()
-  })
-}
-
-// 折叠全部菜单
-const collapseAllMenus = () => {
-  const allKeys = getAllMenuKeys(menuTreeData.value)
-  allKeys.forEach(key => {
-    menuTreeRef.value?.store.nodesMap[key]?.collapse()
-  })
-}
-
-// 保存权限配置
-const handlePermissionSave = async () => {
-  if (!currentRole.value) return
-  
-  try {
-    permissionLoading.value = true
-    
-    const checkedKeys = (menuTreeRef.value?.getCheckedKeys(false) as number[]) || []
-    const halfCheckedKeys = (menuTreeRef.value?.getHalfCheckedKeys() as number[]) || []
-    const menuIds = [...checkedKeys, ...halfCheckedKeys]
-    
-    const response = await RoleApi.assignRoleMenus(currentRole.value.role_id, {
-      menu_ids: menuIds
-    })
-    
-    if (response.success) {
-      ElMessage.success('权限配置保存成功')
-      permissionDialogVisible.value = false
-    }
-  } catch (error) {
-    console.error('保存权限配置失败:', error)
-    ElMessage.error('保存权限配置失败')
-  } finally {
-    permissionLoading.value = false
-  }
+// 权限配置成功回调
+const handlePermissionSuccess = () => {
+  // 可以在这里添加成功后的逻辑，比如刷新列表等
+  console.log('权限配置保存成功')
 }
 
 // 表格选中变化
@@ -637,7 +444,6 @@ const handleSizeChange = (size: number) => {
 // 初始化
 onMounted(() => {
   loadRoleList()
-  loadMenuTree()
 })
 </script>
 
@@ -672,50 +478,5 @@ onMounted(() => {
     }
   }
   
-  .permission-config {
-    .role-info {
-      margin-bottom: 20px;
-      padding: 10px;
-      background-color: #f5f7fa;
-      border-radius: 4px;
-      
-      span {
-        font-size: 14px;
-        color: #606266;
-        font-weight: 500;
-      }
-    }
-    
-    .menu-tree-container {
-      .tree-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 15px;
-        padding: 10px;
-        background-color: #f8f9fa;
-        border-radius: 4px;
-      }
-      
-      .menu-node {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        
-        .menu-icon {
-          font-size: 16px;
-          color: #909399;
-        }
-      }
-    }
-  }
-}
-
-:deep(.el-tree-node__content) {
-  height: 36px;
-}
-
-:deep(.el-tree-node__label) {
-  font-size: 14px;
 }
 </style>
