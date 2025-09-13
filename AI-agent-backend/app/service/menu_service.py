@@ -182,17 +182,17 @@ class MenuService:
         # 准备更新数据
         update_data = {}
         if menu_name is not None:
-            update_data['MENU_NAME'] = menu_name
+            update_data['menu_name'] = menu_name
         if path is not None:
-            update_data['PATH'] = path
+            update_data['path'] = path
         if component is not None:
-            update_data['COMPONENT'] = component
+            update_data['component'] = component
         if perms is not None:
-            update_data['PERMS'] = perms
+            update_data['perms'] = perms
         if icon is not None:
-            update_data['ICON'] = icon
+            update_data['icon'] = icon
         if order_num is not None:
-            update_data['ORDER_NUM'] = order_num
+            update_data['order_num'] = order_num
 
         # 如果没有要更新的数据，直接返回原菜单
         if not update_data:
@@ -311,3 +311,121 @@ class MenuService:
         logger.debug(f"Cached new permissions for user {user_id}")
 
         return unique_permissions
+
+    def get_user_menu_tree(self, user_id: int) -> List[dict]:
+        """
+        获取用户的菜单树结构 - 用于动态路由
+
+        Args:
+            user_id: 用户ID
+
+        Returns:
+            用户可访问的菜单树结构
+        """
+        # 获取用户可访问的菜单
+        user_menus = self.get_user_menus(user_id)
+
+        # 只获取菜单类型的项（menu_type='0'），排除按钮
+        menu_items = [menu for menu in user_menus if menu.menu_type == '0']
+
+        # 按order_num排序
+        menu_items.sort(key=lambda x: x.order_num or 999)
+
+        # 构建菜单树
+        menu_tree = self._build_user_menu_tree(menu_items)
+
+        return menu_tree
+
+    def _build_user_menu_tree(self, menus: List) -> List[dict]:
+        """
+        构建用户菜单树结构
+
+        Args:
+            menus: 菜单列表
+
+        Returns:
+            菜单树结构
+        """
+        # 创建菜单字典，以ID为键
+        menu_dict = {}
+        for menu in menus:
+            menu_dict[menu.id] = {
+                "id": menu.id,
+                "name": self._generate_route_name(menu.menu_name),
+                "path": menu.path or f"/menu-{menu.id}",
+                "component": menu.component or "Layout",
+                "redirect": None,
+                "meta": {
+                    "title": menu.menu_name,
+                    "icon": menu.icon,
+                    "order": menu.order_num,
+                    "hidden": False,
+                    "keepAlive": False,
+                    "permission": menu.perms
+                },
+                "children": []
+            }
+
+        # 构建树形结构
+        root_menus = []
+        for menu in menus:
+            menu_node = menu_dict[menu.id]
+
+            if menu.parent_id == 0:
+                # 顶级菜单
+                root_menus.append(menu_node)
+            else:
+                # 子菜单
+                parent = menu_dict.get(menu.parent_id)
+                if parent:
+                    parent["children"].append(menu_node)
+
+        # 为有子菜单的父菜单设置重定向
+        for menu_node in self._flatten_menu_tree(root_menus):
+            if menu_node["children"]:
+                # 设置重定向到第一个子菜单
+                first_child = menu_node["children"][0]
+                menu_node["redirect"] = first_child["path"]
+
+        return root_menus
+
+    def _generate_route_name(self, menu_name: str) -> str:
+        """
+        生成路由名称
+
+        Args:
+            menu_name: 菜单名称
+
+        Returns:
+            路由名称
+        """
+        # 简单的名称转换，可以根据需要优化
+        name_map = {
+            "系统管理": "System",
+            "用户管理": "User",
+            "角色管理": "Role",
+            "菜单管理": "Menu",
+            "部门管理": "Department",
+            "仪表板": "Dashboard",
+            "代理管理": "Agent",
+            "代理列表": "AgentList",
+            "代理配置": "AgentConfig"
+        }
+        return name_map.get(menu_name, menu_name.replace(" ", ""))
+
+    def _flatten_menu_tree(self, tree: List[dict]) -> List[dict]:
+        """
+        扁平化菜单树
+
+        Args:
+            tree: 菜单树
+
+        Returns:
+            扁平化的菜单列表
+        """
+        result = []
+        for node in tree:
+            result.append(node)
+            if node["children"]:
+                result.extend(self._flatten_menu_tree(node["children"]))
+        return result

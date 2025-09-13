@@ -194,16 +194,16 @@ async def refresh_token_endpoint(
         payload = verify_token(refresh_token, token_type="refresh")
         if not payload:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="刷新令牌无效或已过期")
-        user_id = payload.get("sub")
-        if not user_id:
+        user_id_str = payload.get("sub")
+        if not user_id_str:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="刷新令牌无效")
 
         # 作废旧refresh_token
         add_to_blacklist(refresh_token)
 
         # 颁发新的访问令牌和刷新令牌
-        new_access = create_access_token({"sub": user_id})
-        new_refresh = create_refresh_token({"sub": user_id})
+        new_access = create_access_token({"sub": user_id_str})  # 使用字符串类型的user_id
+        new_refresh = create_refresh_token({"sub": user_id_str})  # 使用字符串类型的user_id
 
         return Success(code=200, msg="令牌刷新成功", data={
             "access_token": new_access,

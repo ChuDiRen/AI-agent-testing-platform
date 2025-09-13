@@ -46,13 +46,14 @@ const routeTitleMap: Record<string, { title: string; icon?: any }> = {
   '/system/role': { title: '角色管理', icon: UserFilled },
   '/system/menu': { title: '菜单管理', icon: Menu },
   '/system/department': { title: '部门管理', icon: OfficeBuilding },
+  '/system/logs': { title: '日志管理', icon: Operation }, // 修复日志管理面包屑路径
   '/test': { title: '测试管理', icon: DataAnalysis },
   '/test/cases': { title: '测试用例', icon: Document },
   '/test/reports': { title: '测试报告', icon: PieChart },
   '/agent': { title: 'AI代理管理', icon: Cpu },
   '/agent/list': { title: '代理列表', icon: List },
   '/agent/config': { title: '代理配置', icon: Tools },
-  '/logs': { title: '日志管理', icon: Operation }
+  '/logs': { title: '日志管理', icon: Operation } // 保留原有映射以兼容其他可能的路径
 }
 
 // 当前路径

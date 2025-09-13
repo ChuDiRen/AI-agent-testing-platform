@@ -183,6 +183,7 @@ def create_rbac_initial_data(db):
             path="/system/user",
             component="system/user/Index",
             perms="user:view",
+            icon="User",
             order_num=1
         )
         db.add(user_menu)
@@ -224,6 +225,7 @@ def create_rbac_initial_data(db):
             path="/system/role",
             component="system/role/Index",
             perms="role:view",
+            icon="UserFilled",
             order_num=2
         )
         db.add(role_menu)
@@ -265,6 +267,7 @@ def create_rbac_initial_data(db):
             path="/system/menu",
             component="system/menu/Index",
             perms="menu:view",
+            icon="Menu",
             order_num=3
         )
         db.add(menu_menu)
@@ -306,6 +309,7 @@ def create_rbac_initial_data(db):
             path="/system/department",
             component="system/department/Index",
             perms="dept:view",
+            icon="OfficeBuilding",
             order_num=4
         )
         db.add(dept_menu)
@@ -486,6 +490,209 @@ def create_rbac_initial_data(db):
         db.add(system_info_btn)
         db.flush()
 
+        # 测试管理菜单
+        test_menu = Menu(
+            parent_id=0,
+            menu_name="测试管理",
+            menu_type="0",
+            path="/test",
+            component="Layout",
+            icon="DataAnalysis",
+            order_num=2
+        )
+        db.add(test_menu)
+        db.flush()
+
+        # 测试用例菜单
+        test_cases_menu = Menu(
+            parent_id=test_menu.id,
+            menu_name="测试用例",
+            menu_type="0",
+            path="/test/cases",
+            component="test/cases/Index",
+            perms="test:cases:view",
+            icon="Document",
+            order_num=1
+        )
+        db.add(test_cases_menu)
+        db.flush()
+
+        # 测试用例按钮
+        test_cases_add_btn = Menu(
+            parent_id=test_cases_menu.id,
+            menu_name="新增用例",
+            menu_type="1",
+            perms="test:cases:add"
+        )
+        db.add(test_cases_add_btn)
+        db.flush()
+
+        test_cases_update_btn = Menu(
+            parent_id=test_cases_menu.id,
+            menu_name="修改用例",
+            menu_type="1",
+            perms="test:cases:update"
+        )
+        db.add(test_cases_update_btn)
+        db.flush()
+
+        test_cases_delete_btn = Menu(
+            parent_id=test_cases_menu.id,
+            menu_name="删除用例",
+            menu_type="1",
+            perms="test:cases:delete"
+        )
+        db.add(test_cases_delete_btn)
+        db.flush()
+
+        test_cases_run_btn = Menu(
+            parent_id=test_cases_menu.id,
+            menu_name="执行用例",
+            menu_type="1",
+            perms="test:cases:run"
+        )
+        db.add(test_cases_run_btn)
+        db.flush()
+
+        # 测试报告菜单
+        test_reports_menu = Menu(
+            parent_id=test_menu.id,
+            menu_name="测试报告",
+            menu_type="0",
+            path="/test/reports",
+            component="test/reports/Index",
+            perms="test:reports:view",
+            icon="PieChart",
+            order_num=2
+        )
+        db.add(test_reports_menu)
+        db.flush()
+
+        # 测试报告按钮
+        test_reports_export_btn = Menu(
+            parent_id=test_reports_menu.id,
+            menu_name="导出报告",
+            menu_type="1",
+            perms="test:reports:export"
+        )
+        db.add(test_reports_export_btn)
+        db.flush()
+
+        test_reports_delete_btn = Menu(
+            parent_id=test_reports_menu.id,
+            menu_name="删除报告",
+            menu_type="1",
+            perms="test:reports:delete"
+        )
+        db.add(test_reports_delete_btn)
+        db.flush()
+
+        # AI代理管理菜单
+        agent_menu = Menu(
+            parent_id=0,
+            menu_name="AI代理管理",
+            menu_type="0",
+            path="/agent",
+            component="Layout",
+            icon="Cpu",
+            order_num=3
+        )
+        db.add(agent_menu)
+        db.flush()
+
+        # 代理列表菜单
+        agent_list_menu = Menu(
+            parent_id=agent_menu.id,
+            menu_name="代理列表",
+            menu_type="0",
+            path="/agent/list",
+            component="agent/list/Index",
+            perms="agent:list:view",
+            icon="List",
+            order_num=1
+        )
+        db.add(agent_list_menu)
+        db.flush()
+
+        # 代理列表按钮
+        agent_list_add_btn = Menu(
+            parent_id=agent_list_menu.id,
+            menu_name="新增代理",
+            menu_type="1",
+            perms="agent:list:add"
+        )
+        db.add(agent_list_add_btn)
+        db.flush()
+
+        agent_list_update_btn = Menu(
+            parent_id=agent_list_menu.id,
+            menu_name="修改代理",
+            menu_type="1",
+            perms="agent:list:update"
+        )
+        db.add(agent_list_update_btn)
+        db.flush()
+
+        agent_list_delete_btn = Menu(
+            parent_id=agent_list_menu.id,
+            menu_name="删除代理",
+            menu_type="1",
+            perms="agent:list:delete"
+        )
+        db.add(agent_list_delete_btn)
+        db.flush()
+
+        agent_list_start_btn = Menu(
+            parent_id=agent_list_menu.id,
+            menu_name="启动代理",
+            menu_type="1",
+            perms="agent:list:start"
+        )
+        db.add(agent_list_start_btn)
+        db.flush()
+
+        agent_list_stop_btn = Menu(
+            parent_id=agent_list_menu.id,
+            menu_name="停止代理",
+            menu_type="1",
+            perms="agent:list:stop"
+        )
+        db.add(agent_list_stop_btn)
+        db.flush()
+
+        # 代理配置菜单
+        agent_config_menu = Menu(
+            parent_id=agent_menu.id,
+            menu_name="代理配置",
+            menu_type="0",
+            path="/agent/config",
+            component="agent/config/Index",
+            perms="agent:config:view",
+            icon="Tools",
+            order_num=2
+        )
+        db.add(agent_config_menu)
+        db.flush()
+
+        # 代理配置按钮
+        agent_config_update_btn = Menu(
+            parent_id=agent_config_menu.id,
+            menu_name="修改配置",
+            menu_type="1",
+            perms="agent:config:update"
+        )
+        db.add(agent_config_update_btn)
+        db.flush()
+
+        agent_config_reset_btn = Menu(
+            parent_id=agent_config_menu.id,
+            menu_name="重置配置",
+            menu_type="1",
+            perms="agent:config:reset"
+        )
+        db.add(agent_config_reset_btn)
+        db.flush()
+
         # 4. 创建用户
         # 管理员用户
         admin_user = User(
@@ -628,7 +835,28 @@ def create_rbac_initial_data(db):
             log_menu.id,
             log_view_btn.id,
             log_delete_btn.id,
-            log_export_btn.id
+            log_export_btn.id,
+            # 测试管理权限
+            test_menu.id,
+            test_cases_menu.id,
+            test_cases_add_btn.id,
+            test_cases_update_btn.id,
+            test_cases_delete_btn.id,
+            test_cases_run_btn.id,
+            test_reports_menu.id,
+            test_reports_export_btn.id,
+            test_reports_delete_btn.id,
+            # AI代理管理权限
+            agent_menu.id,
+            agent_list_menu.id,
+            agent_list_add_btn.id,
+            agent_list_update_btn.id,
+            agent_list_delete_btn.id,
+            agent_list_start_btn.id,
+            agent_list_stop_btn.id,
+            agent_config_menu.id,
+            agent_config_update_btn.id,
+            agent_config_reset_btn.id
         ]
 
         for menu_id in admin_menu_ids:

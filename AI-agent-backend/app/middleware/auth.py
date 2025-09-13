@@ -61,9 +61,9 @@ class RBACAuth:
 
             # 验证token
             payload = verify_token(credentials.credentials)
-            user_id = payload.get("sub")
-            
-            if not user_id:
+            user_id_str = payload.get("sub")
+
+            if not user_id_str:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="无效的token",
@@ -72,7 +72,7 @@ class RBACAuth:
 
             # 获取用户信息
             user_service = RBACUserService(db)
-            user = user_service.get_user_by_id(int(user_id))
+            user = user_service.get_user_by_id(int(user_id_str))  # 将字符串转换为整数
             
             if not user:
                 raise HTTPException(
@@ -125,9 +125,9 @@ class RBACAuth:
 
             # 验证token
             payload = verify_token(credentials.credentials)
-            user_id = payload.get("sub")
-            
-            if not user_id:
+            user_id_str = payload.get("sub")
+
+            if not user_id_str:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="无效的token",
@@ -136,7 +136,7 @@ class RBACAuth:
 
             # 获取用户信息
             user_service = RBACUserService(db)
-            user = user_service.get_user_by_id(int(user_id))
+            user = user_service.get_user_by_id(int(user_id_str))  # 将字符串转换为整数
             
             if not user:
                 raise HTTPException(

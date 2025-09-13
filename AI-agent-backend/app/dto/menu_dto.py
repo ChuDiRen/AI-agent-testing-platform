@@ -235,5 +235,87 @@ class UserMenuResponse(BaseModel):
         }
 
 
+class UserMenuTreeNode(BaseModel):
+    """
+    用户菜单树节点DTO - 用于动态路由
+    """
+    id: int = Field(..., description="菜单ID")
+    name: str = Field(..., description="路由名称")
+    path: str = Field(..., description="路由路径")
+    component: Optional[str] = Field(None, description="路由组件路径")
+    redirect: Optional[str] = Field(None, description="重定向路径")
+    meta: 'MenuMeta' = Field(..., description="路由元信息")
+    children: List['UserMenuTreeNode'] = Field(default_factory=list, description="子路由列表")
+
+    class Config:
+        from_attributes = True
+
+
+class MenuMeta(BaseModel):
+    """
+    菜单元信息DTO
+    """
+    title: str = Field(..., description="菜单标题")
+    icon: Optional[str] = Field(None, description="菜单图标")
+    order: Optional[float] = Field(None, description="排序号")
+    hidden: bool = Field(default=False, description="是否隐藏")
+    keepAlive: bool = Field(default=False, description="是否缓存")
+    permission: Optional[str] = Field(None, description="权限标识")
+
+    class Config:
+        from_attributes = True
+
+
+class UserMenuTreeResponse(BaseModel):
+    """
+    用户菜单树响应DTO - 用于动态路由
+    """
+    routes: List[UserMenuTreeNode] = Field(..., description="用户可访问的路由树")
+    permissions: List[str] = Field(..., description="用户权限标识列表")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "routes": [
+                    {
+                        "id": 1,
+                        "name": "System",
+                        "path": "/system",
+                        "component": "Layout",
+                        "redirect": "/system/user",
+                        "meta": {
+                            "title": "系统管理",
+                            "icon": "Setting",
+                            "order": 1,
+                            "hidden": False,
+                            "keepAlive": False,
+                            "permission": None
+                        },
+                        "children": [
+                            {
+                                "id": 2,
+                                "name": "User",
+                                "path": "/system/user",
+                                "component": "system/user/Index",
+                                "meta": {
+                                    "title": "用户管理",
+                                    "icon": "User",
+                                    "order": 1,
+                                    "hidden": False,
+                                    "keepAlive": True,
+                                    "permission": "user:view"
+                                },
+                                "children": []
+                            }
+                        ]
+                    }
+                ],
+                "permissions": ["user:view", "user:add", "user:update", "user:delete"]
+            }
+        }
+
+
 # 更新前向引用
 MenuTreeNode.model_rebuild()
+UserMenuTreeNode.model_rebuild()
+MenuMeta.model_rebuild()

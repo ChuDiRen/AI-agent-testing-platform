@@ -187,6 +187,33 @@ export interface MenuUpdateRequest {
   order_num?: number
 }
 
+// 用户菜单树节点 - 用于动态路由
+export interface UserMenuTreeNode {
+  id: number
+  name: string
+  path: string
+  component?: string
+  redirect?: string
+  meta: MenuMeta
+  children?: UserMenuTreeNode[]
+}
+
+// 菜单元信息
+export interface MenuMeta {
+  title: string
+  icon?: string
+  order?: number
+  hidden?: boolean
+  keepAlive?: boolean
+  permission?: string
+}
+
+// 用户菜单树响应 - 用于动态路由
+export interface UserMenuTreeResponse {
+  routes: UserMenuTreeNode[]
+  permissions: string[]
+}
+
 // 部门信息
 export interface DeptInfo {
   dept_id: number

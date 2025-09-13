@@ -7,6 +7,8 @@ import { MenuApi } from '@/api/modules/menu'
 import { getToken, setToken as setTokenStorage, removeToken, setRefreshToken, removeRefreshToken } from '@/utils/auth'
 import type { UserInfo, MenuInfo } from '@/api/types'
 import { getRefreshToken } from '@/utils/auth'
+import { usePermissionStore } from '@/store/modules/permission'
+import { resetRoutes } from '@/router'
 
 // 去重用的初始化进行中 Promise（不入持久化） # 注释
 let initInFlight: Promise<void> | null = null
@@ -87,6 +89,13 @@ export const useUserStore = defineStore('user', {
       this.initialized = false
       removeToken()
       removeRefreshToken()
+
+      // 清除权限store数据
+      const permissionStore = usePermissionStore()
+      permissionStore.resetPermission()
+
+      // 重置路由
+      resetRoutes()
     },
 
     // 规范化角色名，增加英文别名支持
@@ -120,6 +129,9 @@ export const useUserStore = defineStore('user', {
 
           // 登录后统一初始化（去重）
           await this.initializeAfterLogin().catch(() => {})
+
+          // 登录成功后，动态路由将在路由守卫中加载
+          // 这里不需要立即加载，避免重复加载
 
           return true
         }
@@ -227,14 +239,18 @@ export const useUserStore = defineStore('user', {
     // 登出
     async logout(): Promise<void> {
       try {
-
         // 调用登出接口（携带refresh_token黑名单）
         const rt = getRefreshToken()
         await AuthApi.logout(rt ? { refresh_token: rt } : undefined)
       } catch (error) {
         console.error('登出失败:', error)
       } finally {
+        // 清除本地数据
         this.clearUserData()
+
+        // 重置路由
+        const { resetRoutes } = await import('@/router')
+        resetRoutes()
       }
     },
 

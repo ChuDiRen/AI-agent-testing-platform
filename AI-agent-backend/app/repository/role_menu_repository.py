@@ -64,7 +64,7 @@ class RoleMenuRepository(BaseRepository[RoleMenu]):
         """
         return self.db.query(Menu).join(
             RoleMenu, Menu.id == RoleMenu.menu_id
-        ).filter(RoleMenu.role_id == role_id).order_by(Menu.ORDER_NUM).all()
+        ).filter(RoleMenu.role_id == role_id).order_by(Menu.order_num).all()
 
     def get_menu_ids_by_role_id(self, role_id: int) -> List[int]:
         """

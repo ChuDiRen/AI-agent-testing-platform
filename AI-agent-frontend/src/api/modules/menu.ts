@@ -2,12 +2,13 @@
  * 菜单管理相关API接口
  */
 import http from '@/api/http'
-import type { 
+import type {
   MenuInfo,
   MenuTreeNode,
   MenuCreateRequest,
   MenuUpdateRequest,
-  ApiResponse 
+  ApiResponse,
+  UserMenuTreeResponse
 } from '@/api/types'
 
 /**
@@ -143,6 +144,14 @@ export class MenuApi {
   }>> {
     return http.get('/menus/stats')
   }
+
+  /**
+   * 获取用户动态路由
+   * @returns 用户路由树
+   */
+  static async getUserRoutes(): Promise<ApiResponse<UserMenuTreeResponse>> {
+    return http.post<UserMenuTreeResponse>('/menus/get-user-routes')
+  }
 }
 
 // 导出单个方法，保持兼容性
@@ -159,5 +168,6 @@ export const menuApi = {
   batchUpdateMenuOrder: MenuApi.batchUpdateMenuOrder,
   checkMenuName: MenuApi.checkMenuName,
   checkPerms: MenuApi.checkPerms,
-  getMenuStats: MenuApi.getMenuStats
+  getMenuStats: MenuApi.getMenuStats,
+  getUserRoutes: MenuApi.getUserRoutes
 }

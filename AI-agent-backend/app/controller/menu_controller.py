@@ -20,9 +20,12 @@ from app.dto.menu_dto import (
     UserMenuResponse,
     MenuIdRequest,
     MenuDeleteRequest,
-    UserMenuRequest
+    UserMenuRequest,
+    UserMenuTreeResponse,
+    UserMenuTreeNode
 )
 from app.service.menu_service import MenuService
+from app.middleware.auth import get_current_user
 
 logger = get_logger(__name__)
 
@@ -316,4 +319,36 @@ async def get_user_menus(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取用户菜单失败"
+        )
+
+
+@router.post("/get-user-routes", response_model=ApiResponse[UserMenuTreeResponse], summary="获取用户动态路由")
+async def get_user_routes(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    获取当前用户的动态路由结构 - 用于前端动态路由
+    """
+    try:
+        menu_service = MenuService(db)
+
+        # 获取用户动态路由树
+        user_routes = menu_service.get_user_menu_tree(current_user.id)
+
+        # 获取用户权限
+        user_permissions = menu_service.get_user_permissions(current_user.id)
+
+        response_data = UserMenuTreeResponse(
+            routes=user_routes,
+            permissions=user_permissions
+        )
+
+        return Success(code=200, msg="获取用户路由成功", data=response_data)
+
+    except Exception as e:
+        logger.error(f"Error getting user routes for user {current_user.id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取用户路由失败"
         )

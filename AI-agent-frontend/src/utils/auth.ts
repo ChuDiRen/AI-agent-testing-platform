@@ -27,3 +27,8 @@ export const setRefreshToken = (token: string, cookieExpires?: number) => {
 export const removeRefreshToken = () => {
   return Cookies.remove(RefreshTokenKey);
 }
+
+// 检查字符串是否为空或空白
+export const isNullOrWhitespace = (str: string | null | undefined): boolean => {
+  return !str || str.trim().length === 0;
+}
