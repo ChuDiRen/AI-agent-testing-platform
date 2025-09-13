@@ -126,7 +126,7 @@
             </div>
             <div class="info-item">
               <span class="info-label">最后登录:</span>
-              <span class="info-value">{{ systemInfo.last_login_time || '首次登录' }}</span>
+              <span class="info-value">{{ systemInfo.last_login_time ? formatStandardDateTime(systemInfo.last_login_time) : '首次登录' }}</span>
             </div>
           </div>
         </el-card>
@@ -178,6 +178,7 @@ import {
   Operation
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store'
+import { formatStandardDateTime } from '@/utils/dateFormat'
 
 // const router = useRouter() // 暂时注释掉未使用的router
 const userStore = useUserStore()

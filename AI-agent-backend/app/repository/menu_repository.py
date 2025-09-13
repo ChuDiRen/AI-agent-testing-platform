@@ -58,6 +58,7 @@ class MenuRepository(BaseRepository[Menu]):
             菜单列表
         """
         return self.db.query(Menu).filter(
+            Menu.is_deleted == 0,
             Menu.menu_type == '0'
         ).order_by(Menu.order_num).all()
 
@@ -69,6 +70,7 @@ class MenuRepository(BaseRepository[Menu]):
             按钮列表
         """
         return self.db.query(Menu).filter(
+            Menu.is_deleted == 0,
             Menu.menu_type == '1'
         ).order_by(Menu.order_num).all()
 
@@ -82,7 +84,10 @@ class MenuRepository(BaseRepository[Menu]):
         Returns:
             菜单对象或None
         """
-        return self.db.query(Menu).filter(Menu.perms == permission).first()
+        return self.db.query(Menu).filter(
+            Menu.is_deleted == 0,
+            Menu.perms == permission
+        ).first()
 
     def get_menu_tree(self) -> List[Menu]:
         """
@@ -91,8 +96,8 @@ class MenuRepository(BaseRepository[Menu]):
         Returns:
             菜单树列表
         """
-        # 获取所有菜单，按order_num排序
-        all_menus = self.db.query(Menu).order_by(Menu.order_num).all()
+        # 获取所有未删除的菜单，按order_num排序
+        all_menus = self.db.query(Menu).filter(Menu.is_deleted == 0).order_by(Menu.order_num).all()
 
         # 构建菜单树（这里返回所有菜单，前端可以根据parent_id构建树形结构）
         return all_menus
@@ -108,6 +113,7 @@ class MenuRepository(BaseRepository[Menu]):
             匹配的菜单列表
         """
         return self.db.query(Menu).filter(
+            Menu.is_deleted == 0,
             Menu.menu_name.like(f"%{keyword}%")
         ).order_by(Menu.order_num).all()
 
@@ -127,6 +133,7 @@ class MenuRepository(BaseRepository[Menu]):
         permissions = self.db.query(Menu.perms).join(
             RoleMenu, Menu.id == RoleMenu.menu_id
         ).filter(
+            Menu.is_deleted == 0,
             RoleMenu.role_id == role_id,
             Menu.perms.isnot(None)  # 只获取有权限标识的菜单
         ).all()
@@ -149,5 +156,6 @@ class MenuRepository(BaseRepository[Menu]):
         return self.db.query(Menu).join(
             RoleMenu, Menu.id == RoleMenu.menu_id
         ).filter(
+            Menu.is_deleted == 0,
             RoleMenu.role_id == role_id
         ).order_by(Menu.order_num).all()

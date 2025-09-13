@@ -216,6 +216,7 @@ import FormDialog from '@/components/Common/FormDialog.vue'
 import { UserApi } from '@/api/modules/user'
 import { RoleApi } from '@/api/modules/role'
 import { DepartmentApi } from '@/api/modules/department'
+import { formatStandardDateTime } from '@/utils/dateFormat'
 import type {
   UserInfo,
   TableColumn,
@@ -314,8 +315,8 @@ const tableColumns: TableColumn[] = [
   { prop: 'dept_name', label: '部门', minWidth: 100 },
   { prop: 'roles', label: '角色', minWidth: 150, slot: 'roles' },
   { prop: 'status', label: '状态', width: 80, slot: 'status' },
-  { prop: 'create_time', label: '创建时间', minWidth: 140 },
-  { prop: 'last_login_time', label: '最后登录', minWidth: 140 }
+  { prop: 'create_time', label: '创建时间', minWidth: 140, formatter: (row: any) => formatStandardDateTime(row.create_time) },
+  { prop: 'last_login_time', label: '最后登录', minWidth: 140, formatter: (row: any) => formatStandardDateTime(row.last_login_time) }
 ]
 
 // 用户表单字段配置

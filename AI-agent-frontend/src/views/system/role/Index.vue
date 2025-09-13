@@ -205,6 +205,7 @@ import CommonTable from '@/components/Common/CommonTable.vue'
 import FormDialog from '@/components/Common/FormDialog.vue'
 import { RoleApi } from '@/api/modules/role'
 import { MenuApi } from '@/api/modules/menu'
+import { formatStandardDateTime } from '@/utils/dateFormat'
 import type { RoleInfo, MenuTreeNode, TableColumn, FormField } from '@/api/types'
 
 // 菜单树引用
@@ -254,7 +255,7 @@ const tableColumns = ref<TableColumn[]>([
   { prop: 'role_id', label: 'ID', width: 80 },
   { prop: 'role_name', label: '角色名称', minWidth: 120 },
   { prop: 'remark', label: '描述', minWidth: 150, showOverflowTooltip: true },
-  { prop: 'create_time', label: '创建时间', width: 180 },
+  { prop: 'create_time', label: '创建时间', width: 180, formatter: (row: any) => formatStandardDateTime(row.create_time) },
 ])
 
 // 表单字段配置

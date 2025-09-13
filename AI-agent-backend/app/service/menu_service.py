@@ -102,6 +102,8 @@ class MenuService:
                 "icon": menu.icon,
                 "menu_type": menu.menu_type,
                 "order_num": menu.order_num,
+                "create_time": menu.create_time.isoformat() if menu.create_time else None,
+                "modify_time": menu.modify_time.isoformat() if menu.modify_time else None,
                 "children": []
             }
 

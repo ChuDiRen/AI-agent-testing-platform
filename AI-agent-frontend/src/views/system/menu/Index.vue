@@ -116,7 +116,11 @@
           </template>
         </el-table-column>
         
-        <el-table-column prop="create_time" label="创建时间" width="180" align="center" />
+        <el-table-column prop="create_time" label="创建时间" width="180" align="center">
+          <template #default="{ row }">
+            {{ formatStandardDateTime(row.create_time) }}
+          </template>
+        </el-table-column>
         
         <el-table-column label="操作" width="200" fixed="right" align="center">
           <template #default="{ row }">
@@ -289,6 +293,7 @@ import { ElMessage, ElMessageBox, type FormInstance, type ElTable } from 'elemen
 import { Search, Refresh, Plus, DCaret, CaretRight } from '@element-plus/icons-vue'
 // import FormDialog from '@/components/Common/FormDialog.vue' // 不再使用FormDialog组件
 import { MenuApi } from '@/api/modules/menu'
+import { formatStandardDateTime } from '@/utils/dateFormat'
 import type { MenuInfo, MenuTreeNode } from '@/api/types'
 
 // 表单引用
@@ -528,9 +533,15 @@ const handleDelete = async (row: MenuInfo) => {
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('删除菜单失败:', error)
-      // 显示具体的错误信息，兼容 FastAPI 的 detail 字段
-      const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || '删除菜单失败'
-      ElMessage.error(errorMessage)
+      // 检查是否是菜单不存在的错误
+      if (error?.response?.status === 404 || error?.response?.data?.detail?.includes('菜单不存在')) {
+        ElMessage.warning('菜单已不存在，将刷新列表')
+        loadMenuList() // 菜单不存在时也要刷新列表
+      } else {
+        // 显示具体的错误信息，兼容 FastAPI 的 detail 字段
+        const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || '删除菜单失败'
+        ElMessage.error(errorMessage)
+      }
     }
   }
 }

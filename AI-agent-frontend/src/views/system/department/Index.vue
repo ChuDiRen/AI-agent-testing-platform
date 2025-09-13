@@ -91,7 +91,11 @@
         
         <el-table-column prop="order_num" label="排序" width="80" align="center" />
         
-        <el-table-column prop="created_at" label="创建时间" width="180" align="center" />
+        <el-table-column prop="create_time" label="创建时间" width="180" align="center">
+          <template #default="{ row }">
+            {{ formatStandardDateTime(row.create_time) }}
+          </template>
+        </el-table-column>
         
         <el-table-column label="操作" width="200" fixed="right" align="center">
           <template #default="{ row }">
@@ -225,6 +229,7 @@ import { ElMessage, ElMessageBox, type FormInstance, type ElTable } from 'elemen
 import { Search, Refresh, Plus, DCaret, CaretRight, OfficeBuilding } from '@element-plus/icons-vue'
 
 import { DepartmentApi } from '@/api/modules/department'
+import { formatStandardDateTime } from '@/utils/dateFormat'
 import type { DeptTreeNode } from '@/api/types'
 
 // 表单引用
