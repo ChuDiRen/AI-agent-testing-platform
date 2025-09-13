@@ -194,7 +194,7 @@ def create_rbac_initial_data(db):
             parent_id=user_menu.id,
             menu_name="新增用户",
             menu_type="1",
-            perms="user:add"
+            perms="user:create"
         )
         db.add(user_add_btn)
         db.flush()
@@ -217,6 +217,52 @@ def create_rbac_initial_data(db):
         db.add(user_delete_btn)
         db.flush()
 
+        # 新增用户管理权限
+        user_status_btn = Menu(
+            parent_id=user_menu.id,
+            menu_name="启用/禁用用户",
+            menu_type="1",
+            perms="user:status"
+        )
+        db.add(user_status_btn)
+        db.flush()
+
+        user_reset_password_btn = Menu(
+            parent_id=user_menu.id,
+            menu_name="重置密码",
+            menu_type="1",
+            perms="user:reset:password"
+        )
+        db.add(user_reset_password_btn)
+        db.flush()
+
+        user_batch_delete_btn = Menu(
+            parent_id=user_menu.id,
+            menu_name="批量删除用户",
+            menu_type="1",
+            perms="user:batch:delete"
+        )
+        db.add(user_batch_delete_btn)
+        db.flush()
+
+        user_export_btn = Menu(
+            parent_id=user_menu.id,
+            menu_name="导出用户数据",
+            menu_type="1",
+            perms="user:export"
+        )
+        db.add(user_export_btn)
+        db.flush()
+
+        user_import_btn = Menu(
+            parent_id=user_menu.id,
+            menu_name="导入用户数据",
+            menu_type="1",
+            perms="user:import"
+        )
+        db.add(user_import_btn)
+        db.flush()
+
         # 角色管理菜单
         role_menu = Menu(
             parent_id=system_menu.id,
@@ -236,7 +282,7 @@ def create_rbac_initial_data(db):
             parent_id=role_menu.id,
             menu_name="新增角色",
             menu_type="1",
-            perms="role:add"
+            perms="role:create"
         )
         db.add(role_add_btn)
         db.flush()
@@ -259,6 +305,16 @@ def create_rbac_initial_data(db):
         db.add(role_delete_btn)
         db.flush()
 
+        # 新增角色权限配置按钮
+        role_permission_btn = Menu(
+            parent_id=role_menu.id,
+            menu_name="权限配置",
+            menu_type="1",
+            perms="role:permission"
+        )
+        db.add(role_permission_btn)
+        db.flush()
+
         # 菜单管理菜单
         menu_menu = Menu(
             parent_id=system_menu.id,
@@ -278,7 +334,7 @@ def create_rbac_initial_data(db):
             parent_id=menu_menu.id,
             menu_name="新增菜单",
             menu_type="1",
-            perms="menu:add"
+            perms="menu:create"
         )
         db.add(menu_add_btn)
         db.flush()
@@ -320,7 +376,7 @@ def create_rbac_initial_data(db):
             parent_id=dept_menu.id,
             menu_name="新增部门",
             menu_type="1",
-            perms="dept:add"
+            perms="dept:create"
         )
         db.add(dept_add_btn)
         db.flush()
@@ -343,87 +399,7 @@ def create_rbac_initial_data(db):
         db.add(dept_delete_btn)
         db.flush()
 
-        # 权限缓存管理相关菜单和按钮
-        cache_stats_btn = Menu(
-            parent_id=system_menu.id,
-            menu_name="缓存统计查看",
-            menu_type="1",
-            perms="cache:stats:view"
-        )
-        db.add(cache_stats_btn)
-        db.flush()
 
-        cache_refresh_btn = Menu(
-            parent_id=system_menu.id,
-            menu_name="缓存刷新",
-            menu_type="1",
-            perms="cache:refresh"
-        )
-        db.add(cache_refresh_btn)
-        db.flush()
-
-        cache_config_btn = Menu(
-            parent_id=system_menu.id,
-            menu_name="缓存配置更新",
-            menu_type="1",
-            perms="cache:config:update"
-        )
-        db.add(cache_config_btn)
-        db.flush()
-
-        user_permission_view_btn = Menu(
-            parent_id=system_menu.id,
-            menu_name="用户权限查看",
-            menu_type="1",
-            perms="user:permission:view"
-        )
-        db.add(user_permission_view_btn)
-        db.flush()
-
-        user_menu_view_btn = Menu(
-            parent_id=system_menu.id,
-            menu_name="用户菜单查看",
-            menu_type="1",
-            perms="user:menu:view"
-        )
-        db.add(user_menu_view_btn)
-        db.flush()
-
-        role_permission_view_btn = Menu(
-            parent_id=system_menu.id,
-            menu_name="角色权限查看",
-            menu_type="1",
-            perms="role:permission:view"
-        )
-        db.add(role_permission_view_btn)
-        db.flush()
-
-        user_role_assign_btn = Menu(
-            parent_id=system_menu.id,
-            menu_name="用户角色分配",
-            menu_type="1",
-            perms="user:role:assign"
-        )
-        db.add(user_role_assign_btn)
-        db.flush()
-
-        role_menu_assign_btn = Menu(
-            parent_id=system_menu.id,
-            menu_name="角色菜单分配",
-            menu_type="1",
-            perms="role:menu:assign"
-        )
-        db.add(role_menu_assign_btn)
-        db.flush()
-
-        data_permission_create_btn = Menu(
-            parent_id=system_menu.id,
-            menu_name="数据权限创建",
-            menu_type="1",
-            perms="data:permission:create"
-        )
-        db.add(data_permission_create_btn)
-        db.flush()
 
         # 日志管理菜单
         log_menu = Menu(
@@ -439,33 +415,7 @@ def create_rbac_initial_data(db):
         db.add(log_menu)
         db.flush()
 
-        # 日志管理按钮
-        log_view_btn = Menu(
-            parent_id=log_menu.id,
-            menu_name="查看日志",
-            menu_type="1",
-            perms="log:view"
-        )
-        db.add(log_view_btn)
-        db.flush()
 
-        log_delete_btn = Menu(
-            parent_id=log_menu.id,
-            menu_name="清空日志",
-            menu_type="1",
-            perms="log:delete"
-        )
-        db.add(log_delete_btn)
-        db.flush()
-
-        log_export_btn = Menu(
-            parent_id=log_menu.id,
-            menu_name="导出日志",
-            menu_type="1",
-            perms="log:export"
-        )
-        db.add(log_export_btn)
-        db.flush()
 
         # 仪表板菜单
         dashboard_menu = Menu(
@@ -480,17 +430,9 @@ def create_rbac_initial_data(db):
         db.add(dashboard_menu)
         db.flush()
 
-        # 系统信息查看权限
-        system_info_btn = Menu(
-            parent_id=dashboard_menu.id,
-            menu_name="系统信息",
-            menu_type="1",
-            perms="system:info:view"
-        )
-        db.add(system_info_btn)
-        db.flush()
 
-        # 测试管理菜单
+
+        # 测试管理菜单（保留菜单但不添加权限按钮）
         test_menu = Menu(
             parent_id=0,
             menu_name="测试管理",
@@ -510,48 +452,10 @@ def create_rbac_initial_data(db):
             menu_type="0",
             path="/test/cases",
             component="test/cases/Index",
-            perms="test:cases:view",
             icon="Document",
             order_num=1
         )
         db.add(test_cases_menu)
-        db.flush()
-
-        # 测试用例按钮
-        test_cases_add_btn = Menu(
-            parent_id=test_cases_menu.id,
-            menu_name="新增用例",
-            menu_type="1",
-            perms="test:cases:add"
-        )
-        db.add(test_cases_add_btn)
-        db.flush()
-
-        test_cases_update_btn = Menu(
-            parent_id=test_cases_menu.id,
-            menu_name="修改用例",
-            menu_type="1",
-            perms="test:cases:update"
-        )
-        db.add(test_cases_update_btn)
-        db.flush()
-
-        test_cases_delete_btn = Menu(
-            parent_id=test_cases_menu.id,
-            menu_name="删除用例",
-            menu_type="1",
-            perms="test:cases:delete"
-        )
-        db.add(test_cases_delete_btn)
-        db.flush()
-
-        test_cases_run_btn = Menu(
-            parent_id=test_cases_menu.id,
-            menu_name="执行用例",
-            menu_type="1",
-            perms="test:cases:run"
-        )
-        db.add(test_cases_run_btn)
         db.flush()
 
         # 测试报告菜单
@@ -561,33 +465,13 @@ def create_rbac_initial_data(db):
             menu_type="0",
             path="/test/reports",
             component="test/reports/Index",
-            perms="test:reports:view",
             icon="PieChart",
             order_num=2
         )
         db.add(test_reports_menu)
         db.flush()
 
-        # 测试报告按钮
-        test_reports_export_btn = Menu(
-            parent_id=test_reports_menu.id,
-            menu_name="导出报告",
-            menu_type="1",
-            perms="test:reports:export"
-        )
-        db.add(test_reports_export_btn)
-        db.flush()
-
-        test_reports_delete_btn = Menu(
-            parent_id=test_reports_menu.id,
-            menu_name="删除报告",
-            menu_type="1",
-            perms="test:reports:delete"
-        )
-        db.add(test_reports_delete_btn)
-        db.flush()
-
-        # AI代理管理菜单
+        # AI代理管理菜单（保留菜单但不添加权限按钮）
         agent_menu = Menu(
             parent_id=0,
             menu_name="AI代理管理",
@@ -607,57 +491,10 @@ def create_rbac_initial_data(db):
             menu_type="0",
             path="/agent/list",
             component="agent/list/Index",
-            perms="agent:list:view",
             icon="List",
             order_num=1
         )
         db.add(agent_list_menu)
-        db.flush()
-
-        # 代理列表按钮
-        agent_list_add_btn = Menu(
-            parent_id=agent_list_menu.id,
-            menu_name="新增代理",
-            menu_type="1",
-            perms="agent:list:add"
-        )
-        db.add(agent_list_add_btn)
-        db.flush()
-
-        agent_list_update_btn = Menu(
-            parent_id=agent_list_menu.id,
-            menu_name="修改代理",
-            menu_type="1",
-            perms="agent:list:update"
-        )
-        db.add(agent_list_update_btn)
-        db.flush()
-
-        agent_list_delete_btn = Menu(
-            parent_id=agent_list_menu.id,
-            menu_name="删除代理",
-            menu_type="1",
-            perms="agent:list:delete"
-        )
-        db.add(agent_list_delete_btn)
-        db.flush()
-
-        agent_list_start_btn = Menu(
-            parent_id=agent_list_menu.id,
-            menu_name="启动代理",
-            menu_type="1",
-            perms="agent:list:start"
-        )
-        db.add(agent_list_start_btn)
-        db.flush()
-
-        agent_list_stop_btn = Menu(
-            parent_id=agent_list_menu.id,
-            menu_name="停止代理",
-            menu_type="1",
-            perms="agent:list:stop"
-        )
-        db.add(agent_list_stop_btn)
         db.flush()
 
         # 代理配置菜单
@@ -667,30 +504,10 @@ def create_rbac_initial_data(db):
             menu_type="0",
             path="/agent/config",
             component="agent/config/Index",
-            perms="agent:config:view",
             icon="Tools",
             order_num=2
         )
         db.add(agent_config_menu)
-        db.flush()
-
-        # 代理配置按钮
-        agent_config_update_btn = Menu(
-            parent_id=agent_config_menu.id,
-            menu_name="修改配置",
-            menu_type="1",
-            perms="agent:config:update"
-        )
-        db.add(agent_config_update_btn)
-        db.flush()
-
-        agent_config_reset_btn = Menu(
-            parent_id=agent_config_menu.id,
-            menu_name="重置配置",
-            menu_type="1",
-            perms="agent:config:reset"
-        )
-        db.add(agent_config_reset_btn)
         db.flush()
 
         # 4. 创建用户
@@ -805,16 +622,21 @@ def create_rbac_initial_data(db):
         # 管理员角色 - 拥有所有权限
         admin_menu_ids = [
             dashboard_menu.id,
-            system_info_btn.id,
             system_menu.id,
             user_menu.id,
             user_add_btn.id,
             user_update_btn.id,
             user_delete_btn.id,
+            user_status_btn.id,
+            user_reset_password_btn.id,
+            user_batch_delete_btn.id,
+            user_export_btn.id,
+            user_import_btn.id,
             role_menu.id,
             role_add_btn.id,
             role_update_btn.id,
             role_delete_btn.id,
+            role_permission_btn.id,
             menu_menu.id,
             menu_add_btn.id,
             menu_update_btn.id,
@@ -823,40 +645,15 @@ def create_rbac_initial_data(db):
             dept_add_btn.id,
             dept_update_btn.id,
             dept_delete_btn.id,
-            cache_stats_btn.id,
-            cache_refresh_btn.id,
-            cache_config_btn.id,
-            user_permission_view_btn.id,
-            user_menu_view_btn.id,
-            role_permission_view_btn.id,
-            user_role_assign_btn.id,
-            role_menu_assign_btn.id,
-            data_permission_create_btn.id,
             log_menu.id,
-            log_view_btn.id,
-            log_delete_btn.id,
-            log_export_btn.id,
-            # 测试管理权限
+            # 测试管理菜单（无权限按钮）
             test_menu.id,
             test_cases_menu.id,
-            test_cases_add_btn.id,
-            test_cases_update_btn.id,
-            test_cases_delete_btn.id,
-            test_cases_run_btn.id,
             test_reports_menu.id,
-            test_reports_export_btn.id,
-            test_reports_delete_btn.id,
-            # AI代理管理权限
+            # AI代理管理菜单（无权限按钮）
             agent_menu.id,
             agent_list_menu.id,
-            agent_list_add_btn.id,
-            agent_list_update_btn.id,
-            agent_list_delete_btn.id,
-            agent_list_start_btn.id,
-            agent_list_stop_btn.id,
-            agent_config_menu.id,
-            agent_config_update_btn.id,
-            agent_config_reset_btn.id
+            agent_config_menu.id
         ]
 
         for menu_id in admin_menu_ids:
@@ -866,14 +663,11 @@ def create_rbac_initial_data(db):
         # 部门经理角色 - 有用户管理权限
         manager_menu_ids = [
             dashboard_menu.id,
-            system_info_btn.id,
             system_menu.id,
             user_menu.id,
             user_add_btn.id,
             user_update_btn.id,
-            dept_menu.id,
-            user_permission_view_btn.id,
-            user_menu_view_btn.id
+            dept_menu.id
         ]
 
         for menu_id in manager_menu_ids:
@@ -883,12 +677,9 @@ def create_rbac_initial_data(db):
         # 开发人员角色 - 有基本查看权限
         developer_menu_ids = [
             dashboard_menu.id,
-            system_info_btn.id,
             system_menu.id,
             user_menu.id,
-            dept_menu.id,
-            user_permission_view_btn.id,
-            user_menu_view_btn.id
+            dept_menu.id
         ]
 
         for menu_id in developer_menu_ids:
@@ -898,10 +689,7 @@ def create_rbac_initial_data(db):
         # 普通用户角色 - 只有基本查看权限
         user_menu_ids = [
             dashboard_menu.id,
-            system_info_btn.id,
-            user_menu.id,
-            user_permission_view_btn.id,
-            user_menu_view_btn.id
+            user_menu.id
         ]
 
         for menu_id in user_menu_ids:

@@ -23,6 +23,7 @@
           type="primary"
           :icon="Plus"
           @click="handleAdd"
+          v-permission="['user:create']"
         >
           新增用户
         </el-button>
@@ -31,10 +32,11 @@
           :icon="Delete"
           :disabled="!selectedUsers.length"
           @click="handleBatchDelete"
+          v-permission="['user:batch:delete']"
         >
           批量删除
         </el-button>
-        <el-dropdown @command="handleExportCommand">
+        <el-dropdown @command="handleExportCommand" v-permission="['user:export']">
           <el-button type="success" :icon="Download">
             导出数据
             <el-icon class="el-icon--right">
@@ -55,7 +57,7 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <el-dropdown @command="handleImportCommand">
+        <el-dropdown @command="handleImportCommand" v-permission="['user:import']">
           <el-button type="warning" :icon="Upload">
             导入数据
             <el-icon class="el-icon--right">
@@ -156,6 +158,7 @@
           type="primary"
           size="small"
           @click="handleEdit(row)"
+          v-permission="['user:update']"
         >
           编辑
         </el-button>
@@ -163,6 +166,7 @@
           :type="row.status === '0' ? 'success' : 'danger'"
           size="small"
           @click="handleToggleStatus(row)"
+          v-permission="['user:status']"
         >
           {{ row.status === '0' ? '启用' : '禁用' }}
         </el-button>
@@ -170,6 +174,7 @@
           type="info"
           size="small"
           @click="handleResetPassword(row)"
+          v-permission="['user:reset:password']"
         >
           重置密码
         </el-button>
@@ -177,6 +182,7 @@
           type="danger"
           size="small"
           @click="handleDelete(row)"
+          v-permission="['user:delete']"
         >
           删除
         </el-button>
