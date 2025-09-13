@@ -125,15 +125,15 @@ export interface RoleUpdateRequest {
 
 // 角色菜单分配请求
 export interface RoleMenuAssignRequest {
-  menu_ids: number[]
+  MENU_IDS: number[]
 }
 
 // 角色权限响应
 export interface RolePermissionResponse {
-  role_id: number
-  role_name: string
+  ROLE_ID: number
+  ROLE_NAME: string
   permissions: string[]
-  menu_ids: number[]
+  MENU_IDS: number[]
 }
 
 /**
@@ -143,7 +143,7 @@ export interface RoleListResponse extends PageData<RoleInfo> {
   // 继承PageData的所有属性
 }
 
-// 菜单信息
+// 菜单信息 - 按照博客t_menu表标准使用小写字段名
 export interface MenuInfo {
   menu_id: number
   parent_id: number
@@ -164,7 +164,7 @@ export interface MenuTreeNode extends MenuInfo {
   children?: MenuTreeNode[]
 }
 
-// 菜单创建请求
+// 菜单创建请求 - 使用小写字段名与后端保持一致
 export interface MenuCreateRequest {
   parent_id: number
   menu_name: string
@@ -176,7 +176,7 @@ export interface MenuCreateRequest {
   order_num?: number
 }
 
-// 菜单更新请求
+// 菜单更新请求 - 使用小写字段名与后端保持一致
 export interface MenuUpdateRequest {
   menu_name?: string
   menu_type?: '0' | '1'

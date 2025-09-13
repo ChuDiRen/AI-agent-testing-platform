@@ -59,17 +59,17 @@ async def create_menu(
             icon=request.icon,
             order_num=request.order_num
         )
-        
+
         # 转换为字典格式
         menu_dict = {
             "menu_id": menu.id,
             "parent_id": menu.parent_id,
             "menu_name": menu.menu_name,
-            "path": menu.PATH,
-            "component": menu.COMPONENT,
+            "path": menu.path,
+            "component": menu.component,
             "perms": menu.perms,
             "icon": menu.icon,
-            "menu_type": menu.TYPE,
+            "menu_type": menu.menu_type,
             "order_num": menu.order_num,
             "create_time": menu.create_time.isoformat() if menu.create_time else None,
             "modify_time": menu.modify_time.isoformat() if menu.modify_time else None
@@ -133,11 +133,11 @@ async def get_menu_info(
             "menu_id": menu.id,
             "parent_id": menu.parent_id,
             "menu_name": menu.menu_name,
-            "path": menu.PATH,
-            "component": menu.COMPONENT,
+            "path": menu.path,
+            "component": menu.component,
             "perms": menu.perms,
             "icon": menu.icon,
-            "menu_type": menu.TYPE,
+            "menu_type": menu.menu_type,
             "order_num": menu.order_num,
             "create_time": menu.create_time.isoformat() if menu.create_time else None,
             "modify_time": menu.modify_time.isoformat() if menu.modify_time else None
@@ -182,23 +182,23 @@ async def update_menu(
             icon=request.icon,
             order_num=request.order_num
         )
-        
+
         if not menu:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="菜单不存在"
             )
-        
+
         # 转换为字典格式
         menu_dict = {
             "menu_id": menu.id,
             "parent_id": menu.parent_id,
             "menu_name": menu.menu_name,
-            "path": menu.PATH,
-            "component": menu.COMPONENT,
+            "path": menu.path,
+            "component": menu.component,
             "perms": menu.perms,
             "icon": menu.icon,
-            "menu_type": menu.TYPE,
+            "menu_type": menu.menu_type,
             "order_num": menu.order_num,
             "create_time": menu.create_time.isoformat() if menu.create_time else None,
             "modify_time": menu.modify_time.isoformat() if menu.modify_time else None
@@ -206,7 +206,7 @@ async def update_menu(
 
         logger.info(f"Menu updated successfully: {request.menu_id}")
         return Success(code=200, msg="菜单更新成功", data=menu_dict)
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -230,13 +230,13 @@ async def delete_menu(
     try:
         menu_service = MenuService(db)
         success = menu_service.delete_menu(request.menu_id)
-        
+
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="菜单不存在"
             )
-        
+
         logger.info(f"Menu deleted successfully: {request.menu_id}")
         return Success(code=200, msg="菜单删除成功", data=True)
 
@@ -271,21 +271,21 @@ async def get_user_menus(
         
         # 获取用户菜单
         user_menus = menu_service.get_user_menus(request.user_id)
-        
+
         # 获取用户权限
         user_permissions = menu_service.get_user_permissions(request.user_id)
-        
+
         # 转换为字典格式的树形结构
         def menu_to_dict(menu):
             return {
                 "menu_id": menu.id,
                 "parent_id": menu.parent_id,
                 "menu_name": menu.menu_name,
-                "path": menu.PATH,
-                "component": menu.COMPONENT,
+                "path": menu.path,
+                "component": menu.component,
                 "perms": menu.perms,
                 "icon": menu.icon,
-                "menu_type": menu.TYPE,
+                "menu_type": menu.menu_type,
                 "order_num": menu.order_num,
                 "children": []
             }
@@ -310,7 +310,7 @@ async def get_user_menus(
         }
 
         return Success(code=200, msg="获取用户菜单成功", data=response_data)
-        
+
     except Exception as e:
         logger.error(f"Error getting user menus for user {request.user_id}: {str(e)}")
         raise HTTPException(

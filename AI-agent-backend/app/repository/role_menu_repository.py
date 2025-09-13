@@ -63,8 +63,8 @@ class RoleMenuRepository(BaseRepository[RoleMenu]):
             菜单列表
         """
         return self.db.query(Menu).join(
-            RoleMenu, Menu.id == RoleMenu.menu_id  # 修复：使用正确的属性名
-        ).filter(RoleMenu.role_id == role_id).order_by(Menu.order_num).all()
+            RoleMenu, Menu.id == RoleMenu.menu_id
+        ).filter(RoleMenu.role_id == role_id).order_by(Menu.ORDER_NUM).all()
 
     def get_menu_ids_by_role_id(self, role_id: int) -> List[int]:
         """

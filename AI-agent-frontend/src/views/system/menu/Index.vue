@@ -91,7 +91,7 @@
         
         <el-table-column prop="menu_type" label="菜单类型" width="100" align="center">
           <template #default="{ row }">
-            <el-tag 
+            <el-tag
               :type="row.menu_type === '0' ? 'primary' : 'info'"
               size="small"
             >
@@ -99,13 +99,13 @@
             </el-tag>
           </template>
         </el-table-column>
-        
+
         <el-table-column prop="path" label="路由路径" min-width="150" show-overflow-tooltip />
-        
+
         <el-table-column prop="component" label="组件路径" min-width="180" show-overflow-tooltip />
-        
+
         <el-table-column prop="perms" label="权限标识" min-width="150" show-overflow-tooltip />
-        
+
         <el-table-column prop="order_num" label="排序" width="80" align="center" />
         
         <el-table-column prop="is_active" label="状态" width="80" align="center">
@@ -116,7 +116,7 @@
           </template>
         </el-table-column>
         
-        <el-table-column prop="created_at" label="创建时间" width="180" align="center" />
+        <el-table-column prop="create_time" label="创建时间" width="180" align="center" />
         
         <el-table-column label="操作" width="200" fixed="right" align="center">
           <template #default="{ row }">
@@ -135,7 +135,7 @@
               link
               @click="handleAddChild(row)"
               v-permission="['menu:create']"
-              v-if="row.menu_type !== '1'"
+              v-if="row.TYPE !== '1'"
             >
               新增子菜单
             </el-button>
@@ -194,8 +194,8 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="菜单名称" prop="menu_name">
-              <el-input 
-                v-model="formData.menu_name" 
+              <el-input
+                v-model="formData.menu_name"
                 placeholder="请输入菜单名称"
                 maxlength="50"
                 show-word-limit
@@ -204,8 +204,8 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="菜单图标" prop="icon">
-              <el-input 
-                v-model="formData.icon" 
+              <el-input
+                v-model="formData.icon"
                 placeholder="请输入图标名称"
                 maxlength="50"
               >
@@ -222,8 +222,8 @@
         <el-row :gutter="20" v-if="formData.menu_type !== '1'">
           <el-col :span="12">
             <el-form-item label="路由地址" prop="path">
-              <el-input 
-                v-model="formData.path" 
+              <el-input
+                v-model="formData.path"
                 placeholder="请输入路由地址"
                 maxlength="200"
               />
@@ -231,20 +231,20 @@
           </el-col>
           <el-col :span="12" v-if="formData.menu_type === '0'">
             <el-form-item label="组件路径" prop="component">
-              <el-input 
-                v-model="formData.component" 
+              <el-input
+                v-model="formData.component"
                 placeholder="请输入组件路径"
                 maxlength="200"
               />
             </el-form-item>
           </el-col>
         </el-row>
-        
+
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="权限标识" prop="perms">
-              <el-input 
-                v-model="formData.perms" 
+              <el-input
+                v-model="formData.perms"
                 placeholder="请输入权限标识"
                 maxlength="100"
               />
@@ -252,9 +252,9 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="排序" prop="order_num">
-              <el-input-number 
-                v-model="formData.order_num" 
-                :min="0" 
+              <el-input-number
+                v-model="formData.order_num"
+                :min="0"
                 :max="999"
                 placeholder="请输入排序"
                 style="width: 100%"
@@ -312,7 +312,7 @@ const searchForm = reactive({
   is_active: undefined as boolean | undefined
 })
 
-// 表单数据
+// 表单数据 - 使用小写字段名与后端保持一致
 const formData = reactive({
   parent_id: 0,
   menu_name: '',
@@ -338,28 +338,28 @@ const formRules = computed(() => {
       { max: 100, message: '权限标识不能超过 100 个字符', trigger: 'blur' }
     ]
   }
-  
+
   // 根据菜单类型动态添加验证规则
   if (formData.menu_type !== '1') {
     rules.path = [
       { required: true, message: '请输入路由地址', trigger: 'blur' }
     ]
   }
-  
+
   if (formData.menu_type === '0') {
     rules.component = [
       { required: true, message: '请输入组件路径', trigger: 'blur' }
     ]
   }
-  
+
   return rules
 })
 
 // 菜单树配置
 const menuTreeProps = {
   children: 'children',
-  label: 'menu_name',
-  value: 'menu_id'
+  label: 'MENU_NAME',
+  value: 'MENU_ID'
 }
 
 // 初始化表单数据
@@ -519,7 +519,7 @@ const handleDelete = async (row: MenuInfo) => {
         type: 'warning'
       }
     )
-    
+
     const response = await MenuApi.deleteMenu(row.menu_id)
     if (response.success) {
       ElMessage.success('删除成功')
@@ -538,21 +538,32 @@ const handleDelete = async (row: MenuInfo) => {
 // 表单提交
 const handleFormConfirm = async () => {
   if (!formRef.value) return
-  
+
   try {
     await formRef.value.validate()
     formLoading.value = true
-    
+
+    // 直接使用小写字段名数据
+    const apiData = {
+      parent_id: formData.parent_id,
+      menu_name: formData.menu_name,
+      menu_type: formData.menu_type,
+      path: formData.path || undefined,
+      component: formData.component || undefined,
+      perms: formData.perms || undefined,
+      icon: formData.icon || undefined,
+      order_num: formData.order_num || undefined
+    }
+
     if (isEdit.value && currentMenu.value) {
-      const updateData: any = { ...formData }
-      const response = await MenuApi.updateMenu(currentMenu.value.menu_id, updateData)
+      const response = await MenuApi.updateMenu(currentMenu.value.menu_id, apiData)
       if (response.success) {
         ElMessage.success('更新成功')
         formDialogVisible.value = false
         loadMenuList()
       }
     } else {
-      const response = await MenuApi.createMenu(formData)
+      const response = await MenuApi.createMenu(apiData)
       if (response.success) {
         ElMessage.success('创建成功')
         formDialogVisible.value = false

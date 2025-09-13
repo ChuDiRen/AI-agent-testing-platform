@@ -86,4 +86,4 @@ class Role(BaseEntity):
         """
         字符串表示
         """
-        return f"<Role(role_id={self.role_id}, role_name='{self.role_name}')>"
+        return f"<Role(role_id={self.id}, role_name='{self.role_name}')>"

@@ -113,9 +113,9 @@ export class MenuApi {
    */
   static async checkMenuName(menuName: string, parentId: number, excludeMenuId?: number): Promise<ApiResponse<boolean>> {
     const params = {
-      menu_name: menuName,
-      parent_id: parentId,
-      ...(excludeMenuId && { exclude_menu_id: excludeMenuId })
+      MENU_NAME: menuName,
+      PARENT_ID: parentId,
+      ...(excludeMenuId && { EXCLUDE_MENU_ID: excludeMenuId })
     }
     return http.get<boolean>('/menus/check-name', params)
   }
@@ -127,7 +127,7 @@ export class MenuApi {
    * @returns 检查结果
    */
   static async checkPerms(perms: string, excludeMenuId?: number): Promise<ApiResponse<boolean>> {
-    const params = excludeMenuId ? { perms, exclude_menu_id: excludeMenuId } : { perms }
+    const params = excludeMenuId ? { PERMS: perms, EXCLUDE_MENU_ID: excludeMenuId } : { PERMS: perms }
     return http.get<boolean>('/menus/check-perms', params)
   }
 

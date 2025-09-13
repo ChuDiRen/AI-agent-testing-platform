@@ -83,28 +83,28 @@ class MenuService:
     def get_menu_tree(self) -> List[Dict[str, Any]]:
         """
         获取菜单树结构
-        
+
         Returns:
             菜单树列表
         """
         all_menus = self.menu_repository.get_menu_tree()
-        
+
         # 构建菜单树
         menu_dict = {}
         for menu in all_menus:
-            menu_dict[menu.id] = {  # 修复：使用正确的属性名
-                "menu_id": menu.id,  # 修复：使用正确的属性名
+            menu_dict[menu.id] = {
+                "menu_id": menu.id,  # 对应博客中的menu_id
                 "parent_id": menu.parent_id,
                 "menu_name": menu.menu_name,
-                "path": menu.PATH,
-                "component": menu.COMPONENT,
+                "path": menu.path,
+                "component": menu.component,
                 "perms": menu.perms,
                 "icon": menu.icon,
-                "type": menu.TYPE,
+                "menu_type": menu.menu_type,
                 "order_num": menu.order_num,
                 "children": []
             }
-        
+
         # 构建父子关系
         tree = []
         for menu_data in menu_dict.values():
@@ -114,7 +114,7 @@ class MenuService:
                 parent = menu_dict.get(menu_data["parent_id"])
                 if parent:
                     parent["children"].append(menu_data)
-        
+
         return tree
 
     def get_menus_only(self) -> List[Menu]:
@@ -182,17 +182,17 @@ class MenuService:
         # 准备更新数据
         update_data = {}
         if menu_name is not None:
-            update_data['menu_name'] = menu_name
+            update_data['MENU_NAME'] = menu_name
         if path is not None:
             update_data['PATH'] = path
         if component is not None:
             update_data['COMPONENT'] = component
         if perms is not None:
-            update_data['perms'] = perms
+            update_data['PERMS'] = perms
         if icon is not None:
-            update_data['icon'] = icon
+            update_data['ICON'] = icon
         if order_num is not None:
-            update_data['order_num'] = order_num
+            update_data['ORDER_NUM'] = order_num
 
         # 如果没有要更新的数据，直接返回原菜单
         if not update_data:
