@@ -228,7 +228,8 @@ class LogService:
         user_agent: Optional[str] = None,
         request_method: Optional[str] = None,
         request_url: Optional[str] = None,
-        details: Optional[str] = None
+        details: Optional[str] = None,
+        stack_trace: Optional[str] = None
     ) -> SystemLog:
         """
         创建日志记录
@@ -244,7 +245,8 @@ class LogService:
             request_method: 请求方法
             request_url: 请求URL
             details: 详细信息
-            
+            stack_trace: 堆栈跟踪
+
         Returns:
             创建的日志记录
         """
@@ -259,7 +261,8 @@ class LogService:
                 user_agent=user_agent,
                 request_method=request_method,
                 request_url=request_url,
-                details=details
+                details=details,
+                stack_trace=stack_trace
             )
             
             self.db.add(log)

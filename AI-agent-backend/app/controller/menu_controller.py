@@ -26,6 +26,7 @@ from app.dto.menu_dto import (
 )
 from app.service.menu_service import MenuService
 from app.middleware.auth import get_current_user
+from app.utils.log_decorators import log_operation, log_user_action
 
 logger = get_logger(__name__)
 
@@ -34,6 +35,12 @@ router = APIRouter(prefix="/menus", tags=["菜单管理"])
 
 
 @router.post("/create-menu", response_model=ApiResponse[MenuResponse], summary="创建菜单")
+@log_operation(
+    operation_type="CREATE",
+    resource_type="MENU",
+    operation_desc="创建菜单",
+    include_request=True
+)
 async def create_menu(
     request: MenuCreateRequest,
     db: Session = Depends(get_db)
@@ -159,6 +166,12 @@ async def get_menu_info(
 
 
 @router.post("/update-menu", response_model=ApiResponse[MenuResponse], summary="更新菜单")
+@log_operation(
+    operation_type="UPDATE",
+    resource_type="MENU",
+    operation_desc="更新菜单",
+    include_request=True
+)
 async def update_menu(
     request: MenuUpdateRequest,
     db: Session = Depends(get_db)
@@ -221,6 +234,12 @@ async def update_menu(
 
 
 @router.post("/delete-menu", response_model=ApiResponse[bool], summary="删除菜单")
+@log_operation(
+    operation_type="DELETE",
+    resource_type="MENU",
+    operation_desc="删除菜单",
+    include_request=True
+)
 async def delete_menu(
     request: MenuDeleteRequest,
     db: Session = Depends(get_db)

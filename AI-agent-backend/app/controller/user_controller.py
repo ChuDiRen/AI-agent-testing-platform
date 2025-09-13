@@ -35,6 +35,7 @@ from app.entity.user import User
 from app.middleware.auth import get_current_user
 from app.service.user_service import RBACUserService
 from app.service.department_service import DepartmentService  # 引入部门服务  # 注释
+from app.utils.log_decorators import log_operation, log_user_action
 from app.core.token_blacklist import add_to_blacklist, is_blacklisted
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -45,8 +46,15 @@ router = APIRouter(prefix="/users", tags=["用户管理"])
 
 
 @router.post("/create-user", response_model=ApiResponse[UserResponse], summary="创建用户")
+@log_operation(
+    operation_type="CREATE",
+    resource_type="USER",
+    operation_desc="创建用户",
+    include_request=True
+)
 async def create_user(
     request: UserCreateRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -110,32 +118,44 @@ async def create_user(
 @router.post("/login", response_model=ApiResponse[LoginResponse], summary="用户登录")
 async def user_login(
     request: LoginRequest,
+    http_request: Request,
     db: Session = Depends(get_db)
 ):
     """
     用户登录认证
-    
+
     - **username**: 用户名
     - **password**: 密码
     """
     try:
+        logger.info(f"Login attempt for user: {request.username}")
+
+        # 步骤1：用户认证
+        logger.info("Step 1: User authentication")
         user_service = RBACUserService(db)
         user = user_service.authenticate_user(request.username, request.password)
-        
+
         if not user:
+            logger.warning(f"Authentication failed for user: {request.username}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="用户名或密码错误"
             )
-        
-        # 创建令牌对
+
+        logger.info(f"User authenticated: {user.username}")
+
+        # 步骤2：创建令牌对
+        logger.info("Step 2: Creating token pair")
         token_pair = create_token_pair(user_id=user.id)
+        logger.info("Token pair created successfully")
 
-        # 获取用户权限
+        # 步骤3：获取用户权限
+        logger.info("Step 3: Getting user permissions")
         permissions = user_service.get_user_permissions(user.id)
+        logger.info(f"Retrieved {len(permissions)} permissions")
 
-        # 构建用户信息
-        # 转换为字典格式
+        # 步骤4：构建用户信息
+        logger.info("Step 4: Building user info")
         user_info = {
             "user_id": user.user_id,
             "username": user.username,
@@ -161,11 +181,13 @@ async def user_login(
 
         logger.info(f"User logged in successfully: {user.username}")
         return Success(code=200, msg="登录成功", data=login_data)
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Unexpected error during login: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="登录失败"

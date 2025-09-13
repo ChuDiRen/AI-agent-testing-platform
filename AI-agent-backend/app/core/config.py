@@ -3,6 +3,7 @@
 使用Pydantic Settings管理配置
 """
 
+import os
 from functools import lru_cache
 from typing import List, Optional
 
@@ -25,6 +26,9 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000  # 标准后端端口
     RELOAD: bool = True
+
+    # 项目路径配置
+    BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
     # 数据库类型配置
     DATABASE_TYPE: str = "sqlite"  # 支持 "sqlite" 或 "postgresql"
@@ -87,7 +91,7 @@ class Settings(BaseSettings):
     CACHE_PREFIX: str = "ai_agent:"
     
     # 安全配置
-    BCRYPT_ROUNDS: int = 12
+    BCRYPT_ROUNDS: int = 4  # 开发环境使用较低的rounds以提高性能
     PASSWORD_MIN_LENGTH: int = 8
     
     # API配置

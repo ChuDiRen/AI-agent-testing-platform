@@ -1,17 +1,23 @@
+# Copyright (c) 2025 左岚. All rights reserved.
 """
 日志中间件
-记录HTTP请求和响应日志
+记录HTTP请求和响应日志，支持文件和数据库双重记录
 """
 
 import json
 import time
-from typing import Callable
+import traceback
+from typing import Callable, Optional
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+from sqlalchemy.orm import Session
 
 from app.core.logger import get_logger
+from app.core.log_config import log_config_manager
 from app.utils.helpers import get_client_ip
+from app.db.session import SessionLocal
+from app.service.log_service import LogService
 
 logger = get_logger(__name__)
 
@@ -19,21 +25,24 @@ logger = get_logger(__name__)
 class LoggingMiddleware(BaseHTTPMiddleware):
     """
     日志中间件类
-    记录HTTP请求和响应的详细信息
+    记录HTTP请求和响应的详细信息，支持文件和数据库双重记录
     """
-    
-    def __init__(self, app, log_requests: bool = True, log_responses: bool = True):
+
+    def __init__(self, app, log_requests: bool = True, log_responses: bool = True,
+                 log_to_db: bool = True):
         """
         初始化日志中间件
-        
+
         Args:
             app: FastAPI应用
             log_requests: 是否记录请求日志
             log_responses: 是否记录响应日志
+            log_to_db: 是否记录到数据库
         """
         super().__init__(app)
         self.log_requests = log_requests
         self.log_responses = log_responses
+        self.log_to_db = log_to_db
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """
@@ -62,6 +71,13 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             # 记录异常
             process_time = time.time() - start_time
+            error_info = {
+                "status_code": 500,
+                "process_time": process_time,
+                "error": str(e),
+                "stack_trace": traceback.format_exc()
+            }
+
             logger.error(
                 f"Request failed: {request.method} {request.url}",
                 extra={
@@ -70,6 +86,11 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                     "process_time": process_time
                 }
             )
+
+            # 记录错误到数据库
+            if self.log_to_db:
+                await self._log_error_to_database(request_info, error_info)
+
             raise
         
         # 计算处理时间
@@ -81,10 +102,14 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         # 记录响应日志
         if self.log_responses:
             self._log_response(request_info, response_info)
-        
+
+        # 根据配置决定是否记录到数据库
+        if self.log_to_db and log_config_manager.should_log_to_db("INFO"):
+            await self._log_to_database(request_info, response_info)
+
         # 添加响应头
         response.headers["X-Process-Time"] = str(process_time)
-        
+
         return response
     
     async def _extract_request_info(self, request: Request) -> dict:
@@ -130,19 +155,19 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             "headers": dict(request.headers)
         }
         
-        # 记录请求体（仅对特定内容类型）
-        if (content_type.startswith("application/json") and 
+        # 记录请求体信息（不读取实际内容以避免消耗body）
+        if (content_type.startswith("application/json") and
             request.method in ["POST", "PUT", "PATCH"]):
             try:
-                body = await request.body()
-                if body:
-                    # 限制日志中的请求体大小
-                    if len(body) <= 1024:  # 1KB
-                        request_info["body"] = body.decode("utf-8")
-                    else:
-                        request_info["body"] = f"<body too large: {len(body)} bytes>"
+                # 只记录content-length，不读取实际body内容
+                content_length = request.headers.get("content-length")
+                if content_length:
+                    request_info["content_length"] = content_length
+                    request_info["has_body"] = True
+                else:
+                    request_info["has_body"] = False
             except Exception as e:
-                request_info["body_error"] = str(e)
+                request_info["body_info_error"] = str(e)
         
         return request_info
     
@@ -180,10 +205,12 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         # 过滤敏感信息
         filtered_info = self._filter_sensitive_data(request_info.copy())
         
-        logger.info(
-            f"Request: {request_info['method']} {request_info['path']}",
-            extra={"request": filtered_info}
-        )
+        # 根据配置决定是否记录到文件
+        if log_config_manager.should_log_to_file("INFO"):
+            logger.info(
+                f"Request: {request_info['method']} {request_info['path']}",
+                extra={"request": filtered_info}
+            )
     
     def _log_response(self, request_info: dict, response_info: dict) -> None:
         """
@@ -225,10 +252,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         Returns:
             过滤后的数据
         """
-        sensitive_fields = [
-            "authorization", "cookie", "x-api-key", "x-auth-token",
-            "password", "token", "secret", "key"
-        ]
+        sensitive_fields = log_config_manager.get_sensitive_fields()
         
         # 过滤请求头中的敏感信息
         if "headers" in data:
@@ -255,19 +279,127 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         
         return data
 
+    async def _log_to_database(self, request_info: dict, response_info: dict) -> None:
+        """
+        将日志记录到数据库
 
-def create_logging_middleware(log_requests: bool = True, log_responses: bool = True) -> LoggingMiddleware:
+        Args:
+            request_info: 请求信息
+            response_info: 响应信息
+        """
+        try:
+            # 跳过健康检查和静态资源请求
+            if self._should_skip_logging(request_info["path"]):
+                return
+
+            db: Session = SessionLocal()
+            try:
+                log_service = LogService(db)
+
+                # 确定日志级别
+                status_code = response_info["status_code"]
+                if status_code >= 500:
+                    level = "ERROR"
+                elif status_code >= 400:
+                    level = "WARNING"
+                else:
+                    level = "INFO"
+
+                # 构建日志消息
+                message = f"{request_info['method']} {request_info['path']} -> {status_code}"
+
+                # 构建详细信息
+                details = {
+                    "request": self._filter_sensitive_data(request_info.copy()),
+                    "response": response_info
+                }
+
+                # 创建日志记录
+                log_service.create_log(
+                    level=level,
+                    module="http_middleware",
+                    message=message,
+                    ip_address=request_info.get("client_ip"),
+                    user_agent=request_info.get("user_agent"),
+                    request_method=request_info.get("method"),
+                    request_url=request_info.get("url"),
+                    details=json.dumps(details, ensure_ascii=False)
+                )
+
+            finally:
+                db.close()
+
+        except Exception as e:
+            logger.error(f"Failed to log to database: {str(e)}")
+
+    async def _log_error_to_database(self, request_info: dict, error_info: dict) -> None:
+        """
+        将错误日志记录到数据库
+
+        Args:
+            request_info: 请求信息
+            error_info: 错误信息
+        """
+        try:
+            db: Session = SessionLocal()
+            try:
+                log_service = LogService(db)
+
+                # 构建错误消息
+                message = f"Request failed: {request_info['method']} {request_info['path']}"
+
+                # 构建详细信息
+                details = {
+                    "request": self._filter_sensitive_data(request_info.copy()),
+                    "error": error_info
+                }
+
+                # 创建错误日志记录
+                log_service.create_log(
+                    level="ERROR",
+                    module="http_middleware",
+                    message=message,
+                    ip_address=request_info.get("client_ip"),
+                    user_agent=request_info.get("user_agent"),
+                    request_method=request_info.get("method"),
+                    request_url=request_info.get("url"),
+                    details=json.dumps(details, ensure_ascii=False),
+                    stack_trace=error_info.get("stack_trace")
+                )
+
+            finally:
+                db.close()
+
+        except Exception as e:
+            logger.error(f"Failed to log error to database: {str(e)}")
+
+    def _should_skip_logging(self, path: str) -> bool:
+        """
+        判断是否应该跳过日志记录
+
+        Args:
+            path: 请求路径
+
+        Returns:
+            是否跳过
+        """
+        return log_config_manager.should_skip_path(path)
+
+
+def create_logging_middleware(log_requests: bool = True, log_responses: bool = True,
+                            log_to_db: bool = True) -> LoggingMiddleware:
     """
     创建日志中间件实例
-    
+
     Args:
         log_requests: 是否记录请求日志
         log_responses: 是否记录响应日志
-        
+        log_to_db: 是否记录到数据库
+
     Returns:
         日志中间件实例
     """
-    return LoggingMiddleware(None, log_requests, log_responses)
+    return LoggingMiddleware(None, log_requests, log_responses, log_to_db)
 
 
 # 导出日志中间件

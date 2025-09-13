@@ -21,6 +21,7 @@ from app.dto.dashboard_dto import (
 from app.entity.user import User
 from app.middleware.auth import get_current_user_with_audit, get_current_user
 from app.service.dashboard_service import DashboardService
+from app.utils.log_decorators import log_operation, log_user_action
 
 logger = get_logger(__name__)
 
@@ -29,6 +30,11 @@ router = APIRouter(prefix="/dashboard", tags=["仪表板"])
 
 
 @router.post("/get-statistics-data", response_model=ApiResponse[DashboardStatsResponse], summary="获取仪表板统计数据")
+@log_operation(
+    operation_type="VIEW",
+    resource_type="DASHBOARD",
+    operation_desc="获取仪表板统计数据"
+)
 async def get_statistics_data(
     request: DashboardStatsRequest = None,
     db: Session = Depends(get_db)
@@ -66,6 +72,11 @@ async def get_statistics_data(
 
 
 @router.post("/get-system-info", response_model=ApiResponse[SystemInfoResponse], summary="获取系统信息")
+@log_operation(
+    operation_type="VIEW",
+    resource_type="SYSTEM",
+    operation_desc="获取系统信息"
+)
 async def get_system_info(
     request: SystemInfoRequest = None,
     db: Session = Depends(get_db)
@@ -107,6 +118,11 @@ async def get_system_info(
 
 
 @router.post("/get-overview-data", response_model=ApiResponse[DashboardOverviewResponse], summary="获取仪表板概览")
+@log_operation(
+    operation_type="VIEW",
+    resource_type="DASHBOARD",
+    operation_desc="获取仪表板概览数据"
+)
 async def get_overview_data(
     request: DashboardOverviewRequest = None,
     current_user: User = Depends(get_current_user_with_audit),

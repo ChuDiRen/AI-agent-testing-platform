@@ -21,6 +21,7 @@ from app.service.data_permission_service import DataPermissionService
 from app.service.menu_service import MenuService
 from app.service.user_service import RBACUserService
 from app.service.role_service import RoleService
+from app.utils.log_decorators import log_operation, log_user_action
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/permissions", tags=["权限管理"])
@@ -161,6 +162,12 @@ async def get_user_menus(
 
 
 @router.post("/get-role-permissions", summary="获取角色权限列表")
+@log_operation(
+    operation_type="VIEW",
+    resource_type="PERMISSION",
+    operation_desc="获取角色权限列表",
+    include_request=True
+)
 async def get_role_permissions(
     request: Dict[str, Any],
     current_user: User = Depends(rbac_auth.require_permission_with_audit("role:permission:view", "ROLE")),
@@ -195,6 +202,11 @@ async def get_role_permissions(
 
 
 @router.post("/get-permission-menu-tree", summary="获取权限管理菜单树")
+@log_operation(
+    operation_type="VIEW",
+    resource_type="MENU",
+    operation_desc="获取权限管理菜单树"
+)
 async def get_permission_menu_tree(
     request: Dict[str, Any],
     current_user: User = Depends(rbac_auth.require_permission_with_audit("menu:view", "MENU")),
@@ -373,6 +385,12 @@ async def get_cache_statistics(
 
 
 @router.post("/refresh-permission-cache", summary="刷新权限缓存")
+@log_operation(
+    operation_type="REFRESH",
+    resource_type="CACHE",
+    operation_desc="刷新权限缓存",
+    include_request=True
+)
 async def refresh_permission_cache(
     request: Dict[str, Any],
     current_user: User = Depends(rbac_auth.require_permission_with_audit("cache:refresh", "CACHE")),

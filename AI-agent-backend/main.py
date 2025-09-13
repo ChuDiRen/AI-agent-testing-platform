@@ -22,6 +22,7 @@ from app.controller.role_controller import router as role_router
 from app.controller.permission_controller import router as permission_router
 from app.controller.dashboard_controller import router as dashboard_router
 from app.controller.log_controller import router as log_router
+from app.controller.log_config_controller import router as log_config_router
 from app.core.config import settings
 from app.core.logger import get_logger
 from app.db.session import create_tables, SessionLocal
@@ -107,6 +108,10 @@ app.add_middleware(
     expose_headers=["X-Total-Count", "X-Page-Count"],
     max_age=3600,
 )
+
+# 添加日志中间件
+from app.middleware.logging import LoggingMiddleware
+app.add_middleware(LoggingMiddleware)
 
 
 # 全局异常处理器
@@ -205,6 +210,7 @@ app.include_router(rbac_user_router, prefix=settings.API_V1_PREFIX)
 app.include_router(permission_router, prefix=settings.API_V1_PREFIX)
 app.include_router(dashboard_router, prefix=settings.API_V1_PREFIX)
 app.include_router(log_router, prefix=settings.API_V1_PREFIX)
+app.include_router(log_config_router, prefix=settings.API_V1_PREFIX)
 
 
 # CORS 预检与兜底响应头
@@ -226,22 +232,22 @@ async def cors_preflight(request: Request, call_next):
     response.headers.setdefault("Access-Control-Expose-Headers", "X-Total-Count, X-Page-Count")
     return response
 
-# 中间件：请求日志
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    """
-    记录HTTP请求日志
-    """
-    # 记录请求开始
-    logger.info(f"Request: {request.method} {request.url}")
-
-    # 处理请求
-    response = await call_next(request)
-
-    # 记录响应
-    logger.info(f"Response: {response.status_code}")
-
-    return response
+# 注释掉原有的简单日志中间件，已被LoggingMiddleware替代
+# @app.middleware("http")
+# async def log_requests(request: Request, call_next):
+#     """
+#     记录HTTP请求日志
+#     """
+#     # 记录请求开始
+#     logger.info(f"Request: {request.method} {request.url}")
+#
+#     # 处理请求
+#     response = await call_next(request)
+#
+#     # 记录响应
+#     logger.info(f"Response: {response.status_code}")
+#
+#     return response
 
 
 if __name__ == "__main__":

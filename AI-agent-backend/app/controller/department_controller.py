@@ -24,6 +24,7 @@ from app.dto.department_dto import (
     DepartmentDeleteRequest
 )
 from app.service.department_service import DepartmentService
+from app.utils.log_decorators import log_operation, log_user_action
 
 logger = get_logger(__name__)
 
@@ -32,6 +33,12 @@ router = APIRouter(prefix="/departments", tags=["部门管理"])
 
 
 @router.post("/create-department", response_model=ApiResponse[DepartmentResponse], summary="创建部门")
+@log_operation(
+    operation_type="CREATE",
+    resource_type="DEPARTMENT",
+    operation_desc="创建部门",
+    include_request=True
+)
 async def create_department(
     request: DepartmentCreateRequest,
     db: Session = Depends(get_db)
@@ -79,6 +86,11 @@ async def create_department(
 
 
 @router.post("/get-department-tree", response_model=ApiResponse[List[DepartmentTreeNode]], summary="获取部门树")
+@log_operation(
+    operation_type="VIEW",
+    resource_type="DEPARTMENT",
+    operation_desc="获取部门树"
+)
 async def get_department_tree(
     db: Session = Depends(get_db)
 ):
@@ -101,6 +113,11 @@ async def get_department_tree(
 
 
 @router.post("/get-department-list", response_model=ApiResponse[DepartmentListResponse], summary="获取部门列表")
+@log_operation(
+    operation_type="VIEW",
+    resource_type="DEPARTMENT",
+    operation_desc="获取部门列表"
+)
 async def get_department_list(
     request: DepartmentListRequest = None,
     db: Session = Depends(get_db)
@@ -142,6 +159,12 @@ async def get_department_list(
 
 
 @router.post("/get-department-info", response_model=ApiResponse[DepartmentResponse], summary="获取部门详情")
+@log_operation(
+    operation_type="VIEW",
+    resource_type="DEPARTMENT",
+    operation_desc="获取部门详情",
+    include_request=True
+)
 async def get_department_info(
     request: DepartmentIdRequest,
     db: Session = Depends(get_db)
@@ -184,6 +207,12 @@ async def get_department_info(
 
 
 @router.post("/update-department", response_model=ApiResponse[DepartmentResponse], summary="更新部门")
+@log_operation(
+    operation_type="UPDATE",
+    resource_type="DEPARTMENT",
+    operation_desc="更新部门",
+    include_request=True
+)
 async def update_department(
     request: DepartmentUpdateRequest,
     db: Session = Depends(get_db)
@@ -239,6 +268,12 @@ async def update_department(
 
 
 @router.post("/delete-department", response_model=ApiResponse[bool], summary="删除部门")
+@log_operation(
+    operation_type="DELETE",
+    resource_type="DEPARTMENT",
+    operation_desc="删除部门",
+    include_request=True
+)
 async def delete_department(
     request: DepartmentDeleteRequest,
     db: Session = Depends(get_db)

@@ -4,7 +4,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { RouteRecordRaw } from 'vue-router'
 import { MenuApi } from '@/api/modules/menu'
-import type { UserMenuTreeNode, MenuMeta } from '@/api/types'
+import type { UserMenuTreeNode } from '@/api/types'
 
 // 基础路由 - 不需要权限的路由
 export const basicRoutes: RouteRecordRaw[] = [
@@ -237,6 +237,6 @@ export const usePermissionStore = defineStore('permission', () => {
   persist: {
     key: 'permission-store',
     storage: sessionStorage,
-    paths: ['permissions'] // 只持久化权限信息
+    pick: ['permissions'] // 只持久化权限信息
   }
 })

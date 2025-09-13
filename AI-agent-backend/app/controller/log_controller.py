@@ -21,6 +21,7 @@ from app.dto.log_dto import (
 from app.entity.user import User
 from app.middleware.auth import get_current_user, get_current_user_with_audit
 from app.service.log_service import LogService
+from app.service.log_monitor_service import LogMonitorService
 
 logger = get_logger(__name__)
 
@@ -181,10 +182,103 @@ async def clear_logs(
             data={"deleted_count": deleted_count},
             message=f"成功清空 {deleted_count} 条日志"
         )
-        
+
     except Exception as e:
         logger.error(f"Error clearing logs: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="清空日志失败"
+        )
+
+
+@router.post("/get-real-time-stats", response_model=ApiResponse[dict], summary="获取实时日志统计")
+async def get_real_time_stats(
+    minutes: int = 5,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    获取实时日志统计
+
+    Args:
+        minutes: 统计时间范围（分钟）
+        current_user: 当前登录用户
+        db: 数据库会话
+
+    Returns:
+        实时统计数据
+    """
+    try:
+        monitor_service = LogMonitorService(db)
+        stats = monitor_service.get_real_time_stats(minutes)
+
+        return ApiResponse.success_response(data=stats, message="获取实时统计成功")
+
+    except Exception as e:
+        logger.error(f"Error getting real-time stats: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取实时统计失败"
+        )
+
+
+@router.post("/get-alerts", response_model=ApiResponse[list], summary="获取日志告警")
+async def get_alerts(
+    hours: int = 1,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    获取日志告警
+
+    Args:
+        hours: 检查时间范围（小时）
+        current_user: 当前登录用户
+        db: 数据库会话
+
+    Returns:
+        告警列表
+    """
+    try:
+        monitor_service = LogMonitorService(db)
+        alerts = monitor_service.check_alerts(hours)
+
+        return ApiResponse.success_response(data=alerts, message="获取告警信息成功")
+
+    except Exception as e:
+        logger.error(f"Error getting alerts: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取告警信息失败"
+        )
+
+
+@router.post("/get-log-trends", response_model=ApiResponse[dict], summary="获取日志趋势")
+async def get_log_trends(
+    days: int = 7,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    获取日志趋势分析
+
+    Args:
+        days: 分析天数
+        current_user: 当前登录用户
+        db: 数据库会话
+
+    Returns:
+        趋势分析数据
+    """
+    try:
+        monitor_service = LogMonitorService(db)
+        trends = monitor_service.get_log_trends(days)
+
+        return ApiResponse.success_response(data=trends, message="获取日志趋势成功")
+
+    except Exception as e:
+        logger.error(f"Error getting log trends: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取日志趋势失败"
         )

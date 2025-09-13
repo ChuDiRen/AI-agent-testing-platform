@@ -15,7 +15,11 @@ from app.core.logger import get_logger
 logger = get_logger(__name__)
 
 # 密码加密上下文
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__rounds=settings.BCRYPT_ROUNDS  # 使用配置中的rounds值
+)
 
 
 def get_password_hash(password: str) -> str:

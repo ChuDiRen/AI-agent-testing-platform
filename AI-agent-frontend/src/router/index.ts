@@ -22,6 +22,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
+        name: 'LayoutRedirect',
         redirect: '/dashboard'
       },
       {
@@ -50,11 +51,8 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '页面不存在'
     }
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/404'
   }
+  // 注意：全局404路由将在动态路由加载后添加
 ]
 
 const router = createRouter({
@@ -73,10 +71,18 @@ export const resetRoutes = () => {
   const allRoutes = router.getRoutes()
   allRoutes.forEach(route => {
     // 移除非基础路由（除了基础的登录、Layout、错误页面等）
-    if (route.name && !['Login', 'Layout', 'Dashboard', 'Forbidden', 'NotFound'].includes(route.name as string)) {
+    if (route.name && !['Login', 'Layout', 'LayoutRedirect', 'Dashboard', 'Forbidden', 'NotFound'].includes(route.name as string)) {
       router.removeRoute(route.name)
     }
   })
+
+  // 移除动态添加的404路由
+  const dynamicNotFoundRoute = router.getRoutes().find(route =>
+    route.path === '/:pathMatch(.*)*' && !route.name
+  )
+  if (dynamicNotFoundRoute && dynamicNotFoundRoute.name) {
+    router.removeRoute(dynamicNotFoundRoute.name)
+  }
 
   routesAdded = false
   console.log('Routes reset successfully')
@@ -104,11 +110,18 @@ export const addDynamicRoutes = async () => {
       router.addRoute('Layout', route)
     })
 
-    // 添加404路由（必须在最后）
-    router.addRoute({
-      path: '/:pathMatch(.*)*',
-      redirect: '/404'
-    })
+    // 检查是否已存在404路由，避免重复添加
+    const existingNotFoundRoute = router.getRoutes().find(route =>
+      route.path === '/:pathMatch(.*)*'
+    )
+
+    if (!existingNotFoundRoute) {
+      // 添加404路由（必须在最后）
+      router.addRoute({
+        path: '/:pathMatch(.*)*',
+        redirect: '/404'
+      })
+    }
 
     routesAdded = true
     console.log('Dynamic routes added successfully:', dynamicRoutes.length)
@@ -126,11 +139,18 @@ export const addDynamicRoutes = async () => {
       }
     })
 
-    // 仍然添加404路由
-    router.addRoute({
-      path: '/:pathMatch(.*)*',
-      redirect: '/404'
-    })
+    // 检查是否已存在404路由，避免重复添加
+    const existingNotFoundRoute = router.getRoutes().find(route =>
+      route.path === '/:pathMatch(.*)*'
+    )
+
+    if (!existingNotFoundRoute) {
+      // 仍然添加404路由
+      router.addRoute({
+        path: '/:pathMatch(.*)*',
+        redirect: '/404'
+      })
+    }
 
     throw error
   }
@@ -194,14 +214,23 @@ router.beforeEach(async (to, from, next) => {
       userStore.setToken(token)
     }
 
-    // 如果用户已登录但动态路由未添加，则添加动态路由
-    if (userStore.isLoggedIn && !routesAdded) {
+    // 只要有有效token就加载动态路由（修复页面刷新时动态路由丢失的问题）
+    if (token && !routesAdded) {
       try {
         await addDynamicRoutes()
         console.log('Dynamic routes loaded successfully')
+
+        // 动态路由加载完成后，如果当前访问的路径不是基础路由，需要重新导航
+        if (to.path !== '/login' && to.path !== '/403' && to.path !== '/404' && to.path !== '/dashboard' && to.path !== '/') {
+          console.log('Redirecting to current path after dynamic routes loaded:', to.path)
+          next({ ...to, replace: true })
+          return
+        }
       } catch (error) {
         console.error('Failed to load dynamic routes:', error)
-        // 动态路由加载失败时，仍然允许访问基础路由
+        // 如果动态路由加载失败，重定向到404页面
+        next('/404')
+        return
       }
     }
 

@@ -24,6 +24,7 @@ from app.dto.role_dto import (
     RoleBatchDeleteRequest
 )
 from app.service.role_service import RoleService
+from app.utils.log_decorators import log_operation, log_user_action
 
 logger = get_logger(__name__)
 
@@ -32,6 +33,12 @@ router = APIRouter(prefix="/roles", tags=["角色管理"])
 
 
 @router.post("/create-role", response_model=ApiResponse[dict], summary="创建角色")
+@log_operation(
+    operation_type="CREATE",
+    resource_type="ROLE",
+    operation_desc="创建角色",
+    include_request=True
+)
 async def create_role(
     request: RoleCreateRequest,
     db: Session = Depends(get_db)
@@ -162,6 +169,12 @@ async def get_role_info(
 
 
 @router.post("/update-role", response_model=ApiResponse[dict], summary="更新角色")
+@log_operation(
+    operation_type="UPDATE",
+    resource_type="ROLE",
+    operation_desc="更新角色",
+    include_request=True
+)
 async def update_role(
     request: RoleUpdateRequest,
     db: Session = Depends(get_db)
@@ -216,6 +229,12 @@ async def update_role(
 
 
 @router.post("/delete-role", response_model=ApiResponse[bool], summary="删除角色")
+@log_operation(
+    operation_type="DELETE",
+    resource_type="ROLE",
+    operation_desc="删除角色",
+    include_request=True
+)
 async def delete_role(
     request: RoleDeleteRequest,
     db: Session = Depends(get_db)
@@ -255,6 +274,12 @@ async def delete_role(
 
 
 @router.post("/batch-delete", response_model=ApiResponse[dict], summary="批量删除角色")
+@log_operation(
+    operation_type="BATCH_DELETE",
+    resource_type="ROLE",
+    operation_desc="批量删除角色",
+    include_request=True
+)
 async def batch_delete_roles(
     request: RoleBatchDeleteRequest,
     db: Session = Depends(get_db)
