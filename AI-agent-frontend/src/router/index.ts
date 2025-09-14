@@ -33,6 +33,17 @@ const routes: RouteRecordRaw[] = [
           title: '仪表板',
           icon: 'Monitor'
         }
+      },
+      // 个人中心路由
+      {
+        path: '/profile',
+        name: 'Profile',
+        component: () => import('@/views/profile/Index.vue'),
+        meta: {
+          title: '个人中心',
+          icon: 'User',
+          hidden: true // 不在菜单中显示
+        }
       }
     ]
   },
@@ -71,7 +82,7 @@ export const resetRoutes = () => {
   const allRoutes = router.getRoutes()
   allRoutes.forEach(route => {
     // 移除非基础路由（除了基础的登录、Layout、错误页面等）
-    if (route.name && !['Login', 'Layout', 'LayoutRedirect', 'Dashboard', 'Forbidden', 'NotFound'].includes(route.name as string)) {
+    if (route.name && !['Login', 'Layout', 'LayoutRedirect', 'Dashboard', 'Profile', 'Forbidden', 'NotFound'].includes(route.name as string)) {
       router.removeRoute(route.name)
     }
   })

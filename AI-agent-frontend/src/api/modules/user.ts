@@ -236,6 +236,17 @@ export class UserApi {
   }>> {
     return http.get('/users/stats')
   }
+
+  /**
+   * 上传用户头像
+   * @param file 头像文件
+   * @returns 上传结果
+   */
+  static async uploadAvatar(file: File): Promise<ApiResponse<{ avatar_url: string; user_id: number }>> {
+    const formData = new FormData()
+    formData.append('file', file)
+    return http.upload<{ avatar_url: string; user_id: number }>('/users/upload-avatar', formData)
+  }
 }
 
 // 导出单个方法，保持兼容性

@@ -227,10 +227,23 @@ const handleDelete = async (row: any) => {
     await ElMessageBox.confirm(`确定要删除用例"${row.caseName}"吗？`, '确认删除', {
       type: 'warning'
     })
+    // TODO: 调用实际的删除API
+    // await TestCaseApi.deleteTestCase(row.id)
     ElMessage.success('删除成功')
     loadTestCases()
-  } catch {
-    // 用户取消删除
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('删除用例失败:', error)
+      // 检查是否是用例不存在的错误
+      if (error?.response?.status === 404 || error?.response?.data?.detail?.includes('用例不存在')) {
+        ElMessage.warning('用例已不存在，将刷新列表')
+        loadTestCases() // 用例不存在时也要刷新列表
+      } else {
+        // 显示具体的错误信息，兼容 FastAPI 的 detail 字段
+        const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || '删除用例失败'
+        ElMessage.error(errorMessage)
+      }
+    }
   }
 }
 

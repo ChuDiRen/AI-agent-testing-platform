@@ -903,4 +903,92 @@ async def batch_delete_users(
         )
 
 
+@router.post("/upload-avatar", response_model=ApiResponse[dict], summary="上传用户头像")
+@log_operation(
+    operation_type="UPDATE",
+    resource_type="USER",
+    operation_desc="上传用户头像"
+)
+async def upload_avatar(
+    file: UploadFile = File(..., description="头像文件"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    上传用户头像
+
+    - **file**: 头像文件（支持jpg、png格式，最大2MB）
+    """
+    try:
+        # 检查文件类型
+        allowed_types = ['image/jpeg', 'image/jpg', 'image/png']
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="只支持JPG、PNG格式的图片文件"
+            )
+
+        # 检查文件大小（2MB）
+        file_content = await file.read()
+        if len(file_content) > 2 * 1024 * 1024:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="文件大小不能超过2MB"
+            )
+
+        # 创建上传目录
+        import os
+        import uuid
+        from pathlib import Path
+
+        upload_dir = Path("uploads/avatars")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+
+        # 生成唯一文件名
+        file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_path = upload_dir / unique_filename
+
+        # 保存文件
+        with open(file_path, "wb") as buffer:
+            buffer.write(file_content)
+
+        # 生成访问URL
+        avatar_url = f"/uploads/avatars/{unique_filename}"
+
+        # 更新用户头像
+        user_service = RBACUserService(db)
+        updated_user = user_service.update_user(
+            user_id=current_user.user_id,
+            avatar=avatar_url
+        )
+
+        if not updated_user:
+            # 如果更新失败，删除已上传的文件
+            if file_path.exists():
+                file_path.unlink()
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="用户不存在"
+            )
+
+        logger.info(f"User {current_user.user_id} uploaded avatar: {avatar_url}")
+
+        return Success(
+            code=200,
+            msg="头像上传成功",
+            data={
+                "avatar_url": avatar_url,
+                "user_id": current_user.user_id
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading avatar: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="头像上传失败"
+        )
 

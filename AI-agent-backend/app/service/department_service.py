@@ -86,14 +86,25 @@ class DepartmentService:
         """
         return self.department_repository.get_by_name(dept_name)
 
-    def get_department_tree(self) -> List[Dict[str, Any]]:
+    def get_department_tree(self, keyword: str = None) -> List[Dict[str, Any]]:
         """
         获取部门树结构
+
+        Args:
+            keyword: 搜索关键词，用于过滤部门名称
 
         Returns:
             部门树列表
         """
         all_departments = self.department_repository.get_department_tree()
+
+        # 如果有关键词，先过滤部门
+        if keyword:
+            filtered_departments = []
+            for dept in all_departments:
+                if keyword.lower() in dept.dept_name.lower():
+                    filtered_departments.append(dept)
+            all_departments = filtered_departments
 
         # 构建部门树
         dept_dict = {}

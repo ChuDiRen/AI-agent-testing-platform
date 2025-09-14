@@ -57,7 +57,8 @@ class DepartmentRepository(BaseRepository[Department]):
             子部门列表
         """
         return self.db.query(Department).filter(
-            Department.parent_id == parent_id
+            Department.parent_id == parent_id,
+            Department.is_deleted == 0
         ).order_by(Department.order_num).all()
 
     def get_top_level_departments(self) -> List[Department]:
@@ -76,8 +77,10 @@ class DepartmentRepository(BaseRepository[Department]):
         Returns:
             部门树列表
         """
-        # 获取所有部门，按ORDER_NUM排序
-        all_departments = self.db.query(Department).order_by(Department.order_num).all()
+        # 获取所有未删除的部门，按ORDER_NUM排序
+        all_departments = self.db.query(Department).filter(
+            Department.is_deleted == 0
+        ).order_by(Department.order_num).all()
 
         # 构建部门树（这里返回所有部门，前端可以根据PARENT_ID构建树形结构）
         return all_departments
@@ -93,7 +96,10 @@ class DepartmentRepository(BaseRepository[Department]):
         Returns:
             True表示存在，False表示不存在
         """
-        query = self.db.query(Department).filter(Department.dept_name == dept_name)
+        query = self.db.query(Department).filter(
+            Department.dept_name == dept_name,
+            Department.is_deleted == 0
+        )
         if exclude_id:
             query = query.filter(Department.id != exclude_id)  # 修复：使用正确的属性名
         return query.first() is not None
@@ -109,7 +115,8 @@ class DepartmentRepository(BaseRepository[Department]):
             匹配的部门列表
         """
         return self.db.query(Department).filter(
-            Department.dept_name.like(f"%{keyword}%")
+            Department.dept_name.like(f"%{keyword}%"),
+            Department.is_deleted == 0
         ).order_by(Department.order_num).all()
 
     def has_children(self, dept_id: int) -> bool:
@@ -123,7 +130,8 @@ class DepartmentRepository(BaseRepository[Department]):
             True表示有子部门，False表示没有
         """
         return self.db.query(Department).filter(
-            Department.parent_id == dept_id
+            Department.parent_id == dept_id,
+            Department.is_deleted == 0
         ).first() is not None
 
     def has_users(self, dept_id: int) -> bool:
@@ -139,7 +147,8 @@ class DepartmentRepository(BaseRepository[Department]):
         from app.entity.user import User
 
         return self.db.query(User).filter(
-            User.dept_id == dept_id
+            User.dept_id == dept_id,
+            User.is_deleted == 0
         ).first() is not None
 
     def can_delete(self, dept_id: int) -> bool:

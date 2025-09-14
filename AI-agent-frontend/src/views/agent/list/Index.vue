@@ -135,16 +135,35 @@ const handleStop = (row: any) => {
 }
 
 // 处理删除
-const handleDelete = (row: any) => {
-  ElMessageBox.confirm(`确定要删除代理 "${row.name}" 吗?`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
+const handleDelete = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(`确定要删除代理 "${row.name}" 吗?`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    // TODO: 调用实际的删除API
+    // await AgentApi.deleteAgent(row.id)
     ElMessage.success(`删除代理: ${row.name}`)
-  }).catch(() => {
-    ElMessage.info('已取消删除')
-  })
+    // TODO: 刷新代理列表
+    // loadAgentList()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('删除代理失败:', error)
+      // 检查是否是代理不存在的错误
+      if (error?.response?.status === 404 || error?.response?.data?.detail?.includes('代理不存在')) {
+        ElMessage.warning('代理已不存在，将刷新列表')
+        // TODO: 刷新代理列表
+        // loadAgentList()
+      } else {
+        // 显示具体的错误信息，兼容 FastAPI 的 detail 字段
+        const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || '删除代理失败'
+        ElMessage.error(errorMessage)
+      }
+    } else {
+      ElMessage.info('已取消删除')
+    }
+  }
 }
 
 // 处理页码变化

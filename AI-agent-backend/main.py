@@ -212,6 +212,18 @@ app.include_router(dashboard_router, prefix=settings.API_V1_PREFIX)
 app.include_router(log_router, prefix=settings.API_V1_PREFIX)
 app.include_router(log_config_router, prefix=settings.API_V1_PREFIX)
 
+# 静态文件服务
+from fastapi.staticfiles import StaticFiles
+import os
+
+# 创建上传目录
+uploads_dir = "uploads"
+if not os.path.exists(uploads_dir):
+    os.makedirs(uploads_dir)
+
+# 挂载静态文件服务
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 
 # CORS 预检与兜底响应头
 @app.middleware("http")

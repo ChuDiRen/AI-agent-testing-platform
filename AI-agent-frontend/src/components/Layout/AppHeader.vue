@@ -58,9 +58,6 @@
             <el-dropdown-item command="profile" :icon="User">
               个人中心
             </el-dropdown-item>
-            <el-dropdown-item command="settings" :icon="Setting">
-              系统设置
-            </el-dropdown-item>
             <el-dropdown-item divided command="logout" :icon="SwitchButton">
               退出登录
             </el-dropdown-item>
@@ -82,7 +79,6 @@ import {
   Bell,
   User,
   ArrowDown,
-  Setting,
   SwitchButton
 } from '@element-plus/icons-vue'
 import { useUserStore, useSystemStore } from '@/store'
@@ -113,10 +109,7 @@ const toggleFullscreen = () => {
 const handleUserMenuCommand = async (command: string) => {
   switch (command) {
     case 'profile':
-      ElMessage.info('个人中心功能开发中...')
-      break
-    case 'settings':
-      ElMessage.info('系统设置功能开发中...')
+      await router.push('/profile')
       break
     case 'logout':
       try {
@@ -129,7 +122,7 @@ const handleUserMenuCommand = async (command: string) => {
             type: 'warning'
           }
         )
-        
+
         await userStore.logout()
         await router.push('/login')
       } catch (error) {

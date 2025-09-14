@@ -35,6 +35,17 @@ export const basicRoutes: RouteRecordRaw[] = [
           title: '仪表板',
           icon: 'Monitor'
         }
+      },
+      // 个人中心路由
+      {
+        path: '/profile',
+        name: 'Profile',
+        component: () => import('@/views/profile/Index.vue'),
+        meta: {
+          title: '个人中心',
+          icon: 'User',
+          hidden: true // 不在菜单中显示
+        }
       }
       // 其他路由将通过动态路由添加
     ]

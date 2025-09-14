@@ -336,7 +336,9 @@ const handleDelete = async (row: RoleInfo) => {
         ElMessage.warning('角色已不存在，将刷新列表')
         loadRoleList() // 角色不存在时也要刷新列表
       } else {
-        ElMessage.error('删除角色失败')
+        // 显示具体的错误信息，兼容 FastAPI 的 detail 字段
+        const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || '删除角色失败'
+        ElMessage.error(errorMessage)
       }
     }
   }
@@ -378,6 +380,8 @@ const handleBatchDelete = async () => {
       } else {
         ElMessage.error('批量删除角色失败')
       }
+      // 无论成功失败都刷新列表，因为可能部分成功
+      loadRoleList()
     }
   }
 }

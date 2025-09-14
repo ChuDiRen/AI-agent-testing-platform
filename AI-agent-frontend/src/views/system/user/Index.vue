@@ -12,6 +12,7 @@
       v-model="searchParams"
       :fields="searchFields"
       :loading="loading"
+      :show-toggle="false"
       @search="handleSearch"
       @reset="handleReset"
     />
@@ -157,6 +158,7 @@
         <el-button
           type="primary"
           size="small"
+          link
           @click="handleEdit(row)"
           v-permission="['user:update']"
         >
@@ -165,6 +167,7 @@
         <el-button
           :type="row.status === '0' ? 'success' : 'danger'"
           size="small"
+          link
           @click="handleToggleStatus(row)"
           v-permission="['user:status']"
         >
@@ -173,6 +176,7 @@
         <el-button
           type="info"
           size="small"
+          link
           @click="handleResetPassword(row)"
           v-permission="['user:reset:password']"
         >
@@ -181,12 +185,13 @@
         <el-button
           type="danger"
           size="small"
+          link
           @click="handleDelete(row)"
           v-permission="['user:delete']"
         >
           删除
         </el-button>
-              </template>
+      </template>
       </CommonTable>
     </div>
     
@@ -631,7 +636,16 @@ const handleDelete = async (row: UserInfo) => {
     getUserList()
   } catch (error: any) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      console.error('删除用户失败:', error)
+      // 检查是否是用户不存在的错误
+      if (error?.response?.status === 404 || error?.response?.data?.detail?.includes('用户不存在')) {
+        ElMessage.warning('用户已不存在，将刷新列表')
+        getUserList() // 用户不存在时也要刷新列表
+      } else {
+        // 显示具体的错误信息，兼容 FastAPI 的 detail 字段
+        const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || '删除用户失败'
+        ElMessage.error(errorMessage)
+      }
     }
   }
 }
@@ -661,7 +675,12 @@ const handleBatchDelete = async () => {
     getUserList()
   } catch (error: any) {
     if (error !== 'cancel') {
-      ElMessage.error('批量删除失败')
+      console.error('批量删除用户失败:', error)
+      // 显示具体的错误信息，兼容 FastAPI 的 detail 字段
+      const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || '批量删除用户失败'
+      ElMessage.error(errorMessage)
+      // 无论成功失败都刷新列表，因为可能部分成功
+      getUserList()
     }
   }
 }

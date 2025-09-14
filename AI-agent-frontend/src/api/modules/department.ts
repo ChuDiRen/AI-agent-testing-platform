@@ -25,10 +25,11 @@ export class DepartmentApi {
 
   /**
    * 获取部门树
+   * @param keyword 搜索关键词
    * @returns 部门树
    */
-  static async getDepartmentTree(): Promise<ApiResponse<DeptTreeNode[]>> {
-    return http.post<DeptTreeNode[]>('/departments/get-department-tree', {})
+  static async getDepartmentTree(keyword?: string): Promise<ApiResponse<DeptTreeNode[]>> {
+    return http.post<DeptTreeNode[]>('/departments/get-department-tree', { keyword })
   }
 
   /**

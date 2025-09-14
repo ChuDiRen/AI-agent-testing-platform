@@ -21,17 +21,7 @@
                 style="width: 200px"
               />
             </el-form-item>
-            <el-form-item label="部门状态">
-              <el-select 
-                v-model="searchForm.is_active" 
-                placeholder="请选择状态" 
-                clearable
-                style="width: 120px"
-              >
-                <el-option label="启用" :value="true" />
-                <el-option label="禁用" :value="false" />
-              </el-select>
-            </el-form-item>
+
             <el-form-item>
               <el-button type="primary" @click="handleSearch">
                 <el-icon><Search /></el-icon>
@@ -251,8 +241,7 @@ const isEdit = ref(false)
 
 // 搜索表单
 const searchForm = reactive({
-  keyword: '',
-  is_active: undefined as boolean | undefined
+  keyword: ''
 })
 
 // 表单数据
@@ -290,7 +279,7 @@ const initFormData = () => {
 const loadDeptList = async () => {
   try {
     loading.value = true
-    const response = await DepartmentApi.getDepartmentTree()
+    const response = await DepartmentApi.getDepartmentTree(searchForm.keyword)
     if (response.success && response.data) {
       tableData.value = Array.isArray(response.data) ? response.data : []
     } else {
@@ -328,7 +317,6 @@ const handleSearch = () => {
 // 重置
 const handleReset = () => {
   searchForm.keyword = ''
-  searchForm.is_active = undefined
   loadDeptList()
 }
 
@@ -419,9 +407,15 @@ const handleDelete = async (row: any) => {
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('删除部门失败:', error)
-      // 显示具体的错误信息，兼容 FastAPI 的 detail 字段
-      const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || '删除部门失败'
-      ElMessage.error(errorMessage)
+      // 检查是否是部门不存在的错误
+      if (error?.response?.status === 404 || error?.response?.data?.detail?.includes('部门不存在')) {
+        ElMessage.warning('部门已不存在，将刷新列表')
+        loadDeptList() // 部门不存在时也要刷新列表
+      } else {
+        // 显示具体的错误信息，兼容 FastAPI 的 detail 字段
+        const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || '删除部门失败'
+        ElMessage.error(errorMessage)
+      }
     }
   }
 }

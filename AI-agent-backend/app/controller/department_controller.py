@@ -92,6 +92,7 @@ async def create_department(
     operation_desc="获取部门树"
 )
 async def get_department_tree(
+    request: dict = {},
     db: Session = Depends(get_db)
 ):
     """
@@ -99,11 +100,12 @@ async def get_department_tree(
     """
     try:
         department_service = DepartmentService(db)
-        tree_data = department_service.get_department_tree()
-        
+        keyword = request.get('keyword', '').strip() if request.get('keyword') else None
+        tree_data = department_service.get_department_tree(keyword=keyword)
+
         # 直接返回字典格式的树形数据
         return Success(code=200, msg="获取部门树成功", data=tree_data or [])
-        
+
     except Exception as e:
         logger.error(f"Error getting department tree: {str(e)}")
         raise HTTPException(
