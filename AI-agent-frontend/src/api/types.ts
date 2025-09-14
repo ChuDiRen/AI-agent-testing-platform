@@ -154,6 +154,7 @@ export interface MenuInfo {
   perms?: string
   icon?: string
   order_num?: number
+  is_active: boolean
   create_time: string
   modify_time?: string
   children?: MenuInfo[]
@@ -174,6 +175,7 @@ export interface MenuCreateRequest {
   perms?: string
   icon?: string
   order_num?: number
+  is_active?: boolean
 }
 
 // 菜单更新请求 - 使用小写字段名与后端保持一致
@@ -185,6 +187,7 @@ export interface MenuUpdateRequest {
   perms?: string
   icon?: string
   order_num?: number
+  is_active?: boolean
 }
 
 // 用户菜单树节点 - 用于动态路由

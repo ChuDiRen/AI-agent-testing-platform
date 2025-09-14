@@ -24,6 +24,22 @@ class MenuIdRequest(BaseModel):
         }
 
 
+class MenuSearchRequest(BaseModel):
+    """
+    菜单搜索请求DTO
+    """
+    keyword: Optional[str] = Field(None, description="搜索关键词")
+    is_active: Optional[bool] = Field(None, description="是否启用")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "keyword": "系统管理",
+                "is_active": True
+            }
+        }
+
+
 class MenuDeleteRequest(BaseModel):
     """
     删除菜单请求DTO
@@ -64,6 +80,7 @@ class MenuCreateRequest(BaseModel):
     perms: Optional[str] = Field(None, max_length=50, description="权限标识")
     icon: Optional[str] = Field(None, max_length=50, description="图标")
     order_num: Optional[float] = Field(None, description="排序号")
+    is_active: bool = Field(default=True, description="是否启用")
 
     @validator('menu_type')
     def validate_menu_type(cls, v):
@@ -97,6 +114,7 @@ class MenuUpdateRequest(BaseModel):
     perms: Optional[str] = Field(None, max_length=50, description="权限标识")
     icon: Optional[str] = Field(None, max_length=50, description="图标")
     order_num: Optional[float] = Field(None, description="排序号")
+    is_active: Optional[bool] = Field(None, description="是否启用")
 
     class Config:
         json_schema_extra = {
@@ -125,6 +143,7 @@ class MenuResponse(BaseModel):
     icon: Optional[str] = Field(None, description="图标")
     menu_type: str = Field(..., description="类型：0菜单 1按钮")
     order_num: Optional[float] = Field(None, description="排序号")
+    is_active: bool = Field(default=True, description="是否启用")
     create_time: Optional[datetime] = Field(None, description="创建时间")
     modify_time: Optional[datetime] = Field(None, description="修改时间")
 
@@ -160,6 +179,7 @@ class MenuTreeNode(BaseModel):
     icon: Optional[str] = Field(None, description="图标")
     menu_type: str = Field(..., description="类型：0菜单 1按钮")
     order_num: Optional[float] = Field(None, description="排序号")
+    is_active: bool = Field(default=True, description="是否启用")
     children: List['MenuTreeNode'] = Field(default=[], description="子菜单列表")
 
     class Config:

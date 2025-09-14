@@ -25,10 +25,11 @@ export class MenuApi {
 
   /**
    * 获取菜单树
+   * @param params 搜索参数
    * @returns 菜单树
    */
-  static async getMenuTree(): Promise<ApiResponse<MenuTreeNode[]>> {
-    return http.post<MenuTreeNode[]>('/menus/get-menu-tree')
+  static async getMenuTree(params?: { keyword?: string; is_active?: boolean }): Promise<ApiResponse<MenuTreeNode[]>> {
+    return http.post<MenuTreeNode[]>('/menus/get-menu-tree', params || {})
   }
 
   /**

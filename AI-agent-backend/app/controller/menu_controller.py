@@ -22,7 +22,8 @@ from app.dto.menu_dto import (
     MenuDeleteRequest,
     UserMenuRequest,
     UserMenuTreeResponse,
-    UserMenuTreeNode
+    UserMenuTreeNode,
+    MenuSearchRequest
 )
 from app.service.menu_service import MenuService
 from app.middleware.auth import get_current_user
@@ -67,7 +68,8 @@ async def create_menu(
             component=request.component,
             perms=request.perms,
             icon=request.icon,
-            order_num=request.order_num
+            order_num=request.order_num,
+            is_active=request.is_active
         )
 
         # 转换为字典格式
@@ -81,6 +83,7 @@ async def create_menu(
             "icon": menu.icon,
             "menu_type": menu.menu_type,
             "order_num": menu.order_num,
+            "is_active": menu.is_active,
             "create_time": menu.create_time.isoformat() if menu.create_time else None,
             "modify_time": menu.modify_time.isoformat() if menu.modify_time else None
         }
@@ -98,18 +101,23 @@ async def create_menu(
 
 @router.post("/get-menu-tree", response_model=ApiResponse[List[MenuTreeNode]], summary="获取菜单树")
 async def get_menu_tree(
+    request: MenuSearchRequest = MenuSearchRequest(),
     db: Session = Depends(get_db)
 ):
     """
-    获取完整的菜单树结构
+    获取完整的菜单树结构，支持搜索过滤
     """
     try:
         menu_service = MenuService(db)
-        tree_data = menu_service.get_menu_tree()
-        
+
+        tree_data = menu_service.get_menu_tree(
+            keyword=request.keyword,
+            is_active=request.is_active
+        )
+
         # 直接返回字典格式的树形数据
         return Success(code=200, msg="获取菜单树成功", data=tree_data or [])
-        
+
     except Exception as e:
         logger.error(f"Error getting menu tree: {str(e)}")
         raise HTTPException(
@@ -149,6 +157,7 @@ async def get_menu_info(
             "icon": menu.icon,
             "menu_type": menu.menu_type,
             "order_num": menu.order_num,
+            "is_active": menu.is_active,
             "create_time": menu.create_time.isoformat() if menu.create_time else None,
             "modify_time": menu.modify_time.isoformat() if menu.modify_time else None
         }
@@ -196,7 +205,8 @@ async def update_menu(
             component=request.component,
             perms=request.perms,
             icon=request.icon,
-            order_num=request.order_num
+            order_num=request.order_num,
+            is_active=request.is_active
         )
 
         if not menu:
@@ -216,6 +226,7 @@ async def update_menu(
             "icon": menu.icon,
             "menu_type": menu.menu_type,
             "order_num": menu.order_num,
+            "is_active": menu.is_active,
             "create_time": menu.create_time.isoformat() if menu.create_time else None,
             "modify_time": menu.modify_time.isoformat() if menu.modify_time else None
         }

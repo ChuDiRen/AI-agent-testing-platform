@@ -36,10 +36,10 @@ class MenuService:
 
     def create_menu(self, parent_id: int, menu_name: str, menu_type: str,
                    path: str = None, component: str = None, perms: str = None,
-                   icon: str = None, order_num: float = None) -> Menu:
+                   icon: str = None, order_num: float = None, is_active: bool = True) -> Menu:
         """
         创建菜单
-        
+
         Args:
             parent_id: 上级菜单ID，0表示顶级菜单
             menu_name: 菜单/按钮名称
@@ -49,7 +49,8 @@ class MenuService:
             perms: 权限标识
             icon: 图标
             order_num: 排序号
-            
+            is_active: 是否启用
+
         Returns:
             创建的菜单对象
         """
@@ -61,7 +62,8 @@ class MenuService:
             component=component,
             perms=perms,
             icon=icon,
-            order_num=order_num
+            order_num=order_num,
+            is_active=is_active
         )
         
         created_menu = self.menu_repository.create(menu)
@@ -80,14 +82,28 @@ class MenuService:
         """
         return self.menu_repository.get_by_id(menu_id)
 
-    def get_menu_tree(self) -> List[Dict[str, Any]]:
+    def get_menu_tree(self, keyword: str = None, is_active: bool = None) -> List[Dict[str, Any]]:
         """
         获取菜单树结构
+
+        Args:
+            keyword: 搜索关键词
+            is_active: 是否启用状态过滤
 
         Returns:
             菜单树列表
         """
         all_menus = self.menu_repository.get_menu_tree()
+
+        # 应用过滤条件
+        if keyword:
+            # 去除关键词前后空格
+            keyword = keyword.strip()
+            if keyword:  # 确保去除空格后还有内容
+                all_menus = [menu for menu in all_menus if keyword.lower() in menu.menu_name.lower()]
+
+        if is_active is not None:
+            all_menus = [menu for menu in all_menus if menu.is_active == is_active]
 
         # 构建菜单树
         menu_dict = {}
@@ -102,6 +118,7 @@ class MenuService:
                 "icon": menu.icon,
                 "menu_type": menu.menu_type,
                 "order_num": menu.order_num,
+                "is_active": menu.is_active,
                 "create_time": menu.create_time.isoformat() if menu.create_time else None,
                 "modify_time": menu.modify_time.isoformat() if menu.modify_time else None,
                 "children": []
@@ -160,10 +177,10 @@ class MenuService:
 
     def update_menu(self, menu_id: int, menu_name: str = None, path: str = None,
                    component: str = None, perms: str = None, icon: str = None,
-                   order_num: float = None) -> Optional[Menu]:
+                   order_num: float = None, is_active: bool = None) -> Optional[Menu]:
         """
         更新菜单信息
-        
+
         Args:
             menu_id: 菜单ID
             menu_name: 菜单名称
@@ -172,7 +189,8 @@ class MenuService:
             perms: 权限标识
             icon: 图标
             order_num: 排序号
-            
+            is_active: 是否启用
+
         Returns:
             更新后的菜单对象或None
         """
@@ -195,6 +213,8 @@ class MenuService:
             update_data['icon'] = icon
         if order_num is not None:
             update_data['order_num'] = order_num
+        if is_active is not None:
+            update_data['is_active'] = is_active
 
         # 如果没有要更新的数据，直接返回原菜单
         if not update_data:

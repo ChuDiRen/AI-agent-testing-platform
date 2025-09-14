@@ -6,7 +6,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, CHAR, DOUBLE, DateTime
+from sqlalchemy import Column, Integer, String, CHAR, DOUBLE, DateTime, Boolean
 from sqlalchemy.orm import relationship
 
 from .base import BaseEntity
@@ -46,6 +46,9 @@ class Menu(BaseEntity):
     # 排序 - 可选，用于菜单排序
     order_num = Column(DOUBLE(20), nullable=True, comment="排序")
 
+    # 是否启用 - 必填，默认启用
+    is_active = Column(Boolean, nullable=False, default=True, comment="是否启用")
+
     # 创建时间 - 必填，默认当前时间
     create_time = Column(DateTime, nullable=False, default=datetime.utcnow, comment="创建时间")
 
@@ -58,7 +61,7 @@ class Menu(BaseEntity):
 
     def __init__(self, parent_id: int, menu_name: str, menu_type: str,
                  path: str = None, component: str = None, perms: str = None,
-                 icon: str = None, order_num: float = None):
+                 icon: str = None, order_num: float = None, is_active: bool = True):
         """
         初始化菜单
 
@@ -71,6 +74,7 @@ class Menu(BaseEntity):
             perms: 权限标识
             icon: 图标
             order_num: 排序号
+            is_active: 是否启用
         """
         self.parent_id = parent_id
         self.menu_name = menu_name
@@ -80,6 +84,7 @@ class Menu(BaseEntity):
         self.perms = perms
         self.icon = icon
         self.order_num = order_num
+        self.is_active = is_active
         self.create_time = datetime.utcnow()
 
     def is_menu(self) -> bool:
@@ -111,7 +116,7 @@ class Menu(BaseEntity):
 
     def update_info(self, menu_name: str = None, path: str = None,
                    component: str = None, perms: str = None,
-                   icon: str = None, order_num: float = None):
+                   icon: str = None, order_num: float = None, is_active: bool = None):
         """
         更新菜单信息
 
@@ -122,6 +127,7 @@ class Menu(BaseEntity):
             perms: 权限标识
             icon: 图标
             order_num: 排序号
+            is_active: 是否启用
         """
         if menu_name is not None:
             self.menu_name = menu_name
@@ -135,6 +141,8 @@ class Menu(BaseEntity):
             self.icon = icon
         if order_num is not None:
             self.order_num = order_num
+        if is_active is not None:
+            self.is_active = is_active
         self.modify_time = datetime.utcnow()
 
     def to_dict(self) -> dict:
@@ -154,6 +162,7 @@ class Menu(BaseEntity):
             "icon": self.icon,
             "menu_type": self.menu_type,
             "order_num": self.order_num,
+            "is_active": self.is_active,
             "create_time": self.create_time.isoformat() if self.create_time else None,
             "modify_time": self.modify_time.isoformat() if self.modify_time else None
         }

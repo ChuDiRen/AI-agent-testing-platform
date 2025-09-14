@@ -385,12 +385,12 @@ const initFormData = () => {
 const loadMenuList = async () => {
   try {
     loading.value = true
-    // const params = {
-    //   keyword: searchForm.keyword || undefined,
-    //   is_active: searchForm.is_active
-    // } // 暂时注释掉未使用的参数
-    
-    const response = await MenuApi.getMenuTree()
+    const params = {
+      keyword: searchForm.keyword || undefined,
+      is_active: searchForm.is_active
+    }
+
+    const response = await MenuApi.getMenuTree(params)
     if (response.success) {
       const data = (Array.isArray(response.data) ? response.data : (response.data as any)?.tree) || []
       tableData.value = data

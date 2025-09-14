@@ -312,8 +312,8 @@ const searchFields: SearchField[] = [
 
 // 表格列配置 - 使用灵活宽度设置
 const tableColumns: TableColumn[] = [
-  { prop: 'user_id', label: 'ID', width: 60, fixed: 'left' },
-  { prop: 'username', label: '用户名', width: 120, fixed: 'left' },
+  { prop: 'user_id', label: 'ID', minWidth: 80 },
+  { prop: 'username', label: '用户名', minWidth: 120 },
   { prop: 'email', label: '邮箱', minWidth: 180 },
   { prop: 'mobile', label: '手机号', minWidth: 120 },
   { prop: 'avatar', label: '头像', width: 70, slot: 'avatar' },
