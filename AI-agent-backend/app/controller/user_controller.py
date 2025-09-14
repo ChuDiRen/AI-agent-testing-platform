@@ -954,7 +954,7 @@ async def upload_avatar(
             buffer.write(file_content)
 
         # 生成访问URL
-        avatar_url = f"/uploads/avatars/{unique_filename}"
+        avatar_url = f"http://localhost:8000/uploads/avatars/{unique_filename}"
 
         # 更新用户头像
         user_service = RBACUserService(db)

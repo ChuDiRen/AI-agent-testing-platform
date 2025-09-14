@@ -41,7 +41,7 @@
       <el-dropdown @command="handleUserMenuCommand" class="user-dropdown">
         <div class="user-info">
           <el-avatar
-            :src="userStore.avatar"
+            :src="avatarUrl"
             :size="36"
             class="user-avatar"
           >
@@ -69,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -88,6 +88,14 @@ const userStore = useUserStore()
 const systemStore = useSystemStore()
 
 const isFullscreen = ref(false)
+
+// 计算属性 - 头像URL，添加时间戳避免缓存
+const avatarUrl = computed(() => {
+  const avatar = userStore.avatar
+  if (!avatar) return ''
+  const separator = avatar.includes('?') ? '&' : '?'
+  return `${avatar}${separator}t=${userStore.avatarTimestamp || Date.now()}`
+})
 
 // 切换侧边栏折叠状态
 const toggleCollapsed = () => {

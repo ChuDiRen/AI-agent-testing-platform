@@ -32,7 +32,8 @@ export const useUserStore = defineStore('user', {
     roles: [],
     menus: [],
     loading: false,
-    initialized: false
+    initialized: false,
+    avatarTimestamp: Date.now()
   }),
 
   getters: {
@@ -79,6 +80,11 @@ export const useUserStore = defineStore('user', {
       this.menus = menus
     },
 
+    // 更新头像时间戳
+    updateAvatarTimestamp() {
+      this.avatarTimestamp = Date.now()
+    },
+
     // 清除用户数据
     clearUserData() {
       this.token = null
@@ -87,6 +93,7 @@ export const useUserStore = defineStore('user', {
       this.roles = []
       this.menus = []
       this.initialized = false
+      this.avatarTimestamp = Date.now()
       removeToken()
       removeRefreshToken()
 

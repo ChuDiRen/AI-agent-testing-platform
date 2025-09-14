@@ -317,16 +317,16 @@ const searchFields: SearchField[] = [
 
 // 表格列配置 - 使用灵活宽度设置
 const tableColumns: TableColumn[] = [
-  { prop: 'user_id', label: 'ID', minWidth: 80 },
-  { prop: 'username', label: '用户名', minWidth: 120 },
-  { prop: 'email', label: '邮箱', minWidth: 180 },
-  { prop: 'mobile', label: '手机号', minWidth: 120 },
+  { prop: 'user_id', label: 'ID', width: 80 },
+  { prop: 'username', label: '用户名', minWidth: 150, showOverflowTooltip: true },
+  { prop: 'email', label: '邮箱', minWidth: 200, showOverflowTooltip: true },
+  { prop: 'mobile', label: '手机号', minWidth: 130 },
   { prop: 'avatar', label: '头像', width: 70, slot: 'avatar' },
   { prop: 'ssex', label: '性别', width: 70, slot: 'ssex' },
   { prop: 'dept_name', label: '部门', minWidth: 100 },
-  { prop: 'roles', label: '角色', minWidth: 150, slot: 'roles' },
+  { prop: 'roles', label: '角色', minWidth: 120, slot: 'roles' },
   { prop: 'status', label: '状态', width: 80, slot: 'status' },
-  { prop: 'create_time', label: '创建时间', minWidth: 140, formatter: (row: any) => formatStandardDateTime(row.create_time) },
+  { prop: 'create_time', label: '创建时间', minWidth: 160, formatter: (row: any) => formatStandardDateTime(row.create_time) },
   { prop: 'last_login_time', label: '最后登录', minWidth: 140, formatter: (row: any) => formatStandardDateTime(row.last_login_time) }
 ]
 
