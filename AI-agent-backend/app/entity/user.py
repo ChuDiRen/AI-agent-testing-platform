@@ -65,6 +65,9 @@ class User(BaseEntity):
     # 用户-部门关联（一个用户属于一个部门）
     department = relationship("Department", back_populates="users")
 
+    # 用户-代理关联（一个用户可以创建多个代理）
+    created_agents = relationship("Agent", back_populates="creator", foreign_keys="Agent.created_by_id")
+
     @property
     def user_id(self) -> int:
         """用户ID属性，返回主键id的值"""

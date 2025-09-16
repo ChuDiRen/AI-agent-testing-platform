@@ -387,3 +387,339 @@ export interface DialogConfig {
   closeOnClickModal?: boolean
   closeOnPressEscape?: boolean
 }
+
+// ================================
+// AI代理管理相关类型定义
+// ================================
+
+// AI代理信息
+export interface AgentInfo {
+  id: number
+  name: string
+  type: 'chat' | 'task' | 'analysis' | 'testing' | 'custom'
+  version: string
+  description?: string
+  status: 'inactive' | 'active' | 'running' | 'stopped' | 'error' | 'maintenance'
+  config: Record<string, any>
+  run_count: number
+  success_rate: number
+  last_run_time?: string
+  created_at: string
+  updated_at?: string
+  is_deleted: boolean
+}
+
+// AI代理创建请求
+export interface AgentCreateRequest {
+  name: string
+  type: 'chat' | 'task' | 'analysis' | 'testing' | 'custom'
+  version: string
+  description?: string
+  config?: Record<string, any>
+}
+
+// AI代理更新请求
+export interface AgentUpdateRequest {
+  name?: string
+  type?: 'chat' | 'task' | 'analysis' | 'testing' | 'custom'
+  version?: string
+  description?: string
+  config?: Record<string, any>
+}
+
+// AI代理搜索请求
+export interface AgentSearchRequest {
+  page?: number
+  page_size?: number
+  keyword?: string
+  type?: string
+  status?: string
+}
+
+// AI代理响应
+export interface AgentResponse {
+  success: boolean
+  message: string
+  data: AgentInfo
+}
+
+// AI代理列表响应
+export interface AgentListResponse {
+  success: boolean
+  message: string
+  data: {
+    agents: AgentInfo[]
+    total: number
+    page: number
+    page_size: number
+  }
+}
+
+// AI代理统计响应
+export interface AgentStatisticsResponse {
+  success: boolean
+  message: string
+  data: {
+    total_agents: number
+    active_agents: number
+    running_agents: number
+    overall_success_rate: number
+  }
+}
+
+// AI代理批量操作请求
+export interface AgentBatchOperationRequest {
+  agent_ids: number[]
+  operation: 'activate' | 'deactivate' | 'delete' | 'start' | 'stop'
+}
+
+// AI代理批量操作响应
+export interface AgentBatchOperationResponse {
+  success: boolean
+  message: string
+  data: {
+    total: number
+    success_count: number
+    failure_count: number
+    results: Array<{
+      agent_id: number
+      success: boolean
+      message?: string
+    }>
+  }
+}
+
+// ================================
+// 测试用例生成相关类型定义
+// ================================
+
+// 测试用例信息
+export interface TestCaseInfo {
+  id: number
+  title: string
+  description: string
+  priority: 'low' | 'medium' | 'high' | 'critical'
+  test_type: 'functional' | 'performance' | 'security' | 'integration' | 'unit'
+  input_data: Record<string, any>
+  expected_output: Record<string, any>
+  preconditions?: string
+  steps: TestCaseStep[]
+  tags: string[]
+  agent_id?: number
+  project_id?: number
+  status: 'draft' | 'active' | 'archived'
+  created_at: string
+  updated_at?: string
+  is_deleted: boolean
+}
+
+// 测试用例步骤
+export interface TestCaseStep {
+  step_number: number
+  action: string
+  expected_result: string
+  data?: Record<string, any>
+}
+
+// AI测试用例生成请求
+export interface TestCaseGenerateRequest {
+  requirement_text: string
+  test_type?: 'functional' | 'performance' | 'security' | 'integration' | 'unit'
+  priority?: 'low' | 'medium' | 'high' | 'critical'
+  count?: number
+  project_id?: number
+  agent_ids?: number[]
+}
+
+// AI测试用例生成响应
+export interface TestCaseGenerateResponse {
+  success: boolean
+  message: string
+  data: {
+    task_id: string
+    generated_cases: TestCaseInfo[]
+    summary: {
+      total_generated: number
+      by_priority: Record<string, number>
+      by_type: Record<string, number>
+    }
+  }
+}
+
+// 测试用例列表响应
+export interface TestCaseListResponse {
+  success: boolean
+  message: string
+  data: {
+    test_cases: TestCaseInfo[]
+    total: number
+    page: number
+    page_size: number
+  }
+}
+
+// ================================
+// AI模型配置相关类型定义
+// ================================
+
+// AI模型配置信息
+export interface ModelConfigInfo {
+  id: number
+  name: string
+  provider: 'openai' | 'azure' | 'anthropic' | 'google' | 'local' | 'custom'
+  model_name: string
+  api_key: string
+  api_base?: string
+  version?: string
+  max_tokens?: number
+  temperature?: number
+  top_p?: number
+  frequency_penalty?: number
+  presence_penalty?: number
+  timeout?: number
+  status: 'active' | 'inactive' | 'error'
+  config: Record<string, any>
+  usage_count: number
+  error_count: number
+  last_used_at?: string
+  created_at: string
+  updated_at?: string
+  is_deleted: boolean
+}
+
+// AI模型配置创建请求
+export interface ModelConfigCreateRequest {
+  name: string
+  provider: 'openai' | 'azure' | 'anthropic' | 'google' | 'local' | 'custom'
+  model_name: string
+  api_key: string
+  api_base?: string
+  version?: string
+  max_tokens?: number
+  temperature?: number
+  top_p?: number
+  frequency_penalty?: number
+  presence_penalty?: number
+  timeout?: number
+  config?: Record<string, any>
+}
+
+// AI模型配置更新请求
+export interface ModelConfigUpdateRequest {
+  name?: string
+  model_name?: string
+  api_key?: string
+  api_base?: string
+  version?: string
+  max_tokens?: number
+  temperature?: number
+  top_p?: number
+  frequency_penalty?: number
+  presence_penalty?: number
+  timeout?: number
+  config?: Record<string, any>
+}
+
+// AI模型配置响应
+export interface ModelConfigResponse {
+  success: boolean
+  message: string
+  data: ModelConfigInfo
+}
+
+// AI模型配置列表响应
+export interface ModelConfigListResponse {
+  success: boolean
+  message: string
+  data: {
+    model_configs: ModelConfigInfo[]
+    total: number
+    page: number
+    page_size: number
+  }
+}
+
+// ================================
+// 测试报告相关类型定义
+// ================================
+
+// 测试报告信息
+export interface TestReportInfo {
+  id: number
+  title: string
+  test_type: 'functional' | 'performance' | 'security' | 'integration' | 'unit'
+  status: 'running' | 'completed' | 'failed' | 'cancelled'
+  agent_id?: number
+  project_id?: number
+  total_cases: number
+  passed_cases: number
+  failed_cases: number
+  success_rate: number
+  execution_time: number
+  start_time: string
+  end_time?: string
+  summary: string
+  details: TestReportDetail[]
+  attachments: string[]
+  created_at: string
+  updated_at?: string
+  is_deleted: boolean
+}
+
+// 测试报告详情
+export interface TestReportDetail {
+  test_case_id: number
+  test_case_title: string
+  status: 'passed' | 'failed' | 'skipped' | 'error'
+  execution_time: number
+  error_message?: string
+  screenshots?: string[]
+  logs?: string[]
+}
+
+// 测试报告创建请求
+export interface TestReportCreateRequest {
+  title: string
+  test_type: 'functional' | 'performance' | 'security' | 'integration' | 'unit'
+  agent_id?: number
+  project_id?: number
+  test_case_ids: number[]
+}
+
+// 测试报告响应
+export interface TestReportResponse {
+  success: boolean
+  message: string
+  data: TestReportInfo
+}
+
+// 测试报告列表响应
+export interface TestReportListResponse {
+  success: boolean
+  message: string
+  data: {
+    test_reports: TestReportInfo[]
+    total: number
+    page: number
+    page_size: number
+  }
+}
+
+// 测试报告统计响应
+export interface TestReportStatisticsResponse {
+  success: boolean
+  message: string
+  data: {
+    total_reports: number
+    completed_reports: number
+    running_reports: number
+    overall_success_rate: number
+    avg_execution_time: number
+    trend_data: Array<{
+      date: string
+      total: number
+      passed: number
+      failed: number
+    }>
+  }
+}

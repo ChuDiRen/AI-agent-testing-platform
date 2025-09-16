@@ -44,6 +44,93 @@ const routes: RouteRecordRaw[] = [
           icon: 'User',
           hidden: true // 不在菜单中显示
         }
+      },
+      // AI代理管理路由
+      {
+        path: '/agent',
+        name: 'AgentManagement',
+        meta: {
+          title: 'AI代理管理',
+          icon: 'Robot'
+        },
+        children: [
+          {
+            path: '',
+            name: 'AgentList',
+            component: () => import('@/views/agent/list/index.vue'),
+            meta: {
+              title: '代理列表',
+              icon: 'List'
+            }
+          },
+          {
+            path: 'config/:id',
+            name: 'AgentConfig',
+            component: () => import('@/views/agent/config/index.vue'),
+            meta: {
+              title: '代理配置',
+              hidden: true
+            }
+          }
+        ]
+      },
+      // 测试用例管理路由
+      {
+        path: '/test',
+        name: 'TestManagement',
+        meta: {
+          title: '测试管理',
+          icon: 'TestTube'
+        },
+        children: [
+          {
+            path: 'generate',
+            name: 'TestGenerate',
+            component: () => import('@/views/test/generate/index.vue'),
+            meta: {
+              title: 'AI生成测试用例',
+              icon: 'MagicStick'
+            }
+          },
+          {
+            path: 'cases',
+            name: 'TestCases',
+            component: () => import('@/views/test/cases/Index.vue'),
+            meta: {
+              title: '测试用例列表',
+              icon: 'Document'
+            }
+          },
+          {
+            path: 'reports',
+            name: 'TestReports',
+            component: () => import('@/views/test/reports/list/index.vue'),
+            meta: {
+              title: '测试报告',
+              icon: 'Document'
+            }
+          }
+        ]
+      },
+      // AI模型配置路由
+      {
+        path: '/model',
+        name: 'ModelManagement',
+        meta: {
+          title: 'AI模型配置',
+          icon: 'Setting'
+        },
+        children: [
+          {
+            path: 'config',
+            name: 'ModelConfig',
+            component: () => import('@/views/model/config/index.vue'),
+            meta: {
+              title: '模型配置',
+              icon: 'Setting'
+            }
+          }
+        ]
       }
     ]
   },
@@ -82,7 +169,7 @@ export const resetRoutes = () => {
   const allRoutes = router.getRoutes()
   allRoutes.forEach(route => {
     // 移除非基础路由（除了基础的登录、Layout、错误页面等）
-    if (route.name && !['Login', 'Layout', 'LayoutRedirect', 'Dashboard', 'Profile', 'Forbidden', 'NotFound'].includes(route.name as string)) {
+    if (route.name && !['Login', 'Layout', 'LayoutRedirect', 'Dashboard', 'Profile', 'Forbidden', 'NotFound', 'AgentManagement', 'AgentList', 'AgentConfig', 'TestManagement', 'TestGenerate', 'TestCases', 'TestReports', 'ModelManagement', 'ModelConfig'].includes(route.name as string)) {
       router.removeRoute(route.name)
     }
   })
@@ -232,7 +319,7 @@ router.beforeEach(async (to, from, next) => {
         console.log('Dynamic routes loaded successfully')
 
         // 动态路由加载完成后，如果当前访问的路径不是基础路由，需要重新导航
-        if (to.path !== '/login' && to.path !== '/403' && to.path !== '/404' && to.path !== '/dashboard' && to.path !== '/') {
+        if (to.path !== '/login' && to.path !== '/403' && to.path !== '/404' && to.path !== '/dashboard' && to.path !== '/' && to.path !== '/profile') {
           console.log('Redirecting to current path after dynamic routes loaded:', to.path)
           next({ ...to, replace: true })
           return
