@@ -10,11 +10,14 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.entity.test_case import TestCase, TestCaseStatus
+from app.entity.test_case_generation_history import TestCaseGenerationHistory
 from app.repository.test_case_repository import TestCaseRepository
 from app.dto.test_case_dto import (
     TestCaseCreateRequest, TestCaseUpdateRequest, TestCaseSearchRequest,
     TestCaseResponse, TestCaseListResponse, TestCaseStatisticsResponse,
-    TestCaseBatchOperationRequest, TestCaseBatchOperationResponse
+    TestCaseBatchOperationRequest, TestCaseBatchOperationResponse,
+    TestCaseGenerationHistoryRequest, TestCaseGenerationHistoryResponse,
+    TestCaseGenerationHistoryItem
 )
 from app.core.logger import get_logger
 from app.utils.exceptions import BusinessException
@@ -317,6 +320,67 @@ class TestCaseService:
             'actual_result': test_case.actual_result,
             'execution_time': test_case.execution_time
         })
+
+    def get_generation_history(self, request: TestCaseGenerationHistoryRequest, user_id: int = None) -> TestCaseGenerationHistoryResponse:
+        """获取测试用例生成历史"""
+        try:
+            # 构建查询条件
+            query = self.db.query(TestCaseGenerationHistory)
+
+            # 如果指定了用户ID，则过滤
+            if request.user_id:
+                query = query.filter(TestCaseGenerationHistory.created_by_id == request.user_id)
+            elif user_id:
+                query = query.filter(TestCaseGenerationHistory.created_by_id == user_id)
+
+            # 如果指定了状态，则过滤
+            if request.status:
+                query = query.filter(TestCaseGenerationHistory.status == request.status.value)
+
+            # 如果指定了测试类型，则过滤
+            if request.test_type:
+                query = query.filter(TestCaseGenerationHistory.test_type == request.test_type.value)
+
+            # 按创建时间倒序排列
+            query = query.order_by(TestCaseGenerationHistory.created_at.desc())
+
+            # 获取总数
+            total = query.count()
+
+            # 分页
+            offset = (request.page - 1) * request.page_size
+            history_records = query.offset(offset).limit(request.page_size).all()
+
+            # 转换为响应对象
+            history_items = []
+            for record in history_records:
+                history_items.append(TestCaseGenerationHistoryItem(
+                    id=record.id,
+                    task_id=record.task_id,
+                    requirement_text=record.requirement_text,
+                    requirement_summary=record.get_requirement_summary(),
+                    test_type=record.test_type,
+                    priority=record.priority,
+                    generated_count=record.generated_count,
+                    status=record.status,
+                    created_at=record.created_at.isoformat() if record.created_at else "",
+                    updated_at=record.updated_at.isoformat() if record.updated_at else ""
+                ))
+
+            return TestCaseGenerationHistoryResponse(
+                total=total,
+                page=request.page,
+                page_size=request.page_size,
+                history=history_items,
+                generation_time=0.0,  # 查询耗时，这里可以计算实际耗时
+                agent_used=None,  # 查询历史时不涉及特定代理
+                warnings=[],
+                errors=[]
+            )
+
+        except Exception as e:
+            logger.error(f"Error getting generation history: {str(e)}")
+            raise BusinessException(f"获取生成历史失败: {str(e)}")
 
     def _convert_to_response(self, test_case: TestCase) -> TestCaseResponse:
         """转换为响应对象"""

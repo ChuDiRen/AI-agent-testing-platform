@@ -14,7 +14,7 @@ from app.dto.test_case_dto import (
 )
 from app.dto.base import Success, Fail
 from app.db.session import get_db
-from app.middleware.auth import require_authentication
+from app.middleware.auth import get_current_user
 from app.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -27,7 +27,7 @@ async def generate_test_cases(
     request: TestCaseGenerationRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user = Depends(require_authentication)
+    current_user = Depends(get_current_user)
 ):
     """使用AI智能生成测试用例"""
     try:
@@ -111,7 +111,7 @@ def save_generated_test_cases(db: Session, generated_cases: list,
 def get_generation_status(
     generation_id: str,
     db: Session = Depends(get_db),
-    current_user = Depends(require_authentication)
+    current_user = Depends(get_current_user)
 ):
     """获取测试用例生成状态"""
     try:

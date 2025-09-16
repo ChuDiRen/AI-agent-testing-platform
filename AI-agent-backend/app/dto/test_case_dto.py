@@ -171,6 +171,44 @@ class TestCaseGenerationResponse(BaseResponse):
     status: str = Field(description="生成状态")
     total_generated: int = Field(description="总生成数量")
     generated_cases: List[Dict[str, Any]] = Field(description="生成的测试用例")
+
+
+# 生成历史相关DTO
+class GenerationHistoryStatusEnum(str, Enum):
+    """生成历史状态枚举"""
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class TestCaseGenerationHistoryRequest(PaginationRequest):
+    """测试用例生成历史请求DTO"""
+    user_id: Optional[int] = Field(None, description="用户ID")
+    status: Optional[GenerationHistoryStatusEnum] = Field(None, description="生成状态")
+    test_type: Optional[TestCaseTypeEnum] = Field(None, description="测试类型")
+
+
+class TestCaseGenerationHistoryItem(BaseModel):
+    """测试用例生成历史项DTO"""
+    id: int = Field(description="历史记录ID")
+    task_id: str = Field(description="生成任务ID")
+    requirement_text: str = Field(description="需求描述")
+    requirement_summary: str = Field(description="需求摘要")
+    test_type: str = Field(description="测试类型")
+    priority: str = Field(description="优先级")
+    generated_count: int = Field(description="生成数量")
+    status: str = Field(description="生成状态")
+    created_at: str = Field(description="创建时间")
+    updated_at: str = Field(description="更新时间")
+
+
+class TestCaseGenerationHistoryResponse(BaseResponse):
+    """测试用例生成历史响应DTO"""
+    total: int = Field(description="总记录数")
+    page: int = Field(description="当前页码")
+    page_size: int = Field(description="每页大小")
+    history: List[TestCaseGenerationHistoryItem] = Field(description="历史记录列表")
     generation_time: float = Field(description="生成耗时(秒)")
     agent_used: Optional[str] = Field(description="使用的AI代理")
     warnings: List[str] = Field(default_factory=list, description="警告信息")
@@ -264,4 +302,10 @@ __all__ = [
     "TestCaseStatisticsResponse",
     "TestCaseBatchOperationResponse",
     "TestCaseGenerationResponse",
+
+    # 生成历史相关DTO
+    "GenerationHistoryStatusEnum",
+    "TestCaseGenerationHistoryRequest",
+    "TestCaseGenerationHistoryItem",
+    "TestCaseGenerationHistoryResponse",
 ]

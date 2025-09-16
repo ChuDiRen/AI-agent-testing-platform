@@ -99,7 +99,7 @@ class TestReport(BaseEntity):
     issues = Column(JSON, nullable=True, comment="问题统计")
 
     # 附加数据 - JSON格式存储
-    metadata = Column(JSON, nullable=True, comment="附加数据")
+    extra_data = Column(JSON, nullable=True, comment="附加数据")
 
     # 关联关系
     # 报告-测试用例关联
@@ -114,7 +114,7 @@ class TestReport(BaseEntity):
     def __init__(self, name: str, description: str = None, 
                  report_type: str = ReportType.EXECUTION.value,
                  test_case_id: int = None, agent_id: int = None, 
-                 created_by_id: int = None, metadata: Dict[str, Any] = None):
+                 created_by_id: int = None, extra_data: Dict[str, Any] = None):
         """
         初始化测试报告
 
@@ -125,7 +125,7 @@ class TestReport(BaseEntity):
             test_case_id: 关联的测试用例ID
             agent_id: 关联的代理ID
             created_by_id: 创建者ID
-            metadata: 附加数据
+            extra_data: 附加数据
         """
         self.name = name
         self.description = description
@@ -140,7 +140,7 @@ class TestReport(BaseEntity):
         self.skipped_cases = 0
         self.blocked_cases = 0
         self.pass_rate = 0.0
-        self.metadata = metadata or {}
+        self.extra_data = extra_data or {}
 
     def is_generating(self) -> bool:
         """判断是否为生成中状态"""
@@ -336,7 +336,7 @@ class TestReport(BaseEntity):
             "file_path": self.file_path,
             "summary": self.summary,
             "issues": self.issues,
-            "metadata": self.metadata,
+            "extra_data": self.extra_data,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }

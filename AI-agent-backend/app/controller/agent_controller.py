@@ -16,7 +16,7 @@ from app.dto.agent_dto import (
 )
 from app.dto.base import Success, Fail
 from app.db.session import get_db
-from app.middleware.auth import require_authentication
+from app.middleware.auth import get_current_user
 from app.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/agents", tags=["AI代理管理"])
 def create_agent(
     request: AgentCreateRequest,
     db: Session = Depends(get_db),
-    current_user = Depends(require_authentication)
+    current_user = Depends(get_current_user)
 ):
     """创建新的AI代理"""
     try:
@@ -46,7 +46,7 @@ def create_agent(
 def get_agent(
     agent_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(require_authentication)
+    current_user = Depends(get_current_user)
 ):
     """根据ID获取代理详情"""
     try:
@@ -68,7 +68,7 @@ def update_agent(
     agent_id: int,
     request: AgentUpdateRequest,
     db: Session = Depends(get_db),
-    current_user = Depends(require_authentication)
+    current_user = Depends(get_current_user)
 ):
     """更新代理信息"""
     try:
@@ -89,7 +89,7 @@ def update_agent(
 def delete_agent(
     agent_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(require_authentication)
+    current_user = Depends(get_current_user)
 ):
     """删除代理"""
     try:
@@ -110,7 +110,7 @@ def delete_agent(
 def search_agents(
     request: AgentSearchRequest,
     db: Session = Depends(get_db),
-    current_user = Depends(require_authentication)
+    current_user = Depends(get_current_user)
 ):
     """搜索代理列表"""
     try:
@@ -129,7 +129,7 @@ def list_agents(
     page: int = 1,
     page_size: int = 20,
     db: Session = Depends(get_db),
-    current_user = Depends(require_authentication)
+    current_user = Depends(get_current_user)
 ):
     """获取代理列表"""
     try:
@@ -147,7 +147,7 @@ def list_agents(
 @router.get("/statistics/overview", response_model=AgentStatisticsResponse, summary="获取代理统计")
 def get_agent_statistics(
     db: Session = Depends(get_db),
-    current_user = Depends(require_authentication)
+    current_user = Depends(get_current_user)
 ):
     """获取代理统计信息"""
     try:
@@ -165,7 +165,7 @@ def get_agent_statistics(
 def start_agent(
     agent_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(require_authentication)
+    current_user = Depends(get_current_user)
 ):
     """启动代理"""
     try:
@@ -183,7 +183,7 @@ def start_agent(
 def stop_agent(
     agent_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(require_authentication)
+    current_user = Depends(get_current_user)
 ):
     """停止代理"""
     try:
@@ -202,7 +202,7 @@ def update_agent_status(
     agent_id: int,
     request: AgentStatusUpdateRequest,
     db: Session = Depends(get_db),
-    current_user = Depends(require_authentication)
+    current_user = Depends(get_current_user)
 ):
     """更新代理状态"""
     try:
@@ -234,7 +234,7 @@ def update_agent_status(
 def batch_operation_agents(
     request: AgentBatchOperationRequest,
     db: Session = Depends(get_db),
-    current_user = Depends(require_authentication)
+    current_user = Depends(get_current_user)
 ):
     """批量操作代理"""
     try:

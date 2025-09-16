@@ -338,4 +338,5 @@ const httpMethods: HttpMethods = {
 }
 
 export default httpMethods
+export { httpMethods as http }
 export type { ApiResponse }

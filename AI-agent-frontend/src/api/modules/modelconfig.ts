@@ -13,54 +13,54 @@ export const modelConfigApi = {
    * 创建AI模型配置
    */
   createModelConfig(data: ModelConfigCreateRequest) {
-    return http.post<ModelConfigResponse>('/api/v1/model-configs/', data)
+    return http.post<ModelConfigResponse>('/model-configs/', data)
   },
 
   /**
    * 获取模型配置详情
    */
   getModelConfig(id: number) {
-    return http.get<ModelConfigResponse>(`/api/v1/model-configs/${id}`)
+    return http.get<ModelConfigResponse>(`/model-configs/${id}`)
   },
 
   /**
    * 更新模型配置
    */
   updateModelConfig(id: number, data: ModelConfigUpdateRequest) {
-    return http.put<ModelConfigResponse>(`/api/v1/model-configs/${id}`, data)
+    return http.put<ModelConfigResponse>(`/model-configs/${id}`, data)
   },
 
   /**
    * 删除模型配置
    */
   deleteModelConfig(id: number) {
-    return http.delete(`/api/v1/model-configs/${id}`)
+    return http.delete(`/model-configs/${id}`)
   },
 
   /**
    * 获取模型配置列表
    */
-  getModelConfigList(params: { 
-    page?: number; 
-    page_size?: number; 
+  getModelConfigList(params: {
+    page?: number;
+    page_size?: number;
     keyword?: string;
     provider?: string;
     status?: string;
   } = {}) {
-    return http.get<ModelConfigListResponse>('/api/v1/model-configs/', { params })
+    return http.get<ModelConfigListResponse>('/model-configs/', { params })
   },
 
   /**
    * 搜索模型配置
    */
-  searchModelConfigs(params: { 
-    page?: number; 
-    page_size?: number; 
+  searchModelConfigs(params: {
+    page?: number;
+    page_size?: number;
     keyword?: string;
     provider?: string;
     status?: string;
   }) {
-    return http.post<ModelConfigListResponse>('/api/v1/model-configs/search', params)
+    return http.post<ModelConfigListResponse>('/model-configs/search', params)
   },
 
   /**
@@ -80,15 +80,15 @@ export const modelConfigApi = {
           capabilities: string[];
         }
       }
-    }>(`/api/v1/model-configs/${id}/test`)
+    }>(`/model-configs/${id}/test`)
   },
 
   /**
    * 批量测试模型配置
    */
   batchTestModelConfigs(ids: number[]) {
-    return http.post('/api/v1/model-configs/batch/test', { 
-      model_config_ids: ids 
+    return http.post('/model-configs/batch/test', {
+      model_config_ids: ids
     })
   },
 
@@ -96,7 +96,7 @@ export const modelConfigApi = {
    * 激活/停用模型配置
    */
   toggleModelConfigStatus(id: number, status: 'active' | 'inactive') {
-    return http.post<ModelConfigResponse>(`/api/v1/model-configs/${id}/status`, { status })
+    return http.post<ModelConfigResponse>(`/model-configs/${id}/status`, { status })
   },
 
   /**
@@ -119,7 +119,7 @@ export const modelConfigApi = {
           message?: string;
         }>;
       }
-    }>('/api/v1/model-configs/batch', data)
+    }>('/model-configs/batch', data)
   },
 
   /**
@@ -141,7 +141,7 @@ export const modelConfigApi = {
           avg_response_time: number;
         }
       }
-    }>('/api/v1/model-configs/statistics')
+    }>('/model-configs/statistics')
   },
 
   /**
@@ -170,7 +170,7 @@ export const modelConfigApi = {
           description?: string;
         }>;
       }>
-    }>('/api/v1/model-configs/providers')
+    }>('/model-configs/providers')
   },
 
   /**
@@ -208,6 +208,6 @@ export const modelConfigApi = {
           avg_response_time: number;
         }>;
       }
-    }>('/api/v1/model-configs/usage-report', { params })
+    }>('/model-configs/usage-report', { params })
   }
 }

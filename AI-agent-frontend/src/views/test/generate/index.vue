@@ -225,6 +225,20 @@ const loadAvailableAgents = async () => {
   }
 }
 
+const loadGenerationHistory = async () => {
+  try {
+    loadingHistory.value = true
+    const response = await testCaseApi.getGenerationHistory({ page: 1, page_size: 10 })
+    if (response.success) {
+      generationHistory.value = response.data.history
+    }
+  } catch (error) {
+    console.error('加载生成历史失败:', error)
+  } finally {
+    loadingHistory.value = false
+  }
+}
+
 const startGeneration = async () => {
   if (!generateFormRef.value) return
   
@@ -315,6 +329,41 @@ const getPriorityLabel = (priority) => {
     critical: '关键'
   }
   return labels[priority] || priority
+}
+
+const getStatusTagType = (status) => {
+  const types = {
+    pending: 'info',
+    running: 'warning',
+    completed: 'success',
+    failed: 'danger'
+  }
+  return types[status] || ''
+}
+
+const getStatusLabel = (status) => {
+  const labels = {
+    pending: '等待中',
+    running: '生成中',
+    completed: '已完成',
+    failed: '失败'
+  }
+  return labels[status] || status
+}
+
+const loadTemplate = () => {
+  ElMessage.info('模板功能开发中...')
+}
+
+const viewHistory = (row) => {
+  ElMessage.info(`查看历史记录: ${row.task_id}`)
+}
+
+const regenerate = (row) => {
+  generateForm.requirement_text = row.requirement_text
+  generateForm.test_type = row.test_type
+  generateForm.priority = row.priority
+  ElMessage.success('已加载历史配置，可以重新生成')
 }
 </script>
 

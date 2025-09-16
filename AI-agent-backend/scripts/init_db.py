@@ -445,7 +445,22 @@ def create_rbac_initial_data(db):
         db.add(test_menu)
         db.flush()
 
-        # 测试用例菜单
+
+
+        # AI生成测试用例菜单
+        test_generate_menu = Menu(
+            parent_id=test_menu.id,
+            menu_name="AI生成测试用例",
+            menu_type="0",
+            path="/test/generate",
+            component="test/generate/index",
+            icon="MagicStick",
+            order_num=1
+        )
+        db.add(test_generate_menu)
+        db.flush()
+
+        # 测试用例菜单 (调整order_num)
         test_cases_menu = Menu(
             parent_id=test_menu.id,
             menu_name="测试用例",
@@ -453,12 +468,12 @@ def create_rbac_initial_data(db):
             path="/test/cases",
             component="test/cases/Index",
             icon="Document",
-            order_num=1
+            order_num=2
         )
         db.add(test_cases_menu)
         db.flush()
 
-        # 测试报告菜单
+        # 测试报告菜单 (调整order_num)
         test_reports_menu = Menu(
             parent_id=test_menu.id,
             menu_name="测试报告",
@@ -466,9 +481,35 @@ def create_rbac_initial_data(db):
             path="/test/reports",
             component="test/reports/Index",
             icon="PieChart",
-            order_num=2
+            order_num=3
         )
         db.add(test_reports_menu)
+        db.flush()
+
+        # AI模型配置菜单
+        model_menu = Menu(
+            parent_id=0,
+            menu_name="AI模型配置",
+            menu_type="0",
+            path="/model",
+            component="Layout",
+            icon="Setting",
+            order_num=3
+        )
+        db.add(model_menu)
+        db.flush()
+
+        # 模型配置子菜单
+        model_config_menu = Menu(
+            parent_id=model_menu.id,
+            menu_name="模型配置",
+            menu_type="0",
+            path="/model/config",
+            component="model/config/index",
+            icon="Setting",
+            order_num=1
+        )
+        db.add(model_config_menu)
         db.flush()
 
         # AI代理管理菜单（保留菜单但不添加权限按钮）
@@ -479,7 +520,7 @@ def create_rbac_initial_data(db):
             path="/agent",
             component="Layout",
             icon="Cpu",
-            order_num=3
+            order_num=4
         )
         db.add(agent_menu)
         db.flush()
@@ -648,8 +689,12 @@ def create_rbac_initial_data(db):
             log_menu.id,
             # 测试管理菜单（无权限按钮）
             test_menu.id,
+            test_generate_menu.id,
             test_cases_menu.id,
             test_reports_menu.id,
+            # AI模型配置菜单（无权限按钮）
+            model_menu.id,
+            model_config_menu.id,
             # AI代理管理菜单（无权限按钮）
             agent_menu.id,
             agent_list_menu.id,

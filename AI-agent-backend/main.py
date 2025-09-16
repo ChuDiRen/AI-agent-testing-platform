@@ -23,6 +23,11 @@ from app.controller.permission_controller import router as permission_router
 from app.controller.dashboard_controller import router as dashboard_router
 from app.controller.log_controller import router as log_router
 from app.controller.log_config_controller import router as log_config_router
+from app.controller.agent_controller import router as agent_router
+from app.controller.test_case_controller import router as test_case_router
+from app.controller.test_report_controller import router as test_report_router
+from app.controller.ai_generation_controller import router as ai_generation_router
+from app.controller.model_config_controller import router as model_config_router
 from app.core.config import settings
 from app.core.logger import get_logger
 from app.db.session import create_tables, SessionLocal
@@ -211,6 +216,11 @@ app.include_router(permission_router, prefix=settings.API_V1_PREFIX)
 app.include_router(dashboard_router, prefix=settings.API_V1_PREFIX)
 app.include_router(log_router, prefix=settings.API_V1_PREFIX)
 app.include_router(log_config_router, prefix=settings.API_V1_PREFIX)
+app.include_router(agent_router, prefix=settings.API_V1_PREFIX)
+app.include_router(test_case_router, prefix=settings.API_V1_PREFIX)
+app.include_router(test_report_router, prefix=settings.API_V1_PREFIX)
+app.include_router(ai_generation_router, prefix=settings.API_V1_PREFIX)
+app.include_router(model_config_router, prefix=settings.API_V1_PREFIX)
 
 # 静态文件服务
 from fastapi.staticfiles import StaticFiles

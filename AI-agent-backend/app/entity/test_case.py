@@ -105,7 +105,7 @@ class TestCase(BaseEntity):
     remarks = Column(Text, nullable=True, comment="备注")
 
     # 附加数据 - JSON格式存储
-    metadata = Column(JSON, nullable=True, comment="附加数据")
+    extra_data = Column(JSON, nullable=True, comment="附加数据")
 
     # 关联关系
     # 测试用例-代理关联
@@ -121,10 +121,10 @@ class TestCase(BaseEntity):
     test_reports = relationship("TestReport", back_populates="test_case")
 
     def __init__(self, name: str, module: str = None, description: str = None,
-                 preconditions: str = None, test_steps: str = None, 
+                 preconditions: str = None, test_steps: str = None,
                  expected_result: str = None, priority: str = TestCasePriority.P3.value,
                  test_type: str = TestCaseType.FUNCTIONAL.value, tags: str = None,
-                 agent_id: int = None, created_by_id: int = None, metadata: Dict[str, Any] = None):
+                 agent_id: int = None, created_by_id: int = None, extra_data: Dict[str, Any] = None):
         """
         初始化测试用例
 
@@ -140,7 +140,7 @@ class TestCase(BaseEntity):
             tags: 标签
             agent_id: 关联的代理ID
             created_by_id: 创建者ID
-            metadata: 附加数据
+            extra_data: 附加数据
         """
         self.name = name
         self.module = module
@@ -154,7 +154,7 @@ class TestCase(BaseEntity):
         self.tags = tags
         self.agent_id = agent_id
         self.created_by_id = created_by_id
-        self.metadata = metadata or {}
+        self.extra_data = extra_data or {}
 
     def is_draft(self) -> bool:
         """判断是否为草稿状态"""
@@ -358,7 +358,7 @@ class TestCase(BaseEntity):
             "executed_at": self.executed_at.isoformat() if self.executed_at else None,
             "execution_time": self.execution_time,
             "remarks": self.remarks,
-            "metadata": self.metadata,
+            "extra_data": self.extra_data,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }

@@ -133,6 +133,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Download, Delete } from '@element-plus/icons-vue'
+import { testReportApi } from '@/api/modules/testreport'
 
 // 响应式数据
 const loading = ref(false)
@@ -184,36 +185,34 @@ const getResultText = (result: string) => {
 const loadTestReports = async () => {
   try {
     loading.value = true
-    // TODO: 调用API获取测试报告数据
-    // 模拟数据
-    tableData.value = [
-      {
-        id: 1,
-        reportName: '用户功能测试报告_20250913',
-        testCases: 25,
-        passedCases: 23,
-        failedCases: 2,
-        passRate: 92,
-        result: 'partial',
-        duration: '15分30秒',
-        createTime: '2025-09-13 14:30:00'
-      },
-      {
-        id: 2,
-        reportName: 'AI代理性能测试报告_20250913',
-        testCases: 10,
-        passedCases: 10,
-        failedCases: 0,
-        passRate: 100,
-        result: 'passed',
-        duration: '8分45秒',
-        createTime: '2025-09-13 16:15:00'
-      }
-    ]
-    pagination.total = 2
+    const response = await testReportApi.getTestReportList({
+      page: pagination.page,
+      page_size: pagination.size,
+      keyword: searchForm.reportName,
+      status: searchForm.result
+    })
+
+    if (response.data) {
+      // 转换数据格式以匹配前端表格
+      tableData.value = response.data.reports.map((report: any) => ({
+        id: report.id,
+        reportName: report.name,
+        testCases: report.total_cases,
+        passedCases: report.passed_cases,
+        failedCases: report.failed_cases,
+        passRate: report.pass_rate,
+        result: report.status === 'completed' ? (report.pass_rate === 100 ? 'passed' : 'partial') : 'failed',
+        duration: report.duration ? `${Math.floor(report.duration / 60)}分${Math.floor(report.duration % 60)}秒` : '-',
+        createTime: report.created_at ? new Date(report.created_at).toLocaleString() : '-'
+      }))
+      pagination.total = response.data.total
+    }
   } catch (error) {
     console.error('加载测试报告失败:', error)
     ElMessage.error('加载测试报告失败')
+    // 如果API调用失败，显示空数据
+    tableData.value = []
+    pagination.total = 0
   } finally {
     loading.value = false
   }
@@ -293,9 +292,21 @@ const handleCurrentChange = (page: number) => {
   loadTestReports()
 }
 
+// 加载统计信息
+const loadStatistics = async () => {
+  try {
+    const response = await testReportApi.getStatistics()
+    console.log('统计信息:', response.data)
+  } catch (error) {
+    console.error('加载统计失败:', error)
+    // 不显示错误消息，因为这不是关键功能
+  }
+}
+
 // 初始化
 onMounted(() => {
   loadTestReports()
+  loadStatistics()
 })
 </script>
 
