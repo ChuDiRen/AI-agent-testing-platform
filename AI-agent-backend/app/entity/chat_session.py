@@ -28,7 +28,7 @@ class ChatSession(BaseEntity):
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False, comment="用户ID")
 
     # AI模型ID - 外键关联AI模型表
-    model_id = Column(Integer, ForeignKey('ai_model.id'), nullable=False, comment="AI模型ID")
+    large_model_id = Column('model_id', Integer, ForeignKey('ai_model.id'), nullable=False, comment="AI模型ID")
 
     # 会话标题
     title = Column(String(200), nullable=False, comment="会话标题")
@@ -41,7 +41,7 @@ class ChatSession(BaseEntity):
 
     # 关联关系
     user = relationship("User", foreign_keys=[user_id])
-    model = relationship("AIModel", foreign_keys=[model_id])
+    model = relationship("AIModel", foreign_keys=[large_model_id])
     messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
 
     # 索引
@@ -50,7 +50,7 @@ class ChatSession(BaseEntity):
         Index('idx_chat_session_model', 'model_id'),
     )
 
-    def __init__(self, session_id: str, user_id: int, model_id: int,
+    def __init__(self, session_id: str, user_id: int, large_model_id: int,
                  title: str, system_prompt: Optional[str] = None,
                  config: Optional[Dict[str, Any]] = None):
         """
@@ -59,14 +59,14 @@ class ChatSession(BaseEntity):
         Args:
             session_id: 会话ID
             user_id: 用户ID
-            model_id: AI模型ID
+            large_model_id: AI模型ID
             title: 会话标题
             system_prompt: 系统提示词
             config: 会话配置
         """
         self.session_id = session_id
         self.user_id = user_id
-        self.model_id = model_id
+        self.large_model_id = large_model_id
         self.title = title
         self.system_prompt = system_prompt
         self.config = config or {}
@@ -85,7 +85,7 @@ class ChatSession(BaseEntity):
             "id": self.id,
             "session_id": self.session_id,
             "user_id": self.user_id,
-            "model_id": self.model_id,
+            "large_model_id": self.large_model_id,
             "title": self.title,
             "system_prompt": self.system_prompt,
             "config": self.config,

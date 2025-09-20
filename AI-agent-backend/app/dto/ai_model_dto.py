@@ -45,12 +45,11 @@ class ModelStatusEnum(str, Enum):
 # 请求DTO
 class AIModelCreateRequest(BaseRequest):
     """创建AI模型请求DTO"""
-    model_config = {"protected_namespaces": ()}  # 禁用保护命名空间警告
 
     name: str = Field(..., min_length=1, max_length=100, description="模型名称")
     display_name: Optional[str] = Field(None, max_length=100, description="模型显示名称")
     provider: ModelProviderEnum = Field(..., description="模型提供商")
-    model_type: ModelTypeEnum = Field(default=ModelTypeEnum.CHAT, description="模型类型")
+    large_model_type: ModelTypeEnum = Field(default=ModelTypeEnum.CHAT, description="模型类型")
     version: Optional[str] = Field(None, max_length=20, description="模型版本")
     description: Optional[str] = Field(None, description="模型描述")
     api_endpoint: Optional[str] = Field(None, max_length=500, description="API端点")
@@ -99,10 +98,9 @@ class AIModelUpdateRequest(BaseRequest):
 
 class AIModelSearchRequest(SearchRequest):
     """AI模型搜索请求DTO"""
-    model_config = {"protected_namespaces": ()}  # 禁用保护命名空间警告
 
     provider: Optional[ModelProviderEnum] = Field(None, description="提供商筛选")
-    model_type: Optional[ModelTypeEnum] = Field(None, description="类型筛选")
+    large_model_type: Optional[ModelTypeEnum] = Field(None, description="类型筛选")
     status: Optional[ModelStatusEnum] = Field(None, description="状态筛选")
     created_by_id: Optional[int] = Field(None, description="创建者ID筛选")
     start_date: Optional[datetime] = Field(None, description="创建时间开始")
@@ -137,14 +135,13 @@ class AIModelTestRequest(BaseRequest):
 
 class AIModelBatchOperationRequest(BaseRequest):
     """AI模型批量操作请求DTO"""
-    model_config = {"protected_namespaces": ()}  # 禁用保护命名空间警告
 
-    model_ids: List[int] = Field(..., min_items=1, max_items=50, description="模型ID列表")
+    large_model_ids: List[int] = Field(..., min_items=1, max_items=50, description="模型ID列表")
     operation: str = Field(..., description="操作类型")
     operation_data: Optional[Dict[str, Any]] = Field(default_factory=dict, description="操作数据")
 
-    @validator('model_ids')
-    def validate_model_ids(cls, v):
+    @validator('large_model_ids')
+    def validate_large_model_ids(cls, v):
         return sorted(list(set(v)))  # 去重并排序
 
     @validator('operation')
@@ -158,13 +155,12 @@ class AIModelBatchOperationRequest(BaseRequest):
 # 响应DTO
 class AIModelResponse(BaseResponse):
     """AI模型响应DTO"""
-    model_config = {"protected_namespaces": ()}  # 禁用保护命名空间警告
 
     id: int = Field(description="模型ID")
     name: str = Field(description="模型名称")
     display_name: str = Field(description="模型显示名称")
     provider: str = Field(description="模型提供商")
-    model_type: str = Field(description="模型类型")
+    large_model_type: str = Field(description="模型类型")
     status: str = Field(description="模型状态")
     version: Optional[str] = Field(description="模型版本")
     description: Optional[str] = Field(description="模型描述")
@@ -219,10 +215,9 @@ class AIModelStatisticsResponse(BaseResponse):
 
 class AIModelTestResponse(BaseResponse):
     """AI模型测试响应DTO"""
-    model_config = {"protected_namespaces": ()}  # 禁用保护命名空间警告
 
     test_id: str = Field(description="测试ID")
-    model_id: int = Field(description="模型ID")
+    large_model_id: int = Field(description="模型ID")
     test_prompt: str = Field(description="测试提示词")
     response_text: Optional[str] = Field(description="响应文本")
     tokens_used: int = Field(description="使用令牌数")
@@ -236,9 +231,8 @@ class AIModelTestResponse(BaseResponse):
 
 class AIModelUsageResponse(BaseResponse):
     """AI模型使用情况响应DTO"""
-    model_config = {"protected_namespaces": ()}  # 禁用保护命名空间警告
 
-    model_id: int = Field(description="模型ID")
+    large_model_id: int = Field(description="模型ID")
     usage_history: List[Dict[str, Any]] = Field(description="使用历史")
     daily_stats: Dict[str, Any] = Field(description="日统计")
     weekly_stats: Dict[str, Any] = Field(description="周统计")

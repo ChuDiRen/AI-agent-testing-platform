@@ -28,22 +28,22 @@ class ChatSessionService:
         self.session_repo = ChatSessionRepository(db)
         self.message_repo = ChatMessageRepository(db)
     
-    async def create_session(self, user_id: int, model_id: int, 
-                           title: Optional[str] = None, 
+    async def create_session(self, user_id: int, large_model_id: int,
+                           title: Optional[str] = None,
                            system_prompt: Optional[str] = None) -> Dict[str, Any]:
         """创建聊天会话"""
         try:
             session_id = str(uuid.uuid4())
-            
+
             # 如果没有提供标题，生成默认标题
             if not title:
                 session_count = self.session_repo.count_user_sessions(user_id)
                 title = f"聊天会话 {session_count + 1}"
-            
+
             session = ChatSession(
                 session_id=session_id,
                 user_id=user_id,
-                model_id=model_id,
+                large_model_id=large_model_id,
                 title=title,
                 system_prompt=system_prompt
             )
@@ -55,7 +55,7 @@ class ChatSessionService:
             return {
                 "session_id": created_session.session_id,
                 "title": created_session.title,
-                "model_id": created_session.model_id,
+                "large_model_id": created_session.large_model_id,
                 "system_prompt": created_session.system_prompt,
                 "created_at": created_session.created_at.isoformat(),
                 "message_count": 0
@@ -84,7 +84,7 @@ class ChatSessionService:
                 session_list.append({
                     "session_id": session.session_id,
                     "title": session.title,
-                    "model_id": session.model_id,
+                    "large_model_id": session.large_model_id,
                     "system_prompt": session.system_prompt,
                     "created_at": session.created_at.isoformat(),
                     "updated_at": session.updated_at.isoformat(),
@@ -121,7 +121,7 @@ class ChatSessionService:
             return {
                 "session_id": session.session_id,
                 "title": session.title,
-                "model_id": session.model_id,
+                "large_model_id": session.large_model_id,
                 "system_prompt": session.system_prompt,
                 "created_at": session.created_at.isoformat(),
                 "updated_at": session.updated_at.isoformat(),

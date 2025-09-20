@@ -43,7 +43,7 @@ class ChatMessage:
 class ChatRequest:
     """聊天请求"""
     messages: List[ChatMessage]
-    model_id: int
+    large_model_id: int
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
     stream: bool = False
@@ -54,7 +54,7 @@ class ChatRequest:
 class ChatResponse:
     """聊天响应"""
     content: str
-    model_id: int
+    large_model_id: int
     tokens_used: int
     cost: float
     response_time: float
