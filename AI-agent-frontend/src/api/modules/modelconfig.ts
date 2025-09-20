@@ -1,11 +1,11 @@
 // AI模型配置管理API
 import { http } from '@/api/http'
-import type { 
+import type {
   ModelConfigInfo,
-  ModelConfigCreateRequest, 
+  ModelConfigCreateRequest,
   ModelConfigUpdateRequest,
   ModelConfigResponse,
-  ModelConfigListResponse
+  ModelConfigListResponse,
 } from '../types'
 
 export const modelConfigApi = {
@@ -40,13 +40,15 @@ export const modelConfigApi = {
   /**
    * 获取模型配置列表
    */
-  getModelConfigList(params: {
-    page?: number;
-    page_size?: number;
-    keyword?: string;
-    provider?: string;
-    status?: string;
-  } = {}) {
+  getModelConfigList(
+    params: {
+      page?: number
+      page_size?: number
+      keyword?: string
+      provider?: string
+      status?: string
+    } = {},
+  ) {
     return http.get<ModelConfigListResponse>('/model-configs/', { params })
   },
 
@@ -54,11 +56,11 @@ export const modelConfigApi = {
    * 搜索模型配置
    */
   searchModelConfigs(params: {
-    page?: number;
-    page_size?: number;
-    keyword?: string;
-    provider?: string;
-    status?: string;
+    page?: number
+    page_size?: number
+    keyword?: string
+    provider?: string
+    status?: string
   }) {
     return http.post<ModelConfigListResponse>('/model-configs/search', params)
   },
@@ -68,16 +70,16 @@ export const modelConfigApi = {
    */
   testModelConfig(id: number) {
     return http.post<{
-      success: boolean;
-      message: string;
+      success: boolean
+      message: string
       data: {
-        status: 'success' | 'failed';
-        response_time: number;
-        error_message?: string;
+        status: 'success' | 'failed'
+        response_time: number
+        error_message?: string
         model_info?: {
-          model_name: string;
-          version?: string;
-          capabilities: string[];
+          model_name: string
+          version?: string
+          capabilities: string[]
         }
       }
     }>(`/model-configs/${id}/test`)
@@ -88,7 +90,7 @@ export const modelConfigApi = {
    */
   batchTestModelConfigs(ids: number[]) {
     return http.post('/model-configs/batch/test', {
-      model_config_ids: ids
+      model_config_ids: ids,
     })
   },
 
@@ -103,21 +105,21 @@ export const modelConfigApi = {
    * 批量操作模型配置
    */
   batchOperation(data: {
-    model_config_ids: number[];
-    operation: 'activate' | 'deactivate' | 'delete' | 'test';
+    model_config_ids: number[]
+    operation: 'activate' | 'deactivate' | 'delete' | 'test'
   }) {
     return http.post<{
-      success: boolean;
-      message: string;
+      success: boolean
+      message: string
       data: {
-        total: number;
-        success_count: number;
-        failure_count: number;
+        total: number
+        success_count: number
+        failure_count: number
         results: Array<{
-          model_config_id: number;
-          success: boolean;
-          message?: string;
-        }>;
+          model_config_id: number
+          success: boolean
+          message?: string
+        }>
       }
     }>('/model-configs/batch', data)
   },
@@ -127,18 +129,18 @@ export const modelConfigApi = {
    */
   getStatistics() {
     return http.get<{
-      success: boolean;
-      message: string;
+      success: boolean
+      message: string
       data: {
-        total_configs: number;
-        active_configs: number;
-        inactive_configs: number;
-        error_configs: number;
-        by_provider: Record<string, number>;
+        total_configs: number
+        active_configs: number
+        inactive_configs: number
+        error_configs: number
+        by_provider: Record<string, number>
         usage_stats: {
-          total_usage: number;
-          total_errors: number;
-          avg_response_time: number;
+          total_usage: number
+          total_errors: number
+          avg_response_time: number
         }
       }
     }>('/model-configs/statistics')
@@ -149,26 +151,26 @@ export const modelConfigApi = {
    */
   getSupportedProviders() {
     return http.get<{
-      success: boolean;
-      message: string;
+      success: boolean
+      message: string
       data: Array<{
-        provider: string;
-        name: string;
-        description: string;
+        provider: string
+        name: string
+        description: string
         models: Array<{
-          model_name: string;
-          display_name: string;
-          max_tokens: number;
-          capabilities: string[];
-        }>;
+          model_name: string
+          display_name: string
+          max_tokens: number
+          capabilities: string[]
+        }>
         required_fields: Array<{
-          field: string;
-          label: string;
-          type: string;
-          required: boolean;
-          default_value?: any;
-          description?: string;
-        }>;
+          field: string
+          label: string
+          type: string
+          required: boolean
+          default_value?: any
+          description?: string
+        }>
       }>
     }>('/model-configs/providers')
   },
@@ -176,38 +178,40 @@ export const modelConfigApi = {
   /**
    * 获取模型使用情况报告
    */
-  getUsageReport(params: {
-    start_date?: string;
-    end_date?: string;
-    provider?: string;
-    model_config_id?: number;
-  } = {}) {
+  getUsageReport(
+    params: {
+      start_date?: string
+      end_date?: string
+      provider?: string
+      model_config_id?: number
+    } = {},
+  ) {
     return http.get<{
-      success: boolean;
-      message: string;
+      success: boolean
+      message: string
       data: {
         summary: {
-          total_requests: number;
-          successful_requests: number;
-          failed_requests: number;
-          avg_response_time: number;
-          total_tokens_used: number;
-        };
+          total_requests: number
+          successful_requests: number
+          failed_requests: number
+          avg_response_time: number
+          total_tokens_used: number
+        }
         daily_stats: Array<{
-          date: string;
-          requests: number;
-          success_rate: number;
-          avg_response_time: number;
-          tokens_used: number;
-        }>;
+          date: string
+          requests: number
+          success_rate: number
+          avg_response_time: number
+          tokens_used: number
+        }>
         by_model: Array<{
-          model_config_id: number;
-          model_name: string;
-          requests: number;
-          success_rate: number;
-          avg_response_time: number;
-        }>;
+          model_config_id: number
+          model_name: string
+          requests: number
+          success_rate: number
+          avg_response_time: number
+        }>
       }
     }>('/model-configs/usage-report', { params })
-  }
+  },
 }

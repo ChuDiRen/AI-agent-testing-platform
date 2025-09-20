@@ -2,7 +2,7 @@
  * 角色管理相关API接口
  */
 import http from '@/api/http'
-import type { 
+import type {
   RoleInfo,
   RoleCreateRequest,
   RoleUpdateRequest,
@@ -10,7 +10,7 @@ import type {
   RolePermissionResponse,
   RoleListResponse,
   PageQuery,
-  ApiResponse 
+  ApiResponse,
 } from '@/api/types'
 
 /**
@@ -22,12 +22,14 @@ export class RoleApi {
    * @param params 查询参数
    * @returns 角色列表
    */
-  static async getRoleList(params?: PageQuery & {
-    keyword?: string
-  }): Promise<ApiResponse<PageData<RoleInfo>>> {
+  static async getRoleList(
+    params?: PageQuery & {
+      keyword?: string
+    },
+  ): Promise<ApiResponse<PageData<RoleInfo>>> {
     const requestBody: any = {
       page: params?.page || 1,
-      size: params?.size || 20
+      size: params?.size || 20,
     }
 
     // 只添加有值且去除空格后不为空的参数
@@ -43,7 +45,10 @@ export class RoleApi {
    * @returns 角色列表
    */
   static async getAllRoles(): Promise<ApiResponse<RoleInfo[]>> {
-    const response = await http.post<PageData<RoleInfo>>('/roles/get-role-list', { page: 1, size: 100 })
+    const response = await http.post<PageData<RoleInfo>>('/roles/get-role-list', {
+      page: 1,
+      size: 100,
+    })
     if (response.success && response.data) {
       return { ...response, data: response.data.data || [] }
     }
@@ -112,7 +117,10 @@ export class RoleApi {
    * @param data 菜单分配数据
    * @returns 分配结果
    */
-  static async assignRoleMenus(roleId: number, data: RoleMenuAssignRequest): Promise<ApiResponse<boolean>> {
+  static async assignRoleMenus(
+    roleId: number,
+    data: RoleMenuAssignRequest,
+  ): Promise<ApiResponse<boolean>> {
     return http.post<boolean>('/roles/assign-role-menus', { role_id: roleId, ...data })
   }
 
@@ -144,8 +152,13 @@ export class RoleApi {
    * @param excludeRoleId 排除的角色ID（编辑时使用）
    * @returns 检查结果
    */
-  static async checkRoleName(roleName: string, excludeRoleId?: number): Promise<ApiResponse<boolean>> {
-    const params = excludeRoleId ? { role_name: roleName, exclude_role_id: excludeRoleId } : { role_name: roleName }
+  static async checkRoleName(
+    roleName: string,
+    excludeRoleId?: number,
+  ): Promise<ApiResponse<boolean>> {
+    const params = excludeRoleId
+      ? { role_name: roleName, exclude_role_id: excludeRoleId }
+      : { role_name: roleName }
     return http.get<boolean>('/roles/check-name', params)
   }
 
@@ -153,11 +166,13 @@ export class RoleApi {
    * 获取角色统计信息
    * @returns 统计信息
    */
-  static async getRoleStats(): Promise<ApiResponse<{
-    total: number
-    system_roles: number
-    custom_roles: number
-  }>> {
+  static async getRoleStats(): Promise<
+    ApiResponse<{
+      total: number
+      system_roles: number
+      custom_roles: number
+    }>
+  > {
     return http.get('/roles/stats')
   }
 
@@ -187,5 +202,5 @@ export const roleApi = {
   getRoleUsers: RoleApi.getRoleUsers,
   checkRoleName: RoleApi.checkRoleName,
   getRoleStats: RoleApi.getRoleStats,
-  copyRole: RoleApi.copyRole
+  copyRole: RoleApi.copyRole,
 }

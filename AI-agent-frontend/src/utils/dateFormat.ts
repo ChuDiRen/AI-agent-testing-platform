@@ -19,7 +19,7 @@ export const DATE_FORMATS = {
   // 月日格式：9/13
   MONTH_DAY: 'M/D',
   // 年月格式：2025/9
-  YEAR_MONTH: 'YYYY/M'
+  YEAR_MONTH: 'YYYY/M',
 } as const
 
 /**
@@ -28,12 +28,15 @@ export const DATE_FORMATS = {
  * @param format 格式化模板，默认为标准格式
  * @returns 格式化后的时间字符串
  */
-export function formatDateTime(date: string | Date | number | null | undefined, format: string = DATE_FORMATS.STANDARD): string {
+export function formatDateTime(
+  date: string | Date | number | null | undefined,
+  format: string = DATE_FORMATS.STANDARD,
+): string {
   if (!date) return ''
-  
+
   try {
     let dateObj: Date
-    
+
     if (typeof date === 'string') {
       // 处理ISO格式字符串
       dateObj = new Date(date)
@@ -45,12 +48,12 @@ export function formatDateTime(date: string | Date | number | null | undefined, 
     } else {
       return ''
     }
-    
+
     // 检查日期是否有效
     if (isNaN(dateObj.getTime())) {
       return ''
     }
-    
+
     // 手动格式化，避免依赖第三方库
     const year = dateObj.getFullYear()
     const month = dateObj.getMonth() + 1
@@ -58,7 +61,7 @@ export function formatDateTime(date: string | Date | number | null | undefined, 
     const hours = dateObj.getHours()
     const minutes = dateObj.getMinutes()
     const seconds = dateObj.getSeconds()
-    
+
     return format
       .replace('YYYY', year.toString())
       .replace('M', month.toString())
@@ -105,24 +108,24 @@ export function formatTimeShort(date: string | Date | number | null | undefined)
  */
 export function formatRelativeTime(date: string | Date | number | null | undefined): string {
   if (!date) return ''
-  
+
   try {
     const dateObj = new Date(date)
     const now = new Date()
     const diff = now.getTime() - dateObj.getTime()
-    
+
     if (diff < 0) return formatStandardDateTime(date) // 未来时间直接显示
-    
+
     const seconds = Math.floor(diff / 1000)
     const minutes = Math.floor(seconds / 60)
     const hours = Math.floor(minutes / 60)
     const days = Math.floor(hours / 24)
-    
+
     if (seconds < 60) return '刚刚'
     if (minutes < 60) return `${minutes}分钟前`
     if (hours < 24) return `${hours}小时前`
     if (days < 7) return `${days}天前`
-    
+
     // 超过7天显示标准格式
     return formatStandardDateTime(date)
   } catch (error) {
@@ -149,14 +152,16 @@ export function getCurrentDate(): string {
  */
 export function isToday(date: string | Date | number | null | undefined): boolean {
   if (!date) return false
-  
+
   try {
     const dateObj = new Date(date)
     const today = new Date()
-    
-    return dateObj.getFullYear() === today.getFullYear() &&
-           dateObj.getMonth() === today.getMonth() &&
-           dateObj.getDate() === today.getDate()
+
+    return (
+      dateObj.getFullYear() === today.getFullYear() &&
+      dateObj.getMonth() === today.getMonth() &&
+      dateObj.getDate() === today.getDate()
+    )
   } catch (error) {
     return false
   }
@@ -167,15 +172,17 @@ export function isToday(date: string | Date | number | null | undefined): boolea
  */
 export function isYesterday(date: string | Date | number | null | undefined): boolean {
   if (!date) return false
-  
+
   try {
     const dateObj = new Date(date)
     const yesterday = new Date()
     yesterday.setDate(yesterday.getDate() - 1)
-    
-    return dateObj.getFullYear() === yesterday.getFullYear() &&
-           dateObj.getMonth() === yesterday.getMonth() &&
-           dateObj.getDate() === yesterday.getDate()
+
+    return (
+      dateObj.getFullYear() === yesterday.getFullYear() &&
+      dateObj.getMonth() === yesterday.getMonth() &&
+      dateObj.getDate() === yesterday.getDate()
+    )
   } catch (error) {
     return false
   }
@@ -187,7 +194,7 @@ export function isYesterday(date: string | Date | number | null | undefined): bo
  */
 export function formatSmartDateTime(date: string | Date | number | null | undefined): string {
   if (!date) return ''
-  
+
   if (isToday(date)) {
     return `今天 ${formatTime(date)}`
   } else if (isYesterday(date)) {

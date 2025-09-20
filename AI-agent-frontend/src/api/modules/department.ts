@@ -2,13 +2,13 @@
  * 部门管理相关API接口
  */
 import http from '@/api/http'
-import type { 
+import type {
   DeptInfo,
   DeptTreeNode,
   DeptCreateRequest,
   DeptUpdateRequest,
   DeptStatusResponse,
-  ApiResponse 
+  ApiResponse,
 } from '@/api/types'
 
 /**
@@ -56,7 +56,10 @@ export class DepartmentApi {
    * @param data 更新数据
    * @returns 更新结果
    */
-  static async updateDepartment(deptId: number, data: DeptUpdateRequest): Promise<ApiResponse<DeptInfo>> {
+  static async updateDepartment(
+    deptId: number,
+    data: DeptUpdateRequest,
+  ): Promise<ApiResponse<DeptInfo>> {
     const requestBody = { dept_id: deptId, ...data }
     return http.post<DeptInfo>('/departments/update-department', requestBody)
   }
@@ -104,7 +107,10 @@ export class DepartmentApi {
    * @param orderNum 排序号
    * @returns 更新结果
    */
-  static async updateDepartmentOrder(deptId: number, orderNum: number): Promise<ApiResponse<boolean>> {
+  static async updateDepartmentOrder(
+    deptId: number,
+    orderNum: number,
+  ): Promise<ApiResponse<boolean>> {
     return http.put<boolean>(`/departments/${deptId}/order`, { order_num: orderNum })
   }
 
@@ -113,7 +119,9 @@ export class DepartmentApi {
    * @param orders 排序数据数组
    * @returns 更新结果
    */
-  static async batchUpdateDepartmentOrder(orders: Array<{ dept_id: number; order_num: number }>): Promise<ApiResponse<boolean>> {
+  static async batchUpdateDepartmentOrder(
+    orders: Array<{ dept_id: number; order_num: number }>,
+  ): Promise<ApiResponse<boolean>> {
     return http.post<boolean>('/departments/batch-order', { orders })
   }
 
@@ -124,11 +132,15 @@ export class DepartmentApi {
    * @param excludeDeptId 排除的部门ID（编辑时使用）
    * @returns 检查结果
    */
-  static async checkDepartmentName(deptName: string, parentId: number, excludeDeptId?: number): Promise<ApiResponse<boolean>> {
+  static async checkDepartmentName(
+    deptName: string,
+    parentId: number,
+    excludeDeptId?: number,
+  ): Promise<ApiResponse<boolean>> {
     const params = {
       dept_name: deptName,
       parent_id: parentId,
-      ...(excludeDeptId && { exclude_dept_id: excludeDeptId })
+      ...(excludeDeptId && { exclude_dept_id: excludeDeptId }),
     }
     return http.get<boolean>('/departments/check-name', params)
   }
@@ -137,11 +149,13 @@ export class DepartmentApi {
    * 获取部门统计信息
    * @returns 统计信息
    */
-  static async getDepartmentStats(): Promise<ApiResponse<{
-    total: number
-    max_level: number
-    user_count: number
-  }>> {
+  static async getDepartmentStats(): Promise<
+    ApiResponse<{
+      total: number
+      max_level: number
+      user_count: number
+    }>
+  > {
     return http.get('/departments/stats')
   }
 
@@ -170,5 +184,5 @@ export const departmentApi = {
   batchUpdateDepartmentOrder: DepartmentApi.batchUpdateDepartmentOrder,
   checkDepartmentName: DepartmentApi.checkDepartmentName,
   getDepartmentStats: DepartmentApi.getDepartmentStats,
-  getDepartmentPath: DepartmentApi.getDepartmentPath
+  getDepartmentPath: DepartmentApi.getDepartmentPath,
 }

@@ -10,11 +10,11 @@ export const NETWORK_CONFIG = {
   DEFAULT_TIMEOUT: 30000, // 默认超时时间30秒
   UPLOAD_TIMEOUT: 60000, // 文件上传超时时间60秒
   DOWNLOAD_TIMEOUT: 120000, // 文件下载超时时间120秒
-  
+
   // 重试配置
   MAX_RETRIES: 2, // 最大重试次数
   RETRY_DELAY_BASE: 1000, // 重试延迟基数(毫秒)
-  
+
   // 特定API超时配置
   API_TIMEOUTS: {
     LOGIN: 15000, // 登录接口15秒
@@ -27,7 +27,7 @@ export const NETWORK_CONFIG = {
     FILE_UPLOAD: 60000, // 文件上传60秒
     EXPORT: 120000, // 数据导出120秒
   },
-  
+
   // 错误重试配置
   RETRY_CONDITIONS: {
     NETWORK_ERROR: true, // 网络错误重试
@@ -41,12 +41,12 @@ export const NETWORK_CONFIG = {
     DEFAULT_TTL: 2000, // 默认去重/缓存时效2秒
     TTLS: {
       '^/menus/get-user-menus$': 5000, // 用户菜单5秒
-      '^/users/get-user-roles$': 3000,  // 用户角色3秒
-      '^/users/get-user-info$': 3000,   // 用户信息3秒
+      '^/users/get-user-roles$': 3000, // 用户角色3秒
+      '^/users/get-user-info$': 3000, // 用户信息3秒
       '^/dashboard/get-system-info$': 3000, // 仪表盘系统信息3秒
-      '^/dashboard/get-statistics-data$': 3000 // 仪表盘统计3秒
-    }
-  }
+      '^/dashboard/get-statistics-data$': 3000, // 仪表盘统计3秒
+    },
+  },
 }
 
 // 获取指定API的超时时间

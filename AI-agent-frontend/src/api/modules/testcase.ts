@@ -1,10 +1,10 @@
 // 测试用例生成管理API
 import { http } from '@/api/http'
-import type { 
+import type {
   TestCaseInfo,
-  TestCaseGenerateRequest, 
+  TestCaseGenerateRequest,
   TestCaseGenerateResponse,
-  TestCaseListResponse
+  TestCaseListResponse,
 } from '../types'
 
 export const testCaseApi = {
@@ -26,7 +26,10 @@ export const testCaseApi = {
    * 更新测试用例
    */
   updateTestCase(id: number, data: Partial<TestCaseInfo>) {
-    return http.put<{ success: boolean; message: string; data: TestCaseInfo }>(`/test-cases/${id}`, data)
+    return http.put<{ success: boolean; message: string; data: TestCaseInfo }>(
+      `/test-cases/${id}`,
+      data,
+    )
   },
 
   /**
@@ -39,16 +42,18 @@ export const testCaseApi = {
   /**
    * 获取测试用例列表
    */
-  getTestCaseList(params: {
-    page?: number;
-    page_size?: number;
-    keyword?: string;
-    priority?: string;
-    test_type?: string;
-    status?: string;
-    project_id?: number;
-    agent_id?: number;
-  } = {}) {
+  getTestCaseList(
+    params: {
+      page?: number
+      page_size?: number
+      keyword?: string
+      priority?: string
+      test_type?: string
+      status?: string
+      project_id?: number
+      agent_id?: number
+    } = {},
+  ) {
     return http.get<TestCaseListResponse>('/test-cases/', { params })
   },
 
@@ -56,14 +61,14 @@ export const testCaseApi = {
    * 搜索测试用例
    */
   searchTestCases(params: {
-    page?: number;
-    page_size?: number;
-    keyword?: string;
-    priority?: string;
-    test_type?: string;
-    status?: string;
-    project_id?: number;
-    agent_id?: number;
+    page?: number
+    page_size?: number
+    keyword?: string
+    priority?: string
+    test_type?: string
+    status?: string
+    project_id?: number
+    agent_id?: number
   }) {
     return http.post<TestCaseListResponse>('/test-cases/search', params)
   },
@@ -81,7 +86,7 @@ export const testCaseApi = {
   batchUpdateStatus(ids: number[], status: 'draft' | 'active' | 'archived') {
     return http.post('/test-cases/batch/status', {
       test_case_ids: ids,
-      status
+      status,
     })
   },
 
@@ -89,9 +94,9 @@ export const testCaseApi = {
    * 导出测试用例
    */
   exportTestCases(params: {
-    test_case_ids?: number[];
-    format?: 'excel' | 'json' | 'csv';
-    project_id?: number;
+    test_case_ids?: number[]
+    format?: 'excel' | 'json' | 'csv'
+    project_id?: number
   }) {
     return http.post('/test-cases/export', params, { responseType: 'blob' })
   },
@@ -101,14 +106,14 @@ export const testCaseApi = {
    */
   checkGenerationTask(taskId: string) {
     return http.get<{
-      success: boolean;
-      message: string;
+      success: boolean
+      message: string
       data: {
-        task_id: string;
-        status: 'pending' | 'running' | 'completed' | 'failed';
-        progress: number;
-        generated_count: number;
-        result?: TestCaseGenerateResponse['data'];
+        task_id: string
+        status: 'pending' | 'running' | 'completed' | 'failed'
+        progress: number
+        generated_count: number
+        result?: TestCaseGenerateResponse['data']
       }
     }>(`/test-cases/tasks/${taskId}`)
   },
@@ -123,30 +128,32 @@ export const testCaseApi = {
   /**
    * 获取生成历史记录
    */
-  getGenerationHistory(params: {
-    page?: number;
-    page_size?: number;
-    user_id?: number;
-  } = {}) {
+  getGenerationHistory(
+    params: {
+      page?: number
+      page_size?: number
+      user_id?: number
+    } = {},
+  ) {
     return http.get<{
-      success: boolean;
-      message: string;
+      success: boolean
+      message: string
       data: {
-        total: number;
-        page: number;
-        page_size: number;
+        total: number
+        page: number
+        page_size: number
         history: Array<{
-          id: number;
-          task_id: string;
-          requirement_text: string;
-          test_type: string;
-          priority: string;
-          generated_count: number;
-          status: 'pending' | 'running' | 'completed' | 'failed';
-          created_at: string;
-          updated_at: string;
-        }>;
-      };
+          id: number
+          task_id: string
+          requirement_text: string
+          test_type: string
+          priority: string
+          generated_count: number
+          status: 'pending' | 'running' | 'completed' | 'failed'
+          created_at: string
+          updated_at: string
+        }>
+      }
     }>('/test-cases/history/generation', { params })
-  }
+  },
 }

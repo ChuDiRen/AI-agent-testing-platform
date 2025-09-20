@@ -12,10 +12,10 @@ export const LogLevel = {
   INFO: 'INFO',
   WARNING: 'WARNING',
   ERROR: 'ERROR',
-  CRITICAL: 'CRITICAL'
+  CRITICAL: 'CRITICAL',
 } as const
 
-export type LogLevel = typeof LogLevel[keyof typeof LogLevel]
+export type LogLevel = (typeof LogLevel)[keyof typeof LogLevel]
 
 /**
  * 日志查询参数接口
@@ -89,7 +89,7 @@ export class LogsApi {
       end_time: params?.end_time,
       keyword: params?.keyword,
       module: params?.module,
-      user: params?.user
+      user: params?.user,
     }
 
     return http.post<LogListResponse>('/logs/get-log-list', requestBody)

@@ -119,10 +119,10 @@ export const logMonitorApi = {
 
 // 告警级别颜色映射
 export const ALERT_LEVEL_COLORS = {
-  LOW: '#52c41a',      // 绿色
-  MEDIUM: '#faad14',   // 橙色
-  HIGH: '#ff4d4f',     // 红色
-  CRITICAL: '#722ed1'  // 紫色
+  LOW: '#52c41a', // 绿色
+  MEDIUM: '#faad14', // 橙色
+  HIGH: '#ff4d4f', // 红色
+  CRITICAL: '#722ed1', // 紫色
 }
 
 // 告警级别标签映射
@@ -130,16 +130,16 @@ export const ALERT_LEVEL_LABELS = {
   LOW: '低',
   MEDIUM: '中',
   HIGH: '高',
-  CRITICAL: '严重'
+  CRITICAL: '严重',
 }
 
 // 日志级别颜色映射
 export const LOG_LEVEL_COLORS = {
-  DEBUG: '#d9d9d9',    // 灰色
-  INFO: '#1890ff',     // 蓝色
-  WARNING: '#faad14',  // 橙色
-  ERROR: '#ff4d4f',    // 红色
-  CRITICAL: '#722ed1'  // 紫色
+  DEBUG: '#d9d9d9', // 灰色
+  INFO: '#1890ff', // 蓝色
+  WARNING: '#faad14', // 橙色
+  ERROR: '#ff4d4f', // 红色
+  CRITICAL: '#722ed1', // 紫色
 }
 
 export default LogMonitorApi

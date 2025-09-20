@@ -1,11 +1,11 @@
 // 测试报告管理API
 import { http } from '@/api/http'
-import type { 
+import type {
   TestReportInfo,
   TestReportCreateRequest,
   TestReportResponse,
   TestReportListResponse,
-  TestReportStatisticsResponse
+  TestReportStatisticsResponse,
 } from '../types'
 
 export const testReportApi = {
@@ -40,17 +40,19 @@ export const testReportApi = {
   /**
    * 获取测试报告列表
    */
-  getTestReportList(params: {
-    page?: number;
-    page_size?: number;
-    keyword?: string;
-    test_type?: string;
-    status?: string;
-    agent_id?: number;
-    project_id?: number;
-    start_date?: string;
-    end_date?: string;
-  } = {}) {
+  getTestReportList(
+    params: {
+      page?: number
+      page_size?: number
+      keyword?: string
+      test_type?: string
+      status?: string
+      agent_id?: number
+      project_id?: number
+      start_date?: string
+      end_date?: string
+    } = {},
+  ) {
     return http.get<TestReportListResponse>('/test-reports/', { params })
   },
 
@@ -58,15 +60,15 @@ export const testReportApi = {
    * 搜索测试报告
    */
   searchTestReports(params: {
-    page?: number;
-    page_size?: number;
-    keyword?: string;
-    test_type?: string;
-    status?: string;
-    agent_id?: number;
-    project_id?: number;
-    start_date?: string;
-    end_date?: string;
+    page?: number
+    page_size?: number
+    keyword?: string
+    test_type?: string
+    status?: string
+    agent_id?: number
+    project_id?: number
+    start_date?: string
+    end_date?: string
   }) {
     return http.post<TestReportListResponse>('/test-reports/search', params)
   },
@@ -74,11 +76,13 @@ export const testReportApi = {
   /**
    * 获取测试报告统计信息
    */
-  getStatistics(params: {
-    start_date?: string;
-    end_date?: string;
-    project_id?: number;
-  } = {}) {
+  getStatistics(
+    params: {
+      start_date?: string
+      end_date?: string
+      project_id?: number
+    } = {},
+  ) {
     return http.get<TestReportStatisticsResponse>('/test-reports/statistics', { params })
   },
 
@@ -86,24 +90,24 @@ export const testReportApi = {
    * 生成测试报告
    */
   generateReport(data: {
-    title: string;
-    test_case_ids: number[];
-    test_type: 'functional' | 'performance' | 'security' | 'integration' | 'unit';
-    agent_id?: number;
-    project_id?: number;
+    title: string
+    test_case_ids: number[]
+    test_type: 'functional' | 'performance' | 'security' | 'integration' | 'unit'
+    agent_id?: number
+    project_id?: number
     config?: {
-      parallel_execution?: boolean;
-      timeout?: number;
-      retry_count?: number;
+      parallel_execution?: boolean
+      timeout?: number
+      retry_count?: number
     }
   }) {
     return http.post<{
-      success: boolean;
-      message: string;
+      success: boolean
+      message: string
       data: {
-        task_id: string;
-        report_id?: number;
-        estimated_time: number;
+        task_id: string
+        report_id?: number
+        estimated_time: number
       }
     }>('/test-reports/generate', data)
   },
@@ -113,18 +117,18 @@ export const testReportApi = {
    */
   getGenerationTask(taskId: string) {
     return http.get<{
-      success: boolean;
-      message: string;
+      success: boolean
+      message: string
       data: {
-        task_id: string;
-        status: 'pending' | 'running' | 'completed' | 'failed';
-        progress: number;
-        report_id?: number;
-        current_step?: string;
-        executed_cases: number;
-        total_cases: number;
-        start_time: string;
-        estimated_completion?: string;
+        task_id: string
+        status: 'pending' | 'running' | 'completed' | 'failed'
+        progress: number
+        report_id?: number
+        current_step?: string
+        executed_cases: number
+        total_cases: number
+        start_time: string
+        estimated_completion?: string
       }
     }>(`/test-reports/tasks/${taskId}`)
   },
@@ -142,7 +146,7 @@ export const testReportApi = {
   exportTestReport(reportId: number, format: 'pdf' | 'excel' | 'html' | 'json' = 'pdf') {
     return http.get(`/test-reports/${reportId}/export`, {
       params: { format },
-      responseType: 'blob'
+      responseType: 'blob',
     })
   },
 
@@ -150,29 +154,32 @@ export const testReportApi = {
    * 批量导出测试报告
    */
   batchExportReports(data: {
-    report_ids: number[];
-    format: 'pdf' | 'excel' | 'html' | 'json';
-    merge?: boolean;
+    report_ids: number[]
+    format: 'pdf' | 'excel' | 'html' | 'json'
+    merge?: boolean
   }) {
     return http.post('/test-reports/batch/export', data, {
-      responseType: 'blob'
+      responseType: 'blob',
     })
   },
 
   /**
    * 重新执行测试报告
    */
-  rerunTestReport(reportId: number, options?: {
-    only_failed?: boolean;
-    parallel?: boolean;
-    timeout?: number;
-  }) {
+  rerunTestReport(
+    reportId: number,
+    options?: {
+      only_failed?: boolean
+      parallel?: boolean
+      timeout?: number
+    },
+  ) {
     return http.post<{
-      success: boolean;
-      message: string;
+      success: boolean
+      message: string
       data: {
-        task_id: string;
-        new_report_id: number;
+        task_id: string
+        new_report_id: number
       }
     }>(`/test-reports/${reportId}/rerun`, options || {})
   },
@@ -182,63 +189,65 @@ export const testReportApi = {
    */
   compareReports(reportId1: number, reportId2: number) {
     return http.post<{
-      success: boolean;
-      message: string;
+      success: boolean
+      message: string
       data: {
-        comparison_id: string;
-        report1: TestReportInfo;
-        report2: TestReportInfo;
+        comparison_id: string
+        report1: TestReportInfo
+        report2: TestReportInfo
         differences: {
-          success_rate_diff: number;
-          execution_time_diff: number;
+          success_rate_diff: number
+          execution_time_diff: number
           case_differences: Array<{
-            test_case_id: number;
-            test_case_title: string;
-            report1_status: string;
-            report2_status: string;
-            status_changed: boolean;
-          }>;
-        };
+            test_case_id: number
+            test_case_title: string
+            report1_status: string
+            report2_status: string
+            status_changed: boolean
+          }>
+        }
         summary: {
-          improved_cases: number;
-          regressed_cases: number;
-          new_failures: number;
-          fixed_failures: number;
-        };
+          improved_cases: number
+          regressed_cases: number
+          new_failures: number
+          fixed_failures: number
+        }
       }
     }>(`/test-reports/compare`, {
       report_id_1: reportId1,
-      report_id_2: reportId2
+      report_id_2: reportId2,
     })
   },
 
   /**
    * 获取报告趋势数据
    */
-  getTrendData(params: {
-    project_id?: number;
-    agent_id?: number;
-    test_type?: string;
-    days?: number;
-  } = {}) {
+  getTrendData(
+    params: {
+      project_id?: number
+      agent_id?: number
+      test_type?: string
+      days?: number
+    } = {},
+  ) {
     return http.get<{
-      success: boolean;
-      message: string;
+      success: boolean
+      message: string
       data: {
         trend_points: Array<{
-          date: string;
-          total_reports: number;
-          success_rate: number;
-          avg_execution_time: number;
-          total_cases: number;
-          passed_cases: number;
-          failed_cases: number;
-        }>;
+          date: string
+          total_reports: number
+          success_rate: number
+          avg_execution_time: number
+          total_cases: number
+          passed_cases: number
+          failed_cases: number
+        }>
         summary: {
-          total_reports: number;
-          avg_success_rate: number;
-          trend_direction: 'improving' | 'declining' | 'stable';
-        };
+          total_reports: number
+          avg_success_rate: number
+          trend_direction: 'improving' | 'declining' | 'stable'
+        }
       }
     }>('/test-reports/trends', { params })
   },
@@ -248,27 +257,27 @@ export const testReportApi = {
    */
   getReportDetails(reportId: number) {
     return http.get<{
-      success: boolean;
-      message: string;
+      success: boolean
+      message: string
       data: TestReportInfo & {
         test_cases: Array<{
-          test_case_id: number;
-          test_case_title: string;
-          status: 'passed' | 'failed' | 'skipped' | 'error';
-          execution_time: number;
-          error_message?: string;
-          steps_executed: number;
-          total_steps: number;
-          screenshots: string[];
-          logs: string[];
-        }>;
+          test_case_id: number
+          test_case_title: string
+          status: 'passed' | 'failed' | 'skipped' | 'error'
+          execution_time: number
+          error_message?: string
+          steps_executed: number
+          total_steps: number
+          screenshots: string[]
+          logs: string[]
+        }>
         environment_info: {
-          browser?: string;
-          os?: string;
-          test_environment: string;
-          agent_version?: string;
-        };
+          browser?: string
+          os?: string
+          test_environment: string
+          agent_version?: string
+        }
       }
     }>(`/test-reports/${reportId}/details`)
-  }
+  },
 }

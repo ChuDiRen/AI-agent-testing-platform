@@ -2,7 +2,7 @@
  * 用户管理相关API接口
  */
 import http from '@/api/http'
-import type { 
+import type {
   UserInfo,
   UserCreateRequest,
   UserUpdateRequest,
@@ -10,7 +10,7 @@ import type {
   UserRoleAssignRequest,
   PageQuery,
   PageData,
-  ApiResponse 
+  ApiResponse,
 } from '@/api/types'
 
 /**
@@ -22,16 +22,18 @@ export class UserApi {
    * @param params 查询参数
    * @returns 用户列表
    */
-  static async getUserList(params?: PageQuery & {
-    dept_id?: number
-    status?: '0' | '1'
-    keyword?: string
-    ssex?: '0' | '1' | '2'
-  }): Promise<ApiResponse<PageData<UserInfo>>> {
+  static async getUserList(
+    params?: PageQuery & {
+      dept_id?: number
+      status?: '0' | '1'
+      keyword?: string
+      ssex?: '0' | '1' | '2'
+    },
+  ): Promise<ApiResponse<PageData<UserInfo>>> {
     // 构建请求体，只包含有效参数
     const requestBody: any = {
       page: params?.page || 1,
-      size: params?.size || 20
+      size: params?.size || 20,
     }
 
     // 只添加有值的参数
@@ -112,7 +114,10 @@ export class UserApi {
    * @param data 密码数据
    * @returns 修改结果
    */
-  static async changePassword(userId: number, data: PasswordChangeRequest): Promise<ApiResponse<boolean>> {
+  static async changePassword(
+    userId: number,
+    data: PasswordChangeRequest,
+  ): Promise<ApiResponse<boolean>> {
     return http.put<boolean>(`/users/${userId}/password`, data)
   }
 
@@ -123,7 +128,10 @@ export class UserApi {
    * @returns 重置结果
    */
   static async resetPassword(userId: number, newPassword: string): Promise<ApiResponse<boolean>> {
-    return http.post<boolean>('/users/reset-password', { user_id: userId, new_password: newPassword })
+    return http.post<boolean>('/users/reset-password', {
+      user_id: userId,
+      new_password: newPassword,
+    })
   }
 
   /**
@@ -151,7 +159,10 @@ export class UserApi {
    * @param data 角色分配数据
    * @returns 分配结果
    */
-  static async assignUserRoles(userId: number, data: UserRoleAssignRequest): Promise<ApiResponse<boolean>> {
+  static async assignUserRoles(
+    userId: number,
+    data: UserRoleAssignRequest,
+  ): Promise<ApiResponse<boolean>> {
     return http.post<boolean>('/users/assign-user-roles', { user_id: userId, ...data })
   }
 
@@ -208,7 +219,10 @@ export class UserApi {
    * @param excludeUserId 排除的用户ID（编辑时使用）
    * @returns 检查结果
    */
-  static async checkUsername(username: string, excludeUserId?: number): Promise<ApiResponse<boolean>> {
+  static async checkUsername(
+    username: string,
+    excludeUserId?: number,
+  ): Promise<ApiResponse<boolean>> {
     const params = excludeUserId ? { username, exclude_user_id: excludeUserId } : { username }
     return http.get<boolean>('/users/check-username', params)
   }
@@ -228,12 +242,14 @@ export class UserApi {
    * 获取用户统计信息
    * @returns 统计信息
    */
-  static async getUserStats(): Promise<ApiResponse<{
-    total: number
-    active: number
-    inactive: number
-    today_register: number
-  }>> {
+  static async getUserStats(): Promise<
+    ApiResponse<{
+      total: number
+      active: number
+      inactive: number
+      today_register: number
+    }>
+  > {
     return http.get('/users/stats')
   }
 
@@ -242,7 +258,9 @@ export class UserApi {
    * @param file 头像文件
    * @returns 上传结果
    */
-  static async uploadAvatar(file: File): Promise<ApiResponse<{ avatar_url: string; user_id: number }>> {
+  static async uploadAvatar(
+    file: File,
+  ): Promise<ApiResponse<{ avatar_url: string; user_id: number }>> {
     const formData = new FormData()
     formData.append('file', file)
     return http.upload<{ avatar_url: string; user_id: number }>('/users/upload-avatar', formData)
@@ -269,5 +287,5 @@ export const userApi = {
   importUsers: UserApi.importUsers,
   checkUsername: UserApi.checkUsername,
   checkEmail: UserApi.checkEmail,
-  getUserStats: UserApi.getUserStats
+  getUserStats: UserApi.getUserStats,
 }

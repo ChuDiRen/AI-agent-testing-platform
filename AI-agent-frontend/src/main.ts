@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router/index'
-import pinia from "@/store/store"
+import pinia from '@/store/store'
 import { setupPermissionDirectives } from '@/directives/permission'
 import { formatStandardDateTime, formatDate, formatTime } from '@/utils/dateFormat'
 import ElementPlus from 'element-plus'

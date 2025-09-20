@@ -19,8 +19,8 @@ from app.dto.agent_dto import (
 )
 from app.core.logger import get_logger
 from app.utils.exceptions import BusinessException
-from app.core.logger import get_logger
-from app.utils.exceptions import BusinessException
+from app.utils.validators import DataValidator, BusinessValidator
+from app.utils.transaction import transactional
 
 logger = get_logger(__name__)
 
@@ -33,39 +33,48 @@ class AgentService:
         self.agent_repo = AgentRepository(db)
         self.config_repo = AgentConfigRepository(db)
 
+    @transactional()
     def create_agent(self, request: AgentCreateRequest, created_by_id: int) -> AgentResponse:
         """
         创建AI代理
-        
+
         Args:
             request: 创建代理请求
             created_by_id: 创建者ID
-            
+
         Returns:
             代理响应
         """
         try:
+            # 数据验证
+            if request.config:
+                DataValidator.validate_agent_config(request.config)
+
             # 检查名称是否已存在
             existing_agent = self.agent_repo.find_by_name(request.name)
             if existing_agent:
                 raise BusinessException(f"代理名称 '{request.name}' 已存在")
-            
+
+            # 业务验证
+            if request.name and len(request.name.strip()) < 2:
+                raise BusinessException("代理名称至少需要2个字符")
+
             # 创建代理实体
             agent = Agent(
-                name=request.name,
+                name=request.name.strip(),
                 type=request.type.value,
-                description=request.description,
+                description=request.description.strip() if request.description else None,
                 created_by_id=created_by_id,
                 config=request.config,
                 version=request.version
             )
-            
+
             # 保存到数据库
             created_agent = self.agent_repo.create(agent)
-            
+
             logger.info(f"Created agent '{created_agent.name}' with id {created_agent.id}")
             return self._convert_to_response(created_agent)
-            
+
         except Exception as e:
             logger.error(f"Error creating agent: {str(e)}")
             raise

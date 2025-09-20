@@ -30,9 +30,9 @@ const notify = {
     ElNotification({
       title,
       message: toText(message),
-      type
+      type,
     })
-  }
+  },
 }
 
-export default notify 
+export default notify

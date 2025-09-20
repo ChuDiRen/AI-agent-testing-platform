@@ -14,6 +14,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from datetime import datetime
 
 from app.controller.department_controller import router as department_router
 from app.controller.menu_controller import router as menu_router
@@ -115,9 +116,17 @@ app.add_middleware(
     max_age=3600,
 )
 
-# 添加日志中间件
+# 添加中间件
 from app.middleware.logging import LoggingMiddleware
-app.add_middleware(LoggingMiddleware)
+from app.middleware.security import SecurityHeadersMiddleware, RateLimitMiddleware, RequestValidationMiddleware
+
+# 安全中间件
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, requests_per_minute=settings.RATE_LIMIT_REQUESTS)
+app.add_middleware(RequestValidationMiddleware)
+
+# 日志中间件
+app.add_middleware(LoggingMiddleware, log_requests=True, log_responses=True, log_to_db=True)
 
 
 # 全局异常处理器
@@ -134,7 +143,7 @@ async def api_exception_handler(request: Request, exc: BaseAPIException):
             "message": exc.detail,
             "error_code": getattr(exc, 'error_code', None),
             "error_data": getattr(exc, 'error_data', {}),
-            "timestamp": "2023-01-01T00:00:00Z"  # 实际应该使用当前时间
+            "timestamp": datetime.now().isoformat() + "Z"
         }
     )
 
@@ -155,7 +164,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
                 "errors": exc.errors(),
                 "body": exc.body
             },
-            "timestamp": "2023-01-01T00:00:00Z"
+            "timestamp": datetime.now().isoformat() + "Z"
         }
     )
 
@@ -173,7 +182,7 @@ async def general_exception_handler(request: Request, exc: Exception):
             "message": "Internal server error",
             "error_code": "INTERNAL_SERVER_ERROR",
             "error_data": {},
-            "timestamp": "2023-01-01T00:00:00Z"
+            "timestamp": datetime.now().isoformat() + "Z"
         }
     )
 
@@ -189,7 +198,7 @@ async def health_check():
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "environment": settings.ENVIRONMENT,
-        "timestamp": "2023-01-01T00:00:00Z"
+        "timestamp": datetime.now().isoformat() + "Z"
     }
 
 

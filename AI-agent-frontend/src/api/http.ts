@@ -5,7 +5,14 @@ import type { InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 import notify from '@/utils/notify'
 import { NProgressStart, NProgressDone } from '@/utils/nprogress'
 import { BASE_URL } from './baseUrl'
-import { getToken, removeToken, getRefreshToken, setToken, setRefreshToken, removeRefreshToken } from '@/utils/auth'
+import {
+  getToken,
+  removeToken,
+  getRefreshToken,
+  setToken,
+  setRefreshToken,
+  removeRefreshToken,
+} from '@/utils/auth'
 import router from '@/router'
 import { NETWORK_CONFIG, shouldRetry, getRetryDelay, getDedupeTTL } from '@/config/network'
 
@@ -28,7 +35,7 @@ function subscribeTokenRefresh(cb: (token: string | null) => void) {
 }
 
 function onRefreshed(token: string | null) {
-  requestQueue.forEach(cb => cb(token))
+  requestQueue.forEach((cb) => cb(token))
   requestQueue.length = 0
 }
 
@@ -37,8 +44,8 @@ const http = axios.create({
   baseURL: BASE_URL,
   timeout: NETWORK_CONFIG.DEFAULT_TIMEOUT, // 使用配置中心的超时时间
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 })
 
 // 请求去重/缓存容器
@@ -49,10 +56,13 @@ function buildKey(method: string, url: string, payload?: any) {
   return `${method.toUpperCase()} ${url} | ${d}`
 }
 
-
-
 // 包装方法以支持请求去重与短缓存
-function wrap<T>(method: 'get'|'post'|'put'|'delete', url: string, payload?: any, config?: any): Promise<T> {
+function wrap<T>(
+  method: 'get' | 'post' | 'put' | 'delete',
+  url: string,
+  payload?: any,
+  config?: any,
+): Promise<T> {
   const ttl = getDedupeTTL(url)
   const key = buildKey(method, url, method === 'get' ? config?.params : payload)
   const now = Date.now()
@@ -66,16 +76,18 @@ function wrap<T>(method: 'get'|'post'|'put'|'delete', url: string, payload?: any
   }
   const p = (http as any)[method](url, payload, config)
   if (ttl > 0) inFlightMap.set(key, p)
-  return p.then((res: any) => {
-    if (ttl > 0) {
-      cacheMap.set(key, { expire: Date.now() + ttl, data: res })
-      inFlightMap.delete(key)
-    }
-    return res
-  }).catch((err: any) => {
-    if (ttl > 0) inFlightMap.delete(key)
-    throw err
-  })
+  return p
+    .then((res: any) => {
+      if (ttl > 0) {
+        cacheMap.set(key, { expire: Date.now() + ttl, data: res })
+        inFlightMap.delete(key)
+      }
+      return res
+    })
+    .catch((err: any) => {
+      if (ttl > 0) inFlightMap.delete(key)
+      throw err
+    })
 }
 
 // 请求拦截器
@@ -95,7 +107,7 @@ http.interceptors.request.use(
   (error) => {
     NProgressDone()
     return Promise.reject(error)
-  }
+  },
 )
 
 // 响应拦截器
@@ -124,7 +136,7 @@ http.interceptors.response.use(
         data: data.data,
         total: data.total,
         page: data.page,
-        page_size: data.page_size
+        page_size: data.page_size,
       } as any
     } else {
       // 兼容旧格式：检查success字段
@@ -154,7 +166,7 @@ http.interceptors.response.use(
       console.log(`请求重试第${retryCount + 1}次...`)
 
       // 延迟重试，避免频繁请求
-      await new Promise(resolve => setTimeout(resolve, getRetryDelay(retryCount)))
+      await new Promise((resolve) => setTimeout(resolve, getRetryDelay(retryCount)))
 
       return http(config)
     } else if (code === 'ECONNABORTED' || code === 'NETWORK_ERROR' || !response) {
@@ -196,7 +208,9 @@ http.interceptors.response.use(
       refreshPromise = (async () => {
         try {
           // 直接调用刷新接口
-          const res = await http.post('/users/refresh-token', { refresh_token: currentRefreshToken })
+          const res = await http.post('/users/refresh-token', {
+            refresh_token: currentRefreshToken,
+          })
           if ((res as any)?.success && (res as any)?.data?.access_token) {
             const newAccessToken = (res as any).data.access_token as string
             const newRefreshToken = (res as any).data.refresh_token as string | undefined
@@ -210,9 +224,9 @@ http.interceptors.response.use(
           throw new Error('刷新令牌失败')
         } catch (e) {
           // 刷新失败：清理并跳转登录
-      removeToken()
+          removeToken()
           removeRefreshToken()
-      router.push('/login')
+          router.push('/login')
           onRefreshed(null)
           throw e
         } finally {
@@ -243,7 +257,7 @@ http.interceptors.response.use(
     }
 
     return Promise.reject(error)
-  }
+  },
 )
 
 // HTTP请求方法类型
@@ -277,8 +291,8 @@ const httpMethods: HttpMethods = {
   upload<T = any>(url: string, formData: FormData): Promise<ApiResponse<T>> {
     return http.post(url, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+        'Content-Type': 'multipart/form-data',
+      },
     }) as unknown as Promise<ApiResponse<T>>
   },
 
@@ -288,8 +302,8 @@ const httpMethods: HttpMethods = {
         params,
         responseType: 'blob',
         headers: {
-          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        }
+          Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        },
       })
 
       // 创建blob URL
@@ -334,7 +348,7 @@ const httpMethods: HttpMethods = {
       notify.error('文件下载失败')
       throw error
     }
-  }
+  },
 }
 
 export default httpMethods

@@ -60,7 +60,7 @@
               :name="column.slot"
               :row="scope.row"
               :column="scope.column"
-              :$index="scope.$index"
+              :index="scope.$index"
             />
           </template>
 
@@ -113,8 +113,8 @@
     <!-- 分页组件 -->
     <div v-if="showPagination && pagination" class="pagination-container">
       <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.size"
+        :current-page="pagination.page"
+        :page-size="pagination.size"
         :total="pagination.total"
         :page-sizes="pageSizes"
         :layout="paginationLayout"

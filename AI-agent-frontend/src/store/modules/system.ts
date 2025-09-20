@@ -24,42 +24,42 @@ export const useSystemStore = defineStore('system', {
     pagination: {
       page: 1,
       size: 10,
-      total: 0
-    }
+      total: 0,
+    },
   }),
 
   getters: {
     topMenus: (state) => {
-      return state.menuList.filter(menu => menu.parent_id === 0)
+      return state.menuList.filter((menu) => menu.parent_id === 0)
     },
     menuMap: (state) => {
       const map = new Map()
-      state.menuList.forEach(menu => {
+      state.menuList.forEach((menu) => {
         map.set(menu.menu_id, menu)
       })
       return map
     },
     roleMap: (state) => {
       const map = new Map()
-      state.roleList.forEach(role => {
+      state.roleList.forEach((role) => {
         map.set(role.role_id, role)
       })
       return map
     },
     deptMap: (state) => {
       const map = new Map()
-      state.deptList.forEach(dept => {
+      state.deptList.forEach((dept) => {
         map.set(dept.dept_id, dept)
       })
       return map
     },
     userMap: (state) => {
       const map = new Map()
-      state.userList.forEach(user => {
+      state.userList.forEach((user) => {
         map.set(user.user_id, user)
       })
       return map
-    }
+    },
   },
 
   actions: {
@@ -103,13 +103,13 @@ export const useSystemStore = defineStore('system', {
       this.pagination = {
         page: 1,
         size: 10,
-        total: 0
+        total: 0,
       }
-    }
+    },
   },
 
   persist: {
     key: 'system-store',
-    storage: localStorage
-  }
+    storage: localStorage,
+  },
 })

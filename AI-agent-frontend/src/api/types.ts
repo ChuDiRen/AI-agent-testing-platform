@@ -332,21 +332,21 @@ export interface FormField {
   rules?: FormRule[]
   defaultValue?: any
   tip?: string
-  
+
   // 输入框特有属性
   inputType?: string
   maxlength?: number
   showPassword?: boolean
   rows?: number
   autosize?: boolean | { minRows?: number; maxRows?: number }
-  
+
   // 数字输入框特有属性
   min?: number
   max?: number
   step?: number
   precision?: number
   controlsPosition?: 'right' | ''
-  
+
   // 选择器特有属性
   multiple?: boolean
   filterable?: boolean
@@ -354,26 +354,26 @@ export interface FormField {
   remoteMethod?: (query: string) => void
   loading?: boolean
   options?: Array<{ label: string; value: any; disabled?: boolean }>
-  
+
   // 开关特有属性
   activeText?: string
   inactiveText?: string
   activeValue?: any
   inactiveValue?: any
-  
+
   // 日期/时间选择器特有属性
   dateType?: string
   format?: string
   valueFormat?: string
-  
+
   // 上传组件特有属性
   action?: string
   accept?: string
   limit?: number
-  
+
   // 自定义插槽
   slot?: string
-  
+
   // 其他属性
   props?: Record<string, any>
 }

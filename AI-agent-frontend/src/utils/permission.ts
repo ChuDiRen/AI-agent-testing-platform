@@ -9,9 +9,12 @@ import { useUserStore } from '@/store'
  * @param mode 检查模式：'some' 任一匹配 | 'every' 全部匹配
  * @returns 是否有权限
  */
-export function hasPermission(permission: string | string[], mode: 'some' | 'every' = 'some'): boolean {
+export function hasPermission(
+  permission: string | string[],
+  mode: 'some' | 'every' = 'some',
+): boolean {
   const userStore = useUserStore()
-  
+
   // 如果未登录，无权限
   if (!userStore.isLoggedIn) {
     return false
@@ -23,11 +26,11 @@ export function hasPermission(permission: string | string[], mode: 'some' | 'eve
   }
 
   const permissions = Array.isArray(permission) ? permission : [permission]
-  
+
   if (mode === 'every') {
-    return permissions.every(perm => userStore.hasPermission(perm))
+    return permissions.every((perm) => userStore.hasPermission(perm))
   } else {
-    return permissions.some(perm => userStore.hasPermission(perm))
+    return permissions.some((perm) => userStore.hasPermission(perm))
   }
 }
 
@@ -39,18 +42,18 @@ export function hasPermission(permission: string | string[], mode: 'some' | 'eve
  */
 export function hasRole(role: string | string[], mode: 'some' | 'every' = 'some'): boolean {
   const userStore = useUserStore()
-  
+
   // 如果未登录，无权限
   if (!userStore.isLoggedIn) {
     return false
   }
 
   const roles = Array.isArray(role) ? role : [role]
-  
+
   if (mode === 'every') {
-    return roles.every(r => userStore.hasRole(r))
+    return roles.every((r) => userStore.hasRole(r))
   } else {
-    return roles.some(r => userStore.hasRole(r))
+    return roles.some((r) => userStore.hasRole(r))
   }
 }
 
@@ -107,9 +110,9 @@ export function isSuperAdmin(): boolean {
  */
 export function filterByPermission<T>(
   items: T[],
-  getPermission: (item: T) => string | string[] | undefined
+  getPermission: (item: T) => string | string[] | undefined,
 ): T[] {
-  return items.filter(item => {
+  return items.filter((item) => {
     const permission = getPermission(item)
     if (!permission) return true // 如果没有指定权限，则显示
     return hasPermission(permission)
@@ -124,9 +127,9 @@ export function filterByPermission<T>(
  */
 export function filterByRole<T>(
   items: T[],
-  getRole: (item: T) => string | string[] | undefined
+  getRole: (item: T) => string | string[] | undefined,
 ): T[] {
-  return items.filter(item => {
+  return items.filter((item) => {
     const role = getRole(item)
     if (!role) return true // 如果没有指定角色，则显示
     return hasRole(role)
@@ -139,19 +142,19 @@ export function filterByRole<T>(
  * @returns 有权限的菜单数组
  */
 export function filterMenusByPermission(menus: any[]): any[] {
-  return menus.filter(menu => {
+  return menus.filter((menu) => {
     // 检查菜单权限
     if (menu.perms && !hasPermission(menu.perms)) {
       return false
     }
-    
+
     // 递归检查子菜单
     if (menu.children && menu.children.length > 0) {
       menu.children = filterMenusByPermission(menu.children)
       // 如果所有子菜单都没有权限，则隐藏父菜单
       return menu.children.length > 0
     }
-    
+
     return true
   })
 }
@@ -161,8 +164,10 @@ export function filterMenusByPermission(menus: any[]): any[] {
  * @param buttons 按钮配置数组
  * @returns 有权限的按钮数组
  */
-export function filterButtonsByPermission(buttons: Array<{ permission?: string | string[]; [key: string]: any }>): any[] {
-  return buttons.filter(button => {
+export function filterButtonsByPermission(
+  buttons: Array<{ permission?: string | string[]; [key: string]: any }>,
+): any[] {
+  return buttons.filter((button) => {
     if (!button.permission) return true
     return hasPermission(button.permission)
   })

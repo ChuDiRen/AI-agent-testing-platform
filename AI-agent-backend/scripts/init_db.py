@@ -53,12 +53,49 @@ def create_initial_data():
 
         db.commit()
 
+        # 创建AI相关初始数据（在RBAC数据创建完成后）
+        create_ai_initial_data()
+
     except Exception as e:
         db.rollback()
         logger.error(f"Error creating initial data: {str(e)}")
         raise
     finally:
         db.close()
+
+
+def create_ai_initial_data():
+    """
+    创建AI相关的初始数据
+    """
+    try:
+        logger.info("开始创建AI相关初始数据...")
+
+        # 导入并执行AI模型配置初始化
+        from init_ai_models import create_ai_model_configs
+        create_ai_model_configs()
+
+        # 导入并执行AI代理初始化
+        from init_agents import create_agent_examples
+        create_agent_examples()
+
+        # 导入并执行测试用例初始化
+        from init_test_cases import create_test_case_templates
+        create_test_case_templates()
+
+        # 导入并执行测试报告初始化
+        from init_test_reports import create_test_report_examples
+        create_test_report_examples()
+
+        # 导入并执行生成历史初始化
+        from init_generation_history import create_generation_history_examples
+        create_generation_history_examples()
+
+        logger.info("AI相关初始数据创建完成")
+
+    except Exception as e:
+        logger.error(f"创建AI相关初始数据失败: {str(e)}")
+        raise
 
 
 def create_superuser(db):

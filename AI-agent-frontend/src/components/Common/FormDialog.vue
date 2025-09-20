@@ -19,7 +19,7 @@
     <div class="dialog-content">
       <el-form
         ref="formRef"
-        :model="formData"
+        :model="currentFormData"
         :rules="rules"
         :label-width="labelWidth"
         :label-position="labelPosition"
@@ -40,7 +40,7 @@
                 <!-- 输入框 -->
                 <el-input
                   v-if="field.component === 'input'"
-                  v-model="formData[field.prop]"
+                  v-model="currentcurrentFormData[field.prop]"
                   :type="field.inputType || 'text'"
                   :placeholder="field.placeholder || `请输入${field.label}`"
                   :clearable="field.clearable !== false"
@@ -56,7 +56,7 @@
                 <!-- 数字输入框 -->
                 <el-input-number
                   v-else-if="field.component === 'number'"
-                  v-model="formData[field.prop]"
+                  v-model="currentFormData[field.prop]"
                   :placeholder="field.placeholder"
                   :disabled="field.disabled || formDisabled"
                   :min="field.min"
@@ -70,7 +70,7 @@
                 <!-- 选择器 -->
                 <el-select
                   v-else-if="field.component === 'select'"
-                  v-model="formData[field.prop]"
+                  v-model="currentFormData[field.prop]"
                   :placeholder="field.placeholder || `请选择${field.label}`"
                   :clearable="field.clearable !== false"
                   :disabled="field.disabled || formDisabled"
@@ -93,7 +93,7 @@
                 <!-- 单选框组 -->
                 <el-radio-group
                   v-else-if="field.component === 'radio'"
-                  v-model="formData[field.prop]"
+                  v-model="currentFormData[field.prop]"
                   :disabled="field.disabled || formDisabled"
                   v-bind="field.props"
                 >
@@ -110,7 +110,7 @@
                 <!-- 复选框组 -->
                 <el-checkbox-group
                   v-else-if="field.component === 'checkbox'"
-                  v-model="formData[field.prop]"
+                  v-model="currentFormData[field.prop]"
                   :disabled="field.disabled || formDisabled"
                   v-bind="field.props"
                 >
@@ -127,7 +127,7 @@
                 <!-- 开关 -->
                 <el-switch
                   v-else-if="field.component === 'switch'"
-                  v-model="formData[field.prop]"
+                  v-model="currentFormData[field.prop]"
                   :disabled="field.disabled || formDisabled"
                   :active-text="field.activeText"
                   :inactive-text="field.inactiveText"
@@ -139,7 +139,7 @@
                 <!-- 日期选择器 -->
                 <el-date-picker
                   v-else-if="field.component === 'date'"
-                  v-model="formData[field.prop]"
+                  v-model="currentFormData[field.prop]"
                   :type="field.dateType || 'date'"
                   :placeholder="field.placeholder || `请选择${field.label}`"
                   :clearable="field.clearable !== false"
@@ -152,7 +152,7 @@
                 <!-- 时间选择器 -->
                 <el-time-picker
                   v-else-if="field.component === 'time'"
-                  v-model="formData[field.prop]"
+                  v-model="currentFormData[field.prop]"
                   :placeholder="field.placeholder || `请选择${field.label}`"
                   :clearable="field.clearable !== false"
                   :disabled="field.disabled || formDisabled"
@@ -169,7 +169,7 @@
                   :multiple="field.multiple"
                   :accept="field.accept"
                   :limit="field.limit"
-                  :file-list="formData[field.prop]"
+                  :file-list="currentFormData[field.prop]"
                   :on-success="(response: any) => handleUploadSuccess(field.prop, response)"
                   :on-remove="(file: any) => handleUploadRemove(field.prop, file)"
                   v-bind="field.props"
@@ -182,8 +182,8 @@
                   v-else-if="field.component === 'slot'"
                   :name="field.slot"
                   :field="field"
-                  :value="formData[field.prop]"
-                  :setValue="(val: any) => formData[field.prop] = val"
+                  :value="currentFormData[field.prop]"
+                  :setValue="(val: any) => currentFormData[field.prop] = val"
                   :disabled="field.disabled || formDisabled"
                 />
                 
@@ -280,7 +280,7 @@ const emit = defineEmits<{
 }>()
 
 const formRef = ref()
-const formData = reactive<Record<string, any>>({})
+const internalFormData = reactive<Record<string, any>>({})
 
 // 对话框显示状态
 const dialogVisible = computed({
@@ -291,22 +291,25 @@ const dialogVisible = computed({
 // 表单禁用状态
 const formDisabled = computed(() => props.disabled || props.loading)
 
+// 表单数据统一访问（避免与props.formData冲突）
+const currentFormData = internalFormData
+
 // 初始化表单数据
 const initFormData = () => {
   // 清空表单数据
-  Object.keys(formData).forEach(key => {
-    delete formData[key]
+  Object.keys(currentFormData).forEach(key => {
+    delete currentFormData[key]
   })
   
   // 设置默认值（安全遍历）
   const fields = Array.isArray(props.fields) ? props.fields : []
   fields.forEach((field) => {
-    formData[field.prop] = field?.defaultValue ?? (field?.multiple ? [] : '')
+    currentFormData[field.prop] = field?.defaultValue ?? (field?.multiple ? [] : '')
   })
   
   // 合并传入的数据
   if (props.formData) {
-    Object.assign(formData, props.formData)
+    Object.assign(currentFormData, props.formData)
   }
 }
 
@@ -316,12 +319,12 @@ watch(() => props.fields ?? [], initFormData, { immediate: true, deep: true })
 // 监听外部数据变化
 watch(() => props.formData, (newVal) => {
   if (newVal) {
-    Object.assign(formData, newVal)
+    Object.assign(currentFormData, newVal)
   }
 }, { deep: true, immediate: true })
 
 // 监听表单数据变化
-watch(formData, (newVal) => {
+watch(currentFormData, (newVal) => {
   emit('update:formData', { ...newVal })
 }, { deep: true })
 
@@ -349,7 +352,7 @@ const handleConfirm = async () => {
   try {
     const valid = await formRef.value?.validate()
     if (valid) {
-      emit('confirm', { ...formData })
+      emit('confirm', { ...currentFormData })
     }
   } catch (error) {
     console.warn('Form validation failed:', error)
@@ -363,14 +366,14 @@ const handleCancel = () => {
 
 // 上传处理
 const handleUploadSuccess = (prop: string, response: any) => {
-  if (!formData[prop]) {
-    formData[prop] = []
+  if (!currentFormData[prop]) {
+    currentFormData[prop] = []
   }
-  formData[prop].push(response)
+  currentFormData[prop].push(response)
 }
 
 const handleUploadRemove = (prop: string, file: any) => {
-  const fileList = formData[prop] || []
+  const fileList = currentFormData[prop] || []
   const index = fileList.findIndex((item: any) => item.uid === file.uid)
   if (index > -1) {
     fileList.splice(index, 1)
@@ -400,7 +403,7 @@ defineExpose({
   validateField,
   resetFields,
   clearValidate,
-  formData
+  currentFormData
 })
 </script>
 

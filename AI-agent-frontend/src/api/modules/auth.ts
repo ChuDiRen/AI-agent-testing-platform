@@ -2,12 +2,7 @@
  * 用户认证相关API接口
  */
 import http from '@/api/http'
-import type { 
-  LoginRequest, 
-  LoginResponse, 
-  UserInfo,
-  ApiResponse 
-} from '@/api/types'
+import type { LoginRequest, LoginResponse, UserInfo, ApiResponse } from '@/api/types'
 
 /**
  * 认证API接口类
@@ -36,7 +31,9 @@ export class AuthApi {
    * @returns 权限列表
    */
   static async getUserPermissions(userId: number): Promise<ApiResponse<string[]>> {
-    const res = await http.post<{ menus: any[]; permissions: string[] }>('/menus/get-user-menus', { user_id: userId })
+    const res = await http.post<{ menus: any[]; permissions: string[] }>('/menus/get-user-menus', {
+      user_id: userId,
+    })
     if ((res as any)?.success) {
       const data = (res as any).data
       return { ...(res as any), data: data?.permissions || [] }
@@ -50,7 +47,9 @@ export class AuthApi {
    * @returns 菜单列表
    */
   static async getUserMenus(userId: number): Promise<ApiResponse<any[]>> {
-    const res = await http.post<{ menus: any[]; permissions: string[] }>('/menus/get-user-menus', { user_id: userId })
+    const res = await http.post<{ menus: any[]; permissions: string[] }>('/menus/get-user-menus', {
+      user_id: userId,
+    })
     if ((res as any)?.success) {
       const data = (res as any).data
       return { ...(res as any), data: data?.menus || [] }
@@ -62,8 +61,12 @@ export class AuthApi {
    * 刷新token
    * @returns 新的token信息
    */
-  static async refreshToken(): Promise<ApiResponse<{ access_token: string; token_type: string; refresh_token?: string }>> {
-    return http.post<{ access_token: string; token_type: string; refresh_token?: string }>('/users/refresh-token')
+  static async refreshToken(): Promise<
+    ApiResponse<{ access_token: string; token_type: string; refresh_token?: string }>
+  > {
+    return http.post<{ access_token: string; token_type: string; refresh_token?: string }>(
+      '/users/refresh-token',
+    )
   }
 
   /**

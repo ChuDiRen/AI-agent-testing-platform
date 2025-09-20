@@ -1,14 +1,14 @@
 // AI代理管理API
 import { http } from '@/api/http'
-import type { 
-  AgentCreateRequest, 
-  AgentUpdateRequest, 
+import type {
+  AgentCreateRequest,
+  AgentUpdateRequest,
   AgentSearchRequest,
   AgentResponse,
   AgentListResponse,
   AgentStatisticsResponse,
   AgentBatchOperationRequest,
-  AgentBatchOperationResponse
+  AgentBatchOperationResponse,
 } from '../types'
 
 export const agentApi = {
@@ -87,5 +87,5 @@ export const agentApi = {
    */
   batchOperation(data: AgentBatchOperationRequest) {
     return http.post<AgentBatchOperationResponse>('/agents/batch', data)
-  }
+  },
 }

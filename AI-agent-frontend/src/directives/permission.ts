@@ -40,14 +40,14 @@ const permissionDirective = {
   mounted(el: PermissionElement, binding: DirectiveBinding) {
     const { value, arg, modifiers } = binding
     const mode = arg === 'every' ? 'every' : 'some'
-    
+
     if (!value) {
       console.warn('v-permission directive requires a value')
       return
     }
 
     const allowed = checkPermissionUtil(value as any, mode as any)
-    
+
     if (!allowed) {
       if (modifiers.hidden) {
         // 使用 visibility: hidden 隐藏（占位）
@@ -70,13 +70,13 @@ const permissionDirective = {
   updated(el: PermissionElement, binding: DirectiveBinding) {
     const { value, arg, modifiers } = binding
     const mode = arg === 'every' ? 'every' : 'some'
-    
+
     if (!value) {
       return
     }
 
     const allowed = checkPermissionUtil(value as any, mode as any)
-    
+
     if (!allowed) {
       if (modifiers.hidden) {
         if (!el._originalVisibility) {
@@ -92,7 +92,7 @@ const permissionDirective = {
         el.style.visibility = el._originalVisibility
       }
     }
-  }
+  },
 }
 
 // 角色指令
@@ -100,14 +100,14 @@ const roleDirective = {
   mounted(el: PermissionElement, binding: DirectiveBinding) {
     const { value, arg, modifiers } = binding
     const mode = arg === 'every' ? 'every' : 'some'
-    
+
     if (!value) {
       console.warn('v-role directive requires a value')
       return
     }
 
     const allowed = checkRoleUtil(value as any, mode as any)
-    
+
     if (!allowed) {
       if (modifiers.hidden) {
         if (!el._originalVisibility) {
@@ -128,13 +128,13 @@ const roleDirective = {
   updated(el: PermissionElement, binding: DirectiveBinding) {
     const { value, arg, modifiers } = binding
     const mode = arg === 'every' ? 'every' : 'some'
-    
+
     if (!value) {
       return
     }
 
     const allowed = checkRoleUtil(value as any, mode as any)
-    
+
     if (!allowed) {
       if (modifiers.hidden) {
         if (!el._originalVisibility) {
@@ -150,7 +150,7 @@ const roleDirective = {
         el.style.visibility = el._originalVisibility
       }
     }
-  }
+  },
 }
 
 // 安装指令

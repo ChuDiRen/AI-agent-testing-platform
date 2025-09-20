@@ -8,7 +8,7 @@ import type {
   MenuCreateRequest,
   MenuUpdateRequest,
   ApiResponse,
-  UserMenuTreeResponse
+  UserMenuTreeResponse,
 } from '@/api/types'
 
 /**
@@ -28,7 +28,10 @@ export class MenuApi {
    * @param params 搜索参数
    * @returns 菜单树
    */
-  static async getMenuTree(params?: { keyword?: string; is_active?: boolean }): Promise<ApiResponse<MenuTreeNode[]>> {
+  static async getMenuTree(params?: {
+    keyword?: string
+    is_active?: boolean
+  }): Promise<ApiResponse<MenuTreeNode[]>> {
     return http.post<MenuTreeNode[]>('/menus/get-menu-tree', params || {})
   }
 
@@ -102,7 +105,9 @@ export class MenuApi {
    * @param orders 排序数据数组
    * @returns 更新结果
    */
-  static async batchUpdateMenuOrder(orders: Array<{ menu_id: number; order_num: number }>): Promise<ApiResponse<boolean>> {
+  static async batchUpdateMenuOrder(
+    orders: Array<{ menu_id: number; order_num: number }>,
+  ): Promise<ApiResponse<boolean>> {
     return http.post<boolean>('/menus/batch-order', { orders })
   }
 
@@ -113,11 +118,15 @@ export class MenuApi {
    * @param excludeMenuId 排除的菜单ID（编辑时使用）
    * @returns 检查结果
    */
-  static async checkMenuName(menuName: string, parentId: number, excludeMenuId?: number): Promise<ApiResponse<boolean>> {
+  static async checkMenuName(
+    menuName: string,
+    parentId: number,
+    excludeMenuId?: number,
+  ): Promise<ApiResponse<boolean>> {
     const params = {
       MENU_NAME: menuName,
       PARENT_ID: parentId,
-      ...(excludeMenuId && { EXCLUDE_MENU_ID: excludeMenuId })
+      ...(excludeMenuId && { EXCLUDE_MENU_ID: excludeMenuId }),
     }
     return http.get<boolean>('/menus/check-name', params)
   }
@@ -129,7 +138,9 @@ export class MenuApi {
    * @returns 检查结果
    */
   static async checkPerms(perms: string, excludeMenuId?: number): Promise<ApiResponse<boolean>> {
-    const params = excludeMenuId ? { PERMS: perms, EXCLUDE_MENU_ID: excludeMenuId } : { PERMS: perms }
+    const params = excludeMenuId
+      ? { PERMS: perms, EXCLUDE_MENU_ID: excludeMenuId }
+      : { PERMS: perms }
     return http.get<boolean>('/menus/check-perms', params)
   }
 
@@ -137,12 +148,14 @@ export class MenuApi {
    * 获取菜单统计信息
    * @returns 统计信息
    */
-  static async getMenuStats(): Promise<ApiResponse<{
-    total: number
-    menu_count: number
-    button_count: number
-    max_level: number
-  }>> {
+  static async getMenuStats(): Promise<
+    ApiResponse<{
+      total: number
+      menu_count: number
+      button_count: number
+      max_level: number
+    }>
+  > {
     return http.get('/menus/stats')
   }
 
@@ -170,5 +183,5 @@ export const menuApi = {
   checkMenuName: MenuApi.checkMenuName,
   checkPerms: MenuApi.checkPerms,
   getMenuStats: MenuApi.getMenuStats,
-  getUserRoutes: MenuApi.getUserRoutes
+  getUserRoutes: MenuApi.getUserRoutes,
 }

@@ -8,4 +8,4 @@ const baseUrl: any = {
 // 获取当前环境
 const currentEnv = import.meta.env.MODE || 'development'
 
-export const BASE_URL = baseUrl[currentEnv] || baseUrl.development;
+export const BASE_URL = baseUrl[currentEnv] || baseUrl.development

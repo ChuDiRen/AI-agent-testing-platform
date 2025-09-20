@@ -9,21 +9,21 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/login/Login.vue'),
     meta: {
       title: '登录',
-      requiresAuth: false
-    }
+      requiresAuth: false,
+    },
   },
   {
     path: '/',
     name: 'Layout',
     component: () => import('@/components/Layout/MainLayout.vue'),
     meta: {
-      requiresAuth: true
+      requiresAuth: true,
     },
     children: [
       {
         path: '',
         name: 'LayoutRedirect',
-        redirect: '/dashboard'
+        redirect: '/dashboard',
       },
       {
         path: '/dashboard',
@@ -31,8 +31,8 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/dashboard/Index.vue'),
         meta: {
           title: '仪表板',
-          icon: 'Monitor'
-        }
+          icon: 'Monitor',
+        },
       },
       // 个人中心路由
       {
@@ -42,8 +42,8 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: '个人中心',
           icon: 'User',
-          hidden: true // 不在菜单中显示
-        }
+          hidden: true, // 不在菜单中显示
+        },
       },
       // AI代理管理路由
       {
@@ -51,7 +51,7 @@ const routes: RouteRecordRaw[] = [
         name: 'AgentManagement',
         meta: {
           title: 'AI代理管理',
-          icon: 'Robot'
+          icon: 'Robot',
         },
         children: [
           {
@@ -60,8 +60,8 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/agent/list/index.vue'),
             meta: {
               title: '代理列表',
-              icon: 'List'
-            }
+              icon: 'List',
+            },
           },
           {
             path: 'config/:id',
@@ -69,10 +69,10 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/agent/config/index.vue'),
             meta: {
               title: '代理配置',
-              hidden: true
-            }
-          }
-        ]
+              hidden: true,
+            },
+          },
+        ],
       },
       // 测试用例管理路由
       {
@@ -80,7 +80,7 @@ const routes: RouteRecordRaw[] = [
         name: 'TestManagement',
         meta: {
           title: '测试管理',
-          icon: 'TestTube'
+          icon: 'TestTube',
         },
         children: [
           {
@@ -89,8 +89,8 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/test/generate/index.vue'),
             meta: {
               title: 'AI生成测试用例',
-              icon: 'MagicStick'
-            }
+              icon: 'MagicStick',
+            },
           },
           {
             path: 'cases',
@@ -98,8 +98,8 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/test/cases/Index.vue'),
             meta: {
               title: '测试用例列表',
-              icon: 'Document'
-            }
+              icon: 'Document',
+            },
           },
           {
             path: 'reports',
@@ -107,10 +107,10 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/test/reports/list/index.vue'),
             meta: {
               title: '测试报告',
-              icon: 'Document'
-            }
-          }
-        ]
+              icon: 'Document',
+            },
+          },
+        ],
       },
       // AI模型配置路由
       {
@@ -118,7 +118,7 @@ const routes: RouteRecordRaw[] = [
         name: 'ModelManagement',
         meta: {
           title: 'AI模型配置',
-          icon: 'Setting'
+          icon: 'Setting',
         },
         children: [
           {
@@ -127,10 +127,10 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/views/model/config/index.vue'),
             meta: {
               title: '模型配置',
-              icon: 'Setting'
-            }
-          }
-        ]
+              icon: 'Setting',
+            },
+          },
+        ],
       },
       // AI智能对话路由
       {
@@ -139,27 +139,27 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/chat/index.vue'),
         meta: {
           title: 'AI智能对话',
-          icon: 'ChatDotRound'
-        }
-      }
-    ]
+          icon: 'ChatDotRound',
+        },
+      },
+    ],
   },
   {
     path: '/403',
     name: 'Forbidden',
     component: () => import('@/views/error/403.vue'),
     meta: {
-      title: '权限不足'
-    }
+      title: '权限不足',
+    },
   },
   {
     path: '/404',
     name: 'NotFound',
     component: () => import('@/views/error/404.vue'),
     meta: {
-      title: '页面不存在'
-    }
-  }
+      title: '页面不存在',
+    },
+  },
   // 注意：全局404路由将在动态路由加载后添加
 ]
 
@@ -177,17 +177,37 @@ export const resetRoutes = () => {
 
   // 移除所有动态添加的路由
   const allRoutes = router.getRoutes()
-  allRoutes.forEach(route => {
+  allRoutes.forEach((route) => {
     // 移除非基础路由（除了基础的登录、Layout、错误页面等）
-    if (route.name && !['Login', 'Layout', 'LayoutRedirect', 'Dashboard', 'Profile', 'Forbidden', 'NotFound', 'AgentManagement', 'AgentList', 'AgentConfig', 'TestManagement', 'TestGenerate', 'TestCases', 'TestReports', 'ModelManagement', 'ModelConfig'].includes(route.name as string)) {
+    if (
+      route.name &&
+      ![
+        'Login',
+        'Layout',
+        'LayoutRedirect',
+        'Dashboard',
+        'Profile',
+        'Forbidden',
+        'NotFound',
+        'AgentManagement',
+        'AgentList',
+        'AgentConfig',
+        'TestManagement',
+        'TestGenerate',
+        'TestCases',
+        'TestReports',
+        'ModelManagement',
+        'ModelConfig',
+      ].includes(route.name as string)
+    ) {
       router.removeRoute(route.name)
     }
   })
 
   // 移除动态添加的404路由
-  const dynamicNotFoundRoute = router.getRoutes().find(route =>
-    route.path === '/:pathMatch(.*)*' && !route.name
-  )
+  const dynamicNotFoundRoute = router
+    .getRoutes()
+    .find((route) => route.path === '/:pathMatch(.*)*' && !route.name)
   if (dynamicNotFoundRoute && dynamicNotFoundRoute.name) {
     router.removeRoute(dynamicNotFoundRoute.name)
   }
@@ -214,26 +234,25 @@ export const addDynamicRoutes = async () => {
     const dynamicRoutes = await permissionStore.generateRoutes()
 
     // 将动态路由添加到Layout路由的children中
-    dynamicRoutes.forEach(route => {
+    dynamicRoutes.forEach((route) => {
       router.addRoute('Layout', route)
     })
 
     // 检查是否已存在404路由，避免重复添加
-    const existingNotFoundRoute = router.getRoutes().find(route =>
-      route.path === '/:pathMatch(.*)*'
-    )
+    const existingNotFoundRoute = router
+      .getRoutes()
+      .find((route) => route.path === '/:pathMatch(.*)*')
 
     if (!existingNotFoundRoute) {
       // 添加404路由（必须在最后）
       router.addRoute({
         path: '/:pathMatch(.*)*',
-        redirect: '/404'
+        redirect: '/404',
       })
     }
 
     routesAdded = true
     console.log('Dynamic routes added successfully:', dynamicRoutes.length)
-
   } catch (error) {
     console.error('Failed to add dynamic routes:', error)
 
@@ -243,20 +262,20 @@ export const addDynamicRoutes = async () => {
       name: 'Empty',
       component: () => import('@/views/error/403.vue'),
       meta: {
-        title: '无权限'
-      }
+        title: '无权限',
+      },
     })
 
     // 检查是否已存在404路由，避免重复添加
-    const existingNotFoundRoute = router.getRoutes().find(route =>
-      route.path === '/:pathMatch(.*)*'
-    )
+    const existingNotFoundRoute = router
+      .getRoutes()
+      .find((route) => route.path === '/:pathMatch(.*)*')
 
     if (!existingNotFoundRoute) {
       // 仍然添加404路由
       router.addRoute({
         path: '/:pathMatch(.*)*',
-        redirect: '/404'
+        redirect: '/404',
       })
     }
 
@@ -329,7 +348,14 @@ router.beforeEach(async (to, from, next) => {
         console.log('Dynamic routes loaded successfully')
 
         // 动态路由加载完成后，如果当前访问的路径不是基础路由，需要重新导航
-        if (to.path !== '/login' && to.path !== '/403' && to.path !== '/404' && to.path !== '/dashboard' && to.path !== '/' && to.path !== '/profile') {
+        if (
+          to.path !== '/login' &&
+          to.path !== '/403' &&
+          to.path !== '/404' &&
+          to.path !== '/dashboard' &&
+          to.path !== '/' &&
+          to.path !== '/profile'
+        ) {
           console.log('Redirecting to current path after dynamic routes loaded:', to.path)
           next({ ...to, replace: true })
           return

@@ -9,9 +9,7 @@ export interface ILoginApi {
 const loginApi: ILoginApi = {
   login(params) {
     return http.post<LoginResponse>('/users/login', params)
-  }
+  },
 }
 
-export {
-  loginApi,
-}
+export { loginApi }

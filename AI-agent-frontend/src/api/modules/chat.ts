@@ -69,16 +69,19 @@ export const chatApi = {
    * 创建聊天会话
    */
   createSession(data: CreateSessionRequest) {
-    return http.post<{ success: boolean; message: string; data: ChatSession }>('/chat/sessions', data)
+    return http.post<{ success: boolean; message: string; data: ChatSession }>(
+      '/chat/sessions',
+      data,
+    )
   },
 
   /**
    * 获取用户聊天会话列表
    */
   getSessions(page: number = 1, pageSize: number = 20) {
-    return http.get<{ 
-      success: boolean; 
-      message: string; 
+    return http.get<{
+      success: boolean
+      message: string
       data: {
         sessions: ChatSession[]
         total: number
@@ -93,14 +96,19 @@ export const chatApi = {
    * 获取聊天会话详情
    */
   getSession(sessionId: string) {
-    return http.get<{ success: boolean; message: string; data: ChatSession }>(`/chat/sessions/${sessionId}`)
+    return http.get<{ success: boolean; message: string; data: ChatSession }>(
+      `/chat/sessions/${sessionId}`,
+    )
   },
 
   /**
    * 更新聊天会话
    */
   updateSession(sessionId: string, data: UpdateSessionRequest) {
-    return http.put<{ success: boolean; message: string; data: ChatSession }>(`/chat/sessions/${sessionId}`, data)
+    return http.put<{ success: boolean; message: string; data: ChatSession }>(
+      `/chat/sessions/${sessionId}`,
+      data,
+    )
   },
 
   /**
@@ -125,9 +133,9 @@ export const chatApi = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
       },
-      body: JSON.stringify({ ...data, stream: true })
+      body: JSON.stringify({ ...data, stream: true }),
     })
   },
 
@@ -145,8 +153,8 @@ export const chatApi = {
         page_size: number
         total_pages: number
       }
-    }>(`/chat/sessions/${sessionId}/messages`, { 
-      params: { page, page_size: pageSize } 
+    }>(`/chat/sessions/${sessionId}/messages`, {
+      params: { page, page_size: pageSize },
     })
   },
 
@@ -154,7 +162,9 @@ export const chatApi = {
    * 清空会话消息
    */
   clearSessionMessages(sessionId: string) {
-    return http.delete<{ success: boolean; message: string }>(`/chat/sessions/${sessionId}/messages`)
+    return http.delete<{ success: boolean; message: string }>(
+      `/chat/sessions/${sessionId}/messages`,
+    )
   },
 
   /**
@@ -200,9 +210,9 @@ export const chatApi = {
       }
     }>(`/model-configs/${modelId}/test`, {
       test_prompt: testPrompt || 'Hello, please respond with "Test successful"',
-      test_config: {}
+      test_config: {},
     })
-  }
+  },
 }
 
 // 聊天工具函数
@@ -214,17 +224,17 @@ export const chatUtils = {
     const date = new Date(timeStr)
     const now = new Date()
     const diff = now.getTime() - date.getTime()
-    
+
     if (diff < 60000) return '刚刚'
     if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
     if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`
-    
+
     return date.toLocaleDateString('zh-CN', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   },
 
@@ -261,7 +271,7 @@ export const chatUtils = {
     const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length
     const englishWords = (text.match(/[a-zA-Z]+/g) || []).length
     const otherChars = text.length - chineseChars - englishWords
-    
+
     return chineseChars * 2 + englishWords + Math.ceil(otherChars / 4)
   },
 
@@ -271,11 +281,11 @@ export const chatUtils = {
   generateSessionTitle(firstMessage: string): string {
     const maxLength = 20
     const cleaned = firstMessage.replace(/[^\u4e00-\u9fa5a-zA-Z0-9\s]/g, '').trim()
-    
+
     if (cleaned.length <= maxLength) {
       return cleaned || '新对话'
     }
-    
+
     return cleaned.substring(0, maxLength) + '...'
   },
 
@@ -286,11 +296,11 @@ export const chatUtils = {
     if (!content || !content.trim()) {
       return { valid: false, error: '消息内容不能为空' }
     }
-    
+
     if (content.length > 10000) {
       return { valid: false, error: '消息内容过长，请控制在10000字符以内' }
     }
-    
+
     return { valid: true }
   },
 
@@ -298,10 +308,10 @@ export const chatUtils = {
    * 处理流式响应
    */
   async handleStreamResponse(
-    response: Response, 
+    response: Response,
     onChunk: (chunk: string) => void,
     onComplete: () => void,
-    onError: (error: string) => void
+    onError: (error: string) => void,
   ) {
     if (!response.body) {
       onError('响应体为空')
@@ -314,7 +324,7 @@ export const chatUtils = {
     try {
       while (true) {
         const { done, value } = await reader.read()
-        
+
         if (done) {
           onComplete()
           break
@@ -326,7 +336,7 @@ export const chatUtils = {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6)
-            
+
             if (data === '[DONE]') {
               onComplete()
               return
@@ -351,5 +361,5 @@ export const chatUtils = {
     } finally {
       reader.releaseLock()
     }
-  }
+  },
 }

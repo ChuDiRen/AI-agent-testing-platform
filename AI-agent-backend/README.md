@@ -271,6 +271,30 @@ flake8 .
 mypy .
 ```
 
+### 新增功能特性
+
+#### 数据验证增强
+- **DataValidator**: 提供邮箱、手机号、密码强度等通用验证
+- **BusinessValidator**: 提供业务逻辑相关的验证
+- **配置验证**: AI代理配置、测试用例步骤等专项验证
+
+#### 事务管理
+- **@transactional装饰器**: 自动事务管理
+- **transaction_scope上下文管理器**: 手动事务控制
+- **TransactionManager**: 支持保存点的高级事务管理
+
+#### 安全增强
+- **SecurityHeadersMiddleware**: 自动添加安全响应头
+- **RateLimitMiddleware**: IP级别的速率限制
+- **RequestValidationMiddleware**: 请求内容安全检查
+- **CSRFProtectionMiddleware**: CSRF攻击防护
+
+#### 响应标准化
+- **StandardResponse**: 统一的API响应格式
+- **PaginatedResponse**: 分页数据响应格式
+- **ResponseBuilder**: 响应构建器
+- **APIResponse**: 快捷响应工具类
+
 ### 运行测试
 
 ```bash

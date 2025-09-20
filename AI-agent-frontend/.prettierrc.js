@@ -1,4 +1,5 @@
-module.exports = {
+// Copyright (c) 2025 左岚. All rights reserved.
+export default {
   tabWidth: 2,
   jsxSingleQuote: true,
   jsxBracketSameLine: true,

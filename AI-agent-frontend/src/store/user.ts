@@ -4,7 +4,13 @@ import { defineStore } from 'pinia'
 import { AuthApi } from '@/api/modules/auth'
 import { UserApi } from '@/api/modules/user'
 import { MenuApi } from '@/api/modules/menu'
-import { getToken, setToken as setTokenStorage, removeToken, setRefreshToken, removeRefreshToken } from '@/utils/auth'
+import {
+  getToken,
+  setToken as setTokenStorage,
+  removeToken,
+  setRefreshToken,
+  removeRefreshToken,
+} from '@/utils/auth'
 import type { UserInfo, MenuInfo } from '@/api/types'
 import { getRefreshToken } from '@/utils/auth'
 import { usePermissionStore } from '@/store/modules/permission'
@@ -33,7 +39,7 @@ export const useUserStore = defineStore('user', {
     menus: [],
     loading: false,
     initialized: false,
-    avatarTimestamp: Date.now()
+    avatarTimestamp: Date.now(),
   }),
 
   getters: {
@@ -43,10 +49,12 @@ export const useUserStore = defineStore('user', {
     avatar: (state) => state.userInfo?.avatar || '',
     hasRole: (state) => (role: string) => state.roles.includes(role),
     hasPermission: (state) => (permission: string) => state.permissions.includes(permission),
-    hasAnyRole: (state) => (roles: string[]) => roles.some(role => state.roles.includes(role)),
-    hasAnyPermission: (state) => (permissions: string[]) => permissions.some(perm => state.permissions.includes(perm)),
-    hasAllRoles: (state) => (roles: string[]) => roles.every(role => state.roles.includes(role)),
-    hasAllPermissions: (state) => (permissions: string[]) => permissions.every(perm => state.permissions.includes(perm))
+    hasAnyRole: (state) => (roles: string[]) => roles.some((role) => state.roles.includes(role)),
+    hasAnyPermission: (state) => (permissions: string[]) =>
+      permissions.some((perm) => state.permissions.includes(perm)),
+    hasAllRoles: (state) => (roles: string[]) => roles.every((role) => state.roles.includes(role)),
+    hasAllPermissions: (state) => (permissions: string[]) =>
+      permissions.every((perm) => state.permissions.includes(perm)),
   },
 
   actions: {
@@ -109,7 +117,7 @@ export const useUserStore = defineStore('user', {
     normalizeRoleNames(sourceRoles: Array<{ role_name?: string } | string>): string[] {
       const names: string[] = []
       for (const r of sourceRoles) {
-        const name = typeof r === 'string' ? r : (r?.role_name || '')
+        const name = typeof r === 'string' ? r : r?.role_name || ''
         if (!name) continue
         names.push(name)
         // 常见别名映射（根据后端角色中文名补充英文别名）
@@ -220,7 +228,6 @@ export const useUserStore = defineStore('user', {
       await this.initializeAfterLogin().catch(() => {})
     },
 
-
     // 统一初始化（幂等 + 去重）：登录成功或首个受保护路由进入时调用
     async initializeAfterLogin(): Promise<void> {
       if (!this.isLoggedIn) return
@@ -281,11 +288,11 @@ export const useUserStore = defineStore('user', {
         this.clearUserData()
         return false
       }
-    }
+    },
   },
 
   persist: {
     key: 'user-store',
-    storage: localStorage
-  }
+    storage: localStorage,
+  },
 })
