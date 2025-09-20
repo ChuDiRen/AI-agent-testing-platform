@@ -131,6 +131,16 @@ const routes: RouteRecordRaw[] = [
             }
           }
         ]
+      },
+      // AI智能对话路由
+      {
+        path: '/chat',
+        name: 'AIChat',
+        component: () => import('@/views/chat/index.vue'),
+        meta: {
+          title: 'AI智能对话',
+          icon: 'ChatDotRound'
+        }
       }
     ]
   },

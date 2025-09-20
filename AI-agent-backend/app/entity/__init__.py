@@ -17,6 +17,7 @@ from .test_case_generation_history import TestCaseGenerationHistory
 from .test_report import TestReport
 from .user import User
 from .user_role import UserRole
+from .chat_session import ChatSession, ChatMessage
 
 __all__ = [
     "BaseEntity",
@@ -33,5 +34,7 @@ __all__ = [
     "AgentConfig",
     "AIModel",
     "TestCase",
-    "TestReport"
+    "TestReport",
+    "ChatSession",
+    "ChatMessage"
 ]

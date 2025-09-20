@@ -28,6 +28,7 @@ from app.controller.test_case_controller import router as test_case_router
 from app.controller.test_report_controller import router as test_report_router
 from app.controller.ai_generation_controller import router as ai_generation_router
 from app.controller.model_config_controller import router as model_config_router
+from app.controller.chat_controller import router as chat_router
 from app.core.config import settings
 from app.core.logger import get_logger
 from app.db.session import create_tables, SessionLocal
@@ -221,6 +222,7 @@ app.include_router(test_case_router, prefix=settings.API_V1_PREFIX)
 app.include_router(test_report_router, prefix=settings.API_V1_PREFIX)
 app.include_router(ai_generation_router, prefix=settings.API_V1_PREFIX)
 app.include_router(model_config_router, prefix=settings.API_V1_PREFIX)
+app.include_router(chat_router, prefix=settings.API_V1_PREFIX)
 
 # 静态文件服务
 from fastapi.staticfiles import StaticFiles

@@ -4,7 +4,7 @@ AI模型管理Service
 处理AI模型相关的业务逻辑
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union, AsyncGenerator
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -15,6 +15,9 @@ from app.dto.ai_model_dto import (
     AIModelCreateRequest, AIModelUpdateRequest, AIModelSearchRequest,
     AIModelResponse, AIModelListResponse, AIModelStatisticsResponse,
     AIModelTestRequest, AIModelTestResponse, AIModelUsageRecordRequest
+)
+from app.service.ai_client_service import (
+    ai_client_service, ChatRequest, ChatMessage, MessageRole, ChatResponse
 )
 from app.core.logger import get_logger
 from app.utils.exceptions import BusinessException
@@ -41,8 +44,8 @@ class AIModelService:
             model = AIModel(
                 name=request.name,
                 display_name=request.display_name,
-                provider=request.provider.value,
-                model_type=request.model_type.value,
+                provider=request.provider.value if hasattr(request.provider, 'value') else request.provider,
+                model_type=request.model_type.value if hasattr(request.model_type, 'value') else request.model_type,
                 version=request.version,
                 description=request.description,
                 api_endpoint=request.api_endpoint,
@@ -82,9 +85,9 @@ class AIModelService:
         try:
             models, total = self.model_repo.search(
                 keyword=request.keyword,
-                provider=request.provider.value if request.provider else None,
-                model_type=request.model_type.value if request.model_type else None,
-                status=request.status.value if request.status else None,
+                provider=request.provider.value if request.provider and hasattr(request.provider, 'value') else request.provider,
+                model_type=request.model_type.value if request.model_type and hasattr(request.model_type, 'value') else request.model_type,
+                status=request.status.value if request.status and hasattr(request.status, 'value') else request.status,
                 created_by_id=request.created_by_id,
                 start_date=request.start_date,
                 end_date=request.end_date,
@@ -118,40 +121,78 @@ class AIModelService:
             logger.error(f"Error getting AI model statistics: {str(e)}")
             raise
 
-    def test_model(self, model_id: int, request: AIModelTestRequest) -> AIModelTestResponse:
+    async def test_model(self, model_id: int, request: AIModelTestRequest) -> AIModelTestResponse:
         """测试AI模型"""
         try:
             model = self.model_repo.get_by_id(model_id)
             if not model:
                 raise BusinessException(f"模型 {model_id} 不存在")
-            
+
             if not model.is_active():
                 raise BusinessException(f"模型 {model_id} 未激活")
-            
+
             test_id = f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             start_time = datetime.now()
-            
-            # 这里应该调用实际的AI模型API进行测试
-            # 为了演示，我们模拟测试结果
-            success, response_text, tokens_used, cost, error_message = self._simulate_model_test(
-                model, request.test_prompt, request.test_config
-            )
-            
+
+            # 使用真实的AI客户端进行测试
+            try:
+                test_result = await ai_client_service.test_connection(model)
+
+                if test_result["success"]:
+                    # 进行实际的聊天测试
+                    chat_request = ChatRequest(
+                        messages=[ChatMessage(
+                            role=MessageRole.USER,
+                            content=request.test_prompt or "Hello, please respond with 'Test successful'"
+                        )],
+                        model_id=model_id,
+                        temperature=request.test_config.get("temperature") if request.test_config else None,
+                        max_tokens=50  # 测试时使用较少的token
+                    )
+
+                    chat_response = await ai_client_service.chat(model, chat_request)
+
+                    if isinstance(chat_response, ChatResponse):
+                        success = True
+                        response_text = chat_response.content
+                        tokens_used = chat_response.tokens_used
+                        cost = chat_response.cost
+                        error_message = None
+
+                        # 记录使用情况
+                        self.record_model_usage(model_id, AIModelUsageRecordRequest(
+                            tokens_used=tokens_used,
+                            cost=cost,
+                            operation_type="test"
+                        ))
+                    else:
+                        # 流式响应的情况
+                        success = True
+                        response_text = "流式响应测试成功"
+                        tokens_used = 10  # 估算值
+                        cost = model.get_cost_per_token() * tokens_used
+                        error_message = None
+                else:
+                    success = False
+                    response_text = None
+                    tokens_used = 0
+                    cost = 0.0
+                    error_message = test_result.get("error", "连接测试失败")
+
+            except Exception as e:
+                success = False
+                response_text = None
+                tokens_used = 0
+                cost = 0.0
+                error_message = str(e)
+
             end_time = datetime.now()
             response_time = (end_time - start_time).total_seconds()
-            
-            # 记录使用情况
-            if success:
-                self.record_model_usage(model_id, AIModelUsageRecordRequest(
-                    tokens_used=tokens_used,
-                    cost=cost,
-                    operation_type="test"
-                ))
-            
+
             test_response = AIModelTestResponse(
                 test_id=test_id,
                 model_id=model_id,
-                test_prompt=request.test_prompt,
+                test_prompt=request.test_prompt or "Hello, please respond with 'Test successful'",
                 response_text=response_text,
                 tokens_used=tokens_used,
                 response_time=response_time,
@@ -161,12 +202,58 @@ class AIModelService:
                 metadata=request.test_config or {},
                 tested_at=start_time
             )
-            
+
             logger.info(f"AI model {model_id} test completed: {success}")
             return test_response
-            
+
         except Exception as e:
             logger.error(f"Error testing AI model {model_id}: {str(e)}")
+            raise
+
+    async def chat_with_model(self, model_id: int, messages: List[Dict[str, str]],
+                             user_id: int, stream: bool = False, **kwargs) -> Union[ChatResponse, AsyncGenerator[str, None]]:
+        """与AI模型聊天"""
+        try:
+            model = self.model_repo.get_by_id(model_id)
+            if not model:
+                raise BusinessException(f"模型 {model_id} 不存在")
+
+            if not model.is_active():
+                raise BusinessException(f"模型 {model_id} 未激活")
+
+            # 转换消息格式
+            chat_messages = []
+            for msg in messages:
+                role = MessageRole(msg.get("role", "user"))
+                content = msg.get("content", "")
+                chat_messages.append(ChatMessage(role=role, content=content))
+
+            # 创建聊天请求
+            chat_request = ChatRequest(
+                messages=chat_messages,
+                model_id=model_id,
+                temperature=kwargs.get("temperature"),
+                max_tokens=kwargs.get("max_tokens"),
+                stream=stream,
+                user_id=user_id
+            )
+
+            # 调用AI客户端
+            response = await ai_client_service.chat(model, chat_request)
+
+            # 如果是完整响应，记录使用情况
+            if isinstance(response, ChatResponse):
+                self.record_model_usage(model_id, AIModelUsageRecordRequest(
+                    tokens_used=response.tokens_used,
+                    cost=response.cost,
+                    operation_type="chat",
+                    user_id=user_id
+                ))
+
+            return response
+
+        except Exception as e:
+            logger.error(f"Error chatting with AI model {model_id}: {str(e)}")
             raise
 
     def record_model_usage(self, model_id: int, request: AIModelUsageRecordRequest) -> bool:
