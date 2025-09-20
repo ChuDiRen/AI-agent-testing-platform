@@ -33,6 +33,8 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     """聊天请求"""
+    model_config = {"protected_namespaces": ()}  # 禁用保护命名空间警告
+
     model_id: int = Field(..., description="AI模型ID")
     messages: List[ChatMessage] = Field(..., description="聊天消息列表")
     temperature: Optional[float] = Field(0.7, ge=0.0, le=2.0, description="温度参数")
@@ -43,6 +45,8 @@ class ChatRequest(BaseModel):
 
 class ChatSessionCreateRequest(BaseModel):
     """创建聊天会话请求"""
+    model_config = {"protected_namespaces": ()}  # 禁用保护命名空间警告
+
     title: Optional[str] = Field(None, description="会话标题")
     model_id: int = Field(..., description="AI模型ID")
     system_prompt: Optional[str] = Field(None, description="系统提示词")
