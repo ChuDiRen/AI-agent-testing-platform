@@ -1,0 +1,193 @@
+---
+description: Python异常处理与错误管理规范
+globs: "*.py"
+alwaysApply: false
+---
+# 异常处理与错误管理规范
+
+## 异常分类体系
+
+### 业务异常 (BusinessException)
+- **使用场景**: 业务逻辑验证失败、业务规则不满足
+- **抛出位置**: Service层业务逻辑处理中
+- **示例**: 用户名已存在、库存不足、订单状态不允许操作
+- **处理方式**: `raise BusinessException("业务错误信息")`
+
+### 服务异常 (ServiceException) 
+- **使用场景**: 服务层处理过程中的系统性错误
+- **抛出位置**: Service层调用Repository层或外部服务时
+- **示例**: 外部API调用失败、数据处理异常、配置错误
+- **处理方式**: `raise ServiceException("服务错误信息")`
+
+### 数据访问异常 (DataAccessException)
+- **使用场景**: 数据库操作相关错误
+- **抛出位置**: Repository层
+- **示例**: SQL执行失败、数据库连接异常、数据完整性约束违反
+- **处理方式**: `raise DataAccessException("数据访问错误信息")`
+
+## 异常处理最佳实践
+
+### 日志记录规范
+```python
+# 推荐的异常日志记录方式
+import logging
+import json
+
+logger = logging.getLogger(__name__)
+
+try:
+    # 业务逻辑示例
+    result = await some_business_operation(params_dict)
+    logger.info(f"业务操作成功，结果：{result}")
+    return result
+except Exception as e:
+    logger.error(f"方法名执行失败，参数：{json.dumps(params_dict, default=str)}，错误信息：{str(e)}",
+                 exc_info=True)
+    raise ServiceException(f"操作失败：{str(e)}")
+```
+
+### 日志记录内容要求
+- **必须包含**: 方法名、关键参数、完整堆栈信息
+- **参数记录**: 使用JSON序列化关键参数，避免敏感信息泄露
+- **错误信息**: 记录原始异常消息和自定义业务消息
+- **日志级别**: 业务异常使用WARNING，系统异常使用ERROR
+
+### 异常传播策略
+- **Service层**: 捕获Repository层异常，转换为业务友好的错误信息
+- **Repository层**: 捕获数据库异常，记录详细日志，向上抛出包装后的异常
+- **API层**: 不处理业务异常，由全局异常处理器统一处理
+
+## 统一异常处理
+
+### 全局异常处理器
+- **位置**: `app/core/exception_handlers.py` 模块中配置
+- **职责**: 统一处理所有未捕获异常，返回标准错误响应
+- **响应格式**: 使用标准API响应结构封装错误信息
+
+### 错误码管理
+- **定义位置**: `app/core/exceptions.py` 文件
+- **命名规范**: 功能模块_错误类型_具体错误
+- **错误码分配**: 避免冲突，保持连续性
+- **错误信息**: 用户友好的中文描述
+
+## 异常处理示例
+
+### Service层异常处理
+```python
+import logging
+import json
+from app.core.exceptions import BusinessException, ServiceException
+
+logger = logging.getLogger(__name__)
+
+async def create_user(self, create_data: UserCreateSchema) -> UserResponse:
+    try:
+        logger.info(f"创建用户，参数：{json.dumps(create_data.dict(), default=str)}")
+        
+        # 业务验证
+        existing_user = await self.user_repo.get_by_username(create_data.username)
+        if existing_user:
+            raise BusinessException("用户名已存在")
+        
+        # 执行创建
+        user = await self.user_repo.create(create_data)
+        
+        return UserResponse.from_orm(user)
+    except BusinessException:
+        raise  # 重新抛出业务异常
+    except Exception as e:
+        logger.error(f"创建用户失败，参数：{json.dumps(create_data.dict(), default=str)}，错误：{str(e)}", 
+                     exc_info=True)
+        raise ServiceException(f"创建用户失败：{str(e)}")
+```
+
+### Repository层异常处理
+```python
+import logging
+from sqlalchemy.exc import SQLAlchemyError
+from app.core.exceptions import DataAccessException
+
+logger = logging.getLogger(__name__)
+
+async def create_user(self, user_data: dict) -> UserModel:
+    try:
+        logger.info(f"保存用户信息，用户名：{user_data.get('username')}")
+        
+        # 数据库操作
+        user = UserModel(**user_data)
+        self.db.add(user)
+        await self.db.commit()
+        await self.db.refresh(user)
+        
+        return user
+    except SQLAlchemyError as e:
+        await self.db.rollback()
+        logger.error(f"保存用户信息失败，用户名：{user_data.get('username')}，错误：{str(e)}", 
+                     exc_info=True)
+        raise DataAccessException(f"保存用户信息失败：{str(e)}")
+```
+
+## 特殊场景处理
+
+### 事务回滚场景
+```python
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.exceptions import ServiceException
+
+async def register_user(self, register_data: RegisterSchema) -> None:
+    async with self.db.begin():  # 自动事务管理
+        try:
+            # 创建门店
+            shop = await self.shop_repo.create(register_data.shop_data)
+            
+            # 创建用户
+            user_data = register_data.user_data
+            user_data.shop_id = shop.id
+            user = await self.user_repo.create(user_data)
+            
+            # 创建钱包
+            await self.wallet_repo.create({"shop_id": shop.id})
+            
+        except Exception as e:
+            logger.error(f"用户注册失败，参数：{json.dumps(register_data.dict(), default=str)}，错误：{str(e)}", 
+                         exc_info=True)
+            # 事务自动回滚
+            raise ServiceException(f"注册失败：{str(e)}")
+```
+
+### 外部API调用异常
+```python
+import httpx
+from app.core.exceptions import ServiceException
+
+async def send_sms(self, phone: str, code: str) -> str:
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://sms-api.example.com/send",
+                json={"phone": phone, "code": code}
+            )
+            response.raise_for_status()
+            
+            result = response.json()
+            if not result.get("success"):
+                logger.warning(f"短信发送失败，手机号：{phone}，响应：{result}")
+                raise ServiceException(f"短信发送失败：{result.get('message')}")
+            
+            return result.get("message_id")
+    except httpx.HTTPError as e:
+        logger.error(f"短信发送异常，手机号：{phone}，错误：{str(e)}", exc_info=True)
+        raise ServiceException(f"短信服务异常：{str(e)}")
+```
+
+## 监控与告警
+
+### 错误监控
+- **日志聚合**: 使用ELK等工具收集和分析错误日志
+- **异常统计**: 统计各类异常的发生频率和趋势
+- **性能监控**: 监控异常对系统性能的影响
+
+### 告警机制
+- **严重异常**: 系统异常立即告警
+- **业务异常**: 超过阈值时告警
+- **错误率**: 错误率超过预设值时告警

@@ -1,0 +1,7 @@
+---
+description: 项目需求说明 - FastAPI B2B生鲜订货商城
+globs: "*.py"
+alwaysApply: false
+---
+# 项目说明
+我现在要做的是一个基于FastAPI的B2B生鲜订货商城。

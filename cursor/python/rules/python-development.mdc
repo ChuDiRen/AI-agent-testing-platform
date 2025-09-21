@@ -1,0 +1,279 @@
+---
+description: Python开发规范和最佳实践
+globs: "*.py"
+alwaysApply: true
+---
+
+# Python开发规范 - FastAPI项目系统
+
+## 本项目技术栈
+本项目是一个基于FastAPI的现代Web应用系统。使用FastAPI + SQLAlchemy + Pydantic + Alembic
+
+## 核心原则
+- 严格遵循 **PEP 8** 编码规范
+- 遵循 **SOLID、DRY、KISS、YAGNI** 原则
+- 采用 **分层架构设计**，确保职责分离
+- 代码变更需通过 **单元测试覆盖**（测试覆盖率 ≥ 80%）
+- 强制使用 **类型注解**（Type Hints）
+- 每次写完所有的代码都要进行语法检查确认是否有错误
+
+## 项目架构规范
+
+### 模块划分
+- **app/core**: 核心配置模块（配置、安全、依赖注入）
+- **app/api**: API路由模块（路由定义、请求处理）
+- **app/services**: 业务逻辑模块（Service层实现）
+- **app/repositories**: 数据访问模块（Repository层、数据库操作）
+- **app/models**: 数据模型模块（SQLAlchemy模型、Pydantic模型）
+- **app/utils**: 工具函数模块（通用工具、辅助函数）
+
+### 分层职责规范
+
+#### API层 (`app/api`)
+- **职责边界**: 仅负责请求处理和响应，**禁止编写业务逻辑**
+- **调用规范**: 只能调用app/services下的Service方法
+- **路由规范**: 
+  - 请求方法：支持GET、POST、PUT、DELETE、PATCH
+  - 参数规范：使用Pydantic模型进行参数验证
+  - 响应格式：统一使用标准HTTP状态码和JSON响应
+- **路径规范**: 
+  - 管理接口: `/api/v1/admin/`
+  - 用户接口: `/api/v1/users/`
+  - 公共接口: `/api/v1/public/`
+
+#### Service层 (`app/services`)
+- **职责**: 业务逻辑实现、数据验证、权限控制、事务协调
+- **设计原则**: 一个业务领域一个Service，一个功能一个方法
+- **调用规范**: Service层通过Repository访问数据，禁止直接操作数据库
+- **数据类型**: 入参和返参使用Pydantic模型，避免直接使用SQLAlchemy模型
+- **异步支持**: 所有Service方法必须支持异步操作
+
+#### Repository层 (`app/repositories`)
+- **职责**: 封装数据库访问，提供数据持久化抽象
+- **调用规范**: 仅供Service层调用，禁止API层直接调用
+- **数据库操作**: 
+  - 使用SQLAlchemy进行ORM操作
+  - 复杂查询使用原生SQL
+  - 必须支持事务管理
+- **设计原则**: 一个实体一个Repository，可组合调用其他Repository
+- **异步支持**: 使用asyncio和异步数据库驱动
+
+#### Model层 (`app/models`)
+- **SQLAlchemy模型**: 数据库表结构定义，仅用于数据持久化
+- **Pydantic模型**: 数据验证和序列化，用于API输入输出
+- **DTO模型**: 数据传输对象，用于层间数据传递
+- **命名规范**: 
+  - SQLAlchemy: `{Entity}Model`
+  - Pydantic: `{Entity}Schema`, `{Entity}Create`, `{Entity}Update`
+
+## 编码规范
+
+### PEP 8 规范
+- **缩进**: 使用4个空格，禁止使用Tab
+- **行长度**: 每行最多88个字符（Black格式化器标准）
+- **命名规范**:
+  - 变量和函数: `snake_case`
+  - 类名: `PascalCase`
+  - 常量: `UPPER_SNAKE_CASE`
+  - 私有属性: `_leading_underscore`
+
+### 类型注解规范
+```python
+from typing import Optional, List, Dict, Union
+from pydantic import BaseModel
+
+# 函数类型注解
+async def get_user_by_id(user_id: int) -> Optional[UserSchema]:
+    """根据ID获取用户信息"""
+    user = await user_repository.get_by_id(user_id)
+    if user:
+        return UserSchema.from_orm(user)
+    return None
+
+# 类属性类型注解
+class UserService:
+    def __init__(self, user_repo: UserRepository) -> None:
+        self._user_repo = user_repo
+```
+
+### 文档字符串规范
+```python
+def create_user(user_data: UserCreate) -> UserSchema:
+    """创建新用户
+
+    Args:
+        user_data: 用户创建数据
+
+    Returns:
+        创建的用户信息
+
+    Raises:
+        ValueError: 当用户数据无效时
+        UserExistsError: 当用户已存在时
+    """
+    # 验证用户数据
+    if not user_data.username or len(user_data.username) < 3:
+        raise ValueError("用户名长度至少3位")
+
+    # 检查用户是否已存在
+    existing_user = user_repository.get_by_username(user_data.username)
+    if existing_user:
+        raise UserExistsError("用户名已存在")
+
+    # 创建用户
+    user = user_repository.create(user_data)
+    return UserSchema.from_orm(user)
+```
+
+## 依赖管理规范
+
+### Poetry使用
+- **依赖定义**: 使用pyproject.toml管理依赖
+- **版本锁定**: 使用poetry.lock锁定依赖版本
+- **开发依赖**: 区分生产依赖和开发依赖
+- **虚拟环境**: 使用poetry管理虚拟环境
+
+### 包导入规范
+```python
+# 标准库导入
+import os
+import sys
+from datetime import datetime
+
+# 第三方库导入
+from fastapi import FastAPI, Depends
+from sqlalchemy.orm import Session
+
+# 本地模块导入
+from app.core.config import settings
+from app.models.user import UserModel
+```
+
+## 异常处理规范
+
+### 异常分类
+- `BusinessException`: 业务逻辑异常
+- `ValidationError`: 数据验证异常
+- `DatabaseError`: 数据库操作异常
+- `AuthenticationError`: 认证异常
+- `AuthorizationError`: 授权异常
+
+### 异常处理原则
+```python
+from app.core.exceptions import BusinessException
+
+async def get_user(user_id: int, user_repo: UserRepository) -> UserSchema:
+    try:
+        user = await user_repo.get_by_id(user_id)
+        if not user:
+            raise BusinessException(f"用户 {user_id} 不存在")
+        return user
+    except DatabaseError as e:
+        logger.error(f"数据库查询失败: {e}")
+        raise
+```
+
+## 日志记录规范
+
+### 日志配置
+```python
+import logging
+from app.core.config import settings
+
+# 日志格式配置
+logging.basicConfig(
+    level=settings.LOG_LEVEL,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+
+logger = logging.getLogger(__name__)
+```
+
+### 日志使用
+```python
+# 信息日志
+logger.info(f"用户 {user_id} 登录成功")
+
+# 错误日志
+logger.error(f"用户创建失败: {str(e)}", exc_info=True)
+
+# 调试日志
+logger.debug(f"查询参数: {query_params}")
+```
+
+## 测试规范
+
+### 测试结构
+```
+tests/
+├── unit/           # 单元测试
+├── integration/    # 集成测试
+├── e2e/           # 端到端测试
+└── conftest.py    # 测试配置
+```
+
+### 测试编写
+```python
+import pytest
+from httpx import AsyncClient
+
+@pytest.mark.asyncio
+async def test_create_user(client: AsyncClient):
+    """测试用户创建"""
+    user_data = {
+        "username": "testuser",
+        "email": "test@example.com"
+    }
+    response = await client.post("/api/v1/users/", json=user_data)
+    assert response.status_code == 201
+    assert response.json()["username"] == "testuser"
+```
+
+## 严格禁止事项
+
+1. **直接数据库操作**: 禁止在Service层直接使用SQLAlchemy Session
+2. **同步代码**: 禁止在异步环境中使用同步代码
+3. **硬编码**: 禁止硬编码配置信息，必须使用环境变量
+4. **无类型注解**: 禁止编写无类型注解的函数和方法
+5. **循环导入**: 避免模块间的循环导入
+6. **全局变量**: 避免使用全局变量，使用依赖注入
+
+## 性能优化规范
+
+### 异步编程
+- **异步函数**: 所有I/O操作必须使用异步函数
+- **并发控制**: 使用asyncio.gather进行并发操作
+- **连接池**: 使用数据库连接池管理连接
+
+### 缓存策略
+- **内存缓存**: 使用Redis进行数据缓存
+- **查询优化**: 避免N+1查询问题
+- **懒加载**: 使用SQLAlchemy的懒加载特性
+
+## 代码质量工具
+
+### 格式化工具
+- **Black**: 代码格式化
+- **isort**: 导入语句排序
+- **autoflake**: 移除未使用的导入
+
+### 静态检查
+- **mypy**: 类型检查
+- **flake8**: 代码风格检查
+- **bandit**: 安全检查
+
+### 配置示例
+```toml
+# pyproject.toml
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+```

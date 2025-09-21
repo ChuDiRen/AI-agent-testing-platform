@@ -1,0 +1,560 @@
+---
+description: Python Web API设计规范
+globs: "*.py"
+alwaysApply: true
+---
+
+# Python Web API 设计与开发规范
+
+## RESTful 接口设计规范
+
+### URL 路径设计
+- **API版本管理**: 使用 `/api/v1/` 路径前缀进行版本控制
+- **管理接口**: 使用 `/api/v1/admin/` 路径前缀
+- **用户接口**: 使用 `/api/v1/users/` 路径前缀  
+- **公共接口**: 使用 `/api/v1/public/` 路径前缀
+
+### 资源命名规范
+- **资源名词**: 使用复数形式，如 `/users`、`/orders`、`/products`
+- **层级关系**: 体现资源间的层级关系，如 `/users/{id}/orders`
+- **避免动词**: URL中避免使用动词，动作通过HTTP方法表达
+- **小写字母**: 统一使用小写字母，单词间用连字符分隔
+
+### HTTP 方法规范
+- **GET**: 获取资源数据，支持查询参数
+- **POST**: 创建新资源
+- **PUT**: 完整更新资源
+- **PATCH**: 部分更新资源
+- **DELETE**: 删除资源
+
+## 请求与响应规范
+
+### 请求参数规范
+```python
+from pydantic import BaseModel, Field
+from typing import Optional, List
+from datetime import datetime
+
+class UserQueryParams(BaseModel):
+    """用户查询参数"""
+    page: int = Field(1, ge=1, description="页码")
+    size: int = Field(20, ge=1, le=100, description="每页数量")
+    username: Optional[str] = Field(None, description="用户名筛选")
+    is_active: Optional[bool] = Field(None, description="激活状态筛选")
+    created_after: Optional[datetime] = Field(None, description="创建时间筛选")
+
+class UserCreateRequest(BaseModel):
+    """用户创建请求"""
+    username: str = Field(..., min_length=3, max_length=50, description="用户名")
+    email: str = Field(..., description="邮箱地址")
+    password: str = Field(..., min_length=8, description="密码")
+    full_name: Optional[str] = Field(None, max_length=100, description="全名")
+```
+
+### 响应格式规范
+```python
+from pydantic import BaseModel
+from typing import Generic, TypeVar, Optional, List, Any
+
+T = TypeVar('T')
+
+class APIResponse(BaseModel, Generic[T]):
+    """统一API响应格式"""
+    success: bool = True
+    message: str = "操作成功"
+    data: Optional[T] = None
+    error_code: Optional[str] = None
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    """分页响应格式"""
+    items: List[T]
+    total: int
+    page: int
+    size: int
+    pages: int
+
+class UserResponse(BaseModel):
+    """用户响应模型"""
+    id: int
+    username: str
+    email: str
+    full_name: Optional[str]
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        orm_mode = True
+```
+
+### 响应示例
+```json
+{
+  "success": true,
+  "message": "操作成功",
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "username": "john_doe",
+        "email": "john@example.com",
+        "full_name": "John Doe",
+        "is_active": true,
+        "created_at": "2025-01-21T10:00:00Z",
+        "updated_at": "2025-01-21T10:00:00Z"
+      }
+    ],
+    "total": 100,
+    "page": 1,
+    "size": 20,
+    "pages": 5
+  },
+  "error_code": null
+}
+```
+
+## FastAPI路由设计
+
+### 路由组织结构
+```python
+# api/v1/endpoints/users.py
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import List
+from app.models.schemas.user import UserResponse, UserCreateRequest, UserUpdateRequest
+from app.models.schemas.common import APIResponse, PaginatedResponse
+from app.services.user_service import UserService
+from app.api.deps import get_current_user, get_user_service
+
+router = APIRouter(prefix="/users", tags=["用户管理"])
+
+@router.get("/", response_model=APIResponse[PaginatedResponse[UserResponse]])
+async def get_users(
+    page: int = Query(1, ge=1, description="页码"),
+    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    username: Optional[str] = Query(None, description="用户名筛选"),
+    user_service: UserService = Depends(get_user_service)
+) -> APIResponse[PaginatedResponse[UserResponse]]:
+    """获取用户列表"""
+    result = await user_service.get_users_paginated(
+        page=page, size=size, username=username
+    )
+    return APIResponse(data=result)
+
+@router.post("/", response_model=APIResponse[UserResponse], status_code=status.HTTP_201_CREATED)
+async def create_user(
+    user_data: UserCreateRequest,
+    user_service: UserService = Depends(get_user_service)
+) -> APIResponse[UserResponse]:
+    """创建用户"""
+    user = await user_service.create_user(user_data)
+    return APIResponse(message="用户创建成功", data=user)
+
+@router.get("/{user_id}", response_model=APIResponse[UserResponse])
+async def get_user(
+    user_id: int,
+    user_service: UserService = Depends(get_user_service)
+) -> APIResponse[UserResponse]:
+    """获取用户详情"""
+    user = await user_service.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="用户不存在"
+        )
+    return APIResponse(data=user)
+```
+
+### 参数验证和依赖注入
+```python
+# api/deps.py
+from fastapi import Depends, HTTPException, status, Header
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.database import get_db
+from app.services.user_service import UserService
+from app.services.auth_service import AuthService
+from app.models.database.user import UserModel
+
+security = HTTPBearer()
+
+async def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
+    """获取用户服务依赖"""
+    return UserService(db)
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    auth_service: AuthService = Depends(get_auth_service)
+) -> UserModel:
+    """获取当前登录用户"""
+    token = credentials.credentials
+    user = await auth_service.get_user_from_token(token)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="无效的认证令牌",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+
+async def get_current_active_user(
+    current_user: UserModel = Depends(get_current_user)
+) -> UserModel:
+    """获取当前活跃用户"""
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="用户账户已被禁用"
+        )
+    return current_user
+```
+
+## 认证和安全规范
+
+### JWT认证实现
+```python
+# services/auth_service.py
+from datetime import datetime, timedelta
+from typing import Optional
+import jwt
+from passlib.context import CryptContext
+from app.core.config import settings
+from app.models.schemas.auth import TokenResponse, LoginRequest
+from app.repositories.user_repository import UserRepository
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+class AuthService:
+    """认证服务"""
+    
+    def __init__(self, user_repo: UserRepository):
+        self.user_repo = user_repo
+    
+    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
+        """验证密码"""
+        return pwd_context.verify(plain_password, hashed_password)
+    
+    def get_password_hash(self, password: str) -> str:
+        """生成密码哈希"""
+        return pwd_context.hash(password)
+    
+    def create_access_token(self, data: dict, expires_delta: Optional[timedelta] = None) -> str:
+        """创建访问令牌"""
+        to_encode = data.copy()
+        if expires_delta:
+            expire = datetime.utcnow() + expires_delta
+        else:
+            expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        
+        to_encode.update({"exp": expire})
+        encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        return encoded_jwt
+    
+    async def authenticate_user(self, login_data: LoginRequest) -> Optional[UserModel]:
+        """用户认证"""
+        user = await self.user_repo.get_by_email(login_data.email)
+        if not user or not self.verify_password(login_data.password, user.hashed_password):
+            return None
+        return user
+```
+
+### 权限控制
+```python
+# core/permissions.py
+from enum import Enum
+from typing import List
+from fastapi import HTTPException, status, Depends
+from app.models.database.user import UserModel
+from app.api.deps import get_current_active_user
+
+class Permission(str, Enum):
+    """权限枚举"""
+    READ_USERS = "read:users"
+    WRITE_USERS = "write:users"
+    DELETE_USERS = "delete:users"
+    ADMIN_ACCESS = "admin:access"
+
+class RequirePermissions:
+    """权限检查依赖"""
+    
+    def __init__(self, permissions: List[Permission]):
+        self.permissions = permissions
+    
+    def __call__(self, current_user: UserModel = Depends(get_current_active_user)):
+        user_permissions = self.get_user_permissions(current_user)
+        
+        for permission in self.permissions:
+            if permission not in user_permissions:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"缺少权限: {permission}"
+                )
+        return current_user
+    
+    def get_user_permissions(self, user: UserModel) -> List[str]:
+        """获取用户权限列表"""
+        # 根据用户角色返回权限列表
+        if user.is_superuser:
+            return [p.value for p in Permission]
+        # 其他角色权限逻辑
+        return []
+
+# 使用示例
+@router.delete("/{user_id}")
+async def delete_user(
+    user_id: int,
+    current_user: UserModel = Depends(RequirePermissions([Permission.DELETE_USERS])),
+    user_service: UserService = Depends(get_user_service)
+):
+    """删除用户"""
+    await user_service.delete_user(user_id)
+    return APIResponse(message="用户删除成功")
+```
+
+## 错误处理和状态码
+
+### 自定义异常类
+```python
+# core/exceptions.py
+from typing import Optional, Dict, Any
+
+class APIException(Exception):
+    """API异常基类"""
+    def __init__(
+        self,
+        message: str,
+        error_code: str,
+        status_code: int = 400,
+        details: Optional[Dict[str, Any]] = None
+    ):
+        self.message = message
+        self.error_code = error_code
+        self.status_code = status_code
+        self.details = details or {}
+        super().__init__(self.message)
+
+class ValidationError(APIException):
+    """验证错误"""
+    def __init__(self, message: str, field: str = None):
+        super().__init__(
+            message=message,
+            error_code="VALIDATION_ERROR",
+            status_code=422,
+            details={"field": field} if field else {}
+        )
+
+class NotFoundError(APIException):
+    """资源不存在错误"""
+    def __init__(self, resource: str, identifier: str):
+        super().__init__(
+            message=f"{resource}不存在",
+            error_code="NOT_FOUND",
+            status_code=404,
+            details={"resource": resource, "identifier": identifier}
+        )
+
+class BusinessError(APIException):
+    """业务逻辑错误"""
+    def __init__(self, message: str, error_code: str = "BUSINESS_ERROR"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=400
+        )
+```
+
+### 全局异常处理器
+```python
+# core/exception_handlers.py
+from fastapi import Request, HTTPException
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from app.core.exceptions import APIException
+from app.models.schemas.common import APIResponse
+
+async def api_exception_handler(request: Request, exc: APIException) -> JSONResponse:
+    """API异常处理器"""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=APIResponse(
+            success=False,
+            message=exc.message,
+            error_code=exc.error_code,
+            data=exc.details if exc.details else None
+        ).dict()
+    )
+
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """验证异常处理器"""
+    errors = []
+    for error in exc.errors():
+        errors.append({
+            "field": ".".join(str(x) for x in error["loc"]),
+            "message": error["msg"],
+            "type": error["type"]
+        })
+    
+    return JSONResponse(
+        status_code=422,
+        content=APIResponse(
+            success=False,
+            message="请求参数验证失败",
+            error_code="VALIDATION_ERROR",
+            data={"errors": errors}
+        ).dict()
+    )
+
+# 在main.py中注册异常处理器
+app.add_exception_handler(APIException, api_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+```
+
+## API文档和版本管理
+
+### OpenAPI文档配置
+```python
+# main.py
+from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
+
+def custom_openapi():
+    """自定义OpenAPI文档"""
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title="FastAPI项目API文档",
+        version="1.0.0",
+        description="这是一个基于FastAPI的项目API文档",
+        routes=app.routes,
+    )
+    
+    # 添加安全方案
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }
+    }
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
+```
+
+### API版本管理
+```python
+# api/v1/api.py
+from fastapi import APIRouter
+from app.api.v1.endpoints import users, auth, items
+
+api_router = APIRouter()
+
+# 包含各个模块的路由
+api_router.include_router(auth.router, prefix="/auth", tags=["认证"])
+api_router.include_router(users.router, prefix="/users", tags=["用户管理"])
+api_router.include_router(items.router, prefix="/items", tags=["物品管理"])
+
+# api/v2/api.py (新版本)
+from fastapi import APIRouter
+from app.api.v2.endpoints import users_v2, auth_v2
+
+api_router_v2 = APIRouter()
+api_router_v2.include_router(auth_v2.router, prefix="/auth", tags=["认证 V2"])
+api_router_v2.include_router(users_v2.router, prefix="/users", tags=["用户管理 V2"])
+```
+
+## 性能优化和监控
+
+### 请求日志中间件
+```python
+# core/middleware.py
+import time
+import logging
+from fastapi import Request, Response
+from starlette.middleware.base import BaseHTTPMiddleware
+
+logger = logging.getLogger(__name__)
+
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    """请求日志中间件"""
+    
+    async def dispatch(self, request: Request, call_next) -> Response:
+        start_time = time.time()
+        
+        # 记录请求信息
+        logger.info(f"请求开始: {request.method} {request.url}")
+        
+        # 处理请求
+        response = await call_next(request)
+        
+        # 计算处理时间
+        process_time = time.time() - start_time
+        
+        # 记录响应信息
+        logger.info(
+            f"请求完成: {request.method} {request.url} - "
+            f"状态码: {response.status_code} - 耗时: {process_time:.4f}s"
+        )
+        
+        # 添加响应头
+        response.headers["X-Process-Time"] = str(process_time)
+        
+        return response
+```
+
+### 缓存策略
+```python
+# utils/cache.py
+import json
+from typing import Optional, Any
+from functools import wraps
+import redis.asyncio as redis
+from app.core.config import settings
+
+redis_client = redis.from_url(settings.REDIS_URL)
+
+def cache_result(expire_time: int = 300):
+    """结果缓存装饰器"""
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # 生成缓存键
+            cache_key = f"{func.__name__}:{hash(str(args) + str(kwargs))}"
+            
+            # 尝试从缓存获取
+            cached_result = await redis_client.get(cache_key)
+            if cached_result:
+                return json.loads(cached_result)
+            
+            # 执行函数并缓存结果
+            result = await func(*args, **kwargs)
+            await redis_client.setex(
+                cache_key, 
+                expire_time, 
+                json.dumps(result, default=str)
+            )
+            
+            return result
+        return wrapper
+    return decorator
+
+# 使用示例
+@cache_result(expire_time=600)
+async def get_user_profile(user_id: int) -> dict:
+    """获取用户资料（带缓存）"""
+    # 实际的数据库查询逻辑
+    user = await user_repository.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "full_name": user.full_name,
+        "is_active": user.is_active,
+        "created_at": user.created_at.isoformat()
+    }
+```
