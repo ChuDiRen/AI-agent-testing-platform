@@ -1,0 +1,34 @@
+# Copyright (c) 2025 左岚. All rights reserved.
+# 开发环境配置文件
+
+spring:
+  datasource:
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:data/ai_agent_testing.db
+    username:
+    password:
+
+# 日志配置
+logging:
+  level:
+    root: info
+    com.example.aiagent: debug
+    org.springframework.security: debug
+    com.baomidou.mybatisplus: debug
+
+# MyBatis-Plus配置
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 开发环境打印SQL
+
+# JWT配置
+jwt:
+  secret: ai-agent-dev-secret-key
+  expiration: 86400  # 开发环境24小时
+
+# Swagger配置
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

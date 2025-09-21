@@ -1,0 +1,35 @@
+-- Copyright (c) 2025 左岚. All rights reserved.
+-- SQLite数据库初始化脚本
+
+-- 创建用户表
+CREATE TABLE IF NOT EXISTS user (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(100),
+    phone VARCHAR(20),
+    status INTEGER DEFAULT 1,
+    created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted INTEGER DEFAULT 0
+);
+
+-- 创建角色表
+CREATE TABLE IF NOT EXISTS role (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(200),
+    created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted INTEGER DEFAULT 0
+);
+
+-- 创建用户角色关联表
+CREATE TABLE IF NOT EXISTS user_role (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    role_id INTEGER NOT NULL,
+    created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user(id),
+    FOREIGN KEY (role_id) REFERENCES role(id)
+);
