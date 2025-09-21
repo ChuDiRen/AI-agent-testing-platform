@@ -1,0 +1,215 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Java开发规范 - GYL B2B商城系统
+## 本项目技术栈
+本项目是一个B2B商城+供应链系统。使用springbootmvc+mybatis-plus
+## 核心原则
+- 严格遵循 **SOLID、DRY、KISS、YAGNI** 原则
+- 遵循 **OWASP 安全最佳实践**（输入验证、SQL注入防护）
+- 采用 **分层架构设计**，确保职责分离
+- 代码变更需通过 **单元测试覆盖**（测试覆盖率 ≥ 80%）
+- 每次写完所有的代码都要进行build操作没确认是否有语法错误
+## 项目架构规范
+
+### 模块划分
+- **[gyl-common](mdc:gyl-common)**: 通用工具模块（工具函数、枚举类、通用DTO、异常定义）
+- **[gyl-core](mdc:gyl-core)**: 核心业务模块（Service、Manager、DTO、Convert）
+- **[gyl-gateway](mdc:gyl-gateway)**: 网关层（HTTP请求处理、参数校验、路由转发）
+- **[gyl-mapper](mdc:gyl-mapper)**: 数据持久化层（Entity、Mapper接口、XML）
+
+### 分层职责规范
+
+#### Gateway层 (`gyl-gateway`)
+- **职责边界**: 仅负参数校验和请求路由，**禁止编写业务逻辑**
+- **调用规范**: 只能调用gyl-core下的Service方法
+- **API规范**: 
+  - 请求方法：仅允许POST和GET请求
+  - 参数规范：超过2个参数必须定义DTO实体
+  - 响应格式：统一使用 [Result](mdc:gyl-common/src/main/java/com/njgyl/common/result/Result.java) 封装
+- **路径规范**: 
+  - 后台管理: `/api/admin/`
+  - 商城应用: `/api/app/`
+  - 仓配系统: `/api/wms/`
+
+#### Service层 (`gyl-core/service`)
+- **职责**: 业务逻辑实现、参数校验、权限控制、事务管理
+- **设计原则**: 一个业务领域一个Service，一个功能一个方法
+- **调用规范**: Service 层必须通过 Manager 访问数据库及缓存，禁止直接操作 Mapper 或 Redis
+- **数据类型**: 入参和返参使用DTO类型，避免直接使用实体类
+
+#### Manager层 (`gyl-core/manager`)
+- **职责**: 封装数据库访问与缓存操作，聚合多表读写，提供细粒度的领域方法
+- **调用规范**: 仅供 Service 层调用，禁止 Gateway 层或其他层直接调用
+- **资源访问**:
+  - 只能调用 `gyl-mapper` 下的 Mapper 接口进行数据库操作
+  - 统一负责 Redis 缓存的读写，必须使用 [RedisUtil](mdc:gyl-common/src/main/java/com/njgyl/common/redis/RedisUtil.java)
+- **设计原则**: 一个领域聚合一个 Manager，可组合调用其他 Manager，但应避免循环依赖,执行创建操作赋值给Entity时，必须每个字段都要赋值，不能出现漏字段漏赋值的情况.
+- **事务规范**: 跨表写操作必须使用 `@Transactional(rollbackFor = Exception.class)`
+- **接口规范**: 不需要定义接口，默认继承`com.baomidou.mybatisplus.extension.service.IService<Entity>`
+- **数据类型**: 入参和返参使用DTO类型、实体类型、DO类型，避免使用多个变量作为参数，比如以下方法定义就是错误例子：
+```
+ boolean deductPoints(Integer shopId, Integer userId, Integer points, Integer changeType,
+                        String businessType, String businessId, String remark,
+                        Integer operatorId, String operatorName);
+```
+
+
+#### Mapper层 (`gyl-mapper`)
+- **职责**: 数据库访问，包含通用的增删改查，分页方法，一个表对应一个Mapper，可以使用多表联合查询，联合查询不超过三个表
+- **技术选型**: 优先使用MyBatis-Plus单表CRUD，复杂查询使用XML
+- **调用规范**: Mapper 接口只能被 Manager 调用，Service 层或其他层禁止直接调用
+- **接口规范**: 必须继承`com.baomidou.mybatisplus.core.mapper.BaseMapper<Entity>`
+- **文件规范**: XML文件命名为`表名+Mapper.xml`，存放在`gyl-mapper/src/main/resources/mapper/`
+- **数据类型**: 入参使用Entity或自定义DO对象， 如果返回的是整表的字段可以使用Entity, 如果有多表联合字段，需要定DO对象，禁止自定义Map类型,
+- **注意**: 所有SQL必须写到mapper.xml 文件中，不允许在mapper方法中写SQL语句。
+
+
+## 通用工具使用规范
+
+### 分页处理
+- 所有分页DTO必须继承 [PageQueryDTO](mdc:gyl-common/src/main/java/com/njgyl/common/dto/PageQueryDTO.java)
+- 单表查询使用 [MyBatisPlusUtils](mdc:gyl-core/src/main/java/com/njgyl/core/util/MyBatisPlusUtils.java) 工具类
+- 分页返回对象使用 [ListWithPageDTO](mdc:gyl-common/src/main/java/com/njgyl/common/dto/ListWithPageDTO.java) 封装
+
+### 金额处理
+- 所有金额转换统一使用 [AmountUtil](mdc:gyl-common/src/main/java/com/njgyl/common/util/AmountUtil.java)
+- 数据库存储：分为单位（Integer）
+- 前端展示：元为单位（BigDecimal）
+- **严禁**: 使用float和double进行金额计算
+
+### 用户信息获取
+- 获取当前登录用户信息必须使用 [GatewayContextHolder](mdc:gyl-core/src/main/java/com/njgyl/core/util/GatewayContextHolder.java)，只能在controller层获取
+- 支持获取用户ID、用户名、门店ID等信息
+- Service层和Manager层中可以直接使用
+
+### Redis缓存
+- Redis操作统一使用 [RedisUtil](mdc:gyl-common/src/main/java/com/njgyl/common/redis/RedisUtil.java) 工具类
+- 所有Redis key维护在 [RedisKeyConsts](mdc:gyl-common/src/main/java/com/njgyl/common/consts/RedisKeyConsts.java) 中
+- 缓存命名规范：`模块名_功能名_标识符`
+- 缓存时效：登录token缓存7天，验证码缓存5分钟
+
+### Hutool工具库优先
+- 字符串操作：`StrUtil` 替代 `StringUtils`
+- 集合操作：`CollUtil` 处理集合相关操作
+- 时间处理：`DateUtil` 进行时间格式化和计算
+- UUID生成：`IdUtil.fastUUID()`
+
+## 数据处理规范
+
+### DTO规范
+- **命名规范**: 功能明确命名，如`AdminUserCreateDTO`、`MallUserLoginDTO`
+- **字段校验**: 使用Bean Validation注解进行参数校验（`@NotBlank`, `@Size`, `@Email`等）
+- **分类存放**: 按功能分包存放（user/、shop/、goods/等）
+- **对象转换**: **禁止使用`BeanUtil.copyProperties()`**，采用手动字段赋值
+- **转换封装**: DTO转换方法统一放在各模块convert包中
+
+### 枚举和状态管理
+- 所有状态字段使用枚举类型，避免魔法数字
+- 枚举定义在对应模块的enums包中
+- 状态变更通过枚举方法进行校验
+
+### Entity赋值规范
+- 创建或更新 Entity 对象时，必须为所有必填字段逐一显式赋值，任何字段不得遗漏  
+- 建议使用 **Builder 模式** 或全参构造函数确保字段完整  
+- **严禁** 使用 `BeanUtil.copyProperties()` 或类似"快速复制"方式，必须手动赋值以增强可读性与可控性  
+- 代码评审时应重点检查 Entity 字段是否全部赋值，防止空值写入数据库
+
+## 安全规范
+
+### 密码安全
+- 密码存储必须使用MD5加密：`MD5.create().digestHex(password)`
+- 登录验证时对比加密后的密码
+- 重置密码时重新加密存储
+
+### 数据验证
+- 所有外部输入必须验证
+- 使用参数化查询防SQL注入
+- 对输出内容进行适当转义防XSS
+
+### 认证授权
+- Redis缓存登录状态，基于角色的权限管理
+- AdminHandlerInterceptors（后台）、ShopHandlerInterceptors（商城）
+
+## 异常处理规范
+
+### 异常分类
+- `BusinessException`: 业务逻辑异常
+- `ServiceException`: 服务层处理异常  
+- `DataAccessException`: 数据访问异常
+
+### 异常处理原则
+- 所有异常catch必须记录详细日志（堆栈、参数、方法信息）
+- Service层异常由统一异常处理器处理
+- **事务异常**: 在`@Transactional`函数中不要使用`try...catch`捕获异常
+
+## 严格禁止事项
+
+1. **文件修改**: 禁止修改`pom.xml`（未经允许）和实体类文件
+2. **对象拷贝**: 禁止使用`BeanUtil.copyProperties()`
+3. **循环查询**: 禁止在循环中查询数据，应该使用批量查询
+4. **包名调用**: 不要使用完整包名调用类或方法
+5. **数据库变更**: 必须生成SQL文档存放在`doc/`目录
+6. **方法实现** : 禁止生成空的方法或者使用测试、默认的值，如果有请在生成完会后告知我
+
+## 开发流程规范
+
+### 标准开发流程
+1. **需求分析**: 查阅 [README.md](mdc:README.md) 确认是否有相似功能
+2. **架构设计**: 确定核心逻辑实现层级，避免重复开发
+3. **Mapper层**: 定义数据访问接口，包括常用的正删改查，根据ID或者IDS获取数据，根据Entity 来设置condition查询数据
+4. **Service层**: 实现具体业务流程
+5. **Controller层**: 提供HTTP接口，仅做参数校验和路由
+
+### 代码复用原则
+- 开发前必查@README中的service说明
+- 发现重复代码时，及时重构到合适层级
+
+### 代码质量要求
+- 每个方法添加Javadoc注释
+- 方法行数不超过300行
+- 使用描述性的变量、函数和类名
+- 保持代码简洁明了，遵循KISS原则
+- 
+
+## 性能优化规范
+
+1. **数据库操作**:
+   - 避免在循环中频繁查询数据库
+   - 使用批量操作代替逐个操作
+   - 复杂查询优化SQL性能
+   - 不要在service层或者manager循环中调用访问数据库的方法，尽量使用批量查询，批量修改，批量插入，比如下面的错误示例
+```
+ for (Integer skuId : skuIds) {
+            List<GylSsu> ssuList = gylSsuManager.getSsuListBySkuId(skuId);
+            ssuListMap.put(skuId, ssuList);
+        }
+```
+ 正确写法：
+ ```
+ List<GylSsu> ssuList = gylSsuManager.getSsuListBySkuIds(skuIds);
+ ```
+
+2. **缓存策略**:
+   - 避免在事务中进行Redis操作
+   - 合理设置缓存过期时间
+   - 及时清理无效缓存
+
+3. **内存优化**:
+   - 及时释放大对象引用
+   - 避免创建不必要的临时对象
+
+## 最佳实践总结
+
+### 关注点分离
+- Gateway层专注请求处理
+- Service层专注业务逻辑  
+- Mapper层专注数据访问
+
+### 可维护性
+- 使用枚举管理状态
+- 使用DTO传输数据
+- 手动字段赋值提高可读性
+- 完善的异常处理和日志记录

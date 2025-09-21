@@ -1,0 +1,189 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# 项目开发规范
+
+## 🎯 技术栈约定
+- **前端框架**: Vue 3 + Composition API
+- **UI组件库**: Vant 4 (移动端)
+- **开发语言**: 原生JavaScript (不使用TypeScript)
+- **状态管理**: Pinia
+- **构建工具**: Vite
+- **样式**: CSS3 + CSS Variables
+
+## 📁 项目结构规范
+
+### API模块组织
+- API文件位置: [src/api/](mdc:src/api)
+- 命名规范: `模块名称 + Api.js` (如 [UserApi.js](mdc:src/api/UserApi.js))
+- Mock数据统一管理: [mockManager.js](mdc:src/api/mockManager.js)
+- API入口文件: [index.js](mdc:src/api/index.js)
+
+### 文档组织
+- API文档位置: [docs/](mdc:docs)
+- 命名规范: `模块名称 + API.md` (如 [UserAPI.md](mdc:docs/UserAPI.md))
+- 项目文档: [README.md](mdc:README.md)
+
+## 🔧 API开发规范
+
+### 1. API接口文件结构
+每个API文件必须包含完整的JSDoc注释：
+
+```javascript
+/**
+ * 接口名称
+ * 功能描述：详细描述接口的作用
+ * 入参：{ param1: 类型, param2: 类型 }
+ * 返回参数：返回数据结构说明
+ * url地址：/api/endpoint
+ * 请求方式：GET/POST
+ */
+export function apiFunction(params) {
+  return get('/api/endpoint', params)
+}
+```
+
+### 2. Mock数据规范
+- 所有API接口都必须在 [mockManager.js](mdc:src/api/mockManager.js) 中提供Mock实现
+- Mock数据要真实、完整，符合实际业务场景
+- 使用 `registerMockApi(method, url, handler)` 注册Mock接口
+- 返回数据格式统一使用 `createSuccessResponse()` 和 `createErrorResponse()`
+
+### 3. 请求方式限制
+- **仅允许使用 GET 和 POST 两种请求方式**
+- GET: 用于数据查询和获取
+- POST: 用于数据创建、更新、删除
+
+## 📖 API文档规范
+
+### 文档同步要求
+**当生成或修改API接口时，以下内容变更必须同步更新API文档：**
+- 入参结构变更
+- 返回参数变更  
+- URL地址变更
+- 请求方式变更
+
+### 文档格式标准
+
+#### 基本信息
+```markdown
+## 接口名称
+
+**接口名称：** 简短描述接口功能
+**功能描述：** 详细描述接口的业务用途
+**接口地址：** /api/endpoint
+**请求方式：** GET/POST
+```
+
+#### 功能说明
+```markdown
+### 功能说明
+详细描述接口的业务逻辑，可以使用流程图或时序图：
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: 请求数据
+    Server-->>Client: 返回结果
+```
+
+#### 请求参数
+```markdown
+### 请求参数
+```json
+{
+  "page": 1,
+  "page_size": 10,
+  "status": "active"
+}
+```
+
+| 参数名 | 类型 | 必填 | 说明 | 示例值 |
+|-------|------|-----|------|--------|
+| page | int | 否 | 页码（默认1） | 2 |
+| page_size | int | 否 | 每页数量（默认10） | 20 |
+| status | string | 否 | 状态过滤 | active |
+```
+
+#### 响应参数
+```markdown
+### 响应参数
+```json
+{
+  "error": 0,
+  "body": {
+    "user_id": 1,
+    "username": "admin",
+    "email": "admin@example.com",
+    "status": "active"
+  },
+  "message": "获取用户基本信息成功",
+  "success": true
+}
+```
+
+| 参数名 | 类型 | 必填 | 说明 | 示例值 |
+|-------|------|-----|------|--------|
+| error | int | 是 | 错误码 | 0 |
+| body | object | 是 | 响应数据 | |
+| body.user_id | int | 是 | 用户ID | 1 |
+| body.username | string | 是 | 用户名 | admin |
+| body.email | string | 是 | 邮箱 | admin@example.com |
+| body.status | string | 是 | 用户状态 | active |
+| message | string | 是 | 响应消息 | 获取用户基本信息成功 |
+| success | bool | 是 | 是否成功 | true |
+```
+
+**注意：** 如果body是对象，需要列出所有子字段，格式为 `body.字段名`
+
+## 🎨 组件开发规范
+
+### 组件结构
+- 组件位置: [src/components/](mdc:src/components)
+- 按功能模块分目录组织
+- 每个组件目录可包含README.md说明文档
+
+### 页面组件
+- 页面位置: [src/views/](mdc:src/views)
+- 按业务模块分目录组织
+- 使用Composition API编写
+
+## 🔄 开发流程
+
+### API开发流程
+1. 在对应的API文件中添加接口函数（带完整JSDoc注释）
+2. 在 [mockManager.js](mdc:src/api/mockManager.js) 中添加Mock实现
+3. 在对应的API文档中添加/更新接口文档
+4. 在页面中调用API接口
+5. 测试Mock数据和接口调用
+
+### 组件开发流程
+1. 创建组件文件，使用Vue 3 Composition API
+2. 编写组件样式，使用CSS Variables
+3. 如需要，创建组件使用文档
+4. 在页面中引入和使用组件
+
+## 🚫 开发限制
+
+### 禁止事项
+- 不允许在对话中使用 `npm run dev` 启动项目
+- 不要在Vue页面中定义测试数据，所有数据必须来自后端服务或Mock接口
+- 不要创建测试文档
+- 页面组件嵌套不要超过三层
+
+### 代码质量要求
+- 每个方法行数不超过300行
+- 遵循DRY原则，避免重复代码
+- 使用描述性的变量、函数和类名
+- 为复杂逻辑添加注释
+
+## 📝 Git提交规范
+
+完成功能开发后，需要进行commit操作，提交信息要清晰描述修改内容。
+
+## 🌐 响应语言
+
+始终使用简体中文回复用户。

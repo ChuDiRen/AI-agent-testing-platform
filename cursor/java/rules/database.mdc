@@ -1,0 +1,32 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 规范
+需要先扫描 gyl-core/src/main/java/com/njgyl/core/entity 下是否有存在的实体，如果则直接使用
+AdminUser - 管理员用户表
+Area - 业务区域表
+AreaPriceRatio - 区域加价率表
+CommonLog - 通用日志记录表
+GoodsClass - 商品分类表
+GoodsUnit - 商品单位库表
+GylSku - 供应链商品表
+GylSsu - 商品包规表
+MallConfigBanner - 商城banner图表
+MallConfigMenu - 商城快捷菜单配置表
+MallTransMoney - 运费表
+Order - 商城订单表
+OrderItem - 订单明细表
+OrderItemPackage - 订单包装物表
+OrderPay - 支付订单表
+OrderPayDetail - 支付明细表
+OrderSettlement - 订单结算表
+PurchaseOrder - 采购单表
+PurchaseOrderItem - 采购单明细表
+Shop - 店铺基本信息表
+ShopWallet - 门店钱包表
+Supplier - 供应商信息表
+SupplierBzw - 供应商包装物表
+SupplierSaleClass - 供应商可售卖分类表
+Warehouse - 仓库基本信息表

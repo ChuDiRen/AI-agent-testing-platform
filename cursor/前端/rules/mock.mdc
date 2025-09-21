@@ -1,0 +1,6 @@
+---
+description: 
+globs: src/api/mockManager.js
+alwaysApply: false
+---
+你每次写mock的接口的同时也需要在api目录写真实的接口
