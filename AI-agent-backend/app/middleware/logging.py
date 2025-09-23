@@ -13,7 +13,7 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.orm import Session
 
-from app.core.logger import get_logger
+from app.core.logger import get_logger, log_request, log_audit, with_context
 from app.core.log_config import log_config_manager
 from app.utils.helpers import get_client_ip
 from app.db.session import SessionLocal

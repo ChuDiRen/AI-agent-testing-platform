@@ -1,174 +1,303 @@
 /**
- * 权限工具函数
+ * 前端权限验证工具
  */
+
 import { useUserStore } from '@/store'
 
-/**
- * 检查是否有指定权限
- * @param permission 权限标识或权限数组
- * @param mode 检查模式：'some' 任一匹配 | 'every' 全部匹配
- * @returns 是否有权限
- */
-export function hasPermission(
-  permission: string | string[],
-  mode: 'some' | 'every' = 'some',
-): boolean {
-  const userStore = useUserStore()
+// 权限常量
+export const PERMISSIONS = {
+  // 用户管理
+  USER_VIEW: 'user:view',
+  USER_CREATE: 'user:create',
+  USER_UPDATE: 'user:update',
+  USER_DELETE: 'user:delete',
+  
+  // 角色管理
+  ROLE_VIEW: 'role:view',
+  ROLE_CREATE: 'role:create',
+  ROLE_UPDATE: 'role:update',
+  ROLE_DELETE: 'role:delete',
+  
+  // AI代理管理
+  AGENT_VIEW: 'agent:view',
+  AGENT_CREATE: 'agent:create',
+  AGENT_UPDATE: 'agent:update',
+  AGENT_DELETE: 'agent:delete',
+  
+  // 测试用例管理
+  TEST_CASE_VIEW: 'test_case:view',
+  TEST_CASE_CREATE: 'test_case:create',
+  TEST_CASE_UPDATE: 'test_case:update',
+  TEST_CASE_DELETE: 'test_case:delete',
+  TEST_CASE_RUN: 'test_case:run',
+  
+  // 系统管理
+  SYSTEM_VIEW: 'system:view',
+  SYSTEM_MANAGE: 'system:manage',
+  
+  // 日志管理
+  LOG_VIEW: 'log:view',
+  LOG_DELETE: 'log:delete'
+} as const
 
-  // 如果未登录，无权限
-  if (!userStore.isLoggedIn) {
-    return false
-  }
+// 角色常量
+export const ROLES = {
+  SUPER_ADMIN: 'super_admin',
+  ADMIN: 'admin',
+  USER: 'user',
+  GUEST: 'guest'
+} as const
 
-  // 超级管理员拥有所有权限
-  if (userStore.hasRole('admin') || userStore.hasRole('super_admin')) {
-    return true
-  }
+// 权限验证类
+export class PermissionValidator {
+  private userStore = useUserStore()
 
-  const permissions = Array.isArray(permission) ? permission : [permission]
-
-  if (mode === 'every') {
-    return permissions.every((perm) => userStore.hasPermission(perm))
-  } else {
-    return permissions.some((perm) => userStore.hasPermission(perm))
-  }
-}
-
-/**
- * 检查是否有指定角色
- * @param role 角色标识或角色数组
- * @param mode 检查模式：'some' 任一匹配 | 'every' 全部匹配
- * @returns 是否有角色
- */
-export function hasRole(role: string | string[], mode: 'some' | 'every' = 'some'): boolean {
-  const userStore = useUserStore()
-
-  // 如果未登录，无权限
-  if (!userStore.isLoggedIn) {
-    return false
-  }
-
-  const roles = Array.isArray(role) ? role : [role]
-
-  if (mode === 'every') {
-    return roles.every((r) => userStore.hasRole(r))
-  } else {
-    return roles.some((r) => userStore.hasRole(r))
-  }
-}
-
-/**
- * 检查是否有任一权限
- * @param permissions 权限数组
- * @returns 是否有权限
- */
-export function hasAnyPermission(permissions: string[]): boolean {
-  return hasPermission(permissions, 'some')
-}
-
-/**
- * 检查是否有所有权限
- * @param permissions 权限数组
- * @returns 是否有权限
- */
-export function hasAllPermissions(permissions: string[]): boolean {
-  return hasPermission(permissions, 'every')
-}
-
-/**
- * 检查是否有任一角色
- * @param roles 角色数组
- * @returns 是否有角色
- */
-export function hasAnyRole(roles: string[]): boolean {
-  return hasRole(roles, 'some')
-}
-
-/**
- * 检查是否有所有角色
- * @param roles 角色数组
- * @returns 是否有角色
- */
-export function hasAllRoles(roles: string[]): boolean {
-  return hasRole(roles, 'every')
-}
-
-/**
- * 检查是否是超级管理员
- * @returns 是否是超级管理员
- */
-export function isSuperAdmin(): boolean {
-  const userStore = useUserStore()
-  return userStore.hasRole('admin') || userStore.hasRole('super_admin')
-}
-
-/**
- * 权限过滤器 - 过滤有权限的项目
- * @param items 项目数组
- * @param getPermission 获取权限的函数
- * @returns 有权限的项目数组
- */
-export function filterByPermission<T>(
-  items: T[],
-  getPermission: (item: T) => string | string[] | undefined,
-): T[] {
-  return items.filter((item) => {
-    const permission = getPermission(item)
-    if (!permission) return true // 如果没有指定权限，则显示
-    return hasPermission(permission)
-  })
-}
-
-/**
- * 角色过滤器 - 过滤有角色的项目
- * @param items 项目数组
- * @param getRole 获取角色的函数
- * @returns 有角色的项目数组
- */
-export function filterByRole<T>(
-  items: T[],
-  getRole: (item: T) => string | string[] | undefined,
-): T[] {
-  return items.filter((item) => {
-    const role = getRole(item)
-    if (!role) return true // 如果没有指定角色，则显示
-    return hasRole(role)
-  })
-}
-
-/**
- * 菜单权限过滤器
- * @param menus 菜单数组
- * @returns 有权限的菜单数组
- */
-export function filterMenusByPermission(menus: any[]): any[] {
-  return menus.filter((menu) => {
-    // 检查菜单权限
-    if (menu.perms && !hasPermission(menu.perms)) {
+  /**
+   * 检查是否有指定权限
+   */
+  hasPermission(permission: string): boolean {
+    if (!this.userStore.isLoggedIn) {
       return false
     }
 
-    // 递归检查子菜单
-    if (menu.children && menu.children.length > 0) {
-      menu.children = filterMenusByPermission(menu.children)
-      // 如果所有子菜单都没有权限，则隐藏父菜单
-      return menu.children.length > 0
+    // 超级管理员拥有所有权限
+    if (this.userStore.hasRole(ROLES.SUPER_ADMIN)) {
+      return true
     }
 
-    return true
-  })
+    return this.userStore.hasPermission(permission)
+  }
+
+  /**
+   * 检查是否有任意一个权限
+   */
+  hasAnyPermission(permissions: string[]): boolean {
+    return permissions.some(permission => this.hasPermission(permission))
+  }
+
+  /**
+   * 检查是否有所有权限
+   */
+  hasAllPermissions(permissions: string[]): boolean {
+    return permissions.every(permission => this.hasPermission(permission))
+  }
+
+  /**
+   * 检查是否有指定角色
+   */
+  hasRole(role: string): boolean {
+    if (!this.userStore.isLoggedIn) {
+      return false
+    }
+
+    return this.userStore.hasRole(role)
+  }
+
+  /**
+   * 检查是否有任意一个角色
+   */
+  hasAnyRole(roles: string[]): boolean {
+    return roles.some(role => this.hasRole(role))
+  }
+
+  /**
+   * 检查是否为管理员
+   */
+  isAdmin(): boolean {
+    return this.hasAnyRole([ROLES.ADMIN, ROLES.SUPER_ADMIN])
+  }
+
+  /**
+   * 检查是否为超级管理员
+   */
+  isSuperAdmin(): boolean {
+    return this.hasRole(ROLES.SUPER_ADMIN)
+  }
+
+  /**
+   * 检查是否可以访问指定路由
+   */
+  canAccessRoute(routePath: string): boolean {
+    // 这里可以实现基于路由的权限控制
+    // 例如：某些路由需要特定权限
+    
+    const routePermissions: Record<string, string[]> = {
+      '/system/user': [PERMISSIONS.USER_VIEW],
+      '/system/role': [PERMISSIONS.ROLE_VIEW],
+      '/agent': [PERMISSIONS.AGENT_VIEW],
+      '/test/cases': [PERMISSIONS.TEST_CASE_VIEW],
+      '/system/logs': [PERMISSIONS.LOG_VIEW]
+    }
+
+    const requiredPermissions = routePermissions[routePath]
+    if (!requiredPermissions) {
+      return true // 没有特殊权限要求的路由，默认允许访问
+    }
+
+    return this.hasAnyPermission(requiredPermissions)
+  }
+
+  /**
+   * 检查是否可以执行指定操作
+   */
+  canPerformAction(action: string, resource?: any): boolean {
+    switch (action) {
+      case 'create':
+        return this.hasAnyPermission([
+          PERMISSIONS.USER_CREATE,
+          PERMISSIONS.ROLE_CREATE,
+          PERMISSIONS.AGENT_CREATE,
+          PERMISSIONS.TEST_CASE_CREATE
+        ])
+      
+      case 'update':
+        // 如果是更新自己的资源，允许
+        if (resource && resource.userId === this.userStore.userInfo?.id) {
+          return true
+        }
+        return this.hasAnyPermission([
+          PERMISSIONS.USER_UPDATE,
+          PERMISSIONS.ROLE_UPDATE,
+          PERMISSIONS.AGENT_UPDATE,
+          PERMISSIONS.TEST_CASE_UPDATE
+        ])
+      
+      case 'delete':
+        return this.hasAnyPermission([
+          PERMISSIONS.USER_DELETE,
+          PERMISSIONS.ROLE_DELETE,
+          PERMISSIONS.AGENT_DELETE,
+          PERMISSIONS.TEST_CASE_DELETE
+        ])
+      
+      case 'view_system':
+        return this.hasPermission(PERMISSIONS.SYSTEM_VIEW)
+      
+      default:
+        return true
+    }
+  }
 }
 
-/**
- * 按钮权限过滤器
- * @param buttons 按钮配置数组
- * @returns 有权限的按钮数组
- */
-export function filterButtonsByPermission(
-  buttons: Array<{ permission?: string | string[]; [key: string]: any }>,
-): any[] {
-  return buttons.filter((button) => {
-    if (!button.permission) return true
-    return hasPermission(button.permission)
-  })
+// 创建权限验证实例
+export const permissionValidator = new PermissionValidator()
+
+// 便捷函数
+export const hasPermission = (permission: string): boolean => {
+  return permissionValidator.hasPermission(permission)
+}
+
+export const hasAnyPermission = (permissions: string[]): boolean => {
+  return permissionValidator.hasAnyPermission(permissions)
+}
+
+export const hasAllPermissions = (permissions: string[]): boolean => {
+  return permissionValidator.hasAllPermissions(permissions)
+}
+
+export const hasRole = (role: string): boolean => {
+  return permissionValidator.hasRole(role)
+}
+
+export const hasAnyRole = (roles: string[]): boolean => {
+  return permissionValidator.hasAnyRole(roles)
+}
+
+export const isAdmin = (): boolean => {
+  return permissionValidator.isAdmin()
+}
+
+export const isSuperAdmin = (): boolean => {
+  return permissionValidator.isSuperAdmin()
+}
+
+export const canAccessRoute = (routePath: string): boolean => {
+  return permissionValidator.canAccessRoute(routePath)
+}
+
+export const canPerformAction = (action: string, resource?: any): boolean => {
+  return permissionValidator.canPerformAction(action, resource)
+}
+
+// 权限检查混入
+export const permissionMixin = {
+  methods: {
+    $hasPermission: hasPermission,
+    $hasAnyPermission: hasAnyPermission,
+    $hasAllPermissions: hasAllPermissions,
+    $hasRole: hasRole,
+    $hasAnyRole: hasAnyRole,
+    $isAdmin: isAdmin,
+    $isSuperAdmin: isSuperAdmin,
+    $canAccessRoute: canAccessRoute,
+    $canPerformAction: canPerformAction
+  }
+}
+
+// Vue 组合式API
+export const usePermission = () => {
+  return {
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
+    hasRole,
+    hasAnyRole,
+    isAdmin,
+    isSuperAdmin,
+    canAccessRoute,
+    canPerformAction,
+    PERMISSIONS,
+    ROLES
+  }
+}
+
+// 路由守卫权限检查
+export const checkRoutePermission = (to: any): boolean => {
+  const meta = to.meta || {}
+  
+  // 检查是否需要登录
+  if (meta.requiresAuth !== false) {
+    const userStore = useUserStore()
+    if (!userStore.isLoggedIn) {
+      return false
+    }
+  }
+  
+  // 检查权限
+  if (meta.permission) {
+    if (typeof meta.permission === 'string') {
+      return hasPermission(meta.permission)
+    }
+    if (Array.isArray(meta.permission)) {
+      return hasAnyPermission(meta.permission)
+    }
+  }
+  
+  // 检查角色
+  if (meta.roles) {
+    if (typeof meta.roles === 'string') {
+      return hasRole(meta.roles)
+    }
+    if (Array.isArray(meta.roles)) {
+      return hasAnyRole(meta.roles)
+    }
+  }
+  
+  return true
+}
+
+export default {
+  hasPermission,
+  hasAnyPermission,
+  hasAllPermissions,
+  hasRole,
+  hasAnyRole,
+  isAdmin,
+  isSuperAdmin,
+  canAccessRoute,
+  canPerformAction,
+  PERMISSIONS,
+  ROLES,
+  usePermission,
+  checkRoutePermission
 }

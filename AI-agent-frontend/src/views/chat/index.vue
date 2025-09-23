@@ -249,6 +249,7 @@ import {
   Plus, Edit, Delete, User, Robot, Setting, 
   DocumentCopy, Promotion 
 } from '@element-plus/icons-vue'
+import { chatApi, chatUtils } from '@/api/modules/chat'
 
 // 响应式数据
 const sessions = ref([])
@@ -297,18 +298,49 @@ onMounted(() => {
 
 // 方法
 const loadSessions = async () => {
-  // TODO: 调用API加载会话列表
-  console.log('Loading sessions...')
+  try {
+    const response = await chatApi.getSessions(1, 50)
+    if (response.data.success) {
+      sessions.value = response.data.data.sessions
+    }
+  } catch (error) {
+    console.error('加载会话列表失败:', error)
+    ElMessage.error('加载会话列表失败')
+  }
 }
 
 const loadModels = async () => {
-  // TODO: 调用API加载可用模型
-  console.log('Loading models...')
+  try {
+    const response = await chatApi.getAvailableModels()
+    if (response.data.success) {
+      availableModels.value = response.data.data.models
+      // 如果没有选择模型，默认选择第一个可用模型
+      if (!selectedModelId.value && availableModels.value.length > 0) {
+        selectedModelId.value = availableModels.value[0].id
+      }
+    }
+  } catch (error) {
+    console.error('加载模型列表失败:', error)
+    ElMessage.error('加载模型列表失败')
+  }
 }
 
 const loadSettings = () => {
-  // TODO: 从本地存储加载设置
-  console.log('Loading settings...')
+  try {
+    // 从本地存储加载设置
+    const savedSettings = localStorage.getItem('chat-settings')
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings)
+      temperature.value = settings.temperature || 0.7
+      maxTokens.value = settings.maxTokens || 2000
+      streamEnabled.value = settings.streamEnabled !== false
+      if (settings.selectedModelId) {
+        selectedModelId.value = settings.selectedModelId
+      }
+    }
+  } catch (error) {
+    console.error('加载设置失败:', error)
+  }
 }
 
 const createNewSession = async () => {
@@ -317,8 +349,23 @@ const createNewSession = async () => {
     return
   }
   
-  // TODO: 调用API创建新会话
-  console.log('Creating new session...')
+  try {
+    const response = await chatApi.createSession({
+      title: '新对话',
+      model_id: selectedModelId.value
+    })
+    
+    if (response.data.success) {
+      const newSession = response.data.data
+      sessions.value.unshift(newSession)
+      currentSessionId.value = newSession.session_id
+      messages.value = []
+      ElMessage.success('创建新对话成功')
+    }
+  } catch (error) {
+    console.error('创建会话失败:', error)
+    ElMessage.error('创建新对话失败')
+  }
 }
 
 const selectSession = async (sessionId: string) => {
@@ -327,8 +374,15 @@ const selectSession = async (sessionId: string) => {
 }
 
 const loadMessages = async (sessionId: string) => {
-  // TODO: 调用API加载消息
-  console.log('Loading messages for session:', sessionId)
+  try {
+    const response = await chatApi.getSessionMessages(sessionId, 1, 100)
+    if (response.data.success) {
+      messages.value = response.data.data.messages
+    }
+  } catch (error) {
+    console.error('加载消息失败:', error)
+    ElMessage.error('加载消息失败')
+  }
 }
 
 const sendMessage = async () => {
@@ -351,26 +405,86 @@ const sendMessage = async () => {
   isTyping.value = true
   
   try {
-    // TODO: 调用API发送消息
-    console.log('Sending message:', userMessage)
-    
-    // 模拟AI响应
-    setTimeout(() => {
-      messages.value.push({
+    // 确保有当前会话
+    if (!currentSessionId.value) {
+      await createNewSession()
+      if (!currentSessionId.value) {
+        throw new Error('无法创建会话')
+      }
+    }
+
+    // 调用API发送消息
+    const chatRequest = {
+      model_id: selectedModelId.value,
+      messages: messages.value.map(msg => ({
+        role: msg.role as 'user' | 'assistant' | 'system',
+        content: msg.content
+      })),
+      temperature: temperature.value,
+      max_tokens: maxTokens.value,
+      stream: streamEnabled.value,
+      session_id: currentSessionId.value
+    }
+
+    if (streamEnabled.value) {
+      // 流式响应
+      const assistantMessage = {
         id: Date.now() + 1,
         role: 'assistant',
-        content: '这是一个模拟的AI响应。实际实现中，这里会调用真实的AI API。',
+        content: '',
         created_at: new Date().toISOString(),
-        metadata: {
-          tokens_used: 25,
-          cost: 0.0001
+        metadata: {}
+      }
+      messages.value.push(assistantMessage)
+      
+      const response = await chatApi.sendStreamMessage(chatRequest)
+      
+      await chatUtils.handleStreamResponse(
+        response,
+        (chunk: string) => {
+          assistantMessage.content += chunk
+          scrollToBottom()
+        },
+        () => {
+          isLoading.value = false
+          isTyping.value = false
+          scrollToBottom()
+        },
+        (error: string) => {
+          console.error('Stream error:', error)
+          ElMessage.error(`发送消息失败: ${error}`)
+          isLoading.value = false
+          isTyping.value = false
         }
-      })
+      )
+    } else {
+      // 普通响应
+      const response = await chatApi.sendMessage(chatRequest)
+      
+      if (response.data.success) {
+        messages.value.push({
+          id: Date.now() + 1,
+          role: 'assistant',
+          content: response.data.data.content,
+          created_at: new Date().toISOString(),
+          metadata: {
+            tokens_used: response.data.data.tokens_used,
+            cost: response.data.data.cost,
+            response_time: response.data.data.response_time
+          }
+        })
+        
+        // 如果是会话的第一条消息，更新会话标题
+        if (messages.value.length <= 2) {
+          const title = chatUtils.generateSessionTitle(userMessage)
+          await updateSessionTitle(currentSessionId.value, title)
+        }
+      }
       
       isLoading.value = false
       isTyping.value = false
       scrollToBottom()
-    }, 2000)
+    }
     
   } catch (error) {
     console.error('Error sending message:', error)
@@ -420,8 +534,28 @@ const editSession = (session: any) => {
 }
 
 const saveSession = async () => {
-  // TODO: 调用API保存会话
-  console.log('Saving session...')
+  if (!currentSessionId.value) return
+  
+  try {
+    const response = await chatApi.updateSession(currentSessionId.value, {
+      title: editForm.title,
+      system_prompt: editForm.system_prompt
+    })
+    
+    if (response.data.success) {
+      // 更新本地会话信息
+      const session = sessions.value.find(s => s.session_id === currentSessionId.value)
+      if (session) {
+        session.title = editForm.title
+        session.system_prompt = editForm.system_prompt
+      }
+      ElMessage.success('会话保存成功')
+    }
+  } catch (error) {
+    console.error('保存会话失败:', error)
+    ElMessage.error('保存会话失败')
+  }
+  
   showEditDialog.value = false
 }
 
@@ -431,37 +565,81 @@ const deleteSession = async (sessionId: string) => {
       type: 'warning'
     })
     
-    // TODO: 调用API删除会话
-    console.log('Deleting session:', sessionId)
+    const response = await chatApi.deleteSession(sessionId)
     
-  } catch {
-    // 用户取消删除
+    if (response.data.success) {
+      // 从列表中移除会话
+      sessions.value = sessions.value.filter(s => s.session_id !== sessionId)
+      
+      // 如果删除的是当前会话，清空消息
+      if (currentSessionId.value === sessionId) {
+        currentSessionId.value = ''
+        messages.value = []
+      }
+      
+      ElMessage.success('会话删除成功')
+    }
+    
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除会话失败:', error)
+      ElMessage.error('删除会话失败')
+    }
   }
 }
 
 const clearMessages = async () => {
+  if (!currentSessionId.value) return
+  
   try {
     await ElMessageBox.confirm('确定要清空当前对话吗？', '确认清空', {
       type: 'warning'
     })
     
-    messages.value = []
-    // TODO: 调用API清空消息
+    const response = await chatApi.clearSessionMessages(currentSessionId.value)
     
-  } catch {
-    // 用户取消清空
+    if (response.data.success) {
+      messages.value = []
+      ElMessage.success('对话已清空')
+    }
+    
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('清空消息失败:', error)
+      ElMessage.error('清空消息失败')
+    }
   }
 }
 
 const onModelChange = () => {
-  // TODO: 处理模型切换
-  console.log('Model changed to:', selectedModelId.value)
+  // 保存模型选择到本地存储
+  saveSettings()
+}
+
+const updateSessionTitle = async (sessionId: string, title: string) => {
+  try {
+    await chatApi.updateSession(sessionId, { title })
+    const session = sessions.value.find(s => s.session_id === sessionId)
+    if (session) {
+      session.title = title
+    }
+  } catch (error) {
+    console.error('更新会话标题失败:', error)
+  }
 }
 
 const saveSettings = () => {
-  // TODO: 保存设置到本地存储
-  temperature.value = defaultTemperature.value
-  maxTokens.value = defaultMaxTokens.value
+  try {
+    const settings = {
+      temperature: temperature.value,
+      maxTokens: maxTokens.value,
+      streamEnabled: streamEnabled.value,
+      selectedModelId: selectedModelId.value
+    }
+    localStorage.setItem('chat-settings', JSON.stringify(settings))
+  } catch (error) {
+    console.error('保存设置失败:', error)
+  }
   showSettings.value = false
   ElMessage.success('设置已保存')
 }

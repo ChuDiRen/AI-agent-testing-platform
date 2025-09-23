@@ -11,7 +11,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { hasPermission as hasPermUtil, hasRole as hasRoleUtil } from '@/utils/permission'
+import { usePermission } from '@/utils/permission'
 
 interface PermissionProps {
   // 权限标识
@@ -28,16 +28,26 @@ const props = withDefaults(defineProps<PermissionProps>(), {
   mode: 'some'
 })
 
+// 权限工具
+const { hasPermission, hasAnyPermission, hasAllPermissions, hasRole, hasAnyRole } = usePermission()
+
 // 复用统一的权限工具函数
 const allowed = computed(() => {
   let permissionCheck = true
   let roleCheck = true
 
   if (props.permission) {
-    permissionCheck = hasPermUtil(props.permission, props.mode)
-    }
+    const permissions = Array.isArray(props.permission) ? props.permission : [props.permission]
+    permissionCheck = props.mode === 'every' 
+      ? hasAllPermissions(permissions)
+      : hasAnyPermission(permissions)
+  }
+  
   if (props.role) {
-    roleCheck = hasRoleUtil(props.role, props.mode)
+    const roles = Array.isArray(props.role) ? props.role : [props.role]
+    roleCheck = props.mode === 'every'
+      ? roles.every(role => hasRole(role))
+      : hasAnyRole(roles)
   }
 
   if (props.permission && props.role) return permissionCheck && roleCheck

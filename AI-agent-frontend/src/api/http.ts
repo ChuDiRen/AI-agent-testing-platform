@@ -15,6 +15,7 @@ import {
 } from '@/utils/auth'
 import router from '@/router'
 import { NETWORK_CONFIG, shouldRetry, getRetryDelay, getDedupeTTL } from '@/config/network'
+import { handleApiError, ErrorType } from '@/utils/errorHandler'
 
 // 后端API响应格式
 interface ApiResponse<T = any> {
@@ -158,6 +159,13 @@ http.interceptors.response.use(
     const { config, response, code } = error
     const { status, data } = response || {}
 
+    // 使用统一错误处理器处理错误（但不显示消息，后面会处理）
+    const apiError = handleApiError(error, { 
+      showMessage: false, 
+      showModal: false, 
+      autoRedirect: false 
+    })
+
     // 处理网络超时和连接错误，自动重试
     const retryCount = (config as any).__retryCount || 0
 
@@ -169,8 +177,6 @@ http.interceptors.response.use(
       await new Promise((resolve) => setTimeout(resolve, getRetryDelay(retryCount)))
 
       return http(config)
-    } else if (code === 'ECONNABORTED' || code === 'NETWORK_ERROR' || !response) {
-      notify.error('网络连接超时，请检查网络或稍后重试')
     }
 
     // 401 处理：尝试无感刷新
@@ -245,16 +251,12 @@ http.interceptors.response.use(
       }
     }
 
-    if (status === 403) {
-      notify.error('权限不足')
-    } else if (status >= 500) {
-      notify.error('服务器错误，请稍后重试')
-    } else if (!response) {
-      notify.error('网络连接失败，请检查网络连接')
-    } else {
-      // 兼容 FastAPI 的 detail 字段和标准的 message 字段
-      notify.error(data?.detail || data?.message || '请求失败')
-    }
+    // 使用统一错误处理器显示错误消息和处理重定向
+    handleApiError(error, { 
+      showMessage: true, 
+      showModal: false, 
+      autoRedirect: true 
+    })
 
     return Promise.reject(error)
   },

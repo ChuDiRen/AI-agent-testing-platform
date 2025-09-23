@@ -101,7 +101,7 @@
       <div class="pagination">
         <el-pagination
           v-model:current-page="pagination.page"
-          v-model:page-size="pagination.size"
+          v-model:page-size="pagination.pageSize"
           :total="pagination.total"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
@@ -117,6 +117,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, VideoPlay, Delete } from '@element-plus/icons-vue'
+import { testCaseApi } from '@/api/modules/testcase'
 
 // 响应式数据
 const loading = ref(false)
@@ -132,7 +133,7 @@ const searchForm = reactive({
 // 分页数据
 const pagination = reactive({
   page: 1,
-  size: 10,
+  pageSize: 10,
   total: 0
 })
 
@@ -162,27 +163,20 @@ const getStatusText = (status: string) => {
 const loadTestCases = async () => {
   try {
     loading.value = true
-    // TODO: 调用API获取测试用例数据
-    // 模拟数据
-    tableData.value = [
-      {
-        id: 1,
-        caseName: '用户登录测试',
-        description: '测试用户登录功能的正确性',
-        status: 'completed',
-        createTime: '2025-09-13 10:00:00',
-        lastRunTime: '2025-09-13 14:30:00'
-      },
-      {
-        id: 2,
-        caseName: 'AI代理响应测试',
-        description: '测试AI代理的响应速度和准确性',
-        status: 'pending',
-        createTime: '2025-09-13 11:00:00',
-        lastRunTime: null
-      }
-    ]
-    pagination.total = 2
+    
+    const params = {
+      page: pagination.page,
+      page_size: pagination.pageSize,
+      case_name: searchForm.caseName || undefined,
+      status: searchForm.status || undefined
+    }
+    
+    const response = await testCaseApi.getTestCases(params)
+    
+    if (response.data.success) {
+      tableData.value = response.data.data.test_cases || []
+      pagination.total = response.data.data.total || 0
+    }
   } catch (error) {
     console.error('加载测试用例失败:', error)
     ElMessage.error('加载测试用例失败')
@@ -227,22 +221,16 @@ const handleDelete = async (row: any) => {
     await ElMessageBox.confirm(`确定要删除用例"${row.caseName}"吗？`, '确认删除', {
       type: 'warning'
     })
-    // TODO: 调用实际的删除API
-    // await TestCaseApi.deleteTestCase(row.id)
-    ElMessage.success('删除成功')
-    loadTestCases()
+    const response = await testCaseApi.deleteTestCase(row.id)
+    
+    if (response.data.success) {
+      ElMessage.success('删除成功')
+      loadTestCases()
+    }
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('删除用例失败:', error)
-      // 检查是否是用例不存在的错误
-      if (error?.response?.status === 404 || error?.response?.data?.detail?.includes('用例不存在')) {
-        ElMessage.warning('用例已不存在，将刷新列表')
-        loadTestCases() // 用例不存在时也要刷新列表
-      } else {
-        // 显示具体的错误信息，兼容 FastAPI 的 detail 字段
-        const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || '删除用例失败'
-        ElMessage.error(errorMessage)
-      }
+      ElMessage.error('删除用例失败')
     }
   }
 }
@@ -272,7 +260,8 @@ const handleSelectionChange = (selection: any[]) => {
 
 // 分页大小变化
 const handleSizeChange = (size: number) => {
-  pagination.size = size
+  pagination.pageSize = size
+  pagination.page = 1
   loadTestCases()
 }
 

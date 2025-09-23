@@ -93,6 +93,9 @@ class Settings(BaseSettings):
     # 安全配置
     BCRYPT_ROUNDS: int = 4  # 开发环境使用较低的rounds以提高性能
     PASSWORD_MIN_LENGTH: int = 8
+    ENABLE_HTTPS: bool = False
+    SSL_CERT_FILE: Optional[str] = None
+    SSL_KEY_FILE: Optional[str] = None
     
     # API配置
     API_V1_PREFIX: str = "/api/v1"
