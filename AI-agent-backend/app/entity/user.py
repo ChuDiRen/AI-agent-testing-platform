@@ -67,6 +67,9 @@ class User(BaseEntity):
 
     # 用户-代理关联（一个用户可以创建多个代理）
     created_agents = relationship("Agent", back_populates="creator", foreign_keys="Agent.created_by_id")
+    
+    # 用户-知识库关联（一个用户可以创建多个知识库）
+    knowledge_bases = relationship("KnowledgeBase", back_populates="user")
 
     @property
     def user_id(self) -> int:

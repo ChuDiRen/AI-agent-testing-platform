@@ -183,12 +183,15 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { DocumentAdd, Search, Document, Clock, TrendCharts, SuccessFilled } from '@element-plus/icons-vue'
 import { testReportApi } from '@/api/modules/testreport'
 import { testCaseApi } from '@/api/modules/testcase'
 import { agentApi } from '@/api/modules/agent'
 import { formatDateTime } from '@/utils/dateFormat'
+
+const router = useRouter()
 
 const loading = ref(false)
 const creating = ref(false)
@@ -376,6 +379,156 @@ const getStatusLabel = (status) => {
     cancelled: '已取消'
   }
   return labels[status] || status
+}
+
+const handleSelectionChange = (selection) => {
+  selectedReports.value = selection
+}
+
+const viewReport = (row) => {
+  // 跳转到报告详情页面
+  router.push(`/test/reports/${row.id}`)
+}
+
+const exportReport = async (row) => {
+  try {
+    const blob = await testReportApi.exportReport(row.id, {
+      format: 'pdf',
+      include_screenshots: true,
+      include_logs: true,
+      include_metrics: true
+    })
+    
+    // 创建下载链接
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${row.title}_${new Date().toISOString().split('T')[0]}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    
+    ElMessage.success('报告导出成功')
+  } catch (error) {
+    console.error('导出报告失败:', error)
+    ElMessage.error('导出报告失败')
+  }
+}
+
+const rerunReport = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要重新运行报告"${row.title}"吗？`,
+      '确认重跑',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    const response = await testReportApi.rerunReport(row.id)
+    if (response.data.success) {
+      ElMessage.success('报告重跑已启动')
+      loadReportList()
+      loadStatistics()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('重跑报告失败:', error)
+      ElMessage.error('重跑报告失败')
+    }
+  }
+}
+
+const deleteReport = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除报告"${row.title}"吗？此操作不可恢复。`,
+      '确认删除',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    const response = await testReportApi.deleteTestReport(row.id)
+    if (response.data.success) {
+      ElMessage.success('删除成功')
+      loadReportList()
+      loadStatistics()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除报告失败:', error)
+      ElMessage.error('删除报告失败')
+    }
+  }
+}
+
+const batchExport = async () => {
+  if (!selectedReports.value.length) return
+  
+  try {
+    const reportIds = selectedReports.value.map(report => report.id)
+    const blob = await testReportApi.batchExportReports(reportIds, {
+      format: 'pdf',
+      include_screenshots: true,
+      include_logs: true,
+      include_metrics: true
+    })
+    
+    // 创建下载链接
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `batch_reports_${new Date().toISOString().split('T')[0]}.zip`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    
+    ElMessage.success('批量导出成功')
+  } catch (error) {
+    console.error('批量导出失败:', error)
+    ElMessage.error('批量导出失败')
+  }
+}
+
+const batchDelete = async () => {
+  if (!selectedReports.value.length) return
+  
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedReports.value.length} 个报告吗？此操作不可恢复。`,
+      '确认批量删除',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    const reportIds = selectedReports.value.map(report => report.id)
+    const response = await testReportApi.batchOperation({
+      report_ids: reportIds,
+      operation: 'delete'
+    })
+    
+    if (response.data.success) {
+      ElMessage.success(`批量删除完成: ${response.data.data.success_count}/${selectedReports.value.length} 成功`)
+      selectedReports.value = []
+      loadReportList()
+      loadStatistics()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量删除失败:', error)
+      ElMessage.error('批量删除失败')
+    }
+  }
 }
 </script>
 

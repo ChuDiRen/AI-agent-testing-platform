@@ -1,125 +1,124 @@
-# Copyright (c) 2025 左岚. All rights reserved.
+<!-- 权限配置对话框组件 -->
 <template>
   <el-dialog
-    v-model="visible"
+    v-model="dialogVisible"
     title="权限配置"
-    width="70%"
+    width="800px"
     :close-on-click-modal="false"
-    :destroy-on-close="true"
+    destroy-on-close
+    @open="handleOpen"
     @close="handleClose"
   >
-    <div class="permission-dialog" v-loading="loading">
+    <div class="permission-dialog-content" v-loading="loading">
       <!-- 角色信息 -->
       <div class="role-info">
-        <el-tag type="primary" size="large">
-          <el-icon><UserFilled /></el-icon>
-          <span>{{ roleInfo?.role_name || '未知角色' }}</span>
-        </el-tag>
-        <span class="role-desc">{{ roleInfo?.remark || '暂无描述' }}</span>
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="角色名称">
+            {{ roleInfo?.role_name }}
+          </el-descriptions-item>
+          <el-descriptions-item label="角色描述">
+            {{ roleInfo?.remark || '暂无描述' }}
+          </el-descriptions-item>
+        </el-descriptions>
       </div>
-
-      <!-- 权限配置标签页 -->
-      <el-tabs v-model="activeTab" class="permission-tabs">
-        <el-tab-pane label="菜单权限" name="menu">
-          <div class="menu-permission-container">
-            <!-- 操作工具栏 -->
-            <div class="toolbar">
-              <div class="left-actions">
-                <el-checkbox
-                  v-model="menuCheckAll"
-                  :indeterminate="menuIndeterminate"
-                  @change="handleMenuCheckAll"
-                  :disabled="loading || treeLoading"
-                >
-                  全选/反选
-                </el-checkbox>
-                <el-divider direction="vertical" />
-                <el-button
-                  type="primary"
-                  size="small"
-                  :icon="Expand"
-                  @click="expandAllMenus"
-                  :disabled="loading || treeLoading"
-                >
-                  展开全部
-                </el-button>
-                <el-button
-                  size="small"
-                  :icon="Fold"
-                  @click="collapseAllMenus"
-                  :disabled="loading || treeLoading"
-                >
-                  折叠全部
-                </el-button>
-              </div>
-              <div class="right-info">
-                <el-text type="info" size="small">
-                  已选择 {{ checkedCount }} / {{ totalCount }} 项权限
-                </el-text>
-              </div>
-            </div>
-
-            <!-- 菜单权限树 -->
-            <div class="menu-tree-wrapper">
-              <el-tree
-                ref="menuTreeRef"
-                :data="menuTreeData"
-                :props="treeProps"
-                show-checkbox
-                node-key="menu_id"
-                :default-expand-all="false"
-                :check-strictly="false"
-                :expand-on-click-node="false"
-                @check="handleMenuCheck"
-                class="permission-tree"
-                v-loading="treeLoading"
-                element-loading-text="加载菜单数据中..."
-                empty-text="暂无菜单数据"
-              >
-                <template #default="{ node, data }">
-                  <div class="tree-node">
-                    <el-icon v-if="data.icon" class="node-icon">
-                      <component :is="data.icon" />
-                    </el-icon>
-                    <span class="node-label">{{ data.menu_name }}</span>
-                    <el-tag
-                      v-if="data.menu_type === '1'"
-                      size="small"
-                      type="warning"
-                      class="node-tag"
-                    >
-                      按钮
-                    </el-tag>
-                    <el-tag
-                      v-else-if="data.menu_type === '0'"
-                      size="small"
-                      type="success"
-                      class="node-tag"
-                    >
-                      菜单
-                    </el-tag>
-                  </div>
-                </template>
-              </el-tree>
-            </div>
+      
+      <!-- 权限配置 -->
+      <div class="permission-config">
+        <div class="section-title">
+          <h3>菜单权限配置</h3>
+          <div class="actions">
+            <el-button size="small" @click="expandAll">
+              <el-icon><CaretBottom /></el-icon>
+              展开全部
+            </el-button>
+            <el-button size="small" @click="collapseAll">
+              <el-icon><CaretRight /></el-icon>
+              收起全部
+            </el-button>
+            <el-button size="small" type="primary" @click="checkAll">
+              <el-icon><Select /></el-icon>
+              全选
+            </el-button>
+            <el-button size="small" @click="uncheckAll">
+              <el-icon><CloseBold /></el-icon>
+              取消全选
+            </el-button>
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </div>
+        
+        <!-- 菜单树 -->
+        <el-tree
+          ref="treeRef"
+          :data="menuTreeData"
+          :props="treeProps"
+          :default-expand-all="false"
+          :expand-on-click-node="false"
+          :check-on-click-node="false"
+          :auto-expand-parent="true"
+          :default-checked-keys="checkedKeys"
+          :default-expanded-keys="expandedKeys"
+          show-checkbox
+          node-key="id"
+          check-strictly
+          highlight-current
+          @check="handleCheck"
+          @check-change="handleCheckChange"
+        >
+          <template #default="{ node, data }">
+            <div class="tree-node">
+              <div class="node-content">
+                <!-- 菜单图标 -->
+                <el-icon v-if="data.icon" class="node-icon">
+                  <component :is="data.icon" />
+                </el-icon>
+                
+                <!-- 菜单信息 -->
+                <div class="node-info">
+                  <span class="node-label">{{ data.label }}</span>
+                  <span class="node-type" :class="getNodeTypeClass(data.type)">
+                    {{ getNodeTypeText(data.type) }}
+                  </span>
+                </div>
+                
+                <!-- 权限标识 -->
+                <div v-if="data.permission" class="node-permission">
+                  <el-tag size="small" type="info">{{ data.permission }}</el-tag>
+                </div>
+              </div>
+              
+              <!-- 节点描述 -->
+              <div v-if="data.description" class="node-description">
+                <el-text type="info" size="small">{{ data.description }}</el-text>
+              </div>
+            </div>
+          </template>
+        </el-tree>
+      </div>
+      
+      <!-- 权限说明 -->
+      <div class="permission-tips">
+        <el-alert
+          title="权限说明"
+          type="info"
+          :closable="false"
+          show-icon
+        >
+          <ul>
+            <li>• <strong>目录</strong>：导航菜单分组，通常不包含具体页面</li>
+            <li>• <strong>菜单</strong>：具体的页面菜单项，用户可以点击访问</li>
+            <li>• <strong>按钮</strong>：页面内的操作按钮，如增删改查等功能</li>
+            <li>• 选中父级菜单时，建议同时选中相关的子级权限</li>
+            <li>• 权限配置后需要重新登录才能生效</li>
+          </ul>
+        </el-alert>
+      </div>
     </div>
-
-    <!-- 对话框底部操作按钮 -->
+    
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose" :disabled="saving">
-          取 消
-        </el-button>
-        <el-button
-          type="primary"
-          @click="handleSave"
-          :loading="saving"
-          :disabled="loading || treeLoading"
-        >
-          保 存
+        <el-button @click="handleCancel">取消</el-button>
+        <el-button type="primary" @click="handleConfirm" :loading="saving">
+          保存配置
         </el-button>
       </div>
     </template>
@@ -127,441 +126,390 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, nextTick, onMounted } from 'vue'
-import { ElMessage, ElTree } from 'element-plus'
-import { UserFilled, Expand, Fold } from '@element-plus/icons-vue'
+import { ref, computed, watch, nextTick } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { 
+  CaretBottom, 
+  CaretRight, 
+  Select, 
+  CloseBold 
+} from '@element-plus/icons-vue'
 import { MenuApi } from '@/api/modules/menu'
 import { RoleApi } from '@/api/modules/role'
-import type { RoleInfo } from '@/api/types'
+import type { MenuTreeNode, RoleInfo } from '@/api/types'
 
-// 组件属性定义
-interface PermissionDialogProps {
+// Props定义
+interface Props {
   modelValue: boolean
   roleInfo?: RoleInfo | null
 }
 
-// 组件事件定义
-interface PermissionDialogEmits {
-  (e: 'update:modelValue', value: boolean): void
-  (e: 'success'): void
-}
-
-const props = withDefaults(defineProps<PermissionDialogProps>(), {
-  modelValue: false,
+const props = withDefaults(defineProps<Props>(), {
   roleInfo: null
 })
 
-const emit = defineEmits<PermissionDialogEmits>()
+// Emits定义
+const emit = defineEmits<{
+  'update:modelValue': [value: boolean]
+  success: []
+}>()
 
-// 响应式状态
-const visible = computed({
+// 引用
+const treeRef = ref()
+
+// 响应式数据
+const loading = ref(false)
+const saving = ref(false)
+const menuTreeData = ref<MenuTreeNode[]>([])
+const checkedKeys = ref<string[]>([])
+const expandedKeys = ref<string[]>([])
+
+// 计算属性
+const dialogVisible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 })
 
-const loading = ref(false) // 整体加载状态
-const treeLoading = ref(false) // 树组件加载状态
-const saving = ref(false) // 保存状态
-const activeTab = ref('menu') // 当前激活的标签页
-
-// 菜单树相关状态
-const menuTreeRef = ref<InstanceType<typeof ElTree>>()
-const menuTreeData = ref<any[]>([])
-const menuCheckAll = ref(false)
-const menuIndeterminate = ref(false)
-
-// 树组件配置
+// 树形组件配置
 const treeProps = {
   children: 'children',
-  label: 'menu_name'
+  label: 'label',
+  disabled: 'disabled'
 }
 
-// 计算属性
-const checkedCount = computed(() => {
-  if (!menuTreeRef.value) return 0
-  const checkedKeys = menuTreeRef.value.getCheckedKeys(false)
-  const halfCheckedKeys = menuTreeRef.value.getHalfCheckedKeys()
-  return checkedKeys.length + halfCheckedKeys.length
-})
-
-const totalCount = computed(() => {
-  const countNodes = (nodes: any[]): number => {
-    let count = 0
-    for (const node of nodes) {
-      count++
-      if (node.children && node.children.length > 0) {
-        count += countNodes(node.children)
-      }
-    }
-    return count
+// 监听角色信息变化
+watch(() => props.roleInfo, (newRole) => {
+  if (newRole && dialogVisible.value) {
+    loadMenuTree()
+    loadRolePermissions()
   }
-  return countNodes(menuTreeData.value)
-})
+}, { immediate: true })
 
-// 监听对话框显示状态
-watch(visible, async (newVal) => {
-  if (newVal && props.roleInfo) {
-    // 重置状态
-    resetDialogState()
-    // 初始化权限数据
-    await initPermissionData()
-  }
-})
-
-// 重置对话框状态
-const resetDialogState = () => {
-  // 不要清空菜单数据，只重置状态
-  menuCheckAll.value = false
-  menuIndeterminate.value = false
-  saving.value = false
-  // 保持 loading 和 treeLoading 状态，让初始化过程控制
-}
-
-// 初始化权限数据
-const initPermissionData = async () => {
-  if (!props.roleInfo) return
-  
+// 方法定义
+const loadMenuTree = async () => {
   try {
     loading.value = true
+    const response = await MenuApi.getMenuTree()
     
-    // 并行加载菜单树和角色权限
-    const [menuTreeResult, rolePermissionsResult] = await Promise.allSettled([
-      loadMenuTree(),
-      loadRolePermissions(props.roleInfo.role_id)
-    ])
-    
-    // 检查加载结果
-    if (menuTreeResult.status === 'rejected') {
-      console.error('加载菜单树失败:', menuTreeResult.reason)
-      ElMessage.error('加载菜单树失败')
-      return
+    if (response.success && response.data) {
+      menuTreeData.value = formatMenuTree(response.data)
+      // 默认展开第一级
+      expandedKeys.value = menuTreeData.value.map(item => item.id)
     }
-    
-    if (rolePermissionsResult.status === 'rejected') {
-      console.error('加载角色权限失败:', rolePermissionsResult.reason)
-      ElMessage.error('加载角色权限失败')
-      return
-    }
-    
-    // 设置权限勾选状态
-    await setPermissionCheckedState(rolePermissionsResult.value)
-    
   } catch (error) {
-    console.error('初始化权限数据失败:', error)
-    ElMessage.error('初始化权限数据失败')
+    console.error('加载菜单树失败:', error)
+    ElMessage.error('加载菜单树失败')
   } finally {
     loading.value = false
   }
 }
 
-// 加载菜单树
-const loadMenuTree = async () => {
+const loadRolePermissions = async () => {
+  if (!props.roleInfo?.role_id) return
+  
   try {
-    treeLoading.value = true
-    const response = await MenuApi.getMenuTree()
+    const response = await RoleApi.getRolePermissions(props.roleInfo.role_id)
     
     if (response.success && response.data) {
-      menuTreeData.value = Array.isArray(response.data) ? response.data : []
-      console.log('菜单树加载成功，共', menuTreeData.value.length, '个顶级菜单')
-    } else {
-      menuTreeData.value = []
-      throw new Error(response.message || '获取菜单树失败')
+      checkedKeys.value = response.data.menu_ids || []
+      
+      // 设置树的选中状态
+      nextTick(() => {
+        treeRef.value?.setCheckedKeys(checkedKeys.value)
+      })
     }
-  } finally {
-    treeLoading.value = false
-  }
-}
-
-// 加载角色权限
-const loadRolePermissions = async (roleId: number): Promise<number[]> => {
-  const response = await RoleApi.getRoleMenus(roleId)
-  
-  if (response.success && response.data) {
-    const menuIds = Array.isArray(response.data) ? response.data : []
-    console.log('角色权限加载成功，共', menuIds.length, '个权限')
-    return menuIds
-  } else {
-    throw new Error(response.message || '获取角色权限失败')
-  }
-}
-
-// 设置权限勾选状态
-const setPermissionCheckedState = async (menuIds: number[]) => {
-  // 等待树组件完全渲染
-  await nextTick()
-
-  if (!menuTreeRef.value) {
-    console.warn('菜单树组件未准备就绪')
-    return
-  }
-
-  if (menuIds.length === 0) {
-    console.log('角色无权限，清空勾选状态')
-    menuTreeRef.value.setCheckedKeys([])
-    updateMenuCheckStatus()
-    return
-  }
-
-  try {
-    // 设置勾选状态，使用重试机制
-    let retryCount = 0
-    const maxRetries = 3
-
-    const setCheckedWithRetry = async () => {
-      try {
-        menuTreeRef.value?.setCheckedKeys(menuIds)
-        console.log('权限勾选状态设置完成，勾选了', menuIds.length, '个权限')
-
-        // 验证设置是否成功
-        const checkedKeys = menuTreeRef.value?.getCheckedKeys(false) || []
-        if (checkedKeys.length === 0 && menuIds.length > 0 && retryCount < maxRetries) {
-          retryCount++
-          console.log(`权限设置验证失败，重试第 ${retryCount} 次`)
-          await new Promise(resolve => setTimeout(resolve, 100))
-          await setCheckedWithRetry()
-        }
-      } catch (error) {
-        if (retryCount < maxRetries) {
-          retryCount++
-          console.log(`权限设置失败，重试第 ${retryCount} 次:`, error)
-          await new Promise(resolve => setTimeout(resolve, 100))
-          await setCheckedWithRetry()
-        } else {
-          throw error
-        }
-      }
-    }
-
-    await setCheckedWithRetry()
   } catch (error) {
-    console.error('设置权限勾选状态失败:', error)
-    ElMessage.warning('权限状态设置可能不完整，请检查后重新保存')
+    console.error('加载角色权限失败:', error)
+    ElMessage.error('加载角色权限失败')
   }
-
-  // 更新全选状态
-  updateMenuCheckStatus()
 }
 
-// 获取所有菜单ID
-const getAllMenuKeys = (menus: any[]): number[] => {
-  const keys: number[] = []
+const formatMenuTree = (menuList: any[]): MenuTreeNode[] => {
+  return menuList.map(menu => ({
+    id: menu.menu_id.toString(),
+    label: menu.menu_name,
+    type: menu.TYPE, // 0目录 1菜单 2按钮
+    icon: menu.ICON,
+    permission: menu.permission_code,
+    description: menu.COMPONENT,
+    disabled: menu.STATUS === '0', // 禁用状态的菜单不可选
+    children: menu.children ? formatMenuTree(menu.children) : []
+  }))
+}
+
+const getNodeTypeText = (type: string) => {
+  const typeMap: Record<string, string> = {
+    '0': '目录',
+    '1': '菜单', 
+    '2': '按钮'
+  }
+  return typeMap[type] || '未知'
+}
+
+const getNodeTypeClass = (type: string) => {
+  const classMap: Record<string, string> = {
+    '0': 'type-directory',
+    '1': 'type-menu',
+    '2': 'type-button'
+  }
+  return classMap[type] || ''
+}
+
+const expandAll = () => {
+  const allKeys = getAllNodeKeys(menuTreeData.value)
+  expandedKeys.value = allKeys
   
-  const traverse = (nodes: any[]) => {
-    for (const node of nodes) {
-      keys.push(node.menu_id)
+  nextTick(() => {
+    allKeys.forEach(key => {
+      treeRef.value?.store.nodesMap[key]?.expand()
+    })
+  })
+}
+
+const collapseAll = () => {
+  expandedKeys.value = []
+  
+  nextTick(() => {
+    const allKeys = getAllNodeKeys(menuTreeData.value)
+    allKeys.forEach(key => {
+      treeRef.value?.store.nodesMap[key]?.collapse()
+    })
+  })
+}
+
+const checkAll = () => {
+  const allKeys = getAllNodeKeys(menuTreeData.value)
+  checkedKeys.value = allKeys
+  treeRef.value?.setCheckedKeys(allKeys)
+}
+
+const uncheckAll = () => {
+  checkedKeys.value = []
+  treeRef.value?.setCheckedKeys([])
+}
+
+const getAllNodeKeys = (nodes: MenuTreeNode[]): string[] => {
+  let keys: string[] = []
+  
+  const traverse = (nodeList: MenuTreeNode[]) => {
+    nodeList.forEach(node => {
+      if (!node.disabled) {
+        keys.push(node.id)
+      }
       if (node.children && node.children.length > 0) {
         traverse(node.children)
       }
-    }
+    })
   }
   
-  traverse(menus)
+  traverse(nodes)
   return keys
 }
 
-// 菜单全选/反选
-const handleMenuCheckAll = (checked: boolean) => {
-  if (!menuTreeRef.value) return
-  
-  if (checked) {
-    const allKeys = getAllMenuKeys(menuTreeData.value)
-    menuTreeRef.value.setCheckedKeys(allKeys)
-  } else {
-    menuTreeRef.value.setCheckedKeys([])
+const handleCheck = (data: any, checked: any) => {
+  // 获取当前选中的所有节点
+  checkedKeys.value = checked.checkedKeys
+}
+
+const handleCheckChange = (data: any, checked: boolean, indeterminate: boolean) => {
+  // 可以在这里添加额外的检查逻辑
+}
+
+const handleOpen = () => {
+  if (props.roleInfo) {
+    loadMenuTree()
+    loadRolePermissions()
   }
-  
-  updateMenuCheckStatus()
 }
 
-// 菜单选中变化
-const handleMenuCheck = () => {
-  updateMenuCheckStatus()
+const handleClose = () => {
+  // 清理数据
+  menuTreeData.value = []
+  checkedKeys.value = []
+  expandedKeys.value = []
 }
 
-// 更新菜单选中状态
-const updateMenuCheckStatus = () => {
-  if (!menuTreeRef.value) return
-  
-  const checkedKeys = menuTreeRef.value.getCheckedKeys(false) || []
-  const allKeys = getAllMenuKeys(menuTreeData.value)
-  
-  menuCheckAll.value = checkedKeys.length > 0 && checkedKeys.length === allKeys.length
-  menuIndeterminate.value = checkedKeys.length > 0 && checkedKeys.length < allKeys.length
+const handleCancel = () => {
+  dialogVisible.value = false
 }
 
-// 展开所有菜单
-const expandAllMenus = () => {
-  if (!menuTreeRef.value || !menuTreeData.value.length) {
-    console.warn('菜单树未准备就绪或无数据')
+const handleConfirm = async () => {
+  if (!props.roleInfo?.role_id) {
+    ElMessage.error('角色信息不完整')
     return
   }
-
-  try {
-    // 使用 nextTick 确保 DOM 更新完成
-    nextTick(() => {
-      const allKeys = getAllMenuKeys(menuTreeData.value)
-      console.log('展开所有菜单，节点数量:', allKeys.length)
-
-      // 使用 Element Plus Tree 的内置方法
-      allKeys.forEach(key => {
-        try {
-          const node = menuTreeRef.value?.getNode(key)
-          if (node && node.childNodes && node.childNodes.length > 0) {
-            node.expanded = true
-          }
-        } catch (err) {
-          console.warn('展开节点失败:', key, err)
-        }
-      })
-    })
-  } catch (error) {
-    console.error('展开菜单失败:', error)
-  }
-}
-
-// 折叠所有菜单
-const collapseAllMenus = () => {
-  if (!menuTreeRef.value || !menuTreeData.value.length) {
-    console.warn('菜单树未准备就绪或无数据')
-    return
-  }
-
-  try {
-    // 使用 nextTick 确保 DOM 更新完成
-    nextTick(() => {
-      const allKeys = getAllMenuKeys(menuTreeData.value)
-      console.log('折叠所有菜单，节点数量:', allKeys.length)
-
-      // 使用 Element Plus Tree 的内置方法
-      allKeys.forEach(key => {
-        try {
-          const node = menuTreeRef.value?.getNode(key)
-          if (node) {
-            node.expanded = false
-          }
-        } catch (err) {
-          console.warn('折叠节点失败:', key, err)
-        }
-      })
-    })
-  } catch (error) {
-    console.error('折叠菜单失败:', error)
-  }
-}
-
-// 保存权限配置
-const handleSave = async () => {
-  if (!props.roleInfo || !menuTreeRef.value) return
   
   try {
+    await ElMessageBox.confirm(
+      '确定要保存当前的权限配置吗？配置后需要重新登录才能生效。',
+      '确认保存',
+      {
+        type: 'warning',
+        confirmButtonText: '确定保存',
+        cancelButtonText: '取消'
+      }
+    )
+    
     saving.value = true
     
-    // 获取选中的菜单ID
-    const checkedKeys = (menuTreeRef.value.getCheckedKeys(false) as number[]) || []
-    const halfCheckedKeys = (menuTreeRef.value.getHalfCheckedKeys() as number[]) || []
-    const menuIds = [...checkedKeys, ...halfCheckedKeys]
+    // 获取当前选中的菜单ID
+    const selectedMenuIds = treeRef.value?.getCheckedKeys() || []
     
-    console.log('保存权限配置，角色ID:', props.roleInfo.role_id, '权限数量:', menuIds.length)
-    
-    // 调用API保存
-    const response = await RoleApi.assignRoleMenus(props.roleInfo.role_id, {
-      menu_ids: menuIds
+    const response = await RoleApi.assignMenus(props.roleInfo.role_id, {
+      menu_ids: selectedMenuIds
     })
     
     if (response.success) {
       ElMessage.success('权限配置保存成功')
       emit('success')
-      handleClose()
-    } else {
-      throw new Error(response.message || '保存权限配置失败')
+      dialogVisible.value = false
     }
   } catch (error) {
-    console.error('保存权限配置失败:', error)
-    ElMessage.error('保存权限配置失败')
+    if (error !== 'cancel') {
+      console.error('保存权限配置失败:', error)
+      ElMessage.error('保存权限配置失败')
+    }
   } finally {
     saving.value = false
   }
 }
 
-// 关闭对话框
-const handleClose = () => {
-  visible.value = false
-
-  // 重置状态（保留菜单数据以便下次快速打开）
-  menuCheckAll.value = false
-  menuIndeterminate.value = false
-  activeTab.value = 'menu'
-  loading.value = false
-  treeLoading.value = false
-  saving.value = false
-}
+// 暴露方法
+defineExpose({
+  loadMenuTree,
+  loadRolePermissions
+})
 </script>
 
 <style scoped lang="scss">
-.permission-dialog {
+.permission-dialog-content {
   .role-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-    padding: 16px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    
-    .role-desc {
-      color: #666;
-      font-size: 14px;
-    }
+    margin-bottom: 24px;
   }
   
-  .permission-tabs {
-    .menu-permission-container {
-      .toolbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 16px;
-        padding: 12px 16px;
-        background: #fafafa;
-        border-radius: 6px;
-        
-        .left-actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        
-        .right-info {
-          font-size: 13px;
-        }
+  .permission-config {
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      
+      h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #303133;
       }
       
-      .menu-tree-wrapper {
-        border: 1px solid #e4e7ed;
-        border-radius: 6px;
-        max-height: 400px;
-        overflow-y: auto;
-        
-        .permission-tree {
+      .actions {
+        display: flex;
+        gap: 8px;
+      }
+    }
+    
+    :deep(.el-tree) {
+      border: 1px solid var(--el-border-color);
+      border-radius: 4px;
+      max-height: 400px;
+      overflow-y: auto;
+      
+      .el-tree-node {
+        .el-tree-node__content {
+          height: auto;
+          min-height: 32px;
           padding: 8px;
           
-          .tree-node {
+          &:hover {
+            background-color: var(--el-tree-node-hover-bg-color);
+          }
+        }
+        
+        .tree-node {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          
+          .node-content {
             display: flex;
             align-items: center;
             gap: 8px;
-            flex: 1;
             
             .node-icon {
-              color: #409eff;
+              font-size: 16px;
+              color: var(--el-color-primary);
             }
             
-            .node-label {
+            .node-info {
               flex: 1;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              
+              .node-label {
+                font-size: 14px;
+                color: #303133;
+              }
+              
+              .node-type {
+                padding: 2px 6px;
+                border-radius: 2px;
+                font-size: 12px;
+                line-height: 1;
+                
+                &.type-directory {
+                  background-color: #e1f3ff;
+                  color: #0052d9;
+                }
+                
+                &.type-menu {
+                  background-color: #e6f7ff;
+                  color: #1890ff;
+                }
+                
+                &.type-button {
+                  background-color: #f6ffed;
+                  color: #52c41a;
+                }
+              }
             }
             
-            .node-tag {
-              margin-left: auto;
+            .node-permission {
+              .el-tag {
+                font-size: 11px;
+                height: 20px;
+                line-height: 18px;
+              }
             }
+          }
+          
+          .node-description {
+            margin-top: 4px;
+            padding-left: 24px;
+            
+            .el-text {
+              font-size: 12px;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  .permission-tips {
+    margin-top: 24px;
+    
+    :deep(.el-alert__content) {
+      ul {
+        margin: 8px 0 0 0;
+        padding-left: 16px;
+        
+        li {
+          margin-bottom: 4px;
+          font-size: 13px;
+          line-height: 1.5;
+          
+          &:last-child {
+            margin-bottom: 0;
           }
         }
       }
@@ -573,5 +521,14 @@ const handleClose = () => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+:deep(.el-dialog__body) {
+  padding: 20px 24px;
+}
+
+:deep(.el-dialog__footer) {
+  padding: 12px 24px 24px;
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 </style>

@@ -64,7 +64,11 @@
           <el-tag>{{ getProviderLabel(row.provider) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="model_name" label="模型" width="120" />
+      <el-table-column label="模型" width="120">
+        <template #default="{ row }">
+          {{ row.config?.model_name || row.name }}
+        </template>
+      </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
           <el-tag :type="getStatusTagType(row.status)">{{ getStatusLabel(row.status) }}</el-tag>
@@ -146,7 +150,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Setting, CircleCheck } from '@element-plus/icons-vue'
-import { modelConfigApi } from '@/api/modules/modelconfig'
+import { modelApi, modelUtils } from '@/api/modules/model'
 import { formatDateTime } from '@/utils/dateFormat'
 
 const loading = ref(false)
@@ -189,9 +193,12 @@ onMounted(() => {
 
 const loadStatistics = async () => {
   try {
-    const response = await modelConfigApi.getStatistics()
-    if (response.success) {
-      statistics.value = response.data
+    const response = await modelApi.getStatistics()
+    if (response.data.success) {
+      statistics.value = {
+        total_configs: response.data.data.total_models,
+        active_configs: response.data.data.active_models
+      }
     }
   } catch (error) {
     console.error('加载统计失败:', error)
@@ -202,10 +209,10 @@ const loadConfigList = async () => {
   loading.value = true
   try {
     const params = { ...pagination, ...searchForm }
-    const response = await modelConfigApi.getModelConfigList(params)
-    if (response.success) {
-      configList.value = response.data.model_configs
-      pagination.total = response.data.total
+    const response = await modelApi.getModelList(params)
+    if (response.data.success) {
+      configList.value = response.data.data.models || []
+      pagination.total = response.data.data.total || 0
     }
   } catch (error) {
     ElMessage.error('加载配置列表失败')
@@ -221,7 +228,15 @@ const handleSearch = () => {
 
 const handleEdit = (config) => {
   editingConfig.value = config
-  Object.assign(configForm, config)
+  Object.assign(configForm, {
+    name: config.name,
+    provider: config.provider,
+    model_name: config.config?.model_name || config.name,
+    api_key: config.api_key || '',
+    api_base: config.api_endpoint || '',
+    max_tokens: config.max_tokens || 4000,
+    temperature: config.temperature || 0.7
+  })
   showCreateDialog.value = true
 }
 
@@ -231,21 +246,131 @@ const handleSubmit = async () => {
     
     submitting.value = true
     try {
-      if (editingConfig.value) {
-        await modelConfigApi.updateModelConfig(editingConfig.value.id, configForm)
-      } else {
-        await modelConfigApi.createModelConfig(configForm)
+      const data = {
+        name: configForm.name,
+        display_name: configForm.name,
+        provider: configForm.provider,
+        model_type: 'chat',
+        api_endpoint: configForm.api_base,
+        api_key: configForm.api_key,
+        max_tokens: configForm.max_tokens,
+        temperature: configForm.temperature,
+        config: {
+          model_name: configForm.model_name
+        }
       }
-      ElMessage.success('操作成功')
+      
+      if (editingConfig.value) {
+        const response = await modelApi.updateModel(editingConfig.value.id, data)
+        if (response.data.success) {
+          ElMessage.success('更新成功')
+        }
+      } else {
+        const response = await modelApi.createModel(data)
+        if (response.data.success) {
+          ElMessage.success('创建成功')
+        }
+      }
+      
       showCreateDialog.value = false
+      resetForm()
       loadConfigList()
       loadStatistics()
     } catch (error) {
+      console.error('操作失败:', error)
       ElMessage.error('操作失败')
     } finally {
       submitting.value = false
     }
   })
+}
+
+const handleReset = () => {
+  Object.assign(searchForm, { keyword: '', provider: '' })
+  handleSearch()
+}
+
+const handleSelectionChange = (selection: any[]) => {
+  selectedConfigs.value = selection
+}
+
+const handleTest = async (config: any) => {
+  try {
+    ElMessage.info('正在测试模型连接...')
+    const response = await modelApi.testModel(config.id, {
+      prompt: '测试连接',
+      max_tokens: 100,
+      temperature: 0.7
+    })
+    
+    if (response.data.success && response.data.data.success) {
+      ElMessage.success(`测试成功！响应时间: ${response.data.data.response_time}ms`)
+    } else {
+      ElMessage.error(`测试失败: ${response.data.data.error_message || '未知错误'}`)
+    }
+  } catch (error) {
+    console.error('测试失败:', error)
+    ElMessage.error('测试连接失败')
+  }
+}
+
+const handleDelete = async (config: any) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除模型配置"${config.name}"吗？此操作不可恢复。`,
+      '确认删除',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    const response = await modelApi.deleteModel(config.id)
+    if (response.data.success) {
+      ElMessage.success('删除成功')
+      loadConfigList()
+      loadStatistics()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
+const onProviderChange = () => {
+  // 根据提供商设置默认值
+  if (configForm.provider === 'openai') {
+    configForm.api_base = ''
+    configForm.model_name = 'gpt-3.5-turbo'
+  } else if (configForm.provider === 'anthropic') {
+    configForm.api_base = ''
+    configForm.model_name = 'claude-3-haiku-20240307'
+  } else if (configForm.provider === 'azure') {
+    configForm.api_base = 'https://your-resource.openai.azure.com'
+    configForm.model_name = 'gpt-35-turbo'
+  } else if (configForm.provider === 'google') {
+    configForm.api_base = ''
+    configForm.model_name = 'gemini-pro'
+  } else if (configForm.provider === 'local') {
+    configForm.api_base = 'http://localhost:8080'
+    configForm.model_name = 'llama2'
+  }
+}
+
+const resetForm = () => {
+  Object.assign(configForm, {
+    name: '',
+    provider: '',
+    model_name: '',
+    api_key: '',
+    api_base: '',
+    max_tokens: 4000,
+    temperature: 0.7
+  })
+  editingConfig.value = null
 }
 
 const getProviderLabel = (provider) => {

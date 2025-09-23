@@ -173,12 +173,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, onMounted, h } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { MagicStick } from '@element-plus/icons-vue'
 import { testCaseApi } from '@/api/modules/testcase'
 import { agentApi } from '@/api/modules/agent'
 import { formatDateTime } from '@/utils/dateFormat'
+
+const router = useRouter()
 
 // 响应式数据
 const generating = ref(false)
@@ -216,9 +219,9 @@ onMounted(() => {
 // 方法
 const loadAvailableAgents = async () => {
   try {
-    const response = await agentApi.getAgentList({ status: 'active' })
-    if (response.success) {
-      availableAgents.value = response.data.agents
+    const response = await agentApi.searchAgents({ status: 'active' })
+    if (response.data.success) {
+      availableAgents.value = response.data.data.agents || []
     }
   } catch (error) {
     console.error('加载AI代理失败:', error)
@@ -229,8 +232,8 @@ const loadGenerationHistory = async () => {
   try {
     loadingHistory.value = true
     const response = await testCaseApi.getGenerationHistory({ page: 1, page_size: 10 })
-    if (response.success) {
-      generationHistory.value = response.data.history
+    if (response.data.success) {
+      generationHistory.value = response.data.data.history || []
     }
   } catch (error) {
     console.error('加载生成历史失败:', error)
@@ -248,19 +251,22 @@ const startGeneration = async () => {
     generating.value = true
     try {
       const response = await testCaseApi.generateTestCases(generateForm)
-      if (response.success) {
+      if (response.data.success) {
         currentTask.value = {
-          task_id: response.data.task_id,
+          task_id: response.data.data.task_id,
           status: 'running',
           progress: 0,
-          generated_count: 0
+          generated_count: 0,
+          total_expected: generateForm.count,
+          current_stage: '初始化任务'
         }
         
         // 开始轮询任务状态
-        startTaskPolling(response.data.task_id)
+        startTaskPolling(response.data.data.task_id)
         ElMessage.success('AI生成任务已启动')
       }
     } catch (error) {
+      console.error('启动生成任务失败:', error)
       ElMessage.error('启动生成任务失败')
       generating.value = false
     }
@@ -271,19 +277,19 @@ const startTaskPolling = (taskId) => {
   taskCheckInterval = setInterval(async () => {
     try {
       const response = await testCaseApi.checkGenerationTask(taskId)
-      if (response.success) {
-        currentTask.value = response.data
+      if (response.data.success) {
+        currentTask.value = response.data.data
         
-        if (response.data.status === 'completed') {
+        if (response.data.data.status === 'completed') {
           clearInterval(taskCheckInterval)
-          generatedCases.value = response.data.result?.generated_cases || []
+          generatedCases.value = response.data.data.result?.generated_cases || []
           generating.value = false
-          ElMessage.success(`生成完成！共生成 ${response.data.generated_count} 个测试用例`)
+          ElMessage.success(`生成完成！共生成 ${response.data.data.generated_count} 个测试用例`)
           loadGenerationHistory()
-        } else if (response.data.status === 'failed') {
+        } else if (response.data.data.status === 'failed') {
           clearInterval(taskCheckInterval)
           generating.value = false
-          ElMessage.error('生成任务失败')
+          ElMessage.error(`生成任务失败: ${response.data.data.error_message || '未知错误'}`)
         }
       }
     } catch (error) {
@@ -352,18 +358,149 @@ const getStatusLabel = (status) => {
 }
 
 const loadTemplate = () => {
-  ElMessage.info('模板功能开发中...')
+  // 提供一些常用模板
+  const templates = [
+    {
+      name: '用户登录功能',
+      requirement: '实现用户登录功能，包括用户名密码验证、记住密码、验证码验证、登录状态保持等功能。需要支持手机号和邮箱登录，密码强度验证，登录失败锁定机制。',
+      type: 'functional',
+      priority: 'high'
+    },
+    {
+      name: '支付功能',
+      requirement: '实现在线支付功能，支持多种支付方式（支付宝、微信、银行卡），包括支付流程、订单管理、退款处理、支付安全验证等功能。',
+      type: 'functional',
+      priority: 'critical'
+    },
+    {
+      name: '文件上传功能',
+      requirement: '实现文件上传功能，支持多种文件格式，包括文件大小限制、文件类型验证、上传进度显示、批量上传、断点续传等功能。',
+      type: 'functional',
+      priority: 'medium'
+    }
+  ]
+  
+  ElMessageBox.confirm('选择一个模板快速填充需求描述：', '选择模板', {
+    type: 'info',
+    showCancelButton: false,
+    showConfirmButton: false,
+    message: h('div', null, [
+      ...templates.map((template, index) => 
+        h('div', {
+          key: index,
+          style: 'padding: 10px; border: 1px solid #ddd; margin-bottom: 8px; cursor: pointer; border-radius: 4px;',
+          onClick: () => {
+            generateForm.requirement_text = template.requirement
+            generateForm.test_type = template.type
+            generateForm.priority = template.priority
+            ElMessageBox.close()
+            ElMessage.success('模板已加载')
+          }
+        }, [
+          h('strong', template.name),
+          h('p', { style: 'margin: 5px 0; font-size: 12px; color: #666;' }, template.requirement.substring(0, 100) + '...')
+        ])
+      )
+    ])
+  })
 }
 
 const viewHistory = (row) => {
-  ElMessage.info(`查看历史记录: ${row.task_id}`)
+  // 显示历史记录详情
+  ElMessageBox.alert(
+    h('div', null, [
+      h('p', `任务ID: ${row.task_id}`),
+      h('p', `需求描述: ${row.requirement_text}`),
+      h('p', `测试类型: ${getTestTypeLabel(row.test_type)}`),
+      h('p', `优先级: ${getPriorityLabel(row.priority)}`),
+      h('p', `生成数量: ${row.generated_count}/${row.count}`),
+      h('p', `代理: ${row.agent_names?.join(', ') || '默认'}`),
+      h('p', `状态: ${getStatusLabel(row.status)}`),
+      h('p', `创建时间: ${formatDateTime(row.created_at)}`)
+    ]),
+    '生成历史详情',
+    {
+      confirmButtonText: '确定'
+    }
+  )
 }
 
 const regenerate = (row) => {
   generateForm.requirement_text = row.requirement_text
   generateForm.test_type = row.test_type
   generateForm.priority = row.priority
+  generateForm.count = row.count
+  generateForm.agent_ids = row.agent_ids || []
   ElMessage.success('已加载历史配置，可以重新生成')
+}
+
+const cancelGeneration = async () => {
+  if (!currentTask.value?.task_id) return
+  
+  try {
+    await ElMessageBox.confirm('确定要取消当前生成任务吗？', '确认取消', {
+      type: 'warning'
+    })
+    
+    const response = await testCaseApi.cancelGenerationTask(currentTask.value.task_id)
+    if (response.data.success) {
+      clearInterval(taskCheckInterval)
+      currentTask.value = null
+      generating.value = false
+      ElMessage.success('生成任务已取消')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('取消任务失败:', error)
+      ElMessage.error('取消任务失败')
+    }
+  }
+}
+
+const exportCases = async () => {
+  if (!generatedCases.value.length) return
+  
+  try {
+    const caseIds = generatedCases.value.map(c => c.id)
+    const blob = await testCaseApi.exportTestCases(caseIds, 'excel')
+    
+    // 创建下载链接
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `generated_test_cases_${new Date().toISOString().split('T')[0]}.xlsx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    
+    ElMessage.success('测试用例导出成功')
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败')
+  }
+}
+
+const showAllCases = () => {
+  // 跳转到测试用例列表页面，显示生成的用例
+  router.push({
+    path: '/test/cases',
+    query: {
+      generated: 'true',
+      task_id: currentTask.value?.task_id
+    }
+  })
+}
+
+const getTestTypeLabel = (type) => {
+  const labels = {
+    functional: '功能测试',
+    performance: '性能测试',
+    security: '安全测试',
+    integration: '集成测试',
+    unit: '单元测试'
+  }
+  return labels[type] || type
 }
 </script>
 
