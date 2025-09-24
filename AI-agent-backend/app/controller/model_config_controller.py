@@ -176,27 +176,7 @@ def get_model_config_statistics(
         return Fail(msg=f"获取统计信息失败: {str(e)}")
 
 
-@router.post("/{model_id}/test", summary="测试模型配置")
-async def test_model_config(
-    model_id: int,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """测试指定模型配置的连接"""
-    try:
-        ai_model_service = AIModelService(db)
-        # 创建测试请求
-        test_request = AIModelTestRequest(
-            test_prompt="Hello, this is a connection test",
-            test_config={}
-        )
-        result = await ai_model_service.test_model(model_id, test_request)
-        
-        return Success(data=result, msg="模型测试完成")
-        
-    except Exception as e:
-        logger.error(f"Error testing model config: {str(e)}")
-        return Fail(msg=f"模型测试失败: {str(e)}")
+# 移除重复的测试路由，保留统一的 `/{model_id}/test` 下方实现
 
 
 @router.post("/batch", response_model=AIModelBatchOperationResponse, summary="批量操作模型配置")

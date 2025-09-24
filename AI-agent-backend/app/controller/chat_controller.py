@@ -65,7 +65,7 @@ async def create_chat_session(
         chat_service = ChatSessionService(db)
         session = await chat_service.create_session(
             user_id=current_user.user_id,
-            model_id=request.model_id,
+            large_model_id=request.large_model_id,
             title=request.title,
             system_prompt=request.system_prompt
         )
@@ -204,7 +204,7 @@ async def chat(
                 try:
                     response_content = ""
                     async for chunk in await ai_model_service.chat_with_model(
-                        model_id=request.model_id,
+                        model_id=request.large_model_id,
                         messages=messages,
                         user_id=current_user.user_id,
                         stream=True,
@@ -241,7 +241,7 @@ async def chat(
         else:
             # 完整响应
             response = await ai_model_service.chat_with_model(
-                model_id=request.model_id,
+                model_id=request.large_model_id,
                 messages=messages,
                 user_id=current_user.user_id,
                 stream=False,

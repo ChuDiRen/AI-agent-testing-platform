@@ -79,9 +79,9 @@
               <!-- 模型配置 -->
               <el-divider>模型配置</el-divider>
               
-              <el-form-item label="AI模型" prop="model_id">
+            <el-form-item label="AI模型" prop="large_model_id">
                 <el-select
-                  v-model="configForm.config.model_id"
+                  v-model="configForm.config.large_model_id"
                   placeholder="请选择AI模型"
                   filterable
                   @change="handleModelChange"
@@ -483,7 +483,7 @@ const configForm = reactive({
   description: '',
   version: '',
   config: {
-    model_id: null,
+    large_model_id: null,
     temperature: 0.7,
     max_tokens: 2000,
     system_prompt: '',
@@ -707,7 +707,7 @@ const loadRecentLogs = async () => {
 }
 
 const parseCustomConfigs = (config: Record<string, any>) => {
-  const standardKeys = ['model_id', 'temperature', 'max_tokens', 'system_prompt', 'stream', 'timeout', 'retry_count']
+  const standardKeys = ['large_model_id', 'temperature', 'max_tokens', 'system_prompt', 'stream', 'timeout', 'retry_count']
   const custom = Object.entries(config)
     .filter(([key]) => !standardKeys.includes(key))
     .map(([key, value]) => ({ key, value: String(value) }))

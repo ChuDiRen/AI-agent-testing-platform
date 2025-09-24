@@ -27,7 +27,7 @@ class ChatSession(BaseEntity):
     # 用户ID - 外键关联用户表
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False, comment="用户ID")
 
-    # AI模型ID - 外键关联AI模型表
+    # AI模型ID - 外键关联AI模型表（数据库列名仍为model_id）
     large_model_id = Column('model_id', Integer, ForeignKey('ai_model.id'), nullable=False, comment="AI模型ID")
 
     # 会话标题

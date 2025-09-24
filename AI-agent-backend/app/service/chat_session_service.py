@@ -154,7 +154,7 @@ class ChatSessionService:
                 return {
                     "session_id": updated_session.session_id,
                     "title": updated_session.title,
-                    "model_id": updated_session.model_id,
+                    "large_model_id": updated_session.large_model_id,
                     "system_prompt": updated_session.system_prompt,
                     "created_at": updated_session.created_at.isoformat(),
                     "updated_at": updated_session.updated_at.isoformat()

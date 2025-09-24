@@ -434,8 +434,8 @@ export const agentUtils = {
     // 根据类型进行特定验证
     switch (type) {
       case 'chat':
-        if (!config.model_id) {
-          errors.push('聊天代理必须指定model_id')
+        if (!config.large_model_id) {
+          errors.push('聊天代理必须指定large_model_id')
         }
         if (config.temperature && (config.temperature < 0 || config.temperature > 2)) {
           errors.push('temperature参数必须在0-2之间')

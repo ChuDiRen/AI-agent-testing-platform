@@ -266,25 +266,86 @@ class MultiAgentTestCaseGenerator:
     
     def _simulate_requirements_analysis(self, requirements_document: str) -> List[Dict[str, Any]]:
         """模拟需求分析结果"""
-        # 这里应该是实际的AI分析逻辑
-        return [
-            {
-                "module": "用户登录",
+        # 基于需求文档关键词智能分析生成测试点
+        modules = []
+        
+        # 分析用户认证相关功能
+        if any(keyword in requirements_document.lower() for keyword in ['登录', 'login', '认证', 'auth']):
+            modules.append({
+                "module": "用户认证",
                 "test_points": [
                     {"id": 1, "name": "正常登录验证", "type": "正常流程"},
                     {"id": 2, "name": "错误密码验证", "type": "异常场景"},
-                    {"id": 3, "name": "空用户名验证", "type": "边界值"}
+                    {"id": 3, "name": "空用户名验证", "type": "边界值"},
+                    {"id": 4, "name": "密码强度验证", "type": "安全测试"},
+                    {"id": 5, "name": "会话超时验证", "type": "安全测试"}
                 ]
-            },
-            {
+            })
+        
+        # 分析用户注册相关功能  
+        if any(keyword in requirements_document.lower() for keyword in ['注册', 'register', '用户创建']):
+            modules.append({
+                "module": "用户注册",
+                "test_points": [
+                    {"id": 6, "name": "正常注册流程", "type": "正常流程"},
+                    {"id": 7, "name": "重复邮箱注册", "type": "异常场景"},
+                    {"id": 8, "name": "邮箱格式验证", "type": "数据验证"},
+                    {"id": 9, "name": "密码复杂度验证", "type": "数据验证"}
+                ]
+            })
+        
+        # 分析数据管理功能
+        if any(keyword in requirements_document.lower() for keyword in ['数据', 'data', '管理', 'CRUD', '增删改查']):
+            modules.append({
                 "module": "数据管理",
                 "test_points": [
-                    {"id": 4, "name": "数据新增功能", "type": "正常流程"},
-                    {"id": 5, "name": "数据查询功能", "type": "正常流程"},
-                    {"id": 6, "name": "数据删除权限", "type": "权限验证"}
+                    {"id": 10, "name": "数据新增功能", "type": "正常流程"},
+                    {"id": 11, "name": "数据查询功能", "type": "正常流程"},
+                    {"id": 12, "name": "数据更新功能", "type": "正常流程"},
+                    {"id": 13, "name": "数据删除权限", "type": "权限验证"},
+                    {"id": 14, "name": "批量操作功能", "type": "业务流程"}
                 ]
-            }
-        ]
+            })
+            
+        # 分析搜索功能
+        if any(keyword in requirements_document.lower() for keyword in ['搜索', 'search', '查找', '过滤']):
+            modules.append({
+                "module": "搜索功能", 
+                "test_points": [
+                    {"id": 15, "name": "关键词搜索", "type": "正常流程"},
+                    {"id": 16, "name": "空搜索处理", "type": "边界值"},
+                    {"id": 17, "name": "特殊字符搜索", "type": "异常场景"},
+                    {"id": 18, "name": "搜索结果分页", "type": "业务流程"}
+                ]
+            })
+        
+        # 分析权限管理功能
+        if any(keyword in requirements_document.lower() for keyword in ['权限', 'permission', '角色', 'role']):
+            modules.append({
+                "module": "权限管理",
+                "test_points": [
+                    {"id": 19, "name": "角色权限验证", "type": "权限验证"},
+                    {"id": 20, "name": "页面访问控制", "type": "权限验证"},
+                    {"id": 21, "name": "API接口权限", "type": "权限验证"},
+                    {"id": 22, "name": "数据权限隔离", "type": "安全测试"}
+                ]
+            })
+        
+        # 如果没有匹配到关键词，生成通用测试点
+        if not modules:
+            modules = [
+                {
+                    "module": "基础功能",
+                    "test_points": [
+                        {"id": 1, "name": "页面加载验证", "type": "正常流程"},
+                        {"id": 2, "name": "表单提交验证", "type": "正常流程"},
+                        {"id": 3, "name": "数据保存验证", "type": "正常流程"},
+                        {"id": 4, "name": "错误处理验证", "type": "异常场景"}
+                    ]
+                }
+            ]
+        
+        return modules
     
     def _simulate_test_case_design(self, requirements_document: str, 
                                  test_points: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -362,6 +423,92 @@ class MultiAgentTestCaseGenerator:
             standardized.append(standardized_case)
         
         return standardized
+    
+    def _generate_preconditions(self, test_point: Dict[str, Any], scenario: str) -> str:
+        """生成前置条件"""
+        base_conditions = ["系统正常运行", "测试环境已准备"]
+        
+        if "登录" in scenario or "认证" in scenario:
+            base_conditions.append("用户账号已创建")
+        if "权限" in scenario:
+            base_conditions.append("用户已分配相应权限")
+        if "数据" in scenario:
+            base_conditions.append("测试数据已准备")
+            
+        return "、".join(base_conditions)
+    
+    def _generate_test_steps(self, test_point: Dict[str, Any], scenario: str) -> str:
+        """生成测试步骤"""
+        steps = []
+        
+        if "登录" in scenario:
+            if "正常" in scenario:
+                steps = [
+                    "1. 打开登录页面",
+                    "2. 输入有效的用户名和密码", 
+                    "3. 点击登录按钮",
+                    "4. 验证页面跳转"
+                ]
+            elif "错误" in scenario:
+                steps = [
+                    "1. 打开登录页面",
+                    "2. 输入有效用户名和错误密码",
+                    "3. 点击登录按钮", 
+                    "4. 查看错误提示"
+                ]
+        elif "搜索" in scenario:
+            steps = [
+                "1. 进入搜索页面",
+                "2. 在搜索框输入关键词",
+                "3. 点击搜索按钮",
+                "4. 查看搜索结果"
+            ]
+        elif "数据" in scenario:
+            if "新增" in scenario:
+                steps = [
+                    "1. 进入数据管理页面",
+                    "2. 点击新增按钮",
+                    "3. 填写必填字段",
+                    "4. 提交保存"
+                ]
+            elif "删除" in scenario:
+                steps = [
+                    "1. 进入数据列表页面",
+                    "2. 选择要删除的数据",
+                    "3. 点击删除按钮",
+                    "4. 确认删除操作"
+                ]
+        else:
+            steps = [
+                "1. 执行相关操作",
+                "2. 输入测试数据",
+                "3. 提交或确认操作",
+                "4. 验证操作结果"
+            ]
+            
+        return "\n".join(steps)
+    
+    def _generate_expected_result(self, test_point: Dict[str, Any], scenario: str) -> str:
+        """生成预期结果"""
+        if "正常" in scenario:
+            return "操作成功执行，系统状态正常，数据正确保存"
+        elif "错误" in scenario or "异常" in scenario:
+            return "系统显示相应错误提示，不执行无效操作"
+        elif "权限" in scenario:
+            return "系统正确验证权限，无权限用户无法访问"
+        elif "边界" in scenario:
+            return "系统正确处理边界值，不出现异常"
+        else:
+            return "功能按预期执行，结果符合需求"
+    
+    def _generate_postconditions(self, test_point: Dict[str, Any], scenario: str) -> str:
+        """生成后置条件"""
+        if "数据" in scenario:
+            return "清理测试数据，恢复系统初始状态"
+        elif "登录" in scenario:
+            return "用户退出登录，清理会话"
+        else:
+            return "系统恢复到测试前状态"
     
     def _sort_test_cases(self, test_cases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """排序优化"""

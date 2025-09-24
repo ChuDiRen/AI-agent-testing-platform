@@ -63,7 +63,7 @@
             style="width: 280px"
           >
             <el-option-group
-              v-for="provider in groupedModels"
+              v-for="provider in providers"
               :key="provider.name"
               :label="provider.label"
             >
@@ -76,13 +76,13 @@
                 <div class="model-option">
                   <div class="model-info">
                     <span class="model-name">{{ model.display_name }}</span>
-                    <el-tag :type="getModelTypeColor(model.provider)" size="small">
+                    <el-tag :type="(model.provider === 'openai' ? 'success' : model.provider === 'anthropic' ? 'warning' : 'info')" size="small">
                       {{ model.provider }}
                     </el-tag>
                   </div>
                   <div class="model-meta">
-                    <span class="model-cost">{{ formatModelCost(model.pricing) }}</span>
-                    <span class="model-speed">{{ getModelSpeed(model.provider) }}</span>
+                    <span class="model-cost">{{ (model.max_tokens || 0) + ' tokens' }}</span>
+                    <span class="model-speed">默认</span>
                   </div>
                 </div>
               </el-option>
@@ -462,19 +462,25 @@
 import { ref, reactive, onMounted, nextTick, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
-  Plus, Edit, Delete, User, Robot, Setting, 
+  Plus, Edit, Delete, User, Setting, 
   DocumentCopy, Promotion, Document, Close, Paperclip,
   Camera, Microphone, Collection, Cpu, RefreshLeft
 } from '@element-plus/icons-vue'
+import type { ChatSession, SessionMessage } from '@/api/modules/chat'
 import { chatApi, chatUtils } from '@/api/modules/chat'
 import { knowledgeApi } from '@/api/modules/knowledge'
 
 // 响应式数据
-const sessions = ref([])
-const messages = ref([])
-const availableModels = ref([])
-const currentSessionId = ref('')
-const selectedModelId = ref(null)
+type AttachedFile = { id: number; name: string; size: number; type: string; file: any; preview: string | null }
+
+const sessions = ref<ChatSession[]>([])
+const messages = ref<SessionMessage[]>([])
+type UiModel = { id: number; name: string; display_name: string; provider: string; model_type: string; status: string; max_tokens: number; temperature: number; pricing?: any }
+type ProviderGroup = { name: string; label: string; models: UiModel[] }
+const availableModels = ref<UiModel[]>([])
+const providers = ref<ProviderGroup[]>([])
+const currentSessionId = ref<string>('')
+const selectedModelId = ref<number | null>(null)
 const inputMessage = ref('')
 const isLoading = ref(false)
 const isTyping = ref(false)
@@ -482,14 +488,14 @@ const showEditDialog = ref(false)
 const showSettings = ref(false)
 
 // 多模态功能数据
-const attachedFiles = ref([])
+const attachedFiles = ref<AttachedFile[]>([])
 const isRecording = ref(false)
 const uploadRef = ref()
 
 // 知识库相关
 const knowledgeBaseVisible = ref(false)
-const selectedKnowledgeBase = ref(null)
-const availableKnowledgeBases = ref([])
+const selectedKnowledgeBase = ref<{ id: string; name: string } | null>(null)
+const availableKnowledgeBases = ref<Array<{ id: string; name: string; description?: string; document_count?: number }>>([])
 const showKnowledgeSelector = ref(false)
 const knowledgeSelectorPosition = ref({ top: 0, left: 0 })
 
@@ -500,6 +506,7 @@ const maxTokens = ref(1000)
 const defaultTemperature = ref(0.7)
 const defaultMaxTokens = ref(1000)
 const streamResponse = ref(true)
+const streamEnabled = ref(true)
 const autoSave = ref(true)
 
 // 编辑表单
@@ -509,7 +516,7 @@ const editForm = reactive({
 })
 
 // 引用
-const messageListRef = ref()
+const messageListRef = ref<HTMLDivElement | null>(null)
 
 // 计算属性
 const currentSession = computed(() => {
@@ -522,11 +529,7 @@ const currentModel = computed(() => {
 
 // 常用模型（用于快速切换）
 const favoriteModels = computed(() => {
-  return availableModels.value.filter(m => 
-    ['gpt-4', 'gpt-3.5-turbo', 'claude-3', 'gemini-pro'].some(name => 
-      m.model_name.toLowerCase().includes(name)
-    )
-  ).slice(0, 5)
+  return availableModels.value.slice(0, 5)
 })
 
 // 生命周期
@@ -540,8 +543,8 @@ onMounted(() => {
 const loadSessions = async () => {
   try {
     const response = await chatApi.getSessions(1, 50)
-    if (response.data.success) {
-      sessions.value = response.data.data.sessions
+    if (response?.data?.success && response.data.data?.sessions) {
+      sessions.value = response.data.data.sessions as ChatSession[]
     }
   } catch (error) {
     console.error('加载会话列表失败:', error)
@@ -552,8 +555,16 @@ const loadSessions = async () => {
 const loadModels = async () => {
   try {
     const response = await chatApi.getAvailableModels()
-    if (response.data.success) {
-      availableModels.value = response.data.data.models
+    if (response?.data?.success && response.data.data?.models) {
+      availableModels.value = response.data.data.models as UiModel[]
+    // 构建简单的provider分组
+    const map: Record<string, UiModel[]> = {}
+    for (const m of availableModels.value) {
+      const key = m.provider || 'other'
+      if (!map[key]) map[key] = []
+      map[key].push(m)
+    }
+    providers.value = Object.keys(map).map(k => ({ name: k, label: k.toUpperCase(), models: map[k] }))
       // 如果没有选择模型，默认选择第一个可用模型
       if (!selectedModelId.value && availableModels.value.length > 0) {
         selectedModelId.value = availableModels.value[0].id
@@ -574,6 +585,8 @@ const loadSettings = () => {
       temperature.value = settings.temperature || 0.7
       maxTokens.value = settings.maxTokens || 2000
       streamEnabled.value = settings.streamEnabled !== false
+      streamResponse.value = settings.streamResponse !== false
+      autoSave.value = settings.autoSave !== false
       if (settings.selectedModelId) {
         selectedModelId.value = settings.selectedModelId
       }
@@ -592,10 +605,10 @@ const createNewSession = async () => {
   try {
     const response = await chatApi.createSession({
       title: '新对话',
-      model_id: selectedModelId.value
+      large_model_id: selectedModelId.value
     })
     
-    if (response.data.success) {
+    if (response && response.data && response.data.success) {
       const newSession = response.data.data
       sessions.value.unshift(newSession)
       currentSessionId.value = newSession.session_id
@@ -616,8 +629,8 @@ const selectSession = async (sessionId: string) => {
 const loadMessages = async (sessionId: string) => {
   try {
     const response = await chatApi.getSessionMessages(sessionId, 1, 100)
-    if (response.data.success) {
-      messages.value = response.data.data.messages
+    if (response && response.data && response.data.success && response.data.data && response.data.data.messages) {
+      messages.value = response.data.data.messages as SessionMessage[]
     }
   } catch (error) {
     console.error('加载消息失败:', error)
@@ -644,7 +657,7 @@ const sendMessage = async () => {
   // 清空输入
   inputMessage.value = ''
   attachedFiles.value = []
-  selectedKnowledgeBase.value = null
+  selectedKnowledgeBase.value = null as any
   
   // 添加用户消息到界面
   messages.value.push({
@@ -678,7 +691,7 @@ const sendMessage = async () => {
 
     // 调用API发送消息
     const chatRequest = {
-      model_id: selectedModelId.value,
+      large_model_id: selectedModelId.value,
       messages: messages.value.map(msg => ({
         role: msg.role as 'user' | 'assistant' | 'system',
         content: msg.content
@@ -839,7 +852,7 @@ const saveSession = async () => {
       system_prompt: editForm.system_prompt
     })
     
-    if (response.data.success) {
+    if (response && response.data && response.data.success) {
       // 更新本地会话信息
       const session = sessions.value.find(s => s.session_id === currentSessionId.value)
       if (session) {
@@ -895,7 +908,7 @@ const clearMessages = async () => {
     
     const response = await chatApi.clearSessionMessages(currentSessionId.value)
     
-    if (response.data.success) {
+    if (response && response.data && response.data.success) {
       messages.value = []
       ElMessage.success('对话已清空')
     }
@@ -931,6 +944,8 @@ const saveSettings = () => {
       temperature: temperature.value,
       maxTokens: maxTokens.value,
       streamEnabled: streamEnabled.value,
+      streamResponse: streamResponse.value,
+      autoSave: autoSave.value,
       selectedModelId: selectedModelId.value
     }
     localStorage.setItem('chat-settings', JSON.stringify(settings))
@@ -1112,7 +1127,6 @@ const chatWithKnowledge = async (query: string, kbId: string) => {
     const response = await knowledgeApi.chatWithKnowledge({
       kb_id: kbId,
       query: query,
-      model_id: selectedModelId.value,
       temperature: temperature.value
     })
     

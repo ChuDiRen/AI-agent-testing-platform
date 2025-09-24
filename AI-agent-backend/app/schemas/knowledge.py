@@ -107,7 +107,7 @@ class ChatWithKnowledgeRequest(BaseModel):
     """基于知识库的对话请求"""
     kb_id: str = Field(..., description="知识库ID")
     query: str = Field(..., description="用户查询")
-    model_id: Optional[str] = Field(None, description="使用的模型ID")
+    large_model_id: Optional[str] = Field(None, description="使用的模型ID")
     similarity_threshold: Optional[float] = Field(0.7, description="相似度阈值")
     max_chunks: Optional[int] = Field(5, description="最大使用的分块数")
     temperature: Optional[float] = Field(0.7, description="模型温度")
@@ -117,7 +117,7 @@ class ChatWithKnowledgeResponse(BaseModel):
     """基于知识库的对话响应"""
     query: str
     response: str
-    model_id: str
+    large_model_id: str
     relevant_chunks: List[DocumentChunkResponse]
     tokens_used: Optional[int]
     cost: Optional[float]

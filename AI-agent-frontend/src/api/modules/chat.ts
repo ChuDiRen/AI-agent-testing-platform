@@ -9,7 +9,7 @@ export interface ChatMessage {
 
 // 聊天请求接口
 export interface ChatRequest {
-  model_id: number
+  large_model_id: number
   messages: ChatMessage[]
   temperature?: number
   max_tokens?: number
@@ -30,7 +30,7 @@ export interface ChatResponse {
 export interface ChatSession {
   session_id: string
   title: string
-  model_id: number
+  large_model_id: number
   system_prompt?: string
   created_at: string
   updated_at: string
@@ -45,7 +45,7 @@ export interface ChatSession {
 // 创建会话请求
 export interface CreateSessionRequest {
   title?: string
-  model_id: number
+  large_model_id: number
   system_prompt?: string
 }
 

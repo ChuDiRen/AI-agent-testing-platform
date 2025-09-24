@@ -9,6 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.service.test_case_service import TestCaseService
+from app.service.multi_agent_service import MultiAgentTestCaseGenerator
+from app.controller.ai_generation_controller import get_generation_status as _ai_get_status
 from app.dto.test_case_dto import (
     TestCaseCreateRequest, TestCaseUpdateRequest, TestCaseSearchRequest,
     TestCaseResponse, TestCaseListResponse, TestCaseStatisticsResponse,
@@ -23,6 +25,59 @@ from app.core.logger import get_logger
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/test-cases", tags=["测试用例管理"])
+@router.post("/generate", summary="AI生成测试用例（与前端路由对齐）")
+async def generate_test_cases_proxy(
+    request: dict,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """与前端 /test-cases/generate 对齐的生成接口。
+    直接调用多智能体生成器并返回一个简化的任务ID（同步场景）。
+    """
+    try:
+        generator = MultiAgentTestCaseGenerator()
+        generation_config = request.get("additional_config") or {}
+        generation_config.update({
+            "target_module": None,
+            "test_types": [request.get("test_type")] if request.get("test_type") else None,
+            "priority_levels": [request.get("priority")] if request.get("priority") else None,
+            "max_cases": request.get("count", 20),
+            "include_edge_cases": True,
+            "include_negative_cases": True,
+        })
+
+        result = await generator.generate_test_cases(
+            requirements_document=request.get("requirement_text") or "",
+            generation_config=generation_config,
+        )
+
+        # 直接返回一个伪任务ID以及立即可用的结果，兼容前端轮询逻辑
+        task_id = result.get("generation_id")
+        return Success(data={"task_id": task_id, "result": result}, msg="生成任务已创建")
+    except Exception as e:
+        logger.error(f"Error generating test cases (proxy): {str(e)}")
+        return Fail(msg=f"AI生成测试用例失败: {str(e)}")
+
+
+@router.get("/generation-tasks/{task_id}", summary="获取生成任务状态（对齐前端）")
+async def check_generation_task(task_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    try:
+        # 复用 ai_generation_controller 的状态查询（当前为模拟恒定完成）
+        status_resp = _ai_get_status(task_id, db, current_user)
+        return status_resp
+    except Exception as e:
+        logger.error(f"Error checking generation task {task_id}: {str(e)}")
+        return Fail(msg=f"查询生成任务失败: {str(e)}")
+
+
+@router.post("/generation-tasks/{task_id}/cancel", summary="取消生成任务（占位实现）")
+async def cancel_generation_task(task_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    try:
+        # 目前为占位实现：标记为已取消
+        return Success(data={"task_id": task_id, "status": "cancelled"}, msg="生成任务已取消（占位）")
+    except Exception as e:
+        logger.error(f"Error cancelling generation task {task_id}: {str(e)}")
+        return Fail(msg=f"取消生成任务失败: {str(e)}")
 
 
 @router.post("/", response_model=TestCaseResponse, summary="创建测试用例")

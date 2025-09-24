@@ -66,7 +66,7 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
         """获取使用特定模型的会话列表"""
         try:
             query = self.db.query(ChatSession).filter(
-                ChatSession.model_id == model_id
+                ChatSession.large_model_id == model_id
             )
             
             total = query.count()
@@ -98,7 +98,7 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
             
             # 模型筛选
             if model_id:
-                query = query.filter(ChatSession.model_id == model_id)
+                query = query.filter(ChatSession.large_model_id == model_id)
             
             # 时间范围筛选
             if start_date:
@@ -169,9 +169,9 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
             
             # 按模型统计
             model_stats = self.db.query(
-                ChatSession.model_id,
+                ChatSession.large_model_id,
                 self.db.func.count(ChatSession.id).label('count')
-            ).group_by(ChatSession.model_id).all()
+            ).group_by(ChatSession.large_model_id).all()
             
             return {
                 "total_sessions": total_sessions,

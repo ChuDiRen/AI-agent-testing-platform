@@ -8,11 +8,11 @@ Date: 2024-01-01
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
-from app.core.deps import get_db, get_current_active_user
-from app.core.response import success_response, error_response
-from app.models.user import User
+from app.db.session import get_db
+from app.middleware.auth import get_current_user
+from app.controller.base import Success as success_response, Fail as error_response  # 适配统一响应
 from app.service.knowledge_service import KnowledgeService
 from app.schemas.knowledge import (
     KnowledgeBaseCreate,
@@ -29,8 +29,8 @@ router = APIRouter()
 @router.post("/knowledge-bases", response_model=dict)
 async def create_knowledge_base(
     request: KnowledgeBaseCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """创建知识库"""
     try:
@@ -45,8 +45,8 @@ async def get_knowledge_bases(
     page: int = 1,
     page_size: int = 10,
     name: Optional[str] = None,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """获取知识库列表"""
     try:
@@ -64,8 +64,8 @@ async def get_knowledge_bases(
 @router.get("/knowledge-bases/{kb_id}", response_model=dict)
 async def get_knowledge_base(
     kb_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """获取知识库详情"""
     try:
@@ -83,8 +83,8 @@ async def get_knowledge_base(
 async def update_knowledge_base(
     kb_id: str,
     request: KnowledgeBaseUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """更新知识库"""
     try:
@@ -97,8 +97,8 @@ async def update_knowledge_base(
 @router.delete("/knowledge-bases/{kb_id}", response_model=dict)
 async def delete_knowledge_base(
     kb_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """删除知识库"""
     try:
@@ -114,8 +114,8 @@ async def upload_document(
     file: UploadFile = File(...),
     title: str = Form(None),
     description: str = Form(None),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """上传文档到知识库"""
     try:
@@ -137,8 +137,8 @@ async def get_documents(
     page: int = 1,
     page_size: int = 10,
     title: Optional[str] = None,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """获取知识库文档列表"""
     try:
@@ -157,8 +157,8 @@ async def get_documents(
 @router.delete("/documents/{doc_id}", response_model=dict)
 async def delete_document(
     doc_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """删除文档"""
     try:
@@ -172,8 +172,8 @@ async def delete_document(
 async def search_documents(
     kb_id: str,
     request: DocumentSearchRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """在知识库中搜索文档"""
     try:
@@ -193,9 +193,9 @@ async def search_documents(
 async def chat_with_knowledge(
     kb_id: str,
     query: str,
-    model_id: Optional[str] = None,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    large_model_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """基于知识库的对话"""
     try:
@@ -204,7 +204,7 @@ async def chat_with_knowledge(
             kb_id=kb_id,
             query=query,
             user_id=current_user.id,
-            model_id=model_id
+            model_id=large_model_id
         )
         return success_response(data=response, message="知识库对话成功")
     except Exception as e:

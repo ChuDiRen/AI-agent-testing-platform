@@ -76,7 +76,7 @@ export interface DocumentSearchResponse {
 export interface ChatWithKnowledgeRequest {
   kb_id: string
   query: string
-  model_id?: string
+  large_model_id?: string
   similarity_threshold?: number
   max_chunks?: number
   temperature?: number
@@ -85,7 +85,7 @@ export interface ChatWithKnowledgeRequest {
 export interface ChatWithKnowledgeResponse {
   query: string
   response: string
-  model_id: string
+  large_model_id: string
   relevant_chunks: DocumentChunk[]
   tokens_used?: number
   cost?: number

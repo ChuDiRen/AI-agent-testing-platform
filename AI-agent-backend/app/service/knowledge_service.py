@@ -11,7 +11,7 @@ import hashlib
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from fastapi import UploadFile, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
 
@@ -27,13 +27,51 @@ from app.core.logger import get_logger
 logger = get_logger(__name__)
 
 
+import math
+import re
+
+
 class KnowledgeService:
     """知识库服务"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         self.db = db
 
-    async def create_knowledge_base(
+    # ============ 内部工具：文本分块与嵌入 ============
+    def _split_text(self, text: str, chunk_size: int, chunk_overlap: int) -> List[str]:
+        if not text:
+            return []
+        chunks: List[str] = []
+        start = 0
+        length = len(text)
+        step = max(1, chunk_size - chunk_overlap)
+        while start < length:
+            end = min(length, start + chunk_size)
+            chunks.append(text[start:end])
+            if end == length:
+                break
+            start += step
+        return chunks
+
+    def _embed_text(self, text: str, dim: int = 256) -> List[float]:
+        # 简单可复现的哈希嵌入（基于token的MD5映射计数，归一化）
+        vector = [0.0] * dim
+        for token in re.findall(r"[\w\u4e00-\u9fa5]+", (text or "").lower()):
+            h = int(hashlib.md5(token.encode("utf-8")).hexdigest(), 16)
+            idx = h % dim
+            vector[idx] += 1.0
+        # 归一化
+        norm = math.sqrt(sum(v * v for v in vector)) or 1.0
+        return [v / norm for v in vector]
+
+    def _cosine(self, a: List[float], b: List[float]) -> float:
+        if not a or not b or len(a) != len(b):
+            return 0.0
+        dot = sum(x * y for x, y in zip(a, b))
+        # 向量已归一化，分母可视为1
+        return float(dot)
+
+    def create_knowledge_base(
         self, 
         request: KnowledgeBaseCreate, 
         user_id: int
@@ -47,7 +85,7 @@ class KnowledgeService:
                     KnowledgeBase.user_id == user_id
                 )
             )
-            existing = await self.db.execute(stmt)
+            existing = self.db.execute(stmt)
             if existing.scalar_one_or_none():
                 raise HTTPException(status_code=400, detail="知识库名称已存在")
 
@@ -62,8 +100,8 @@ class KnowledgeService:
             )
             
             self.db.add(kb)
-            await self.db.commit()
-            await self.db.refresh(kb)
+            self.db.commit()
+            self.db.refresh(kb)
 
             return KnowledgeBaseResponse(
                 id=kb.id,
@@ -81,11 +119,11 @@ class KnowledgeService:
             )
 
         except Exception as e:
-            await self.db.rollback()
+            self.db.rollback()
             logger.error(f"创建知识库失败: {str(e)}")
             raise
 
-    async def get_knowledge_bases(
+    def get_knowledge_bases(
         self, 
         user_id: int, 
         page: int = 1, 
@@ -101,7 +139,7 @@ class KnowledgeService:
 
             # 查询总数
             count_stmt = select(func.count(KnowledgeBase.id)).where(and_(*conditions))
-            total_result = await self.db.execute(count_stmt)
+            total_result = self.db.execute(count_stmt)
             total = total_result.scalar()
 
             # 查询数据
@@ -113,7 +151,7 @@ class KnowledgeService:
                 .order_by(KnowledgeBase.created_at.desc())
             )
             
-            result = await self.db.execute(stmt)
+            result = self.db.execute(stmt)
             knowledge_bases = result.scalars().all()
 
             # 获取每个知识库的统计信息
@@ -123,14 +161,14 @@ class KnowledgeService:
                 doc_count_stmt = select(func.count(Document.id)).where(
                     Document.knowledge_base_id == kb.id
                 )
-                doc_count_result = await self.db.execute(doc_count_stmt)
+                doc_count_result = self.db.execute(doc_count_stmt)
                 doc_count = doc_count_result.scalar() or 0
 
                 # 统计分块数量
                 chunk_count_stmt = select(func.count(DocumentChunk.id)).join(
                     Document, DocumentChunk.document_id == Document.id
                 ).where(Document.knowledge_base_id == kb.id)
-                chunk_count_result = await self.db.execute(chunk_count_stmt)
+                chunk_count_result = self.db.execute(chunk_count_stmt)
                 chunk_count = chunk_count_result.scalar() or 0
 
                 kb_list.append(KnowledgeBaseResponse(
@@ -160,7 +198,7 @@ class KnowledgeService:
             logger.error(f"获取知识库列表失败: {str(e)}")
             raise
 
-    async def get_knowledge_base(self, kb_id: str, user_id: int) -> Optional[KnowledgeBaseResponse]:
+    def get_knowledge_base(self, kb_id: str, user_id: int) -> Optional[KnowledgeBaseResponse]:
         """获取知识库详情"""
         try:
             stmt = select(KnowledgeBase).where(
@@ -169,7 +207,7 @@ class KnowledgeService:
                     KnowledgeBase.user_id == user_id
                 )
             )
-            result = await self.db.execute(stmt)
+            result = self.db.execute(stmt)
             kb = result.scalar_one_or_none()
             
             if not kb:
@@ -179,13 +217,13 @@ class KnowledgeService:
             doc_count_stmt = select(func.count(Document.id)).where(
                 Document.knowledge_base_id == kb_id
             )
-            doc_count_result = await self.db.execute(doc_count_stmt)
+            doc_count_result = self.db.execute(doc_count_stmt)
             doc_count = doc_count_result.scalar() or 0
 
             chunk_count_stmt = select(func.count(DocumentChunk.id)).join(
                 Document, DocumentChunk.document_id == Document.id
             ).where(Document.knowledge_base_id == kb_id)
-            chunk_count_result = await self.db.execute(chunk_count_stmt)
+            chunk_count_result = self.db.execute(chunk_count_stmt)
             chunk_count = chunk_count_result.scalar() or 0
 
             return KnowledgeBaseResponse(
@@ -207,7 +245,7 @@ class KnowledgeService:
             logger.error(f"获取知识库详情失败: {str(e)}")
             raise
 
-    async def update_knowledge_base(
+    def update_knowledge_base(
         self, 
         kb_id: str, 
         request: KnowledgeBaseUpdate, 
@@ -221,7 +259,7 @@ class KnowledgeService:
                     KnowledgeBase.user_id == user_id
                 )
             )
-            result = await self.db.execute(stmt)
+            result = self.db.execute(stmt)
             kb = result.scalar_one_or_none()
             
             if not kb:
@@ -232,17 +270,17 @@ class KnowledgeService:
             for field, value in update_data.items():
                 setattr(kb, field, value)
 
-            await self.db.commit()
-            await self.db.refresh(kb)
+            self.db.commit()
+            self.db.refresh(kb)
 
-            return await self.get_knowledge_base(kb_id, user_id)
+            return self.get_knowledge_base(kb_id, user_id)
 
         except Exception as e:
-            await self.db.rollback()
+            self.db.rollback()
             logger.error(f"更新知识库失败: {str(e)}")
             raise
 
-    async def delete_knowledge_base(self, kb_id: str, user_id: int):
+    def delete_knowledge_base(self, kb_id: str, user_id: int):
         """删除知识库"""
         try:
             stmt = select(KnowledgeBase).where(
@@ -251,21 +289,21 @@ class KnowledgeService:
                     KnowledgeBase.user_id == user_id
                 )
             )
-            result = await self.db.execute(stmt)
+            result = self.db.execute(stmt)
             kb = result.scalar_one_or_none()
             
             if not kb:
                 raise HTTPException(status_code=404, detail="知识库不存在")
 
-            await self.db.delete(kb)
-            await self.db.commit()
+            self.db.delete(kb)
+            self.db.commit()
 
         except Exception as e:
-            await self.db.rollback()
+            self.db.rollback()
             logger.error(f"删除知识库失败: {str(e)}")
             raise
 
-    async def upload_document(
+    def upload_document(
         self, 
         kb_id: str, 
         file: UploadFile, 
@@ -282,7 +320,7 @@ class KnowledgeService:
                     KnowledgeBase.user_id == user_id
                 )
             )
-            kb_result = await self.db.execute(kb_stmt)
+            kb_result = self.db.execute(kb_stmt)
             kb = kb_result.scalar_one_or_none()
             
             if not kb:
@@ -295,7 +333,7 @@ class KnowledgeService:
                 raise HTTPException(status_code=400, detail="不支持的文件类型")
 
             # 读取文件内容
-            content = await file.read()
+            content = file.file.read()
             file_size = len(content)
             
             # 限制文件大小 (10MB)
@@ -316,13 +354,25 @@ class KnowledgeService:
             )
 
             self.db.add(document)
-            await self.db.commit()
-            await self.db.refresh(document)
+            self.db.commit()
+            self.db.refresh(document)
 
-            # TODO: 这里应该异步处理文档分块和向量化
-            # 现在暂时标记为完成
+            # 文档分块与向量化
+            chunks = self._split_text(document.content or "", kb.chunk_size or 1000, kb.chunk_overlap or 200)
+            for idx, chunk_text in enumerate(chunks):
+                emb = self._embed_text(chunk_text)
+                chunk = DocumentChunk(
+                    document_id=document.id,
+                    chunk_index=idx,
+                    content=chunk_text,
+                    embedding=json.dumps(emb),
+                    metadata=json.dumps({"source": document.file_name or "uploaded"}),
+                    token_count=len(chunk_text)
+                )
+                self.db.add(chunk)
+            document.chunk_count = len(chunks)
             document.status = "completed"
-            await self.db.commit()
+            self.db.commit()
 
             return DocumentResponse(
                 id=document.id,
@@ -340,11 +390,11 @@ class KnowledgeService:
             )
 
         except Exception as e:
-            await self.db.rollback()
+            self.db.rollback()
             logger.error(f"上传文档失败: {str(e)}")
             raise
 
-    async def search_documents(
+    def search_documents(
         self, 
         kb_id: str, 
         query: str, 
@@ -352,7 +402,7 @@ class KnowledgeService:
         limit: int = 10,
         similarity_threshold: float = 0.7
     ) -> DocumentSearchResponse:
-        """搜索文档（简单实现，实际需要向量搜索）"""
+        """搜索文档：使用本地向量相似度（余弦）进行匹配"""
         try:
             start_time = datetime.now()
 
@@ -363,27 +413,32 @@ class KnowledgeService:
                     KnowledgeBase.user_id == user_id
                 )
             )
-            kb_result = await self.db.execute(kb_stmt)
+            kb_result = self.db.execute(kb_stmt)
             kb = kb_result.scalar_one_or_none()
             
             if not kb:
                 raise HTTPException(status_code=404, detail="知识库不存在")
 
-            # 简单的文本搜索（实际应该使用向量搜索）
+            # 基于向量的相似度计算
+            query_vec = self._embed_text(query)
             stmt = (
                 select(DocumentChunk)
                 .join(Document, DocumentChunk.document_id == Document.id)
-                .where(
-                    and_(
-                        Document.knowledge_base_id == kb_id,
-                        DocumentChunk.content.ilike(f"%{query}%")
-                    )
-                )
-                .limit(limit)
+                .where(Document.knowledge_base_id == kb_id)
             )
-            
-            result = await self.db.execute(stmt)
-            chunks = result.scalars().all()
+            result = self.db.execute(stmt)
+            all_chunks = result.scalars().all()
+            scored: List[tuple[float, DocumentChunk]] = []
+            for ch in all_chunks:
+                try:
+                    emb = json.loads(ch.embedding) if ch.embedding else None
+                except Exception:
+                    emb = None
+                score = self._cosine(query_vec, emb) if emb else 0.0
+                if score >= (similarity_threshold or 0.0):
+                    scored.append((score, ch))
+            scored.sort(key=lambda x: x[0], reverse=True)
+            chunks = [c for _, c in scored[:limit]]
 
             response_time = (datetime.now() - start_time).total_seconds()
 
@@ -410,7 +465,7 @@ class KnowledgeService:
             logger.error(f"搜索文档失败: {str(e)}")
             raise
 
-    async def chat_with_knowledge(
+    def chat_with_knowledge(
         self,
         kb_id: str,
         query: str,
@@ -422,7 +477,7 @@ class KnowledgeService:
             start_time = datetime.now()
 
             # 搜索相关文档
-            search_result = await self.search_documents(
+            search_result = self.search_documents(
                 kb_id=kb_id,
                 query=query,
                 user_id=user_id,
@@ -452,12 +507,12 @@ class KnowledgeService:
             )
             
             self.db.add(query_record)
-            await self.db.commit()
+            self.db.commit()
 
             return ChatWithKnowledgeResponse(
                 query=query,
                 response=response,
-                model_id=model_id or "default",
+                large_model_id=model_id or "default",
                 relevant_chunks=search_result.chunks,
                 tokens_used=len(response.split()),
                 cost=0.01,
@@ -465,11 +520,11 @@ class KnowledgeService:
             )
 
         except Exception as e:
-            await self.db.rollback()
+            self.db.rollback()
             logger.error(f"知识库对话失败: {str(e)}")
             raise
 
-    async def get_documents(
+    def get_documents(
         self,
         kb_id: str,
         user_id: int,
@@ -486,7 +541,7 @@ class KnowledgeService:
                     KnowledgeBase.user_id == user_id
                 )
             )
-            kb_result = await self.db.execute(kb_stmt)
+            kb_result = self.db.execute(kb_stmt)
             kb = kb_result.scalar_one_or_none()
             
             if not kb:
@@ -499,7 +554,7 @@ class KnowledgeService:
 
             # 查询总数
             count_stmt = select(func.count(Document.id)).where(and_(*conditions))
-            total_result = await self.db.execute(count_stmt)
+            total_result = self.db.execute(count_stmt)
             total = total_result.scalar()
 
             # 查询数据
@@ -511,7 +566,7 @@ class KnowledgeService:
                 .order_by(Document.created_at.desc())
             )
             
-            result = await self.db.execute(stmt)
+            result = self.db.execute(stmt)
             documents = result.scalars().all()
 
             doc_list = [
@@ -544,7 +599,7 @@ class KnowledgeService:
             logger.error(f"获取文档列表失败: {str(e)}")
             raise
 
-    async def delete_document(self, doc_id: str, user_id: int):
+    def delete_document(self, doc_id: str, user_id: int):
         """删除文档"""
         try:
             stmt = (
@@ -557,16 +612,16 @@ class KnowledgeService:
                     )
                 )
             )
-            result = await self.db.execute(stmt)
+            result = self.db.execute(stmt)
             document = result.scalar_one_or_none()
             
             if not document:
                 raise HTTPException(status_code=404, detail="文档不存在")
 
-            await self.db.delete(document)
-            await self.db.commit()
+            self.db.delete(document)
+            self.db.commit()
 
         except Exception as e:
-            await self.db.rollback()
+            self.db.rollback()
             logger.error(f"删除文档失败: {str(e)}")
             raise
