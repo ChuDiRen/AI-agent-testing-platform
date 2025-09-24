@@ -151,43 +151,6 @@
               </div>
             </div>
 
-            <!-- AI生成图片显示 -->
-            <div v-if="message.metadata?.type === 'ai_painting' && message.metadata.image_url" class="message-ai-painting">
-              <img :src="message.metadata.image_url" 
-                   :alt="message.metadata.prompt"
-                   class="ai-generated-image"
-                   @click="previewImage(message.metadata.image_url)"
-              />
-              <div class="painting-meta">
-                <div class="meta-row">
-                  <el-tag size="small" :type="aiPaintingUtils.getStyleTagType(message.metadata.style)">
-                    {{ message.metadata.style }}
-                  </el-tag>
-                  <el-tag size="small">{{ message.metadata.size }}</el-tag>
-                  <el-tag size="small" type="info">
-                    {{ message.metadata.steps }} 步
-                  </el-tag>
-                </div>
-                <div class="meta-row" v-if="message.metadata.generation_time || message.metadata.cost">
-                  <span v-if="message.metadata.generation_time" class="meta-info">
-                    耗时: {{ aiPaintingUtils.formatGenerationTime(message.metadata.generation_time) }}
-                  </span>
-                  <span v-if="message.metadata.cost" class="meta-info">
-                    成本: ¥{{ message.metadata.cost.toFixed(4) }}
-                  </span>
-                </div>
-                <div class="painting-actions">
-                  <el-button size="small" text @click="regeneratePainting(message.metadata)">
-                    <el-icon><Refresh /></el-icon>
-                    重新生成
-                  </el-button>
-                  <el-button size="small" text @click="copyPaintingPrompt(message.metadata.prompt)">
-                    <el-icon><DocumentCopy /></el-icon>
-                    复制提示词
-                  </el-button>
-                </div>
-              </div>
-            </div>
 
             <!-- 兼容旧版图片显示 -->
             <div v-else-if="message.metadata?.type === 'image' && message.metadata.image_url" class="message-ai-image">
@@ -332,10 +295,6 @@
                   <el-icon><Microphone /></el-icon>
                 </el-button>
 
-                <!-- AI绘画 -->
-                <el-button size="small" text @click="openDrawingDialog" title="AI绘画">
-                  <el-icon><Brush /></el-icon>
-                </el-button>
 
                 <!-- 知识库 -->
                 <el-button size="small" text @click="openKnowledgeBase" title="知识库">
@@ -434,46 +393,6 @@
       </template>
     </el-dialog>
 
-    <!-- AI绘画对话框 -->
-    <el-dialog v-model="drawingDialogVisible" title="AI绘画" width="600px">
-      <el-form label-width="100px">
-        <el-form-item label="绘画描述">
-          <el-input
-            v-model="drawingPrompt"
-            type="textarea"
-            :rows="4"
-            placeholder="请描述您想要生成的图片内容..."
-          />
-        </el-form-item>
-        <el-form-item label="图片尺寸">
-          <el-select v-model="drawingSize" placeholder="选择图片尺寸">
-            <el-option label="512x512" value="512x512" />
-            <el-option label="768x768" value="768x768" />
-            <el-option label="1024x1024" value="1024x1024" />
-            <el-option label="1024x768 (横版)" value="1024x768" />
-            <el-option label="768x1024 (竖版)" value="768x1024" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="艺术风格">
-          <el-select v-model="drawingStyle" placeholder="选择艺术风格">
-            <el-option label="写实风格" value="realistic" />
-            <el-option label="卡通风格" value="cartoon" />
-            <el-option label="油画风格" value="oil-painting" />
-            <el-option label="水彩风格" value="watercolor" />
-            <el-option label="素描风格" value="sketch" />
-            <el-option label="科幻风格" value="sci-fi" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      
-      <template #footer>
-        <el-button @click="drawingDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="generateImage" :loading="isGeneratingImage">
-          <el-icon><Brush /></el-icon>
-          生成图片
-        </el-button>
-      </template>
-    </el-dialog>
 
     <!-- 知识库选择器 -->
     <div 
@@ -545,11 +464,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Plus, Edit, Delete, User, Robot, Setting, 
   DocumentCopy, Promotion, Document, Close, Paperclip,
-  Camera, Microphone, Brush, Collection, Cpu, RefreshLeft, Refresh
+  Camera, Microphone, Collection, Cpu, RefreshLeft
 } from '@element-plus/icons-vue'
 import { chatApi, chatUtils } from '@/api/modules/chat'
 import { knowledgeApi } from '@/api/modules/knowledge'
-import { aiPaintingApi, aiPaintingUtils } from '@/api/modules/aiPainting'
 
 // 响应式数据
 const sessions = ref([])
@@ -575,12 +493,6 @@ const availableKnowledgeBases = ref([])
 const showKnowledgeSelector = ref(false)
 const knowledgeSelectorPosition = ref({ top: 0, left: 0 })
 
-// 绘画相关
-const drawingDialogVisible = ref(false)
-const drawingPrompt = ref('')
-const drawingSize = ref('512x512')
-const drawingStyle = ref('realistic')
-const isGeneratingImage = ref(false)
 
 // 设置参数
 const temperature = ref(0.7)
@@ -1146,82 +1058,6 @@ const stopVoiceRecording = () => {
   inputMessage.value += '[语音转换：这是模拟的语音转文字结果]'
 }
 
-// AI绘画功能
-const openDrawingDialog = () => {
-  drawingDialogVisible.value = true
-}
-
-const generateImage = async () => {
-  if (!drawingPrompt.value.trim()) {
-    ElMessage.error('请输入绘画描述')
-    return
-  }
-
-  const validation = aiPaintingUtils.validatePrompt(drawingPrompt.value)
-  if (!validation.valid) {
-    ElMessage.error(validation.message)
-    return
-  }
-
-  isGeneratingImage.value = true
-  
-  try {
-    // 构建绘画请求
-    const paintingRequest = {
-      prompt: drawingPrompt.value.trim(),
-      style: drawingStyle.value,
-      size: drawingSize.value,
-      model_name: 'stable-diffusion',
-      seed: aiPaintingUtils.generateRandomSeed(),
-      ...aiPaintingUtils.getRecommendedSettings(drawingStyle.value)
-    }
-
-    // 调用AI绘画API
-    const response = await aiPaintingApi.generateImage(paintingRequest)
-    
-    if (response.data.success) {
-      const paintingResult = response.data.data
-      
-      // 添加生成的图片消息到聊天
-      const imageMessage = {
-        id: Date.now(),
-        role: 'assistant',
-        content: `根据您的描述 "${drawingPrompt.value}" 生成的图片：`,
-        created_at: new Date().toISOString(),
-        metadata: {
-          type: 'ai_painting',
-          painting_id: paintingResult.id,
-          prompt: paintingResult.prompt,
-          style: paintingResult.style,
-          size: paintingResult.size,
-          image_url: paintingResult.image_url,
-          thumbnail_url: paintingResult.thumbnail_url,
-          generation_time: paintingResult.generation_time,
-          cost: paintingResult.cost,
-          seed: paintingResult.seed,
-          steps: paintingResult.steps,
-          cfg_scale: paintingResult.cfg_scale
-        }
-      }
-      
-      messages.value.push(imageMessage)
-      
-      drawingDialogVisible.value = false
-      drawingPrompt.value = ''
-      scrollToBottom()
-      
-      ElMessage.success(`图片生成成功！耗时 ${aiPaintingUtils.formatGenerationTime(paintingResult.generation_time || 0)}`)
-    } else {
-      throw new Error(response.data.message || '生成失败')
-    }
-    
-  } catch (error) {
-    console.error('生成图片失败:', error)
-    ElMessage.error('生成图片失败')
-  } finally {
-    isGeneratingImage.value = false
-  }
-}
 
 // 知识库功能
 const loadKnowledgeBases = async () => {
@@ -1317,69 +1153,6 @@ const previewImage = (imageUrl: string) => {
   }
 }
 
-// 重新生成绘画
-const regeneratePainting = async (metadata: any) => {
-  if (!metadata.painting_id) {
-    ElMessage.error('无法重新生成：缺少绘画ID')
-    return
-  }
-
-  try {
-    ElMessage.info('正在重新生成图片...')
-    const response = await aiPaintingApi.regenerateImage(metadata.painting_id)
-    
-    if (response.data.success) {
-      const newPainting = response.data.data
-      
-      // 添加新的绘画消息
-      const imageMessage = {
-        id: Date.now(),
-        role: 'assistant',
-        content: `重新生成的图片：`,
-        created_at: new Date().toISOString(),
-        metadata: {
-          type: 'ai_painting',
-          painting_id: newPainting.id,
-          prompt: newPainting.prompt,
-          style: newPainting.style,
-          size: newPainting.size,
-          image_url: newPainting.image_url,
-          thumbnail_url: newPainting.thumbnail_url,
-          generation_time: newPainting.generation_time,
-          cost: newPainting.cost,
-          seed: newPainting.seed,
-          steps: newPainting.steps,
-          cfg_scale: newPainting.cfg_scale
-        }
-      }
-      
-      messages.value.push(imageMessage)
-      scrollToBottom()
-      
-      ElMessage.success('图片重新生成成功！')
-    }
-  } catch (error) {
-    console.error('重新生成失败:', error)
-    ElMessage.error('重新生成失败')
-  }
-}
-
-// 复制绘画提示词
-const copyPaintingPrompt = async (prompt: string) => {
-  try {
-    await navigator.clipboard.writeText(prompt)
-    ElMessage.success('提示词已复制到剪贴板')
-  } catch (error) {
-    // 如果剪贴板API不可用，使用传统方法
-    const textArea = document.createElement('textarea')
-    textArea.value = prompt
-    document.body.appendChild(textArea)
-    textArea.select()
-    document.execCommand('copy')
-    document.body.removeChild(textArea)
-    ElMessage.success('提示词已复制到剪贴板')
-  }
-}
 </script>
 
 <style scoped lang="scss">
@@ -1631,62 +1404,6 @@ const copyPaintingPrompt = async (prompt: string) => {
           }
         }
 
-        // AI生成图片样式
-        .message-ai-painting {
-          margin-top: 12px;
-
-          .ai-generated-image {
-            max-width: 350px;
-            max-height: 350px;
-            object-fit: cover;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
-            &:hover {
-              transform: scale(1.02);
-              box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-            }
-          }
-
-          .painting-meta {
-            margin-top: 12px;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-
-            .meta-row {
-              display: flex;
-              gap: 8px;
-              margin-bottom: 8px;
-              align-items: center;
-
-              &:last-child {
-                margin-bottom: 0;
-              }
-
-              .meta-info {
-                font-size: 12px;
-                color: rgba(255, 255, 255, 0.8);
-                margin-right: 12px;
-              }
-            }
-
-            .painting-actions {
-              display: flex;
-              gap: 8px;
-              margin-top: 8px;
-
-              .el-button {
-                padding: 4px 8px;
-                height: auto;
-                font-size: 12px;
-              }
-            }
-          }
-        }
 
         // 兼容旧版AI图片样式
         .message-ai-image {
@@ -1712,17 +1429,6 @@ const copyPaintingPrompt = async (prompt: string) => {
           }
         }
 
-        // 助手消息中的绘画样式调整
-        &.assistant {
-          .message-ai-painting .painting-meta {
-            background: rgba(0, 0, 0, 0.03);
-            border: 1px solid rgba(0, 0, 0, 0.08);
-
-            .meta-info {
-              color: #666;
-            }
-          }
-        }
       }
 
       // 助手消息中的文件样式调整
