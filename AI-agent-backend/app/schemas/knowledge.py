@@ -7,7 +7,7 @@ Date: 2024-01-01
 
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class KnowledgeBaseCreate(BaseModel):
@@ -126,6 +126,7 @@ class ChatWithKnowledgeResponse(BaseModel):
 
 class KnowledgeQueryResponse(BaseModel):
     """知识库查询记录响应"""
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
     id: str
     knowledge_base_id: str
     query: str
@@ -137,8 +138,7 @@ class KnowledgeQueryResponse(BaseModel):
     cost: Optional[float]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    
 
 
 class KnowledgeStatistics(BaseModel):

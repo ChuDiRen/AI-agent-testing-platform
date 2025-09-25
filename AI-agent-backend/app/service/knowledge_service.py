@@ -366,7 +366,7 @@ class KnowledgeService:
                     chunk_index=idx,
                     content=chunk_text,
                     embedding=json.dumps(emb),
-                    metadata=json.dumps({"source": document.file_name or "uploaded"}),
+                    meta=json.dumps({"source": document.file_name or "uploaded"}),
                     token_count=len(chunk_text)
                 )
                 self.db.add(chunk)
@@ -449,7 +449,7 @@ class KnowledgeService:
                     document_id=chunk.document_id,
                     chunk_index=chunk.chunk_index,
                     content=chunk.content,
-                    metadata=json.loads(chunk.metadata) if chunk.metadata else {},
+                    metadata=json.loads(chunk.meta) if chunk.meta else {},
                     token_count=chunk.token_count,
                     similarity_score=0.8 - (i * 0.1)  # 模拟相似度得分
                 ))

@@ -9,6 +9,8 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.config import settings
 from app.core.logger import get_logger
+import importlib
+import pkgutil
 
 logger = get_logger(__name__)
 
@@ -60,6 +62,24 @@ def create_tables():
     from app.db.base import Base
 
     # 导入所有实体以确保它们被注册到metadata中
+    def _import_all_submodules(package_name: str) -> None:
+        try:
+            package = importlib.import_module(package_name)
+        except Exception as e:
+            logger.warning(f"Skip importing package '{package_name}': {e}")
+            return
+        package_path = getattr(package, "__path__", None)
+        if not package_path:
+            return
+        for finder, name, ispkg in pkgutil.walk_packages(package_path, package_name + "."):
+            try:
+                importlib.import_module(name)
+            except Exception as e:
+                logger.warning(f"Failed to import module '{name}': {e}")
+
+    # 动态导入实体与模型模块，确保所有表与外键可见
+    _import_all_submodules("app.entity")
+    _import_all_submodules("app.models")
 
     try:
         # 创建所有表

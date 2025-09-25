@@ -72,23 +72,23 @@ def create_ai_initial_data():
         logger.info("开始创建AI相关初始数据...")
 
         # 导入并执行AI模型配置初始化
-        from init_ai_models import create_ai_model_configs
+        from scripts.init_ai_models import create_ai_model_configs
         create_ai_model_configs()
 
         # 导入并执行AI代理初始化
-        from init_agents import create_agent_examples
+        from scripts.init_agents import create_agent_examples
         create_agent_examples()
 
         # 导入并执行测试用例初始化
-        from init_test_cases import create_test_case_templates
+        from scripts.init_test_cases import create_test_case_templates
         create_test_case_templates()
 
         # 导入并执行测试报告初始化
-        from init_test_reports import create_test_report_examples
+        from scripts.init_test_reports import create_test_report_examples
         create_test_report_examples()
 
         # 导入并执行生成历史初始化
-        from init_generation_history import create_generation_history_examples
+        from scripts.init_generation_history import create_generation_history_examples
         create_generation_history_examples()
 
         logger.info("AI相关初始数据创建完成")

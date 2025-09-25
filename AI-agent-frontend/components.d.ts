@@ -63,6 +63,7 @@ declare module 'vue' {
     ElTree: typeof import('element-plus/es')['ElTree']
     ElTreeSelect: typeof import('element-plus/es')['ElTreeSelect']
     ElUpload: typeof import('element-plus/es')['ElUpload']
+    ErrorBoundary: typeof import('./src/components/Common/ErrorBoundary.vue')['default']
     FormDialog: typeof import('./src/components/Common/FormDialog.vue')['default']
     MainLayout: typeof import('./src/components/Layout/MainLayout.vue')['default']
     PermissionDialog: typeof import('./src/components/Permission/PermissionDialog.vue')['default']
