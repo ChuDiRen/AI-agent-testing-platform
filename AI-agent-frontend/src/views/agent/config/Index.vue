@@ -459,6 +459,10 @@ import type { ModelInfo } from '@/api/modules/model'
 const route = useRoute()
 const router = useRouter()
 
+// 模式检测：创建模式或编辑模式
+const isCreateMode = computed(() => route.name === 'AgentCreate')
+const agentId = computed(() => isCreateMode.value ? null : Number(route.params.id))
+
 // 响应式数据
 const loading = ref(true)
 const saving = ref(false)
@@ -606,10 +610,7 @@ const analysisPrompts = ref([
   }
 ])
 
-// 计算属性
-const agentId = computed(() => {
-  return Number(route.params.id)
-})
+// 计算属性 - agentId已在上面定义
 
 // 生命周期
 onMounted(() => {

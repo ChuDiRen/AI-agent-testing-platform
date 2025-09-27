@@ -72,6 +72,15 @@ const routes: RouteRecordRaw[] = [
               hidden: true,
             },
           },
+          {
+            path: 'create',
+            name: 'AgentCreate',
+            component: () => import('@/views/agent/config/index.vue'),
+            meta: {
+              title: '创建代理',
+              hidden: true,
+            },
+          },
         ],
       },
       // 测试用例管理路由
@@ -234,9 +243,12 @@ export const addDynamicRoutes = async () => {
     const dynamicRoutes = await permissionStore.generateRoutes()
 
     // 将动态路由添加到Layout路由的children中
-    dynamicRoutes.forEach((route) => {
+    console.log('Adding routes to Layout parent...')
+    dynamicRoutes.forEach((route, index) => {
+      console.log(`Adding route ${index + 1}:`, route.name, route.path)
       router.addRoute('Layout', route)
     })
+    console.log('All dynamic routes added to router')
 
     // 检查是否已存在404路由，避免重复添加
     const existingNotFoundRoute = router
@@ -338,16 +350,21 @@ router.beforeEach(async (to, from, next) => {
 
     // 如果有token但用户store中没有登录状态，需要初始化用户信息
     if (token && !userStore.isLoggedIn) {
+      console.log('Token found but user not logged in, setting token')
       userStore.setToken(token)
     }
 
     // 只要有有效token就加载动态路由（修复页面刷新时动态路由丢失的问题）
     if (token && !routesAdded) {
       try {
+        console.log('Loading dynamic routes for token:', token.substring(0, 20) + '...')
         await addDynamicRoutes()
         console.log('Dynamic routes loaded successfully')
 
         // 动态路由加载完成后，如果当前访问的路径不是基础路由，需要重新导航
+        // 等待一个tick确保路由已经完全注册
+        await new Promise(resolve => setTimeout(resolve, 0))
+        
         if (
           to.path !== '/login' &&
           to.path !== '/403' &&
@@ -357,12 +374,22 @@ router.beforeEach(async (to, from, next) => {
           to.path !== '/profile'
         ) {
           console.log('Redirecting to current path after dynamic routes loaded:', to.path)
-          next({ ...to, replace: true })
+          next({ path: to.path, query: to.query, hash: to.hash, replace: true })
           return
         }
       } catch (error) {
         console.error('Failed to load dynamic routes:', error)
-        // 如果动态路由加载失败，重定向到404页面
+        // 如果动态路由加载失败，检查是否是token过期
+        if (error && typeof error === 'object' && 'response' in error) {
+          const errorResponse = error as any
+          if (errorResponse.response?.status === 401) {
+            console.log('Token expired, clearing user data and redirecting to login')
+            userStore.clearUserData()
+            next('/login')
+            return
+          }
+        }
+        // 其他错误重定向到404页面
         next('/404')
         return
       }

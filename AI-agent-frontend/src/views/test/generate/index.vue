@@ -481,7 +481,7 @@ import {
   Setting
 } from '@element-plus/icons-vue'
 import { testCaseApi } from '@/api/modules/testcase'
-import { agentApi } from '@/api/modules/agent'
+import { agentApi, type AgentSearchParams } from '@/api/modules/agent'
 import { formatDateTime } from '@/utils/dateFormat'
 
 const router = useRouter()
@@ -537,7 +537,12 @@ onMounted(() => {
 // 方法
 const loadAvailableAgents = async () => {
   try {
-    const response = await agentApi.searchAgents({ status: 'active' })
+    const searchParams: AgentSearchParams = {
+      page: 1,
+      page_size: 100,
+      status: 'active'
+    }
+    const response = await agentApi.searchAgents(searchParams)
     if (response.data.success) {
       availableAgents.value = response.data.data.agents || []
     }

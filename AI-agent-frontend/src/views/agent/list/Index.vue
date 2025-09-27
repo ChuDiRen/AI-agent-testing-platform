@@ -272,7 +272,7 @@ import {
   Plus, Search, Refresh, DataBoard, CircleCheck, 
   VideoPlay, SuccessFilled 
 } from '@element-plus/icons-vue'
-import { agentApi } from '@/api/modules/agent'
+import { agentApi, type AgentSearchParams } from '@/api/modules/agent'
 import { formatDateTime } from '@/utils/dateFormat'
 
 // 响应式数据
@@ -355,15 +355,15 @@ const loadStatistics = async () => {
 const loadAgentList = async () => {
   loading.value = true
   try {
-    const params = {
+    const searchParams: AgentSearchParams = {
       page: pagination.page,
       page_size: pagination.page_size,
-      keyword: searchForm.keyword,
-      type: searchForm.type,
-      status: searchForm.status
+      keyword: searchForm.keyword || undefined,
+      type: searchForm.type || undefined,
+      status: searchForm.status || undefined
     }
     
-    const response = await agentApi.searchAgents(params)
+    const response = await agentApi.searchAgents(searchParams)
     if (response.code === 200) {
       agentList.value = response.data.agents
       pagination.total = response.data.total

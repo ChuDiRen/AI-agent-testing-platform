@@ -104,8 +104,8 @@ export interface TestCaseGenerationTask {
 
 // 测试用例搜索参数接口
 export interface TestCaseSearchParams {
-  page?: number
-  page_size?: number
+  page: number
+  page_size: number
   keyword?: string
   test_type?: string
   priority?: string
@@ -275,18 +275,18 @@ export const testCaseApi = {
   },
 
   /**
-   * 获取生成历史
+   * 获取生成历史（标准分页接口）
    */
-  getGenerationHistory(params?: {
-    page?: number
-    page_size?: number
+  getGenerationHistory(params: {
+    page: number
+    page_size: number
     status?: string
     test_type?: string
   }): Promise<ApiResponse<{
     history: GenerationHistoryItem[]
     total: number
   }>> {
-    return http.get('/test-cases/generation-history', { params })
+    return http.get('/test-cases/history/generation', { params })
   },
 
   /**

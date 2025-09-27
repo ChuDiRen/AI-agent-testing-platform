@@ -126,6 +126,7 @@ function buildRoutes(routes: UserMenuTreeNode[] = [], parentPath = ''): RouteRec
     result.push(routeRecord)
   })
 
+  console.log(`Built ${result.length} routes${parentPath ? ` for parent ${parentPath}` : ''}`)
   return result
 }
 
@@ -134,13 +135,19 @@ function buildRoutes(routes: UserMenuTreeNode[] = [], parentPath = ''): RouteRec
  */
 function getComponent(componentPath?: string) {
   if (!componentPath) {
-    // 对于没有组件的菜单（如菜单分组），返回router-view容器
-    return { template: '<router-view />' }
+    // 对于没有组件的菜单（如菜单分组），返回router-view容器组件
+    return () => Promise.resolve({
+      template: '<router-view />',
+      name: 'EmptyLayout'
+    })
   }
 
   if (componentPath === 'Layout') {
     // 动态路由中的Layout一律渲染为router-view，避免重复Layout嵌套
-    return { template: '<router-view />' }
+    return () => Promise.resolve({
+      template: '<router-view />',
+      name: 'LayoutContainer'
+    })
   }
 
   // 构建完整的组件路径
@@ -180,12 +187,14 @@ export const usePermissionStore = defineStore(
     // 方法
     const generateRoutes = async (): Promise<RouteRecordRaw[]> => {
       try {
+        console.log('正在获取用户路由...')
         // 调用接口获取用户路由
         const response = await MenuApi.getUserRoutes()
 
         if (response.success && response.data) {
           // 处理成前端路由格式
           const dynamicRoutes = buildRoutes(response.data.routes)
+          console.log(`成功生成 ${dynamicRoutes.length} 个动态路由`)
           permissions.value = response.data.permissions || []
 
           // 将动态路由作为Layout的子路由返回

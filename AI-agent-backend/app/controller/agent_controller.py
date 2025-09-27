@@ -42,68 +42,13 @@ def create_agent(
         return Fail(msg=f"创建代理失败: {str(e)}")
 
 
-@router.get("/{agent_id}", response_model=AgentResponse, summary="获取代理详情")
-def get_agent(
-    agent_id: int,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """根据ID获取代理详情"""
-    try:
-        agent_service = AgentService(db)
-        agent = agent_service.get_agent_by_id(agent_id)
-        
-        if not agent:
-            return Fail(code=404, msg="代理不存在")
-        
-        return Success(data=agent)
-        
-    except Exception as e:
-        logger.error(f"Error getting agent {agent_id}: {str(e)}")
-        return Fail(msg=f"获取代理失败: {str(e)}")
+# 移动到文件末尾，避免与 /search 等具体路径冲突
 
 
-@router.put("/{agent_id}", response_model=AgentResponse, summary="更新代理信息")
-def update_agent(
-    agent_id: int,
-    request: AgentUpdateRequest,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """更新代理信息"""
-    try:
-        agent_service = AgentService(db)
-        agent = agent_service.update_agent(agent_id, request)
-        
-        if not agent:
-            return Fail(code=404, msg="代理不存在")
-        
-        return Success(data=agent, msg="代理更新成功")
-        
-    except Exception as e:
-        logger.error(f"Error updating agent {agent_id}: {str(e)}")
-        return Fail(msg=f"更新代理失败: {str(e)}")
+# 移动到文件末尾
 
 
-@router.delete("/{agent_id}", summary="删除代理")
-def delete_agent(
-    agent_id: int,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """删除代理"""
-    try:
-        agent_service = AgentService(db)
-        success = agent_service.delete_agent(agent_id)
-        
-        if success:
-            return Success(msg="代理删除成功")
-        else:
-            return Fail(msg="删除代理失败")
-        
-    except Exception as e:
-        logger.error(f"Error deleting agent {agent_id}: {str(e)}")
-        return Fail(msg=f"删除代理失败: {str(e)}")
+# 移动到文件末尾
 
 
 @router.post("/search", response_model=AgentListResponse, summary="搜索代理")
@@ -281,3 +226,68 @@ def batch_operation_agents(
     except Exception as e:
         logger.error(f"Error in batch operation: {str(e)}")
         return Fail(msg=f"批量操作失败: {str(e)}")
+
+
+# 放在最后避免路径参数冲突
+@router.get("/{agent_id}", response_model=AgentResponse, summary="获取代理详情")
+def get_agent(
+    agent_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """根据ID获取代理详情"""
+    try:
+        agent_service = AgentService(db)
+        agent = agent_service.get_agent_by_id(agent_id)
+        
+        if not agent:
+            return Fail(code=404, msg="代理不存在")
+        
+        return Success(data=agent)
+        
+    except Exception as e:
+        logger.error(f"Error getting agent {agent_id}: {str(e)}")
+        return Fail(msg=f"获取代理失败: {str(e)}")
+
+
+@router.put("/{agent_id}", response_model=AgentResponse, summary="更新代理信息")
+def update_agent(
+    agent_id: int,
+    request: AgentUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """更新代理信息"""
+    try:
+        agent_service = AgentService(db)
+        agent = agent_service.update_agent(agent_id, request)
+        
+        if not agent:
+            return Fail(code=404, msg="代理不存在")
+        
+        return Success(data=agent, msg="代理更新成功")
+        
+    except Exception as e:
+        logger.error(f"Error updating agent {agent_id}: {str(e)}")
+        return Fail(msg=f"更新代理失败: {str(e)}")
+
+
+@router.delete("/{agent_id}", summary="删除代理")
+def delete_agent(
+    agent_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """删除代理"""
+    try:
+        agent_service = AgentService(db)
+        success = agent_service.delete_agent(agent_id)
+        
+        if success:
+            return Success(msg="代理删除成功")
+        else:
+            return Fail(msg="删除代理失败")
+        
+    except Exception as e:
+        logger.error(f"Error deleting agent {agent_id}: {str(e)}")
+        return Fail(msg=f"删除代理失败: {str(e)}")

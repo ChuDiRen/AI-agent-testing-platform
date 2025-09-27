@@ -156,66 +156,68 @@ export const modelApi = {
   },
 
   /**
-   * 获取模型列表
+   * 获取模型配置列表（标准分页接口）
    */
-  getModelList(params?: ModelSearchParams): Promise<ApiResponse<ModelSearchResult>> {
-    return http.get('/models', { params })
-  },
-
-  /**
-   * 搜索模型
-   */
-  searchModels(params: ModelSearchParams): Promise<ApiResponse<ModelSearchResult>> {
-    return http.get('/models/search', { params })
+  getModelList(params: {
+    page?: number
+    page_size?: number
+    keyword?: string
+    provider?: string
+    model_type?: string
+    is_active?: boolean
+  } = {}): Promise<ApiResponse<ModelSearchResult>> {
+    const { page = 1, page_size = 20, ...filters } = params
+    const queryParams = { page, page_size, ...filters }
+    return http.get('/model-configs', { params: queryParams })
   },
 
   /**
    * 获取模型详情
    */
   getModelDetail(modelId: number): Promise<ApiResponse<ModelInfo>> {
-    return http.get(`/models/${modelId}`)
+    return http.get(`/model-configs/${modelId}`)
   },
 
   /**
    * 创建模型
    */
   createModel(data: ModelCreateRequest): Promise<ApiResponse<ModelInfo>> {
-    return http.post('/models', data)
+    return http.post('/model-configs', data)
   },
 
   /**
    * 更新模型
    */
   updateModel(modelId: number, data: ModelUpdateRequest): Promise<ApiResponse<ModelInfo>> {
-    return http.put(`/models/${modelId}`, data)
+    return http.put(`/model-configs/${modelId}`, data)
   },
 
   /**
    * 删除模型
    */
   deleteModel(modelId: number): Promise<ApiResponse<void>> {
-    return http.delete(`/models/${modelId}`)
+    return http.delete(`/model-configs/${modelId}`)
   },
 
   /**
    * 测试模型连接
    */
   testModel(modelId: number, data: ModelTestRequest): Promise<ApiResponse<ModelTestResult>> {
-    return http.post(`/models/${modelId}/test`, data)
+    return http.post(`/model-configs/${modelId}/test`, data)
   },
 
   /**
    * 激活模型
    */
   activateModel(modelId: number): Promise<ApiResponse<void>> {
-    return http.post(`/models/${modelId}/activate`)
+    return http.post(`/model-configs/${modelId}/activate`)
   },
 
   /**
    * 停用模型
    */
   deactivateModel(modelId: number): Promise<ApiResponse<void>> {
-    return http.post(`/models/${modelId}/deactivate`)
+    return http.post(`/model-configs/${modelId}/deactivate`)
   },
 
   /**
@@ -228,7 +230,7 @@ export const modelApi = {
     end_time?: string
     status?: string
   }): Promise<ApiResponse<{ records: ModelUsageRecord[]; total: number }>> {
-    return http.get(`/models/${modelId}/usage`, { params })
+    return http.get(`/model-configs/${modelId}/usage`, { params })
   },
 
   /**
@@ -253,7 +255,7 @@ export const modelApi = {
       cost: number
     }>
   }>> {
-    return http.get(`/models/${modelId}/metrics`, { params: timeRange })
+    return http.get(`/model-configs/${modelId}/metrics`, { params: timeRange })
   },
 
   /**

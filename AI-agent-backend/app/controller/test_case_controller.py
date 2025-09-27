@@ -98,68 +98,13 @@ def create_test_case(
         return Fail(msg=f"创建测试用例失败: {str(e)}")
 
 
-@router.get("/{test_case_id}", response_model=TestCaseResponse, summary="获取测试用例详情")
-def get_test_case(
-    test_case_id: int,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """根据ID获取测试用例详情"""
-    try:
-        test_case_service = TestCaseService(db)
-        test_case = test_case_service.get_test_case_by_id(test_case_id)
-        
-        if not test_case:
-            return Fail(code=404, msg="测试用例不存在")
-        
-        return Success(data=test_case)
-        
-    except Exception as e:
-        logger.error(f"Error getting test case {test_case_id}: {str(e)}")
-        return Fail(msg=f"获取测试用例失败: {str(e)}")
+# 移动到文件末尾，避免与具体路径冲突
 
 
-@router.put("/{test_case_id}", response_model=TestCaseResponse, summary="更新测试用例")
-def update_test_case(
-    test_case_id: int,
-    request: TestCaseUpdateRequest,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """更新测试用例信息"""
-    try:
-        test_case_service = TestCaseService(db)
-        test_case = test_case_service.update_test_case(test_case_id, request)
-        
-        if not test_case:
-            return Fail(code=404, msg="测试用例不存在")
-        
-        return Success(data=test_case, msg="测试用例更新成功")
-        
-    except Exception as e:
-        logger.error(f"Error updating test case {test_case_id}: {str(e)}")
-        return Fail(msg=f"更新测试用例失败: {str(e)}")
+# 移动到文件末尾
 
 
-@router.delete("/{test_case_id}", summary="删除测试用例")
-def delete_test_case(
-    test_case_id: int,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """删除测试用例"""
-    try:
-        test_case_service = TestCaseService(db)
-        success = test_case_service.delete_test_case(test_case_id)
-        
-        if success:
-            return Success(msg="测试用例删除成功")
-        else:
-            return Fail(msg="删除测试用例失败")
-        
-    except Exception as e:
-        logger.error(f"Error deleting test case {test_case_id}: {str(e)}")
-        return Fail(msg=f"删除测试用例失败: {str(e)}")
+# 移动到文件末尾
 
 
 @router.post("/search", response_model=TestCaseListResponse, summary="搜索测试用例")
@@ -308,3 +253,68 @@ def get_generation_history(
     except Exception as e:
         logger.error(f"Error getting generation history: {str(e)}")
         return Fail(msg=f"获取生成历史失败: {str(e)}")
+
+
+# 放在最后避免路径参数冲突
+@router.get("/{test_case_id}", response_model=TestCaseResponse, summary="获取测试用例详情")
+def get_test_case(
+    test_case_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """根据ID获取测试用例详情"""
+    try:
+        test_case_service = TestCaseService(db)
+        test_case = test_case_service.get_test_case_by_id(test_case_id)
+        
+        if not test_case:
+            return Fail(code=404, msg="测试用例不存在")
+        
+        return Success(data=test_case)
+        
+    except Exception as e:
+        logger.error(f"Error getting test case {test_case_id}: {str(e)}")
+        return Fail(msg=f"获取测试用例失败: {str(e)}")
+
+
+@router.put("/{test_case_id}", response_model=TestCaseResponse, summary="更新测试用例")
+def update_test_case(
+    test_case_id: int,
+    request: TestCaseUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """更新测试用例信息"""
+    try:
+        test_case_service = TestCaseService(db)
+        test_case = test_case_service.update_test_case(test_case_id, request)
+        
+        if not test_case:
+            return Fail(code=404, msg="测试用例不存在")
+        
+        return Success(data=test_case, msg="测试用例更新成功")
+        
+    except Exception as e:
+        logger.error(f"Error updating test case {test_case_id}: {str(e)}")
+        return Fail(msg=f"更新测试用例失败: {str(e)}")
+
+
+@router.delete("/{test_case_id}", summary="删除测试用例")
+def delete_test_case(
+    test_case_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """删除测试用例"""
+    try:
+        test_case_service = TestCaseService(db)
+        success = test_case_service.delete_test_case(test_case_id)
+        
+        if success:
+            return Success(msg="测试用例删除成功")
+        else:
+            return Fail(msg="删除测试用例失败")
+        
+    except Exception as e:
+        logger.error(f"Error deleting test case {test_case_id}: {str(e)}")
+        return Fail(msg=f"删除测试用例失败: {str(e)}")

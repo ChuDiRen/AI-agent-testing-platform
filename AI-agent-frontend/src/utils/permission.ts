@@ -63,8 +63,8 @@ export class PermissionValidator {
       return false
     }
 
-    // 超级管理员拥有所有权限
-    if (userStore.hasRole(ROLES.SUPER_ADMIN)) {
+    // 超级管理员和管理员拥有所有权限
+    if (userStore.hasRole(ROLES.SUPER_ADMIN) || userStore.hasRole(ROLES.ADMIN)) {
       return true
     }
 
@@ -194,9 +194,26 @@ function getPermissionValidator(): PermissionValidator {
   return _permissionValidator
 }
 
-// 便捷函数
-export const hasPermission = (permission: string): boolean => {
-  return getPermissionValidator().hasPermission(permission)
+// 便捷函数 - 支持指令调用的多种参数格式
+export const hasPermission = (permission: string | string[], mode: 'some' | 'every' = 'some'): boolean => {
+  const validator = getPermissionValidator()
+  
+  // 超级管理员和管理员拥有所有权限
+  if (validator.isSuperAdmin() || validator.isAdmin()) {
+    return true
+  }
+  
+  if (typeof permission === 'string') {
+    return validator.hasPermission(permission)
+  }
+  
+  if (Array.isArray(permission)) {
+    return mode === 'every' 
+      ? validator.hasAllPermissions(permission)
+      : validator.hasAnyPermission(permission)
+  }
+  
+  return false
 }
 
 export const hasAnyPermission = (permissions: string[]): boolean => {
@@ -207,8 +224,20 @@ export const hasAllPermissions = (permissions: string[]): boolean => {
   return getPermissionValidator().hasAllPermissions(permissions)
 }
 
-export const hasRole = (role: string): boolean => {
-  return getPermissionValidator().hasRole(role)
+export const hasRole = (role: string | string[], mode: 'some' | 'every' = 'some'): boolean => {
+  const validator = getPermissionValidator()
+  
+  if (typeof role === 'string') {
+    return validator.hasRole(role)
+  }
+  
+  if (Array.isArray(role)) {
+    return mode === 'every'
+      ? role.every(r => validator.hasRole(r))
+      : validator.hasAnyRole(role)
+  }
+  
+  return false
 }
 
 export const hasAnyRole = (roles: string[]): boolean => {

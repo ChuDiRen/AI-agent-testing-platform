@@ -30,17 +30,20 @@ export interface UserState {
 }
 
 export const useUserStore = defineStore('user', {
-  state: (): UserState => ({
-    token: getToken() || null,
-    userInfo: null,
-    permissions: [],
-
-    roles: [],
-    menus: [],
-    loading: false,
-    initialized: false,
-    avatarTimestamp: Date.now(),
-  }),
+  state: (): UserState => {
+    const token = getToken()
+    console.log('UserStore initialized with token:', token ? 'exists' : 'null')
+    return {
+      token: token || null,
+      userInfo: null,
+      permissions: [],
+      roles: [],
+      menus: [],
+      loading: false,
+      initialized: false,
+      avatarTimestamp: Date.now(),
+    }
+  },
 
   getters: {
     isLoggedIn: (state) => !!state.token,
@@ -63,8 +66,10 @@ export const useUserStore = defineStore('user', {
       this.token = token
       if (token) {
         setTokenStorage(token)
+        console.log('Token set successfully in store and storage')
       } else {
         removeToken()
+        console.log('Token removed from store and storage')
       }
     },
 
@@ -95,6 +100,7 @@ export const useUserStore = defineStore('user', {
 
     // 清除用户数据
     clearUserData() {
+      console.log('Clearing user data...')
       this.token = null
       this.userInfo = null
       this.permissions = []
@@ -111,6 +117,7 @@ export const useUserStore = defineStore('user', {
 
       // 重置路由
       resetRoutes()
+      console.log('User data cleared successfully')
     },
 
     // 规范化角色名，增加英文别名支持

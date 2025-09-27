@@ -32,15 +32,22 @@ export interface AgentStatistics {
 }
 
 // 代理搜索参数接口
-export interface AgentSearchParams {
-  page?: number
-  page_size?: number
+export interface AgentListParams {
+  page: number
+  page_size: number
   keyword?: string
   type?: string
   status?: string
   created_by_id?: number
-  order_by?: string
-  order_desc?: boolean
+}
+
+export interface AgentSearchParams {
+  page: number
+  page_size: number
+  keyword?: string
+  type?: string
+  status?: string
+  created_by_id?: number
 }
 
 // 代理搜索结果接口
@@ -113,10 +120,17 @@ export interface AgentConfigDetail {
 
 export const agentApi = {
   /**
-   * 获取代理列表（简单列表，用于下拉选择等）
+   * 获取代理列表（标准分页接口）
    */
-  getAgentList(params?: AgentSearchParams): Promise<ApiResponse<AgentSearchResult>> {
+  getAgentList(params: AgentListParams): Promise<ApiResponse<AgentSearchResult>> {
     return http.get('/agents', { params })
+  },
+
+  /**
+   * 搜索代理列表（专用搜索接口）
+   */
+  searchAgents(params: AgentSearchParams): Promise<ApiResponse<AgentSearchResult>> {
+    return http.get('/agents/search', { params })
   },
 
   /**
@@ -124,13 +138,6 @@ export const agentApi = {
    */
   getStatistics(): Promise<ApiResponse<AgentStatistics>> {
     return http.get('/agents/statistics/overview')
-  },
-
-  /**
-   * 搜索代理列表
-   */
-  searchAgents(params: AgentSearchParams): Promise<ApiResponse<AgentSearchResult>> {
-    return http.get('/agents/search', { params })
   },
 
   /**

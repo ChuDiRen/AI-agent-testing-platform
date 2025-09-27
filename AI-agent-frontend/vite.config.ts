@@ -26,6 +26,8 @@ export default ({ mode }: any) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
+        // 修复Vue运行时编译警告 - 使用完整版本的Vue
+        'vue': 'vue/dist/vue.esm-bundler.js',
       },
     },
     base: './', // 打包路径

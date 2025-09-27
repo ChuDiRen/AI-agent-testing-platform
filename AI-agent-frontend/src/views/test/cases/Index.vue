@@ -117,7 +117,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, VideoPlay, Delete } from '@element-plus/icons-vue'
-import { testCaseApi } from '@/api/modules/testcase'
+import { testCaseApi, type TestCaseSearchParams } from '@/api/modules/testcase'
 
 // 响应式数据
 const loading = ref(false)
@@ -164,14 +164,14 @@ const loadTestCases = async () => {
   try {
     loading.value = true
     
-    const params = {
+    const searchParams: TestCaseSearchParams = {
       page: pagination.page,
       page_size: pagination.pageSize,
-      case_name: searchForm.caseName || undefined,
+      keyword: searchForm.caseName || undefined,
       status: searchForm.status || undefined
     }
     
-    const response = await testCaseApi.getTestCases(params)
+    const response = await testCaseApi.getTestCaseList(searchParams)
     
     if (response.data.success) {
       tableData.value = response.data.data.test_cases || []
