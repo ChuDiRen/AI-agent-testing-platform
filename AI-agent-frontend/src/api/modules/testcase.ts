@@ -494,7 +494,7 @@ export const testCaseApi = {
       success_rate: number
     }>
   }>> {
-    return http.get('/test-cases/statistics', { params })
+    return http.get('/test-cases/statistics/overview', { params })
   }
 }
 

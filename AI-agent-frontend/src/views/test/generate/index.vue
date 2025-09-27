@@ -150,7 +150,7 @@
                 <el-tag type="info" size="small">低</el-tag>
               </el-option>
               <el-option label="中" value="medium">
-                <el-tag type="" size="small">中</el-tag>
+                <el-tag type="success" size="small">中</el-tag>
               </el-option>
               <el-option label="高" value="high">
                 <el-tag type="warning" size="small">高</el-tag>

@@ -113,10 +113,17 @@ export interface AgentConfigDetail {
 
 export const agentApi = {
   /**
+   * 获取代理列表（简单列表，用于下拉选择等）
+   */
+  getAgentList(params?: AgentSearchParams): Promise<ApiResponse<AgentSearchResult>> {
+    return http.get('/agents', { params })
+  },
+
+  /**
    * 获取代理统计信息
    */
   getStatistics(): Promise<ApiResponse<AgentStatistics>> {
-    return http.get('/agents/statistics')
+    return http.get('/agents/statistics/overview')
   },
 
   /**

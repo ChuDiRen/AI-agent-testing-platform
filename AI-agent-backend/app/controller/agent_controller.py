@@ -124,6 +124,41 @@ def search_agents(
         return Fail(msg=f"搜索代理失败: {str(e)}")
 
 
+@router.get("/search", response_model=AgentListResponse, summary="搜索代理")
+def search_agents_get(
+    page: int = 1,
+    page_size: int = 20,
+    keyword: str = None,
+    type: str = None,
+    status: str = None,
+    created_by_id: int = None,
+    order_by: str = "created_at",
+    order_desc: bool = True,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """搜索代理列表 (GET方法)"""
+    try:
+        request = AgentSearchRequest(
+            page=page,
+            page_size=page_size,
+            keyword=keyword,
+            type=type,
+            status=status,
+            created_by_id=created_by_id,
+            order_by=order_by,
+            order_desc=order_desc
+        )
+        agent_service = AgentService(db)
+        result = agent_service.search_agents(request)
+        
+        return Success(data=result)
+        
+    except Exception as e:
+        logger.error(f"Error searching agents: {str(e)}")
+        return Fail(msg=f"搜索代理失败: {str(e)}")
+
+
 @router.get("/", response_model=AgentListResponse, summary="获取代理列表")
 def list_agents(
     page: int = 1,

@@ -253,8 +253,8 @@ onMounted(() => {
 const loadStatistics = async () => {
   try {
     const response = await testReportApi.getStatistics()
-    if (response.success) {
-      statisticsData.value = response.data
+    if (response.data.success) {
+      statisticsData.value = response.data.data
     }
   } catch (error) {
     console.error('加载统计失败:', error)
@@ -266,9 +266,9 @@ const loadReportList = async () => {
   try {
     const params = { ...pagination, ...searchForm }
     const response = await testReportApi.getTestReportList(params)
-    if (response.success) {
-      reportList.value = response.data.test_reports
-      pagination.total = response.data.total
+    if (response.data.success) {
+      reportList.value = response.data.data.test_reports
+      pagination.total = response.data.data.total
     }
   } catch (error) {
     ElMessage.error('加载报告列表失败')
@@ -284,11 +284,11 @@ const loadAvailableData = async () => {
       agentApi.getAgentList({ status: 'active' })
     ])
     
-    if (testCasesRes.success) {
-      availableTestCases.value = testCasesRes.data.test_cases
+    if (testCasesRes.data.success) {
+      availableTestCases.value = testCasesRes.data.data.test_cases
     }
-    if (agentsRes.success) {
-      availableAgents.value = agentsRes.data.agents
+    if (agentsRes.data.success) {
+      availableAgents.value = agentsRes.data.data.agents
     }
   } catch (error) {
     console.error('加载数据失败:', error)
@@ -329,7 +329,7 @@ const handleCreateReport = async () => {
     creating.value = true
     try {
       const response = await testReportApi.generateReport(reportForm)
-      if (response.success) {
+      if (response.data.success) {
         ElMessage.success('报告创建成功，正在执行中...')
         showCreateDialog.value = false
         loadReportList()
