@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.security import verify_token
 from app.db.session import get_db
 from app.entity.user import User
-from app.repository.user_repository import UserRepository
+from app.repository.base import BaseRepository
 from app.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -38,7 +38,7 @@ async def get_current_user(
                 detail="无效的认证令牌"
             )
         
-        user_repo = UserRepository(db)
+        user_repo = BaseRepository(db, User)
         user = user_repo.get_by_id(int(user_id))
         
         if not user:
@@ -104,6 +104,16 @@ def require_permissions(permissions: List[str]):
         
         return wrapper
     return decorator
+
+
+def require_permission(permission: str):
+    """
+    单个权限验证装饰器
+    
+    Args:
+        permission: 需要的权限
+    """
+    return require_permissions([permission])
 
 
 def require_roles(roles: List[str]):
@@ -397,6 +407,7 @@ __all__ = [
     'get_current_user',
     'get_current_active_user',
     'require_permissions',
+    'require_permission',
     'require_roles',
     'require_admin',
     'require_owner_or_admin',

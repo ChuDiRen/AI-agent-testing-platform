@@ -8,6 +8,15 @@ interface StatsData {
   roleCount: number
   menuCount: number
   deptCount: number
+  // AI代理相关统计 # 新增AI代理统计字段
+  agentCount: number
+  activeAgentCount: number
+  runningAgentCount: number
+  // 测试相关统计 # 新增测试统计字段
+  testCaseCount: number
+  testReportCount: number
+  // AI模型相关统计 # 新增AI模型统计字段
+  aiModelCount: number
 }
 
 const STATS_TTL_MS = 30_000 // 统计数据缓存30秒  # 注释
@@ -15,7 +24,18 @@ const SYS_TTL_MS = 30_000 // 系统信息缓存30秒  # 注释
 
 export const useDashboardStore = defineStore('dashboard', {
   state: () => ({
-    statsData: { userCount: 0, roleCount: 0, menuCount: 0, deptCount: 0 } as StatsData,
+    statsData: {
+      userCount: 0,
+      roleCount: 0,
+      menuCount: 0,
+      deptCount: 0,
+      agentCount: 0,
+      activeAgentCount: 0,
+      runningAgentCount: 0,
+      testCaseCount: 0,
+      testReportCount: 0,
+      aiModelCount: 0
+    } as StatsData,
     systemInfo: {
       system_version: 'v1.0.0',
       server_info: 'FastAPI + Vue 3',
@@ -41,6 +61,12 @@ export const useDashboardStore = defineStore('dashboard', {
             roleCount: res.data.role_count,
             menuCount: res.data.menu_count,
             deptCount: res.data.department_count,
+            agentCount: res.data.agent_count || 0,
+            activeAgentCount: res.data.active_agent_count || 0,
+            runningAgentCount: res.data.running_agent_count || 0,
+            testCaseCount: res.data.test_case_count || 0,
+            testReportCount: res.data.test_report_count || 0,
+            aiModelCount: res.data.ai_model_count || 0
           }
           this.lastFetched.stats = now
         }

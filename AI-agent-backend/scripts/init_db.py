@@ -438,6 +438,48 @@ def create_rbac_initial_data(db):
 
 
 
+        # API管理菜单
+        api_menu = Menu(
+            parent_id=system_menu.id,
+            menu_name="API管理",
+            menu_type="0",
+            path="/system/api",
+            component="system/api/Index",
+            perms="api:view",
+            icon="Operation",
+            order_num=5
+        )
+        db.add(api_menu)
+        db.flush()
+
+        # API管理按钮
+        api_add_btn = Menu(
+            parent_id=api_menu.id,
+            menu_name="新增API",
+            menu_type="1",
+            perms="api:create"
+        )
+        db.add(api_add_btn)
+        db.flush()
+
+        api_update_btn = Menu(
+            parent_id=api_menu.id,
+            menu_name="修改API",
+            menu_type="1",
+            perms="api:update"
+        )
+        db.add(api_update_btn)
+        db.flush()
+
+        api_delete_btn = Menu(
+            parent_id=api_menu.id,
+            menu_name="删除API",
+            menu_type="1",
+            perms="api:delete"
+        )
+        db.add(api_delete_btn)
+        db.flush()
+
         # 日志管理菜单
         log_menu = Menu(
             parent_id=system_menu.id,
@@ -447,7 +489,7 @@ def create_rbac_initial_data(db):
             component="system/logs/Index",
             perms="log:view",
             icon="el-icon-document",
-            order_num=5
+            order_num=6
         )
         db.add(log_menu)
         db.flush()
@@ -723,6 +765,10 @@ def create_rbac_initial_data(db):
             dept_add_btn.id,
             dept_update_btn.id,
             dept_delete_btn.id,
+            api_menu.id,
+            api_add_btn.id,
+            api_update_btn.id,
+            api_delete_btn.id,
             log_menu.id,
             # 测试管理菜单（无权限按钮）
             test_menu.id,

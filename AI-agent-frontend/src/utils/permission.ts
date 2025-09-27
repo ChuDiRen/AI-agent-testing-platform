@@ -50,22 +50,25 @@ export const ROLES = {
 
 // 权限验证类
 export class PermissionValidator {
-  private userStore = useUserStore()
+  private getUserStore() {
+    return useUserStore() // 延迟获取store，确保Pinia已初始化
+  }
 
   /**
    * 检查是否有指定权限
    */
   hasPermission(permission: string): boolean {
-    if (!this.userStore.isLoggedIn) {
+    const userStore = this.getUserStore()
+    if (!userStore.isLoggedIn) {
       return false
     }
 
     // 超级管理员拥有所有权限
-    if (this.userStore.hasRole(ROLES.SUPER_ADMIN)) {
+    if (userStore.hasRole(ROLES.SUPER_ADMIN)) {
       return true
     }
 
-    return this.userStore.hasPermission(permission)
+    return userStore.hasPermission(permission)
   }
 
   /**
@@ -86,11 +89,12 @@ export class PermissionValidator {
    * 检查是否有指定角色
    */
   hasRole(role: string): boolean {
-    if (!this.userStore.isLoggedIn) {
+    const userStore = this.getUserStore()
+    if (!userStore.isLoggedIn) {
       return false
     }
 
-    return this.userStore.hasRole(role)
+    return userStore.hasRole(role)
   }
 
   /**
@@ -152,7 +156,8 @@ export class PermissionValidator {
       
       case 'update':
         // 如果是更新自己的资源，允许
-        if (resource && resource.userId === this.userStore.userInfo?.id) {
+        const userStore = this.getUserStore()
+        if (resource && resource.userId === userStore.userInfo?.id) {
           return true
         }
         return this.hasAnyPermission([
@@ -179,44 +184,64 @@ export class PermissionValidator {
   }
 }
 
-// 创建权限验证实例
-export const permissionValidator = new PermissionValidator()
+// 延迟创建权限验证实例的函数
+let _permissionValidator: PermissionValidator | null = null
+
+function getPermissionValidator(): PermissionValidator {
+  if (!_permissionValidator) {
+    _permissionValidator = new PermissionValidator()
+  }
+  return _permissionValidator
+}
 
 // 便捷函数
 export const hasPermission = (permission: string): boolean => {
-  return permissionValidator.hasPermission(permission)
+  return getPermissionValidator().hasPermission(permission)
 }
 
 export const hasAnyPermission = (permissions: string[]): boolean => {
-  return permissionValidator.hasAnyPermission(permissions)
+  return getPermissionValidator().hasAnyPermission(permissions)
 }
 
 export const hasAllPermissions = (permissions: string[]): boolean => {
-  return permissionValidator.hasAllPermissions(permissions)
+  return getPermissionValidator().hasAllPermissions(permissions)
 }
 
 export const hasRole = (role: string): boolean => {
-  return permissionValidator.hasRole(role)
+  return getPermissionValidator().hasRole(role)
 }
 
 export const hasAnyRole = (roles: string[]): boolean => {
-  return permissionValidator.hasAnyRole(roles)
+  return getPermissionValidator().hasAnyRole(roles)
 }
 
 export const isAdmin = (): boolean => {
-  return permissionValidator.isAdmin()
+  return getPermissionValidator().isAdmin()
 }
 
 export const isSuperAdmin = (): boolean => {
-  return permissionValidator.isSuperAdmin()
+  return getPermissionValidator().isSuperAdmin()
 }
 
 export const canAccessRoute = (routePath: string): boolean => {
-  return permissionValidator.canAccessRoute(routePath)
+  return getPermissionValidator().canAccessRoute(routePath)
 }
 
 export const canPerformAction = (action: string, resource?: any): boolean => {
-  return permissionValidator.canPerformAction(action, resource)
+  return getPermissionValidator().canPerformAction(action, resource)
+}
+
+// 导出权限验证器实例（用于组件内使用）
+export const permissionValidator = {
+  hasPermission,
+  hasAnyPermission,
+  hasAllPermissions,
+  hasRole,
+  hasAnyRole,
+  isAdmin,
+  isSuperAdmin,
+  canAccessRoute,
+  canPerformAction
 }
 
 // 权限检查混入
@@ -254,15 +279,21 @@ export const usePermission = () => {
 // 路由守卫权限检查
 export const checkRoutePermission = (to: any): boolean => {
   const meta = to.meta || {}
-  
+
   // 检查是否需要登录
   if (meta.requiresAuth !== false) {
-    const userStore = useUserStore()
-    if (!userStore.isLoggedIn) {
+    try {
+      const userStore = useUserStore()
+      if (!userStore.isLoggedIn) {
+        return false
+      }
+    } catch (error) {
+      // 如果Pinia还没初始化，返回false
+      console.warn('Pinia not initialized in route guard, denying access')
       return false
     }
   }
-  
+
   // 检查权限
   if (meta.permission) {
     if (typeof meta.permission === 'string') {
@@ -272,7 +303,7 @@ export const checkRoutePermission = (to: any): boolean => {
       return hasAnyPermission(meta.permission)
     }
   }
-  
+
   // 检查角色
   if (meta.roles) {
     if (typeof meta.roles === 'string') {
@@ -282,7 +313,7 @@ export const checkRoutePermission = (to: any): boolean => {
       return hasAnyRole(meta.roles)
     }
   }
-  
+
   return true
 }
 

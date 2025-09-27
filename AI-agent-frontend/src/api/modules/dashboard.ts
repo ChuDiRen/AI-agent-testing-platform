@@ -12,6 +12,15 @@ export interface DashboardStats {
   role_count: number
   menu_count: number
   department_count: number
+  // AI代理相关统计 # 新增AI代理统计字段
+  agent_count: number
+  active_agent_count: number
+  running_agent_count: number
+  // 测试相关统计 # 新增测试统计字段
+  test_case_count: number
+  test_report_count: number
+  // AI模型相关统计 # 新增AI模型统计字段
+  ai_model_count: number
 }
 
 /**
@@ -35,12 +44,29 @@ export interface RecentActivity {
 }
 
 /**
+ * 快捷操作接口
+ */
+export interface QuickAction {
+  name: string
+  icon: string
+  path: string
+  description: string
+  permission?: string
+}
+
+/**
  * 仪表板概览接口
  */
 export interface DashboardOverview {
   stats: DashboardStats
   system_info: SystemInfo
   recent_activities: RecentActivity[]
+  quick_actions: QuickAction[] // 新增快捷操作
+  agent_status_chart: { // 新增图表数据
+    labels: string[]
+    data: number[]
+    colors: string[]
+  }
 }
 
 /**

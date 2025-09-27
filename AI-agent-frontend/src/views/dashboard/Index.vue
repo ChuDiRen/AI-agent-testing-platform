@@ -53,6 +53,54 @@
             </div>
           </el-col>
         </el-row>
+
+        <!-- AI代理统计行 -->
+        <el-row :gutter="20" style="margin-top: 20px;">
+          <el-col :span="6">
+            <div class="stat-item ai-stat">
+              <div class="stat-icon ai-icon">
+                <el-icon><Monitor /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ statsData.agentCount }}</div>
+                <div class="stat-label">AI代理总数</div>
+              </div>
+            </div>
+          </el-col>
+          <el-col :span="6">
+            <div class="stat-item ai-stat">
+              <div class="stat-icon ai-icon active">
+                <el-icon><CircleCheck /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ statsData.activeAgentCount }}</div>
+                <div class="stat-label">激活代理</div>
+              </div>
+            </div>
+          </el-col>
+          <el-col :span="6">
+            <div class="stat-item ai-stat">
+              <div class="stat-icon ai-icon running">
+                <el-icon><VideoPlay /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ statsData.runningAgentCount }}</div>
+                <div class="stat-label">运行中代理</div>
+              </div>
+            </div>
+          </el-col>
+          <el-col :span="6">
+            <div class="stat-item ai-stat">
+              <div class="stat-icon ai-icon test">
+                <el-icon><Document /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ statsData.testCaseCount }}</div>
+                <div class="stat-label">测试用例</div>
+              </div>
+            </div>
+          </el-col>
+        </el-row>
       </div>
     </div>
     
@@ -157,6 +205,18 @@
               <el-icon><Operation /></el-icon>
               日志管理
             </el-button>
+            <el-button type="primary" @click="$router.push('/agent/list')">
+              <el-icon><Monitor /></el-icon>
+              AI代理管理
+            </el-button>
+            <el-button type="success" @click="$router.push('/test/cases')">
+              <el-icon><Document /></el-icon>
+              测试用例
+            </el-button>
+            <el-button type="warning" @click="$router.push('/model/config')">
+              <el-icon><Setting /></el-icon>
+              模型配置
+            </el-button>
           </div>
         </el-card>
       </el-col>
@@ -175,7 +235,12 @@ import {
   UserFilled,
   Menu,
   OfficeBuilding,
-  Operation
+  Operation,
+  Monitor, // 替代Robot图标
+  CircleCheck,
+  VideoPlay,
+  Document,
+  Setting
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store'
 import { formatStandardDateTime } from '@/utils/dateFormat'
@@ -297,7 +362,31 @@ onMounted(async () => {
       }
     }
   }
-  
+
+  // AI代理统计样式增强 # 新增AI代理样式
+  .ai-stat {
+    .stat-item {
+      background: rgba(255, 255, 255, 0.15) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+
+      .ai-icon {
+        background: rgba(255, 255, 255, 0.3) !important;
+
+        &.active {
+          background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%) !important;
+        }
+
+        &.running {
+          background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
+        }
+
+        &.test {
+          background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%) !important;
+        }
+      }
+    }
+  }
+
   .quick-actions {
     margin-bottom: 20px;
     

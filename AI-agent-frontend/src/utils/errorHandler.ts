@@ -218,9 +218,13 @@ export class ErrorHandler {
   private handleAutoRedirect(error: ApiError): void {
     if (error.type === ErrorType.AUTH_ERROR) {
       // 认证错误，清除用户信息并跳转到登录页
-      const userStore = useUserStore()
-      userStore.clearUserData()
-      
+      try {
+        const userStore = useUserStore()
+        userStore.clearUserData()
+      } catch (e) {
+        console.warn('Failed to clear user data, Pinia may not be initialized')
+      }
+
       if (router.currentRoute.value.path !== '/login') {
         router.push('/login')
       }
