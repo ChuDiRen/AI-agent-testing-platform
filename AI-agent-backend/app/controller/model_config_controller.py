@@ -37,12 +37,29 @@ def create_model_config(
     try:
         ai_model_service = AIModelService(db)
         model = ai_model_service.create_model(request, current_user.user_id)
-        
+
         return Success(data=model, msg="模型配置创建成功")
-        
+
     except Exception as e:
         logger.error(f"Error creating model config: {str(e)}")
         return Fail(msg=f"创建模型配置失败: {str(e)}")
+
+
+@router.get("/statistics", response_model=AIModelStatisticsResponse, summary="获取模型配置统计")
+def get_model_config_statistics(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """获取模型配置统计信息"""
+    try:
+        ai_model_service = AIModelService(db)
+        stats = ai_model_service.get_model_statistics()
+
+        return Success(data=stats, msg="获取统计信息成功")
+
+    except Exception as e:
+        logger.error(f"Error getting model config statistics: {str(e)}")
+        return Fail(msg=f"获取统计信息失败: {str(e)}")
 
 
 @router.get("/{model_id}", response_model=AIModelResponse, summary="获取模型配置详情")
@@ -159,21 +176,6 @@ def search_model_configs(
         return Fail(msg=f"搜索模型配置失败: {str(e)}")
 
 
-@router.get("/statistics", response_model=AIModelStatisticsResponse, summary="获取模型配置统计")
-def get_model_config_statistics(
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """获取模型配置统计信息"""
-    try:
-        ai_model_service = AIModelService(db)
-        stats = ai_model_service.get_model_statistics()
-        
-        return Success(data=stats, msg="获取统计信息成功")
-        
-    except Exception as e:
-        logger.error(f"Error getting model config statistics: {str(e)}")
-        return Fail(msg=f"获取统计信息失败: {str(e)}")
 
 
 # 移除重复的测试路由，保留统一的 `/{model_id}/test` 下方实现

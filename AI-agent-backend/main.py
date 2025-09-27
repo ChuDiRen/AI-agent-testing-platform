@@ -104,7 +104,7 @@ app = FastAPI(
     redoc_url=settings.REDOC_URL if not settings.is_production else None,
     openapi_url=settings.OPENAPI_URL if not settings.is_production else None,
     lifespan=lifespan,
-    redirect_slashes=False  # 禁用自动重定向斜杠，避免认证信息丢失
+    redirect_slashes=True
 )
 
 # 配置CORS中间件

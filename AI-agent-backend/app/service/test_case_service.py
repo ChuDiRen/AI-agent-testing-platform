@@ -48,7 +48,7 @@ class TestCaseService:
                 tags=request.tags,
                 agent_id=request.agent_id,
                 created_by_id=created_by_id,
-                metadata=request.metadata
+                extra_data=request.metadata
             )
             
             # 保存到数据库
@@ -404,7 +404,7 @@ class TestCaseService:
             executed_at=test_case.executed_at,
             execution_time=test_case.execution_time,
             remarks=test_case.remarks,
-            metadata=test_case.metadata,
+            metadata=test_case.extra_data or {},
             created_at=test_case.created_at,
             updated_at=test_case.updated_at
         )

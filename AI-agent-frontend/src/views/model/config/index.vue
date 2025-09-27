@@ -194,10 +194,10 @@ onMounted(() => {
 const loadStatistics = async () => {
   try {
     const response = await modelApi.getStatistics()
-    if (response.data.success) {
+    if (response.success) {
       statistics.value = {
-        total_configs: response.data.data.total_models,
-        active_configs: response.data.data.active_models
+        total_configs: response.data.total_models,
+        active_configs: response.data.active_models
       }
     }
   } catch (error) {
@@ -210,9 +210,9 @@ const loadConfigList = async () => {
   try {
     const params = { ...pagination, ...searchForm }
     const response = await modelApi.getModelList(params)
-    if (response.data.success) {
-      configList.value = response.data.data.models || []
-      pagination.total = response.data.data.total || 0
+    if (response.success) {
+      configList.value = response.data.models || []
+      pagination.total = response.data.total || 0
     }
   } catch (error) {
     ElMessage.error('加载配置列表失败')
@@ -262,12 +262,12 @@ const handleSubmit = async () => {
       
       if (editingConfig.value) {
         const response = await modelApi.updateModel(editingConfig.value.id, data)
-        if (response.data.success) {
+        if (response.success) {
           ElMessage.success('更新成功')
         }
       } else {
         const response = await modelApi.createModel(data)
-        if (response.data.success) {
+        if (response.success) {
           ElMessage.success('创建成功')
         }
       }
@@ -298,15 +298,17 @@ const handleTest = async (config: any) => {
   try {
     ElMessage.info('正在测试模型连接...')
     const response = await modelApi.testModel(config.id, {
-      prompt: '测试连接',
-      max_tokens: 100,
-      temperature: 0.7
+      test_prompt: '测试连接',
+      test_config: {
+        max_tokens: 100,
+        temperature: 0.7
+      }
     })
     
-    if (response.data.success && response.data.data.success) {
-      ElMessage.success(`测试成功！响应时间: ${response.data.data.response_time}ms`)
+    if (response.success && response.data.success) {
+      ElMessage.success(`测试成功！响应时间: ${response.data.response_time}ms`)
     } else {
-      ElMessage.error(`测试失败: ${response.data.data.error_message || '未知错误'}`)
+      ElMessage.error(`测试失败: ${response.data.error_message || '未知错误'}`)
     }
   } catch (error) {
     console.error('测试失败:', error)
@@ -327,7 +329,7 @@ const handleDelete = async (config: any) => {
     )
     
     const response = await modelApi.deleteModel(config.id)
-    if (response.data.success) {
+    if (response.success) {
       ElMessage.success('删除成功')
       loadConfigList()
       loadStatistics()

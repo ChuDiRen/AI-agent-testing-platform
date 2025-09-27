@@ -110,10 +110,8 @@ export interface ModelUpdateRequest {
 
 // 模型测试请求接口
 export interface ModelTestRequest {
-  prompt: string
-  max_tokens?: number
-  temperature?: number
-  test_type?: 'simple' | 'comprehensive'
+  test_prompt: string
+  test_config?: Record<string, any>
 }
 
 // 模型测试结果接口
@@ -152,7 +150,7 @@ export const modelApi = {
    * 获取模型统计信息
    */
   getStatistics(): Promise<ApiResponse<ModelStatistics>> {
-    return http.get('/models/statistics')
+    return http.get('/model-configs/statistics')
   },
 
   /**

@@ -45,7 +45,7 @@ class AIModelService:
                 name=request.name,
                 display_name=request.display_name,
                 provider=request.provider.value if hasattr(request.provider, 'value') else request.provider,
-                model_type=request.large_model_type.value if hasattr(request.large_model_type, 'value') else request.large_model_type,
+                model_type=request.model_type.value if hasattr(request.model_type, 'value') else request.model_type,
                 version=request.version,
                 description=request.description,
                 api_endpoint=request.api_endpoint,
@@ -86,7 +86,7 @@ class AIModelService:
             models, total = self.model_repo.search(
                 keyword=request.keyword,
                 provider=request.provider.value if request.provider and hasattr(request.provider, 'value') else request.provider,
-                model_type=request.large_model_type.value if request.large_model_type and hasattr(request.large_model_type, 'value') else request.large_model_type,
+                model_type=request.model_type.value if request.model_type and hasattr(request.model_type, 'value') else request.model_type,
                 status=request.status.value if request.status and hasattr(request.status, 'value') else request.status,
                 created_by_id=request.created_by_id,
                 start_date=request.start_date,

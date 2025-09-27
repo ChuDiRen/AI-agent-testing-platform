@@ -343,7 +343,7 @@ class AIModel(BaseEntity):
             "name": self.name,
             "display_name": self.display_name,
             "provider": self.provider,
-            "large_model_type": self.model_type,
+            "model_type": self.model_type,
             "status": self.status,
             "version": self.version,
             "description": self.description,
