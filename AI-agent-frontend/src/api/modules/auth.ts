@@ -1,8 +1,10 @@
+// Copyright (c) 2025 左岚. All rights reserved.
 /**
  * 用户认证相关API接口
  */
 import http from '@/api/http'
 import type { LoginRequest, LoginResponse, UserInfo, ApiResponse } from '@/api/types'
+import { getRefreshToken } from '@/utils/auth' // 导入获取refresh token的工具函数
 
 /**
  * 认证API接口类
@@ -64,8 +66,14 @@ export class AuthApi {
   static async refreshToken(): Promise<
     ApiResponse<{ access_token: string; token_type: string; refresh_token?: string }>
   > {
+    const refreshToken = getRefreshToken() // 获取当前的refresh token
+    if (!refreshToken) {
+      throw new Error('No refresh token available')
+    }
+    
     return http.post<{ access_token: string; token_type: string; refresh_token?: string }>(
       '/users/refresh-token',
+      { refresh_token: refreshToken } // 发送包含refresh_token的请求体
     )
   }
 

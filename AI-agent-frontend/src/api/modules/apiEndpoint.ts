@@ -2,7 +2,7 @@
  * API端点管理接口
  */
 
-import { request } from '@/utils/request'
+import http from '@/api/http'
 
 // API端点相关接口类型定义
 export interface ApiEndpoint {
@@ -116,70 +116,70 @@ export class ApiEndpointApi {
    * 创建API端点
    */
   static async createApiEndpoint(data: ApiEndpointCreateRequest) {
-    return request.post<ApiEndpoint>('/api/v1/api-endpoints/', data)
+    return http.post<ApiEndpoint>('/api/v1/api-endpoints/', data)
   }
 
   /**
    * 更新API端点
    */
   static async updateApiEndpoint(id: number, data: ApiEndpointUpdateRequest) {
-    return request.put<ApiEndpoint>(`/api/v1/api-endpoints/${id}`, data)
+    return http.put<ApiEndpoint>(`/api/v1/api-endpoints/${id}`, data)
   }
 
   /**
    * 删除API端点
    */
   static async deleteApiEndpoint(id: number) {
-    return request.delete<boolean>(`/api/v1/api-endpoints/${id}`)
+    return http.delete<boolean>(`/api/v1/api-endpoints/${id}`)
   }
 
   /**
    * 获取API端点详情
    */
   static async getApiEndpoint(id: number) {
-    return request.get<ApiEndpoint>(`/api/v1/api-endpoints/${id}`)
+    return http.get<ApiEndpoint>(`/api/v1/api-endpoints/${id}`)
   }
 
   /**
    * 获取API端点列表
    */
   static async getApiEndpoints(params?: ApiEndpointQueryParams) {
-    return request.get<ApiEndpointListResponse>('/api/v1/api-endpoints/', { params })
+    return http.get<ApiEndpointListResponse>('/api/v1/api-endpoints/', { params })
   }
 
   /**
    * 获取API统计数据
    */
   static async getApiStatistics() {
-    return request.get<ApiStatistics>('/api/v1/api-endpoints/statistics/overview')
+    return http.get<ApiStatistics>('/api/v1/api-endpoints/statistics/overview')
   }
 
   /**
    * 获取所有模块列表
    */
   static async getModules() {
-    return request.get<string[]>('/api/v1/api-endpoints/metadata/modules')
+    return http.get<string[]>('/api/v1/api-endpoints/metadata/modules')
   }
 
   /**
    * 获取所有权限列表
    */
   static async getPermissions() {
-    return request.get<string[]>('/api/v1/api-endpoints/metadata/permissions')
+    return http.get<string[]>('/api/v1/api-endpoints/metadata/permissions')
   }
 
   /**
    * 获取所有HTTP方法列表
    */
   static async getMethods() {
-    return request.get<string[]>('/api/v1/api-endpoints/metadata/methods')
+    return http.get<string[]>('/api/v1/api-endpoints/metadata/methods')
   }
 
   /**
    * 批量更新API状态
    */
   static async batchUpdateStatus(apiIds: number[], status: string) {
-    return request.post<number>('/api/v1/api-endpoints/batch/status', {
+    return http.post<number>('/api/v1/api-endpoints/batch/status', {
       api_ids: apiIds,
       status
     })
@@ -189,7 +189,7 @@ export class ApiEndpointApi {
    * 从路由同步API端点
    */
   static async syncApiEndpoints() {
-    return request.post<{
+    return http.post<{
       total_scanned: number
       new_created: number
       updated: number
@@ -207,7 +207,7 @@ export class ApiEndpointApi {
     start_date?: string
     end_date?: string
   }) {
-    return request.get<{
+    return http.get<{
       items: ApiCallLog[]
       total: number
       page: number

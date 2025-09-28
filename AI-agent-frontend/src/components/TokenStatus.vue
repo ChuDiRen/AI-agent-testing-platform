@@ -91,17 +91,19 @@ const tokenStatus = computed(() => {
     }
   }
   
-  // 检查即将过期(30分钟内)
+  // 优化：不再显示"即将过期"状态，因为已有无感刷新机制
+  // 只在token真正有问题时才显示状态
   try {
     const payload = parseJWT(token)
     const exp = payload.exp * 1000
     const now = Date.now()
     const timeLeft = exp - now
     
-    if (timeLeft < 30 * 60 * 1000) { // 30分钟
+    // 只有在token即将在1分钟内过期时才显示警告（极端情况）
+    if (timeLeft < 60 * 1000) { // 1分钟
       return {
         status: 'expiring',
-        text: `Token即将过期 (${Math.floor(timeLeft / 60000)}分钟)`,
+        text: `Token即将过期 (${Math.floor(timeLeft / 1000)}秒)`,
         icon: WarningFilled,
         class: 'status-expiring'
       }
@@ -125,6 +127,7 @@ const statusClass = computed(() => [
   `position-${props.position}`
 ])
 
+// 优化：只在真正需要手动刷新时才显示刷新按钮
 const showRefreshButton = computed(() => {
   return ['expired', 'expiring'].includes(tokenStatus.value.status)
 })
@@ -144,14 +147,14 @@ const handleRefresh = async () => {
   }
 }
 
-// 自动隐藏逻辑
+// 优化自动隐藏逻辑：token有效时快速隐藏，减少干扰
 let hideTimer: number | null = null
 
 const startHideTimer = () => {
   if (props.autoHide && tokenStatus.value.status === 'valid') {
     hideTimer = setTimeout(() => {
       visible.value = false
-    }, props.hideDelay)
+    }, 2000) // 缩短为2秒，减少干扰
   }
 }
 
@@ -171,18 +174,18 @@ onUnmounted(() => {
   clearHideTimer()
 })
 
-// 监听token状态变化
+// 优化token状态检查：减少检查频率，因为已有无感刷新
 const checkTokenStatus = () => {
   clearHideTimer()
   visible.value = true
   startHideTimer()
 }
 
-// 定期检查token状态
+// 降低检查频率：从1分钟改为5分钟，因为无感刷新已经处理了大部分情况
 let statusCheckInterval: number | null = null
 
 onMounted(() => {
-  statusCheckInterval = setInterval(checkTokenStatus, 60000) // 每分钟检查一次
+  statusCheckInterval = setInterval(checkTokenStatus, 5 * 60 * 1000) // 每5分钟检查一次
 })
 
 onUnmounted(() => {

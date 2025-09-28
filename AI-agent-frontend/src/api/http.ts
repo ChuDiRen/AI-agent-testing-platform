@@ -11,7 +11,7 @@ import {
   setToken,
   setRefreshToken,
 } from '@/utils/auth'
-import { clearAllTokenData, isTokenValid } from '@/utils/tokenValidator' // 导入token验证器
+import { clearAllTokenData, isTokenValid, parseJWT } from '@/utils/tokenValidator' // 导入token验证器
 import router from '@/router'
 import { NETWORK_CONFIG, shouldRetry, getRetryDelay, getDedupeTTL } from '@/config/network'
 import { handleApiError } from '@/utils/errorHandler'
@@ -90,26 +90,133 @@ function wrap<T>(
     })
 }
 
+// 检查token是否即将过期（5分钟内）
+function isTokenExpiringSoon(token: string, minutesThreshold: number = 5): boolean {
+  try {
+    const payload = parseJWT(token)
+    if (!payload || !payload.exp) {
+      return true // 无法解析或没有过期时间，视为即将过期
+    }
+    
+    const currentTime = Math.floor(Date.now() / 1000)
+    const timeLeft = payload.exp - currentTime
+    const thresholdSeconds = minutesThreshold * 60
+    
+    return timeLeft <= thresholdSeconds
+  } catch (error) {
+    console.warn('Failed to check token expiration:', error)
+    return true // 解析失败，视为即将过期
+  }
+}
+
+// 预检查并刷新token的函数
+async function preCheckAndRefreshToken(): Promise<string | null> {
+  const token = getToken()
+  if (!token) return null
+  
+  // 如果token无效，直接返回null
+  if (!isTokenValid(token)) {
+    console.warn('Invalid token detected in pre-check, clearing token data')
+    clearAllTokenData()
+    return null
+  }
+  
+  // 如果token即将过期，尝试刷新
+  if (isTokenExpiringSoon(token)) {
+    console.log('Token expiring soon, attempting proactive refresh...')
+    
+    // 如果已经在刷新中，等待刷新完成
+    if (isRefreshing && refreshPromise) {
+      try {
+        const newToken = await refreshPromise
+        return newToken
+      } catch (error) {
+        console.warn('Failed to wait for ongoing refresh:', error)
+        return null
+      }
+    }
+    
+    // 开始刷新流程
+    isRefreshing = true
+    const currentRefreshToken = getRefreshToken()
+    
+    if (!currentRefreshToken || !isTokenValid(currentRefreshToken)) {
+      console.warn('No valid refresh token available for proactive refresh')
+      clearAllTokenData()
+      isRefreshing = false
+      return null
+    }
+    
+    refreshPromise = (async () => {
+      try {
+        // 直接调用刷新接口
+        const res = await http.post('/users/refresh-token', {
+          refresh_token: currentRefreshToken,
+        })
+        
+        if ((res as any)?.success && (res as any)?.data?.access_token) {
+          const newAccessToken = (res as any).data.access_token as string
+          const newRefreshToken = (res as any).data.refresh_token as string | undefined
+          
+          // 验证新token的有效性
+          if (!isTokenValid(newAccessToken)) {
+            throw new Error('Received invalid access token from proactive refresh')
+          }
+          
+          setToken(newAccessToken)
+          if (newRefreshToken && isTokenValid(newRefreshToken)) {
+            setRefreshToken(newRefreshToken)
+          }
+          
+          console.log('Proactive token refresh successful')
+          onRefreshed(newAccessToken)
+          return newAccessToken
+        }
+        throw new Error('Proactive token refresh failed')
+      } catch (e) {
+        console.warn('Proactive token refresh failed:', e)
+        // 不清理token数据，让401拦截器处理
+        onRefreshed(null)
+        throw e
+      } finally {
+        isRefreshing = false
+        refreshPromise = null
+      }
+    })()
+    
+    try {
+      const newToken = await refreshPromise
+      return newToken
+    } catch (error) {
+      console.warn('Proactive refresh failed, will rely on 401 fallback:', error)
+      return token // 返回原token，让请求继续，401拦截器会处理
+    }
+  }
+  
+  return token // token有效且未即将过期
+}
+
 // 请求拦截器
 http.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
     // 开始进度条
     NProgressStart()
 
-    // 添加认证token，并验证token有效性
-    const token = getToken()
-    if (token) {
-      // 验证token是否有效
-      if (!isTokenValid(token)) {
-        console.warn('Invalid token detected in request interceptor, clearing token data')
-        clearAllTokenData()
-        // 如果不是登录请求，重定向到登录页
-        if (!config.url?.includes('/login') && !config.url?.includes('/refresh-token')) {
-          router.push('/login')
-          return Promise.reject(new Error('Token invalid, redirecting to login'))
-        }
-      } else {
-        config.headers.Authorization = `Bearer ${token}`
+    // 跳过刷新token请求的预检查，避免循环
+    if (config.url?.includes('/refresh-token')) {
+      return config
+    }
+
+    // 预检查并刷新token
+    const validToken = await preCheckAndRefreshToken()
+    
+    if (validToken) {
+      config.headers.Authorization = `Bearer ${validToken}`
+    } else {
+      // 如果没有有效token且不是登录请求，重定向到登录页
+      if (!config.url?.includes('/login')) {
+        router.push('/login')
+        return Promise.reject(new Error('No valid token available, redirecting to login'))
       }
     }
 
