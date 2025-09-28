@@ -6,6 +6,7 @@ import com.example.aiagent.dto.LoginResponse;
 import com.example.aiagent.dto.UserCreateRequest;
 import com.example.aiagent.dto.UserUpdateRequest;
 import com.example.aiagent.entity.User;
+import org.springframework.lang.Nullable;
 
 /**
  * 用户Service接口
@@ -23,6 +24,7 @@ public interface UserService extends BaseService<User> {
     /**
      * 根据用户名查询用户
      */
+    @Nullable
     User findByUsername(String username);
 
     /**

@@ -32,22 +32,8 @@ public class SecurityConfig {
             
             // 配置请求授权
             .authorizeHttpRequests(authz -> authz
-                // 允许所有测试接口访问
-                .requestMatchers("/test/**").permitAll()
-                
-                // 允许API文档相关路径访问
-                .requestMatchers("/v3/api-docs/**").permitAll()
-                .requestMatchers("/swagger-ui/**").permitAll()
-                .requestMatchers("/swagger-ui.html").permitAll()
-                .requestMatchers("/webjars/**").permitAll()
-                .requestMatchers("/docs/**").permitAll()
-                
-                // 允许Actuator健康检查端点访问
-                .requestMatchers("/actuator/health").permitAll()
-                .requestMatchers("/actuator/info").permitAll()
-                
-                // 其他请求需要认证
-                .anyRequest().authenticated()
+                // 允许所有请求访问（开发环境）
+                .anyRequest().permitAll()
             );
 
         return http.build();

@@ -12,9 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @version 1.0.0
  */
 @SpringBootApplication(exclude = {
-    org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
-    com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration.class,
-    org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration.class
+    com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration.class
 })
 // @MapperScan("com.example.aiagent.mapper") // 暂时禁用
 public class Application {

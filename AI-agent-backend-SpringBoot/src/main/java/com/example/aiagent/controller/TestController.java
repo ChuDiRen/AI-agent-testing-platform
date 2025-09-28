@@ -5,6 +5,7 @@ import com.example.aiagent.dto.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -75,7 +76,7 @@ public class TestController extends BaseController {
     @Operation(summary = "参数测试", description = "测试URL参数和查询参数")
     public ResponseEntity<Result<Map<String, Object>>> testParam(
             @RequestParam(value = "name", defaultValue = "Guest") String name,
-            @RequestParam(value = "age", required = false) Integer age) {
+            @RequestParam(value = "age", required = false) @Nullable Integer age) { // 标记可选参数为@Nullable
         
         Map<String, Object> data = new HashMap<>();
         data.put("name", name);
