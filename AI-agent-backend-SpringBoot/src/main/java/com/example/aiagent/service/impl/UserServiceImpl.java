@@ -2,9 +2,14 @@
 package com.example.aiagent.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.example.aiagent.dto.LoginRequest;
+import com.example.aiagent.dto.LoginResponse;
+import com.example.aiagent.dto.UserCreateRequest;
+import com.example.aiagent.dto.UserUpdateRequest;
 import com.example.aiagent.entity.User;
 import com.example.aiagent.mapper.UserMapper;
 import com.example.aiagent.service.UserService;
+import com.example.aiagent.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,54 +24,52 @@ import java.util.Collections;
  * 用户服务实现类
  */
 @Service
-public class UserServiceImpl implements UserDetailsService {
+@RequiredArgsConstructor
+public class UserServiceImpl extends BaseServiceImpl<UserMapper, User> implements UserService, UserDetailsService {
 
-    // private final UserMapper userMapper; // 暂时禁用
+    private final UserMapper userMapper; // 启用数据库操作
     private final PasswordEncoder passwordEncoder;
-
-    public UserServiceImpl(PasswordEncoder passwordEncoder) {
-        this.passwordEncoder = passwordEncoder;
-    }
+    private final JwtUtil jwtUtil; // 添加JWT工具类依赖
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // 暂时使用硬编码的测试用户
-        if ("admin".equals(username)) {
-            return org.springframework.security.core.userdetails.User.builder()
-                    .username("admin")
-                    .password(passwordEncoder.encode("admin123")) // 密码: admin123
-                    .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")))
-                    .accountExpired(false)
-                    .accountLocked(false)
-                    .credentialsExpired(false)
-                    .disabled(false)
-                    .build();
+        User user = findByUsername(username);
+        if (user == null) {
+            throw new UsernameNotFoundException("用户不存在: " + username);
         }
 
-        throw new UsernameNotFoundException("用户不存在: " + username);
+        return org.springframework.security.core.userdetails.User.builder()
+                .username(user.getUsername())
+                .password(user.getPassword())
+                .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")))
+                .accountExpired(false)
+                .accountLocked(user.getStatus() == 0) // 状态为0时账户被锁定
+                .credentialsExpired(false)
+                .disabled(user.getStatus() == 0)
+                .build();
     }
 
-    // 暂时注释掉数据库相关方法
-    /*
     @Override
     public User findByUsername(String username) {
         return userMapper.selectOne(new QueryWrapper<User>().eq("username", username));
     }
 
     @Override
-    public com.example.aiagent.dto.LoginResponse login(com.example.aiagent.dto.LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         User user = findByUsername(request.getUsername());
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("用户名或密码错误");
         }
 
-        // 这里应该生成JWT token，暂时返回简单响应
-        com.example.aiagent.dto.LoginResponse response = new com.example.aiagent.dto.LoginResponse();
-        response.setAccessToken("mock-jwt-token");
+        // 生成JWT令牌
+        String token = jwtUtil.generateToken(user.getUsername(), user.getId());
+        
+        LoginResponse response = new LoginResponse();
+        response.setAccessToken(token);
         response.setExpiresIn(86400L); // 24小时
 
         // 设置用户信息
-        com.example.aiagent.dto.LoginResponse.UserInfo userInfo = new com.example.aiagent.dto.LoginResponse.UserInfo();
+        LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo();
         userInfo.setId(user.getId());
         userInfo.setUsername(user.getUsername());
         userInfo.setEmail(user.getEmail());
@@ -77,7 +80,7 @@ public class UserServiceImpl implements UserDetailsService {
     }
 
     @Override
-    public User createUser(com.example.aiagent.dto.UserCreateRequest request) {
+    public User createUser(UserCreateRequest request) {
         // 检查用户名是否已存在
         if (existsByUsername(request.getUsername())) {
             throw new RuntimeException("用户名已存在");
@@ -99,7 +102,7 @@ public class UserServiceImpl implements UserDetailsService {
     }
 
     @Override
-    public User updateUser(Long id, com.example.aiagent.dto.UserUpdateRequest request) {
+    public User updateUser(Long id, UserUpdateRequest request) {
         User user = userMapper.selectById(id);
         if (user == null) {
             throw new RuntimeException("用户不存在");
@@ -144,5 +147,4 @@ public class UserServiceImpl implements UserDetailsService {
         user.setStatus(status);
         userMapper.updateById(user);
     }
-    */
 }

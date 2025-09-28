@@ -2,7 +2,6 @@
 package com.example.aiagent.repository;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.baomidou.mybatisplus.extension.service.IService;
 
 /**
  * Repository基础接口

@@ -26,12 +26,12 @@ spring:
     hikari:
       maximum-pool-size: 1
       connection-timeout: 30000
-  # SQL初始化配置 - 暂时禁用
-  # sql:
-  #   init:
-  #     mode: always
-  #     schema-locations: classpath:schema.sql
-  #     data-locations: classpath:data.sql
+  # SQL初始化配置 - 已启用
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
 
   # Jackson配置
   jackson:

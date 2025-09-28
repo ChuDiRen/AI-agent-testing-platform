@@ -11,10 +11,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author 左岚团队
  * @version 1.0.0
  */
-@SpringBootApplication(exclude = {
-    com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration.class
-})
-// @MapperScan("com.example.aiagent.mapper") // 暂时禁用
+@SpringBootApplication
+@MapperScan("com.example.aiagent.mapper") // 启用Mapper扫描
 public class Application {
 
     public static void main(String[] args) {

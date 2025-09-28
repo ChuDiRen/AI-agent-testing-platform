@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * @version 1.0.0
  */
 @Slf4j
-//@RestControllerAdvice(basePackages = {"com.example.aiagent.controller"})
+@RestControllerAdvice(basePackages = {"com.example.aiagent.controller"}) // 启用全局异常处理
 public class GlobalExceptionHandler {
 
 

@@ -162,3 +162,186 @@
 2025-09-28 12:19:30 [http-nio-8000-exec-7] DEBUG org.springframework.security.web.FilterChainProxy - Securing GET /
 2025-09-28 12:19:30 [http-nio-8000-exec-7] DEBUG o.s.s.w.a.AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
 2025-09-28 12:19:30 [http-nio-8000-exec-7] DEBUG org.springframework.security.web.FilterChainProxy - Secured GET /
+2025-09-28 12:46:36 [HikariPool-1:housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=4m27s698ms684µs).
+2025-09-28 12:48:37 [main] INFO  com.example.aiagent.Application - Starting Application using Java 21.0.2 with PID 22532 (E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes started by Administrator in E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot)
+2025-09-28 12:48:37 [main] DEBUG com.example.aiagent.Application - Running with Spring Boot v3.5.6, Spring v6.2.11
+2025-09-28 12:48:37 [main] INFO  com.example.aiagent.Application - The following 1 profile is active: "dev"
+2025-09-28 12:48:38 [main] WARN  o.s.b.w.s.c.AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanDefinitionStoreException: Invalid bean definition with name 'userMapper' defined in file [E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes\com\example\aiagent\mapper\UserMapper.class]: Invalid value type for attribute 'factoryBeanObjectType': java.lang.String
+2025-09-28 12:48:38 [main] INFO  o.s.b.a.logging.ConditionEvaluationReportLogger - 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2025-09-28 12:48:38 [main] ERROR org.springframework.boot.SpringApplication - Application run failed
+org.springframework.beans.factory.BeanDefinitionStoreException: Invalid bean definition with name 'userMapper' defined in file [E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes\com\example\aiagent\mapper\UserMapper.class]: Invalid value type for attribute 'factoryBeanObjectType': java.lang.String
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.getTypeForFactoryBean(AbstractAutowireCapableBeanFactory.java:864)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getType(AbstractBeanFactory.java:744)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.findAnnotationOnBean(DefaultListableBeanFactory.java:818)
+	at org.springframework.boot.sql.init.dependency.AnnotationDependsOnDatabaseInitializationDetector.detect(AnnotationDependsOnDatabaseInitializationDetector.java:36)
+	at org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer$DependsOnDatabaseInitializationPostProcessor.detectDependsOnInitializationBeanNames(DatabaseInitializationDependencyConfigurer.java:152)
+	at org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer$DependsOnDatabaseInitializationPostProcessor.postProcessBeanFactory(DatabaseInitializationDependencyConfigurer.java:115)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:363)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:197)
+	at org.springframework.context.support.AbstractApplicationContext.invokeBeanFactoryPostProcessors(AbstractApplicationContext.java:791)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:609)
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146)
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752)
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:318)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350)
+	at com.example.aiagent.Application.main(Application.java:19)
+2025-09-28 12:49:08 [main] INFO  com.example.aiagent.Application - Starting Application using Java 21.0.2 with PID 27068 (E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes started by Administrator in E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot)
+2025-09-28 12:49:08 [main] DEBUG com.example.aiagent.Application - Running with Spring Boot v3.5.6, Spring v6.2.11
+2025-09-28 12:49:08 [main] INFO  com.example.aiagent.Application - The following 1 profile is active: "dev"
+2025-09-28 12:49:08 [main] WARN  o.s.b.w.s.c.AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanDefinitionStoreException: Invalid bean definition with name 'userMapper' defined in file [E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes\com\example\aiagent\mapper\UserMapper.class]: Invalid value type for attribute 'factoryBeanObjectType': java.lang.String
+2025-09-28 12:49:08 [main] INFO  o.s.b.a.logging.ConditionEvaluationReportLogger - 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2025-09-28 12:49:08 [main] ERROR org.springframework.boot.SpringApplication - Application run failed
+org.springframework.beans.factory.BeanDefinitionStoreException: Invalid bean definition with name 'userMapper' defined in file [E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes\com\example\aiagent\mapper\UserMapper.class]: Invalid value type for attribute 'factoryBeanObjectType': java.lang.String
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.getTypeForFactoryBean(AbstractAutowireCapableBeanFactory.java:864)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getType(AbstractBeanFactory.java:744)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.findAnnotationOnBean(DefaultListableBeanFactory.java:818)
+	at org.springframework.boot.sql.init.dependency.AnnotationDependsOnDatabaseInitializationDetector.detect(AnnotationDependsOnDatabaseInitializationDetector.java:36)
+	at org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer$DependsOnDatabaseInitializationPostProcessor.detectDependsOnInitializationBeanNames(DatabaseInitializationDependencyConfigurer.java:152)
+	at org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer$DependsOnDatabaseInitializationPostProcessor.postProcessBeanFactory(DatabaseInitializationDependencyConfigurer.java:115)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:363)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:197)
+	at org.springframework.context.support.AbstractApplicationContext.invokeBeanFactoryPostProcessors(AbstractApplicationContext.java:791)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:609)
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146)
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752)
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:318)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350)
+	at com.example.aiagent.Application.main(Application.java:19)
+2025-09-28 12:51:33 [main] INFO  com.example.aiagent.Application - Starting Application using Java 21.0.2 with PID 10536 (E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes started by Administrator in E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot)
+2025-09-28 12:51:33 [main] DEBUG com.example.aiagent.Application - Running with Spring Boot v3.5.6, Spring v6.2.11
+2025-09-28 12:51:33 [main] INFO  com.example.aiagent.Application - The following 1 profile is active: "dev"
+2025-09-28 12:51:33 [main] WARN  o.s.b.w.s.c.AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanDefinitionStoreException: Invalid bean definition with name 'userMapper' defined in file [E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes\com\example\aiagent\mapper\UserMapper.class]: Invalid value type for attribute 'factoryBeanObjectType': java.lang.String
+2025-09-28 12:51:33 [main] INFO  o.s.b.a.logging.ConditionEvaluationReportLogger - 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2025-09-28 12:51:33 [main] ERROR org.springframework.boot.SpringApplication - Application run failed
+org.springframework.beans.factory.BeanDefinitionStoreException: Invalid bean definition with name 'userMapper' defined in file [E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes\com\example\aiagent\mapper\UserMapper.class]: Invalid value type for attribute 'factoryBeanObjectType': java.lang.String
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.getTypeForFactoryBean(AbstractAutowireCapableBeanFactory.java:864)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getType(AbstractBeanFactory.java:744)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.findAnnotationOnBean(DefaultListableBeanFactory.java:818)
+	at org.springframework.boot.sql.init.dependency.AnnotationDependsOnDatabaseInitializationDetector.detect(AnnotationDependsOnDatabaseInitializationDetector.java:36)
+	at org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer$DependsOnDatabaseInitializationPostProcessor.detectDependsOnInitializationBeanNames(DatabaseInitializationDependencyConfigurer.java:152)
+	at org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer$DependsOnDatabaseInitializationPostProcessor.postProcessBeanFactory(DatabaseInitializationDependencyConfigurer.java:115)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:363)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:197)
+	at org.springframework.context.support.AbstractApplicationContext.invokeBeanFactoryPostProcessors(AbstractApplicationContext.java:791)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:609)
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146)
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752)
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:318)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350)
+	at com.example.aiagent.Application.main(Application.java:19)
+2025-09-28 12:51:54 [main] INFO  com.example.aiagent.Application - Starting Application using Java 21.0.2 with PID 21712 (E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes started by Administrator in E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot)
+2025-09-28 12:51:54 [main] DEBUG com.example.aiagent.Application - Running with Spring Boot v3.5.6, Spring v6.2.11
+2025-09-28 12:51:54 [main] INFO  com.example.aiagent.Application - The following 1 profile is active: "dev"
+2025-09-28 12:51:55 [main] WARN  o.s.b.w.s.c.AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanDefinitionStoreException: Invalid bean definition with name 'userMapper' defined in file [E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes\com\example\aiagent\mapper\UserMapper.class]: Invalid value type for attribute 'factoryBeanObjectType': java.lang.String
+2025-09-28 12:51:55 [main] INFO  o.s.b.a.logging.ConditionEvaluationReportLogger - 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2025-09-28 12:51:55 [main] ERROR org.springframework.boot.SpringApplication - Application run failed
+org.springframework.beans.factory.BeanDefinitionStoreException: Invalid bean definition with name 'userMapper' defined in file [E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes\com\example\aiagent\mapper\UserMapper.class]: Invalid value type for attribute 'factoryBeanObjectType': java.lang.String
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.getTypeForFactoryBean(AbstractAutowireCapableBeanFactory.java:864)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getType(AbstractBeanFactory.java:744)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.findAnnotationOnBean(DefaultListableBeanFactory.java:818)
+	at org.springframework.boot.sql.init.dependency.AnnotationDependsOnDatabaseInitializationDetector.detect(AnnotationDependsOnDatabaseInitializationDetector.java:36)
+	at org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer$DependsOnDatabaseInitializationPostProcessor.detectDependsOnInitializationBeanNames(DatabaseInitializationDependencyConfigurer.java:152)
+	at org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer$DependsOnDatabaseInitializationPostProcessor.postProcessBeanFactory(DatabaseInitializationDependencyConfigurer.java:115)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:363)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:197)
+	at org.springframework.context.support.AbstractApplicationContext.invokeBeanFactoryPostProcessors(AbstractApplicationContext.java:791)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:609)
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146)
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752)
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:318)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350)
+	at com.example.aiagent.Application.main(Application.java:19)
+2025-09-28 12:53:53 [main] INFO  com.example.aiagent.Application - Starting Application using Java 21.0.2 with PID 14928 (E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes started by Administrator in E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot)
+2025-09-28 12:53:53 [main] DEBUG com.example.aiagent.Application - Running with Spring Boot v3.5.6, Spring v6.2.11
+2025-09-28 12:53:53 [main] INFO  com.example.aiagent.Application - The following 1 profile is active: "dev"
+2025-09-28 12:53:54 [main] WARN  o.s.b.w.s.c.AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanDefinitionStoreException: Invalid bean definition with name 'userMapper' defined in file [E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes\com\example\aiagent\mapper\UserMapper.class]: Invalid value type for attribute 'factoryBeanObjectType': java.lang.String
+2025-09-28 12:53:54 [main] INFO  o.s.b.a.logging.ConditionEvaluationReportLogger - 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2025-09-28 12:53:54 [main] ERROR org.springframework.boot.SpringApplication - Application run failed
+org.springframework.beans.factory.BeanDefinitionStoreException: Invalid bean definition with name 'userMapper' defined in file [E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes\com\example\aiagent\mapper\UserMapper.class]: Invalid value type for attribute 'factoryBeanObjectType': java.lang.String
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.getTypeForFactoryBean(AbstractAutowireCapableBeanFactory.java:864)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getType(AbstractBeanFactory.java:744)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.findAnnotationOnBean(DefaultListableBeanFactory.java:818)
+	at org.springframework.boot.sql.init.dependency.AnnotationDependsOnDatabaseInitializationDetector.detect(AnnotationDependsOnDatabaseInitializationDetector.java:36)
+	at org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer$DependsOnDatabaseInitializationPostProcessor.detectDependsOnInitializationBeanNames(DatabaseInitializationDependencyConfigurer.java:152)
+	at org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer$DependsOnDatabaseInitializationPostProcessor.postProcessBeanFactory(DatabaseInitializationDependencyConfigurer.java:115)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:363)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:197)
+	at org.springframework.context.support.AbstractApplicationContext.invokeBeanFactoryPostProcessors(AbstractApplicationContext.java:791)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:609)
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146)
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752)
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:318)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350)
+	at com.example.aiagent.Application.main(Application.java:19)
+2025-09-28 12:54:12 [main] INFO  com.example.aiagent.Application - Starting Application using Java 21.0.2 with PID 25044 (E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes started by Administrator in E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot)
+2025-09-28 12:54:12 [main] DEBUG com.example.aiagent.Application - Running with Spring Boot v3.5.6, Spring v6.2.11
+2025-09-28 12:54:12 [main] INFO  com.example.aiagent.Application - The following 1 profile is active: "dev"
+2025-09-28 12:54:13 [main] WARN  o.s.b.w.s.c.AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanDefinitionStoreException: Invalid bean definition with name 'userMapper' defined in file [E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes\com\example\aiagent\mapper\UserMapper.class]: Invalid value type for attribute 'factoryBeanObjectType': java.lang.String
+2025-09-28 12:54:13 [main] INFO  o.s.b.a.logging.ConditionEvaluationReportLogger - 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2025-09-28 12:54:13 [main] ERROR org.springframework.boot.SpringApplication - Application run failed
+org.springframework.beans.factory.BeanDefinitionStoreException: Invalid bean definition with name 'userMapper' defined in file [E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes\com\example\aiagent\mapper\UserMapper.class]: Invalid value type for attribute 'factoryBeanObjectType': java.lang.String
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.getTypeForFactoryBean(AbstractAutowireCapableBeanFactory.java:864)
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getType(AbstractBeanFactory.java:744)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.findAnnotationOnBean(DefaultListableBeanFactory.java:818)
+	at org.springframework.boot.sql.init.dependency.AnnotationDependsOnDatabaseInitializationDetector.detect(AnnotationDependsOnDatabaseInitializationDetector.java:36)
+	at org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer$DependsOnDatabaseInitializationPostProcessor.detectDependsOnInitializationBeanNames(DatabaseInitializationDependencyConfigurer.java:152)
+	at org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer$DependsOnDatabaseInitializationPostProcessor.postProcessBeanFactory(DatabaseInitializationDependencyConfigurer.java:115)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:363)
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(PostProcessorRegistrationDelegate.java:197)
+	at org.springframework.context.support.AbstractApplicationContext.invokeBeanFactoryPostProcessors(AbstractApplicationContext.java:791)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:609)
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146)
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752)
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:318)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361)
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350)
+	at com.example.aiagent.Application.main(Application.java:19)
+2025-09-28 13:04:50 [main] INFO  com.example.aiagent.Application - Starting Application using Java 21.0.2 with PID 24880 (E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot\target\classes started by Administrator in E:\AI-agent-testing-platform\AI-agent-backend-SpringBoot)
+2025-09-28 13:04:50 [main] DEBUG com.example.aiagent.Application - Running with Spring Boot v3.5.6, Spring v6.2.11
+2025-09-28 13:04:50 [main] INFO  com.example.aiagent.Application - The following 1 profile is active: "dev"
+2025-09-28 13:04:51 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port 8000 (http)
+2025-09-28 13:04:51 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
+2025-09-28 13:04:51 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.46]
+2025-09-28 13:04:51 [main] INFO  o.a.c.c.ContainerBase.[Tomcat].[localhost].[/api] - Initializing Spring embedded WebApplicationContext
+2025-09-28 13:04:51 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 900 ms
+2025-09-28 13:04:51 [main] DEBUG c.example.aiagent.filter.JwtAuthenticationFilter - Filter 'jwtAuthenticationFilter' configured for use
+2025-09-28 13:04:51 [main] DEBUG c.baomidou.mybatisplus.core.spi.CompatibleHelper - Load compatibleSet: com.baomidou.mybatisplus.extension.spi.SpringCompatibleSet@29bd85db
+2025-09-28 13:04:51 [main] DEBUG c.b.m.e.spring.MybatisSqlSessionFactoryBean - Registered plugin: 'MybatisPlusInterceptor{interceptors=[PaginationInnerInterceptor(logger=org.apache.ibatis.logging.slf4j.Slf4jImpl@33627576, overflow=false, maxLimit=null, dbType=SQLITE, dialect=null, optimizeJoin=true), com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor@762a10b6]}'
+2025-09-28 13:04:51 [main] DEBUG c.b.m.e.spring.MybatisSqlSessionFactoryBean - Property 'mapperLocations' was not specified.
+2025-09-28 13:04:51 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-09-28 13:04:51 [main] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.sqlite.jdbc4.JDBC4Connection@7548e1fb
+2025-09-28 13:04:51 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2025-09-28 13:04:51 [main] INFO  o.s.b.actuate.endpoint.web.EndpointLinksResolver - Exposing 3 endpoints beneath base path '/actuator'
+2025-09-28 13:04:51 [main] INFO  o.s.security.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@b267745, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@31e22365, org.springframework.security.web.context.SecurityContextHolderFilter@628bd77e, org.springframework.security.web.header.HeaderWriterFilter@73b8ab2c, org.springframework.web.filter.CorsFilter@2ebf524, org.springframework.security.web.authentication.logout.LogoutFilter@624d778e, com.example.aiagent.filter.JwtAuthenticationFilter@756808cc, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@5d74507c, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@2a984952, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@41bdaa81, org.springframework.security.web.session.SessionManagementFilter@6eb00cbe, org.springframework.security.web.access.ExceptionTranslationFilter@6408be5, org.springframework.security.web.access.intercept.AuthorizationFilter@30e143ff]
+2025-09-28 13:04:51 [main] INFO  c.b.m.e.spring.MybatisPlusApplicationContextAware - Register ApplicationContext instances org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext@2002348
+2025-09-28 13:04:52 [main] INFO  o.s.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port 8000 (http) with context path '/api'
+2025-09-28 13:04:52 [main] INFO  com.example.aiagent.Application - Started Application in 2.252 seconds (process running for 2.446)
+2025-09-28 13:05:45 [http-nio-8000-exec-2] INFO  o.a.c.c.ContainerBase.[Tomcat].[localhost].[/api] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-09-28 13:05:45 [http-nio-8000-exec-2] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2025-09-28 13:05:45 [http-nio-8000-exec-2] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 2 ms
+2025-09-28 13:05:45 [http-nio-8000-exec-2] DEBUG org.springframework.security.web.FilterChainProxy - Securing GET /?ide_webview_request_time=1759035945916
+2025-09-28 13:05:45 [http-nio-8000-exec-2] DEBUG o.s.s.w.a.AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2025-09-28 13:05:45 [http-nio-8000-exec-2] DEBUG org.springframework.security.web.FilterChainProxy - Secured GET /?ide_webview_request_time=1759035945916
