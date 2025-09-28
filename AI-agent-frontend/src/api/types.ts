@@ -163,6 +163,7 @@ export interface MenuInfo {
 // 菜单树节点
 export interface MenuTreeNode extends MenuInfo {
   children?: MenuTreeNode[]
+  disabled?: boolean // 树形组件禁用状态
 }
 
 // 菜单创建请求 - 使用小写字段名与后端保持一致

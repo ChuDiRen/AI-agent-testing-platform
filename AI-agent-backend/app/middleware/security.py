@@ -23,16 +23,57 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
         
-        # 添加安全头
+        # 基础安全头
         security_headers = {
             "X-Content-Type-Options": "nosniff",
-            "X-Frame-Options": "DENY",
+            "X-Frame-Options": "DENY", 
             "X-XSS-Protection": "1; mode=block",
-            "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
             "Referrer-Policy": "strict-origin-when-cross-origin",
-            "Content-Security-Policy": "default-src 'self'",
-            "Permissions-Policy": "geolocation=(), microphone=(), camera=()"
+            "Permissions-Policy": "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
         }
+        
+        # HTTPS相关头（仅在启用HTTPS时添加）
+        if settings.ENABLE_HTTPS or settings.is_production:
+            security_headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+        
+        # 增强的CSP策略
+        csp_policy = [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  # 开发环境允许内联脚本
+            "style-src 'self' 'unsafe-inline'",  # 允许内联样式
+            "img-src 'self' data: https:",  # 允许图片从安全源加载
+            "font-src 'self' https:",  # 允许字体从安全源加载
+            "connect-src 'self' https: wss:",  # 允许API和WebSocket连接
+            "media-src 'self'",
+            "object-src 'none'",  # 禁止插件
+            "base-uri 'self'",  # 限制base标签
+            "form-action 'self'",  # 限制表单提交
+            "frame-ancestors 'none'"  # 防止被嵌入iframe
+        ]
+        
+        # 生产环境使用更严格的CSP
+        if settings.is_production:
+            csp_policy = [
+                "default-src 'self'",
+                "script-src 'self'",  # 生产环境禁止内联脚本
+                "style-src 'self'",
+                "img-src 'self' data: https:",
+                "font-src 'self' https:",
+                "connect-src 'self' https:",
+                "media-src 'self'",
+                "object-src 'none'",
+                "base-uri 'self'",
+                "form-action 'self'",
+                "frame-ancestors 'none'",
+                "upgrade-insecure-requests"  # 强制HTTPS
+            ]
+        
+        security_headers["Content-Security-Policy"] = "; ".join(csp_policy)
+        
+        # 添加请求ID用于追踪
+        if "X-Request-ID" not in response.headers:
+            import uuid
+            response.headers["X-Request-ID"] = str(uuid.uuid4())
         
         for header, value in security_headers.items():
             response.headers[header] = value

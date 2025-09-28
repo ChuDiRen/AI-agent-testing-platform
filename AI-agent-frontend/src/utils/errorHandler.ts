@@ -5,6 +5,7 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store'
 import router from '@/router'
+import { clearAllTokenData } from '@/utils/tokenValidator' // 导入token清理功能
 
 // 错误类型枚举
 export enum ErrorType {
@@ -61,7 +62,7 @@ export class ErrorHandler {
   /**
    * 处理API错误
    */
-  public handleApiError(error: any, config: ErrorHandlerConfig = {}): ApiError {
+  public async handleApiError(error: any, config: ErrorHandlerConfig = {}): Promise<ApiError> {
     const finalConfig = { ...defaultConfig, ...config }
     const apiError = this.parseError(error)
 
@@ -82,7 +83,7 @@ export class ErrorHandler {
 
     // 自动重定向
     if (finalConfig.autoRedirect) {
-      this.handleAutoRedirect(apiError)
+      await this.handleAutoRedirect(apiError)
     }
 
     // 添加到错误历史
@@ -215,18 +216,24 @@ export class ErrorHandler {
   /**
    * 自动重定向处理
    */
-  private handleAutoRedirect(error: ApiError): void {
+  private async handleAutoRedirect(error: ApiError): Promise<void> {
     if (error.type === ErrorType.AUTH_ERROR) {
-      // 认证错误，清除用户信息并跳转到登录页
+      // 认证错误，使用统一的token清理功能
+      await clearAllTokenData()
+      
+      // 清除用户store数据
       try {
         const userStore = useUserStore()
-        userStore.clearUserData()
+        await userStore.clearUserData()
       } catch (e) {
         console.warn('Failed to clear user data, Pinia may not be initialized')
       }
 
       if (router.currentRoute.value.path !== '/login') {
-        router.push('/login')
+        // 延迟跳转，提供更好的用户体验
+        setTimeout(() => {
+          router.push('/login')
+        }, 1000)
       }
     }
   }
@@ -253,7 +260,7 @@ export class ErrorHandler {
   /**
    * 发送到监控服务（可选）
    */
-  private sendToMonitoring(errorData: any): void {
+  private sendToMonitoring(_errorData: any): void {
     // 这里可以集成第三方错误监控服务，如 Sentry
     // try {
     //   // 发送到监控服务
@@ -300,13 +307,13 @@ export class ErrorHandler {
 export const errorHandler = ErrorHandler.getInstance()
 
 // 便捷方法
-export const handleApiError = (error: any, config?: ErrorHandlerConfig) => {
-  return errorHandler.handleApiError(error, config)
+export const handleApiError = async (error: any, config?: ErrorHandlerConfig) => {
+  return await errorHandler.handleApiError(error, config)
 }
 
 // 错误处理装饰器
 export function withErrorHandling(config?: ErrorHandlerConfig) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value
 
     descriptor.value = async function (...args: any[]) {

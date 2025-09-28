@@ -27,6 +27,7 @@ from app.dto.menu_dto import (
 )
 from app.service.menu_service import MenuService
 from app.middleware.auth import get_current_user
+from app.entity.user import User
 from app.utils.log_decorators import log_operation, log_user_action
 
 logger = get_logger(__name__)
@@ -44,7 +45,8 @@ router = APIRouter(prefix="/menus", tags=["菜单管理"])
 )
 async def create_menu(
     request: MenuCreateRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     创建新菜单
@@ -102,7 +104,8 @@ async def create_menu(
 @router.post("/get-menu-tree", response_model=ApiResponse[List[MenuTreeNode]], summary="获取菜单树")
 async def get_menu_tree(
     request: MenuSearchRequest = MenuSearchRequest(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     获取完整的菜单树结构，支持搜索过滤
@@ -129,7 +132,8 @@ async def get_menu_tree(
 @router.post("/get-menu-info", response_model=ApiResponse[MenuResponse], summary="获取菜单详情")
 async def get_menu_info(
     request: MenuIdRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     根据ID获取菜单详情
@@ -183,7 +187,8 @@ async def get_menu_info(
 )
 async def update_menu(
     request: MenuUpdateRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     更新菜单信息
@@ -253,7 +258,8 @@ async def update_menu(
 )
 async def delete_menu(
     request: MenuDeleteRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     删除菜单
@@ -292,7 +298,8 @@ async def delete_menu(
 @router.post("/get-user-menus", response_model=ApiResponse[UserMenuResponse], summary="获取用户菜单")
 async def get_user_menus(
     request: UserMenuRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     获取用户的菜单权限

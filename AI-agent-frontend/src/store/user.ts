@@ -9,14 +9,14 @@ import {
   setToken as setTokenStorage,
   removeToken,
   setRefreshToken,
-  removeRefreshToken,
+  getRefreshToken,
 } from '@/utils/auth'
+import { setTokenVersion } from '@/utils/tokenValidator'
 import type { UserInfo, MenuInfo } from '@/api/types'
-import { getRefreshToken } from '@/utils/auth'
 import { usePermissionStore } from '@/store/modules/permission'
 import { resetRoutes } from '@/router'
 
-// 去重用的初始化进行中 Promise（不入持久化） # 注释
+// 去重用的初始化进行中 Promise（不入持久化）
 let initInFlight: Promise<void> | null = null
 
 export interface UserState {
@@ -27,6 +27,7 @@ export interface UserState {
   menus: MenuInfo[]
   loading: boolean
   initialized?: boolean
+  avatarTimestamp: number
 }
 
 export const useUserStore = defineStore('user', {
@@ -66,6 +67,8 @@ export const useUserStore = defineStore('user', {
       this.token = token
       if (token) {
         setTokenStorage(token)
+        // 设置token版本，确保新token有效
+        setTokenVersion()
         console.log('Token set successfully in store and storage')
       } else {
         removeToken()
@@ -99,8 +102,7 @@ export const useUserStore = defineStore('user', {
     },
 
     // 清除用户数据
-    clearUserData() {
-      console.log('Clearing user data...')
+    async clearUserData() {
       this.token = null
       this.userInfo = null
       this.permissions = []
@@ -108,8 +110,10 @@ export const useUserStore = defineStore('user', {
       this.menus = []
       this.initialized = false
       this.avatarTimestamp = Date.now()
-      removeToken()
-      removeRefreshToken()
+      
+      // 使用统一的token清理方法
+      const { clearAllTokenData } = await import('@/utils/tokenValidator')
+      clearAllTokenData()
 
       // 清除权限store数据
       const permissionStore = usePermissionStore()
@@ -267,7 +271,7 @@ export const useUserStore = defineStore('user', {
         console.error('登出失败:', error)
       } finally {
         // 清除本地数据
-        this.clearUserData()
+        await this.clearUserData()
 
         // 重置路由
         const { resetRoutes } = await import('@/router')
@@ -292,7 +296,7 @@ export const useUserStore = defineStore('user', {
         return false
       } catch (error) {
         console.error('刷新token失败:', error)
-        this.clearUserData()
+        await this.clearUserData()
         return false
       }
     },

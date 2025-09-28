@@ -57,7 +57,7 @@ const routes: RouteRecordRaw[] = [
           {
             path: '',
             name: 'AgentList',
-            component: () => import('@/views/agent/list/index.vue'),
+            component: () => import('@/views/agent/list/Index.vue'),
             meta: {
               title: '代理列表',
               icon: 'List',
@@ -66,7 +66,7 @@ const routes: RouteRecordRaw[] = [
           {
             path: 'config/:id',
             name: 'AgentConfig',
-            component: () => import('@/views/agent/config/index.vue'),
+            component: () => import('@/views/agent/config/Index.vue'),
             meta: {
               title: '代理配置',
               hidden: true,
@@ -75,7 +75,7 @@ const routes: RouteRecordRaw[] = [
           {
             path: 'create',
             name: 'AgentCreate',
-            component: () => import('@/views/agent/config/index.vue'),
+            component: () => import('@/views/agent/config/Index.vue'),
             meta: {
               title: '创建代理',
               hidden: true,
@@ -296,7 +296,7 @@ export const addDynamicRoutes = async () => {
 }
 
 // 简化的路由守卫：基本认证
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
   console.log('Route guard:', to.path, 'requiresAuth:', to.meta?.requiresAuth)
 
   // 设置页面标题
@@ -320,7 +320,7 @@ router.beforeEach(async (to, from, next) => {
       // 如果没有有效token但store显示已登录，清除store状态
       if (userStore.isLoggedIn && (!token || isNullOrWhitespace(token))) {
         console.log('Token mismatch, clearing user store')
-        userStore.clearUserData()
+        await userStore.clearUserData()
       }
       next()
       return
@@ -384,7 +384,7 @@ router.beforeEach(async (to, from, next) => {
           const errorResponse = error as any
           if (errorResponse.response?.status === 401) {
             console.log('Token expired, clearing user data and redirecting to login')
-            userStore.clearUserData()
+            await userStore.clearUserData()
             next('/login')
             return
           }

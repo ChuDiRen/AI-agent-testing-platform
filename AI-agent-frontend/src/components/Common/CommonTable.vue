@@ -50,7 +50,7 @@
       />
       
       <!-- 动态列 -->
-      <template v-for="(column, index) in processedColumns" :key="column.prop || index">
+      <template v-for="(column, _index) in processedColumns" :key="column.prop || _index">
         <el-table-column
           :prop="column.prop"
           :label="column.label"
@@ -79,7 +79,7 @@
             <slot 
               :name="column.headerSlot" 
               :column="scope.column" 
-              :$index="scope.$index"
+              :index="scope.$index"
             />
           </template>
           
@@ -91,7 +91,7 @@
               :name="column.slot" 
               :row="scope.row" 
               :column="scope.column" 
-              :$index="scope.$index"
+              :index="scope.$index"
             />
             <!-- 使用formatter函数 -->
             <template v-else-if="column.formatter">
@@ -128,7 +128,7 @@
             name="actions" 
             :row="scope.row" 
             :column="scope.column" 
-            :$index="scope.$index"
+            :index="scope.$index"
           />
         </template>
       </el-table-column>

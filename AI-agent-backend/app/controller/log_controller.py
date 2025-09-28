@@ -32,7 +32,8 @@ router = APIRouter(prefix="/logs", tags=["日志管理"])
 @router.post("/get-log-list", response_model=ApiResponse[LogListResponse], summary="获取日志列表")
 async def get_log_list(
     request: LogQueryRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     获取日志列表

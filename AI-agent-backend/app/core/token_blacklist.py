@@ -56,4 +56,12 @@ def _cleanup() -> None:
         _BLACKLIST.pop(t, None)
 
 
-__all__ = ["add_to_blacklist", "is_blacklisted"] 
+def clear_all_tokens() -> None:  # 新增函数：清除所有token
+    """清除所有黑名单中的token，用于系统重置"""
+    global _BLACKLIST
+    count = len(_BLACKLIST)
+    _BLACKLIST.clear()
+    logger.info(f"Cleared {count} tokens from blacklist")
+
+
+__all__ = ["add_to_blacklist", "is_blacklisted", "clear_all_tokens"]  # 导出新函数

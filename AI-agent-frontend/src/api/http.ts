@@ -7,15 +7,14 @@ import { NProgressStart, NProgressDone } from '@/utils/nprogress'
 import { BASE_URL } from './baseUrl'
 import {
   getToken,
-  removeToken,
   getRefreshToken,
   setToken,
   setRefreshToken,
-  removeRefreshToken,
 } from '@/utils/auth'
+import { clearAllTokenData, isTokenValid } from '@/utils/tokenValidator' // 导入token验证器
 import router from '@/router'
 import { NETWORK_CONFIG, shouldRetry, getRetryDelay, getDedupeTTL } from '@/config/network'
-import { handleApiError, ErrorType } from '@/utils/errorHandler'
+import { handleApiError } from '@/utils/errorHandler'
 
 // 后端API响应格式
 interface ApiResponse<T = any> {
@@ -97,10 +96,21 @@ http.interceptors.request.use(
     // 开始进度条
     NProgressStart()
 
-    // 添加认证token
+    // 添加认证token，并验证token有效性
     const token = getToken()
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      // 验证token是否有效
+      if (!isTokenValid(token)) {
+        console.warn('Invalid token detected in request interceptor, clearing token data')
+        clearAllTokenData()
+        // 如果不是登录请求，重定向到登录页
+        if (!config.url?.includes('/login') && !config.url?.includes('/refresh-token')) {
+          router.push('/login')
+          return Promise.reject(new Error('Token invalid, redirecting to login'))
+        }
+      } else {
+        config.headers.Authorization = `Bearer ${token}`
+      }
     }
 
     return config
@@ -156,11 +166,11 @@ http.interceptors.response.use(
       return Promise.resolve(error.__cache_data)
     }
 
-    const { config, response, code } = error
-    const { status, data } = response || {}
+    const { config, response } = error
+    const { status } = response || {}
 
     // 使用统一错误处理器处理错误（但不显示消息，后面会处理）
-    const apiError = handleApiError(error, { 
+    handleApiError(error, { 
       showMessage: false, 
       showModal: false, 
       autoRedirect: false 
@@ -183,6 +193,16 @@ http.interceptors.response.use(
     if (status === 401) {
       const originalRequest = config
 
+      // 检查当前token是否有效，如果无效直接清理并跳转登录
+      const currentToken = getToken()
+      if (currentToken && !isTokenValid(currentToken)) {
+        console.warn('401 error with invalid token, clearing all token data')
+        clearAllTokenData()
+        notify.error('登录已过期，请重新登录')
+        router.push('/login')
+        return Promise.reject(error)
+      }
+
       // 如果已经在刷新中，挂起当前请求，等待刷新完成
       if (isRefreshing && refreshPromise) {
         return new Promise((resolve, reject) => {
@@ -201,10 +221,10 @@ http.interceptors.response.use(
       isRefreshing = true
       const currentRefreshToken = getRefreshToken()
 
-      if (!currentRefreshToken) {
+      if (!currentRefreshToken || !isTokenValid(currentRefreshToken)) {
+        console.warn('No valid refresh token available, clearing all token data')
+        clearAllTokenData()
         notify.error('登录已过期，请重新登录')
-        removeToken()
-        removeRefreshToken()
         router.push('/login')
         isRefreshing = false
         refreshPromise = null
@@ -220,8 +240,14 @@ http.interceptors.response.use(
           if ((res as any)?.success && (res as any)?.data?.access_token) {
             const newAccessToken = (res as any).data.access_token as string
             const newRefreshToken = (res as any).data.refresh_token as string | undefined
+            
+            // 验证新token的有效性
+            if (!isTokenValid(newAccessToken)) {
+              throw new Error('Received invalid access token from refresh')
+            }
+            
             setToken(newAccessToken)
-            if (newRefreshToken) {
+            if (newRefreshToken && isTokenValid(newRefreshToken)) {
               setRefreshToken(newRefreshToken)
             }
             onRefreshed(newAccessToken)
@@ -230,8 +256,8 @@ http.interceptors.response.use(
           throw new Error('刷新令牌失败')
         } catch (e) {
           // 刷新失败：清理并跳转登录
-          removeToken()
-          removeRefreshToken()
+          console.warn('Token refresh failed, clearing all token data')
+          clearAllTokenData()
           router.push('/login')
           onRefreshed(null)
           throw e

@@ -154,10 +154,10 @@ export class PermissionValidator {
           PERMISSIONS.TEST_CASE_CREATE
         ])
       
-      case 'update':
+      case 'update': {
         // 如果是更新自己的资源，允许
         const userStore = this.getUserStore()
-        if (resource && resource.userId === userStore.userInfo?.id) {
+        if (resource && resource.userId === userStore.userInfo?.user_id) {
           return true
         }
         return this.hasAnyPermission([
@@ -166,6 +166,7 @@ export class PermissionValidator {
           PERMISSIONS.AGENT_UPDATE,
           PERMISSIONS.TEST_CASE_UPDATE
         ])
+      }
       
       case 'delete':
         return this.hasAnyPermission([

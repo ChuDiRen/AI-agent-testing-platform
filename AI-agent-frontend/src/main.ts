@@ -4,6 +4,7 @@ import router from './router/index'
 import pinia from '@/store/store'
 import { setupPermissionDirectives } from '@/directives/permission'
 import { formatStandardDateTime, formatDate, formatTime } from '@/utils/dateFormat'
+import { initTokenValidator } from '@/utils/tokenValidator' // 导入token验证器
 import ElementPlus from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import 'element-plus/dist/index.css'
@@ -12,6 +13,14 @@ import 'element-plus/dist/index.css'
 import './assets/style/reset.scss'
 import './assets/style/global.scss'
 import './assets/style/table-fix.scss'
+
+// 在应用启动前初始化token验证器
+console.log('Initializing application...')
+const tokenCleanedUp = initTokenValidator()
+
+if (tokenCleanedUp) {
+  console.log('Invalid tokens detected and cleaned up. User will need to re-login.')
+}
 
 const app = createApp(App)
 

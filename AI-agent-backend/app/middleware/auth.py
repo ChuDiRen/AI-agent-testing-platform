@@ -41,18 +41,29 @@ class RBACAuth:
         db: Session = Depends(get_db)
     ):
         """
-        获取当前用户并记录审计日志
+        获取当前用户并记录审计日志 - 增强版本，包含更详细的错误处理
         """
         if not credentials:
+            self.logger.warning("Authentication failed: No credentials provided")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="未提供认证凭据",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
+        token = credentials.credentials
+        if not token or not isinstance(token, str):
+            self.logger.warning("Authentication failed: Invalid token format")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="无效的token格式",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
         try:
             # 检查黑名单
-            if is_blacklisted(credentials.credentials):
+            if is_blacklisted(token):
+                self.logger.warning(f"Authentication failed: Token is blacklisted")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="token已失效",
@@ -60,21 +71,48 @@ class RBACAuth:
                 )
 
             # 验证token
-            payload = verify_token(credentials.credentials)
-            user_id_str = payload.get("sub")
-
-            if not user_id_str:
+            payload = verify_token(token)
+            if payload is None:
+                self.logger.warning("Authentication failed: Token verification returned None")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="无效的token",
+                    detail="token验证失败",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            user_id_str = payload.get("sub")
+            if not user_id_str:
+                self.logger.warning("Authentication failed: Token missing user ID (sub)")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="token中缺少用户ID",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            # 转换用户ID为整数
+            try:
+                user_id = int(user_id_str)
+            except (ValueError, TypeError) as e:
+                self.logger.warning(f"Authentication failed: Invalid user ID format: {user_id_str}, error: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="无效的用户ID格式",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
 
             # 获取用户信息
-            user_service = RBACUserService(db)
-            user = user_service.get_user_by_id(int(user_id_str))  # 将字符串转换为整数
+            try:
+                user_service = RBACUserService(db)
+                user = user_service.get_user_by_id(user_id)
+            except Exception as e:
+                self.logger.error(f"Database error while fetching user {user_id}: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="数据库查询失败",
+                )
             
             if not user:
+                self.logger.warning(f"Authentication failed: User {user_id} not found in database")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="用户不存在",
@@ -87,16 +125,16 @@ class RBACAuth:
             except Exception as e:
                 self.logger.warning(f"审计日志记录失败，但不影响请求: {str(e)}")
             
+            self.logger.debug(f"User {user_id} authenticated successfully")
             return user
 
         except HTTPException:
             raise
         except Exception as e:
-            self.logger.error(f"用户认证失败: {str(e)}")
+            self.logger.error(f"Unexpected error during authentication: {str(e)}")
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="认证失败",
-                headers={"WWW-Authenticate": "Bearer"},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="认证过程中发生内部错误",
             )
 
     async def get_current_user(
@@ -105,18 +143,29 @@ class RBACAuth:
         db: Session = Depends(get_db)
     ):
         """
-        获取当前用户（不记录审计日志）
+        获取当前用户（不记录审计日志）- 增强版本，包含更详细的错误处理
         """
         if not credentials:
+            self.logger.warning("Authentication failed: No credentials provided")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="未提供认证凭据",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
+        token = credentials.credentials
+        if not token or not isinstance(token, str):
+            self.logger.warning("Authentication failed: Invalid token format")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="无效的token格式",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
         try:
             # 检查黑名单
-            if is_blacklisted(credentials.credentials):
+            if is_blacklisted(token):
+                self.logger.warning(f"Authentication failed: Token is blacklisted")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="token已失效",
@@ -124,37 +173,64 @@ class RBACAuth:
                 )
 
             # 验证token
-            payload = verify_token(credentials.credentials)
-            user_id_str = payload.get("sub")
-
-            if not user_id_str:
+            payload = verify_token(token)
+            if payload is None:
+                self.logger.warning("Authentication failed: Token verification returned None")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="无效的token",
+                    detail="token验证失败",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            user_id_str = payload.get("sub")
+            if not user_id_str:
+                self.logger.warning("Authentication failed: Token missing user ID (sub)")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="token中缺少用户ID",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            # 转换用户ID为整数
+            try:
+                user_id = int(user_id_str)
+            except (ValueError, TypeError) as e:
+                self.logger.warning(f"Authentication failed: Invalid user ID format: {user_id_str}, error: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="无效的用户ID格式",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
 
             # 获取用户信息
-            user_service = RBACUserService(db)
-            user = user_service.get_user_by_id(int(user_id_str))  # 将字符串转换为整数
+            try:
+                user_service = RBACUserService(db)
+                user = user_service.get_user_by_id(user_id)
+            except Exception as e:
+                self.logger.error(f"Database error while fetching user {user_id}: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="数据库查询失败",
+                )
             
             if not user:
+                self.logger.warning(f"Authentication failed: User {user_id} not found in database")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="用户不存在",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
             
+            self.logger.debug(f"User {user_id} authenticated successfully")
             return user
 
         except HTTPException:
             raise
         except Exception as e:
-            self.logger.error(f"用户认证失败: {str(e)}")
+            self.logger.error(f"Unexpected error during authentication: {str(e)}")
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="认证失败",
-                headers={"WWW-Authenticate": "Bearer"},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="认证过程中发生内部错误",
             )
 
     def require_permission(self, permission: str) -> Callable:

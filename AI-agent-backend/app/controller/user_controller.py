@@ -278,6 +278,7 @@ async def user_logout(
 @router.post("/get-user-list", response_model=ApiResponse[UserListResponse], summary="获取用户列表")
 async def get_user_list(
     request: UserListRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -356,6 +357,7 @@ async def get_user_list(
 @router.post("/get-user-info", response_model=ApiResponse[UserResponse], summary="获取用户详情")
 async def get_user_info(
     request: UserIdRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -403,6 +405,7 @@ async def get_user_info(
 @router.post("/update-user", response_model=ApiResponse[UserResponse], summary="更新用户")
 async def update_user(
     request: UserUpdateRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -467,6 +470,7 @@ async def update_user(
 @router.post("/delete-user", response_model=ApiResponse[bool], summary="删除用户")
 async def delete_user(
     request: UserDeleteRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -500,6 +504,7 @@ async def delete_user(
 @router.post("/change-password", response_model=ApiResponse[bool], summary="修改密码")
 async def change_password(
     request: PasswordChangeRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -539,6 +544,7 @@ async def change_password(
 @router.post("/reset-password", response_model=ApiResponse[bool], summary="管理员重置密码")
 async def reset_password(
     request: PasswordResetRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -576,6 +582,7 @@ async def reset_password(
 @router.put("/{user_id}/lock", response_model=ApiResponse[bool], summary="锁定用户")
 async def lock_user(
     user_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -609,6 +616,7 @@ async def lock_user(
 @router.put("/{user_id}/unlock", response_model=ApiResponse[bool], summary="解锁用户")
 async def unlock_user(
     user_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -642,6 +650,7 @@ async def unlock_user(
 @router.post("/assign-user-roles", response_model=ApiResponse[bool], summary="分配角色")
 async def assign_user_roles(
     request: UserRoleAssignRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -675,6 +684,7 @@ async def assign_user_roles(
 @router.post("/get-user-roles", response_model=ApiResponse[UserRoleResponse], summary="获取用户角色")
 async def get_user_roles(
     request: UserIdRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -732,6 +742,7 @@ async def export_users(
     ssex: Optional[str] = Query(None, description="性别筛选"),
     include_roles: bool = Query(True, description="是否包含角色信息"),
     user_ids: Optional[str] = Query(None, description="指定用户ID列表，逗号分隔"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -801,6 +812,7 @@ async def export_users(
 async def import_users(
     file: UploadFile = File(..., description="Excel文件"),
     update_existing: bool = Query(False, description="是否更新已存在的用户"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -864,6 +876,7 @@ async def import_users(
 @router.post("/batch-delete", response_model=ApiResponse[bool], summary="批量删除用户")
 async def batch_delete_users(
     request: dict,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """

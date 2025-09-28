@@ -64,7 +64,7 @@
           @check="handleCheck"
           @check-change="handleCheckChange"
         >
-          <template #default="{ node, data }">
+          <template #default="{ node: _node, data }">
             <div class="tree-node">
               <div class="node-content">
                 <!-- 菜单图标 -->
@@ -161,8 +161,8 @@ const treeRef = ref()
 const loading = ref(false)
 const saving = ref(false)
 const menuTreeData = ref<MenuTreeNode[]>([])
-const checkedKeys = ref<string[]>([])
-const expandedKeys = ref<string[]>([])
+const checkedKeys = ref<number[]>([])
+const expandedKeys = ref<number[]>([])
 
 // 计算属性
 const dialogVisible = computed({
@@ -194,7 +194,7 @@ const loadMenuTree = async () => {
     if (response.success && response.data) {
       menuTreeData.value = formatMenuTree(response.data)
       // 默认展开第一级
-      expandedKeys.value = menuTreeData.value.map(item => item.id)
+      expandedKeys.value = menuTreeData.value.map(item => item.menu_id)
     }
   } catch (error) {
     console.error('加载菜单树失败:', error)
@@ -211,7 +211,7 @@ const loadRolePermissions = async () => {
     const response = await RoleApi.getRolePermissions(props.roleInfo.role_id)
     
     if (response.success && response.data) {
-      checkedKeys.value = response.data.menu_ids || []
+      checkedKeys.value = response.data.MENU_IDS || []
       
       // 设置树的选中状态
       nextTick(() => {
@@ -226,13 +226,20 @@ const loadRolePermissions = async () => {
 
 const formatMenuTree = (menuList: any[]): MenuTreeNode[] => {
   return menuList.map(menu => ({
-    id: menu.menu_id.toString(),
-    label: menu.menu_name,
-    type: menu.TYPE, // 0目录 1菜单 2按钮
-    icon: menu.ICON,
-    permission: menu.permission_code,
-    description: menu.COMPONENT,
-    disabled: menu.STATUS === '0', // 禁用状态的菜单不可选
+    menu_id: menu.menu_id,
+    parent_id: menu.parent_id,
+    menu_name: menu.menu_name,
+    menu_type: menu.menu_type,
+    path: menu.path,
+    component: menu.component,
+    perms: menu.perms,
+    icon: menu.icon,
+    sort: menu.sort,
+    status: menu.status,
+    create_time: menu.create_time,
+    modify_time: menu.modify_time,
+    is_active: menu.status === '1', // 菜单是否激活
+    disabled: menu.status === '0', // 禁用状态的菜单不可选
     children: menu.children ? formatMenuTree(menu.children) : []
   }))
 }
@@ -288,13 +295,13 @@ const uncheckAll = () => {
   treeRef.value?.setCheckedKeys([])
 }
 
-const getAllNodeKeys = (nodes: MenuTreeNode[]): string[] => {
-  let keys: string[] = []
+const getAllNodeKeys = (nodes: MenuTreeNode[]): number[] => {
+  const keys: number[] = []
   
   const traverse = (nodeList: MenuTreeNode[]) => {
     nodeList.forEach(node => {
       if (!node.disabled) {
-        keys.push(node.id)
+        keys.push(node.menu_id)
       }
       if (node.children && node.children.length > 0) {
         traverse(node.children)
@@ -306,13 +313,14 @@ const getAllNodeKeys = (nodes: MenuTreeNode[]): string[] => {
   return keys
 }
 
-const handleCheck = (data: any, checked: any) => {
+const handleCheck = (_data: any, checked: any) => {
   // 获取当前选中的所有节点
   checkedKeys.value = checked.checkedKeys
 }
 
 const handleCheckChange = (data: any, checked: boolean, indeterminate: boolean) => {
   // 可以在这里添加额外的检查逻辑
+  console.log('Check change:', data, checked, indeterminate) // 避免未使用参数警告
 }
 
 const handleOpen = () => {
@@ -355,8 +363,8 @@ const handleConfirm = async () => {
     // 获取当前选中的菜单ID
     const selectedMenuIds = treeRef.value?.getCheckedKeys() || []
     
-    const response = await RoleApi.assignMenus(props.roleInfo.role_id, {
-      menu_ids: selectedMenuIds
+    const response = await RoleApi.assignRoleMenus(props.roleInfo.role_id, {
+      MENU_IDS: selectedMenuIds
     })
     
     if (response.success) {

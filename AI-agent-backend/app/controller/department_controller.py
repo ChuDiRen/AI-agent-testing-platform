@@ -25,6 +25,8 @@ from app.dto.department_dto import (
 )
 from app.service.department_service import DepartmentService
 from app.utils.log_decorators import log_operation, log_user_action
+from app.middleware.auth import get_current_user
+from app.entity.user import User
 
 logger = get_logger(__name__)
 
@@ -41,7 +43,8 @@ router = APIRouter(prefix="/departments", tags=["部门管理"])
 )
 async def create_department(
     request: DepartmentCreateRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     创建新部门
@@ -93,7 +96,8 @@ async def create_department(
 )
 async def get_department_tree(
     request: dict = {},
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     获取完整的部门树结构
@@ -122,7 +126,8 @@ async def get_department_tree(
 )
 async def get_department_list(
     request: DepartmentListRequest = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     获取部门列表（支持分页和筛选）
@@ -169,7 +174,8 @@ async def get_department_list(
 )
 async def get_department_info(
     request: DepartmentIdRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     根据ID获取部门详情
@@ -217,7 +223,8 @@ async def get_department_info(
 )
 async def update_department(
     request: DepartmentUpdateRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     更新部门信息
@@ -278,7 +285,8 @@ async def update_department(
 )
 async def delete_department(
     request: DepartmentDeleteRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     删除部门
@@ -317,7 +325,8 @@ async def delete_department(
 @router.post("/status", response_model=ApiResponse[DepartmentStatusResponse], summary="获取部门状态")
 async def get_department_status(
     request: DepartmentIdRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     获取部门状态信息（是否有子部门、是否有用户、是否可删除）

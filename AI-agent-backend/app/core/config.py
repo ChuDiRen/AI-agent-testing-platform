@@ -1,8 +1,7 @@
+# Copyright (c) 2025 左岚. All rights reserved.
 """
-应用配置模块
-使用Pydantic Settings管理配置
+配置管理模块
 """
-
 import os
 from functools import lru_cache
 from typing import List, Optional
@@ -12,10 +11,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    """
-    应用配置类
-    """
-    # 应用基本信息
+    """应用配置类"""
+    
+    # 应用基础配置
     APP_NAME: str = "AI-Agent-Backend"
     APP_VERSION: str = "1.0.0"
     APP_DESCRIPTION: str = "AI Agent Backend - 企业级五层架构FastAPI应用"
@@ -27,31 +25,31 @@ class Settings(BaseSettings):
     PORT: int = 8000  # 标准后端端口
     RELOAD: bool = True
 
-    # 项目路径配置
+    # 路径配置
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
-    # 数据库类型配置
+    # 数据库配置
     DATABASE_TYPE: str = "sqlite"  # 支持 "sqlite" 或 "postgresql"
     DATABASE_ECHO: bool = False  # 是否打印SQL语句
-
-    # SQLite 配置
+    
+    # SQLite配置
     SQLITE_FILE: str = "./ai_agent.db"
-
-    # PostgreSQL 配置
+    
+    # PostgreSQL配置
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "password"
     POSTGRES_DB: str = "ai_agent_db"
     
-    # Redis配置（可选）
+    # Redis配置
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_PASSWORD: Optional[str] = None
     REDIS_DB: int = 0
     REDIS_ENABLED: bool = False  # 开发环境禁用Redis，使用内存缓存
     
-    # JWT配置
-    SECRET_KEY: str = "dev-secret-key-change-this-in-production-environment"
+    # JWT配置 - 生产环境必须从环境变量读取
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-this-in-production-environment")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -62,7 +60,7 @@ class Settings(BaseSettings):
     LOG_ROTATION: str = "1 day"
     LOG_RETENTION: str = "30 days"
     
-    # CORS配置
+    # CORS配置 - 生产环境应限制具体域名
     ALLOWED_ORIGINS: List[str] = ["*"]  # 开发环境使用通配符
     ALLOWED_METHODS: List[str] = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     ALLOWED_HEADERS: List[str] = ["*"]

@@ -1,5 +1,5 @@
 // Copyright (c) 2025 左岚. All rights reserved.
-// 仪表盘数据 Store（带TTL缓存）  # 注释
+// 仪表盘数据 Store（带TTL缓存）
 import { defineStore } from 'pinia'
 import { DashboardApi, type SystemInfo } from '@/api/modules/dashboard'
 
@@ -19,8 +19,8 @@ interface StatsData {
   aiModelCount: number
 }
 
-const STATS_TTL_MS = 30_000 // 统计数据缓存30秒  # 注释
-const SYS_TTL_MS = 30_000 // 系统信息缓存30秒  # 注释
+const STATS_TTL_MS = 30_000 // 统计数据缓存30秒
+const SYS_TTL_MS = 30_000 // 系统信息缓存30秒
 
 export const useDashboardStore = defineStore('dashboard', {
   state: () => ({
@@ -50,7 +50,7 @@ export const useDashboardStore = defineStore('dashboard', {
   actions: {
     async loadStats(force = false) {
       const now = Date.now()
-      if (!force && now - this.lastFetched.stats < STATS_TTL_MS) return // 命中TTL  # 注释
+      if (!force && now - this.lastFetched.stats < STATS_TTL_MS) return // 命中TTL
       if (this.loadingStats) return
       try {
         this.loadingStats = true
@@ -77,7 +77,7 @@ export const useDashboardStore = defineStore('dashboard', {
 
     async loadSystemInfo(force = false) {
       const now = Date.now()
-      if (!force && now - this.lastFetched.sys < SYS_TTL_MS) return // 命中TTL  # 注释
+      if (!force && now - this.lastFetched.sys < SYS_TTL_MS) return // 命中TTL
       if (this.loadingSys) return
       try {
         this.loadingSys = true

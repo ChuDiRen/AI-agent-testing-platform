@@ -37,7 +37,8 @@ router = APIRouter(prefix="/dashboard", tags=["仪表板"])
 )
 async def get_statistics_data(
     request: DashboardStatsRequest = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     获取仪表板统计数据
@@ -79,7 +80,8 @@ async def get_statistics_data(
 )
 async def get_system_info(
     request: SystemInfoRequest = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     获取系统信息

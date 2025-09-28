@@ -1,3 +1,4 @@
+# Copyright (c) 2025 左岚. All rights reserved.
 """
 安全相关功能
 包含密码加密、JWT令牌处理等
@@ -69,10 +70,13 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     
     to_encode.update({"exp": expire, "type": "access"})
     
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    
-    logger.debug(f"Created access token for data: {data}")
-    return encoded_jwt
+    try:
+        encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        logger.debug(f"Created access token for user: {data.get('sub', 'unknown')}")
+        return encoded_jwt
+    except Exception as e:
+        logger.error(f"Failed to create access token: {str(e)}")
+        raise
 
 
 def create_refresh_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
@@ -95,15 +99,18 @@ def create_refresh_token(data: Dict[str, Any], expires_delta: Optional[timedelta
     
     to_encode.update({"exp": expire, "type": "refresh"})
     
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    
-    logger.debug(f"Created refresh token for data: {data}")
-    return encoded_jwt
+    try:
+        encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        logger.debug(f"Created refresh token for user: {data.get('sub', 'unknown')}")
+        return encoded_jwt
+    except Exception as e:
+        logger.error(f"Failed to create refresh token: {str(e)}")
+        raise
 
 
 def verify_token(token: str, token_type: str = "access") -> Optional[Dict[str, Any]]:
     """
-    验证令牌
+    验证令牌 - 增强版本，包含更详细的错误处理
     
     Args:
         token: JWT令牌
@@ -112,12 +119,27 @@ def verify_token(token: str, token_type: str = "access") -> Optional[Dict[str, A
     Returns:
         解码后的数据或None
     """
+    if not token or not isinstance(token, str):
+        logger.warning("Invalid token format: token is empty or not a string")
+        return None
+    
+    # 移除Bearer前缀（如果存在）
+    if token.startswith("Bearer "):
+        token = token[7:]
+    
     try:
+        # 验证JWT签名和结构
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         
+        # 验证必要字段
+        if not isinstance(payload, dict):
+            logger.warning("Invalid token payload: not a dictionary")
+            return None
+        
         # 检查令牌类型
-        if payload.get("type") != token_type:
-            logger.warning(f"Invalid token type. Expected: {token_type}, Got: {payload.get('type')}")
+        token_type_in_payload = payload.get("type")
+        if token_type_in_payload != token_type:
+            logger.warning(f"Token type mismatch. Expected: {token_type}, Got: {token_type_in_payload}")
             return None
         
         # 检查过期时间
@@ -126,13 +148,33 @@ def verify_token(token: str, token_type: str = "access") -> Optional[Dict[str, A
             logger.warning("Token missing expiration time")
             return None
         
-        if datetime.utcnow() > datetime.fromtimestamp(exp):
-            logger.warning("Token has expired")
+        try:
+            exp_datetime = datetime.fromtimestamp(exp)
+            if datetime.utcnow() > exp_datetime:
+                logger.warning(f"Token has expired at {exp_datetime}")
+                return None
+        except (ValueError, OSError) as e:
+            logger.warning(f"Invalid expiration timestamp: {exp}, error: {str(e)}")
             return None
         
-        logger.debug(f"Token verified successfully: {payload}")
+        # 检查用户ID
+        user_id = payload.get("sub")
+        if user_id is None:
+            logger.warning("Token missing user ID (sub)")
+            return None
+        
+        logger.debug(f"Token verified successfully for user: {user_id}")
         return payload
         
+    except jwt.ExpiredSignatureError:
+        logger.warning("Token signature has expired")
+        return None
+    except jwt.JWTClaimsError as e:
+        logger.warning(f"Invalid token claims: {str(e)}")
+        return None
+    except jwt.JWTError as e:
+        logger.warning(f"Invalid token: {str(e)}")
+        return None
     except JWTError as e:
         logger.warning(f"JWT verification failed: {str(e)}")
         return None

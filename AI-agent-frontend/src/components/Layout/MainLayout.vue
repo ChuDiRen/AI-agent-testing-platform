@@ -21,6 +21,14 @@
         </div>
       </div>
     </div>
+    
+    <!-- Token状态显示组件 -->
+    <TokenStatus 
+      :show-in-dev="true" 
+      position="bottom-right" 
+      :auto-hide="true" 
+      :hide-delay="3000" 
+    />
   </div>
 </template>
 
@@ -29,6 +37,7 @@ import { onMounted } from 'vue'
 import AppHeader from './AppHeader.vue'
 import AppSidebar from './AppSidebar.vue'
 import AppBreadcrumb from './AppBreadcrumb.vue'
+import TokenStatus from '@/components/TokenStatus.vue' // 导入Token状态组件
 import { useUserStore, useSystemStore } from '@/store'
 
 const userStore = useUserStore()
