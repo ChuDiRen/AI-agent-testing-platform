@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 from enum import Enum
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, ConfigDict
 
 from .base import BaseRequest, BaseResponse, PaginationRequest, SearchRequest
 
@@ -45,6 +45,7 @@ class ModelStatusEnum(str, Enum):
 # 请求DTO
 class AIModelCreateRequest(BaseRequest):
     """创建AI模型请求DTO"""
+    model_config = ConfigDict(protected_namespaces=())
 
     name: str = Field(..., min_length=1, max_length=100, description="模型名称")
     display_name: Optional[str] = Field(None, max_length=100, description="模型显示名称")
@@ -77,6 +78,8 @@ class AIModelCreateRequest(BaseRequest):
 
 class AIModelUpdateRequest(BaseRequest):
     """更新AI模型请求DTO"""
+    model_config = ConfigDict(protected_namespaces=())
+    
     display_name: Optional[str] = Field(None, max_length=100, description="模型显示名称")
     description: Optional[str] = Field(None, description="模型描述")
     version: Optional[str] = Field(None, max_length=20, description="模型版本")
@@ -98,6 +101,7 @@ class AIModelUpdateRequest(BaseRequest):
 
 class AIModelSearchRequest(SearchRequest):
     """AI模型搜索请求DTO"""
+    model_config = ConfigDict(protected_namespaces=())
 
     provider: Optional[ModelProviderEnum] = Field(None, description="提供商筛选")
     model_type: Optional[ModelTypeEnum] = Field(None, description="类型筛选")
@@ -135,6 +139,7 @@ class AIModelTestRequest(BaseRequest):
 
 class AIModelBatchOperationRequest(BaseRequest):
     """AI模型批量操作请求DTO"""
+    model_config = ConfigDict(protected_namespaces=())
 
     model_ids: List[int] = Field(..., min_items=1, max_items=50, description="模型ID列表")
     operation: str = Field(..., description="操作类型")
@@ -155,6 +160,7 @@ class AIModelBatchOperationRequest(BaseRequest):
 # 响应DTO
 class AIModelResponse(BaseResponse):
     """AI模型响应DTO"""
+    model_config = ConfigDict(protected_namespaces=())
 
     id: int = Field(description="模型ID")
     name: str = Field(description="模型名称")
@@ -215,6 +221,7 @@ class AIModelStatisticsResponse(BaseResponse):
 
 class AIModelTestResponse(BaseResponse):
     """AI模型测试响应DTO"""
+    model_config = ConfigDict(protected_namespaces=())
 
     test_id: str = Field(description="测试ID")
     model_id: int = Field(description="模型ID")
@@ -231,6 +238,7 @@ class AIModelTestResponse(BaseResponse):
 
 class AIModelUsageResponse(BaseResponse):
     """AI模型使用情况响应DTO"""
+    model_config = ConfigDict(protected_namespaces=())
 
     model_id: int = Field(description="模型ID")
     usage_history: List[Dict[str, Any]] = Field(description="使用历史")
@@ -243,6 +251,8 @@ class AIModelUsageResponse(BaseResponse):
 
 class AIModelBatchOperationResponse(BaseResponse):
     """AI模型批量操作响应DTO"""
+    model_config = ConfigDict(protected_namespaces=())
+    
     total: int = Field(description="总操作数")
     success_count: int = Field(description="成功数")
     failed_count: int = Field(description="失败数")
@@ -251,7 +261,6 @@ class AIModelBatchOperationResponse(BaseResponse):
     success_rate: float = Field(description="成功率")
 
 
-# 导出所有DTO类
 __all__ = [
     # 枚举
     "ModelProviderEnum",
