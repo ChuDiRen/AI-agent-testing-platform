@@ -1,0 +1,90 @@
+// 颜色变量
+:root {
+  // 主色调
+  --primary-color: #18a058;
+  --primary-color-hover: #36ad6a;
+  --primary-color-pressed: #0c7a43;
+  --primary-color-suppl: #36ad6a;
+  
+  // 信息色
+  --info-color: #2080f0;
+  --info-color-hover: #4098fc;
+  --info-color-pressed: #1060c9;
+  --info-color-suppl: #4098fc;
+  
+  // 成功色
+  --success-color: #18a058;
+  --success-color-hover: #36ad6a;
+  --success-color-pressed: #0c7a43;
+  --success-color-suppl: #36ad6a;
+  
+  // 警告色
+  --warning-color: #f0a020;
+  --warning-color-hover: #fcb040;
+  --warning-color-pressed: #c97c10;
+  --warning-color-suppl: #fcb040;
+  
+  // 错误色
+  --error-color: #d03050;
+  --error-color-hover: #de576d;
+  --error-color-pressed: #ab1f3f;
+  --error-color-suppl: #de576d;
+  
+  // 文本色
+  --text-color-base: #000;
+  --text-color-1: #262626;
+  --text-color-2: #525252;
+  --text-color-3: #8a8a8a;
+  
+  // 背景色
+  --body-color: #fff;
+  --card-color: #fff;
+  --modal-color: #fff;
+  --popover-color: #fff;
+  
+  // 边框色
+  --border-color: #efeff5;
+  --divider-color: #efeff5;
+  
+  // 其他
+  --hover-color: rgba(0, 0, 0, 0.09);
+  --pressed-color: rgba(0, 0, 0, 0.13);
+  --opacity-disabled: 0.38;
+  --border-radius: 3px;
+  --font-size: 14px;
+  --font-size-large: 15px;
+  --font-size-huge: 16px;
+  --font-weight-strong: 500;
+  --tab-font-weight: 400;
+}
+
+// 暗色主题
+.dark {
+  // 文本色
+  --text-color-base: #fff;
+  --text-color-1: rgba(255, 255, 255, 0.9);
+  --text-color-2: rgba(255, 255, 255, 0.82);
+  --text-color-3: rgba(255, 255, 255, 0.52);
+  
+  // 背景色
+  --body-color: #101014;
+  --card-color: #18181c;
+  --modal-color: #18181c;
+  --popover-color: #18181c;
+  
+  // 边框色
+  --border-color: #262628;
+  --divider-color: #262628;
+  
+  // 其他
+  --hover-color: rgba(255, 255, 255, 0.09);
+  --pressed-color: rgba(255, 255, 255, 0.13);
+}
+
+// 响应式断点
+$breakpoint-xs: 480px;
+$breakpoint-sm: 640px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;
+$breakpoint-xl: 1280px;
+$breakpoint-2xl: 1536px;

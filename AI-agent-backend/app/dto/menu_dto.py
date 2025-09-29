@@ -40,6 +40,64 @@ class MenuSearchRequest(BaseModel):
         }
 
 
+class MenuCreateRequest(BaseModel):
+    """创建菜单请求"""
+    name: str = Field(..., description="菜单名称")
+    parent_id: int = Field(default=0, description="父菜单ID")
+    path: Optional[str] = Field(None, description="菜单路径")
+    component: Optional[str] = Field(None, description="组件路径")
+    icon: Optional[str] = Field(None, description="菜单图标")
+    order_num: int = Field(default=0, description="排序号")
+    redirect: Optional[str] = Field(None, description="重定向路径")
+    is_visible: bool = Field(default=True, description="是否可见")
+    keep_alive: bool = Field(default=False, description="是否缓存")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "用户管理",
+                "parent_id": 1,
+                "path": "/system/user",
+                "component": "/system/user/index",
+                "icon": "mdi:account",
+                "order_num": 1,
+                "redirect": None,
+                "is_visible": True,
+                "keep_alive": False
+            }
+        }
+
+
+class MenuUpdateRequest(BaseModel):
+    """更新菜单请求"""
+    id: int = Field(..., description="菜单ID")
+    name: str = Field(..., description="菜单名称")
+    parent_id: int = Field(default=0, description="父菜单ID")
+    path: Optional[str] = Field(None, description="菜单路径")
+    component: Optional[str] = Field(None, description="组件路径")
+    icon: Optional[str] = Field(None, description="菜单图标")
+    order_num: int = Field(default=0, description="排序号")
+    redirect: Optional[str] = Field(None, description="重定向路径")
+    is_visible: bool = Field(default=True, description="是否可见")
+    keep_alive: bool = Field(default=False, description="是否缓存")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": 1,
+                "name": "用户管理",
+                "parent_id": 1,
+                "path": "/system/user",
+                "component": "/system/user/index",
+                "icon": "mdi:account",
+                "order_num": 1,
+                "redirect": None,
+                "is_visible": True,
+                "keep_alive": False
+            }
+        }
+
+
 class MenuDeleteRequest(BaseModel):
     """
     删除菜单请求DTO

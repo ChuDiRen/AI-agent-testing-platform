@@ -49,23 +49,27 @@ class UserListRequest(BaseModel):
 
 
 class UserCreateRequest(BaseModel):
-    """
-    创建用户请求DTO
-    """
-    username: str = Field(..., min_length=3, max_length=50, description="用户名")
-    password: str = Field(..., min_length=6, max_length=20, description="密码")
-    email: Optional[str] = Field(None, max_length=128, description="邮箱")
-    mobile: Optional[str] = Field(None, max_length=20, description="手机号")
+    """创建用户请求"""
+    username: str = Field(..., description="用户名")
+    email: Optional[str] = Field(None, description="邮箱")
+    password: str = Field(..., min_length=6, description="密码")
+    role_ids: List[int] = Field(default=[], description="角色ID列表")
     dept_id: Optional[int] = Field(None, description="部门ID")
-    ssex: Optional[str] = Field(None, pattern="^[012]$", description="性别：0男 1女 2保密")
-    avatar: Optional[str] = Field(None, max_length=100, description="头像")
-    description: Optional[str] = Field(None, max_length=100, description="描述")
+    is_superuser: bool = Field(default=False, description="是否超级用户")
+    is_active: bool = Field(default=True, description="是否激活")
 
-    @validator('ssex')
-    def validate_ssex(cls, v):
-        if v is not None and v not in ['0', '1', '2']:
-            raise ValueError('性别必须是 0(男)、1(女) 或 2(保密)')
-        return v
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "username": "testuser",
+                "email": "test@example.com",
+                "password": "123456",
+                "role_ids": [1, 2],
+                "dept_id": 1,
+                "is_superuser": False,
+                "is_active": True
+            }
+        }
 
     class Config:
         json_schema_extra = {
@@ -83,6 +87,66 @@ class UserCreateRequest(BaseModel):
 
 
 class UserUpdateRequest(BaseModel):
+    """更新用户请求"""
+    id: int = Field(..., description="用户ID")
+    email: Optional[str] = Field(None, description="邮箱")
+    role_ids: List[int] = Field(default=[], description="角色ID列表")
+    dept_id: Optional[int] = Field(None, description="部门ID")
+    is_superuser: bool = Field(default=False, description="是否超级用户")
+    is_active: bool = Field(default=True, description="是否激活")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": 1,
+                "email": "test@example.com",
+                "role_ids": [1, 2],
+                "dept_id": 1,
+                "is_superuser": False,
+                "is_active": True
+            }
+        }
+
+
+class UserResponse(BaseModel):
+    """用户响应"""
+    id: int = Field(..., description="用户ID")
+    username: str = Field(..., description="用户名")
+    email: str = Field(..., description="邮箱")
+    is_active: bool = Field(..., description="是否激活")
+    is_superuser: bool = Field(..., description="是否超级用户")
+    last_login: Optional[datetime] = Field(None, description="最后登录时间")
+    created_at: Optional[datetime] = Field(None, description="创建时间")
+    roles: List[Dict[str, Any]] = Field(default=[], description="角色列表")
+    dept: Optional[Dict[str, Any]] = Field(None, description="部门信息")
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "id": 1,
+                "username": "admin",
+                "email": "admin@example.com",
+                "is_active": True,
+                "is_superuser": True,
+                "last_login": "2025-01-01T12:00:00",
+                "created_at": "2025-01-01T10:00:00",
+                "roles": [{"id": 1, "name": "管理员"}],
+                "dept": {"id": 1, "name": "技术部"}
+            }
+        }
+
+
+class UserListResponse(BaseModel):
+    """用户列表响应"""
+    items: List[UserResponse] = Field(default=[], description="用户列表")
+    total: int = Field(default=0, description="总数量")
+    page: int = Field(default=1, description="当前页码")
+    page_size: int = Field(default=20, description="每页数量")
+    pages: int = Field(default=0, description="总页数")
+
+
+class RoleCreateRequest(BaseModel):
     """
     更新用户请求DTO
     """
