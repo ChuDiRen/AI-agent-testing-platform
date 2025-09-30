@@ -6,11 +6,12 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user, get_db
+from app.utils.permissions import get_current_user  # 修正导入路径
+from app.db.session import get_db  # 修正导入路径
 from app.dto.base_dto import Success, Fail, PageRequest, PageResponse
 from app.dto.user_dto import UserCreateRequest, UserUpdateRequest, UserResponse, UserListResponse
 from app.entity.user import User
-from app.service.user_service import UserService
+from app.service.user_service import RBACUserService  # 修正类名
 from app.core.security import get_password_hash
 
 router = APIRouter()
@@ -28,7 +29,7 @@ async def get_user_list(
 ):
     """获取用户列表"""
     try:
-        user_service = UserService(db)
+        user_service = RBACUserService(db)
         
         # 构建查询条件
         filters = {}
@@ -84,7 +85,7 @@ async def get_user_detail(
 ):
     """获取用户详情"""
     try:
-        user_service = UserService(db)
+        user_service = RBACUserService(db)
         user = await user_service.get_user_with_roles(user_id)
         
         if not user:
@@ -116,7 +117,7 @@ async def create_user(
 ):
     """创建用户"""
     try:
-        user_service = UserService(db)
+        user_service = RBACUserService(db)
         
         # 检查用户名是否已存在
         existing_user = await user_service.get_user_by_username(user_data.username)
@@ -155,7 +156,7 @@ async def update_user(
 ):
     """更新用户"""
     try:
-        user_service = UserService(db)
+        user_service = RBACUserService(db)
         
         # 检查用户是否存在
         user = await user_service.get_user_by_id(user_data.id)
@@ -192,7 +193,7 @@ async def delete_user(
 ):
     """删除用户"""
     try:
-        user_service = UserService(db)
+        user_service = RBACUserService(db)
         
         # 检查用户是否存在
         user = await user_service.get_user_by_id(user_id)
@@ -224,7 +225,7 @@ async def reset_user_password(
 ):
     """重置用户密码"""
     try:
-        user_service = UserService(db)
+        user_service = RBACUserService(db)
         
         # 检查用户是否存在
         user = await user_service.get_user_by_id(user_id)
@@ -243,3 +244,4 @@ async def reset_user_password(
         
     except Exception as e:
         return Fail(msg=f"重置密码失败: {str(e)}")
+

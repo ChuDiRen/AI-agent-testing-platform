@@ -121,6 +121,110 @@ class RBACUserService:
             User.is_deleted == 0
         ).first()
 
+    async def update_last_login(self, user_id: int):
+        """
+        更新用户最后登录时间
+
+        Args:
+            user_id: 用户ID
+        """
+        from datetime import datetime
+        user = self.get_user_by_id(user_id)
+        if user:
+            user.last_login_time = datetime.utcnow()
+            self.db.commit()
+            logger.info(f"Updated last login time for user: {user_id}")
+
+    async def get_user_with_roles(self, user_id: int):
+        """
+        获取用户及其角色信息
+
+        Args:
+            user_id: 用户ID
+
+        Returns:
+            用户对象（包含角色信息）
+        """
+        from app.entity.role import Role
+        from app.entity.user_role import UserRole
+
+        user = self.db.query(User).filter(User.id == user_id, User.is_deleted == 0).first()
+        if user:
+            # 加载角色信息
+            user_roles = self.db.query(UserRole).filter(UserRole.user_id == user_id).all()
+            user.roles = [self.db.query(Role).filter(Role.id == ur.role_id).first() for ur in user_roles]
+        return user
+
+    async def get_user_menus(self, user_id: int):
+        """
+        获取用户菜单权限
+
+        Args:
+            user_id: 用户ID
+
+        Returns:
+            菜单列表
+        """
+        from app.entity.menu import Menu
+        from app.entity.role_menu import RoleMenu
+        from app.entity.user_role import UserRole
+
+        # 获取用户的所有角色
+        user_roles = self.db.query(UserRole).filter(UserRole.user_id == user_id).all()
+        role_ids = [ur.role_id for ur in user_roles]
+
+        # 获取角色的所有菜单
+        menu_ids = set()
+        for role_id in role_ids:
+            role_menus = self.db.query(RoleMenu).filter(RoleMenu.role_id == role_id).all()
+            menu_ids.update([rm.menu_id for rm in role_menus])
+
+        # 获取菜单详情
+        menus = self.db.query(Menu).filter(Menu.id.in_(menu_ids), Menu.is_deleted == 0).all()
+        return menus
+
+    async def get_user_apis(self, user_id: int):
+        """
+        获取用户API权限
+
+        Args:
+            user_id: 用户ID
+
+        Returns:
+            API列表
+        """
+        from app.entity.api_endpoint import ApiEndpoint
+        from app.entity.role_api import RoleApi
+        from app.entity.user_role import UserRole
+
+        # 获取用户的所有角色
+        user_roles = self.db.query(UserRole).filter(UserRole.user_id == user_id).all()
+        role_ids = [ur.role_id for ur in user_roles]
+
+        # 获取角色的所有API
+        api_ids = set()
+        for role_id in role_ids:
+            role_apis = self.db.query(RoleApi).filter(RoleApi.role_id == role_id).all()
+            api_ids.update([ra.api_id for ra in role_apis])
+
+        # 获取API详情
+        apis = self.db.query(ApiEndpoint).filter(ApiEndpoint.id.in_(api_ids)).all()
+        return apis
+
+    async def update_password(self, user_id: int, new_password_hash: str):
+        """
+        更新用户密码
+
+        Args:
+            user_id: 用户ID
+            new_password_hash: 新密码哈希
+        """
+        user = self.get_user_by_id(user_id)
+        if user:
+            user.password = new_password_hash
+            self.db.commit()
+            logger.info(f"Updated password for user: {user_id}")
+
     def authenticate_user(self, username: str, password: str) -> Optional[User]:
         """
         用户认证

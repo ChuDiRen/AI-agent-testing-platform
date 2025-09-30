@@ -6,7 +6,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user, get_db
+from app.utils.permissions import get_current_user  # 修正导入路径
+from app.db.session import get_db  # 修正导入路径
 from app.dto.base_dto import Success, Fail
 from app.dto.menu_dto import MenuCreateRequest, MenuUpdateRequest
 from app.entity.user import User

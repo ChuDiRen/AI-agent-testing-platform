@@ -1,253 +1,301 @@
 <template>
   <div class="role-management">
-    <!-- 页面头部 -->
     <div class="page-header">
       <h2>角色管理</h2>
-      <p>管理系统角色，配置权限和菜单</p>
+      <NButton
+        v-permission="['post/role/create']"
+        type="primary"
+        @click="handleAdd"
+      >
+        <template #icon>
+          <Icon name="mdi:plus" />
+        </template>
+        新建角色
+      </NButton>
     </div>
 
-    <!-- 搜索和操作区 -->
-    <el-card class="search-card">
-      <el-row :gutter="20" justify="space-between">
-        <el-col :span="16">
-          <el-form :model="searchForm" inline>
-            <el-form-item label="角色名称">
-              <el-input 
-                v-model="searchForm.keyword" 
-                placeholder="请输入角色名称" 
-                clearable
-                @clear="handleSearch"
-                @keyup.enter="handleSearch"
-                style="width: 200px"
-              />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="handleSearch">
-                <el-icon><Search /></el-icon>
-                搜索
-              </el-button>
-              <el-button @click="handleReset">
-                <el-icon><Refresh /></el-icon>
-                重置
-              </el-button>
-            </el-form-item>
-          </el-form>
-        </el-col>
-        <el-col :span="8" class="text-right">
-          <el-button type="primary" @click="handleAdd" v-permission="['role:create']">
-            <el-icon><Plus /></el-icon>
-            新增角色
-          </el-button>
-          <el-button 
-            type="danger" 
-            :disabled="selectedRoles.length === 0"
-            @click="handleBatchDelete"
-            v-permission="['role:delete']"
-          >
-            <el-icon><Delete /></el-icon>
-            批量删除
-          </el-button>
-        </el-col>
-      </el-row>
-    </el-card>
+    <!-- 查询栏 -->
+    <NCard class="search-card">
+      <NForm inline :model="queryForm" label-placement="left">
+        <NFormItem label="角色名">
+          <NInput
+            v-model:value="queryForm.role_name"
+            placeholder="请输入角色名"
+            clearable
+            @keydown.enter="handleSearch"
+          />
+        </NFormItem>
+        <NFormItem>
+          <NSpace>
+            <NButton type="primary" @click="handleSearch">
+              <template #icon>
+                <Icon name="mdi:magnify" />
+              </template>
+              搜索
+            </NButton>
+            <NButton @click="handleReset">
+              <template #icon>
+                <Icon name="mdi:refresh" />
+              </template>
+              重置
+            </NButton>
+          </NSpace>
+        </NFormItem>
+      </NForm>
+    </NCard>
 
-    <!-- 角色列表 -->
-    <el-card class="table-card">
-      <CommonTable
+    <!-- 数据表格 -->
+    <NCard>
+      <NDataTable
+        :columns="columns"
         :data="tableData"
-        :columns="tableColumns"
         :loading="loading"
         :pagination="pagination"
-        :show-selection="true"
-        :row-key="'role_id'"
-        :action-width="200"
-        @selectionChange="handleSelectionChange"
-        @pageChange="handlePageChange"
-        @sizeChange="handleSizeChange"
+        :row-key="(row) => row.id"
+        @update:page="handlePageChange"
+        @update:page-size="handlePageSizeChange"
+      />
+    </NCard>
+
+    <!-- 新增/编辑弹窗 -->
+    <NModal v-model:show="modalVisible" preset="dialog" :title="modalTitle">
+      <NForm
+        ref="formRef"
+        :model="formData"
+        :rules="formRules"
+        label-placement="left"
+        label-width="80px"
       >
-        <template #status="{ row }">
-          <el-tag :type="row.is_active ? 'success' : 'danger'">
-            {{ row.is_active ? '启用' : '禁用' }}
-          </el-tag>
-        </template>
-        
-        <template #actions="{ row }">
-          <el-button 
-            type="primary" 
-            size="small" 
-            link
-            @click="handlePermission(row)"
-            v-permission="['role:permission']"
-          >
-            权限配置
-          </el-button>
-          <el-button 
-            type="primary" 
-            size="small" 
-            link
-            @click="handleEdit(row)"
-            v-permission="['role:update']"
-          >
-            编辑
-          </el-button>
-          <el-button 
-            type="primary" 
-            size="small" 
-            link
-            @click="handleCopy(row)"
-            v-permission="['role:create']"
-          >
-            复制
-          </el-button>
-          <el-button 
-            type="danger" 
-            size="small" 
-            link
-            @click="handleDelete(row)"
-            v-permission="['role:delete']"
-          >
-            删除
-          </el-button>
-        </template>
-      </CommonTable>
-    </el-card>
+        <NFormItem label="角色名" path="name">
+          <NInput v-model:value="formData.name" placeholder="请输入角色名" />
+        </NFormItem>
+        <NFormItem label="角色描述" path="desc">
+          <NInput
+            v-model:value="formData.desc"
+            type="textarea"
+            placeholder="请输入角色描述"
+            :rows="3"
+          />
+        </NFormItem>
+      </NForm>
+      <template #action>
+        <NSpace>
+          <NButton @click="modalVisible = false">取消</NButton>
+          <NButton type="primary" :loading="submitLoading" @click="handleSubmit">
+            确定
+          </NButton>
+        </NSpace>
+      </template>
+    </NModal>
 
-    <!-- 角色表单对话框 -->
-    <FormDialog
-      v-model="formDialogVisible"
-      :title="isEdit ? '编辑角色' : '新增角色'"
-      :loading="formLoading"
-      :fields="formFields"
-      :form-data="formData"
-      @confirm="handleFormConfirm"
-    />
+    <!-- 权限设置抽屉 -->
+    <NDrawer v-model:show="permissionDrawerVisible" :width="500" placement="right">
+      <NDrawerContent title="设置权限">
+        <div class="permission-header">
+          <NInput
+            v-model:value="filterPattern"
+            placeholder="筛选权限"
+            clearable
+          />
+          <NButton
+            type="primary"
+            style="margin-left: 12px"
+            @click="handleSavePermission"
+          >
+            保存
+          </NButton>
+        </div>
 
-    <!-- 权限配置对话框 -->
-    <PermissionDialog
-      v-model="permissionDialogVisible"
-      :role-info="currentRole"
-      @success="handlePermissionSuccess"
-    />
+        <NTabs default-value="menu" style="margin-top: 16px">
+          <NTabPane name="menu" tab="菜单权限">
+            <NTree
+              :data="menuOptions"
+              :checked-keys="checkedMenuKeys"
+              :pattern="filterPattern"
+              key-field="id"
+              label-field="name"
+              checkable
+              cascade
+              default-expand-all
+              @update:checked-keys="handleMenuCheck"
+            />
+          </NTabPane>
+          <NTabPane name="api" tab="接口权限">
+            <NTree
+              :data="apiOptions"
+              :checked-keys="checkedApiKeys"
+              :pattern="filterPattern"
+              key-field="unique_id"
+              label-field="summary"
+              checkable
+              cascade
+              default-expand-all
+              @update:checked-keys="handleApiCheck"
+            />
+          </NTabPane>
+        </NTabs>
+      </NDrawerContent>
+    </NDrawer>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Delete } from '@element-plus/icons-vue'
-import CommonTable from '@/components/Common/CommonTable.vue'
-import FormDialog from '@/components/Common/FormDialog.vue'
-import PermissionDialog from '@/components/Permission/PermissionDialog.vue'
-import { RoleApi } from '@/api/modules/role'
-import { formatStandardDateTime } from '@/utils/dateFormat'
-import type { RoleInfo, TableColumn, FormField } from '@/api/types'
+<script setup>
+import { ref, reactive, onMounted, h } from 'vue'
+import { Icon } from '@iconify/vue'
+import { formatDate } from '@/utils'
+import api from '@/api'
 
-// 数据和状态
+defineOptions({ name: '角色管理' })
+
+// 响应式数据
 const loading = ref(false)
-const formLoading = ref(false)
-const tableData = ref<RoleInfo[]>([])
-const selectedRoles = ref<RoleInfo[]>([])
-const currentRole = ref<RoleInfo | null>(null)
+const tableData = ref([])
+const modalVisible = ref(false)
+const modalTitle = ref('')
+const modalAction = ref('add')
+const submitLoading = ref(false)
+const formRef = ref()
+const permissionDrawerVisible = ref(false)
+const currentRoleId = ref(null)
+const filterPattern = ref('')
 
-// 对话框状态
-const formDialogVisible = ref(false)
-const permissionDialogVisible = ref(false)
-const isEdit = ref(false)
+// 权限相关
+const menuOptions = ref([])
+const apiOptions = ref([])
+const checkedMenuKeys = ref([])
+const checkedApiKeys = ref([])
 
-// 搜索表单
-const searchForm = reactive({
-  keyword: ''
+// 查询表单
+const queryForm = reactive({
+  role_name: '',
 })
 
-// 分页信息
+// 分页配置
 const pagination = reactive({
   page: 1,
-  size: 10,
-  total: 0
+  pageSize: 20,
+  itemCount: 0,
+  showSizePicker: true,
+  pageSizes: [10, 20, 50, 100],
 })
 
 // 表单数据
 const formData = reactive({
-  role_name: '',
-  remark: ''
+  id: null,
+  name: '',
+  desc: '',
 })
 
-
-
-// 表格列配置
-const tableColumns = ref<TableColumn[]>([
-  { prop: 'role_id', label: 'ID', width: 80 },
-  { prop: 'role_name', label: '角色名称', minWidth: 120 },
-  { prop: 'remark', label: '描述', minWidth: 150, showOverflowTooltip: true },
-  { prop: 'create_time', label: '创建时间', width: 180, formatter: (row: any) => formatStandardDateTime(row.create_time) },
-])
-
-// 表单字段配置
-const formFields = ref<FormField[]>([
-  {
-    prop: 'role_name',
-    label: '角色名称',
-    component: 'input',
-    required: true,
-    placeholder: '请输入角色名称',
-    maxlength: 10,
-    rules: [
-      { required: true, message: '请输入角色名称', trigger: 'blur' },
-      { min: 2, max: 10, message: '角色名称长度在 2 到 10 个字符', trigger: 'blur' }
-    ],
-    props: {
-      'show-word-limit': true
-    }
-  },
-  {
-    prop: 'remark',
-    label: '角色描述',
-    component: 'input',
-    inputType: 'textarea',
-    placeholder: '请输入角色描述',
-    maxlength: 100,
-    rows: 3,
-    rules: [
-      { max: 100, message: '描述不能超过 100 个字符', trigger: 'blur' }
-    ],
-    props: {
-      'show-word-limit': true
-    }
-  }
-])
-
-// 初始化表单数据
-const initFormData = () => {
-  Object.assign(formData, {
-    role_name: '',
-    remark: ''
-  })
+// 表单验证规则
+const formRules = {
+  name: [
+    { required: true, message: '请输入角色名', trigger: 'blur' },
+  ],
 }
 
-// 加载角色列表
-const loadRoleList = async () => {
+// 表格列配置
+const columns = [
+  {
+    title: '角色名',
+    key: 'name',
+    width: 150,
+    render: (row) => h(NTag, { type: 'info' }, { default: () => row.name }),
+  },
+  { title: '角色描述', key: 'desc', ellipsis: { tooltip: true } },
+  {
+    title: '创建时间',
+    key: 'created_at',
+    width: 180,
+    render: (row) => formatDate(row.created_at),
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    width: 200,
+    fixed: 'right',
+    render: (row) => {
+      return h('div', [
+        h(NButton, 
+          { 
+            size: 'small', 
+            type: 'primary', 
+            style: 'margin-right: 8px',
+            onClick: () => handleEdit(row) 
+          },
+          { default: () => '编辑' }
+        ),
+        h(NButton, 
+          { 
+            size: 'small', 
+            type: 'info', 
+            style: 'margin-right: 8px',
+            onClick: () => handleSetPermission(row) 
+          },
+          { default: () => '设置权限' }
+        ),
+        h(NPopconfirm, 
+          {
+            onPositiveClick: () => handleDelete(row),
+          },
+          {
+            trigger: () => h(NButton, 
+              { size: 'small', type: 'error' },
+              { default: () => '删除' }
+            ),
+            default: () => '确定删除该角色吗？',
+          }
+        ),
+      ])
+    },
+  },
+]
+
+// 构建API树结构
+const buildApiTree = (data) => {
+  const tree = []
+  const groupMap = new Map()
+
+  data.forEach(item => {
+    const pathParts = item.path.split('/')
+    const groupPath = pathParts.slice(0, -1).join('/')
+    const groupName = item.tags || '其他'
+    
+    if (!groupMap.has(groupName)) {
+      const group = {
+        unique_id: groupName,
+        summary: groupName,
+        children: []
+      }
+      groupMap.set(groupName, group)
+      tree.push(group)
+    }
+    
+    groupMap.get(groupName).children.push({
+      unique_id: `${item.method.toLowerCase()}${item.path}`,
+      summary: `${item.method} ${item.path} - ${item.summary}`,
+      path: item.path,
+      method: item.method,
+      id: item.id
+    })
+  })
+
+  return tree
+}
+
+// 获取角色列表
+const getRoleList = async () => {
   try {
     loading.value = true
     const params = {
       page: pagination.page,
-      size: pagination.size,
-      keyword: searchForm.keyword && searchForm.keyword.trim() ? searchForm.keyword.trim() : undefined
+      page_size: pagination.pageSize,
+      ...queryForm,
     }
-
-    const response = await RoleApi.getRoleList(params)
-    if (response.success && response.data) {
-      // 后端返回的是 PageData 格式，与用户管理一致
-      tableData.value = Array.isArray(response.data) ? response.data : []
-      pagination.total = (response as any).total || 0
-    } else {
-      tableData.value = []
-      pagination.total = 0
-    }
+    const res = await api.getRoleList(params)
+    tableData.value = res.data.items || res.data
+    pagination.itemCount = res.data.total || res.data.length
   } catch (error) {
-    console.error('加载角色列表失败:', error)
-    ElMessage.error('加载角色列表失败')
-    tableData.value = []
-    pagination.total = 0
+    window.$message?.error('获取角色列表失败')
   } finally {
     loading.value = false
   }
@@ -256,231 +304,181 @@ const loadRoleList = async () => {
 // 搜索
 const handleSearch = () => {
   pagination.page = 1
-  loadRoleList()
+  getRoleList()
 }
 
 // 重置
 const handleReset = () => {
-  searchForm.keyword = ''
+  Object.assign(queryForm, {
+    role_name: '',
+  })
+  handleSearch()
+}
+
+// 分页变化
+const handlePageChange = (page) => {
+  pagination.page = page
+  getRoleList()
+}
+
+const handlePageSizeChange = (pageSize) => {
+  pagination.pageSize = pageSize
   pagination.page = 1
-  loadRoleList()
+  getRoleList()
 }
 
 // 新增
 const handleAdd = () => {
-  isEdit.value = false
-  initFormData()
-  formDialogVisible.value = true
+  modalAction.value = 'add'
+  modalTitle.value = '新增角色'
+  Object.assign(formData, {
+    id: null,
+    name: '',
+    desc: '',
+  })
+  modalVisible.value = true
 }
 
 // 编辑
-const handleEdit = (row: any) => {
-  isEdit.value = true
-  // 重置表单数据
-  initFormData()
-  // 设置编辑数据
+const handleEdit = (row) => {
+  modalAction.value = 'edit'
+  modalTitle.value = '编辑角色'
   Object.assign(formData, {
-    role_name: row.role_name,
-    remark: row.remark || ''
+    id: row.id,
+    name: row.name,
+    desc: row.desc,
   })
-  currentRole.value = row
-  formDialogVisible.value = true
+  modalVisible.value = true
 }
 
-// 复制
-const handleCopy = async (row: RoleInfo) => {
+// 提交表单
+const handleSubmit = async () => {
   try {
-    const { value: newRoleName } = await ElMessageBox.prompt('请输入新角色名称', '复制角色', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      inputPattern: /.+/,
-      inputErrorMessage: '角色名称不能为空'
-    })
+    await formRef.value?.validate()
+    submitLoading.value = true
     
-    const response = await RoleApi.copyRole(row.role_id, newRoleName)
-    if (response.success) {
-      ElMessage.success('复制成功')
-      loadRoleList()
+    if (modalAction.value === 'add') {
+      await api.createRole(formData)
+      window.$message?.success('创建成功')
+    } else {
+      await api.updateRole(formData)
+      window.$message?.success('更新成功')
     }
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('复制角色失败:', error)
-      ElMessage.error('复制角色失败')
-    }
+    
+    modalVisible.value = false
+    getRoleList()
+  } catch (error) {
+    console.error('提交失败:', error)
+  } finally {
+    submitLoading.value = false
   }
 }
 
 // 删除
-const handleDelete = async (row: RoleInfo) => {
+const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm(
-      `确认删除角色「${row.role_name}」吗？`,
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-
-    const response = await RoleApi.deleteRole(row.role_id)
-    if (response.success) {
-      ElMessage.success('删除成功')
-      loadRoleList()
-    }
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('删除角色失败:', error)
-      // 检查是否是角色不存在的错误
-      if (error?.response?.status === 404 || error?.message?.includes('角色不存在')) {
-        ElMessage.warning('角色已不存在，将刷新列表')
-        loadRoleList() // 角色不存在时也要刷新列表
-      } else {
-        // 显示具体的错误信息，兼容 FastAPI 的 detail 字段
-        const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || '删除角色失败'
-        ElMessage.error(errorMessage)
-      }
-    }
-  }
-}
-
-// 批量删除
-const handleBatchDelete = async () => {
-  if (!selectedRoles.value || selectedRoles.value.length === 0) {
-    ElMessage.warning('请选择要删除的角色')
-    return
-  }
-  
-  try {
-    await ElMessageBox.confirm(
-      `确认删除选中的 ${selectedRoles.value.length} 个角色吗？`,
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
-    const roleIds = (selectedRoles.value || []).map(role => role.role_id)
-    const response = await RoleApi.batchDeleteRoles(roleIds)
-    if (response.success) {
-      ElMessage.success(response.message || '批量删除成功')
-      selectedRoles.value = []
-      loadRoleList()
-    }
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('批量删除角色失败:', error)
-      // 检查是否是具体的错误信息
-      if (error?.response?.data?.detail) {
-        ElMessage.error(error.response.data.detail)
-      } else if (error?.message) {
-        ElMessage.error(error.message)
-      } else {
-        ElMessage.error('批量删除角色失败')
-      }
-      // 无论成功失败都刷新列表，因为可能部分成功
-      loadRoleList()
-    }
-  }
-}
-
-// 表单提交
-const handleFormConfirm = async (data: any) => {
-  try {
-    formLoading.value = true
-    
-    if (isEdit.value && currentRole.value) {
-      const updateData = { ...data }
-      const response = await RoleApi.updateRole(currentRole.value.role_id, updateData)
-      if (response.success) {
-        ElMessage.success('更新成功')
-        formDialogVisible.value = false
-        loadRoleList()
-      }
-    } else {
-      const response = await RoleApi.createRole(data)
-      if (response.success) {
-        ElMessage.success('创建成功')
-        formDialogVisible.value = false
-        loadRoleList()
-      }
-    }
+    await api.deleteRole({ role_id: row.id })
+    window.$message?.success('删除成功')
+    getRoleList()
   } catch (error) {
-    console.error('保存角色失败:', error)
-    ElMessage.error('保存角色失败')
-  } finally {
-    formLoading.value = false
+    window.$message?.error('删除失败')
   }
 }
 
-// 权限配置
-const handlePermission = (row: RoleInfo) => {
-  currentRole.value = row
-  permissionDialogVisible.value = true
+// 设置权限
+const handleSetPermission = async (row) => {
+  try {
+    currentRoleId.value = row.id
+    
+    // 并行获取菜单、API和角色权限数据
+    const [menuRes, apiRes, roleAuthRes] = await Promise.all([
+      api.getMenus({ page: 1, page_size: 9999 }),
+      api.getApis({ page: 1, page_size: 9999 }),
+      api.getRoleAuthorized({ id: row.id })
+    ])
+    
+    menuOptions.value = menuRes.data.items || menuRes.data
+    apiOptions.value = buildApiTree(apiRes.data.items || apiRes.data)
+    
+    checkedMenuKeys.value = roleAuthRes.data.menus?.map(m => m.id) || []
+    checkedApiKeys.value = roleAuthRes.data.apis?.map(a => `${a.method.toLowerCase()}${a.path}`) || []
+    
+    permissionDrawerVisible.value = true
+  } catch (error) {
+    window.$message?.error('获取权限数据失败')
+  }
 }
 
-// 权限配置成功回调
-const handlePermissionSuccess = () => {
-  // 可以在这里添加成功后的逻辑，比如刷新列表等
-  console.log('权限配置保存成功')
+// 菜单权限选择
+const handleMenuCheck = (keys) => {
+  checkedMenuKeys.value = keys
 }
 
-// 表格选中变化
-const handleSelectionChange = (selection: RoleInfo[]) => {
-  selectedRoles.value = selection
+// API权限选择
+const handleApiCheck = (keys) => {
+  checkedApiKeys.value = keys
 }
 
-// 分页变化
-const handlePageChange = (page: number) => {
-  pagination.page = page
-  loadRoleList()
-}
-
-// 页面大小变化
-const handleSizeChange = (size: number) => {
-  pagination.size = size
-  pagination.page = 1
-  loadRoleList()
+// 保存权限
+const handleSavePermission = async () => {
+  try {
+    // 构建API信息
+    const apiInfos = []
+    checkedApiKeys.value.forEach(key => {
+      // 从API选项中找到对应的API信息
+      apiOptions.value.forEach(group => {
+        group.children?.forEach(api => {
+          if (api.unique_id === key) {
+            apiInfos.push({
+              path: api.path,
+              method: api.method
+            })
+          }
+        })
+      })
+    })
+    
+    await api.updateRoleAuthorized({
+      id: currentRoleId.value,
+      menu_ids: checkedMenuKeys.value,
+      api_infos: apiInfos
+    })
+    
+    window.$message?.success('权限设置成功')
+    permissionDrawerVisible.value = false
+  } catch (error) {
+    window.$message?.error('权限设置失败')
+  }
 }
 
 // 初始化
 onMounted(() => {
-  loadRoleList()
+  getRoleList()
 })
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .role-management {
-  .page-header {
-    margin-bottom: 20px;
-    
-    h2 {
-      font-size: 24px;
-      margin: 0 0 8px 0;
-      color: #2c3e50;
-    }
-    
-    p {
-      color: #7f8c8d;
-      margin: 0;
-    }
-  }
-  
-  .search-card {
-    margin-bottom: 20px;
-    
-    .text-right {
-      text-align: right;
-    }
-  }
-  
-  .table-card {
-    .el-card__body {
-      padding: 0;
-    }
-  }
-  
+  padding: 16px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.page-header h2 {
+  margin: 0;
+}
+
+.search-card {
+  margin-bottom: 16px;
+}
+
+.permission-header {
+  display: flex;
+  align-items: center;
 }
 </style>

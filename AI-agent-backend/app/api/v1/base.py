@@ -19,8 +19,8 @@ from app.entity.api_endpoint import ApiEndpoint
 from app.dto.auth_dto import LoginRequest, LoginResponse, UserInfoResponse
 from app.dto.base_dto import Success, Fail
 from app.service.auth_service import AuthService
-from app.service.user_service import UserService
-from app.core.deps import get_current_user
+from app.service.user_service import RBACUserService  # 修正导入
+from app.utils.permissions import get_current_user  # 修正导入路径
 
 router = APIRouter()
 
@@ -36,12 +36,12 @@ async def login_access_token(
         
         if not user:
             return Fail(msg="用户名或密码错误")
-        
-        if not user.is_active:
+
+        if not user.is_active():  # 修正为方法调用
             return Fail(msg="用户已被禁用")
         
         # 更新最后登录时间
-        user_service = UserService(db)
+        user_service = RBACUserService(db)
         await user_service.update_last_login(user.id)
         
         # 生成访问令牌
@@ -70,7 +70,7 @@ async def get_userinfo(
 ):
     """获取当前用户信息"""
     try:
-        user_service = UserService(db)
+        user_service = RBACUserService(db)
         user_info = await user_service.get_user_with_roles(current_user.id)
         
         # 构建用户信息响应
@@ -79,9 +79,9 @@ async def get_userinfo(
             username=user_info.username,
             email=user_info.email or "",
             avatar="https://avatars.githubusercontent.com/u/54677442?v=4",  # 默认头像
-            roles=[role.name for role in user_info.roles] if user_info.roles else [],
-            is_superuser=user_info.is_superuser,
-            is_active=user_info.is_active
+            roles=[role.role_name for role in user_info.roles] if user_info.roles else [],  # 修正字段名
+            is_superuser=user_info.status == '1',  # 修正字段名，使用status判断
+            is_active=user_info.is_active()  # 修正为方法调用
         )
         
         return Success(data=user_data.dict())
@@ -97,7 +97,7 @@ async def get_user_menu(
 ):
     """获取用户菜单权限"""
     try:
-        user_service = UserService(db)
+        user_service = RBACUserService(db)
         menus = await user_service.get_user_menus(current_user.id)
         
         # 构建菜单树结构
@@ -107,29 +107,31 @@ async def get_user_menu(
         for parent_menu in parent_menus:
             parent_dict = {
                 "id": parent_menu.id,
-                "name": parent_menu.name,
-                "path": parent_menu.path,
-                "component": parent_menu.component,
-                "icon": parent_menu.icon,
-                "order": parent_menu.order_num,
-                "is_hidden": not parent_menu.is_visible,
-                "keepalive": parent_menu.keep_alive,
-                "redirect": parent_menu.redirect,
+                "menu_name": parent_menu.menu_name,
+                "path": parent_menu.path or "",
+                "component": parent_menu.component or "",
+                "icon": parent_menu.icon or "",
+                "order_num": parent_menu.order_num or 0,
+                "menu_type": parent_menu.menu_type,
+                "is_hidden": not parent_menu.is_active,  # 使用is_active字段
+                "keepalive": False,  # 默认值
+                "redirect": "",  # 默认值
                 "children": []
             }
-            
+
             # 查找子菜单
             child_menus = [menu for menu in menus if menu.parent_id == parent_menu.id]
             for child_menu in child_menus:
                 child_dict = {
                     "id": child_menu.id,
-                    "name": child_menu.name,
-                    "path": child_menu.path,
-                    "component": child_menu.component,
-                    "icon": child_menu.icon,
-                    "order": child_menu.order_num,
-                    "is_hidden": not child_menu.is_visible,
-                    "keepalive": child_menu.keep_alive
+                    "menu_name": child_menu.menu_name,
+                    "path": child_menu.path or "",
+                    "component": child_menu.component or "",
+                    "icon": child_menu.icon or "",
+                    "order_num": child_menu.order_num or 0,
+                    "menu_type": child_menu.menu_type,
+                    "is_hidden": not child_menu.is_active,  # 使用is_active字段
+                    "keepalive": False  # 默认值
                 }
                 parent_dict["children"].append(child_dict)
             
@@ -148,7 +150,7 @@ async def get_user_api(
 ):
     """获取用户API权限"""
     try:
-        user_service = UserService(db)
+        user_service = RBACUserService(db)
         apis = await user_service.get_user_apis(current_user.id)
         
         # 构建API权限列表 (method + path格式)
@@ -177,7 +179,7 @@ async def update_user_password(
             return Fail(msg="旧密码验证错误！")
         
         # 更新密码
-        user_service = UserService(db)
+        user_service = RBACUserService(db)
         new_password_hash = get_password_hash(new_password)
         await user_service.update_password(current_user.id, new_password_hash)
         

@@ -218,7 +218,7 @@ def create_rbac_initial_data(db):
             menu_name="用户管理",
             menu_type="0",
             path="/system/user",
-            component="system/user/Index",
+            component="/system/user",  # 修正组件路径
             perms="user:view",
             icon="User",
             order_num=1
@@ -306,7 +306,7 @@ def create_rbac_initial_data(db):
             menu_name="角色管理",
             menu_type="0",
             path="/system/role",
-            component="system/role/Index",
+            component="/system/role",  # 修正组件路径
             perms="role:view",
             icon="UserFilled",
             order_num=2
@@ -358,7 +358,7 @@ def create_rbac_initial_data(db):
             menu_name="菜单管理",
             menu_type="0",
             path="/system/menu",
-            component="system/menu/Index",
+            component="/system/menu",  # 修正组件路径
             perms="menu:view",
             icon="Menu",
             order_num=3
@@ -399,8 +399,8 @@ def create_rbac_initial_data(db):
             parent_id=system_menu.id,
             menu_name="部门管理",
             menu_type="0",
-            path="/system/department",
-            component="system/department/Index",
+            path="/system/dept",  # 修正路径为dept
+            component="/system/dept",  # 修正组件路径
             perms="dept:view",
             icon="OfficeBuilding",
             order_num=4
@@ -444,7 +444,7 @@ def create_rbac_initial_data(db):
             menu_name="API管理",
             menu_type="0",
             path="/system/api",
-            component="system/api/Index",
+            component="/system/api",  # 修正组件路径
             perms="api:view",
             icon="Operation",
             order_num=5
@@ -485,8 +485,8 @@ def create_rbac_initial_data(db):
             parent_id=system_menu.id,
             menu_name="日志管理",
             menu_type="0",
-            path="/system/logs",
-            component="system/logs/Index",
+            path="/system/audit-log",  # 修正路径为audit-log
+            component="/system/audit-log",  # 修正组件路径
             perms="log:view",
             icon="el-icon-document",
             order_num=6
@@ -496,14 +496,14 @@ def create_rbac_initial_data(db):
 
 
 
-        # 仪表板菜单
+        # 首页菜单（工作台）
         dashboard_menu = Menu(
             parent_id=0,
-            menu_name="仪表板",
+            menu_name="首页",
             menu_type="0",
-            path="/dashboard",
-            component="dashboard/Index",
-            icon="el-icon-data-line",
+            path="/workbench",  # 修正路径为workbench
+            component="/workbench",  # 修正组件路径
+            icon="Monitor",
             order_num=0
         )
         db.add(dashboard_menu)
@@ -532,7 +532,7 @@ def create_rbac_initial_data(db):
             menu_name="AI生成测试用例",
             menu_type="0",
             path="/test/generate",
-            component="test/generate/index",
+            component="/test/generate",  # 修正组件路径
             icon="MagicStick",
             order_num=1
         )
@@ -545,7 +545,7 @@ def create_rbac_initial_data(db):
             menu_name="测试用例",
             menu_type="0",
             path="/test/cases",
-            component="test/cases/Index",
+            component="/test/cases",  # 修正组件路径
             icon="Document",
             order_num=2
         )
@@ -558,7 +558,7 @@ def create_rbac_initial_data(db):
             menu_name="测试报告",
             menu_type="0",
             path="/test/reports",
-            component="test/reports/Index",
+            component="/test/reports",  # 修正组件路径
             icon="PieChart",
             order_num=3
         )
@@ -584,7 +584,7 @@ def create_rbac_initial_data(db):
             menu_name="模型配置",
             menu_type="0",
             path="/model/config",
-            component="model/config/index",
+            component="/model/config",  # 修正组件路径
             icon="Setting",
             order_num=1
         )
@@ -610,7 +610,7 @@ def create_rbac_initial_data(db):
             menu_name="代理列表",
             menu_type="0",
             path="/agent/list",
-            component="agent/list/Index",
+            component="/agent/list",  # 修正组件路径
             icon="List",
             order_num=1
         )
@@ -623,7 +623,7 @@ def create_rbac_initial_data(db):
             menu_name="代理配置",
             menu_type="0",
             path="/agent/config",
-            component="agent/config/Index",
+            component="/agent/config",  # 修正组件路径
             icon="Tools",
             order_num=2
         )

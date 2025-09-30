@@ -44,7 +44,7 @@ class AuthService:
                 return None
             
             # 验证密码
-            if not verify_password(password, user.password_hash):
+            if not verify_password(password, user.password):  # 修正字段名
                 logger.warning(f"密码错误: {username}")
                 return None
             

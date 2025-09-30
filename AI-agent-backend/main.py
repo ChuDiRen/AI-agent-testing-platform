@@ -32,6 +32,7 @@ from app.controller.model_config_controller import router as model_config_router
 from app.controller.chat_controller import router as chat_router
 from app.controller.api_endpoint_controller import router as api_endpoint_router
 from app.api.v1.knowledge import router as knowledge_router
+from app.api.v1 import api_v1_router  # 导入API v1路由
 from app.core.config import settings
 from app.core.logger import get_logger
 from app.db.session import create_tables, SessionLocal
@@ -220,6 +221,10 @@ async def root():
 
 
 # 注册路由
+# 注册API v1路由（包含base、user、role、menu等）
+app.include_router(api_v1_router, prefix=settings.API_V1_PREFIX)
+
+# 注册其他控制器路由
 app.include_router(role_router, prefix=settings.API_V1_PREFIX)
 app.include_router(menu_router, prefix=settings.API_V1_PREFIX)
 app.include_router(department_router, prefix=settings.API_V1_PREFIX)
@@ -235,7 +240,6 @@ app.include_router(ai_generation_router, prefix=settings.API_V1_PREFIX)
 app.include_router(model_config_router, prefix=settings.API_V1_PREFIX)
 app.include_router(chat_router, prefix=settings.API_V1_PREFIX)
 app.include_router(api_endpoint_router, prefix=settings.API_V1_PREFIX)  # API端点管理路由
-app.include_router(knowledge_router, prefix=settings.API_V1_PREFIX)
 
 # 静态文件服务
 from fastapi.staticfiles import StaticFiles

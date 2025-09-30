@@ -1,50 +1,61 @@
 {
-  "name": "ai-agent-frontend",
+  "name": "vue-fastapi-admin-web",
+  "version": "1.0.0",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
+  "description": "基于 FastAPI + Vue3 + Naive UI 的现代化轻量管理平台",
+  "author": "左岚团队",
+  "license": "MIT",
   "scripts": {
-    "dev": "vite",
-    "dev:full": "npm run dev",
-    "build": "vue-tsc -b && vite build",
-    "build:dev": "vite build --mode development",
-    "build:prod": "vite build --mode production",
-    "preview": "vite preview",
-    "lint": "eslint src --fix --ext .ts,.tsx,.vue,.js,.jsx",
-    "prettier": "prettier --write ."
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "lint": "eslint --ext .js,.vue .",
+    "lint:fix": "eslint --fix --ext .js,.vue .",
+    "lint:staged": "lint-staged",
+    "prettier": "npx prettier --write ."
   },
   "dependencies": {
-    "@element-plus/icons-vue": "^2.3.2",
-    "axios": "^1.11.0",
-    "element-plus": "^2.10.7",
-    "js-cookie": "^3.0.5",
-    "nprogress": "^0.2.0",
-    "pinia": "^3.0.3",
-    "pinia-plugin-persistedstate": "^4.5.0",
-    "vue": "^3.5.18",
-    "vue-router": "^4.5.1"
+    "@iconify/json": "^2.2.228",
+    "@iconify/vue": "^4.1.1",
+    "@unocss/eslint-config": "^0.55.0",
+    "@vueuse/core": "^10.3.0",
+    "@zclzone/eslint-config": "^0.0.4",
+    "axios": "^1.4.0",
+    "dayjs": "^1.11.9",
+    "dotenv": "^16.3.1",
+    "eslint": "^8.46.0",
+    "lodash-es": "^4.17.21",
+    "naive-ui": "^2.34.4",
+    "pinia": "^2.1.6",
+    "rollup-plugin-visualizer": "^5.9.2",
+    "sass": "^1.65.1",
+    "typescript": "^5.1.6",
+    "unocss": "^0.55.0",
+    "unplugin-auto-import": "^0.16.6",
+    "unplugin-icons": "^0.16.5",
+    "unplugin-vue-components": "^0.25.1",
+    "vite-plugin-compression": "^0.5.1",
+    "vite-plugin-html": "^3.2.0",
+    "vite-plugin-svg-icons": "^2.0.1",
+    "vue": "^3.3.4",
+    "vue-i18n": "9",
+    "vue-router": "^4.2.4"
   },
   "devDependencies": {
-    "@types/js-cookie": "^3.0.6",
-    "@types/node": "^24.3.0",
-    "@types/nprogress": "^0.2.3",
-    "@typescript-eslint/eslint-plugin": "^8.40.0",
-    "@typescript-eslint/parser": "^8.40.0",
-    "@vitejs/plugin-vue": "^5.1.0",
-    "@vue/tsconfig": "^0.7.0",
-    "concurrently": "^9.2.1",
-    "cross-env": "^10.0.0",
-    "eslint": "^9.33.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
-    "eslint-plugin-vue": "^10.4.0",
-    "prettier": "^3.6.2",
-    "sass": "^1.90.0",
-    "terser": "^5.43.1",
-    "typescript": "~5.8.3",
-    "unplugin-auto-import": "^20.0.0",
-    "unplugin-vue-components": "^29.0.0",
-    "vite": "^5.4.0",
-    "vue-tsc": "^3.0.5"
+    "@vitejs/plugin-vue": "^4.2.3",
+    "vite": "^4.4.6"
+  },
+  "lint-staged": {
+    "*.{js,vue}": [
+      "eslint --ext .js,.vue ."
+    ]
+  },
+  "eslintConfig": {
+    "extends": [
+      "@zclzone",
+      "@unocss",
+      ".eslint-global-variables.json"
+    ]
   }
 }

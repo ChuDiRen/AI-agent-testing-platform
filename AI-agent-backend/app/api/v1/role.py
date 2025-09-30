@@ -6,13 +6,23 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user, get_db
+from app.utils.permissions import get_current_user  # 修正导入路径
+from app.db.session import get_db  # 修正导入路径
 from app.dto.base_dto import Success, Fail
-from app.dto.user_dto import RoleCreateRequest, RoleUpdateRequest, RoleAuthorizedRequest
+from app.dto.role_dto import RoleCreateRequest, RoleUpdateRequest, RoleMenuAssignRequest  # 修正导入路径
 from app.entity.user import User
 from app.service.role_service import RoleService
+from pydantic import BaseModel, Field  # 用于创建临时DTO
 
 router = APIRouter()
+
+
+# 临时DTO定义
+class RoleAuthorizedRequest(BaseModel):
+    """角色权限设置请求"""
+    id: int = Field(..., description="角色ID")
+    menu_ids: List[int] = Field(default=[], description="菜单ID列表")
+    api_infos: List[dict] = Field(default=[], description="API权限信息列表")
 
 
 @router.get("/list", summary="获取角色列表")

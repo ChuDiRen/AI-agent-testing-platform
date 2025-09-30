@@ -1,634 +1,394 @@
 <template>
   <div class="api-management">
-    <!-- 页面标题 -->
     <div class="page-header">
-      <h2>API端点管理</h2>
-      <p>管理系统中的API端点，监控调用统计和性能数据</p>
-    </div>
-
-    <!-- 统计卡片 -->
-    <div class="stats-cards">
-      <el-row :gutter="20">
-        <el-col :span="6">
-          <el-card class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon total">
-                <el-icon><Operation /></el-icon>
-              </div>
-              <div class="stat-info">
-                <div class="stat-value">{{ statistics.total_apis }}</div>
-                <div class="stat-label">API总数</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon active">
-                <el-icon><CircleCheck /></el-icon>
-              </div>
-              <div class="stat-info">
-                <div class="stat-value">{{ statistics.active_apis }}</div>
-                <div class="stat-label">激活API</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon calls">
-                <el-icon><DataLine /></el-icon>
-              </div>
-              <div class="stat-info">
-                <div class="stat-value">{{ statistics.total_calls_today }}</div>
-                <div class="stat-label">今日调用</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon response">
-                <el-icon><Timer /></el-icon>
-              </div>
-              <div class="stat-info">
-                <div class="stat-value">{{ statistics.avg_response_time }}ms</div>
-                <div class="stat-label">平均响应时间</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
-    </div>
-
-    <!-- 操作栏 -->
-    <div class="toolbar">
-      <div class="toolbar-left">
-        <el-button type="primary" @click="handleCreate" v-permission="'api:create'">
-          <el-icon><Plus /></el-icon>
-          新增API
-        </el-button>
-        <el-button @click="handleSync" v-permission="'api:create'">
-          <el-icon><Refresh /></el-icon>
-          同步路由
-        </el-button>
-        <el-dropdown @command="handleBatchAction" v-if="selectedRows.length > 0">
-          <el-button>
-            批量操作<el-icon class="el-icon--right"><ArrowDown /></el-icon>
-          </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="activate">激活</el-dropdown-item>
-              <el-dropdown-item command="deactivate">停用</el-dropdown-item>
-              <el-dropdown-item command="deprecate">废弃</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </div>
-      <div class="toolbar-right">
-        <el-input
-          v-model="searchForm.keyword"
-          placeholder="搜索API名称、路径..."
-          style="width: 250px"
-          clearable
-          @keyup.enter="handleSearch"
+      <h2>API管理</h2>
+      <NSpace>
+        <NButton
+          v-permission="['post/api/refresh']"
+          type="info"
+          @click="handleRefresh"
         >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
+          <template #icon>
+            <Icon name="mdi:refresh" />
           </template>
-        </el-input>
-        <el-button @click="handleSearch">搜索</el-button>
-        <el-button @click="handleReset">重置</el-button>
-      </div>
+          刷新API
+        </NButton>
+        <NButton
+          v-permission="['post/api/create']"
+          type="primary"
+          @click="handleAdd"
+        >
+          <template #icon>
+            <Icon name="mdi:plus" />
+          </template>
+          新建API
+        </NButton>
+      </NSpace>
     </div>
 
-    <!-- 筛选栏 -->
-    <div class="filter-bar">
-      <el-form :model="searchForm" inline>
-        <el-form-item label="HTTP方法">
-          <el-select v-model="searchForm.method" placeholder="选择方法" clearable style="width: 120px">
-            <el-option
-              v-for="method in methods"
-              :key="method"
-              :label="method"
-              :value="method"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="选择状态" clearable style="width: 120px">
-            <el-option
-              v-for="(label, value) in API_STATUS_LABELS"
-              :key="value"
-              :label="label"
-              :value="value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="模块">
-          <el-select v-model="searchForm.module" placeholder="选择模块" clearable style="width: 150px">
-            <el-option
-              v-for="module in modules"
-              :key="module"
-              :label="module"
-              :value="module"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="权限">
-          <el-select v-model="searchForm.permission" placeholder="选择权限" clearable style="width: 150px">
-            <el-option
-              v-for="permission in permissions"
-              :key="permission"
-              :label="permission"
-              :value="permission"
-            />
-          </el-select>
-        </el-form-item>
-      </el-form>
-    </div>
+    <!-- 查询栏 -->
+    <NCard class="search-card">
+      <NForm inline :model="queryForm" label-placement="left">
+        <NFormItem label="API路径">
+          <NInput
+            v-model:value="queryForm.path"
+            placeholder="请输入API路径"
+            clearable
+            @keydown.enter="handleSearch"
+          />
+        </NFormItem>
+        <NFormItem label="请求方法">
+          <NSelect
+            v-model:value="queryForm.method"
+            placeholder="请选择请求方法"
+            clearable
+            :options="methodOptions"
+          />
+        </NFormItem>
+        <NFormItem label="标签">
+          <NInput
+            v-model:value="queryForm.tags"
+            placeholder="请输入标签"
+            clearable
+            @keydown.enter="handleSearch"
+          />
+        </NFormItem>
+        <NFormItem>
+          <NSpace>
+            <NButton type="primary" @click="handleSearch">
+              <template #icon>
+                <Icon name="mdi:magnify" />
+              </template>
+              搜索
+            </NButton>
+            <NButton @click="handleReset">
+              <template #icon>
+                <Icon name="mdi:refresh" />
+              </template>
+              重置
+            </NButton>
+          </NSpace>
+        </NFormItem>
+      </NForm>
+    </NCard>
 
-    <!-- API列表表格 -->
-    <el-card class="table-card">
-      <el-table
-        v-loading="loading"
-        :data="apiList"
-        @selection-change="handleSelectionChange"
-        stripe
-        style="width: 100%"
+    <!-- 数据表格 -->
+    <NCard>
+      <NDataTable
+        :columns="columns"
+        :data="tableData"
+        :loading="loading"
+        :pagination="pagination"
+        :row-key="(row) => row.id"
+        @update:page="handlePageChange"
+        @update:page-size="handlePageSizeChange"
+      />
+    </NCard>
+
+    <!-- 新增/编辑弹窗 -->
+    <NModal v-model:show="modalVisible" preset="dialog" :title="modalTitle" style="width: 600px">
+      <NForm
+        ref="formRef"
+        :model="formData"
+        :rules="formRules"
+        label-placement="left"
+        label-width="100px"
       >
-        <el-table-column type="selection" width="55" />
-        <el-table-column prop="method" label="方法" width="80">
-          <template #default="{ row }">
-            <el-tag :type="HTTP_METHOD_COLORS[row.method]" size="small">
-              {{ row.method }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="path" label="路径" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="name" label="名称" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="module" label="模块" width="120" show-overflow-tooltip />
-        <el-table-column prop="status" label="状态" width="80">
-          <template #default="{ row }">
-            <el-tag
-              :type="row.status === 'active' ? 'success' : row.status === 'deprecated' ? 'danger' : 'warning'"
-              size="small"
-            >
-              {{ API_STATUS_LABELS[row.status] }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="total_calls" label="调用次数" width="100" />
-        <el-table-column prop="success_rate" label="成功率" width="80">
-          <template #default="{ row }">
-            <span :class="{ 'success-rate-high': row.success_rate >= 95, 'success-rate-low': row.success_rate < 90 }">
-              {{ row.success_rate.toFixed(1) }}%
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="avg_response_time" label="平均响应时间" width="120">
-          <template #default="{ row }">
-            {{ row.avg_response_time.toFixed(1) }}ms
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              type="primary"
-              size="small"
-              @click="handleView(row)"
-              v-permission="'api:view'"
-            >
-              查看
-            </el-button>
-            <el-button
-              type="warning"
-              size="small"
-              @click="handleEdit(row)"
-              v-permission="'api:update'"
-            >
-              编辑
-            </el-button>
-            <el-button
-              type="danger"
-              size="small"
-              @click="handleDelete(row)"
-              v-permission="'api:delete'"
-            >
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <div class="pagination-wrapper">
-        <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.size"
-          :total="pagination.total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
-    </el-card>
-
-    <!-- API详情/编辑对话框 -->
-    <ApiDialog
-      v-model:visible="dialogVisible"
-      :mode="dialogMode"
-      :api-data="currentApi"
-      @success="handleDialogSuccess"
-    />
+        <NFormItem label="API路径" path="path">
+          <NInput v-model:value="formData.path" placeholder="请输入API路径" />
+        </NFormItem>
+        <NFormItem label="请求方法" path="method">
+          <NSelect
+            v-model:value="formData.method"
+            placeholder="请选择请求方法"
+            :options="methodOptions"
+          />
+        </NFormItem>
+        <NFormItem label="API描述" path="summary">
+          <NInput v-model:value="formData.summary" placeholder="请输入API描述" />
+        </NFormItem>
+        <NFormItem label="标签" path="tags">
+          <NInput v-model:value="formData.tags" placeholder="请输入标签" />
+        </NFormItem>
+      </NForm>
+      <template #action>
+        <NSpace>
+          <NButton @click="modalVisible = false">取消</NButton>
+          <NButton type="primary" :loading="submitLoading" @click="handleSubmit">
+            确定
+          </NButton>
+        </NSpace>
+      </template>
+    </NModal>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  Plus,
-  Search,
-  Refresh,
-  ArrowDown,
-  Operation,
-  CircleCheck,
-  DataLine,
-  Timer
-} from '@element-plus/icons-vue'
-import { ApiEndpointApi, type ApiEndpoint, type ApiStatistics, API_STATUS_LABELS, HTTP_METHOD_COLORS } from '@/api/modules/apiEndpoint'
-import ApiDialog from './components/ApiDialog.vue'
+<script setup>
+import { ref, reactive, onMounted, h } from 'vue'
+import { Icon } from '@iconify/vue'
+import api from '@/api'
+
+defineOptions({ name: 'API管理' })
 
 // 响应式数据
 const loading = ref(false)
-const apiList = ref<ApiEndpoint[]>([])
-const selectedRows = ref<ApiEndpoint[]>([])
-const modules = ref<string[]>([])
-const permissions = ref<string[]>([])
-const methods = ref<string[]>([])
+const tableData = ref([])
+const modalVisible = ref(false)
+const modalTitle = ref('')
+const modalAction = ref('add')
+const submitLoading = ref(false)
+const formRef = ref()
 
-// 统计数据
-const statistics = ref<ApiStatistics>({
-  total_apis: 0,
-  active_apis: 0,
-  deprecated_apis: 0,
-  maintenance_apis: 0,
-  total_calls_today: 0,
-  success_calls_today: 0,
-  error_calls_today: 0,
-  avg_response_time: 0,
-  top_apis: [],
-  error_apis: []
-})
+// 请求方法选项
+const methodOptions = [
+  { label: 'GET', value: 'GET' },
+  { label: 'POST', value: 'POST' },
+  { label: 'PUT', value: 'PUT' },
+  { label: 'DELETE', value: 'DELETE' },
+  { label: 'PATCH', value: 'PATCH' },
+]
 
-// 搜索表单
-const searchForm = reactive({
-  keyword: '',
+// 查询表单
+const queryForm = reactive({
+  path: '',
   method: '',
-  status: '',
-  module: '',
-  permission: ''
+  tags: '',
 })
 
-// 分页
+// 分页配置
 const pagination = reactive({
   page: 1,
-  size: 10,
-  total: 0
+  pageSize: 20,
+  itemCount: 0,
+  showSizePicker: true,
+  pageSizes: [10, 20, 50, 100],
 })
 
-// 对话框
-const dialogVisible = ref(false)
-const dialogMode = ref<'create' | 'edit' | 'view'>('create')
-const currentApi = ref<ApiEndpoint | null>(null)
-
-// 生命周期
-onMounted(() => {
-  loadApiList()
-  loadStatistics()
-  loadMetadata()
+// 表单数据
+const formData = reactive({
+  id: null,
+  path: '',
+  method: 'GET',
+  summary: '',
+  tags: '',
 })
 
-// 方法
-const loadApiList = async () => {
+// 表单验证规则
+const formRules = {
+  path: [
+    { required: true, message: '请输入API路径', trigger: 'blur' },
+  ],
+  method: [
+    { required: true, message: '请选择请求方法', trigger: 'change' },
+  ],
+  summary: [
+    { required: true, message: '请输入API描述', trigger: 'blur' },
+  ],
+}
+
+// 表格列配置
+const columns = [
+  { title: 'API路径', key: 'path', width: 300, ellipsis: { tooltip: true } },
+  {
+    title: '请求方法',
+    key: 'method',
+    width: 100,
+    align: 'center',
+    render: (row) => {
+      const colorMap = {
+        GET: 'success',
+        POST: 'info',
+        PUT: 'warning',
+        DELETE: 'error',
+        PATCH: 'default',
+      }
+      return h(NTag, 
+        { type: colorMap[row.method] || 'default', size: 'small' },
+        { default: () => row.method }
+      )
+    },
+  },
+  { title: 'API描述', key: 'summary', ellipsis: { tooltip: true } },
+  { title: '标签', key: 'tags', width: 120 },
+  {
+    title: '操作',
+    key: 'actions',
+    width: 150,
+    fixed: 'right',
+    render: (row) => {
+      return h('div', [
+        h(NButton, 
+          { 
+            size: 'small', 
+            type: 'primary', 
+            style: 'margin-right: 8px',
+            onClick: () => handleEdit(row) 
+          },
+          { default: () => '编辑' }
+        ),
+        h(NPopconfirm, 
+          {
+            onPositiveClick: () => handleDelete(row),
+          },
+          {
+            trigger: () => h(NButton, 
+              { size: 'small', type: 'error' },
+              { default: () => '删除' }
+            ),
+            default: () => '确定删除该API吗？',
+          }
+        ),
+      ])
+    },
+  },
+]
+
+// 获取API列表
+const getApiList = async () => {
   try {
     loading.value = true
     const params = {
       page: pagination.page,
-      size: pagination.size,
-      ...searchForm
+      page_size: pagination.pageSize,
+      ...queryForm,
     }
-    
-    const response = await ApiEndpointApi.getApiEndpoints(params)
-    if (response.success && response.data) {
-      apiList.value = response.data.items
-      pagination.total = response.data.total
-    }
+    const res = await api.getApis(params)
+    tableData.value = res.data.items || res.data
+    pagination.itemCount = res.data.total || res.data.length
   } catch (error) {
-    console.error('获取API列表失败:', error)
-    ElMessage.error('获取API列表失败')
+    window.$message?.error('获取API列表失败')
   } finally {
     loading.value = false
   }
 }
 
-const loadStatistics = async () => {
-  try {
-    const response = await ApiEndpointApi.getApiStatistics()
-    if (response.success && response.data) {
-      statistics.value = response.data
-    }
-  } catch (error) {
-    console.error('获取统计数据失败:', error)
-  }
-}
-
-const loadMetadata = async () => {
-  try {
-    const [modulesRes, permissionsRes, methodsRes] = await Promise.all([
-      ApiEndpointApi.getModules(),
-      ApiEndpointApi.getPermissions(),
-      ApiEndpointApi.getMethods()
-    ])
-    
-    if (modulesRes.success) modules.value = modulesRes.data || []
-    if (permissionsRes.success) permissions.value = permissionsRes.data || []
-    if (methodsRes.success) methods.value = methodsRes.data || []
-  } catch (error) {
-    console.error('获取元数据失败:', error)
-  }
-}
-
-const handleCreate = () => {
-  dialogMode.value = 'create'
-  currentApi.value = null
-  dialogVisible.value = true
-}
-
-const handleEdit = (row: ApiEndpoint) => {
-  dialogMode.value = 'edit'
-  currentApi.value = { ...row }
-  dialogVisible.value = true
-}
-
-const handleView = (row: ApiEndpoint) => {
-  dialogMode.value = 'view'
-  currentApi.value = { ...row }
-  dialogVisible.value = true
-}
-
-const handleDelete = async (row: ApiEndpoint) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除API "${row.name}" 吗？此操作不可恢复。`,
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
-    const response = await ApiEndpointApi.deleteApiEndpoint(row.id)
-    if (response.success) {
-      ElMessage.success('删除成功')
-      loadApiList()
-      loadStatistics()
-    }
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('删除失败:', error)
-      ElMessage.error(error.message || '删除失败')
-    }
-  }
-}
-
-const handleSync = async () => {
-  try {
-    loading.value = true
-    const response = await ApiEndpointApi.syncApiEndpoints()
-    if (response.success && response.data) {
-      const { new_created, updated, skipped } = response.data
-      ElMessage.success(`同步完成：新增${new_created}个，更新${updated}个，跳过${skipped}个`)
-      loadApiList()
-      loadStatistics()
-    }
-  } catch (error) {
-    console.error('同步失败:', error)
-    ElMessage.error('同步失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-const handleBatchAction = async (command: string) => {
-  if (selectedRows.value.length === 0) {
-    ElMessage.warning('请选择要操作的API')
-    return
-  }
-  
-  const statusMap = {
-    activate: 'active',
-    deactivate: 'inactive',
-    deprecate: 'deprecated'
-  }
-  
-  const actionMap = {
-    activate: '激活',
-    deactivate: '停用',
-    deprecate: '废弃'
-  }
-  
-  try {
-    await ElMessageBox.confirm(
-      `确定要${actionMap[command]}选中的${selectedRows.value.length}个API吗？`,
-      '确认操作',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
-    const apiIds = selectedRows.value.map(row => row.id)
-    const response = await ApiEndpointApi.batchUpdateStatus(apiIds, statusMap[command])
-    
-    if (response.success) {
-      ElMessage.success(`批量${actionMap[command]}成功`)
-      loadApiList()
-      loadStatistics()
-    }
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('批量操作失败:', error)
-      ElMessage.error('批量操作失败')
-    }
-  }
-}
-
+// 搜索
 const handleSearch = () => {
   pagination.page = 1
-  loadApiList()
+  getApiList()
 }
 
+// 重置
 const handleReset = () => {
-  Object.assign(searchForm, {
-    keyword: '',
+  Object.assign(queryForm, {
+    path: '',
     method: '',
-    status: '',
-    module: '',
-    permission: ''
+    tags: '',
   })
-  pagination.page = 1
-  loadApiList()
+  handleSearch()
 }
 
-const handleSelectionChange = (selection: ApiEndpoint[]) => {
-  selectedRows.value = selection
-}
-
-const handleSizeChange = (size: number) => {
-  pagination.size = size
-  pagination.page = 1
-  loadApiList()
-}
-
-const handleCurrentChange = (page: number) => {
+// 分页变化
+const handlePageChange = (page) => {
   pagination.page = page
-  loadApiList()
+  getApiList()
 }
 
-const handleDialogSuccess = () => {
-  loadApiList()
-  loadStatistics()
-  loadMetadata()
+const handlePageSizeChange = (pageSize) => {
+  pagination.pageSize = pageSize
+  pagination.page = 1
+  getApiList()
 }
+
+// 刷新API
+const handleRefresh = async () => {
+  try {
+    loading.value = true
+    await api.refreshApi()
+    window.$message?.success('API刷新成功')
+    getApiList()
+  } catch (error) {
+    window.$message?.error('API刷新失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 新增
+const handleAdd = () => {
+  modalAction.value = 'add'
+  modalTitle.value = '新增API'
+  Object.assign(formData, {
+    id: null,
+    path: '',
+    method: 'GET',
+    summary: '',
+    tags: '',
+  })
+  modalVisible.value = true
+}
+
+// 编辑
+const handleEdit = (row) => {
+  modalAction.value = 'edit'
+  modalTitle.value = '编辑API'
+  Object.assign(formData, {
+    id: row.id,
+    path: row.path,
+    method: row.method,
+    summary: row.summary,
+    tags: row.tags,
+  })
+  modalVisible.value = true
+}
+
+// 提交表单
+const handleSubmit = async () => {
+  try {
+    await formRef.value?.validate()
+    submitLoading.value = true
+    
+    if (modalAction.value === 'add') {
+      await api.createApi(formData)
+      window.$message?.success('创建成功')
+    } else {
+      await api.updateApi(formData)
+      window.$message?.success('更新成功')
+    }
+    
+    modalVisible.value = false
+    getApiList()
+  } catch (error) {
+    console.error('提交失败:', error)
+  } finally {
+    submitLoading.value = false
+  }
+}
+
+// 删除
+const handleDelete = async (row) => {
+  try {
+    await api.deleteApi({ api_id: row.id })
+    window.$message?.success('删除成功')
+    getApiList()
+  } catch (error) {
+    window.$message?.error('删除失败')
+  }
+}
+
+// 初始化
+onMounted(() => {
+  getApiList()
+})
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .api-management {
-  padding: 20px;
+  padding: 16px;
+}
 
-  .page-header {
-    margin-bottom: 20px;
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
 
-    h2 {
-      margin: 0 0 8px 0;
-      color: #303133;
-      font-size: 24px;
-      font-weight: 600;
-    }
+.page-header h2 {
+  margin: 0;
+}
 
-    p {
-      margin: 0;
-      color: #606266;
-      font-size: 14px;
-    }
-  }
-
-  .stats-cards {
-    margin-bottom: 20px;
-
-    .stat-card {
-      .stat-content {
-        display: flex;
-        align-items: center;
-
-        .stat-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-right: 16px;
-
-          .el-icon {
-            font-size: 24px;
-            color: white;
-          }
-
-          &.total {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          }
-
-          &.active {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-          }
-
-          &.calls {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-          }
-
-          &.response {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-          }
-        }
-
-        .stat-info {
-          .stat-value {
-            font-size: 24px;
-            font-weight: 600;
-            color: #303133;
-            line-height: 1;
-            margin-bottom: 4px;
-          }
-
-          .stat-label {
-            font-size: 14px;
-            color: #909399;
-          }
-        }
-      }
-    }
-  }
-
-  .toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-
-    .toolbar-left {
-      display: flex;
-      gap: 12px;
-    }
-
-    .toolbar-right {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-  }
-
-  .filter-bar {
-    margin-bottom: 16px;
-    padding: 16px;
-    background: #f8f9fa;
-    border-radius: 8px;
-  }
-
-  .table-card {
-    .success-rate-high {
-      color: #67c23a;
-      font-weight: 600;
-    }
-
-    .success-rate-low {
-      color: #f56c6c;
-      font-weight: 600;
-    }
-  }
-
-  .pagination-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px;
-  }
+.search-card {
+  margin-bottom: 16px;
 }
 </style>
