@@ -268,3 +268,20 @@ class DepartmentService:
             True表示可以删除，False表示不可以
         """
         return self.department_repository.can_delete(dept_id)
+
+    async def get_department_user_count(self, dept_id: int) -> int:
+        """
+        获取部门下的用户数量
+
+        Args:
+            dept_id: 部门ID
+
+        Returns:
+            用户数量
+        """
+        from app.entity.user import User
+        count = self.db.query(User).filter(
+            User.dept_id == dept_id,
+            User.is_deleted == 0
+        ).count()
+        return count

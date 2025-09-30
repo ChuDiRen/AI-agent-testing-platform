@@ -51,7 +51,7 @@
         :data="tableData"
         :loading="loading"
         :pagination="pagination"
-        :row-key="(row) => row.id"
+        :row-key="(row) => row.role_id"
         @update:page="handlePageChange"
         @update:page-size="handlePageSizeChange"
       />
@@ -66,15 +66,22 @@
         label-placement="left"
         label-width="80px"
       >
-        <NFormItem label="角色名" path="name">
-          <NInput v-model:value="formData.name" placeholder="请输入角色名" />
+        <NFormItem label="角色名" path="role_name">
+          <NInput v-model:value="formData.role_name" placeholder="请输入角色名" />
         </NFormItem>
-        <NFormItem label="角色描述" path="desc">
+        <NFormItem label="角色描述" path="remark">
           <NInput
-            v-model:value="formData.desc"
+            v-model:value="formData.remark"
             type="textarea"
             placeholder="请输入角色描述"
             :rows="3"
+          />
+        </NFormItem>
+        <NFormItem label="状态">
+          <NSwitch
+            v-model:value="formData.is_active"
+            :checked-value="true"
+            :unchecked-value="false"
           />
         </NFormItem>
       </NForm>
@@ -112,8 +119,8 @@
               :data="menuOptions"
               :checked-keys="checkedMenuKeys"
               :pattern="filterPattern"
-              key-field="id"
-              label-field="name"
+              key-field="menu_id"
+              label-field="menu_name"
               checkable
               cascade
               default-expand-all
@@ -181,32 +188,43 @@ const pagination = reactive({
 
 // 表单数据
 const formData = reactive({
-  id: null,
-  name: '',
-  desc: '',
+  role_id: null,
+  role_name: '',
+  remark: '',
+  is_active: true,
 })
 
 // 表单验证规则
 const formRules = {
-  name: [
+  role_name: [
     { required: true, message: '请输入角色名', trigger: 'blur' },
   ],
 }
 
 // 表格列配置
 const columns = [
+  { title: '角色ID', key: 'role_id', width: 80 },
   {
     title: '角色名',
-    key: 'name',
+    key: 'role_name',
     width: 150,
-    render: (row) => h(NTag, { type: 'info' }, { default: () => row.name }),
+    render: (row) => h(NTag, { type: 'info' }, { default: () => row.role_name }),
   },
-  { title: '角色描述', key: 'desc', ellipsis: { tooltip: true } },
+  { title: '角色描述', key: 'remark', ellipsis: { tooltip: true } },
+  {
+    title: '状态',
+    key: 'is_active',
+    width: 80,
+    render: (row) => h(NTag,
+      { type: row.is_active ? 'success' : 'error', size: 'small' },
+      { default: () => row.is_active ? '启用' : '禁用' }
+    ),
+  },
   {
     title: '创建时间',
     key: 'created_at',
     width: 180,
-    render: (row) => formatDate(row.created_at),
+    render: (row) => row.created_at || '-',
   },
   {
     title: '操作',
@@ -292,8 +310,10 @@ const getRoleList = async () => {
       ...queryForm,
     }
     const res = await api.getRoleList(params)
-    tableData.value = res.data.items || res.data
-    pagination.itemCount = res.data.total || res.data.length
+    if (res.code === 200 && res.data) {
+      tableData.value = res.data.items || []
+      pagination.itemCount = res.data.total || 0
+    }
   } catch (error) {
     window.$message?.error('获取角色列表失败')
   } finally {
@@ -332,9 +352,10 @@ const handleAdd = () => {
   modalAction.value = 'add'
   modalTitle.value = '新增角色'
   Object.assign(formData, {
-    id: null,
-    name: '',
-    desc: '',
+    role_id: null,
+    role_name: '',
+    remark: '',
+    is_active: true,
   })
   modalVisible.value = true
 }
@@ -344,9 +365,10 @@ const handleEdit = (row) => {
   modalAction.value = 'edit'
   modalTitle.value = '编辑角色'
   Object.assign(formData, {
-    id: row.id,
-    name: row.name,
-    desc: row.desc,
+    role_id: row.role_id,
+    role_name: row.role_name,
+    remark: row.remark || '',
+    is_active: row.is_active !== undefined ? row.is_active : true,
   })
   modalVisible.value = true
 }
@@ -377,7 +399,7 @@ const handleSubmit = async () => {
 // 删除
 const handleDelete = async (row) => {
   try {
-    await api.deleteRole({ role_id: row.id })
+    await api.deleteRole({ role_id: row.role_id })
     window.$message?.success('删除成功')
     getRoleList()
   } catch (error) {
@@ -388,23 +410,35 @@ const handleDelete = async (row) => {
 // 设置权限
 const handleSetPermission = async (row) => {
   try {
-    currentRoleId.value = row.id
-    
+    currentRoleId.value = row.role_id
+
     // 并行获取菜单、API和角色权限数据
     const [menuRes, apiRes, roleAuthRes] = await Promise.all([
-      api.getMenus({ page: 1, page_size: 9999 }),
-      api.getApis({ page: 1, page_size: 9999 }),
-      api.getRoleAuthorized({ id: row.id })
+      api.getMenus(),
+      api.getApis(),
+      api.getRoleAuthorized({ role_id: row.role_id })
     ])
-    
-    menuOptions.value = menuRes.data.items || menuRes.data
-    apiOptions.value = buildApiTree(apiRes.data.items || apiRes.data)
-    
-    checkedMenuKeys.value = roleAuthRes.data.menus?.map(m => m.id) || []
-    checkedApiKeys.value = roleAuthRes.data.apis?.map(a => `${a.method.toLowerCase()}${a.path}`) || []
-    
+
+    // 处理菜单数据
+    if (menuRes.code === 200 && menuRes.data) {
+      menuOptions.value = Array.isArray(menuRes.data) ? menuRes.data : []
+    }
+
+    // 处理API数据
+    if (apiRes.code === 200 && apiRes.data) {
+      const apiList = apiRes.data.items || []
+      apiOptions.value = buildApiTree(apiList)
+    }
+
+    // 处理角色权限数据
+    if (roleAuthRes.code === 200 && roleAuthRes.data) {
+      checkedMenuKeys.value = roleAuthRes.data.menu_ids || []
+      checkedApiKeys.value = roleAuthRes.data.api_ids || []
+    }
+
     permissionDrawerVisible.value = true
   } catch (error) {
+    console.error('获取权限数据失败:', error)
     window.$message?.error('获取权限数据失败')
   }
 }
@@ -422,31 +456,41 @@ const handleApiCheck = (keys) => {
 // 保存权限
 const handleSavePermission = async () => {
   try {
-    // 构建API信息
-    const apiInfos = []
-    checkedApiKeys.value.forEach(key => {
-      // 从API选项中找到对应的API信息
+    // 过滤掉分组节点，只保留实际的API ID
+    const apiIds = checkedApiKeys.value.filter(key => {
+      // 检查是否是实际的API（不是分组）
+      let isActualApi = false
       apiOptions.value.forEach(group => {
         group.children?.forEach(api => {
-          if (api.unique_id === key) {
-            apiInfos.push({
-              path: api.path,
-              method: api.method
-            })
+          if (api.unique_id === key && api.id) {
+            isActualApi = true
           }
         })
       })
-    })
-    
+      return isActualApi
+    }).map(key => {
+      // 从unique_id中提取实际的API ID
+      let apiId = null
+      apiOptions.value.forEach(group => {
+        group.children?.forEach(api => {
+          if (api.unique_id === key) {
+            apiId = api.id
+          }
+        })
+      })
+      return apiId
+    }).filter(id => id !== null)
+
     await api.updateRoleAuthorized({
-      id: currentRoleId.value,
+      role_id: currentRoleId.value,
       menu_ids: checkedMenuKeys.value,
-      api_infos: apiInfos
+      api_ids: apiIds
     })
-    
+
     window.$message?.success('权限设置成功')
     permissionDrawerVisible.value = false
   } catch (error) {
+    console.error('权限设置失败:', error)
     window.$message?.error('权限设置失败')
   }
 }

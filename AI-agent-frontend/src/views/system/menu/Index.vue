@@ -50,7 +50,7 @@
         :columns="columns"
         :data="tableData"
         :loading="loading"
-        :row-key="(row) => row.id"
+        :row-key="(row) => row.menu_id"
         default-expand-all
       />
     </NCard>
@@ -64,19 +64,25 @@
         label-placement="left"
         label-width="100px"
       >
-        <NFormItem label="菜单名称" path="name">
-          <NInput v-model:value="formData.name" placeholder="请输入菜单名称" />
+        <NFormItem label="菜单名称" path="menu_name">
+          <NInput v-model:value="formData.menu_name" placeholder="请输入菜单名称" />
         </NFormItem>
         <NFormItem label="父级菜单" path="parent_id">
           <NTreeSelect
             v-model:value="formData.parent_id"
             :options="parentMenuOptions"
-            key-field="id"
-            label-field="name"
+            key-field="menu_id"
+            label-field="menu_name"
             placeholder="请选择父级菜单"
             clearable
             default-expand-all
           />
+        </NFormItem>
+        <NFormItem label="菜单类型" path="menu_type">
+          <NRadioGroup v-model:value="formData.menu_type">
+            <NRadio value="0">菜单</NRadio>
+            <NRadio value="1">按钮</NRadio>
+          </NRadioGroup>
         </NFormItem>
         <NFormItem label="菜单路径" path="path">
           <NInput v-model:value="formData.path" placeholder="请输入菜单路径" />
@@ -97,11 +103,8 @@
         <NFormItem label="重定向" path="redirect">
           <NInput v-model:value="formData.redirect" placeholder="请输入重定向路径" />
         </NFormItem>
-        <NFormItem label="是否可见">
-          <NSwitch v-model:value="formData.is_visible" />
-        </NFormItem>
-        <NFormItem label="是否缓存">
-          <NSwitch v-model:value="formData.keep_alive" />
+        <NFormItem label="状态">
+          <NSwitch v-model:value="formData.is_active" />
         </NFormItem>
       </NForm>
       <template #action>
@@ -139,21 +142,21 @@ const queryForm = reactive({
 
 // 表单数据
 const formData = reactive({
-  id: null,
-  name: '',
+  menu_id: null,
+  menu_name: '',
   parent_id: 0,
   path: '',
   component: '',
   icon: '',
   order_num: 0,
   redirect: '',
-  is_visible: true,
-  keep_alive: false,
+  menu_type: '0',
+  is_active: true,
 })
 
 // 表单验证规则
 const formRules = {
-  name: [
+  menu_name: [
     { required: true, message: '请输入菜单名称', trigger: 'blur' },
   ],
   path: [
@@ -161,21 +164,34 @@ const formRules = {
   ],
 }
 
+// 扁平化菜单数据（用于父级菜单选择）
+const flattenMenuData = (data, result = []) => {
+  data.forEach(item => {
+    result.push(item)
+    if (item.children && item.children.length > 0) {
+      flattenMenuData(item.children, result)
+    }
+  })
+  return result
+}
+
 // 父级菜单选项
 const parentMenuOptions = computed(() => {
-  const options = [{ id: 0, name: '根菜单', children: [] }]
-  
+  const options = [{ menu_id: 0, menu_name: '根菜单', children: [] }]
+
+  const flatData = flattenMenuData(tableData.value)
+
   const buildTree = (data, parentId = 0) => {
     return data
-      .filter(item => item.parent_id === parentId && item.id !== formData.id)
+      .filter(item => item.parent_id === parentId && item.menu_id !== formData.menu_id)
       .map(item => ({
-        id: item.id,
-        name: item.name,
-        children: buildTree(data, item.id)
+        menu_id: item.menu_id,
+        menu_name: item.menu_name,
+        children: buildTree(data, item.menu_id)
       }))
   }
-  
-  options[0].children = buildTree(tableData.value)
+
+  options[0].children = buildTree(flatData)
   return options
 })
 
@@ -183,14 +199,24 @@ const parentMenuOptions = computed(() => {
 const columns = [
   {
     title: '菜单名称',
-    key: 'name',
+    key: 'menu_name',
     width: 200,
     render: (row) => {
       return h('div', { style: 'display: flex; align-items: center;' }, [
         row.icon && h(Icon, { name: row.icon, style: 'margin-right: 8px;' }),
-        h('span', row.name)
+        h('span', row.menu_name)
       ])
     },
+  },
+  {
+    title: '菜单类型',
+    key: 'menu_type',
+    width: 100,
+    align: 'center',
+    render: (row) => h(NTag,
+      { type: row.menu_type === '0' ? 'info' : 'warning', size: 'small' },
+      { default: () => row.menu_type === '0' ? '菜单' : '按钮' }
+    ),
   },
   { title: '菜单路径', key: 'path', width: 200 },
   { title: '组件路径', key: 'component', width: 200, ellipsis: { tooltip: true } },
@@ -201,23 +227,13 @@ const columns = [
     align: 'center',
   },
   {
-    title: '可见',
-    key: 'is_visible',
+    title: '状态',
+    key: 'is_active',
     width: 80,
     align: 'center',
-    render: (row) => h(NTag, 
-      { type: row.is_visible ? 'success' : 'default', size: 'small' },
-      { default: () => row.is_visible ? '是' : '否' }
-    ),
-  },
-  {
-    title: '缓存',
-    key: 'keep_alive',
-    width: 80,
-    align: 'center',
-    render: (row) => h(NTag, 
-      { type: row.keep_alive ? 'success' : 'default', size: 'small' },
-      { default: () => row.keep_alive ? '是' : '否' }
+    render: (row) => h(NTag,
+      { type: row.is_active ? 'success' : 'error', size: 'small' },
+      { default: () => row.is_active ? '启用' : '禁用' }
     ),
   },
   {
@@ -262,44 +278,18 @@ const columns = [
   },
 ]
 
-// 构建树形结构
-const buildMenuTree = (data) => {
-  const tree = []
-  const map = new Map()
-  
-  // 先创建所有节点的映射
-  data.forEach(item => {
-    map.set(item.id, { ...item, children: [] })
-  })
-  
-  // 构建树形结构
-  data.forEach(item => {
-    const node = map.get(item.id)
-    if (item.parent_id === 0) {
-      tree.push(node)
-    } else {
-      const parent = map.get(item.parent_id)
-      if (parent) {
-        parent.children.push(node)
-      }
-    }
-  })
-  
-  return tree
-}
-
 // 获取菜单列表
 const getMenuList = async () => {
   try {
     loading.value = true
     const params = {
-      page: 1,
-      page_size: 9999,
-      ...queryForm,
+      menu_name: queryForm.name,
     }
     const res = await api.getMenus(params)
-    const menuData = res.data.items || res.data
-    tableData.value = buildMenuTree(menuData)
+    if (res.code === 200 && res.data) {
+      // 后端直接返回树形结构
+      tableData.value = Array.isArray(res.data) ? res.data : []
+    }
   } catch (error) {
     window.$message?.error('获取菜单列表失败')
   } finally {
@@ -325,16 +315,16 @@ const handleAdd = () => {
   modalAction.value = 'add'
   modalTitle.value = '新增菜单'
   Object.assign(formData, {
-    id: null,
-    name: '',
+    menu_id: null,
+    menu_name: '',
     parent_id: 0,
     path: '',
     component: '',
     icon: '',
     order_num: 0,
     redirect: '',
-    is_visible: true,
-    keep_alive: false,
+    menu_type: '0',
+    is_active: true,
   })
   modalVisible.value = true
 }
@@ -344,16 +334,16 @@ const handleAddChild = (row) => {
   modalAction.value = 'add'
   modalTitle.value = '新增子菜单'
   Object.assign(formData, {
-    id: null,
-    name: '',
-    parent_id: row.id,
+    menu_id: null,
+    menu_name: '',
+    parent_id: row.menu_id,
     path: '',
     component: '',
     icon: '',
     order_num: 0,
     redirect: '',
-    is_visible: true,
-    keep_alive: false,
+    menu_type: '0',
+    is_active: true,
   })
   modalVisible.value = true
 }
@@ -363,16 +353,16 @@ const handleEdit = (row) => {
   modalAction.value = 'edit'
   modalTitle.value = '编辑菜单'
   Object.assign(formData, {
-    id: row.id,
-    name: row.name,
+    menu_id: row.menu_id,
+    menu_name: row.menu_name,
     parent_id: row.parent_id,
-    path: row.path,
-    component: row.component,
-    icon: row.icon,
-    order_num: row.order_num,
-    redirect: row.redirect,
-    is_visible: row.is_visible,
-    keep_alive: row.keep_alive,
+    path: row.path || '',
+    component: row.component || '',
+    icon: row.icon || '',
+    order_num: row.order_num || 0,
+    redirect: row.redirect || '',
+    menu_type: row.menu_type || '0',
+    is_active: row.is_active !== undefined ? row.is_active : true,
   })
   modalVisible.value = true
 }
@@ -403,7 +393,7 @@ const handleSubmit = async () => {
 // 删除
 const handleDelete = async (row) => {
   try {
-    await api.deleteMenu({ menu_id: row.id })
+    await api.deleteMenu({ menu_id: row.menu_id })
     window.$message?.success('删除成功')
     getMenuList()
   } catch (error) {

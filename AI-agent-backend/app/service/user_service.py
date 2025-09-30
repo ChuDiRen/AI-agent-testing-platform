@@ -906,3 +906,19 @@ class RBACUserService:
         except Exception as e:
             logger.error(f"Error importing users from Excel: {str(e)}")
             raise
+
+    async def get_department_by_id(self, dept_id: int) -> Optional[Department]:
+        """
+        根据ID获取部门信息
+
+        Args:
+            dept_id: 部门ID
+
+        Returns:
+            部门对象或None
+        """
+        try:
+            return self.department_repository.get_by_id(dept_id)
+        except Exception as e:
+            logger.error(f"Error getting department by id {dept_id}: {str(e)}")
+            return None

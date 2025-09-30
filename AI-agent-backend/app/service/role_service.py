@@ -352,3 +352,96 @@ class RoleService:
             self.db.rollback()
             logger.error(f"Error copying role {source_role_id}: {str(e)}")
             raise
+
+    async def get_role_list(self, page: int = 1, page_size: int = 20, filters: dict = None):
+        """
+        获取角色列表（分页）
+
+        Args:
+            page: 页码
+            page_size: 每页数量
+            filters: 过滤条件
+
+        Returns:
+            (角色列表, 总数量)
+        """
+        from sqlalchemy import func, or_
+
+        query = self.db.query(Role).filter(Role.is_deleted == 0)
+
+        # 应用过滤条件
+        if filters:
+            if 'role_name' in filters and filters['role_name']:
+                query = query.filter(Role.role_name.like(f"%{filters['role_name']}%"))
+
+        # 获取总数
+        total = query.count()
+
+        # 分页
+        offset = (page - 1) * page_size
+        roles = query.offset(offset).limit(page_size).all()
+
+        return roles, total
+
+    async def get_role_user_count(self, role_id: int) -> int:
+        """
+        获取使用该角色的用户数量
+
+        Args:
+            role_id: 角色ID
+
+        Returns:
+            用户数量
+        """
+        user_roles = self.user_role_repository.get_by_role_id(role_id)
+        return len(user_roles) if user_roles else 0
+
+    async def set_role_permissions(self, role_id: int, menu_ids: List[int], api_ids: List[int]):
+        """
+        设置角色权限（菜单和API）
+
+        Args:
+            role_id: 角色ID
+            menu_ids: 菜单ID列表
+            api_ids: API ID列表
+        """
+        try:
+            # 设置菜单权限
+            self.role_menu_repository.delete_by_role_id(role_id)
+            if menu_ids:
+                self.role_menu_repository.assign_menus_to_role(role_id, menu_ids)
+
+            # 设置API权限（如果有role_api_repository）
+            # TODO: 实现API权限设置
+
+            self.db.commit()
+            logger.info(f"Set permissions for role {role_id}: {len(menu_ids)} menus, {len(api_ids)} apis")
+
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Error setting permissions for role {role_id}: {str(e)}")
+            raise
+
+    async def get_role_permissions(self, role_id: int):
+        """
+        获取角色权限（菜单ID和API ID）
+
+        Args:
+            role_id: 角色ID
+
+        Returns:
+            (菜单ID列表, API ID列表)
+        """
+        try:
+            # 获取菜单ID列表
+            menu_ids = self.role_menu_repository.get_menu_ids_by_role_id(role_id)
+
+            # 获取API ID列表（如果有role_api_repository）
+            # TODO: 实现API权限获取
+            api_ids = []
+
+            return menu_ids, api_ids
+
+        except Exception as e:
+            logger.error(f"Error getting permissions for role {role_id}: {str(e)}")
+            return [], []

@@ -38,18 +38,8 @@ export const useUserStore = defineStore('user', {
   actions: {
     async getUserInfo() {
       try {
-        // 从token中获取用户ID
-        const token = getToken()
-        if (!token) {
-          this.logout()
-          return
-        }
-
-        // 解析token获取用户ID (简单解析，生产环境应该更安全)
-        const payload = JSON.parse(atob(token.split('.')[1]))
-        const userId = payload.user_id || payload.sub
-
-        const res = await api.getUserInfo({ user_id: userId })
+        // 调用新的getUserInfo接口（不需要传user_id）
+        const res = await api.getUserInfo()
         if (res.code !== 200) {
           this.logout()
           return
@@ -57,14 +47,15 @@ export const useUserStore = defineStore('user', {
 
         const userData = res.data
         this.userInfo = {
-          id: userData.id,  // 修正字段名
+          id: userData.user_id,  // 后端返回user_id
           username: userData.username,
+          nickname: userData.nickname || userData.username,
           email: userData.email || '',
+          mobile: userData.mobile || '',
           avatar: userData.avatar || 'https://avatars.githubusercontent.com/u/54677442?v=4',
-          roles: userData.roles || [],
-          is_superuser: userData.is_superuser || false,  // 修正字段名
-          is_active: userData.is_active || true,  // 修正字段名
-          last_login: userData.last_login || null
+          dept_id: userData.dept_id,
+          dept_name: userData.dept_name || '',
+          roles: userData.roles || [],  // 后端返回roles数组
         }
         return this.userInfo
       } catch (error) {

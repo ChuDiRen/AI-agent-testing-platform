@@ -506,3 +506,44 @@ class AuditLogService(BaseService):
             ip_address=ip_address,
             error_message=None if is_success else f"权限 {permission} 被拒绝"
         )
+
+    async def get_audit_log_list(self, page: int = 1, page_size: int = 20, filters: dict = None):
+        """
+        获取审计日志列表（分页）
+
+        Args:
+            page: 页码
+            page_size: 每页数量
+            filters: 过滤条件
+
+        Returns:
+            (日志列表, 总数量)
+        """
+        from datetime import datetime
+
+        query = self.db.query(AuditLog)
+
+        # 应用过滤条件
+        if filters:
+            if 'username' in filters and filters['username']:
+                query = query.filter(AuditLog.username.like(f"%{filters['username']}%"))
+            if 'operation' in filters and filters['operation']:
+                query = query.filter(AuditLog.operation_type == filters['operation'])
+            if 'start_time' in filters and filters['start_time']:
+                start_time = datetime.fromisoformat(filters['start_time'].replace('Z', '+00:00'))
+                query = query.filter(AuditLog.create_time >= start_time)
+            if 'end_time' in filters and filters['end_time']:
+                end_time = datetime.fromisoformat(filters['end_time'].replace('Z', '+00:00'))
+                query = query.filter(AuditLog.create_time <= end_time)
+
+        # 按创建时间倒序
+        query = query.order_by(AuditLog.create_time.desc())
+
+        # 获取总数
+        total = query.count()
+
+        # 分页
+        offset = (page - 1) * page_size
+        logs = query.offset(offset).limit(page_size).all()
+
+        return logs, total

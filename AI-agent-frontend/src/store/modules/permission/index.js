@@ -79,18 +79,11 @@ export const usePermissionStore = defineStore('permission', {
   actions: {
     async generateRoutes() {
       try {
-        // 从token中获取用户ID
-        const token = getToken()
-        if (!token) {
-          return []
-        }
-
-        const payload = JSON.parse(atob(token.split('.')[1]))
-        const userId = payload.user_id || payload.sub
-
-        const res = await api.getUserMenu({ user_id: userId })
+        // 调用新的getUserMenu接口（不需要传user_id）
+        const res = await api.getUserMenu()
         if (res.code === 200 && res.data) {
-          const menus = Array.isArray(res.data) ? res.data : (res.data.menus || [])  // 兼容两种格式
+          // 后端直接返回菜单树数组
+          const menus = Array.isArray(res.data) ? res.data : []
           this.accessRoutes = buildRoutes(menus)
         }
         return this.accessRoutes
@@ -102,18 +95,11 @@ export const usePermissionStore = defineStore('permission', {
 
     async getAccessApis() {
       try {
-        // 从token中获取用户ID
-        const token = getToken()
-        if (!token) {
-          return []
-        }
-
-        const payload = JSON.parse(atob(token.split('.')[1]))
-        const userId = payload.user_id || payload.sub
-
-        const res = await api.getUserMenu({ user_id: userId })
-        if (res.code === 200 && res.data.permissions) {
-          this.accessApis = res.data.permissions
+        // 调用新的getUserApi接口（不需要传user_id）
+        const res = await api.getUserApi()
+        if (res.code === 200 && res.data) {
+          // 后端直接返回API权限数组
+          this.accessApis = Array.isArray(res.data) ? res.data : []
         }
         return this.accessApis
       } catch (error) {

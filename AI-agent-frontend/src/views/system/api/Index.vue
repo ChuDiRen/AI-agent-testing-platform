@@ -79,7 +79,7 @@
         :data="tableData"
         :loading="loading"
         :pagination="pagination"
-        :row-key="(row) => row.id"
+        :row-key="(row) => row.api_id"
         @update:page="handlePageChange"
         @update:page-size="handlePageSizeChange"
       />
@@ -104,11 +104,14 @@
             :options="methodOptions"
           />
         </NFormItem>
-        <NFormItem label="API描述" path="summary">
-          <NInput v-model:value="formData.summary" placeholder="请输入API描述" />
+        <NFormItem label="API描述" path="description">
+          <NInput v-model:value="formData.description" placeholder="请输入API描述" />
         </NFormItem>
         <NFormItem label="标签" path="tags">
           <NInput v-model:value="formData.tags" placeholder="请输入标签" />
+        </NFormItem>
+        <NFormItem label="状态">
+          <NSwitch v-model:value="formData.is_active" />
         </NFormItem>
       </NForm>
       <template #action>
@@ -166,11 +169,12 @@ const pagination = reactive({
 
 // 表单数据
 const formData = reactive({
-  id: null,
+  api_id: null,
   path: '',
   method: 'GET',
-  summary: '',
+  description: '',
   tags: '',
+  is_active: true,
 })
 
 // 表单验证规则
@@ -181,13 +185,14 @@ const formRules = {
   method: [
     { required: true, message: '请选择请求方法', trigger: 'change' },
   ],
-  summary: [
+  description: [
     { required: true, message: '请输入API描述', trigger: 'blur' },
   ],
 }
 
 // 表格列配置
 const columns = [
+  { title: 'API ID', key: 'api_id', width: 80 },
   { title: 'API路径', key: 'path', width: 300, ellipsis: { tooltip: true } },
   {
     title: '请求方法',
@@ -202,14 +207,30 @@ const columns = [
         DELETE: 'error',
         PATCH: 'default',
       }
-      return h(NTag, 
+      return h(NTag,
         { type: colorMap[row.method] || 'default', size: 'small' },
         { default: () => row.method }
       )
     },
   },
-  { title: 'API描述', key: 'summary', ellipsis: { tooltip: true } },
+  { title: 'API描述', key: 'description', ellipsis: { tooltip: true } },
   { title: '标签', key: 'tags', width: 120 },
+  {
+    title: '状态',
+    key: 'is_active',
+    width: 80,
+    align: 'center',
+    render: (row) => h(NTag,
+      { type: row.is_active ? 'success' : 'error', size: 'small' },
+      { default: () => row.is_active ? '启用' : '禁用' }
+    ),
+  },
+  {
+    title: '创建时间',
+    key: 'created_at',
+    width: 160,
+    render: (row) => row.created_at || '-',
+  },
   {
     title: '操作',
     key: 'actions',

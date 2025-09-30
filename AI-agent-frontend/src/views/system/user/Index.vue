@@ -28,8 +28,8 @@
         <NTree
           block-line
           :data="deptOptions"
-          key-field="id"
-          label-field="name"
+          key-field="dept_id"
+          label-field="dept_name"
           default-expand-all
           :node-props="nodeProps"
         />
@@ -90,8 +90,14 @@
             :disabled="modalAction === 'edit'"
           />
         </NFormItem>
+        <NFormItem label="昵称" path="nickname">
+          <NInput v-model:value="formData.nickname" placeholder="请输入昵称" />
+        </NFormItem>
         <NFormItem label="邮箱" path="email">
           <NInput v-model:value="formData.email" placeholder="请输入邮箱" />
+        </NFormItem>
+        <NFormItem label="手机号" path="mobile">
+          <NInput v-model:value="formData.mobile" placeholder="请输入手机号" />
         </NFormItem>
         <NFormItem v-if="modalAction === 'add'" label="密码" path="password">
           <NInput
@@ -114,9 +120,9 @@
             <NSpace>
               <NCheckbox
                 v-for="role in roleOptions"
-                :key="role.id"
-                :value="role.id"
-                :label="role.name"
+                :key="role.role_id"
+                :value="role.role_id"
+                :label="role.role_name"
               />
             </NSpace>
           </NCheckboxGroup>
@@ -125,20 +131,17 @@
           <NTreeSelect
             v-model:value="formData.dept_id"
             :options="deptOptions"
-            key-field="id"
-            label-field="name"
+            key-field="dept_id"
+            label-field="dept_name"
             placeholder="请选择部门"
             clearable
           />
         </NFormItem>
-        <NFormItem label="超级用户">
-          <NSwitch v-model:value="formData.is_superuser" />
-        </NFormItem>
         <NFormItem label="状态">
           <NSwitch
-            v-model:value="formData.is_active"
-            :checked-value="true"
-            :unchecked-value="false"
+            v-model:value="formData.status"
+            :checked-value="1"
+            :unchecked-value="0"
           />
         </NFormItem>
       </template>
@@ -178,15 +181,16 @@ const statusOptions = [
 
 // 表单数据
 const formData = reactive({
-  id: null,
+  user_id: null,
   username: '',
+  nickname: '',
   email: '',
+  mobile: '',
   password: '',
   confirmPassword: '',
   role_ids: [],
   dept_id: null,
-  is_superuser: false,
-  is_active: true,
+  status: 1,
 })
 
 // 表单验证规则
@@ -219,46 +223,26 @@ const formRules = {
 
 // 表格列配置
 const columns = [
+  { title: '用户ID', key: 'user_id', width: 80 },
   { title: '用户名', key: 'username', width: 120 },
+  { title: '昵称', key: 'nickname', width: 120 },
   { title: '邮箱', key: 'email', width: 200 },
-  {
-    title: '角色',
-    key: 'roles',
-    width: 150,
-    render: (row) => {
-      return h('div', 
-        row.roles?.map(role => 
-          h(NTag, { type: 'info', size: 'small', style: 'margin: 2px' }, 
-            { default: () => role.name }
-          )
-        ) || []
-      )
-    },
-  },
-  { title: '部门', key: 'dept.name', width: 120 },
-  {
-    title: '超级用户',
-    key: 'is_superuser',
-    width: 100,
-    render: (row) => h(NTag, 
-      { type: row.is_superuser ? 'success' : 'default', size: 'small' },
-      { default: () => row.is_superuser ? '是' : '否' }
-    ),
-  },
+  { title: '手机号', key: 'mobile', width: 120 },
+  { title: '部门', key: 'dept_name', width: 120 },
   {
     title: '状态',
-    key: 'is_active',
+    key: 'status',
     width: 80,
-    render: (row) => h(NTag, 
-      { type: row.is_active ? 'success' : 'error', size: 'small' },
-      { default: () => row.is_active ? '正常' : '禁用' }
+    render: (row) => h(NTag,
+      { type: row.status === 1 || row.status === '1' ? 'success' : 'error', size: 'small' },
+      { default: () => row.status === 1 || row.status === '1' ? '正常' : '禁用' }
     ),
   },
   {
-    title: '最后登录',
-    key: 'last_login',
+    title: '创建时间',
+    key: 'created_at',
     width: 160,
-    render: (row) => row.last_login ? formatDate(row.last_login) : '-',
+    render: (row) => row.created_at || '-',
   },
   {
     title: '操作',
@@ -267,37 +251,37 @@ const columns = [
     fixed: 'right',
     render: (row) => {
       return h('div', [
-        h(NButton, 
-          { 
-            size: 'small', 
-            type: 'primary', 
+        h(NButton,
+          {
+            size: 'small',
+            type: 'primary',
             style: 'margin-right: 8px',
-            onClick: () => handleEdit(row) 
+            onClick: () => handleEdit(row)
           },
           { default: () => '编辑' }
         ),
-        h(NPopconfirm, 
+        h(NPopconfirm,
           {
             onPositiveClick: () => handleDelete(row),
           },
           {
-            trigger: () => h(NButton, 
+            trigger: () => h(NButton,
               { size: 'small', type: 'error', style: 'margin-right: 8px' },
               { default: () => '删除' }
             ),
             default: () => '确定删除该用户吗？',
           }
         ),
-        !row.is_superuser && h(NPopconfirm,
+        h(NPopconfirm,
           {
             onPositiveClick: () => handleResetPassword(row),
           },
           {
-            trigger: () => h(NButton, 
+            trigger: () => h(NButton,
               { size: 'small', type: 'warning' },
               { default: () => '重置密码' }
             ),
-            default: () => '确定重置密码为123456吗？',
+            default: () => '确定重置密码吗？',
           }
         ),
       ])
@@ -308,8 +292,8 @@ const columns = [
 // 部门树节点属性
 const nodeProps = ({ option }) => ({
   onClick() {
-    queryForm.dept_id = option.id
-    handleSearch()
+    queryItems.dept_id = option.dept_id
+    tableRef.value?.handleSearch()
   },
 })
 
@@ -323,7 +307,9 @@ const handleDataChange = (data) => {
 const getRoleList = async () => {
   try {
     const res = await api.getRoleList({ page: 1, page_size: 999 })
-    roleOptions.value = res.data.items || res.data
+    if (res.code === 200 && res.data) {
+      roleOptions.value = res.data.items || []
+    }
   } catch (error) {
     console.error('获取角色列表失败:', error)
   }
@@ -333,7 +319,9 @@ const getRoleList = async () => {
 const getDeptList = async () => {
   try {
     const res = await api.getDepts()
-    deptOptions.value = res.data
+    if (res.code === 200 && res.data) {
+      deptOptions.value = Array.isArray(res.data) ? res.data : []
+    }
   } catch (error) {
     console.error('获取部门列表失败:', error)
   }
@@ -356,43 +344,51 @@ const handleSuccess = () => {
 // 新增
 const handleAdd = () => {
   modalAction.value = 'add'
-  formData.value = {
-    id: null,
+  Object.assign(formData, {
+    user_id: null,
     username: '',
+    nickname: '',
     email: '',
+    mobile: '',
     password: '',
     confirmPassword: '',
     role_ids: [],
     dept_id: null,
-    is_superuser: false,
-    is_active: true,
-  }
+    status: 1,
+  })
   modalVisible.value = true
 }
 
 // 编辑
-const handleEdit = (row) => {
-  modalAction.value = 'edit'
-  formData.value = {
-    id: row.id,
-    username: row.username,
-    email: row.email,
-    password: '',
-    confirmPassword: '',
-    role_ids: row.roles?.map(r => r.id) || [],
-    dept_id: row.dept?.id || null,
-    is_superuser: row.is_superuser,
-    is_active: row.is_active,
+const handleEdit = async (row) => {
+  try {
+    // 获取用户详情
+    const res = await api.getUserById({ user_id: row.user_id })
+    if (res.code === 200 && res.data) {
+      modalAction.value = 'edit'
+      Object.assign(formData, {
+        user_id: res.data.user_id,
+        username: res.data.username,
+        nickname: res.data.nickname || '',
+        email: res.data.email || '',
+        mobile: res.data.mobile || '',
+        password: '',
+        confirmPassword: '',
+        role_ids: res.data.role_ids || [],
+        dept_id: res.data.dept_id || null,
+        status: res.data.status || 1,
+      })
+      modalVisible.value = true
+    }
+  } catch (error) {
+    window.$message?.error('获取用户信息失败')
   }
-  modalVisible.value = true
 }
-
-
 
 // 删除
 const handleDelete = async (row) => {
   try {
-    await api.deleteUser({ user_id: row.id })
+    await api.deleteUser({ user_id: row.user_id })
     window.$message?.success('删除成功')
     tableRef.value?.handleSearch()
   } catch (error) {
@@ -403,8 +399,17 @@ const handleDelete = async (row) => {
 // 重置密码
 const handleResetPassword = async (row) => {
   try {
-    await api.resetPassword({ user_id: row.id })
-    window.$message?.success('密码已重置为123456')
+    // 弹出输入框让用户输入新密码
+    const newPassword = prompt('请输入新密码（至少6位）：', '123456')
+    if (!newPassword) return
+
+    if (newPassword.length < 6) {
+      window.$message?.error('密码长度不能少于6位')
+      return
+    }
+
+    await api.resetPassword({ user_id: row.user_id, new_password: newPassword })
+    window.$message?.success('密码重置成功')
   } catch (error) {
     window.$message?.error('重置密码失败')
   }

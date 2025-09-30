@@ -1,28 +1,19 @@
 """
-角色管理API - 兼容vue-fastapi-admin格式
+Role模块API - 完全按照vue-fastapi-admin标准实现
+提供角色管理的CRUD和权限分配功能
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.orm import Session
 
-from app.utils.permissions import get_current_user  # 修正导入路径
-from app.db.session import get_db  # 修正导入路径
+from app.utils.permissions import get_current_user
+from app.db.session import get_db
 from app.dto.base_dto import Success, Fail
-from app.dto.role_dto import RoleCreateRequest, RoleUpdateRequest, RoleMenuAssignRequest  # 修正导入路径
 from app.entity.user import User
 from app.service.role_service import RoleService
-from pydantic import BaseModel, Field  # 用于创建临时DTO
 
 router = APIRouter()
-
-
-# 临时DTO定义
-class RoleAuthorizedRequest(BaseModel):
-    """角色权限设置请求"""
-    id: int = Field(..., description="角色ID")
-    menu_ids: List[int] = Field(default=[], description="菜单ID列表")
-    api_infos: List[dict] = Field(default=[], description="API权限信息列表")
 
 
 @router.get("/list", summary="获取角色列表")
@@ -33,105 +24,127 @@ async def get_role_list(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """获取角色列表"""
+    """
+    获取角色列表（分页）
+
+    完全按照vue-fastapi-admin的接口规范实现
+    """
     try:
         role_service = RoleService(db)
-        
+
         # 构建查询条件
         filters = {}
         if role_name:
-            filters['name'] = role_name
-        
+            filters['role_name'] = role_name
+
         # 获取角色列表
         roles, total = await role_service.get_role_list(
             page=page,
             page_size=page_size,
             filters=filters
         )
-        
+
         # 构建响应数据
         role_list = []
         for role in roles:
             role_data = {
-                "id": role.id,
-                "name": role.name,
-                "desc": role.description,
-                "created_at": role.created_at
+                "role_id": role.id,
+                "role_name": role.role_name,
+                "remark": role.remark or "",
+                "is_active": role.is_active,
+                "created_at": role.create_time.strftime("%Y-%m-%d %H:%M:%S") if role.create_time else ""
             }
             role_list.append(role_data)
-        
+
+        # 按照vue-fastapi-admin的分页格式
         response_data = {
             "items": role_list,
-            "total": total,
-            "page": page,
-            "page_size": page_size,
-            "pages": (total + page_size - 1) // page_size
+            "total": total
         }
-        
+
         return Success(data=response_data)
-        
+
     except Exception as e:
         return Fail(msg=f"获取角色列表失败: {str(e)}")
 
 
 @router.post("/create", summary="创建角色")
 async def create_role(
-    role_data: RoleCreateRequest,
+    role_name: str = Body(..., description="角色名称"),
+    remark: Optional[str] = Body(None, description="角色描述"),
+    is_active: bool = Body(True, description="是否启用"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """创建角色"""
+    """
+    创建新角色
+
+    完全按照vue-fastapi-admin的接口规范实现
+    """
     try:
         role_service = RoleService(db)
-        
+
         # 检查角色名是否已存在
-        existing_role = await role_service.get_role_by_name(role_data.name)
+        existing_role = role_service.get_role_by_name(role_name)
         if existing_role:
             return Fail(msg="角色名已存在")
-        
+
         # 创建角色
-        new_role = await role_service.create_role(
-            name=role_data.name,
-            description=role_data.desc
+        new_role = role_service.create_role(
+            role_name=role_name,
+            remark=remark
         )
-        
-        return Success(data={"id": new_role.id}, msg="创建成功")
-        
+
+        # 设置是否启用
+        new_role.is_active = is_active
+        role_service.db.commit()
+
+        return Success(data={"role_id": new_role.id}, msg="创建成功")
+
+    except ValueError as e:
+        return Fail(msg=str(e))
     except Exception as e:
         return Fail(msg=f"创建角色失败: {str(e)}")
 
 
 @router.post("/update", summary="更新角色")
 async def update_role(
-    role_data: RoleUpdateRequest,
+    role_id: int = Body(..., description="角色ID"),
+    role_name: str = Body(..., description="角色名称"),
+    remark: Optional[str] = Body(None, description="角色描述"),
+    is_active: bool = Body(True, description="是否启用"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """更新角色"""
+    """
+    更新角色信息
+
+    完全按照vue-fastapi-admin的接口规范实现
+    """
     try:
         role_service = RoleService(db)
-        
+
         # 检查角色是否存在
-        role = await role_service.get_role_by_id(role_data.id)
+        role = role_service.get_role_by_id(role_id)
         if not role:
             return Fail(msg="角色不存在")
-        
+
         # 检查角色名是否已被其他角色使用
-        if role_data.name != role.name:
-            existing_role = await role_service.get_role_by_name(role_data.name)
-            if existing_role and existing_role.id != role_data.id:
+        if role_name != role.role_name:
+            existing_role = role_service.get_role_by_name(role_name)
+            if existing_role and existing_role.id != role_id:
                 return Fail(msg="角色名已被其他角色使用")
-        
+
         # 更新角色
-        await role_service.update_role(
-            role_id=role_data.id,
-            name=role_data.name,
-            description=role_data.desc
-        )
-        
+        role.role_name = role_name
+        role.remark = remark
+        role.is_active = is_active
+        role_service.db.commit()
+
         return Success(msg="更新成功")
-        
+
     except Exception as e:
+        role_service.db.rollback()
         return Fail(msg=f"更新角色失败: {str(e)}")
 
 
@@ -141,85 +154,97 @@ async def delete_role(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """删除角色"""
+    """
+    删除角色
+
+    完全按照vue-fastapi-admin的接口规范实现
+    """
     try:
         role_service = RoleService(db)
-        
+
         # 检查角色是否存在
-        role = await role_service.get_role_by_id(role_id)
+        role = role_service.get_role_by_id(role_id)
         if not role:
             return Fail(msg="角色不存在")
-        
+
         # 检查角色是否被用户使用
         user_count = await role_service.get_role_user_count(role_id)
         if user_count > 0:
             return Fail(msg=f"该角色正在被 {user_count} 个用户使用，无法删除")
-        
+
         # 删除角色
         await role_service.delete_role(role_id)
-        
+
         return Success(msg="删除成功")
-        
+
     except Exception as e:
         return Fail(msg=f"删除角色失败: {str(e)}")
 
 
-@router.post("/authorized", summary="设置角色权限")
+@router.post("/authorized", summary="更新角色权限")
 async def update_role_authorized(
-    auth_data: RoleAuthorizedRequest,
+    role_id: int = Body(..., description="角色ID"),
+    menu_ids: List[int] = Body(default=[], description="菜单ID列表"),
+    api_ids: List[int] = Body(default=[], description="API ID列表"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """设置角色权限"""
+    """
+    更新角色权限（菜单权限和API权限）
+
+    完全按照vue-fastapi-admin的接口规范实现
+    """
     try:
         role_service = RoleService(db)
-        
+
         # 检查角色是否存在
-        role = await role_service.get_role_by_id(auth_data.id)
+        role = role_service.get_role_by_id(role_id)
         if not role:
             return Fail(msg="角色不存在")
-        
+
         # 设置角色权限
         await role_service.set_role_permissions(
-            role_id=auth_data.id,
-            menu_ids=auth_data.menu_ids,
-            api_infos=auth_data.api_infos
+            role_id=role_id,
+            menu_ids=menu_ids,
+            api_ids=api_ids
         )
-        
+
         return Success(msg="权限设置成功")
-        
+
     except Exception as e:
         return Fail(msg=f"权限设置失败: {str(e)}")
 
 
 @router.get("/authorized", summary="获取角色权限")
 async def get_role_authorized(
-    id: int = Query(..., description="角色ID"),
+    role_id: int = Query(..., description="角色ID"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """获取角色权限"""
+    """
+    获取角色的权限配置
+
+    完全按照vue-fastapi-admin的接口规范实现
+    返回菜单ID列表和API ID列表
+    """
     try:
         role_service = RoleService(db)
-        
+
         # 检查角色是否存在
-        role = await role_service.get_role_by_id(id)
+        role = role_service.get_role_by_id(role_id)
         if not role:
             return Fail(msg="角色不存在")
-        
+
         # 获取角色权限
-        menus, apis = await role_service.get_role_permissions(id)
-        
-        # 构建响应数据
-        menu_list = [{"id": menu.id, "name": menu.name} for menu in menus]
-        api_list = [{"id": api.id, "path": api.path, "method": api.method} for api in apis]
-        
+        menu_ids, api_ids = await role_service.get_role_permissions(role_id)
+
+        # 按照vue-fastapi-admin的响应格式
         response_data = {
-            "menus": menu_list,
-            "apis": api_list
+            "menu_ids": menu_ids,
+            "api_ids": api_ids
         }
-        
+
         return Success(data=response_data)
-        
+
     except Exception as e:
         return Fail(msg=f"获取角色权限失败: {str(e)}")
