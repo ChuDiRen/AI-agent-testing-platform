@@ -7,11 +7,12 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
-    AppBreadcrumb: typeof import('./src/components/Layout/AppBreadcrumb.vue')['default']
+    AppBreadcrumb: typeof import('./src/components/layout/AppBreadcrumb.vue')['default']
     AppHeader: typeof import('./src/components/Layout/AppHeader.vue')['default']
     AppIcon: typeof import('./src/components/icon/AppIcon.vue')['default']
     AppPage: typeof import('./src/components/common/AppPage.vue')['default']
     AppSidebar: typeof import('./src/components/Layout/AppSidebar.vue')['default']
+    AppTags: typeof import('./src/components/layout/AppTags.vue')['default']
     CommonTable: typeof import('./src/components/Common/CommonTable.vue')['default']
     CrudModal: typeof import('./src/components/modal/CrudModal.vue')['default']
     CrudTable: typeof import('./src/components/table/CrudTable.vue')['default']
@@ -108,13 +109,17 @@ declare module 'vue' {
     NModal: typeof import('naive-ui')['NModal']
     NNotificationProvider: typeof import('naive-ui')['NNotificationProvider']
     NProgress: typeof import('naive-ui')['NProgress']
+    NRadio: typeof import('naive-ui')['NRadio']
+    NRadioGroup: typeof import('naive-ui')['NRadioGroup']
     NSelect: typeof import('naive-ui')['NSelect']
     NSpace: typeof import('naive-ui')['NSpace']
+    NStatistic: typeof import('naive-ui')['NStatistic']
     NSwitch: typeof import('naive-ui')['NSwitch']
     NTabPane: typeof import('naive-ui')['NTabPane']
     NTabs: typeof import('naive-ui')['NTabs']
     NTag: typeof import('naive-ui')['NTag']
     NText: typeof import('naive-ui')['NText']
+    NTooltip: typeof import('naive-ui')['NTooltip']
     NTree: typeof import('naive-ui')['NTree']
     NTreeSelect: typeof import('naive-ui')['NTreeSelect']
     NUl: typeof import('naive-ui')['NUl']
@@ -125,7 +130,9 @@ declare module 'vue' {
     QueryBarItem: typeof import('./src/components/query-bar/QueryBarItem.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    ScrollX: typeof import('./src/components/common/ScrollX.vue')['default']
     SearchForm: typeof import('./src/components/Common/SearchForm.vue')['default']
     TokenStatus: typeof import('./src/components/TokenStatus.vue')['default']
+    UserAvatar: typeof import('./src/components/layout/UserAvatar.vue')['default']
   }
 }

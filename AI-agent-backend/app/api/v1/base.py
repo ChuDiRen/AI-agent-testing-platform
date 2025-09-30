@@ -101,7 +101,7 @@ async def get_userinfo(
             "nickname": user_info.username,  # 如果没有nickname字段，使用username
             "email": user_info.email or "",
             "mobile": user_info.mobile or "",
-            "avatar": user_info.avatar or "https://avatars.githubusercontent.com/u/54677442?v=4",
+            "avatar": user_info.avatar if user_info.avatar and user_info.avatar != "default.jpg" else "https://avatars.githubusercontent.com/u/54677442?v=4",
             "dept_id": user_info.dept_id,
             "dept_name": dept_name,
             "roles": roles

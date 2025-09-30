@@ -40,9 +40,12 @@ class Role(BaseEntity):
     # 关联关系
     # 角色-用户关联（一个角色可以有多个用户）
     user_roles = relationship("UserRole", back_populates="role")
-    
+
     # 角色-菜单关联（一个角色可以有多个菜单权限）
     role_menus = relationship("RoleMenu", back_populates="role")
+
+    # 角色-API关联（一个角色可以有多个API权限）
+    role_apis = relationship("RoleApi", back_populates="role")
 
     def __init__(self, role_name: str, remark: str = None, is_active: bool = True):
         """

@@ -1,6 +1,6 @@
 import { getToken } from '@/utils'
 
-const WHITE_LIST = ['/login'] // 白名单路由
+const WHITE_LIST = ['/login', '/workbench'] // 白名单路由
 
 export function setupRouterGuard(router) {
   // 全局前置守卫

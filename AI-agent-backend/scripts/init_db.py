@@ -496,10 +496,10 @@ def create_rbac_initial_data(db):
 
 
 
-        # 首页菜单（工作台）
+        # 工作台菜单
         dashboard_menu = Menu(
             parent_id=0,
-            menu_name="首页",
+            menu_name="工作台",
             menu_type="0",
             path="/workbench",  # 修正路径为workbench
             component="/workbench",  # 修正组件路径

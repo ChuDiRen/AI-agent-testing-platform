@@ -91,6 +91,9 @@ class ApiEndpoint(BaseEntity):
     # API-创建者关联
     creator = relationship("User", foreign_keys=[created_by_id])
 
+    # API-角色关联（一个API可以被多个角色访问）
+    role_apis = relationship("RoleApi", back_populates="api")
+
     def __init__(self, path: str, method: str, name: str, description: str = None,
                  module: str = None, permission: str = None, version: str = "v1",
                  request_example: Dict[str, Any] = None, response_example: Dict[str, Any] = None,

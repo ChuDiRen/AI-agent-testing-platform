@@ -194,18 +194,25 @@ class RBACUserService:
             API列表
         """
         from app.entity.api_endpoint import ApiEndpoint
-        from app.entity.role_api import RoleApi
         from app.entity.user_role import UserRole
+        from app.repository.role_api_repository import RoleApiRepository
 
         # 获取用户的所有角色
         user_roles = self.db.query(UserRole).filter(UserRole.user_id == user_id).all()
         role_ids = [ur.role_id for ur in user_roles]
 
-        # 获取角色的所有API
+        if not role_ids:
+            return []
+
+        # 使用repository获取角色的所有API
+        role_api_repository = RoleApiRepository(self.db)
         api_ids = set()
         for role_id in role_ids:
-            role_apis = self.db.query(RoleApi).filter(RoleApi.role_id == role_id).all()
-            api_ids.update([ra.api_id for ra in role_apis])
+            role_api_ids = role_api_repository.get_api_ids_by_role_id(role_id)
+            api_ids.update(role_api_ids)
+
+        if not api_ids:
+            return []
 
         # 获取API详情
         apis = self.db.query(ApiEndpoint).filter(ApiEndpoint.id.in_(api_ids)).all()

@@ -12,6 +12,7 @@ from .menu import Menu
 from .permission_cache import PermissionCache, DataPermissionRule
 from .role import Role
 from .role_menu import RoleMenu
+from .role_api import RoleApi
 from .test_case import TestCase
 from .test_case_generation_history import TestCaseGenerationHistory
 from .test_report import TestReport
