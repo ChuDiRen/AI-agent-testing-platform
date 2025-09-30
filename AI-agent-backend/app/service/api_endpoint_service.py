@@ -29,8 +29,9 @@ class ApiEndpointService(BaseService):
     """
 
     def __init__(self, db: Session):
-        super().__init__(db)
+        self.db = db  # 添加db属性
         self.api_repository = ApiEndpointRepository(db)
+        super().__init__(self.api_repository)  # 传递repository给BaseService
 
     def create_api_endpoint(self, request: ApiEndpointCreateRequest, created_by_id: int) -> ApiEndpointResponse:
         """

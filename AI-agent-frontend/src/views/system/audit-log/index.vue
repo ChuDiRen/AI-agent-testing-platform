@@ -110,6 +110,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, h } from 'vue'
+import { NTag, NButton } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import { formatDate } from '@/utils'
 import api from '@/api'

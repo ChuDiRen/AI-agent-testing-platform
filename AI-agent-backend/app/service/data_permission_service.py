@@ -24,8 +24,9 @@ class DataPermissionService(BaseService):
     """
 
     def __init__(self, db: Session):
-        super().__init__(db)
+        self.db = db  # 添加db属性
         self.data_permission_repo = DataPermissionRepository(db)
+        super().__init__(self.data_permission_repo)  # 传递repository给BaseService
         self.user_service = RBACUserService(db)
         self.logger = get_logger(self.__class__.__name__)
     

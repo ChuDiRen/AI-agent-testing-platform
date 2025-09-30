@@ -94,17 +94,7 @@ class RBACUserService:
         logger.info(f"Created user: {username}")
         return created_user
 
-    def get_user_by_id(self, user_id: int) -> Optional[User]:
-        """
-        根据ID获取用户
 
-        Args:
-            user_id: 用户ID
-
-        Returns:
-            用户对象或None
-        """
-        return self.user_repository.get_by_id(user_id)
 
     def get_user_by_username(self, username: str) -> Optional[User]:
         """
@@ -129,7 +119,7 @@ class RBACUserService:
             user_id: 用户ID
         """
         from datetime import datetime
-        user = self.get_user_by_id(user_id)
+        user = await self.get_user_by_id(user_id)
         if user:
             user.last_login_time = datetime.utcnow()
             self.db.commit()
@@ -496,6 +486,131 @@ class RBACUserService:
     def get_roles_for_users(self, user_ids: List[int]) -> dict:
         """批量获取多个用户的角色，返回 {user_id: List[Role]}  # 注释"""
         return self.user_role_repository.get_roles_by_user_ids(user_ids)
+
+    async def get_user_list(self, page: int = 1, page_size: int = 20, filters: dict = None) -> tuple:
+        """
+        获取用户列表（分页）
+
+        Args:
+            page: 页码
+            page_size: 每页数量
+            filters: 筛选条件
+
+        Returns:
+            (用户列表, 总数)
+        """
+        try:
+            # 构建查询
+            query = self.db.query(User)
+
+            # 应用筛选条件
+            if filters:
+                if filters.get('username'):
+                    query = query.filter(User.username.like(f"%{filters['username']}%"))
+                if filters.get('dept_id'):
+                    query = query.filter(User.dept_id == filters['dept_id'])
+                if filters.get('status'):
+                    query = query.filter(User.status == filters['status'])
+
+            # 获取总数
+            total = query.count()
+
+            # 分页查询
+            users = query.offset((page - 1) * page_size).limit(page_size).all()
+
+            return users, total
+
+        except Exception as e:
+            logger.error(f"Error getting user list: {str(e)}")
+            return [], 0
+
+    async def get_user_by_id(self, user_id: int) -> User:
+        """
+        根据ID获取用户
+
+        Args:
+            user_id: 用户ID
+
+        Returns:
+            用户对象
+        """
+        return self.user_repository.get_by_id(user_id)
+
+    async def get_user_by_username(self, username: str) -> User:
+        """
+        根据用户名获取用户
+
+        Args:
+            username: 用户名
+
+        Returns:
+            用户对象
+        """
+        return self.db.query(User).filter(User.username == username).first()
+
+    async def get_user_by_email(self, email: str) -> User:
+        """
+        根据邮箱获取用户
+
+        Args:
+            email: 邮箱
+
+        Returns:
+            用户对象
+        """
+        return self.db.query(User).filter(User.email == email).first()
+
+    async def get_department_by_id(self, dept_id: int):
+        """
+        根据ID获取部门
+
+        Args:
+            dept_id: 部门ID
+
+        Returns:
+            部门对象
+        """
+        return self.department_repository.get_by_id(dept_id)
+
+    async def assign_roles_to_user(self, user_id: int, role_ids: List[int]) -> bool:
+        """
+        为用户分配角色（异步版本）
+
+        Args:
+            user_id: 用户ID
+            role_ids: 角色ID列表
+
+        Returns:
+            是否分配成功
+        """
+        return self.assign_roles_to_user(user_id, role_ids)
+
+    async def delete_user(self, user_id: int) -> bool:
+        """
+        删除用户（软删除）
+
+        Args:
+            user_id: 用户ID
+
+        Returns:
+            是否删除成功
+        """
+        try:
+            user = await self.get_user_by_id(user_id)
+            if not user:
+                return False
+
+            # 软删除：设置删除标记
+            user.is_deleted = 1
+            self.db.commit()
+
+            logger.info(f"User soft deleted: {user_id}")
+            return True
+
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Error deleting user {user_id}: {str(e)}")
+            return False
 
     def get_user_permissions(self, user_id: int) -> List[str]:
         """

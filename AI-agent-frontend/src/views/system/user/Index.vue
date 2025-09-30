@@ -151,6 +151,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, h } from 'vue'
+import { NTag, NButton, NPopconfirm } from 'naive-ui'
 import { Icon } from '@iconify/vue'
 import { formatDate } from '@/utils'
 import { PageWrapper, CrudTable, CrudModal, QueryBarItem } from '@/components'
@@ -306,7 +307,7 @@ const handleDataChange = (data) => {
 // 获取角色列表
 const getRoleList = async () => {
   try {
-    const res = await api.getRoleList({ page: 1, page_size: 999 })
+    const res = await api.getRoleList({ page: 1, page_size: 100 }) // 修复：使用最大允许值100
     if (res.code === 200 && res.data) {
       roleOptions.value = res.data.items || []
     }

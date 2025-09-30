@@ -15,7 +15,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { zhCN, dateZhCN, enUS, dateEnUS } from 'naive-ui'
+import { zhCN, dateZhCN, enUS, dateEnUS, darkTheme } from 'naive-ui'
 import { useAppStore } from '@/store'
 import NaiveProviderContent from '@/components/common/NaiveProviderContent.vue'
 

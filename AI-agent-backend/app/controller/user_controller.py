@@ -367,8 +367,8 @@ async def get_user_info(
     """
     try:
         user_service = RBACUserService(db)
-        user = user_service.get_user_by_id(request.user_id)
-        
+        user = await user_service.get_user_by_id(request.user_id)
+
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -695,7 +695,7 @@ async def get_user_roles(
     try:
         logger.info(f"Getting roles for user_id: {request.user_id}")
         user_service = RBACUserService(db)
-        user = user_service.get_user_by_id(request.user_id)
+        user = await user_service.get_user_by_id(request.user_id)
         logger.info(f"Found user: {user.username if user else 'None'}")
 
         if not user:

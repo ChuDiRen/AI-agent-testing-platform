@@ -14,6 +14,13 @@ import '@/styles/index.scss'
 async function bootstrap() {
   const app = createApp(App)
 
+  // 全局错误处理
+  app.config.errorHandler = (err, instance, info) => {
+    console.error('Vue全局错误:', err)
+    console.error('错误信息:', info)
+    console.error('组件实例:', instance)
+  }
+
   // 配置 store
   setupStore(app)
 

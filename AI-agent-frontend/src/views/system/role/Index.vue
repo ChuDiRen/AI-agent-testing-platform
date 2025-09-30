@@ -148,6 +148,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, h } from 'vue'
+import { NTag, NButton, NPopconfirm } from 'naive-ui' // 修复：导入Naive UI组件
 import { Icon } from '@iconify/vue'
 import { formatDate } from '@/utils'
 import api from '@/api'

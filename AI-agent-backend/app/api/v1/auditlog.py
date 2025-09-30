@@ -57,15 +57,13 @@ async def get_auditlog_list(
         log_list = []
         for log in logs:
             log_data = {
-                "log_id": log.id,
-                "username": log.username or "",
-                "operation": log.operation or "",
-                "method": log.method or "",
-                "path": log.path or "",
-                "ip": log.ip or "",
-                "status": log.status or 0,
-                "duration": log.duration or 0,
-                "created_at": log.create_time.strftime("%Y-%m-%d %H:%M:%S") if log.create_time else ""
+                "id": log.id,
+                "username": log.USERNAME or "",
+                "action": log.OPERATION_TYPE or "",
+                "description": log.OPERATION_DESC or "",
+                "ip_address": log.IP_ADDRESS or "",
+                "user_agent": log.USER_AGENT or "",
+                "created_at": log.OPERATION_TIME.strftime("%Y-%m-%d %H:%M:%S") if log.OPERATION_TIME else ""
             }
             log_list.append(log_data)
         

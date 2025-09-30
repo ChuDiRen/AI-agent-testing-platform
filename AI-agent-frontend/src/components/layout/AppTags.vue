@@ -93,15 +93,19 @@ const handleTagClick = (tag) => {
 
 // 关闭标签
 const handleTagClose = (tag) => {
-  const index = tagsStore.tags.findIndex(t => t.path === tag.path)
-  tagsStore.removeTag(tag.path)
-  
-  // 如果关闭的是当前页面，跳转到其他页面
-  if (route.path === tag.path) {
-    const nextTag = tagsStore.tags[index] || tagsStore.tags[index - 1] || tagsStore.tags[0]
-    if (nextTag) {
-      router.push(nextTag.path)
+  try {
+    const index = tagsStore.tags.findIndex(t => t.path === tag.path)
+    tagsStore.removeTag(tag.path)
+
+    // 如果关闭的是当前页面，跳转到其他页面
+    if (route.path === tag.path) {
+      const nextTag = tagsStore.tags[index] || tagsStore.tags[index - 1] || tagsStore.tags[0]
+      if (nextTag) {
+        router.push(nextTag.path)
+      }
     }
+  } catch (error) {
+    console.error('关闭标签错误:', error)
   }
 }
 

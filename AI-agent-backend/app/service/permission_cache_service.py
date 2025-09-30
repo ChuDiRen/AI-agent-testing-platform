@@ -10,7 +10,17 @@ logger = get_logger(__name__)
 
 class PermissionCacheService(BaseService):
     def __init__(self, db: Session):
-        super().__init__(db)
+        self.db = db  # 添加db属性
+        # 创建一个虚拟的repository，因为这个服务不需要实际的repository
+        from app.repository.base import BaseRepository
+        from app.entity.base import BaseEntity
+
+        class DummyRepository(BaseRepository):
+            def __init__(self, db):
+                super().__init__(db, BaseEntity)
+
+        dummy_repo = DummyRepository(db)
+        super().__init__(dummy_repo)  # 传递repository给BaseService
         logger.info('PermissionCacheService initialized')
     
     def get_cache_stats(self) -> Dict[str, Any]:

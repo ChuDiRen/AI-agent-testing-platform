@@ -25,8 +25,9 @@ class AuditLogService(BaseService):
     """
 
     def __init__(self, db: Session):
-        super().__init__(db)
+        self.db = db  # 添加db属性
         self.audit_log_repo = AuditLogRepository(db)
+        super().__init__(self.audit_log_repo)  # 传递repository给BaseService
         self.logger = get_logger(self.__class__.__name__)
     
     def _create_entity_from_data(self, data: Dict[str, Any]) -> AuditLog:
@@ -526,18 +527,18 @@ class AuditLogService(BaseService):
         # 应用过滤条件
         if filters:
             if 'username' in filters and filters['username']:
-                query = query.filter(AuditLog.username.like(f"%{filters['username']}%"))
+                query = query.filter(AuditLog.USERNAME.like(f"%{filters['username']}%"))
             if 'operation' in filters and filters['operation']:
-                query = query.filter(AuditLog.operation_type == filters['operation'])
+                query = query.filter(AuditLog.OPERATION_TYPE == filters['operation'])
             if 'start_time' in filters and filters['start_time']:
                 start_time = datetime.fromisoformat(filters['start_time'].replace('Z', '+00:00'))
-                query = query.filter(AuditLog.create_time >= start_time)
+                query = query.filter(AuditLog.OPERATION_TIME >= start_time)
             if 'end_time' in filters and filters['end_time']:
                 end_time = datetime.fromisoformat(filters['end_time'].replace('Z', '+00:00'))
-                query = query.filter(AuditLog.create_time <= end_time)
+                query = query.filter(AuditLog.OPERATION_TIME <= end_time)
 
         # 按创建时间倒序
-        query = query.order_by(AuditLog.create_time.desc())
+        query = query.order_by(AuditLog.OPERATION_TIME.desc())
 
         # 获取总数
         total = query.count()
