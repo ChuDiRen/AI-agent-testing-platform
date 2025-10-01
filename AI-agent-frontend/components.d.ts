@@ -8,11 +8,13 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppBreadcrumb: typeof import('./src/components/layout/AppBreadcrumb.vue')['default']
+    AppFooter: typeof import('./src/components/common/AppFooter.vue')['default']
     AppHeader: typeof import('./src/components/Layout/AppHeader.vue')['default']
     AppIcon: typeof import('./src/components/icon/AppIcon.vue')['default']
     AppPage: typeof import('./src/components/common/AppPage.vue')['default']
     AppSidebar: typeof import('./src/components/Layout/AppSidebar.vue')['default']
     AppTags: typeof import('./src/components/layout/AppTags.vue')['default']
+    CommonPage: typeof import('./src/components/page/CommonPage.vue')['default']
     CommonTable: typeof import('./src/components/Common/CommonTable.vue')['default']
     CrudModal: typeof import('./src/components/modal/CrudModal.vue')['default']
     CrudTable: typeof import('./src/components/table/CrudTable.vue')['default']
@@ -70,9 +72,11 @@ declare module 'vue' {
     ElUpload: typeof import('element-plus/es')['ElUpload']
     ErrorBoundary: typeof import('./src/components/Common/ErrorBoundary.vue')['default']
     FormDialog: typeof import('./src/components/Common/FormDialog.vue')['default']
+    IconPicker: typeof import('./src/components/icon/IconPicker.vue')['default']
     MainLayout: typeof import('./src/components/Layout/MainLayout.vue')['default']
     NaiveProviderContent: typeof import('./src/components/common/NaiveProviderContent.vue')['default']
     NAvatar: typeof import('naive-ui')['NAvatar']
+    NBackTop: typeof import('naive-ui')['NBackTop']
     NBreadcrumb: typeof import('naive-ui')['NBreadcrumb']
     NBreadcrumbItem: typeof import('naive-ui')['NBreadcrumbItem']
     NButton: typeof import('naive-ui')['NButton']
@@ -132,6 +136,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     ScrollX: typeof import('./src/components/common/ScrollX.vue')['default']
     SearchForm: typeof import('./src/components/Common/SearchForm.vue')['default']
+    TheIcon: typeof import('./src/components/icon/TheIcon.vue')['default']
     TokenStatus: typeof import('./src/components/TokenStatus.vue')['default']
     UserAvatar: typeof import('./src/components/layout/UserAvatar.vue')['default']
   }

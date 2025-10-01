@@ -1,296 +1,285 @@
-<template>
-  <div class="audit-log">
-    <div class="page-header">
-      <h2>审计日志</h2>
-    </div>
-
-    <!-- 查询栏 -->
-    <NCard class="search-card">
-      <NForm inline :model="queryForm" label-placement="left">
-        <NFormItem label="用户名">
-          <NInput
-            v-model:value="queryForm.username"
-            placeholder="请输入用户名"
-            clearable
-            @keydown.enter="handleSearch"
-          />
-        </NFormItem>
-        <NFormItem label="操作类型">
-          <NSelect
-            v-model:value="queryForm.action"
-            placeholder="请选择操作类型"
-            clearable
-            :options="actionOptions"
-          />
-        </NFormItem>
-        <NFormItem label="IP地址">
-          <NInput
-            v-model:value="queryForm.ip_address"
-            placeholder="请输入IP地址"
-            clearable
-            @keydown.enter="handleSearch"
-          />
-        </NFormItem>
-        <NFormItem label="时间范围">
-          <NDatePicker
-            v-model:value="queryForm.date_range"
-            type="datetimerange"
-            clearable
-            format="yyyy-MM-dd HH:mm:ss"
-            value-format="yyyy-MM-dd HH:mm:ss"
-          />
-        </NFormItem>
-        <NFormItem>
-          <NSpace>
-            <NButton type="primary" @click="handleSearch">
-              <template #icon>
-                <Icon name="mdi:magnify" />
-              </template>
-              搜索
-            </NButton>
-            <NButton @click="handleReset">
-              <template #icon>
-                <Icon name="mdi:refresh" />
-              </template>
-              重置
-            </NButton>
-          </NSpace>
-        </NFormItem>
-      </NForm>
-    </NCard>
-
-    <!-- 数据表格 -->
-    <NCard>
-      <NDataTable
-        :columns="columns"
-        :data="tableData"
-        :loading="loading"
-        :pagination="pagination"
-        :row-key="(row) => row.id"
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </NCard>
-
-    <!-- 详情弹窗 -->
-    <NModal v-model:show="detailVisible" preset="dialog" title="日志详情" style="width: 600px">
-      <div v-if="currentLog" class="log-detail">
-        <NDescriptions :column="1" bordered>
-          <NDescriptionsItem label="用户名">
-            {{ currentLog.username }}
-          </NDescriptionsItem>
-          <NDescriptionsItem label="操作类型">
-            <NTag :type="getActionType(currentLog.action)">
-              {{ currentLog.action }}
-            </NTag>
-          </NDescriptionsItem>
-          <NDescriptionsItem label="操作描述">
-            {{ currentLog.description }}
-          </NDescriptionsItem>
-          <NDescriptionsItem label="IP地址">
-            {{ currentLog.ip_address }}
-          </NDescriptionsItem>
-          <NDescriptionsItem label="用户代理">
-            {{ currentLog.user_agent }}
-          </NDescriptionsItem>
-          <NDescriptionsItem label="操作时间">
-            {{ formatDate(currentLog.created_at) }}
-          </NDescriptionsItem>
-          <NDescriptionsItem v-if="currentLog.request_data" label="请求数据">
-            <NCode :code="JSON.stringify(currentLog.request_data, null, 2)" language="json" />
-          </NDescriptionsItem>
-          <NDescriptionsItem v-if="currentLog.response_data" label="响应数据">
-            <NCode :code="JSON.stringify(currentLog.response_data, null, 2)" language="json" />
-          </NDescriptionsItem>
-        </NDescriptions>
-      </div>
-    </NModal>
-  </div>
-</template>
-
 <script setup>
-import { ref, reactive, onMounted, h } from 'vue'
-import { NTag, NButton } from 'naive-ui'
-import { Icon } from '@iconify/vue'
-import { formatDate } from '@/utils'
+import { onMounted, ref } from 'vue'
+import { NInput, NSelect, NPopover } from 'naive-ui'
+import TheIcon from '@/components/icon/TheIcon.vue'
+
+import CommonPage from '@/components/page/CommonPage.vue'
+import QueryBarItem from '@/components/query-bar/QueryBarItem.vue'
+import CrudTable from '@/components/table/CrudTable.vue'
+
 import api from '@/api'
 
 defineOptions({ name: '审计日志' })
 
-// 响应式数据
-const loading = ref(false)
-const tableData = ref([])
-const detailVisible = ref(false)
-const currentLog = ref(null)
+const $table = ref(null)
+const queryItems = ref({})
 
-// 操作类型选项
-const actionOptions = [
-  { label: '登录', value: 'LOGIN' },
-  { label: '登出', value: 'LOGOUT' },
-  { label: '创建', value: 'CREATE' },
-  { label: '更新', value: 'UPDATE' },
-  { label: '删除', value: 'DELETE' },
-  { label: '查询', value: 'SELECT' },
-]
-
-// 查询表单
-const queryForm = reactive({
-  username: '',
-  action: '',
-  ip_address: '',
-  date_range: null,
+onMounted(() => {
+  $table.value?.handleSearch()
 })
 
-// 分页配置
-const pagination = reactive({
-  page: 1,
-  pageSize: 20,
-  itemCount: 0,
-  showSizePicker: true,
-  pageSizes: [10, 20, 50, 100],
-})
+function formatTimestamp(timestamp) {
+  const date = new Date(timestamp)
 
-// 获取操作类型样式
-const getActionType = (action) => {
-  const typeMap = {
-    LOGIN: 'success',
-    LOGOUT: 'info',
-    CREATE: 'success',
-    UPDATE: 'warning',
-    DELETE: 'error',
-    SELECT: 'default',
-  }
-  return typeMap[action] || 'default'
+  const pad = (num) => num.toString().padStart(2, '0')
+
+  const year = date.getFullYear()
+  const month = pad(date.getMonth() + 1) // 月份从0开始，所以需要+1
+  const day = pad(date.getDate())
+  const hours = pad(date.getHours())
+  const minutes = pad(date.getMinutes())
+  const seconds = pad(date.getSeconds())
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
-// 表格列配置
+// 获取当天的开始时间的时间戳
+function getStartOfDayTimestamp() {
+  const now = new Date()
+  now.setHours(0, 0, 0, 0) // 将小时、分钟、秒和毫秒都设置为0
+  return now.getTime()
+}
+
+// 获取当天的结束时间的时间戳
+function getEndOfDayTimestamp() {
+  const now = new Date()
+  now.setHours(23, 59, 59, 999) // 将小时设置为23，分钟设置为59，秒设置为59，毫秒设置为999
+  return now.getTime()
+}
+
+const startOfDayTimestamp = getStartOfDayTimestamp()
+const endOfDayTimestamp = getEndOfDayTimestamp()
+
+queryItems.value.start_time = formatTimestamp(startOfDayTimestamp)
+queryItems.value.end_time = formatTimestamp(endOfDayTimestamp)
+
+const datetimeRange = ref([startOfDayTimestamp, endOfDayTimestamp])
+const handleDateRangeChange = (value) => {
+  if (value == null) {
+    queryItems.value.start_time = null
+    queryItems.value.end_time = null
+  } else {
+    queryItems.value.start_time = formatTimestamp(value[0])
+    queryItems.value.end_time = formatTimestamp(value[1])
+  }
+}
+
+const methodOptions = [
+  {
+    label: 'GET',
+    value: 'GET',
+  },
+  {
+    label: 'POST',
+    value: 'POST',
+  },
+  {
+    label: 'DELETE',
+    value: 'DELETE',
+  },
+]
+
+function formatJSON(data) {
+  try {
+    return typeof data === 'string' 
+      ? JSON.stringify(JSON.parse(data), null, 2)
+      : JSON.stringify(data, null, 2)
+  } catch (e) {
+    return data || '无数据'
+  }
+}
+
 const columns = [
-  { title: '用户名', key: 'username', width: 120 },
   {
-    title: '操作类型',
-    key: 'action',
-    width: 100,
-    render: (row) => h(NTag, 
-      { type: getActionType(row.action), size: 'small' },
-      { default: () => row.action }
-    ),
-  },
-  { title: '操作描述', key: 'description', ellipsis: { tooltip: true } },
-  { title: 'IP地址', key: 'ip_address', width: 140 },
-  {
-    title: '操作时间',
-    key: 'created_at',
-    width: 180,
-    render: (row) => formatDate(row.created_at),
+    title: '用户名称',
+    key: 'username',
+    width: 'auto',
+    align: 'center',
+    ellipsis: { tooltip: true },
   },
   {
-    title: '操作',
-    key: 'actions',
-    width: 100,
-    fixed: 'right',
+    title: '接口概要',
+    key: 'summary',
+    align: 'center',
+    width: 'auto',
+    ellipsis: { tooltip: true },
+  },
+  {
+    title: '功能模块',
+    key: 'module',
+    align: 'center',
+    width: 'auto',
+    ellipsis: { tooltip: true },
+  },
+  {
+    title: '请求方法',
+    key: 'method',
+    align: 'center',
+    width: 'auto',
+    ellipsis: { tooltip: true },
+  },
+  {
+    title: '请求路径',
+    key: 'path',
+    align: 'center',
+    width: 'auto',
+    ellipsis: { tooltip: true },
+  },
+  {
+    title: '状态码',
+    key: 'status',
+    align: 'center',
+    width: 'auto',
+    ellipsis: { tooltip: true },
+  },
+  {
+    title: '请求体',
+    key: 'request_body',
+    align: 'center',
+    width: 80,
     render: (row) => {
-      return h(NButton, 
-        { 
-          size: 'small', 
-          type: 'primary',
-          onClick: () => handleViewDetail(row) 
+      return h(
+        NPopover,
+        {
+          trigger: 'hover',
+          placement: 'right',
         },
-        { default: () => '详情' }
+        {
+          trigger: () =>
+            h('div', { style: 'cursor: pointer;' }, [h(TheIcon, { icon: 'carbon:data-view' })]),
+          default: () =>
+            h(
+              'pre',
+              {
+                style:
+                  'max-height: 400px; overflow: auto; background-color: #f5f5f5; padding: 8px; border-radius: 4px;',
+              },
+              formatJSON(row.request_args)
+            ),
+        }
       )
     },
   },
+  {
+    title: '响应体',
+    key: 'response_body',
+    align: 'center',
+    width: 80,
+    render: (row) => {
+      return h(
+        NPopover,
+        {
+          trigger: 'hover',
+          placement: 'right',
+        },
+        {
+          trigger: () =>
+            h('div', { style: 'cursor: pointer;' }, [h(TheIcon, { icon: 'carbon:data-view' })]),
+          default: () =>
+            h(
+              'pre',
+              {
+                style:
+                  'max-height: 400px; overflow: auto; background-color: #f5f5f5; padding: 8px; border-radius: 4px;',
+              },
+              formatJSON(row.response_body)
+            ),
+        }
+      )
+    },
+  },
+  {
+    title: '响应时间(s)',
+    key: 'response_time',
+    align: 'center',
+    width: 'auto',
+    ellipsis: { tooltip: true },
+  },
+  {
+    title: '操作时间',
+    key: 'created_at',
+    align: 'center',
+    width: 'auto',
+    ellipsis: { tooltip: true },
+  },
 ]
-
-// 获取审计日志列表
-const getAuditLogList = async () => {
-  try {
-    loading.value = true
-    const params = {
-      page: pagination.page,
-      page_size: pagination.pageSize,
-      ...queryForm,
-    }
-    
-    // 处理时间范围
-    if (queryForm.date_range && queryForm.date_range.length === 2) {
-      params.start_time = queryForm.date_range[0]
-      params.end_time = queryForm.date_range[1]
-    }
-    delete params.date_range
-    
-    const res = await api.getAuditLogList(params)
-    tableData.value = res.data.items || res.data
-    pagination.itemCount = res.data.total || res.data.length
-  } catch (error) {
-    window.$message?.error('获取审计日志失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 搜索
-const handleSearch = () => {
-  pagination.page = 1
-  getAuditLogList()
-}
-
-// 重置
-const handleReset = () => {
-  Object.assign(queryForm, {
-    username: '',
-    action: '',
-    ip_address: '',
-    date_range: null,
-  })
-  handleSearch()
-}
-
-// 分页变化
-const handlePageChange = (page) => {
-  pagination.page = page
-  getAuditLogList()
-}
-
-const handlePageSizeChange = (pageSize) => {
-  pagination.pageSize = pageSize
-  pagination.page = 1
-  getAuditLogList()
-}
-
-// 查看详情
-const handleViewDetail = (row) => {
-  currentLog.value = row
-  detailVisible.value = true
-}
-
-// 初始化
-onMounted(() => {
-  getAuditLogList()
-})
 </script>
 
-<style scoped>
-.audit-log {
-  padding: 16px;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.page-header h2 {
-  margin: 0;
-}
-
-.search-card {
-  margin-bottom: 16px;
-}
-
-.log-detail {
-  max-height: 500px;
-  overflow-y: auto;
-}
-</style>
+<template>
+  <!-- 业务页面 -->
+  <CommonPage>
+    <!-- 表格 -->
+    <CrudTable
+      ref="$table"
+      v-model:query-items="queryItems"
+      :columns="columns"
+      :get-data="api.getAuditLogList"
+    >
+      <template #queryBar>
+        <QueryBarItem label="用户名称" :label-width="70">
+          <NInput
+            v-model:value="queryItems.username"
+            clearable
+            type="text"
+            placeholder="请输入用户名称"
+            @keypress.enter="$table?.handleSearch()"
+          />
+        </QueryBarItem>
+        <QueryBarItem label="功能模块" :label-width="70">
+          <NInput
+            v-model:value="queryItems.module"
+            clearable
+            type="text"
+            placeholder="请输入功能模块"
+            @keypress.enter="$table?.handleSearch()"
+          />
+        </QueryBarItem>
+        <QueryBarItem label="接口概要" :label-width="70">
+          <NInput
+            v-model:value="queryItems.summary"
+            clearable
+            type="text"
+            placeholder="请输入接口概要"
+            @keypress.enter="$table?.handleSearch()"
+          />
+        </QueryBarItem>
+        <QueryBarItem label="请求方法" :label-width="70">
+          <NSelect
+            v-model:value="queryItems.method"
+            style="width: 180px"
+            :options="methodOptions"
+            clearable
+            placeholder="请选择请求方法"
+          />
+        </QueryBarItem>
+        <QueryBarItem label="请求路径" :label-width="70">
+          <NInput
+            v-model:value="queryItems.path"
+            clearable
+            type="text"
+            placeholder="请输入请求路径"
+            @keypress.enter="$table?.handleSearch()"
+          />
+        </QueryBarItem>
+        <QueryBarItem label="状态码" :label-width="60">
+          <NInput
+            v-model:value="queryItems.status"
+            clearable
+            type="text"
+            placeholder="请输入状态码"
+            @keypress.enter="$table?.handleSearch()"
+          />
+        </QueryBarItem>
+        <QueryBarItem label="操作时间" :label-width="70">
+          <NDatePicker
+            v-model:value="datetimeRange"
+            type="datetimerange"
+            clearable
+            placeholder="请选择时间范围"
+            @update:value="handleDateRangeChange"
+          />
+        </QueryBarItem>
+      </template>
+    </CrudTable>
+  </CommonPage>
+</template>

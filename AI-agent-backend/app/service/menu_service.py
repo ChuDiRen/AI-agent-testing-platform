@@ -109,17 +109,20 @@ class MenuService:
         menu_dict = {}
         for menu in all_menus:
             menu_dict[menu.id] = {
-                "menu_id": menu.id,  # 对应博客中的menu_id
+                "id": menu.id,  # 前端期望id字段
                 "parent_id": menu.parent_id,
-                "menu_name": menu.menu_name,
+                "name": menu.menu_name,  # 前端期望name字段
+                "menu_name": menu.menu_name,  # 保留原字段兼容性
                 "path": menu.path,
                 "component": menu.component,
                 "perms": menu.perms,
                 "icon": menu.icon,
                 "menu_type": menu.menu_type,
-                "order_num": menu.order_num,
+                "order": menu.order_num,  # 前端期望order字段
+                "order_num": menu.order_num,  # 保留原字段兼容性
                 "is_active": menu.is_active,
-                "create_time": menu.create_time.isoformat() if menu.create_time else None,
+                "created_at": menu.create_time.isoformat() if menu.create_time else None,  # 前端期望created_at字段
+                "create_time": menu.create_time.isoformat() if menu.create_time else None,  # 保留原字段兼容性
                 "modify_time": menu.modify_time.isoformat() if menu.modify_time else None,
                 "children": []
             }

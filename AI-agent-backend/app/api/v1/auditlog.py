@@ -53,17 +53,21 @@ async def get_auditlog_list(
             filters=filters
         )
         
-        # 构建响应数据
+        # 构建响应数据 - 字段名匹配前端期望
         log_list = []
         for log in logs:
             log_data = {
                 "id": log.id,
-                "username": log.USERNAME or "",
-                "action": log.OPERATION_TYPE or "",
-                "description": log.OPERATION_DESC or "",
-                "ip_address": log.IP_ADDRESS or "",
-                "user_agent": log.USER_AGENT or "",
-                "created_at": log.OPERATION_TIME.strftime("%Y-%m-%d %H:%M:%S") if log.OPERATION_TIME else ""
+                "username": log.USERNAME or "",  # 前端期望username
+                "summary": log.OPERATION_DESC or "",  # 前端期望summary(接口概要)
+                "module": log.RESOURCE_TYPE or "",  # 前端期望module(功能模块)
+                "method": log.REQUEST_METHOD or "",  # 前端期望method(请求方法)
+                "path": log.REQUEST_URL or "",  # 前端期望path(请求路径)
+                "status": log.RESPONSE_STATUS or 0,  # 前端期望status(状态码)
+                "request_body": log.REQUEST_PARAMS or "",  # 前端期望request_body(请求体)
+                "response_body": log.RESPONSE_MESSAGE or "",  # 前端期望response_body(响应体)
+                "response_time": log.EXECUTION_TIME or 0,  # 前端期望response_time(响应时间)
+                "created_at": log.OPERATION_TIME.strftime("%Y-%m-%d %H:%M:%S") if log.OPERATION_TIME else ""  # 前端期望created_at
             }
             log_list.append(log_data)
         

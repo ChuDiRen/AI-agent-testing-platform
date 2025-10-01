@@ -44,13 +44,13 @@ async def get_role_list(
             filters=filters
         )
 
-        # 构建响应数据
+        # 构建响应数据 - 字段名匹配前端
         role_list = []
         for role in roles:
             role_data = {
-                "role_id": role.id,
-                "role_name": role.role_name,
-                "remark": role.remark or "",
+                "id": role.id,  # 前端期望id
+                "name": role.role_name,  # 前端期望name
+                "desc": role.remark or "",  # 前端期望desc
                 "is_active": role.is_active,
                 "created_at": role.create_time.strftime("%Y-%m-%d %H:%M:%S") if role.create_time else ""
             }
@@ -58,7 +58,7 @@ async def get_role_list(
 
         # 按照vue-fastapi-admin的分页格式
         response_data = {
-            "items": role_list,
+            "items": role_list,  # CrudTable期望items字段
             "total": total
         }
 

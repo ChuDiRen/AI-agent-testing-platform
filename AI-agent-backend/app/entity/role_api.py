@@ -30,7 +30,7 @@ class RoleApi(BaseEntity):
     # 关联关系
     # 关联到角色实体
     role = relationship("Role", back_populates="role_apis")
-    
+
     # 关联到API实体
     api = relationship("ApiEndpoint", back_populates="role_apis")
 

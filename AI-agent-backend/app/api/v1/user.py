@@ -54,12 +54,24 @@ async def get_user_list(
         # 构建响应数据
         user_list = []
         for user in users:
-            # 获取部门名称
-            dept_name = ""
+            # 获取部门信息
+            dept_obj = None
             if user.dept_id:
                 dept = await user_service.get_department_by_id(user.dept_id)
                 if dept:
-                    dept_name = dept.dept_name
+                    dept_obj = {
+                        "id": dept.id,
+                        "name": dept.dept_name
+                    }
+
+            # 获取用户角色
+            roles = []
+            user_roles = user.get_roles()
+            for role in user_roles:
+                roles.append({
+                    "id": role.id,
+                    "name": role.role_name
+                })
 
             user_data = {
                 "user_id": user.id,
@@ -67,9 +79,11 @@ async def get_user_list(
                 "nickname": user.username,  # 如果没有nickname字段，使用username
                 "email": user.email or "",
                 "mobile": user.mobile or "",
-                "dept_id": user.dept_id,
-                "dept_name": dept_name,
+                "dept": dept_obj,  # 前端期望dept对象
+                "roles": roles,  # 前端期望roles数组
+                "is_superuser": user.is_superuser if hasattr(user, 'is_superuser') else False,
                 "status": int(user.status) if user.status else 1,
+                "last_login": user.last_login.strftime("%Y-%m-%d %H:%M:%S") if hasattr(user, 'last_login') and user.last_login else "",
                 "created_at": user.create_time.strftime("%Y-%m-%d %H:%M:%S") if user.create_time else ""
             }
             user_list.append(user_data)
@@ -106,8 +120,8 @@ async def get_user_detail(
 
         # 获取角色ID列表
         role_ids = []
-        if user.roles:
-            role_ids = [role.id for role in user.roles]
+        user_roles = user.get_roles()
+        role_ids = [role.id for role in user_roles]
 
         # 按照vue-fastapi-admin的响应格式
         user_data = {

@@ -1,416 +1,273 @@
-<template>
-  <div class="api-management">
-    <div class="page-header">
-      <h2>API管理</h2>
-      <NSpace>
-        <NButton
-          v-permission="['post/api/refresh']"
-          type="info"
-          @click="handleRefresh"
-        >
-          <template #icon>
-            <Icon name="mdi:refresh" />
-          </template>
-          刷新API
-        </NButton>
-        <NButton
-          v-permission="['post/api/create']"
-          type="primary"
-          @click="handleAdd"
-        >
-          <template #icon>
-            <Icon name="mdi:plus" />
-          </template>
-          新建API
-        </NButton>
-      </NSpace>
-    </div>
-
-    <!-- 查询栏 -->
-    <NCard class="search-card">
-      <NForm inline :model="queryForm" label-placement="left">
-        <NFormItem label="API路径">
-          <NInput
-            v-model:value="queryForm.path"
-            placeholder="请输入API路径"
-            clearable
-            @keydown.enter="handleSearch"
-          />
-        </NFormItem>
-        <NFormItem label="请求方法">
-          <NSelect
-            v-model:value="queryForm.method"
-            placeholder="请选择请求方法"
-            clearable
-            :options="methodOptions"
-          />
-        </NFormItem>
-        <NFormItem label="标签">
-          <NInput
-            v-model:value="queryForm.tags"
-            placeholder="请输入标签"
-            clearable
-            @keydown.enter="handleSearch"
-          />
-        </NFormItem>
-        <NFormItem>
-          <NSpace>
-            <NButton type="primary" @click="handleSearch">
-              <template #icon>
-                <Icon name="mdi:magnify" />
-              </template>
-              搜索
-            </NButton>
-            <NButton @click="handleReset">
-              <template #icon>
-                <Icon name="mdi:refresh" />
-              </template>
-              重置
-            </NButton>
-          </NSpace>
-        </NFormItem>
-      </NForm>
-    </NCard>
-
-    <!-- 数据表格 -->
-    <NCard>
-      <NDataTable
-        :columns="columns"
-        :data="tableData"
-        :loading="loading"
-        :pagination="pagination"
-        :row-key="(row) => row.api_id"
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </NCard>
-
-    <!-- 新增/编辑弹窗 -->
-    <NModal v-model:show="modalVisible" preset="dialog" :title="modalTitle" style="width: 600px">
-      <NForm
-        ref="formRef"
-        :model="formData"
-        :rules="formRules"
-        label-placement="left"
-        label-width="100px"
-      >
-        <NFormItem label="API路径" path="path">
-          <NInput v-model:value="formData.path" placeholder="请输入API路径" />
-        </NFormItem>
-        <NFormItem label="请求方法" path="method">
-          <NSelect
-            v-model:value="formData.method"
-            placeholder="请选择请求方法"
-            :options="methodOptions"
-          />
-        </NFormItem>
-        <NFormItem label="API描述" path="description">
-          <NInput v-model:value="formData.description" placeholder="请输入API描述" />
-        </NFormItem>
-        <NFormItem label="标签" path="tags">
-          <NInput v-model:value="formData.tags" placeholder="请输入标签" />
-        </NFormItem>
-        <NFormItem label="状态">
-          <NSwitch v-model:value="formData.is_active" />
-        </NFormItem>
-      </NForm>
-      <template #action>
-        <NSpace>
-          <NButton @click="modalVisible = false">取消</NButton>
-          <NButton type="primary" :loading="submitLoading" @click="handleSubmit">
-            确定
-          </NButton>
-        </NSpace>
-      </template>
-    </NModal>
-  </div>
-</template>
-
 <script setup>
-import { ref, reactive, onMounted, h } from 'vue'
-import { NTag, NButton, NPopconfirm } from 'naive-ui'
-import { Icon } from '@iconify/vue'
+import { h, onMounted, ref, resolveDirective, withDirectives } from 'vue'
+import { NButton, NForm, NFormItem, NInput, NPopconfirm } from 'naive-ui'
+
+import CommonPage from '@/components/page/CommonPage.vue'
+import QueryBarItem from '@/components/query-bar/QueryBarItem.vue'
+import CrudModal from '@/components/table/CrudModal.vue'
+import CrudTable from '@/components/table/CrudTable.vue'
+import TheIcon from '@/components/icon/TheIcon.vue'
+
+import { renderIcon } from '@/utils'
+import { useCRUD } from '@/composables'
+// import { loginTypeMap, loginTypeOptions } from '@/constant/data'
 import api from '@/api'
 
 defineOptions({ name: 'API管理' })
 
-// 响应式数据
-const loading = ref(false)
-const tableData = ref([])
-const modalVisible = ref(false)
-const modalTitle = ref('')
-const modalAction = ref('add')
-const submitLoading = ref(false)
-const formRef = ref()
+const $table = ref(null)
+const queryItems = ref({})
+const vPermission = resolveDirective('permission')
 
-// 请求方法选项
-const methodOptions = [
-  { label: 'GET', value: 'GET' },
-  { label: 'POST', value: 'POST' },
-  { label: 'PUT', value: 'PUT' },
-  { label: 'DELETE', value: 'DELETE' },
-  { label: 'PATCH', value: 'PATCH' },
-]
-
-// 查询表单
-const queryForm = reactive({
-  path: '',
-  method: '',
-  tags: '',
+const {
+  modalVisible,
+  modalTitle,
+  modalLoading,
+  handleSave,
+  modalForm,
+  modalFormRef,
+  handleEdit,
+  handleDelete,
+  handleAdd,
+} = useCRUD({
+  name: 'API',
+  initForm: {},
+  doCreate: api.createApi,
+  doUpdate: api.updateApi,
+  doDelete: api.deleteApi,
+  refresh: () => $table.value?.handleSearch(),
 })
 
-// 分页配置
-const pagination = reactive({
-  page: 1,
-  pageSize: 20,
-  itemCount: 0,
-  showSizePicker: true,
-  pageSizes: [10, 20, 50, 100],
+onMounted(() => {
+  $table.value?.handleSearch()
 })
 
-// 表单数据
-const formData = reactive({
-  api_id: null,
-  path: '',
-  method: 'GET',
-  description: '',
-  tags: '',
-  is_active: true,
-})
+async function handleRefreshApi() {
+  window.$dialog?.warning({
+    title: '提示',
+    content: '此操作会根据后端 app.routes 进行路由更新，确定继续刷新 API 操作？',
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        await api.refreshApi()
+        window.$message?.success('刷新完成')
+        $table.value?.handleSearch()
+      } catch (error) {
+        window.$message?.error('刷新失败: ' + error.message)
+      }
+    },
+  })
+}
 
-// 表单验证规则
-const formRules = {
+const addAPIRules = {
   path: [
-    { required: true, message: '请输入API路径', trigger: 'blur' },
+    {
+      required: true,
+      message: '请输入API路径',
+      trigger: ['input', 'blur', 'change'],
+    },
   ],
   method: [
-    { required: true, message: '请选择请求方法', trigger: 'change' },
+    {
+      required: true,
+      message: '请输入请求方式',
+      trigger: ['input', 'blur', 'change'],
+    },
   ],
-  description: [
-    { required: true, message: '请输入API描述', trigger: 'blur' },
+  summary: [
+    {
+      required: true,
+      message: '请输入API简介',
+      trigger: ['input', 'blur', 'change'],
+    },
+  ],
+  tags: [
+    {
+      required: true,
+      message: '请输入Tags',
+      trigger: ['input', 'blur', 'change'],
+    },
   ],
 }
 
-// 表格列配置
 const columns = [
-  { title: 'API ID', key: 'api_id', width: 80 },
-  { title: 'API路径', key: 'path', width: 300, ellipsis: { tooltip: true } },
   {
-    title: '请求方法',
+    title: 'API路径',
+    key: 'path',
+    width: 'auto',
+    align: 'center',
+    ellipsis: { tooltip: true },
+  },
+  {
+    title: '请求方式',
     key: 'method',
-    width: 100,
     align: 'center',
-    render: (row) => {
-      const colorMap = {
-        GET: 'success',
-        POST: 'info',
-        PUT: 'warning',
-        DELETE: 'error',
-        PATCH: 'default',
-      }
-      return h(NTag,
-        { type: colorMap[row.method] || 'default', size: 'small' },
-        { default: () => row.method }
-      )
-    },
-  },
-  { title: 'API描述', key: 'description', ellipsis: { tooltip: true } },
-  { title: '标签', key: 'tags', width: 120 },
-  {
-    title: '状态',
-    key: 'is_active',
-    width: 80,
-    align: 'center',
-    render: (row) => h(NTag,
-      { type: row.is_active ? 'success' : 'error', size: 'small' },
-      { default: () => row.is_active ? '启用' : '禁用' }
-    ),
+    width: 'auto',
+    ellipsis: { tooltip: true },
   },
   {
-    title: '创建时间',
-    key: 'created_at',
-    width: 160,
-    render: (row) => row.created_at || '-',
+    title: 'API简介',
+    key: 'summary',
+    width: 'auto',
+    align: 'center',
+    ellipsis: { tooltip: true },
+  },
+  {
+    title: 'Tags',
+    key: 'tags',
+    width: 'auto',
+    align: 'center',
+    ellipsis: { tooltip: true },
   },
   {
     title: '操作',
     key: 'actions',
-    width: 150,
+    width: 'auto',
+    align: 'center',
     fixed: 'right',
-    render: (row) => {
-      return h('div', [
-        h(NButton, 
-          { 
-            size: 'small', 
-            type: 'primary', 
-            style: 'margin-right: 8px',
-            onClick: () => handleEdit(row) 
-          },
-          { default: () => '编辑' }
+    render(row) {
+      return [
+        withDirectives(
+          h(
+            NButton,
+            {
+              size: 'small',
+              type: 'primary',
+              style: 'margin-right: 8px;',
+              onClick: () => {
+                handleEdit(row)
+                modalForm.value.roles = row.roles.map((e) => (e = e.id))
+              },
+            },
+            {
+              default: () => '编辑',
+              icon: renderIcon('material-symbols:edit', { size: 16 }),
+            }
+          ),
+          [[vPermission, 'post/api/v1/api/update']]
         ),
-        h(NPopconfirm, 
+        h(
+          NPopconfirm,
           {
-            onPositiveClick: () => handleDelete(row),
+            onPositiveClick: () => handleDelete({ api_id: row.id }, false),
+            onNegativeClick: () => {},
           },
           {
-            trigger: () => h(NButton, 
-              { size: 'small', type: 'error' },
-              { default: () => '删除' }
-            ),
-            default: () => '确定删除该API吗？',
+            trigger: () =>
+              withDirectives(
+                h(
+                  NButton,
+                  {
+                    size: 'small',
+                    type: 'error',
+                    style: 'margin-right: 8px;',
+                  },
+                  {
+                    default: () => '删除',
+                    icon: renderIcon('material-symbols:delete-outline', { size: 16 }),
+                  }
+                ),
+                [[vPermission, 'delete/api/v1/api/delete']]
+              ),
+            default: () => h('div', {}, '确定删除该API吗?'),
           }
         ),
-      ])
+      ]
     },
   },
 ]
-
-// 获取API列表
-const getApiList = async () => {
-  try {
-    loading.value = true
-    const params = {
-      page: pagination.page,
-      page_size: pagination.pageSize,
-      ...queryForm,
-    }
-    const res = await api.getApis(params)
-    tableData.value = res.data.items || res.data
-    pagination.itemCount = res.data.total || res.data.length
-  } catch (error) {
-    window.$message?.error('获取API列表失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 搜索
-const handleSearch = () => {
-  pagination.page = 1
-  getApiList()
-}
-
-// 重置
-const handleReset = () => {
-  Object.assign(queryForm, {
-    path: '',
-    method: '',
-    tags: '',
-  })
-  handleSearch()
-}
-
-// 分页变化
-const handlePageChange = (page) => {
-  pagination.page = page
-  getApiList()
-}
-
-const handlePageSizeChange = (pageSize) => {
-  pagination.pageSize = pageSize
-  pagination.page = 1
-  getApiList()
-}
-
-// 刷新API
-const handleRefresh = async () => {
-  try {
-    loading.value = true
-    await api.refreshApi()
-    window.$message?.success('API刷新成功')
-    getApiList()
-  } catch (error) {
-    window.$message?.error('API刷新失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 新增
-const handleAdd = () => {
-  modalAction.value = 'add'
-  modalTitle.value = '新增API'
-  Object.assign(formData, {
-    id: null,
-    path: '',
-    method: 'GET',
-    summary: '',
-    tags: '',
-  })
-  modalVisible.value = true
-}
-
-// 编辑
-const handleEdit = (row) => {
-  modalAction.value = 'edit'
-  modalTitle.value = '编辑API'
-  Object.assign(formData, {
-    id: row.id,
-    path: row.path,
-    method: row.method,
-    summary: row.summary,
-    tags: row.tags,
-  })
-  modalVisible.value = true
-}
-
-// 提交表单
-const handleSubmit = async () => {
-  try {
-    await formRef.value?.validate()
-    submitLoading.value = true
-    
-    if (modalAction.value === 'add') {
-      await api.createApi(formData)
-      window.$message?.success('创建成功')
-    } else {
-      await api.updateApi(formData)
-      window.$message?.success('更新成功')
-    }
-    
-    modalVisible.value = false
-    getApiList()
-  } catch (error) {
-    console.error('提交失败:', error)
-  } finally {
-    submitLoading.value = false
-  }
-}
-
-// 删除
-const handleDelete = async (row) => {
-  try {
-    await api.deleteApi({ api_id: row.id })
-    window.$message?.success('删除成功')
-    getApiList()
-  } catch (error) {
-    window.$message?.error('删除失败')
-  }
-}
-
-// 初始化
-onMounted(() => {
-  getApiList()
-})
 </script>
 
-<style scoped>
-.api-management {
-  padding: 16px;
-}
+<template>
+  <!-- 业务页面 -->
+  <CommonPage show-footer title="API列表">
+    <template #action>
+      <div>
+        <NButton
+          v-permission="'post/api/v1/api/create'"
+          class="float-right mr-15"
+          type="primary"
+          @click="handleAdd"
+        >
+          <TheIcon icon="material-symbols:add" :size="18" class="mr-5" />新建API
+        </NButton>
+        <NButton
+          v-permission="'post/api/v1/api/refresh'"
+          class="float-right mr-15"
+          type="warning"
+          @click="handleRefreshApi"
+        >
+          <TheIcon icon="material-symbols:refresh" :size="18" class="mr-5" />刷新API
+        </NButton>
+      </div>
+    </template>
+    <!-- 表格 -->
+    <CrudTable
+      ref="$table"
+      v-model:query-items="queryItems"
+      :columns="columns"
+      :get-data="api.getApis"
+    >
+      <template #queryBar>
+        <QueryBarItem label="路径" :label-width="40">
+          <NInput
+            v-model:value="queryItems.path"
+            clearable
+            type="text"
+            placeholder="请输入API路径"
+            @keypress.enter="$table?.handleSearch()"
+          />
+        </QueryBarItem>
+        <QueryBarItem label="API简介" :label-width="70">
+          <NInput
+            v-model:value="queryItems.summary"
+            clearable
+            type="text"
+            placeholder="请输入API简介"
+            @keypress.enter="$table?.handleSearch()"
+          />
+        </QueryBarItem>
+        <QueryBarItem label="Tags" :label-width="40">
+          <NInput
+            v-model:value="queryItems.tags"
+            clearable
+            type="text"
+            placeholder="请输入API模块"
+            @keypress.enter="$table?.handleSearch()"
+          />
+        </QueryBarItem>
+      </template>
+    </CrudTable>
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.page-header h2 {
-  margin: 0;
-}
-
-.search-card {
-  margin-bottom: 16px;
-}
-</style>
+    <!-- 新增/编辑 弹窗 -->
+    <CrudModal
+      v-model:visible="modalVisible"
+      :title="modalTitle"
+      :loading="modalLoading"
+      @save="handleSave"
+    >
+      <NForm
+        ref="modalFormRef"
+        label-placement="left"
+        label-align="left"
+        :label-width="80"
+        :model="modalForm"
+        :rules="addAPIRules"
+      >
+        <NFormItem label="API名称" path="path">
+          <NInput v-model:value="modalForm.path" clearable placeholder="请输入API路径" />
+        </NFormItem>
+        <NFormItem label="请求方式" path="method">
+          <NInput v-model:value="modalForm.method" clearable placeholder="请输入请求方式" />
+        </NFormItem>
+        <NFormItem label="API简介" path="summary">
+          <NInput v-model:value="modalForm.summary" clearable placeholder="请输入API简介" />
+        </NFormItem>
+        <NFormItem label="Tags" path="tags">
+          <NInput v-model:value="modalForm.tags" clearable placeholder="请输入Tags" />
+        </NFormItem>
+      </NForm>
+    </CrudModal>
+  </CommonPage>
+</template>

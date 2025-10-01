@@ -1,439 +1,504 @@
-<template>
-  <PageWrapper title="用户管理" icon="mdi:account-group">
-    <template #extra>
-      <NButton
-        v-permission="['post/user/create']"
-        type="primary"
-        @click="handleAdd"
-      >
-        <template #icon>
-          <Icon name="mdi:plus" />
-        </template>
-        新建用户
-      </NButton>
-    </template>
-
-    <NLayout has-sider>
-      <!-- 部门侧边栏 -->
-      <NLayoutSider
-        bordered
-        :collapsed-width="0"
-        :width="240"
-        show-trigger="arrow-circle"
-        content-style="padding: 16px;"
-      >
-        <div class="dept-header">
-          <h3>部门列表</h3>
-        </div>
-        <NTree
-          block-line
-          :data="deptOptions"
-          key-field="dept_id"
-          label-field="dept_name"
-          default-expand-all
-          :node-props="nodeProps"
-        />
-      </NLayoutSider>
-
-      <!-- 主内容区 -->
-      <NLayoutContent>
-        <CrudTable
-          ref="tableRef"
-          v-model:query-items="queryItems"
-          :scroll-x="1200"
-          :columns="columns"
-          :get-data="api.getUserList"
-          @on-data-change="handleDataChange"
-        >
-          <template #queryBar>
-            <QueryBarItem label="用户名">
-              <NInput
-                v-model:value="queryItems.username"
-                placeholder="请输入用户名"
-                clearable
-              />
-            </QueryBarItem>
-            <QueryBarItem label="邮箱">
-              <NInput
-                v-model:value="queryItems.email"
-                placeholder="请输入邮箱"
-                clearable
-              />
-            </QueryBarItem>
-            <QueryBarItem label="状态">
-              <NSelect
-                v-model:value="queryItems.status"
-                placeholder="请选择状态"
-                clearable
-                :options="statusOptions"
-              />
-            </QueryBarItem>
-          </template>
-        </CrudTable>
-      </NLayoutContent>
-    </NLayout>
-
-    <!-- 新增/编辑弹窗 -->
-    <CrudModal
-      v-model:visible="modalVisible"
-      :type="modalAction"
-      :data="formData"
-      :rules="formRules"
-      :on-save="handleSave"
-      @success="handleSuccess"
-    >
-      <template #default="{ formData }">
-        <NFormItem label="用户名" path="username">
-          <NInput
-            v-model:value="formData.username"
-            placeholder="请输入用户名"
-            :disabled="modalAction === 'edit'"
-          />
-        </NFormItem>
-        <NFormItem label="昵称" path="nickname">
-          <NInput v-model:value="formData.nickname" placeholder="请输入昵称" />
-        </NFormItem>
-        <NFormItem label="邮箱" path="email">
-          <NInput v-model:value="formData.email" placeholder="请输入邮箱" />
-        </NFormItem>
-        <NFormItem label="手机号" path="mobile">
-          <NInput v-model:value="formData.mobile" placeholder="请输入手机号" />
-        </NFormItem>
-        <NFormItem v-if="modalAction === 'add'" label="密码" path="password">
-          <NInput
-            v-model:value="formData.password"
-            type="password"
-            show-password-on="mousedown"
-            placeholder="请输入密码"
-          />
-        </NFormItem>
-        <NFormItem v-if="modalAction === 'add'" label="确认密码" path="confirmPassword">
-          <NInput
-            v-model:value="formData.confirmPassword"
-            type="password"
-            show-password-on="mousedown"
-            placeholder="请确认密码"
-          />
-        </NFormItem>
-        <NFormItem label="角色" path="role_ids">
-          <NCheckboxGroup v-model:value="formData.role_ids">
-            <NSpace>
-              <NCheckbox
-                v-for="role in roleOptions"
-                :key="role.role_id"
-                :value="role.role_id"
-                :label="role.role_name"
-              />
-            </NSpace>
-          </NCheckboxGroup>
-        </NFormItem>
-        <NFormItem label="部门" path="dept_id">
-          <NTreeSelect
-            v-model:value="formData.dept_id"
-            :options="deptOptions"
-            key-field="dept_id"
-            label-field="dept_name"
-            placeholder="请选择部门"
-            clearable
-          />
-        </NFormItem>
-        <NFormItem label="状态">
-          <NSwitch
-            v-model:value="formData.status"
-            :checked-value="1"
-            :unchecked-value="0"
-          />
-        </NFormItem>
-      </template>
-    </CrudModal>
-  </PageWrapper>
-</template>
-
 <script setup>
-import { ref, reactive, onMounted, h } from 'vue'
-import { NTag, NButton, NPopconfirm } from 'naive-ui'
-import { Icon } from '@iconify/vue'
-import { formatDate } from '@/utils'
-import { PageWrapper, CrudTable, CrudModal, QueryBarItem } from '@/components'
+import { h, onMounted, ref, resolveDirective, withDirectives } from 'vue'
+import {
+  NButton,
+  NCheckbox,
+  NCheckboxGroup,
+  NForm,
+  NFormItem,
+  NImage,
+  NInput,
+  NSpace,
+  NSwitch,
+  NTag,
+  NPopconfirm,
+  NLayout,
+  NLayoutSider,
+  NLayoutContent,
+  NTreeSelect,
+} from 'naive-ui'
+
+import CommonPage from '@/components/page/CommonPage.vue'
+import QueryBarItem from '@/components/query-bar/QueryBarItem.vue'
+import CrudModal from '@/components/table/CrudModal.vue'
+import CrudTable from '@/components/table/CrudTable.vue'
+
+import { formatDate, renderIcon } from '@/utils'
+import { useCRUD } from '@/composables'
+// import { loginTypeMap, loginTypeOptions } from '@/constant/data'
 import api from '@/api'
+import TheIcon from '@/components/icon/TheIcon.vue'
+import { useUserStore } from '@/store'
 
 defineOptions({ name: '用户管理' })
 
-// 响应式数据
-const tableRef = ref()
-const deptOptions = ref([])
-const roleOptions = ref([])
-const modalVisible = ref(false)
-const modalAction = ref('add')
+const $table = ref(null)
+const queryItems = ref({})
+const vPermission = resolveDirective('permission')
 
-// 查询条件
-const queryItems = reactive({
-  username: '',
-  email: '',
-  status: null,
-  dept_id: null,
+const {
+  modalVisible,
+  modalTitle,
+  modalAction,
+  modalLoading,
+  handleSave,
+  modalForm,
+  modalFormRef,
+  handleEdit,
+  handleDelete,
+  handleAdd,
+} = useCRUD({
+  name: '用户',
+  initForm: {},
+  doCreate: api.createUser,
+  doUpdate: api.updateUser,
+  doDelete: api.deleteUser,
+  refresh: () => $table.value?.handleSearch(),
 })
 
-// 状态选项
-const statusOptions = [
-  { label: '正常', value: '1' },
-  { label: '禁用', value: '0' },
-]
+const roleOption = ref([])
+const deptOption = ref([])
 
-// 表单数据
-const formData = reactive({
-  user_id: null,
-  username: '',
-  nickname: '',
-  email: '',
-  mobile: '',
-  password: '',
-  confirmPassword: '',
-  role_ids: [],
-  dept_id: null,
-  status: 1,
+onMounted(() => {
+  $table.value?.handleSearch()
+  api.getRoleList({ page: 1, page_size: 100 }).then((res) => (roleOption.value = res.data))
+  // 修复：getDepts返回的是对象{items: [], total: 0}，需要提取items数组
+  api.getDepts().then((res) => {
+    deptOption.value = res.data.items || res.data || []
+  })
 })
 
-// 表单验证规则
-const formRules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-  ],
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' },
-  ],
-  confirmPassword: [
-    { required: true, message: '请确认密码', trigger: 'blur' },
-    {
-      validator: (rule, value) => {
-        return value === formData.password
-      },
-      message: '两次密码输入不一致',
-      trigger: 'blur',
-    },
-  ],
-  role_ids: [
-    { type: 'array', required: true, message: '请选择角色', trigger: 'change' },
-  ],
-}
-
-// 表格列配置
 const columns = [
-  { title: '用户ID', key: 'user_id', width: 80 },
-  { title: '用户名', key: 'username', width: 120 },
-  { title: '昵称', key: 'nickname', width: 120 },
-  { title: '邮箱', key: 'email', width: 200 },
-  { title: '手机号', key: 'mobile', width: 120 },
-  { title: '部门', key: 'dept_name', width: 120 },
   {
-    title: '状态',
-    key: 'status',
-    width: 80,
-    render: (row) => h(NTag,
-      { type: row.status === 1 || row.status === '1' ? 'success' : 'error', size: 'small' },
-      { default: () => row.status === 1 || row.status === '1' ? '正常' : '禁用' }
-    ),
+    title: '名称',
+    key: 'username',
+    width: 60,
+    align: 'center',
+    ellipsis: { tooltip: true },
   },
   {
-    title: '创建时间',
-    key: 'created_at',
-    width: 160,
-    render: (row) => row.created_at || '-',
+    title: '邮箱',
+    key: 'email',
+    width: 60,
+    align: 'center',
+    ellipsis: { tooltip: true },
+  },
+  {
+    title: '用户角色',
+    key: 'role',
+    width: 60,
+    align: 'center',
+    render(row) {
+      const roles = row.roles ?? []
+      const group = []
+      for (let i = 0; i < roles.length; i++)
+        group.push(
+          h(NTag, { type: 'info', style: { margin: '2px 3px' } }, { default: () => roles[i].name })
+        )
+      return h('span', group)
+    },
+  },
+  {
+    title: '部门',
+    key: 'dept.name',
+    align: 'center',
+    width: 40,
+    ellipsis: { tooltip: true },
+  },
+  {
+    title: '超级用户',
+    key: 'is_superuser',
+    align: 'center',
+    width: 40,
+    render(row) {
+      return h(
+        NTag,
+        { type: 'info', style: { margin: '2px 3px' } },
+        { default: () => (row.is_superuser ? '是' : '否') }
+      )
+    },
+  },
+  {
+    title: '上次登录时间',
+    key: 'last_login',
+    align: 'center',
+    width: 80,
+    ellipsis: { tooltip: true },
+    render(row) {
+      return h(
+        NButton,
+        { size: 'small', type: 'text', ghost: true },
+        {
+          default: () => (row.last_login !== null ? formatDate(row.last_login) : null),
+          icon: renderIcon('mdi:update', { size: 16 }),
+        }
+      )
+    },
+  },
+  {
+    title: '禁用',
+    key: 'is_active',
+    width: 50,
+    align: 'center',
+    render(row) {
+      return h(NSwitch, {
+        size: 'small',
+        rubberBand: false,
+        value: row.is_active,
+        loading: !!row.publishing,
+        checkedValue: false,
+        uncheckedValue: true,
+        onUpdateValue: () => handleUpdateDisable(row),
+      })
+    },
   },
   {
     title: '操作',
     key: 'actions',
-    width: 200,
+    width: 80,
+    align: 'center',
     fixed: 'right',
-    render: (row) => {
-      return h('div', [
-        h(NButton,
-          {
-            size: 'small',
-            type: 'primary',
-            style: 'margin-right: 8px',
-            onClick: () => handleEdit(row)
-          },
-          { default: () => '编辑' }
+    render(row) {
+      return [
+        withDirectives(
+          h(
+            NButton,
+            {
+              size: 'small',
+              type: 'primary',
+              style: 'margin-right: 8px;',
+              onClick: () => {
+                handleEdit(row)
+                modalForm.value.dept_id = row.dept?.id
+                modalForm.value.role_ids = row.roles.map((e) => (e = e.id))
+                delete modalForm.value.dept
+              },
+            },
+            {
+              default: () => '编辑',
+              icon: renderIcon('material-symbols:edit', { size: 16 }),
+            }
+          ),
+          [[vPermission, 'post/api/v1/user/update']]
         ),
-        h(NPopconfirm,
+        h(
+          NPopconfirm,
           {
-            onPositiveClick: () => handleDelete(row),
+            onPositiveClick: () => handleDelete({ user_id: row.id }, false),
+            onNegativeClick: () => {},
           },
           {
-            trigger: () => h(NButton,
-              { size: 'small', type: 'error', style: 'margin-right: 8px' },
-              { default: () => '删除' }
-            ),
-            default: () => '确定删除该用户吗？',
+            trigger: () =>
+              withDirectives(
+                h(
+                  NButton,
+                  {
+                    size: 'small',
+                    type: 'error',
+                    style: 'margin-right: 8px;',
+                  },
+                  {
+                    default: () => '删除',
+                    icon: renderIcon('material-symbols:delete-outline', { size: 16 }),
+                  }
+                ),
+                [[vPermission, 'delete/api/v1/user/delete']]
+              ),
+            default: () => h('div', {}, '确定删除该用户吗?'),
           }
         ),
-        h(NPopconfirm,
+        !row.is_superuser && h(
+          NPopconfirm,
           {
-            onPositiveClick: () => handleResetPassword(row),
+            onPositiveClick: async () => {
+              try {
+                await api.resetPassword({ user_id: row.id });
+                $message.success('密码已成功重置为123456');
+                await $table.value?.handleSearch();
+              } catch (error) {
+                $message.error('重置密码失败: ' + error.message);
+              }
+            },
+            onNegativeClick: () => {},
           },
           {
-            trigger: () => h(NButton,
-              { size: 'small', type: 'warning' },
-              { default: () => '重置密码' }
-            ),
-            default: () => '确定重置密码吗？',
+            trigger: () =>
+              withDirectives(
+                h(
+                  NButton,
+                  {
+                    size: 'small',
+                    type: 'warning',
+                    style: 'margin-right: 8px;',
+                  },
+                  {
+                    default: () => '重置密码',
+                    icon: renderIcon('material-symbols:lock-reset', { size: 16 }),
+                  }
+                ),
+                [[vPermission, 'post/api/v1/user/reset_password']]
+              ),
+            default: () => h('div', {}, '确定重置用户密码为123456吗?'),
           }
         ),
-      ])
+      ]
     },
   },
 ]
 
-// 部门树节点属性
-const nodeProps = ({ option }) => ({
-  onClick() {
-    queryItems.dept_id = option.dept_id
-    tableRef.value?.handleSearch()
-  },
-})
-
-// 数据变化处理
-const handleDataChange = (data) => {
-  // 可以在这里处理数据变化后的逻辑
-  console.log('用户数据已更新:', Array.isArray(data) ? data.length : 0)
-}
-
-// 获取角色列表
-const getRoleList = async () => {
-  try {
-    const res = await api.getRoleList({ page: 1, page_size: 100 }) // 修复：使用最大允许值100
-    if (res.code === 200 && res.data) {
-      roleOptions.value = res.data.items || []
-    }
-  } catch (error) {
-    console.error('获取角色列表失败:', error)
+// 修改用户禁用状态
+async function handleUpdateDisable(row) {
+  if (!row.id) return
+  const userStore = useUserStore()
+  if (userStore.userId === row.id) {
+    $message.error('当前登录用户不可禁用！')
+    return
   }
-}
-
-// 获取部门列表
-const getDeptList = async () => {
-  try {
-    const res = await api.getDepts()
-    if (res.code === 200 && res.data) {
-      deptOptions.value = Array.isArray(res.data) ? res.data : []
-    } else {
-      deptOptions.value = []
-    }
-  } catch (error) {
-    console.error('获取部门列表失败:', error)
-    deptOptions.value = []
-  }
-}
-
-// 保存处理
-const handleSave = async (formData, type) => {
-  if (type === 'add') {
-    await api.createUser(formData)
-  } else {
-    await api.updateUser(formData)
-  }
-}
-
-// 保存成功处理
-const handleSuccess = () => {
-  tableRef.value?.handleSearch()
-}
-
-// 新增
-const handleAdd = () => {
-  modalAction.value = 'add'
-  Object.assign(formData, {
-    user_id: null,
-    username: '',
-    nickname: '',
-    email: '',
-    mobile: '',
-    password: '',
-    confirmPassword: '',
-    role_ids: [],
-    dept_id: null,
-    status: 1,
+  row.publishing = true
+  row.is_active = row.is_active === false ? true : false
+  row.publishing = false
+  const role_ids = []
+  row.roles.forEach((e) => {
+    role_ids.push(e.id)
   })
-  modalVisible.value = true
-}
-
-// 编辑
-const handleEdit = async (row) => {
+  row.role_ids = role_ids
+  row.dept_id = row.dept?.id
   try {
-    // 获取用户详情
-    const res = await api.getUserById({ user_id: row.user_id })
-    if (res.code === 200 && res.data) {
-      modalAction.value = 'edit'
-      Object.assign(formData, {
-        user_id: res.data.user_id,
-        username: res.data.username,
-        nickname: res.data.nickname || '',
-        email: res.data.email || '',
-        mobile: res.data.mobile || '',
-        password: '',
-        confirmPassword: '',
-        role_ids: res.data.role_ids || [],
-        dept_id: res.data.dept_id || null,
-        status: res.data.status || 1,
-      })
-      modalVisible.value = true
-    }
-  } catch (error) {
-    window.$message?.error('获取用户信息失败')
+    await api.updateUser(row)
+    $message?.success(row.is_active ? '已取消禁用该用户' : '已禁用该用户')
+    $table.value?.handleSearch()
+  } catch (err) {
+    // 有异常恢复原来的状态
+    row.is_active = row.is_active === false ? true : false
+  } finally {
+    row.publishing = false
   }
 }
 
-// 删除
-const handleDelete = async (row) => {
-  try {
-    await api.deleteUser({ user_id: row.user_id })
-    window.$message?.success('删除成功')
-    tableRef.value?.handleSearch()
-  } catch (error) {
-    window.$message?.error('删除失败')
+let lastClickedNodeId = null
+
+const nodeProps = ({ option }) => {
+  return {
+    onClick() {
+      if (lastClickedNodeId === option.id) {
+        $table.value?.handleSearch()
+        lastClickedNodeId = null
+      } else {
+        api.getUserList({ dept_id: option.id }).then((res) => {
+          // 修复：res.data是对象{items: [], total: 0}，需要提取items数组
+          if ($table.value) {
+            $table.value.tableData = res.data.items || []
+            if ($table.value.pagination) {
+              $table.value.pagination.itemCount = res.data.total || 0
+            }
+          }
+          lastClickedNodeId = option.id
+        })
+      }
+    },
   }
 }
 
-// 重置密码
-const handleResetPassword = async (row) => {
-  try {
-    // 弹出输入框让用户输入新密码
-    const newPassword = prompt('请输入新密码（至少6位）：', '123456')
-    if (!newPassword) return
-
-    if (newPassword.length < 6) {
-      window.$message?.error('密码长度不能少于6位')
-      return
-    }
-
-    await api.resetPassword({ user_id: row.user_id, new_password: newPassword })
-    window.$message?.success('密码重置成功')
-  } catch (error) {
-    window.$message?.error('重置密码失败')
-  }
+const validateAddUser = {
+  username: [
+    {
+      required: true,
+      message: '请输入名称',
+      trigger: ['input', 'blur'],
+    },
+  ],
+  email: [
+    {
+      required: true,
+      message: '请输入邮箱地址',
+      trigger: ['input', 'change'],
+    },
+    {
+      trigger: ['blur'],
+      validator: (rule, value, callback) => {
+        const re = /^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/
+        if (!re.test(modalForm.value.email)) {
+          callback('邮箱格式错误')
+          return
+        }
+        callback()
+      },
+    },
+  ],
+  password: [
+    {
+      required: true,
+      message: '请输入密码',
+      trigger: ['input', 'blur', 'change'],
+    },
+  ],
+  confirmPassword: [
+    {
+      required: true,
+      message: '请再次输入密码',
+      trigger: ['input'],
+    },
+    {
+      trigger: ['blur'],
+      validator: (rule, value, callback) => {
+        if (value !== modalForm.value.password) {
+          callback('两次密码输入不一致')
+          return
+        }
+        callback()
+      },
+    },
+  ],
+  roles: [
+    {
+      type: 'array',
+      required: true,
+      message: '请至少选择一个角色',
+      trigger: ['blur', 'change'],
+    },
+  ],
 }
-
-// 初始化
-onMounted(() => {
-  getRoleList()
-  getDeptList()
-})
 </script>
 
-<style scoped>
-.dept-header {
-  margin-bottom: 16px;
-}
+<template>
+  <NLayout has-sider wh-full>
+    <NLayoutSider
+      bordered
+      content-style="padding: 24px;"
+      :collapsed-width="0"
+      :width="240"
+      show-trigger="arrow-circle"
+    >
+      <h1>部门列表</h1>
+      <br />
+      <NTree
+        block-line
+        :data="deptOption"
+        key-field="id"
+        label-field="name"
+        default-expand-all
+        :node-props="nodeProps"
+      >
+      </NTree>
+    </NLayoutSider>
+    <NLayoutContent>
+      <CommonPage show-footer title="用户列表">
+        <template #action>
+          <NButton v-permission="'post/api/v1/user/create'" type="primary" @click="handleAdd">
+            <TheIcon icon="material-symbols:add" :size="18" class="mr-5" />新建用户
+          </NButton>
+        </template>
+        <!-- 表格 -->
+        <CrudTable
+          ref="$table"
+          v-model:query-items="queryItems"
+          :columns="columns"
+          :get-data="api.getUserList"
+        >
+          <template #queryBar>
+            <QueryBarItem label="名称" :label-width="40">
+              <NInput
+                v-model:value="queryItems.username"
+                clearable
+                type="text"
+                placeholder="请输入用户名称"
+                @keypress.enter="$table?.handleSearch()"
+              />
+            </QueryBarItem>
+            <QueryBarItem label="邮箱" :label-width="40">
+              <NInput
+                v-model:value="queryItems.email"
+                clearable
+                type="text"
+                placeholder="请输入邮箱"
+                @keypress.enter="$table?.handleSearch()"
+              />
+            </QueryBarItem>
+          </template>
+        </CrudTable>
 
-.dept-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 500;
-}
-</style>
+        <!-- 新增/编辑 弹窗 -->
+        <CrudModal
+          v-model:visible="modalVisible"
+          :title="modalTitle"
+          :loading="modalLoading"
+          @save="handleSave"
+        >
+          <NForm
+            ref="modalFormRef"
+            label-placement="left"
+            label-align="left"
+            :label-width="80"
+            :model="modalForm"
+            :rules="validateAddUser"
+          >
+            <NFormItem label="用户名称" path="username">
+              <NInput v-model:value="modalForm.username" clearable placeholder="请输入用户名称" />
+            </NFormItem>
+            <NFormItem label="邮箱" path="email">
+              <NInput v-model:value="modalForm.email" clearable placeholder="请输入邮箱" />
+            </NFormItem>
+            <NFormItem v-if="modalAction === 'add'" label="密码" path="password">
+              <NInput
+                v-model:value="modalForm.password"
+                show-password-on="mousedown"
+                type="password"
+                clearable
+                placeholder="请输入密码"
+              />
+            </NFormItem>
+            <NFormItem v-if="modalAction === 'add'" label="确认密码" path="confirmPassword">
+              <NInput
+                v-model:value="modalForm.confirmPassword"
+                show-password-on="mousedown"
+                type="password"
+                clearable
+                placeholder="请确认密码"
+              />
+            </NFormItem>
+            <NFormItem label="角色" path="role_ids">
+              <NCheckboxGroup v-model:value="modalForm.role_ids">
+                <NSpace item-style="display: flex;">
+                  <NCheckbox
+                    v-for="item in roleOption"
+                    :key="item.role_id"
+                    :value="item.role_id"
+                    :label="item.name"
+                  />
+                </NSpace>
+              </NCheckboxGroup>
+            </NFormItem>
+            <NFormItem label="超级用户" path="is_superuser">
+              <NSwitch
+                v-model:value="modalForm.is_superuser"
+                size="small"
+                :checked-value="true"
+                :unchecked-value="false"
+              ></NSwitch>
+            </NFormItem>
+            <NFormItem label="禁用" path="is_active">
+              <NSwitch
+                v-model:value="modalForm.is_active"
+                :checked-value="false"
+                :unchecked-value="true"
+                :default-value="true"
+              />
+            </NFormItem>
+            <NFormItem label="部门" path="dept_id">
+              <NTreeSelect
+                v-model:value="modalForm.dept_id"
+                :options="deptOption"
+                key-field="id"
+                label-field="name"
+                placeholder="请选择部门"
+                clearable
+                default-expand-all
+              ></NTreeSelect>
+            </NFormItem>
+          </NForm>
+        </CrudModal>
+      </CommonPage>
+    </NLayoutContent>
+  </NLayout>
+  <!-- 业务页面 -->
+</template>

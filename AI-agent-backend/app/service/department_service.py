@@ -109,13 +109,12 @@ class DepartmentService:
         # 构建部门树
         dept_dict = {}
         for dept in all_departments:
-            dept_dict[dept.id] = {  # 修复：使用正确的属性名
-                "dept_id": dept.id,  # 修复：使用正确的属性名
+            dept_dict[dept.id] = {
+                "id": dept.id,  # 前端期望id
+                "name": dept.dept_name,  # 前端期望name
+                "desc": "",  # 前端期望desc
+                "order": dept.order_num,  # 前端期望order
                 "parent_id": dept.parent_id,
-                "dept_name": dept.dept_name,
-                "order_num": dept.order_num,
-                "create_time": dept.create_time.isoformat() if dept.create_time else None,
-                "modify_time": dept.modify_time.isoformat() if dept.modify_time else None,
                 "children": []
             }
 

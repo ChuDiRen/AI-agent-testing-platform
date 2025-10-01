@@ -76,6 +76,15 @@ class User(BaseEntity):
         """用户ID属性，返回主键id的值"""
         return self.id
 
+    def get_roles(self):
+        """获取用户的角色列表"""
+        roles = []
+        if hasattr(self, 'user_roles') and self.user_roles:
+            for user_role in self.user_roles:
+                if hasattr(user_role, 'role') and user_role.role:
+                    roles.append(user_role.role)
+        return roles
+
     def __init__(self, username: str, password: str, email: str = None,
                  mobile: str = None, dept_id: int = None, ssex: str = None,
                  avatar: str = None, description: str = None):

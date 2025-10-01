@@ -13,25 +13,33 @@ import {
 export default defineConfig({
   shortcuts: [
     // 布局相关
+    ['wh-full', 'w-full h-full'],
+    ['f-c-c', 'flex justify-center items-center'],
+    ['flex-col', 'flex flex-col'],
     ['flex-center', 'flex justify-center items-center'],
     ['flex-between', 'flex justify-between items-center'],
     ['flex-around', 'flex justify-around items-center'],
     ['flex-evenly', 'flex justify-evenly items-center'],
     ['flex-col-center', 'flex flex-col justify-center items-center'],
     ['flex-col-between', 'flex flex-col justify-between items-center'],
-    
+    ['absolute-lt', 'absolute left-0 top-0'],
+    ['absolute-lb', 'absolute left-0 bottom-0'],
+    ['absolute-rt', 'absolute right-0 top-0'],
+    ['absolute-rb', 'absolute right-0 bottom-0'],
+    ['absolute-center', 'absolute-lt f-c-c wh-full'],
+
     // 文本相关
     ['text-ellipsis', 'truncate'],
     ['text-break', 'break-all'],
-    
+
     // 边框相关
     ['border-base', 'border border-gray-200 dark:border-gray-700'],
     ['border-hover', 'border-gray-300 dark:border-gray-600'],
-    
+
     // 阴影相关
     ['shadow-base', 'shadow-sm'],
     ['shadow-hover', 'shadow-md'],
-    ['card-shadow', 'shadow-sm hover:shadow-md transition-shadow duration-300'],
+    ['card-shadow', 'shadow-[0_1px_2px_-2px_#00000029,0_3px_6px_#0000001f,0_5px_12px_4px_#00000017]'],
     
     // 过渡动画
     ['transition-base', 'transition-all duration-300 ease-in-out'],

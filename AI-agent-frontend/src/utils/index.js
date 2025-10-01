@@ -1,5 +1,7 @@
 import { router } from '@/router'
 import dayjs from 'dayjs'  // 导入dayjs
+import { h } from 'vue'
+import { AppIcon } from '@/components'
 
 // Token相关
 const TOKEN_KEY = 'access_token'
@@ -95,4 +97,9 @@ export function formatNumber(num) {
     return (num / 1000).toFixed(1) + 'K'
   }
   return num.toString()
+}
+
+// 渲染图标 - 用于NaiveUI表格等场景
+export function renderIcon(icon, props = {}) {
+  return () => h(AppIcon, { name: icon, ...props })
 }

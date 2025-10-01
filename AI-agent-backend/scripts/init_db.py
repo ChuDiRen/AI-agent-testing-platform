@@ -509,7 +509,18 @@ def create_rbac_initial_data(db):
         db.add(dashboard_menu)
         db.flush()
 
-
+        # 个人资料菜单
+        profile_menu = Menu(
+            parent_id=0,
+            menu_name="个人资料",
+            menu_type="0",
+            path="/profile",
+            component="/profile",
+            icon="User",
+            order_num=99  # 排在最后
+        )
+        db.add(profile_menu)
+        db.flush()
 
         # 测试管理菜单（保留菜单但不添加权限按钮）
         test_menu = Menu(
@@ -742,6 +753,7 @@ def create_rbac_initial_data(db):
         # 管理员角色 - 拥有所有权限
         admin_menu_ids = [
             dashboard_menu.id,
+            profile_menu.id,  # 个人资料菜单
             system_menu.id,
             user_menu.id,
             user_add_btn.id,
@@ -791,6 +803,7 @@ def create_rbac_initial_data(db):
         # 部门经理角色 - 有用户管理权限
         manager_menu_ids = [
             dashboard_menu.id,
+            profile_menu.id,  # 个人资料菜单
             system_menu.id,
             user_menu.id,
             user_add_btn.id,
@@ -805,6 +818,7 @@ def create_rbac_initial_data(db):
         # 开发人员角色 - 有基本查看权限
         developer_menu_ids = [
             dashboard_menu.id,
+            profile_menu.id,  # 个人资料菜单
             system_menu.id,
             user_menu.id,
             dept_menu.id
@@ -817,6 +831,7 @@ def create_rbac_initial_data(db):
         # 普通用户角色 - 只有基本查看权限
         user_menu_ids = [
             dashboard_menu.id,
+            profile_menu.id,  # 个人资料菜单
             user_menu.id
         ]
 

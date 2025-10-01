@@ -1,529 +1,362 @@
-<template>
-  <div class="role-management">
-    <div class="page-header">
-      <h2>角色管理</h2>
-      <NButton
-        v-permission="['post/role/create']"
-        type="primary"
-        @click="handleAdd"
-      >
-        <template #icon>
-          <Icon name="mdi:plus" />
-        </template>
-        新建角色
-      </NButton>
-    </div>
-
-    <!-- 查询栏 -->
-    <NCard class="search-card">
-      <NForm inline :model="queryForm" label-placement="left">
-        <NFormItem label="角色名">
-          <NInput
-            v-model:value="queryForm.role_name"
-            placeholder="请输入角色名"
-            clearable
-            @keydown.enter="handleSearch"
-          />
-        </NFormItem>
-        <NFormItem>
-          <NSpace>
-            <NButton type="primary" @click="handleSearch">
-              <template #icon>
-                <Icon name="mdi:magnify" />
-              </template>
-              搜索
-            </NButton>
-            <NButton @click="handleReset">
-              <template #icon>
-                <Icon name="mdi:refresh" />
-              </template>
-              重置
-            </NButton>
-          </NSpace>
-        </NFormItem>
-      </NForm>
-    </NCard>
-
-    <!-- 数据表格 -->
-    <NCard>
-      <NDataTable
-        :columns="columns"
-        :data="tableData"
-        :loading="loading"
-        :pagination="pagination"
-        :row-key="(row) => row.role_id"
-        @update:page="handlePageChange"
-        @update:page-size="handlePageSizeChange"
-      />
-    </NCard>
-
-    <!-- 新增/编辑弹窗 -->
-    <NModal v-model:show="modalVisible" preset="dialog" :title="modalTitle">
-      <NForm
-        ref="formRef"
-        :model="formData"
-        :rules="formRules"
-        label-placement="left"
-        label-width="80px"
-      >
-        <NFormItem label="角色名" path="role_name">
-          <NInput v-model:value="formData.role_name" placeholder="请输入角色名" />
-        </NFormItem>
-        <NFormItem label="角色描述" path="remark">
-          <NInput
-            v-model:value="formData.remark"
-            type="textarea"
-            placeholder="请输入角色描述"
-            :rows="3"
-          />
-        </NFormItem>
-        <NFormItem label="状态">
-          <NSwitch
-            v-model:value="formData.is_active"
-            :checked-value="true"
-            :unchecked-value="false"
-          />
-        </NFormItem>
-      </NForm>
-      <template #action>
-        <NSpace>
-          <NButton @click="modalVisible = false">取消</NButton>
-          <NButton type="primary" :loading="submitLoading" @click="handleSubmit">
-            确定
-          </NButton>
-        </NSpace>
-      </template>
-    </NModal>
-
-    <!-- 权限设置抽屉 -->
-    <NDrawer v-model:show="permissionDrawerVisible" :width="500" placement="right">
-      <NDrawerContent title="设置权限">
-        <div class="permission-header">
-          <NInput
-            v-model:value="filterPattern"
-            placeholder="筛选权限"
-            clearable
-          />
-          <NButton
-            type="primary"
-            style="margin-left: 12px"
-            @click="handleSavePermission"
-          >
-            保存
-          </NButton>
-        </div>
-
-        <NTabs default-value="menu" style="margin-top: 16px">
-          <NTabPane name="menu" tab="菜单权限">
-            <NTree
-              :data="menuOptions"
-              :checked-keys="checkedMenuKeys"
-              :pattern="filterPattern"
-              key-field="menu_id"
-              label-field="menu_name"
-              checkable
-              cascade
-              default-expand-all
-              @update:checked-keys="handleMenuCheck"
-            />
-          </NTabPane>
-          <NTabPane name="api" tab="接口权限">
-            <NTree
-              :data="apiOptions"
-              :checked-keys="checkedApiKeys"
-              :pattern="filterPattern"
-              key-field="unique_id"
-              label-field="summary"
-              checkable
-              cascade
-              default-expand-all
-              @update:checked-keys="handleApiCheck"
-            />
-          </NTabPane>
-        </NTabs>
-      </NDrawerContent>
-    </NDrawer>
-  </div>
-</template>
-
 <script setup>
-import { ref, reactive, onMounted, h } from 'vue'
-import { NTag, NButton, NPopconfirm } from 'naive-ui' // 修复：导入Naive UI组件
-import { Icon } from '@iconify/vue'
-import { formatDate } from '@/utils'
+import { h, onMounted, ref, resolveDirective, withDirectives } from 'vue'
+import {
+  NButton,
+  NForm,
+  NFormItem,
+  NInput,
+  NPopconfirm,
+  NTag,
+  NTree,
+  NDrawer,
+  NDrawerContent,
+  NTabs,
+  NTabPane,
+  NGrid,
+  NGi,
+} from 'naive-ui'
+
+import CommonPage from '@/components/page/CommonPage.vue'
+import QueryBarItem from '@/components/query-bar/QueryBarItem.vue'
+import CrudModal from '@/components/table/CrudModal.vue'
+import CrudTable from '@/components/table/CrudTable.vue'
+
+import { formatDate, renderIcon } from '@/utils'
+import { useCRUD } from '@/composables'
 import api from '@/api'
+import TheIcon from '@/components/icon/TheIcon.vue'
 
 defineOptions({ name: '角色管理' })
 
-// 响应式数据
-const loading = ref(false)
-const tableData = ref([])
-const modalVisible = ref(false)
-const modalTitle = ref('')
-const modalAction = ref('add')
-const submitLoading = ref(false)
-const formRef = ref()
-const permissionDrawerVisible = ref(false)
-const currentRoleId = ref(null)
-const filterPattern = ref('')
+const $table = ref(null)
+const queryItems = ref({})
+const vPermission = resolveDirective('permission')
 
-// 权限相关
-const menuOptions = ref([])
-const apiOptions = ref([])
-const checkedMenuKeys = ref([])
-const checkedApiKeys = ref([])
-
-// 查询表单
-const queryForm = reactive({
-  role_name: '',
+const {
+  modalVisible,
+  modalAction,
+  modalTitle,
+  modalLoading,
+  handleAdd,
+  handleDelete,
+  handleEdit,
+  handleSave,
+  modalForm,
+  modalFormRef,
+} = useCRUD({
+  name: '角色',
+  initForm: {},
+  doCreate: api.createRole,
+  doDelete: api.deleteRole,
+  doUpdate: api.updateRole,
+  refresh: () => $table.value?.handleSearch(),
 })
 
-// 分页配置
-const pagination = reactive({
-  page: 1,
-  pageSize: 20,
-  itemCount: 0,
-  showSizePicker: true,
-  pageSizes: [10, 20, 50, 100],
-})
+const pattern = ref('')
+const menuOption = ref([]) // 菜单选项
+const active = ref(false)
+const menu_ids = ref([])
+const role_id = ref(0)
+const apiOption = ref([])
+const api_ids = ref([])
+const apiTree = ref([])
 
-// 表单数据
-const formData = reactive({
-  role_id: null,
-  role_name: '',
-  remark: '',
-  is_active: true,
-})
+function buildApiTree(data) {
+  const processedData = []
+  const groupedData = {}
 
-// 表单验证规则
-const formRules = {
-  role_name: [
-    { required: true, message: '请输入角色名', trigger: 'blur' },
-  ],
+  data.forEach((item) => {
+    const tags = item['tags']
+    const pathParts = item['path'].split('/')
+    const path = pathParts.slice(0, -1).join('/')
+    const summary = tags.charAt(0).toUpperCase() + tags.slice(1)
+    const unique_id = item['method'].toLowerCase() + item['path']
+    if (!(path in groupedData)) {
+      groupedData[path] = { unique_id: path, path: path, summary: summary, children: [] }
+    }
+
+    groupedData[path].children.push({
+      id: item['id'],
+      path: item['path'],
+      method: item['method'],
+      summary: item['summary'],
+      unique_id: unique_id,
+    })
+  })
+  processedData.push(...Object.values(groupedData))
+  return processedData
 }
 
-// 表格列配置
+onMounted(() => {
+  $table.value?.handleSearch()
+})
+
 const columns = [
-  { title: '角色ID', key: 'role_id', width: 80 },
   {
     title: '角色名',
-    key: 'role_name',
-    width: 150,
-    render: (row) => h(NTag, { type: 'info' }, { default: () => row.role_name }),
-  },
-  { title: '角色描述', key: 'remark', ellipsis: { tooltip: true } },
-  {
-    title: '状态',
-    key: 'is_active',
+    key: 'name',
     width: 80,
-    render: (row) => h(NTag,
-      { type: row.is_active ? 'success' : 'error', size: 'small' },
-      { default: () => row.is_active ? '启用' : '禁用' }
-    ),
+    align: 'center',
+    ellipsis: { tooltip: true },
+    render(row) {
+      return h(NTag, { type: 'info' }, { default: () => row.name })
+    },
   },
   {
-    title: '创建时间',
+    title: '角色描述',
+    key: 'desc',
+    width: 80,
+    align: 'center',
+  },
+  {
+    title: '创建日期',
     key: 'created_at',
-    width: 180,
-    render: (row) => row.created_at || '-',
+    width: 60,
+    align: 'center',
+    render(row) {
+      return h('span', formatDate(row.created_at))
+    },
   },
   {
     title: '操作',
     key: 'actions',
-    width: 200,
+    width: 80,
+    align: 'center',
     fixed: 'right',
-    render: (row) => {
-      return h('div', [
-        h(NButton, 
-          { 
-            size: 'small', 
-            type: 'primary', 
-            style: 'margin-right: 8px',
-            onClick: () => handleEdit(row) 
-          },
-          { default: () => '编辑' }
+    render(row) {
+      return [
+        withDirectives(
+          h(
+            NButton,
+            {
+              size: 'small',
+              type: 'primary',
+              style: 'margin-right: 8px;',
+              onClick: () => {
+                handleEdit(row)
+              },
+            },
+            {
+              default: () => '编辑',
+              icon: renderIcon('material-symbols:edit-outline', { size: 16 }),
+            }
+          ),
+          [[vPermission, 'post/api/v1/role/update']]
         ),
-        h(NButton, 
-          { 
-            size: 'small', 
-            type: 'info', 
-            style: 'margin-right: 8px',
-            onClick: () => handleSetPermission(row) 
-          },
-          { default: () => '设置权限' }
-        ),
-        h(NPopconfirm, 
+        h(
+          NPopconfirm,
           {
-            onPositiveClick: () => handleDelete(row),
+            onPositiveClick: () => handleDelete({ role_id: row.id }, false),
+            onNegativeClick: () => {},
           },
           {
-            trigger: () => h(NButton, 
-              { size: 'small', type: 'error' },
-              { default: () => '删除' }
-            ),
-            default: () => '确定删除该角色吗？',
+            trigger: () =>
+              withDirectives(
+                h(
+                  NButton,
+                  {
+                    size: 'small',
+                    type: 'error',
+                    style: 'margin-right: 8px;',
+                  },
+                  {
+                    default: () => '删除',
+                    icon: renderIcon('material-symbols:delete-outline', { size: 16 }),
+                  }
+                ),
+                [[vPermission, 'delete/api/v1/role/delete']]
+              ),
+            default: () => h('div', {}, '确定删除该角色吗?'),
           }
         ),
-      ])
+        withDirectives(
+          h(
+            NButton,
+            {
+              size: 'small',
+              type: 'primary',
+              onClick: async () => {
+                try {
+                  // 使用 Promise.all 来同时发送所有请求
+                  const [menusResponse, apisResponse, roleAuthorizedResponse] = await Promise.all([
+                    api.getMenus({ page: 1, page_size: 9999 }),
+                    api.getApis({ page: 1, page_size: 9999 }),
+                    api.getRoleAuthorized({ id: row.id }),
+                  ])
+
+                  // 处理每个请求的响应
+                  menuOption.value = menusResponse.data
+                  apiOption.value = buildApiTree(apisResponse.data)
+                  menu_ids.value = roleAuthorizedResponse.data.menus.map((v) => v.id)
+                  api_ids.value = roleAuthorizedResponse.data.apis.map(
+                    (v) => v.method.toLowerCase() + v.path
+                  )
+
+                  active.value = true
+                  role_id.value = row.id
+                } catch (error) {
+                  // 错误处理
+                  console.error('Error loading data:', error)
+                }
+              },
+            },
+            {
+              default: () => '设置权限',
+              icon: renderIcon('material-symbols:edit-outline', { size: 16 }),
+            }
+          ),
+          [[vPermission, 'get/api/v1/role/authorized']]
+        ),
+      ]
     },
   },
 ]
 
-// 构建API树结构
-const buildApiTree = (data) => {
-  const tree = []
-  const groupMap = new Map()
-
-  data.forEach(item => {
-    const pathParts = item.path.split('/')
-    const groupPath = pathParts.slice(0, -1).join('/')
-    const groupName = item.tags || '其他'
-    
-    if (!groupMap.has(groupName)) {
-      const group = {
-        unique_id: groupName,
-        summary: groupName,
-        children: []
+async function updateRoleAuthorized() {
+  const checkData = apiTree.value.getCheckedData()
+  const apiInfos = []
+  checkData &&
+    checkData.options.forEach((item) => {
+      if (!item.children) {
+        apiInfos.push({
+          path: item.path,
+          method: item.method,
+        })
       }
-      groupMap.set(groupName, group)
-      tree.push(group)
-    }
-    
-    groupMap.get(groupName).children.push({
-      unique_id: `${item.method.toLowerCase()}${item.path}`,
-      summary: `${item.method} ${item.path} - ${item.summary}`,
-      path: item.path,
-      method: item.method,
-      id: item.id
     })
+  const { code, msg } = await api.updateRoleAuthorized({
+    id: role_id.value,
+    menu_ids: menu_ids.value,
+    api_infos: apiInfos,
   })
-
-  return tree
-}
-
-// 获取角色列表
-const getRoleList = async () => {
-  try {
-    loading.value = true
-    const params = {
-      page: pagination.page,
-      page_size: pagination.pageSize,
-      ...queryForm,
-    }
-    const res = await api.getRoleList(params)
-    if (res.code === 200 && res.data) {
-      tableData.value = res.data.items || []
-      pagination.itemCount = res.data.total || 0
-    }
-  } catch (error) {
-    window.$message?.error('获取角色列表失败')
-  } finally {
-    loading.value = false
+  if (code === 200) {
+    $message?.success('设置成功')
+  } else {
+    $message?.error(msg)
   }
-}
 
-// 搜索
-const handleSearch = () => {
-  pagination.page = 1
-  getRoleList()
-}
-
-// 重置
-const handleReset = () => {
-  Object.assign(queryForm, {
-    role_name: '',
+  const result = await api.getRoleAuthorized({ id: role_id.value })
+  menu_ids.value = result.data.menus.map((v) => {
+    return v.id
   })
-  handleSearch()
 }
-
-// 分页变化
-const handlePageChange = (page) => {
-  pagination.page = page
-  getRoleList()
-}
-
-const handlePageSizeChange = (pageSize) => {
-  pagination.pageSize = pageSize
-  pagination.page = 1
-  getRoleList()
-}
-
-// 新增
-const handleAdd = () => {
-  modalAction.value = 'add'
-  modalTitle.value = '新增角色'
-  Object.assign(formData, {
-    role_id: null,
-    role_name: '',
-    remark: '',
-    is_active: true,
-  })
-  modalVisible.value = true
-}
-
-// 编辑
-const handleEdit = (row) => {
-  modalAction.value = 'edit'
-  modalTitle.value = '编辑角色'
-  Object.assign(formData, {
-    role_id: row.role_id,
-    role_name: row.role_name,
-    remark: row.remark || '',
-    is_active: row.is_active !== undefined ? row.is_active : true,
-  })
-  modalVisible.value = true
-}
-
-// 提交表单
-const handleSubmit = async () => {
-  try {
-    await formRef.value?.validate()
-    submitLoading.value = true
-    
-    if (modalAction.value === 'add') {
-      await api.createRole(formData)
-      window.$message?.success('创建成功')
-    } else {
-      await api.updateRole(formData)
-      window.$message?.success('更新成功')
-    }
-    
-    modalVisible.value = false
-    getRoleList()
-  } catch (error) {
-    console.error('提交失败:', error)
-  } finally {
-    submitLoading.value = false
-  }
-}
-
-// 删除
-const handleDelete = async (row) => {
-  try {
-    await api.deleteRole({ role_id: row.role_id })
-    window.$message?.success('删除成功')
-    getRoleList()
-  } catch (error) {
-    window.$message?.error('删除失败')
-  }
-}
-
-// 设置权限
-const handleSetPermission = async (row) => {
-  try {
-    currentRoleId.value = row.role_id
-
-    // 并行获取菜单、API和角色权限数据
-    const [menuRes, apiRes, roleAuthRes] = await Promise.all([
-      api.getMenus(),
-      api.getApis(),
-      api.getRoleAuthorized({ role_id: row.role_id })
-    ])
-
-    // 处理菜单数据
-    if (menuRes.code === 200 && menuRes.data) {
-      menuOptions.value = Array.isArray(menuRes.data) ? menuRes.data : []
-    }
-
-    // 处理API数据
-    if (apiRes.code === 200 && apiRes.data) {
-      const apiList = apiRes.data.items || []
-      apiOptions.value = buildApiTree(apiList)
-    }
-
-    // 处理角色权限数据
-    if (roleAuthRes.code === 200 && roleAuthRes.data) {
-      checkedMenuKeys.value = roleAuthRes.data.menu_ids || []
-      checkedApiKeys.value = roleAuthRes.data.api_ids || []
-    }
-
-    permissionDrawerVisible.value = true
-  } catch (error) {
-    console.error('获取权限数据失败:', error)
-    window.$message?.error('获取权限数据失败')
-  }
-}
-
-// 菜单权限选择
-const handleMenuCheck = (keys) => {
-  checkedMenuKeys.value = keys
-}
-
-// API权限选择
-const handleApiCheck = (keys) => {
-  checkedApiKeys.value = keys
-}
-
-// 保存权限
-const handleSavePermission = async () => {
-  try {
-    // 过滤掉分组节点，只保留实际的API ID
-    const apiIds = checkedApiKeys.value.filter(key => {
-      // 检查是否是实际的API（不是分组）
-      let isActualApi = false
-      apiOptions.value.forEach(group => {
-        group.children?.forEach(api => {
-          if (api.unique_id === key && api.id) {
-            isActualApi = true
-          }
-        })
-      })
-      return isActualApi
-    }).map(key => {
-      // 从unique_id中提取实际的API ID
-      let apiId = null
-      apiOptions.value.forEach(group => {
-        group.children?.forEach(api => {
-          if (api.unique_id === key) {
-            apiId = api.id
-          }
-        })
-      })
-      return apiId
-    }).filter(id => id !== null)
-
-    await api.updateRoleAuthorized({
-      role_id: currentRoleId.value,
-      menu_ids: checkedMenuKeys.value,
-      api_ids: apiIds
-    })
-
-    window.$message?.success('权限设置成功')
-    permissionDrawerVisible.value = false
-  } catch (error) {
-    console.error('权限设置失败:', error)
-    window.$message?.error('权限设置失败')
-  }
-}
-
-// 初始化
-onMounted(() => {
-  getRoleList()
-})
 </script>
 
-<style scoped>
-.role-management {
-  padding: 16px;
-}
+<template>
+  <CommonPage show-footer title="角色列表">
+    <template #action>
+      <NButton v-permission="'post/api/v1/role/create'" type="primary" @click="handleAdd">
+        <TheIcon icon="material-symbols:add" :size="18" class="mr-5" />新建角色
+      </NButton>
+    </template>
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
+    <CrudTable
+      ref="$table"
+      v-model:query-items="queryItems"
+      :columns="columns"
+      :get-data="api.getRoleList"
+    >
+      <template #queryBar>
+        <QueryBarItem label="角色名" :label-width="50">
+          <NInput
+            v-model:value="queryItems.role_name"
+            clearable
+            type="text"
+            placeholder="请输入角色名"
+            @keypress.enter="$table?.handleSearch()"
+          />
+        </QueryBarItem>
+      </template>
+    </CrudTable>
 
-.page-header h2 {
-  margin: 0;
-}
+    <CrudModal
+      v-model:visible="modalVisible"
+      :title="modalTitle"
+      :loading="modalLoading"
+      @save="handleSave"
+    >
+      <NForm
+        ref="modalFormRef"
+        label-placement="left"
+        label-align="left"
+        :label-width="80"
+        :model="modalForm"
+        :disabled="modalAction === 'view'"
+      >
+        <NFormItem
+          label="角色名"
+          path="name"
+          :rule="{
+            required: true,
+            message: '请输入角色名称',
+            trigger: ['input', 'blur'],
+          }"
+        >
+          <NInput v-model:value="modalForm.name" placeholder="请输入角色名称" />
+        </NFormItem>
+        <NFormItem label="角色描述" path="desc">
+          <NInput v-model:value="modalForm.desc" placeholder="请输入角色描述" />
+        </NFormItem>
+      </NForm>
+    </CrudModal>
 
-.search-card {
-  margin-bottom: 16px;
-}
-
-.permission-header {
-  display: flex;
-  align-items: center;
-}
-</style>
+    <NDrawer v-model:show="active" placement="right" :width="500"
+      ><NDrawerContent>
+        <NGrid x-gap="24" cols="12">
+          <NGi span="8">
+            <NInput
+              v-model:value="pattern"
+              type="text"
+              placeholder="筛选"
+              style="flex-grow: 1"
+            ></NInput>
+          </NGi>
+          <NGi offset="2">
+            <NButton
+              v-permission="'post/api/v1/role/authorized'"
+              type="info"
+              @click="updateRoleAuthorized"
+              >确定</NButton
+            >
+          </NGi>
+        </NGrid>
+        <NTabs>
+          <NTabPane name="menu" tab="菜单权限" display-directive="show">
+            <!-- TODO：级联 -->
+            <NTree
+              :data="menuOption"
+              :checked-keys="menu_ids"
+              :pattern="pattern"
+              :show-irrelevant-nodes="false"
+              key-field="id"
+              label-field="name"
+              checkable
+              :default-expand-all="true"
+              :block-line="true"
+              :selectable="false"
+              @update:checked-keys="(v) => (menu_ids = v)"
+            />
+          </NTabPane>
+          <NTabPane name="resource" tab="接口权限" display-directive="show">
+            <NTree
+              ref="apiTree"
+              :data="apiOption"
+              :checked-keys="api_ids"
+              :pattern="pattern"
+              :show-irrelevant-nodes="false"
+              key-field="unique_id"
+              label-field="summary"
+              checkable
+              :default-expand-all="true"
+              :block-line="true"
+              :selectable="false"
+              cascade
+              @update:checked-keys="(v) => (api_ids = v)"
+            />
+          </NTabPane>
+        </NTabs>
+        <template #header> 设置权限 </template>
+      </NDrawerContent>
+    </NDrawer>
+  </CommonPage>
+</template>
