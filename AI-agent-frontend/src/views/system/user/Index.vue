@@ -301,7 +301,7 @@ const nodeProps = ({ option }) => ({
 // 数据变化处理
 const handleDataChange = (data) => {
   // 可以在这里处理数据变化后的逻辑
-  console.log('用户数据已更新:', data.length)
+  console.log('用户数据已更新:', Array.isArray(data) ? data.length : 0)
 }
 
 // 获取角色列表
@@ -322,9 +322,12 @@ const getDeptList = async () => {
     const res = await api.getDepts()
     if (res.code === 200 && res.data) {
       deptOptions.value = Array.isArray(res.data) ? res.data : []
+    } else {
+      deptOptions.value = []
     }
   } catch (error) {
     console.error('获取部门列表失败:', error)
+    deptOptions.value = []
   }
 }
 

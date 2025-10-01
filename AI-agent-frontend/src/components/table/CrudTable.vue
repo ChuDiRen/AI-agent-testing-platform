@@ -110,14 +110,22 @@ async function handleQuery() {
       ...props.extraParams,
       ...paginationParams,
     })
-    
+
     // 适配不同的响应格式
     if (result.code === 200) {
-      tableData.value = result.data || []
-      pagination.itemCount = result.total || 0
+      // 判断data是对象还是数组
+      if (result.data && typeof result.data === 'object' && !Array.isArray(result.data)) {
+        // data是对象,包含items和total
+        tableData.value = result.data.items || []
+        pagination.itemCount = result.data.total || 0
+      } else {
+        // data直接是数组
+        tableData.value = result.data || []
+        pagination.itemCount = result.total || 0
+      }
     } else {
-      tableData.value = result.data || []
-      pagination.itemCount = result.total || 0
+      tableData.value = []
+      pagination.itemCount = 0
     }
   } catch (error) {
     tableData.value = []
