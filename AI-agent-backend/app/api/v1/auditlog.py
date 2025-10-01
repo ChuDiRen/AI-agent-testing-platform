@@ -21,7 +21,11 @@ async def get_auditlog_list(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),
     username: Optional[str] = Query(None, description="用户名"),
-    operation: Optional[str] = Query(None, description="操作类型"),
+    module: Optional[str] = Query(None, description="功能模块"),  # 前端发送module参数
+    summary: Optional[str] = Query(None, description="接口概要"),  # 前端发送summary参数
+    method: Optional[str] = Query(None, description="请求方法"),  # 前端发送method参数
+    path: Optional[str] = Query(None, description="请求路径"),  # 前端发送path参数
+    status: Optional[int] = Query(None, description="状态码"),  # 前端发送status参数
     start_time: Optional[str] = Query(None, description="开始时间"),
     end_time: Optional[str] = Query(None, description="结束时间"),
     current_user: User = Depends(get_current_user),
@@ -29,18 +33,26 @@ async def get_auditlog_list(
 ):
     """
     获取审计日志列表（分页）
-    
+
     完全按照vue-fastapi-admin的接口规范实现
     """
     try:
         audit_log_service = AuditLogService(db)
-        
-        # 构建查询条件
+
+        # 构建查询条件 - 前端字段映射到后端字段
         filters = {}
         if username:
             filters['username'] = username
-        if operation:
-            filters['operation'] = operation
+        if module:
+            filters['module'] = module  # 前端module映射到后端module(RESOURCE_TYPE)
+        if summary:
+            filters['summary'] = summary  # 前端summary映射到后端summary(OPERATION_DESC)
+        if method:
+            filters['method'] = method  # 前端method映射到后端method(REQUEST_METHOD)
+        if path:
+            filters['path'] = path  # 前端path映射到后端path(REQUEST_URL)
+        if status:
+            filters['status'] = status  # 前端status映射到后端status(RESPONSE_STATUS)
         if start_time:
             filters['start_time'] = start_time
         if end_time:

@@ -12,11 +12,13 @@ from app.db.session import get_db
 from app.dto.base_dto import Success, Fail
 from app.entity.user import User
 from app.service.menu_service import MenuService
+from app.utils.log_decorators import log_user_action  # 导入日志装饰器
 
 router = APIRouter()
 
 
 @router.get("/list", summary="获取菜单列表")
+@log_user_action(action="查看", resource_type="菜单管理", description="查看菜单列表")  # 添加日志装饰器
 async def get_menu_list(
     menu_name: Optional[str] = Query(None, description="菜单名称"),
     current_user: User = Depends(get_current_user),
@@ -42,6 +44,7 @@ async def get_menu_list(
 
 
 @router.post("/create", summary="创建菜单")
+@log_user_action(action="新建", resource_type="菜单管理", description="新建菜单")  # 添加日志装饰器
 async def create_menu(
     parent_id: int = Body(0, description="父菜单ID,0表示顶级菜单"),
     name: str = Body(..., description="菜单名称"),  # 前端发送name
@@ -86,6 +89,7 @@ async def create_menu(
 
 
 @router.post("/update", summary="更新菜单")
+@log_user_action(action="编辑", resource_type="菜单管理", description="编辑菜单")  # 添加日志装饰器
 async def update_menu(
     id: int = Body(..., description="菜单ID"),  # 前端发送id
     parent_id: int = Body(0, description="父菜单ID"),
@@ -139,6 +143,7 @@ async def update_menu(
 
 
 @router.delete("/delete", summary="删除菜单")
+@log_user_action(action="删除", resource_type="菜单管理", description="删除菜单")  # 添加日志装饰器
 async def delete_menu(
     id: int = Query(..., description="菜单ID"),  # 前端发送id参数
     current_user: User = Depends(get_current_user),

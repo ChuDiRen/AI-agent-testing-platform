@@ -135,10 +135,7 @@ const columns = [
               size: 'small',
               type: 'primary',
               style: 'margin-right: 8px;',
-              onClick: () => {
-                handleEdit(row)
-                modalForm.value.roles = row.roles.map((e) => (e = e.id))
-              },
+              onClick: () => handleEdit(row), // 修复:API管理不需要处理roles字段
             },
             {
               default: () => '编辑',
@@ -150,7 +147,7 @@ const columns = [
         h(
           NPopconfirm,
           {
-            onPositiveClick: () => handleDelete({ api_id: row.id }, false),
+            onPositiveClick: () => handleDelete({ id: row.id }, false), // 修复:后端期望id参数,不是api_id
             onNegativeClick: () => {},
           },
           {

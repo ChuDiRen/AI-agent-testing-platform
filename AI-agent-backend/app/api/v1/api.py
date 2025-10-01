@@ -14,11 +14,13 @@ from app.db.session import get_db
 from app.dto.base_dto import Success, Fail
 from app.entity.user import User
 from app.entity.api_endpoint import ApiEndpoint
+from app.utils.log_decorators import log_user_action  # 导入日志装饰器
 
 router = APIRouter()
 
 
 @router.get("/list", summary="获取API列表")
+@log_user_action(action="查看", resource_type="API管理", description="查看API列表")  # 添加日志装饰器
 async def get_api_list(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=10000, description="每页数量"),  # 提高限制以支持获取所有API
@@ -77,12 +79,12 @@ async def get_api_list(
 
 
 @router.post("/create", summary="创建API")
+@log_user_action(action="新建", resource_type="API管理", description="新建API")  # 添加日志装饰器
 async def create_api(
-    path: str = Body(..., description="API路径"),
-    method: str = Body(..., description="请求方法"),
-    description: Optional[str] = Body(None, description="API描述"),
-    tags: Optional[str] = Body(None, description="API标签"),
-    is_active: bool = Body(True, description="是否启用"),
+    path: str = Body(..., description="API路径"),  # 前端发送path
+    method: str = Body(..., description="请求方法"),  # 前端发送method
+    summary: Optional[str] = Body(None, description="API简介"),  # 前端发送summary,映射到description
+    tags: Optional[str] = Body(None, description="API标签"),  # 前端发送tags,映射到module
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -103,13 +105,19 @@ async def create_api(
         if existing_api:
             return Fail(msg="该API已存在")
 
-        # 创建API
+        # 创建API - 前端字段映射到后端字段
+        # path -> path
+        # method -> method
+        # summary -> description
+        # tags -> module
+        # name使用path作为默认值
         new_api = ApiEndpoint(
             path=path,
             method=method,
-            description=description,
-            tags=tags,
-            is_active=is_active
+            name=path,  # 使用path作为name的默认值
+            description=summary,  # 前端summary映射到description
+            module=tags,  # 前端tags映射到module
+            created_by_id=current_user.id
         )
 
         db.add(new_api)
@@ -124,13 +132,13 @@ async def create_api(
 
 
 @router.post("/update", summary="更新API")
+@log_user_action(action="编辑", resource_type="API管理", description="编辑API")  # 添加日志装饰器
 async def update_api(
-    api_id: int = Body(..., description="API ID"),
-    path: str = Body(..., description="API路径"),
-    method: str = Body(..., description="请求方法"),
-    description: Optional[str] = Body(None, description="API描述"),
-    tags: Optional[str] = Body(None, description="API标签"),
-    is_active: bool = Body(True, description="是否启用"),
+    id: int = Body(..., description="API ID"),  # 前端发送id
+    path: str = Body(..., description="API路径"),  # 前端发送path
+    method: str = Body(..., description="请求方式"),  # 前端发送method
+    summary: Optional[str] = Body(None, description="API简介"),  # 前端发送summary,映射到description
+    tags: Optional[str] = Body(None, description="Tags"),  # 前端发送tags,映射到module
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -143,7 +151,7 @@ async def update_api(
     try:
         # 检查API是否存在
         api = db.query(ApiEndpoint).filter(
-            ApiEndpoint.id == api_id,
+            ApiEndpoint.id == id,
             ApiEndpoint.is_deleted == 0
         ).first()
 
@@ -158,15 +166,15 @@ async def update_api(
                 ApiEndpoint.is_deleted == 0
             ).first()
 
-            if existing_api and existing_api.id != api_id:
+            if existing_api and existing_api.id != id:
                 return Fail(msg="该API已被其他记录使用")
 
-        # 更新API
+        # 更新API - 前端字段映射到后端字段
         api.path = path
         api.method = method
-        api.description = description
-        api.tags = tags
-        api.is_active = is_active
+        api.name = path  # 使用path作为name
+        api.description = summary  # 前端summary映射到description
+        api.module = tags  # 前端tags映射到module
 
         db.commit()
 
@@ -178,8 +186,9 @@ async def update_api(
 
 
 @router.delete("/delete", summary="删除API")
+@log_user_action(action="删除", resource_type="API管理", description="删除API")  # 添加日志装饰器
 async def delete_api(
-    api_id: int = Query(..., description="API ID"),
+    id: int = Query(..., description="API ID"),  # 前端发送id
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -192,7 +201,7 @@ async def delete_api(
     try:
         # 检查API是否存在
         api = db.query(ApiEndpoint).filter(
-            ApiEndpoint.id == api_id,
+            ApiEndpoint.id == id,
             ApiEndpoint.is_deleted == 0
         ).first()
 
@@ -211,6 +220,7 @@ async def delete_api(
 
 
 @router.post("/refresh", summary="刷新API列表")
+@log_user_action(action="刷新", resource_type="API管理", description="刷新API列表")  # 添加日志装饰器
 async def refresh_api_list(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)

@@ -30,7 +30,7 @@ const {
   handleDelete,
   handleAdd,
 } = useCRUD({
-  name: 'API',
+  name: '部门',  // 修复对话框标题
   initForm: { order: 0 },
   doCreate: api.createDept,
   doUpdate: api.updateDept,

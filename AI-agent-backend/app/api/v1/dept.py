@@ -12,11 +12,13 @@ from app.db.session import get_db
 from app.dto.base_dto import Success, Fail
 from app.entity.user import User
 from app.service.department_service import DepartmentService
+from app.utils.log_decorators import log_user_action  # 导入日志装饰器
 
 router = APIRouter()
 
 
 @router.get("/list", summary="获取部门列表")
+@log_user_action(action="查看", resource_type="部门管理", description="查看部门列表")  # 添加日志装饰器
 async def get_dept_list(
     dept_name: Optional[str] = Query(None, description="部门名称"),
     current_user: User = Depends(get_current_user),
@@ -42,38 +44,32 @@ async def get_dept_list(
 
 
 @router.post("/create", summary="创建部门")
+@log_user_action(action="新建", resource_type="部门管理", description="新建部门")  # 添加日志装饰器
 async def create_dept(
     parent_id: int = Body(0, description="父部门ID，0表示顶级部门"),
-    dept_name: str = Body(..., description="部门名称"),
-    order_num: Optional[float] = Body(0, description="排序号"),
-    leader: Optional[str] = Body(None, description="负责人"),
-    phone: Optional[str] = Body(None, description="联系电话"),
-    email: Optional[str] = Body(None, description="邮箱"),
-    status: str = Body("1", description="状态：0禁用 1启用"),
+    name: str = Body(..., description="部门名称"),  # 前端发送name
+    desc: Optional[str] = Body(None, description="备注"),  # 前端发送desc(暂不使用)
+    order: Optional[float] = Body(0, description="排序号"),  # 前端发送order
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     创建新部门
-    
+
     完全按照vue-fastapi-admin的接口规范实现
     """
     try:
         dept_service = DepartmentService(db)
-        
-        # 创建部门
+
+        # 创建部门 - 只传递service需要的参数
         new_dept = dept_service.create_department(
             parent_id=parent_id,
-            dept_name=dept_name,
-            order_num=order_num,
-            leader=leader,
-            phone=phone,
-            email=email,
-            status=status
+            dept_name=name,  # 转换为dept_name
+            order_num=order  # 转换为order_num
         )
-        
+
         return Success(data={"dept_id": new_dept.id}, msg="创建成功")
-        
+
     except ValueError as e:
         return Fail(msg=str(e))
     except Exception as e:
@@ -81,54 +77,49 @@ async def create_dept(
 
 
 @router.post("/update", summary="更新部门")
+@log_user_action(action="编辑", resource_type="部门管理", description="编辑部门")  # 添加日志装饰器
 async def update_dept(
-    dept_id: int = Body(..., description="部门ID"),
+    id: int = Body(..., description="部门ID"),  # 前端发送id
     parent_id: int = Body(0, description="父部门ID"),
-    dept_name: str = Body(..., description="部门名称"),
-    order_num: Optional[float] = Body(0, description="排序号"),
-    leader: Optional[str] = Body(None, description="负责人"),
-    phone: Optional[str] = Body(None, description="联系电话"),
-    email: Optional[str] = Body(None, description="邮箱"),
-    status: str = Body("1", description="状态：0禁用 1启用"),
+    name: str = Body(..., description="部门名称"),  # 前端发送name
+    desc: Optional[str] = Body(None, description="备注"),  # 前端发送desc(暂不使用)
+    order: Optional[float] = Body(0, description="排序号"),  # 前端发送order
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     更新部门信息
-    
+
     完全按照vue-fastapi-admin的接口规范实现
     """
     try:
         dept_service = DepartmentService(db)
-        
+
         # 检查部门是否存在
-        dept = dept_service.get_department_by_id(dept_id)
+        dept = dept_service.get_department_by_id(id)  # 使用id
         if not dept:
             return Fail(msg="部门不存在")
-        
+
         # 检查是否设置自己为父部门
-        if parent_id == dept_id:
+        if parent_id == id:  # 使用id
             return Fail(msg="不能设置自己为父部门")
-        
-        # 更新部门
+
+        # 更新部门 - 只更新service支持的字段
         dept.parent_id = parent_id
-        dept.dept_name = dept_name
-        dept.order_num = order_num
-        dept.leader = leader
-        dept.phone = phone
-        dept.email = email
-        dept.status = status
-        
+        dept.dept_name = name  # 转换为dept_name
+        dept.order_num = order  # 转换为order_num
+
         dept_service.db.commit()
-        
+
         return Success(msg="更新成功")
-        
+
     except Exception as e:
         dept_service.db.rollback()
         return Fail(msg=f"更新部门失败: {str(e)}")
 
 
 @router.delete("/delete", summary="删除部门")
+@log_user_action(action="删除", resource_type="部门管理", description="删除部门")  # 添加日志装饰器
 async def delete_dept(
     dept_id: int = Query(..., description="部门ID"),
     current_user: User = Depends(get_current_user),

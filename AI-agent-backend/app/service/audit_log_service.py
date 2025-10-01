@@ -527,6 +527,16 @@ class AuditLogService(BaseService):
         if filters:
             if 'username' in filters and filters['username']:
                 query = query.filter(AuditLog.USERNAME.like(f"%{filters['username']}%"))
+            if 'module' in filters and filters['module']:  # 功能模块搜索
+                query = query.filter(AuditLog.RESOURCE_TYPE.like(f"%{filters['module']}%"))
+            if 'summary' in filters and filters['summary']:  # 接口概要搜索
+                query = query.filter(AuditLog.OPERATION_DESC.like(f"%{filters['summary']}%"))
+            if 'method' in filters and filters['method']:  # 请求方法搜索
+                query = query.filter(AuditLog.REQUEST_METHOD == filters['method'])
+            if 'path' in filters and filters['path']:  # 请求路径搜索
+                query = query.filter(AuditLog.REQUEST_URL.like(f"%{filters['path']}%"))
+            if 'status' in filters and filters['status']:  # 状态码搜索
+                query = query.filter(AuditLog.RESPONSE_STATUS == filters['status'])
             if 'operation' in filters and filters['operation']:
                 query = query.filter(AuditLog.OPERATION_TYPE == filters['operation'])
             if 'start_time' in filters and filters['start_time']:

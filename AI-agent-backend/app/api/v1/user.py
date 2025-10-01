@@ -13,11 +13,13 @@ from app.dto.base_dto import Success, Fail
 from app.entity.user import User
 from app.service.user_service import RBACUserService
 from app.core.security import get_password_hash
+from app.utils.log_decorators import log_user_action  # 导入日志装饰器
 
 router = APIRouter()
 
 
 @router.get("/list", summary="获取用户列表")
+@log_user_action(action="查看", resource_type="用户管理", description="查看用户列表")  # 添加日志装饰器
 async def get_user_list(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),
@@ -96,6 +98,7 @@ async def get_user_list(
 
 
 @router.get("/get", summary="获取单个用户")
+@log_user_action(action="查看", resource_type="用户管理", description="查看用户详情")  # 添加日志装饰器
 async def get_user_detail(
     user_id: int = Query(..., description="用户ID"),
     current_user: User = Depends(get_current_user),
@@ -137,6 +140,7 @@ async def get_user_detail(
 
 
 @router.post("/create", summary="创建用户")
+@log_user_action(action="新建", resource_type="用户管理", description="新建用户")  # 添加日志装饰器
 async def create_user(
     username: str = Body(..., description="用户名"),
     password: str = Body(..., description="密码"),
@@ -200,6 +204,7 @@ async def create_user(
 
 
 @router.post("/update", summary="更新用户")
+@log_user_action(action="编辑", resource_type="用户管理", description="编辑用户")  # 添加日志装饰器
 async def update_user(
     id: int = Body(..., description="用户ID"),  # 前端传id而不是user_id
     nickname: Optional[str] = Body(None, description="昵称"),
@@ -256,6 +261,7 @@ async def update_user(
 
 
 @router.delete("/delete", summary="删除用户")
+@log_user_action(action="删除", resource_type="用户管理", description="删除用户")  # 添加日志装饰器
 async def delete_user(
     user_id: int = Query(..., description="用户ID"),
     current_user: User = Depends(get_current_user),
@@ -288,6 +294,7 @@ async def delete_user(
 
 
 @router.post("/reset_password", summary="重置用户密码")
+@log_user_action(action="重置密码", resource_type="用户管理", description="重置用户密码")  # 添加日志装饰器
 async def reset_user_password(
     request: dict = Body(...),
     current_user: User = Depends(get_current_user),

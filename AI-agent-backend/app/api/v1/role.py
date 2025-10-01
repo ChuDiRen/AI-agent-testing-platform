@@ -12,11 +12,13 @@ from app.db.session import get_db
 from app.dto.base_dto import Success, Fail
 from app.entity.user import User
 from app.service.role_service import RoleService
+from app.utils.log_decorators import log_user_action  # 导入日志装饰器
 
 router = APIRouter()
 
 
 @router.get("/list", summary="获取角色列表")
+@log_user_action(action="查看", resource_type="角色管理", description="查看角色列表")  # 添加日志装饰器
 async def get_role_list(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=10000, description="每页数量"),  # 提高限制以支持获取所有角色
@@ -64,6 +66,7 @@ async def get_role_list(
 
 
 @router.post("/create", summary="创建角色")
+@log_user_action(action="新建", resource_type="角色管理", description="新建角色")  # 添加日志装饰器
 async def create_role(
     name: str = Body(..., description="角色名称"),  # 前端传name
     desc: Optional[str] = Body(None, description="角色描述"),  # 前端传desc
@@ -103,6 +106,7 @@ async def create_role(
 
 
 @router.post("/update", summary="更新角色")
+@log_user_action(action="编辑", resource_type="角色管理", description="编辑角色")  # 添加日志装饰器
 async def update_role(
     id: int = Body(..., description="角色ID"),  # 前端传id
     name: str = Body(..., description="角色名称"),  # 前端传name
@@ -144,6 +148,7 @@ async def update_role(
 
 
 @router.delete("/delete", summary="删除角色")
+@log_user_action(action="删除", resource_type="角色管理", description="删除角色")  # 添加日志装饰器
 async def delete_role(
     role_id: int = Query(..., description="角色ID"),  # 前端传role_id
     current_user: User = Depends(get_current_user),
@@ -177,6 +182,7 @@ async def delete_role(
 
 
 @router.post("/authorized", summary="更新角色权限")
+@log_user_action(action="权限设置", resource_type="角色管理", description="设置角色权限")  # 添加日志装饰器
 async def update_role_authorized(
     role_id: int = Body(..., description="角色ID"),
     menu_ids: List[int] = Body(default=[], description="菜单ID列表"),
@@ -211,6 +217,7 @@ async def update_role_authorized(
 
 
 @router.get("/authorized", summary="获取角色权限")
+@log_user_action(action="查看", resource_type="角色管理", description="查看角色权限")  # 添加日志装饰器
 async def get_role_authorized(
     id: int = Query(..., description="角色ID"),  # 前端传id,不是role_id
     current_user: User = Depends(get_current_user),

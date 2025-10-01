@@ -148,13 +148,13 @@ def log_user_action(
             try:
                 # 执行原函数
                 result = await func(*args, **kwargs)
-                
+
                 # 记录用户行为
                 if db and current_user:
                     execution_time = int((time.time() - start_time) * 1000)
-                    
+
                     audit_service = AuditLogService(db)
-                    await audit_service.create_audit_log(
+                    audit_service.create_audit_log(  # 移除await,因为create_audit_log不是async方法
                         user_id=current_user.id,
                         username=current_user.username,
                         operation_type=action,
@@ -168,16 +168,16 @@ def log_user_action(
                         execution_time=execution_time,
                         is_success=True
                     )
-                
+
                 return result
                 
             except Exception as e:
                 # 记录失败的用户行为
                 if db and current_user:
                     execution_time = int((time.time() - start_time) * 1000)
-                    
+
                     audit_service = AuditLogService(db)
-                    await audit_service.create_audit_log(
+                    audit_service.create_audit_log(  # 移除await,因为create_audit_log不是async方法
                         user_id=current_user.id,
                         username=current_user.username,
                         operation_type=action,
@@ -192,7 +192,7 @@ def log_user_action(
                         is_success=False,
                         error_message=str(e)
                     )
-                
+
                 raise
                 
         return wrapper
