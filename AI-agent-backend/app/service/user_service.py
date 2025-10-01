@@ -215,7 +215,7 @@ class RBACUserService:
             user_id: 用户ID
             new_password_hash: 新密码哈希
         """
-        user = self.get_user_by_id(user_id)
+        user = await self.get_user_by_id(user_id)  # 修复: 添加await
         if user:
             user.password = new_password_hash
             self.db.commit()
@@ -499,8 +499,8 @@ class RBACUserService:
             (用户列表, 总数)
         """
         try:
-            # 构建查询
-            query = self.db.query(User)
+            # 构建查询 - 过滤已删除的用户
+            query = self.db.query(User).filter(User.is_deleted == 0)
 
             # 应用筛选条件
             if filters:
@@ -582,7 +582,31 @@ class RBACUserService:
         Returns:
             是否分配成功
         """
-        return self.assign_roles_to_user(user_id, role_ids)
+        try:
+            # 检查用户是否存在
+            user = await self.get_user_by_id(user_id)
+            if not user:
+                logger.warning(f"User not found with id: {user_id}")
+                return False
+
+            # 检查所有角色是否存在
+            for role_id in role_ids:
+                role = self.role_repository.get_by_id(role_id)
+                if not role:
+                    logger.warning(f"Role not found with id: {role_id}")
+                    return False
+
+            # 分配角色
+            self.user_role_repository.assign_roles_to_user(user_id, role_ids)
+            self.db.commit()
+
+            logger.info(f"Assigned {len(role_ids)} roles to user: {user_id}")
+            return True
+
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Error assigning roles to user {user_id}: {str(e)}")
+            return False
 
     async def delete_user(self, user_id: int) -> bool:
         """

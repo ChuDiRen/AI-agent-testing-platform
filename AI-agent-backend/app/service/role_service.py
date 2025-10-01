@@ -444,3 +444,44 @@ class RoleService:
         except Exception as e:
             logger.error(f"Error getting permissions for role {role_id}: {str(e)}")
             return [], []
+
+    async def get_role_authorized_data(self, role_id: int):
+        """
+        获取角色权限的完整数据（菜单对象和API对象）
+
+        Args:
+            role_id: 角色ID
+
+        Returns:
+            (菜单对象列表, API对象列表)
+        """
+        try:
+            from app.repository.menu_repository import MenuRepository
+            from app.repository.api_repository import ApiRepository
+
+            # 获取菜单ID列表
+            menu_ids = self.role_menu_repository.get_menu_ids_by_role_id(role_id)
+
+            # 获取完整的菜单对象
+            menu_repository = MenuRepository(self.db)
+            menus = []
+            for menu_id in menu_ids:
+                menu = menu_repository.get_by_id(menu_id)
+                if menu:
+                    menus.append({
+                        "id": menu.id,
+                        "menu_name": menu.menu_name,
+                        "path": menu.path
+                    })
+
+            # 获取API ID列表（如果有role_api_repository）
+            # TODO: 实现API权限获取
+            api_repository = ApiRepository(self.db)
+            apis = []
+            # 暂时返回空列表,因为还没有实现role_api关联
+
+            return menus, apis
+
+        except Exception as e:
+            logger.error(f"Error getting authorized data for role {role_id}: {str(e)}")
+            return [], []

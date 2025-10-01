@@ -185,8 +185,8 @@ const columns = [
                   ])
 
                   // 处理每个请求的响应
-                  menuOption.value = menusResponse.data
-                  apiOption.value = buildApiTree(apisResponse.data)
+                  menuOption.value = menusResponse.data.items || menusResponse.data  // 兼容items格式和直接数组格式
+                  apiOption.value = buildApiTree(apisResponse.data.items || apisResponse.data)  // 兼容items格式和直接数组格式
                   menu_ids.value = roleAuthorizedResponse.data.menus.map((v) => v.id)
                   api_ids.value = roleAuthorizedResponse.data.apis.map(
                     (v) => v.method.toLowerCase() + v.path

@@ -4,7 +4,7 @@ import { renderIcon } from '@/utils'
 defineProps({
   icon: {
     type: String,
-    required: true,
+    default: '', // 允许icon为空,避免Vue警告
   },
   size: {
     type: Number,
@@ -18,6 +18,6 @@ defineProps({
 </script>
 
 <template>
-  <component :is="renderIcon(icon, { size, color })" />
+  <component v-if="icon" :is="renderIcon(icon, { size, color })" />
 </template>
 

@@ -6,7 +6,6 @@ import {
   NCheckboxGroup,
   NForm,
   NFormItem,
-  NImage,
   NInput,
   NSpace,
   NSwitch,
@@ -16,6 +15,7 @@ import {
   NLayoutSider,
   NLayoutContent,
   NTreeSelect,
+  NTree,
 } from 'naive-ui'
 
 import CommonPage from '@/components/page/CommonPage.vue'
@@ -25,7 +25,6 @@ import CrudTable from '@/components/table/CrudTable.vue'
 
 import { formatDate, renderIcon } from '@/utils'
 import { useCRUD } from '@/composables'
-// import { loginTypeMap, loginTypeOptions } from '@/constant/data'
 import api from '@/api'
 import TheIcon from '@/components/icon/TheIcon.vue'
 import { useUserStore } from '@/store'
@@ -61,11 +60,8 @@ const deptOption = ref([])
 
 onMounted(() => {
   $table.value?.handleSearch()
-  api.getRoleList({ page: 1, page_size: 100 }).then((res) => (roleOption.value = res.data))
-  // 修复：getDepts返回的是对象{items: [], total: 0}，需要提取items数组
-  api.getDepts().then((res) => {
-    deptOption.value = res.data.items || res.data || []
-  })
+  api.getRoleList({ page: 1, page_size: 9999 }).then((res) => (roleOption.value = res.data))
+  api.getDepts().then((res) => (deptOption.value = res.data))
 })
 
 const columns = [
@@ -212,7 +208,7 @@ const columns = [
           {
             onPositiveClick: async () => {
               try {
-                await api.resetPassword({ user_id: row.id });
+                await api.resetPassword({ user_id: row.id, new_password: '123456' });
                 $message.success('密码已成功重置为123456');
                 await $table.value?.handleSearch();
               } catch (error) {
@@ -285,13 +281,7 @@ const nodeProps = ({ option }) => {
         lastClickedNodeId = null
       } else {
         api.getUserList({ dept_id: option.id }).then((res) => {
-          // 修复：res.data是对象{items: [], total: 0}，需要提取items数组
-          if ($table.value) {
-            $table.value.tableData = res.data.items || []
-            if ($table.value.pagination) {
-              $table.value.pagination.itemCount = res.data.total || 0
-            }
-          }
+          $table.value.tableData = res.data
           lastClickedNodeId = option.id
         })
       }
@@ -461,8 +451,8 @@ const validateAddUser = {
                 <NSpace item-style="display: flex;">
                   <NCheckbox
                     v-for="item in roleOption"
-                    :key="item.role_id"
-                    :value="item.role_id"
+                    :key="item.id"
+                    :value="item.id"
                     :label="item.name"
                   />
                 </NSpace>

@@ -43,15 +43,16 @@ async def get_menu_list(
 
 @router.post("/create", summary="创建菜单")
 async def create_menu(
-    parent_id: int = Body(0, description="父菜单ID，0表示顶级菜单"),
-    menu_name: str = Body(..., description="菜单名称"),
-    menu_type: str = Body("0", description="菜单类型：0菜单 1按钮"),
+    parent_id: int = Body(0, description="父菜单ID,0表示顶级菜单"),
+    name: str = Body(..., description="菜单名称"),  # 前端发送name
+    menu_type: str = Body("catalog", description="菜单类型:catalog目录 menu菜单"),  # 前端发送catalog/menu
     path: Optional[str] = Body(None, description="路由路径"),
     component: Optional[str] = Body(None, description="组件路径"),
-    perms: Optional[str] = Body(None, description="权限标识"),
+    redirect: Optional[str] = Body(None, description="跳转路径"),  # 前端发送redirect
     icon: Optional[str] = Body(None, description="图标"),
-    order_num: Optional[float] = Body(0, description="排序号"),
-    is_active: bool = Body(True, description="是否启用"),
+    order: Optional[int] = Body(1, description="排序号"),  # 前端发送order
+    is_hidden: bool = Body(False, description="是否隐藏"),  # 前端发送is_hidden
+    keepalive: bool = Body(True, description="是否缓存"),  # 前端发送keepalive
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -66,17 +67,17 @@ async def create_menu(
         # 创建菜单
         new_menu = menu_service.create_menu(
             parent_id=parent_id,
-            menu_name=menu_name,
+            menu_name=name,  # 转换为menu_name
             menu_type=menu_type,
             path=path,
             component=component,
-            perms=perms,
+            perms=None,
             icon=icon,
-            order_num=order_num,
-            is_active=is_active
+            order_num=order,  # 转换为order_num
+            is_active=not is_hidden  # is_hidden转换为is_active
         )
 
-        return Success(data={"menu_id": new_menu.id}, msg="创建成功")
+        return Success(data={"id": new_menu.id}, msg="新增成功")  # 返回id而不是menu_id
 
     except ValueError as e:
         return Fail(msg=str(e))
@@ -86,16 +87,17 @@ async def create_menu(
 
 @router.post("/update", summary="更新菜单")
 async def update_menu(
-    menu_id: int = Body(..., description="菜单ID"),
+    id: int = Body(..., description="菜单ID"),  # 前端发送id
     parent_id: int = Body(0, description="父菜单ID"),
-    menu_name: str = Body(..., description="菜单名称"),
-    menu_type: str = Body("0", description="菜单类型：0菜单 1按钮"),
+    name: str = Body(..., description="菜单名称"),  # 前端发送name
+    menu_type: str = Body("catalog", description="菜单类型:catalog目录 menu菜单"),  # 前端发送catalog/menu
     path: Optional[str] = Body(None, description="路由路径"),
     component: Optional[str] = Body(None, description="组件路径"),
-    perms: Optional[str] = Body(None, description="权限标识"),
+    redirect: Optional[str] = Body(None, description="跳转路径"),  # 前端发送redirect
     icon: Optional[str] = Body(None, description="图标"),
-    order_num: Optional[float] = Body(0, description="排序号"),
-    is_active: bool = Body(True, description="是否启用"),
+    order: Optional[int] = Body(1, description="排序号"),  # 前端发送order
+    is_hidden: bool = Body(False, description="是否隐藏"),  # 前端发送is_hidden
+    keepalive: bool = Body(True, description="是否缓存"),  # 前端发送keepalive
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -108,24 +110,24 @@ async def update_menu(
         menu_service = MenuService(db)
 
         # 检查菜单是否存在
-        menu = menu_service.get_menu_by_id(menu_id)
+        menu = menu_service.get_menu_by_id(id)
         if not menu:
             return Fail(msg="菜单不存在")
 
         # 检查是否设置自己为父菜单
-        if parent_id == menu_id:
+        if parent_id == id:
             return Fail(msg="不能设置自己为父菜单")
 
         # 更新菜单
         menu.parent_id = parent_id
-        menu.menu_name = menu_name
+        menu.menu_name = name  # 转换为menu_name
         menu.menu_type = menu_type
         menu.path = path
         menu.component = component
-        menu.perms = perms
+        menu.perms = None
         menu.icon = icon
-        menu.order_num = order_num
-        menu.is_active = is_active
+        menu.order_num = order  # 转换为order_num
+        menu.is_active = not is_hidden  # is_hidden转换为is_active
 
         menu_service.db.commit()
 
@@ -138,7 +140,7 @@ async def update_menu(
 
 @router.delete("/delete", summary="删除菜单")
 async def delete_menu(
-    menu_id: int = Query(..., description="菜单ID"),
+    id: int = Query(..., description="菜单ID"),  # 前端发送id参数
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -151,17 +153,17 @@ async def delete_menu(
         menu_service = MenuService(db)
 
         # 检查菜单是否存在
-        menu = menu_service.get_menu_by_id(menu_id)
+        menu = menu_service.get_menu_by_id(id)
         if not menu:
             return Fail(msg="菜单不存在")
 
         # 检查是否有子菜单
-        children = menu_service.get_children_menus(menu_id)
+        children = menu_service.get_children_menus(id)
         if children:
             return Fail(msg=f"该菜单下有 {len(children)} 个子菜单，请先删除子菜单")
 
         # 删除菜单
-        menu_service.delete_menu(menu_id)
+        menu_service.delete_menu(id)
 
         return Success(msg="删除成功")
 

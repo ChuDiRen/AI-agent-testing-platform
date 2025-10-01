@@ -5,101 +5,6 @@ import Layout from '@/layout/index.vue'
 import { getToken } from '@/utils'
 import api from '@/api'
 
-// 静态菜单配置（用于开发测试）
-const staticMenus = [
-  {
-    name: 'Workbench',
-    path: '/workbench',
-    component: Layout,
-    meta: {
-      title: '工作台',
-      icon: 'mdi:view-dashboard',
-      order: 1,
-    },
-    children: [
-      {
-        name: 'WorkbenchDefault',
-        path: '',
-        component: () => import('@/views/workbench/index.vue'),
-        isHidden: true,
-        meta: {
-          title: '工作台',
-          icon: 'mdi:view-dashboard',
-        },
-      },
-    ],
-  },
-  {
-    name: 'System',
-    path: '/system',
-    component: Layout,
-    meta: {
-      title: '系统管理',
-      icon: 'mdi:cog',
-      order: 2,
-    },
-    children: [
-      {
-        name: 'User',
-        path: '/system/user',
-        component: () => import('@/views/system/user/index.vue'),
-        meta: {
-          title: '用户管理',
-          icon: 'mdi:account-group',
-        },
-      },
-      {
-        name: 'Role',
-        path: '/system/role',
-        component: () => import('@/views/system/role/index.vue'),
-        meta: {
-          title: '角色管理',
-          icon: 'mdi:account-key',
-        },
-      },
-      {
-        name: 'Menu',
-        path: '/system/menu',
-        component: () => import('@/views/system/menu/index.vue'),
-        meta: {
-          title: '菜单管理',
-          icon: 'mdi:menu',
-        },
-      },
-    ],
-  },
-  {
-    name: 'Agent',
-    path: '/agent',
-    component: Layout,
-    meta: {
-      title: 'AI代理',
-      icon: 'mdi:robot',
-      order: 3,
-    },
-    children: [
-      {
-        name: 'AgentList',
-        path: '/agent/list',
-        component: () => import('@/views/agent/list/index.vue'),
-        meta: {
-          title: '代理列表',
-          icon: 'mdi:robot-outline',
-        },
-      },
-      {
-        name: 'AgentConfig',
-        path: '/agent/config',
-        component: () => import('@/views/agent/config/index.vue'),
-        meta: {
-          title: '代理配置',
-          icon: 'mdi:robot-industrial',
-        },
-      },
-    ],
-  },
-]
-
 // 根据后端传来数据构建出前端路由
 function buildRoutes(routes = []) {
   return routes.map((e) => {
@@ -171,9 +76,7 @@ export const usePermissionStore = defineStore('permission', {
   
   getters: {
     routes() {
-      // 如果有动态路由，完全使用动态路由；否则使用静态菜单作为降级
-      const dynamicRoutes = this.accessRoutes.length > 0 ? this.accessRoutes : staticMenus
-      return basicRoutes.concat(dynamicRoutes)
+      return basicRoutes.concat(this.accessRoutes)
     },
     menus() {
       return this.routes.filter((route) => route.name && !route.isHidden)

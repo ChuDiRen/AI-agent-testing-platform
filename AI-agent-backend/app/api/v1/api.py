@@ -21,7 +21,7 @@ router = APIRouter()
 @router.get("/list", summary="获取API列表")
 async def get_api_list(
     page: int = Query(1, ge=1, description="页码"),
-    page_size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page_size: int = Query(20, ge=1, le=10000, description="每页数量"),  # 提高限制以支持获取所有API
     path: Optional[str] = Query(None, description="API路径"),
     method: Optional[str] = Query(None, description="请求方法"),
     current_user: User = Depends(get_current_user),

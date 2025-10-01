@@ -12,6 +12,7 @@
       :scroll-x="scrollX"
       :row-key="(row) => row[rowKey]"
       :pagination="isPagination ? pagination : false"
+      :default-expand-all="defaultExpandAll"
       @update:checked-row-keys="onChecked"
       @update:page="onPageChange"
     />
@@ -66,12 +67,17 @@ const props = defineProps({
   /**
    * ! 约定接口入参出参
    * * 分页模式需约定分页接口入参
-   *    @page_size 分页参数：一页展示多少条，默认10
-   *    @page   分页参数：页码，默认1
+   *    @page_size 分页参数：一页展示多少条,默认10
+   *    @page   分页参数:页码,默认1
    */
   getData: {
     type: Function,
     required: true,
+  },
+  /** 是否默认展开所有树节点 */
+  defaultExpandAll: {
+    type: Boolean,
+    default: false,
   },
 })
 

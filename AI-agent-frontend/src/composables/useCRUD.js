@@ -76,7 +76,7 @@ export default function ({ name, initForm = {}, doCreate, doDelete, doUpdate, re
 
   /** 删除 */
   async function handleDelete(params = {}) {
-    if (isNullOrWhitespace(params)) return
+    if (!params || Object.keys(params).length === 0) return
     try {
       modalLoading.value = true
       const data = await doDelete(params)

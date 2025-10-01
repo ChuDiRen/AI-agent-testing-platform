@@ -19,7 +19,7 @@ router = APIRouter()
 @router.get("/list", summary="获取角色列表")
 async def get_role_list(
     page: int = Query(1, ge=1, description="页码"),
-    page_size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page_size: int = Query(20, ge=1, le=10000, description="每页数量"),  # 提高限制以支持获取所有角色
     role_name: Optional[str] = Query(None, description="角色名"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -56,13 +56,8 @@ async def get_role_list(
             }
             role_list.append(role_data)
 
-        # 按照vue-fastapi-admin的分页格式
-        response_data = {
-            "items": role_list,  # CrudTable期望items字段
-            "total": total
-        }
-
-        return Success(data=response_data)
+        # 直接返回数组,用于角色选择器
+        return Success(data=role_list)
 
     except Exception as e:
         return Fail(msg=f"获取角色列表失败: {str(e)}")
@@ -70,8 +65,8 @@ async def get_role_list(
 
 @router.post("/create", summary="创建角色")
 async def create_role(
-    role_name: str = Body(..., description="角色名称"),
-    remark: Optional[str] = Body(None, description="角色描述"),
+    name: str = Body(..., description="角色名称"),  # 前端传name
+    desc: Optional[str] = Body(None, description="角色描述"),  # 前端传desc
     is_active: bool = Body(True, description="是否启用"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -85,21 +80,21 @@ async def create_role(
         role_service = RoleService(db)
 
         # 检查角色名是否已存在
-        existing_role = role_service.get_role_by_name(role_name)
+        existing_role = role_service.get_role_by_name(name)
         if existing_role:
             return Fail(msg="角色名已存在")
 
         # 创建角色
         new_role = role_service.create_role(
-            role_name=role_name,
-            remark=remark
+            role_name=name,
+            remark=desc
         )
 
         # 设置是否启用
         new_role.is_active = is_active
         role_service.db.commit()
 
-        return Success(data={"role_id": new_role.id}, msg="创建成功")
+        return Success(data={"id": new_role.id}, msg="创建成功")  # 返回id而不是role_id
 
     except ValueError as e:
         return Fail(msg=str(e))
@@ -109,9 +104,9 @@ async def create_role(
 
 @router.post("/update", summary="更新角色")
 async def update_role(
-    role_id: int = Body(..., description="角色ID"),
-    role_name: str = Body(..., description="角色名称"),
-    remark: Optional[str] = Body(None, description="角色描述"),
+    id: int = Body(..., description="角色ID"),  # 前端传id
+    name: str = Body(..., description="角色名称"),  # 前端传name
+    desc: Optional[str] = Body(None, description="角色描述"),  # 前端传desc
     is_active: bool = Body(True, description="是否启用"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -125,19 +120,19 @@ async def update_role(
         role_service = RoleService(db)
 
         # 检查角色是否存在
-        role = role_service.get_role_by_id(role_id)
+        role = role_service.get_role_by_id(id)
         if not role:
             return Fail(msg="角色不存在")
 
         # 检查角色名是否已被其他角色使用
-        if role_name != role.role_name:
-            existing_role = role_service.get_role_by_name(role_name)
-            if existing_role and existing_role.id != role_id:
+        if name != role.role_name:
+            existing_role = role_service.get_role_by_name(name)
+            if existing_role and existing_role.id != id:
                 return Fail(msg="角色名已被其他角色使用")
 
         # 更新角色
-        role.role_name = role_name
-        role.remark = remark
+        role.role_name = name
+        role.remark = desc
         role.is_active = is_active
         role_service.db.commit()
 
@@ -150,7 +145,7 @@ async def update_role(
 
 @router.delete("/delete", summary="删除角色")
 async def delete_role(
-    role_id: int = Query(..., description="角色ID"),
+    role_id: int = Query(..., description="角色ID"),  # 前端传role_id
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -172,8 +167,8 @@ async def delete_role(
         if user_count > 0:
             return Fail(msg=f"该角色正在被 {user_count} 个用户使用，无法删除")
 
-        # 删除角色
-        await role_service.delete_role(role_id)
+        # 删除角色 (delete_role是同步方法,不需要await)
+        role_service.delete_role(role_id)
 
         return Success(msg="删除成功")
 
@@ -217,7 +212,7 @@ async def update_role_authorized(
 
 @router.get("/authorized", summary="获取角色权限")
 async def get_role_authorized(
-    role_id: int = Query(..., description="角色ID"),
+    id: int = Query(..., description="角色ID"),  # 前端传id,不是role_id
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -231,17 +226,17 @@ async def get_role_authorized(
         role_service = RoleService(db)
 
         # 检查角色是否存在
-        role = role_service.get_role_by_id(role_id)
+        role = role_service.get_role_by_id(id)  # 使用id参数
         if not role:
             return Fail(msg="角色不存在")
 
-        # 获取角色权限
-        menu_ids, api_ids = await role_service.get_role_permissions(role_id)
+        # 获取角色的菜单和API权限
+        menus, apis = await role_service.get_role_authorized_data(id)  # 获取完整的菜单和API对象
 
         # 按照vue-fastapi-admin的响应格式
         response_data = {
-            "menu_ids": menu_ids,
-            "api_ids": api_ids
+            "menus": menus,  # 菜单对象列表
+            "apis": apis     # API对象列表
         }
 
         return Success(data=response_data)

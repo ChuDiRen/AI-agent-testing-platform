@@ -74,7 +74,7 @@ async def get_user_list(
                 })
 
             user_data = {
-                "user_id": user.id,
+                "id": user.id,  # 前端期望id而不是user_id
                 "username": user.username,
                 "nickname": user.username,  # 如果没有nickname字段，使用username
                 "email": user.email or "",
@@ -82,19 +82,14 @@ async def get_user_list(
                 "dept": dept_obj,  # 前端期望dept对象
                 "roles": roles,  # 前端期望roles数组
                 "is_superuser": user.is_superuser if hasattr(user, 'is_superuser') else False,
-                "status": int(user.status) if user.status else 1,
-                "last_login": user.last_login.strftime("%Y-%m-%d %H:%M:%S") if hasattr(user, 'last_login') and user.last_login else "",
+                "is_active": user.status == '1' if user.status else True,  # 前端期望is_active布尔值
+                "last_login": user.last_login.strftime("%Y-%m-%d %H:%M:%S") if hasattr(user, 'last_login') and user.last_login else None,
                 "created_at": user.create_time.strftime("%Y-%m-%d %H:%M:%S") if user.create_time else ""
             }
             user_list.append(user_data)
 
-        # 按照vue-fastapi-admin的分页格式
-        response_data = {
-            "items": user_list,
-            "total": total
-        }
-
-        return Success(data=response_data)
+        # 按照vue-fastapi-admin的分页格式,直接返回数组
+        return Success(data=user_list)
 
     except Exception as e:
         return Fail(msg=f"获取用户列表失败: {str(e)}")
@@ -149,7 +144,8 @@ async def create_user(
     email: Optional[str] = Body(None, description="邮箱"),
     mobile: Optional[str] = Body(None, description="手机号"),
     dept_id: Optional[int] = Body(None, description="部门ID"),
-    status: int = Body(1, description="状态：0禁用 1启用"),
+    is_active: bool = Body(True, description="是否启用"),
+    is_superuser: bool = Body(False, description="是否为超级用户"),
     role_ids: List[int] = Body(default=[], description="角色ID列表"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -185,15 +181,17 @@ async def create_user(
             description=None
         )
 
-        # 设置用户状态
-        new_user.status = str(status)
+        # 设置用户状态和超级用户标识
+        new_user.status = '1' if is_active else '0'
+        if hasattr(new_user, 'is_superuser'):
+            new_user.is_superuser = is_superuser
         user_service.db.commit()
 
         # 分配角色
         if role_ids:
             await user_service.assign_roles_to_user(new_user.id, role_ids)
 
-        return Success(data={"user_id": new_user.id}, msg="创建成功")
+        return Success(data={"id": new_user.id}, msg="创建成功")
 
     except ValueError as e:
         return Fail(msg=str(e))
@@ -203,12 +201,13 @@ async def create_user(
 
 @router.post("/update", summary="更新用户")
 async def update_user(
-    user_id: int = Body(..., description="用户ID"),
+    id: int = Body(..., description="用户ID"),  # 前端传id而不是user_id
     nickname: Optional[str] = Body(None, description="昵称"),
     email: Optional[str] = Body(None, description="邮箱"),
     mobile: Optional[str] = Body(None, description="手机号"),
     dept_id: Optional[int] = Body(None, description="部门ID"),
-    status: int = Body(1, description="状态：0禁用 1启用"),
+    is_active: bool = Body(True, description="是否启用"),
+    is_superuser: Optional[bool] = Body(None, description="是否为超级用户"),
     role_ids: List[int] = Body(default=[], description="角色ID列表"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -222,14 +221,14 @@ async def update_user(
         user_service = RBACUserService(db)
 
         # 检查用户是否存在
-        user = await user_service.get_user_by_id(user_id)
+        user = await user_service.get_user_by_id(id)
         if not user:
             return Fail(msg="用户不存在")
 
         # 检查邮箱是否已被其他用户使用
         if email and email != user.email:
             existing_email = await user_service.get_user_by_email(email)
-            if existing_email and existing_email.id != user_id:
+            if existing_email and existing_email.id != id:
                 return Fail(msg="邮箱已被其他用户使用")
 
         # 更新用户基本信息
@@ -239,13 +238,15 @@ async def update_user(
             user.mobile = mobile
         if dept_id is not None:
             user.dept_id = dept_id
-        user.status = str(status)
+        user.status = '1' if is_active else '0'
+        if is_superuser is not None and hasattr(user, 'is_superuser'):
+            user.is_superuser = is_superuser
 
         user_service.db.commit()
 
         # 更新角色
         if role_ids is not None:
-            await user_service.assign_roles_to_user(user_id, role_ids)
+            await user_service.assign_roles_to_user(id, role_ids)
 
         return Success(msg="更新成功")
 
@@ -288,8 +289,7 @@ async def delete_user(
 
 @router.post("/reset_password", summary="重置用户密码")
 async def reset_user_password(
-    user_id: int = Body(..., description="用户ID"),
-    new_password: str = Body(..., description="新密码"),
+    request: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -300,6 +300,12 @@ async def reset_user_password(
     """
     try:
         user_service = RBACUserService(db)
+
+        user_id = request.get('user_id')
+        new_password = request.get('new_password')
+
+        if not user_id or not new_password:
+            return Fail(msg="缺少必需参数")
 
         # 检查用户是否存在
         user = await user_service.get_user_by_id(user_id)
