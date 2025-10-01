@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 菜单Controller
 处理菜单相关的HTTP请求
 """

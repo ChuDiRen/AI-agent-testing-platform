@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 聊天会话Service
 处理聊天会话和消息管理的业务逻辑
 """

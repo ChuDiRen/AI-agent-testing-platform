@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 权限缓存配置实体
 管理权限缓存的配置和状态
 """

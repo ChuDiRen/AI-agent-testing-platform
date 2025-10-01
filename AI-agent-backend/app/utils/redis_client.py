@@ -1,4 +1,4 @@
-"""
+﻿"""
 Redis客户端工具
 提供Redis缓存操作功能
 """
@@ -329,7 +329,6 @@ class CacheClient:
             return False
 
 
-# Copyright (c) 2025 左岚. All rights reserved.
 
 # 全局缓存客户端实例（延迟初始化）
 _cache_client_instance: Optional[CacheClient] = None

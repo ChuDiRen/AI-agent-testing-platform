@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 AI代理配置Repository
 处理AI代理配置相关的数据访问操作
 """

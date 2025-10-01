@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 日志DTO
 定义日志相关的数据传输对象
 """

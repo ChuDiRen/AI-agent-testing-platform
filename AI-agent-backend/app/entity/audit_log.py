@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 审计日志实体
 记录用户操作行为和权限变更
 """

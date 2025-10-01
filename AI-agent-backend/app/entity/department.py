@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 部门实体
 严格按照博客t_dept表结构设计
 """

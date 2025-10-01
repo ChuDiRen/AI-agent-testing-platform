@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 部门Repository
 实现部门相关的数据访问操作
 """

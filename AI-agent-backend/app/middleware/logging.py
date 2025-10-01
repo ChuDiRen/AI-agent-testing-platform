@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 日志中间件
 记录HTTP请求和响应日志，支持文件和数据库双重记录
 """

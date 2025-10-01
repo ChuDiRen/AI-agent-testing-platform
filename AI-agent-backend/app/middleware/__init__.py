@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-# Middleware Module - 中间件模块
+﻿# Middleware Module - 中间件模块
 # 包含自定义中间件、CORS、认证等
 
 from .auth import (

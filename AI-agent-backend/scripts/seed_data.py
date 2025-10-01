@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 种子数据脚本
 用于创建演示和测试数据
 """

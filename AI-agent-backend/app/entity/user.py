@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 用户实体
 严格按照博客t_user表结构设计
 """

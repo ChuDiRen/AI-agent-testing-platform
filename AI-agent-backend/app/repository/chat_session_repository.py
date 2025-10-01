@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 聊天会话Repository
 处理聊天会话的数据访问
 """

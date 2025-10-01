@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 AI聊天Controller
 处理AI聊天相关的HTTP请求
 """

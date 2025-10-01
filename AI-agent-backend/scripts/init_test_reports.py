@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 测试报告初始化脚本
 创建示例测试报告数据
 """

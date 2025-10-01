@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 菜单Repository
 实现菜单相关的数据访问操作
 """

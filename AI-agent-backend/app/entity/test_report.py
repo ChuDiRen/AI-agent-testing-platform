@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 测试报告实体
 定义测试报告相关的实体模型
 """

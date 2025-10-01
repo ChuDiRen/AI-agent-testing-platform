@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 事务管理工具
 提供数据库事务的装饰器和上下文管理器
 """

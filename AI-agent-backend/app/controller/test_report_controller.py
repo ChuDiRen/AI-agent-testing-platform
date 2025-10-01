@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 测试报告控制器
 处理测试报告相关的HTTP请求
 """

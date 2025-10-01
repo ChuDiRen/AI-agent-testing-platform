@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 角色菜单关联Repository
 实现角色菜单关联相关的数据访问操作
 """

@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 安全相关功能
 包含密码加密、JWT令牌处理等
 """

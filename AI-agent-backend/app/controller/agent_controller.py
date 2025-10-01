@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 AI代理Controller
 处理AI代理相关的HTTP请求
 """

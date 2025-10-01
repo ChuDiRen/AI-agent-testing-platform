@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 AI模型Repository
 处理AI模型相关的数据访问操作
 """

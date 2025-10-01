@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 部门DTO
 定义部门相关的数据传输对象
 """

@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 数据权限Service
 提供数据权限规则的业务逻辑处理
 """

@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 测试报告DTO
 定义测试报告相关的数据传输对象
 """

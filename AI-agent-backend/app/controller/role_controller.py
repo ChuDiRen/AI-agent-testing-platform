@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 角色Controller
 处理角色相关的HTTP请求
 """

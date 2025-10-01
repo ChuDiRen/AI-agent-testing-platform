@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-# Repository Layer - 数据访问层
+﻿# Repository Layer - 数据访问层
 # 职责：封装所有数据库操作，提供CRUD方法，处理数据库连接和事务
 
 from .audit_log_repository import AuditLogRepository

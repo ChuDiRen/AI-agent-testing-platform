@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 测试用例生成历史实体
 定义AI智能测试用例生成历史记录的实体模型
 """

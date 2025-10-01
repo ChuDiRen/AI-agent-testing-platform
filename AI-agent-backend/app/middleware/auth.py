@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 RBAC权限验证中间件
 实现细粒度权限控制、数据权限过滤和审计日志记录
 """

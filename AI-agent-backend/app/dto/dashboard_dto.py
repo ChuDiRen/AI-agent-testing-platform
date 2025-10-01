@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 仪表板DTO
 定义仪表板相关的数据传输对象
 """

@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 AI模型配置实体
 定义AI模型相关的配置信息
 """

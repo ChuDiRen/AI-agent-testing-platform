@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 AI模型配置Controller
 处理AI模型配置相关的HTTP请求
 """

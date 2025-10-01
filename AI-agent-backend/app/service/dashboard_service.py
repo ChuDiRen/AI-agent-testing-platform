@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 仪表板Service
 处理仪表板相关的业务逻辑
 """

@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 API Service - 完全按照5层架构实现
 实现API接口管理的业务逻辑
 """

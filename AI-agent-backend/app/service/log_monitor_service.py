@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 日志监控服务
 提供实时日志监控和告警功能
 """

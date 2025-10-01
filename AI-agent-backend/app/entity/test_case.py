@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 测试用例实体
 定义AI智能测试用例生成相关的实体模型
 """

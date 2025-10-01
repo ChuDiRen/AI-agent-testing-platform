@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-# Entity Layer - 数据库实体层
+﻿# Entity Layer - 数据库实体层
 # 职责：定义数据库表结构，提供实体对象与字典的转换方法
 
 from .agent import Agent

@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 测试用例初始化脚本
 创建基础测试用例模板数据
 """

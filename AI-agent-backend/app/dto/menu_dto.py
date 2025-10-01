@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 菜单DTO
 定义菜单相关的数据传输对象
 """

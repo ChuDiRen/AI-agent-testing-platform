@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 AI代理初始化脚本
 创建典型AI代理的示例数据
 """

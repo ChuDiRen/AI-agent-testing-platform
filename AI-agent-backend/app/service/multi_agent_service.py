@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 多智能体协作的AI服务层
 实现基于AutoGen框架的智能测试用例生成
 """

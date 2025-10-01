@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 API端点Repository
 处理API端点相关的数据库操作
 """

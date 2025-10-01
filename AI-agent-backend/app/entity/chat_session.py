@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 聊天会话实体
 定义聊天会话的数据库模型
 """

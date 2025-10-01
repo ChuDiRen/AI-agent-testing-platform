@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 AI代理实体
 定义AI代理的基本信息和行为
 """

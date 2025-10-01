@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 部门Controller
 处理部门相关的HTTP请求
 """

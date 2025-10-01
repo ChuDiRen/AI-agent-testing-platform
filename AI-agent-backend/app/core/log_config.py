@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 日志配置管理
 提供动态日志配置和存储策略管理
 """

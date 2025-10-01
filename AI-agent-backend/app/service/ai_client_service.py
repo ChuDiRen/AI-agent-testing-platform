@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 AI客户端服务
 提供统一的AI模型调用接口，支持多种AI提供商
 """

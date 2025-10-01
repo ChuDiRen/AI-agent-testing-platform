@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 角色API关联实体
 按照role_menu表结构设计，用于角色和API的多对多关联
 """

@@ -34,6 +34,16 @@ export const basicRoutes = [
           icon: 'mdi:view-dashboard',
         },
       },
+      {
+        name: 'Profile',
+        path: '/profile',
+        component: () => import('@/views/profile/index.vue'),
+        isHidden: true, // 隐藏个人资料路由，不在左侧菜单显示，通过用户菜单访问
+        meta: {
+          title: '个人资料',
+          icon: 'mdi:account',
+        },
+      },
     ],
   },
 ]

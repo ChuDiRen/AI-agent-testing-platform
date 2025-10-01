@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 角色菜单关联实体
 严格按照博客t_role_menu表结构设计
 """

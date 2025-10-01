@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 AI模型配置初始化脚本
 创建主流AI模型的基础配置数据
 """

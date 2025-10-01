@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 日志配置Controller
 处理日志配置相关的HTTP请求
 """

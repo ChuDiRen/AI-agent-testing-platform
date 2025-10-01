@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 审计日志Repository
 提供审计日志的数据访问功能
 """

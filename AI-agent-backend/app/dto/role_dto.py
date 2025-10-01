@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 角色DTO
 定义角色相关的数据传输对象
 """

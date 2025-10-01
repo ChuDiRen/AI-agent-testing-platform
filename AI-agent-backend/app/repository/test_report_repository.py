@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 测试报告Repository
 处理测试报告相关的数据访问操作
 """

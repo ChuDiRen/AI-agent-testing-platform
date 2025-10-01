@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 AI代理管理DTO
 定义AI代理相关的数据传输对象
 """

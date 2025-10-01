@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 菜单实体
 严格按照博客t_menu表结构设计
 """

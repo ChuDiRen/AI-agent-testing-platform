@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 数据库切换脚本
 帮助用户在SQLite和PostgreSQL之间切换数据库
 """

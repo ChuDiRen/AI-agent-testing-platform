@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-
+﻿
 """
 DTO层基类
 定义数据传输对象的基础结构

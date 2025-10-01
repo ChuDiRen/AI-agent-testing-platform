@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 令牌黑名单工具（内存版）
 可在生产替换为 Redis 实现
 """

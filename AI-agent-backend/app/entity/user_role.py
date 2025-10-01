@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 用户角色关联实体
 严格按照博客t_user_role表结构设计
 """

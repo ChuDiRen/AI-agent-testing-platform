@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 API端点Controller
 处理API端点管理相关的HTTP请求
 """

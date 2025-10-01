@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 日志装饰器
 用于自动记录接口调用日志和用户操作行为
 """

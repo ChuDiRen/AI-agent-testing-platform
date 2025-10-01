@@ -1,5 +1,4 @@
-﻿# Copyright (c) 2025 左岚. All rights reserved.
-from typing import Dict, Any
+﻿from typing import Dict, Any
 
 from sqlalchemy.orm import Session
 

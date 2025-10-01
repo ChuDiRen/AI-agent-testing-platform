@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 API端点DTO
 定义API管理相关的数据传输对象
 """

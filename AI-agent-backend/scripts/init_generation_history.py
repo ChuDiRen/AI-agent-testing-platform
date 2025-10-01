@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 测试用例生成历史初始化脚本
 创建AI生成测试用例的历史记录数据
 """

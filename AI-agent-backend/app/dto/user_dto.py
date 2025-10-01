@@ -1,5 +1,4 @@
-# Copyright (c) 2025 左岚. All rights reserved.
-"""
+﻿"""
 用户DTO
 定义用户相关的数据传输对象
 """

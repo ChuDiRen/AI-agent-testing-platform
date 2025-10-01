@@ -1,6 +1,6 @@
 <template>
   <footer class="app-footer">
-    <p>&copy; 2025 AI Agent Testing Platform. All rights reserved.</p>
+    <p>AI Agent Testing Platform</p>
   </footer>
 </template>
 

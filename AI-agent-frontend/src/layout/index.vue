@@ -159,6 +159,7 @@ import { computed, ref, watch, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore, usePermissionStore, useTagsStore } from '@/store'
 import { Icon } from '@iconify/vue'
+import { NIcon } from 'naive-ui'
 import AppTags from '@/components/layout/AppTags.vue'
 import AppBreadcrumb from '@/components/layout/AppBreadcrumb.vue'
 import UserAvatar from '@/components/layout/UserAvatar.vue'
@@ -181,13 +182,18 @@ const isDark = computed(() => appStore.isDark)
 // 当前激活的菜单项
 const activeKey = computed(() => route.path)
 
+// 渲染图标函数
+const renderMenuIcon = (icon) => {
+  return () => h(NIcon, null, { default: () => h(Icon, { icon: icon || 'mdi:menu' }) })
+}
+
 // 菜单选项
 const menuOptions = computed(() => {
   return permissionStore.menus.map(menu => {
     const menuOption = {
       label: menu.meta?.title || menu.name,
       key: menu.path,
-      icon: () => h(Icon, { name: menu.meta?.icon || 'mdi:menu' }),
+      icon: renderMenuIcon(menu.meta?.icon),
     }
 
     // 如果是直接菜单（如工作台），不显示children，避免下拉箭头
@@ -197,7 +203,7 @@ const menuOptions = computed(() => {
         menuOption.children = visibleChildren.map(child => ({
           label: child.meta?.title || child.name,
           key: child.path,
-          icon: () => h(Icon, { name: child.meta?.icon || 'mdi:circle-small' }),
+          icon: renderMenuIcon(child.meta?.icon || 'mdi:circle-small'),
         }))
       }
     }
