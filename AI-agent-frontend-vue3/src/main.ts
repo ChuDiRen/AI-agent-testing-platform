@@ -7,7 +7,10 @@ import App from './App.vue'
 import router from './router'
 import pinia from './store'
 
+import 'virtual:windi.css'
 import './assets/main.css'
+import './assets/animations.css'
+import './assets/components.css'
 
 const app = createApp(App)
 
