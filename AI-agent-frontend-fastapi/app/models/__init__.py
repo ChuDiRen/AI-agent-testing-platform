@@ -1,0 +1,16 @@
+"""数据库模型包 - 完全按照博客 RBAC 表结构设计"""
+from app.models.user import User
+from app.models.role import Role
+from app.models.menu import Menu
+from app.models.department import Department
+from app.models.user_role import t_user_role
+from app.models.role_menu import t_role_menu
+
+__all__ = [
+    "User",
+    "Role", 
+    "Menu",
+    "Department",
+    "t_user_role",
+    "t_role_menu",
+]

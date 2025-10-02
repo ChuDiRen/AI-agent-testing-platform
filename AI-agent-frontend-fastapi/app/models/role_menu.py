@@ -1,0 +1,11 @@
+"""角色菜单关联表模型 - 完全按照博客 t_role_menu 表结构设计"""
+from sqlalchemy import Table, Column, BigInteger
+from app.core.database import Base
+
+t_role_menu = Table(
+    't_role_menu',
+    Base.metadata,
+    Column('role_id', BigInteger, nullable=False, comment="角色ID"),
+    Column('menu_id', BigInteger, nullable=False, comment="菜单/按钮ID"),
+)
+
