@@ -1,0 +1,18 @@
+desc: 5_下载图片文件接口进行比对[这个接口是本地接口，需要先启动flask服务]
+pre_script:
+- 'print("执行前...")'
+steps:
+- 发送请求-登录接口:
+    关键字: send_request
+    method: GET
+    url: "http://localhost:5000/download/P1.png" # 注意这个接口是本地接口，需要先启动flask服务：
+    headers: ~
+    params: ~
+    data: ~
+- 判断图片下载是否正确:
+    关键字: assert_files_by_md5_comparators
+    value: e589f7595e2cf290149774a27269d876 # 手动获取本地图片的md5值，正确的
+#    value: e589f7595e343490149774a27269d876 # 手动获取本地图片的md5值，错误的
+post_script:
+- 'print("执行后...")'
+

@@ -1,0 +1,26 @@
+desc: 登录测试用例
+pre_script:
+- 'print("执行前...")'
+steps:
+- 发送请求-POST:
+    关键字: send_request
+    method: POST
+    url: "{{URL}}"
+    headers: {}
+    params:
+      s: /api/user/login
+      application: app
+    data:
+      accounts: hami
+      pwd: 123456
+      type: username
+post_script:
+- 'print("执行后...")'
+ddts:
+-  username: hami
+   password: '123456'
+   desc: "正确的用户名和密码"
+-  username: hami
+   password: '1234567'
+   desc: "正确的用户名和错误密码"
+

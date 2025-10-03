@@ -1,0 +1,24 @@
+desc: 通过Josn进行登录
+pre_script:
+- 'print("执行前...")'
+steps:
+- 发送请求-登录接口:
+    关键字: send_request
+    method: POST
+    url: "{{URL}}"
+    headers: {}
+    params:
+      s: /api/user/login
+      application: app
+    json:
+      accounts: hami
+      pwd: 123456
+      type: username
+- 通过JSONPATH提取数据-TOKEN:
+     关键字: ex_jsonData
+     EXVALUE: $..token
+     INDEX: 0
+     VARNAME: msg_token
+post_script:
+- 'print("执行后...")'
+

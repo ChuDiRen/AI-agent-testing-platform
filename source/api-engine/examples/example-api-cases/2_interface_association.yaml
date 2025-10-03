@@ -1,0 +1,48 @@
+desc: 加入购物车
+pre_script:
+- 'print("执行前...")'
+steps:
+- 发送请求-登录接口:
+    关键字: send_request
+    method: POST
+    url: "{{URL}}"
+    headers: {}
+    params:
+      s: /api/user/login
+      application: app
+    data:
+      accounts: hami
+      pwd: 123456
+      type: username
+- 通过JSONPATH提取数据-TOKEN:
+     关键字: ex_jsonData
+     EXVALUE: $..token
+     INDEX: 0
+     VARNAME: msg_token
+- 发送Post请求:
+    关键字: send_request
+    method:  POST
+    url: "{{URL}}"
+    headers: {}
+    params:
+      s: api/cart/save
+      application: app
+      token: "{{msg_token}}"
+    data:
+      goods_id: "2"
+      spec:
+        - type: 套餐
+          value: 套餐二
+        - type: 颜色
+          value: 银色
+        - type: 容量
+          value: 64G
+      stock: 2
+- 通过JSONPATH提取数据-MSG:
+     关键字: ex_jsonData
+     EXVALUE: $..msg
+     INDEX: 0
+     VARNAME: msg_success
+post_script:
+- 'print("执行后...")'
+
