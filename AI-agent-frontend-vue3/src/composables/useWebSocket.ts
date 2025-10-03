@@ -16,12 +16,24 @@ export interface NotificationMessage {
 
 export function useWebSocket() {
   const isConnected = ref(false)
-  const ws = getWebSocketInstance()
+  let ws: any = null
+
+  // 获取WebSocket实例
+  const getWs = () => {
+    if (!ws) {
+      // 构建WebSocket URL
+      const wsUrl = import.meta.env.VITE_WS_URL ||
+        `ws://${window.location.hostname}:${import.meta.env.VITE_API_PORT || 8000}/ws`
+      ws = getWebSocketInstance(wsUrl)
+    }
+    return ws
+  }
 
   // 连接 WebSocket
   const connect = async () => {
     try {
-      await ws.connect()
+      const wsInstance = getWs()
+      await wsInstance.connect()
       isConnected.value = true
       console.log('[useWebSocket] 连接成功')
     } catch (error) {
@@ -32,23 +44,29 @@ export function useWebSocket() {
 
   // 断开连接
   const disconnect = () => {
-    ws.disconnect()
-    isConnected.value = false
+    if (ws) {
+      ws.disconnect()
+      isConnected.value = false
+    }
   }
 
   // 发送消息
   const send = (type: string, data: any) => {
-    return ws.send(type, data)
+    const wsInstance = getWs()
+    return wsInstance.send(type, data)
   }
 
   // 订阅消息
   const subscribe = (type: string, handler: (message: WebSocketMessage) => void) => {
-    ws.on(type, handler)
+    const wsInstance = getWs()
+    wsInstance.on(type, handler)
   }
 
   // 取消订阅
   const unsubscribe = (type: string, handler?: (message: WebSocketMessage) => void) => {
-    ws.off(type, handler)
+    if (ws) {
+      ws.off(type, handler)
+    }
   }
 
   return {
@@ -66,7 +84,15 @@ export function useWebSocket() {
  * 自动处理系统通知消息
  */
 export function useNotification() {
-  const { subscribe, unsubscribe } = useWebSocket()
+  // 延迟初始化WebSocket，避免在应用启动时立即连接
+  let webSocketHook: any = null
+
+  const getWebSocketHook = () => {
+    if (!webSocketHook) {
+      webSocketHook = useWebSocket()
+    }
+    return webSocketHook
+  }
 
   // 处理系统通知
   const handleNotification = (message: WebSocketMessage) => {
@@ -100,15 +126,27 @@ export function useNotification() {
   }
 
   onMounted(() => {
-    // 订阅通知消息
-    subscribe('notification', handleNotification)
-    subscribe('test_progress', handleTestNotification)
+    // 延迟订阅，只有在需要时才初始化WebSocket
+    try {
+      const { subscribe } = getWebSocketHook()
+      subscribe('notification', handleNotification)
+      subscribe('test_progress', handleTestNotification)
+    } catch (error) {
+      console.warn('[useNotification] WebSocket订阅失败，将在连接后重试:', error)
+    }
   })
 
   onUnmounted(() => {
     // 取消订阅
-    unsubscribe('notification', handleNotification)
-    unsubscribe('test_progress', handleTestNotification)
+    try {
+      if (webSocketHook) {
+        const { unsubscribe } = webSocketHook
+        unsubscribe('notification', handleNotification)
+        unsubscribe('test_progress', handleTestNotification)
+      }
+    } catch (error) {
+      console.warn('[useNotification] 取消订阅失败:', error)
+    }
   })
 
   return {

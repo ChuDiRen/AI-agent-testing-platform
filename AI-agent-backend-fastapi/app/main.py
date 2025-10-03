@@ -11,7 +11,7 @@ from app.core.database import init_db
 from app.core.exceptions import APIException
 from app.middleware.logging import RequestLoggingMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
-from app.api import auth, users, roles, permissions, user_roles, upload, menus, departments, role_menus
+from app.api import auth, users, roles, permissions, user_roles, upload, menus, departments, role_menus, dashboard
 
 
 @asynccontextmanager
@@ -90,6 +90,7 @@ app.include_router(permissions.router, prefix=settings.API_PREFIX, tags=["权限
 app.include_router(user_roles.router, prefix=settings.API_PREFIX, tags=["用户角色关联"])
 app.include_router(role_menus.router, prefix=settings.API_PREFIX, tags=["角色菜单关联"])
 app.include_router(upload.router, prefix=settings.API_PREFIX, tags=["文件上传"])
+app.include_router(dashboard.router, prefix=settings.API_PREFIX, tags=["仪表板"])
 
 
 @app.get("/")

@@ -36,6 +36,7 @@ async def init_database():
     async with AsyncSessionLocal() as session:
         # 1. 创建部门（对应博客数据）
         dept = Department(
+            dept_id=1,
             parent_id=0,
             dept_name="开发部",
             order_num=1,
@@ -47,6 +48,7 @@ async def init_database():
         
         # 2. 创建角色（对应博客数据）
         role = Role(
+            role_id=1,
             role_name="管理员",
             remark="管理员",
             create_time=datetime.strptime("2017-12-27 16:23:11", "%Y-%m-%d %H:%M:%S"),
@@ -58,6 +60,7 @@ async def init_database():
         # 3. 创建菜单（对应博客数据）
         menus = [
             Menu(
+                menu_id=1,
                 parent_id=0,
                 menu_name="系统管理",
                 path="/system",
@@ -70,6 +73,7 @@ async def init_database():
                 modify_time=datetime.strptime("2019-07-20 16:19:04", "%Y-%m-%d %H:%M:%S")
             ),
             Menu(
+                menu_id=2,
                 parent_id=1,
                 menu_name="用户管理",
                 path="/system/user",
@@ -82,6 +86,7 @@ async def init_database():
                 modify_time=datetime.strptime("2019-01-22 06:45:55", "%Y-%m-%d %H:%M:%S")
             ),
             Menu(
+                menu_id=3,
                 parent_id=2,
                 menu_name="新增用户",
                 path="",
@@ -94,6 +99,7 @@ async def init_database():
                 modify_time=None
             ),
             Menu(
+                menu_id=4,
                 parent_id=2,
                 menu_name="修改用户",
                 path="",
@@ -106,6 +112,7 @@ async def init_database():
                 modify_time=None
             ),
             Menu(
+                menu_id=5,
                 parent_id=2,
                 menu_name="删除用户",
                 path="",
@@ -124,6 +131,7 @@ async def init_database():
         # 4. 创建用户（对应博客数据）
         # 密码为 1234qwer 经过 BCrypt 加密
         user = User(
+            user_id=1,
             username="BNTang",
             password="$2a$10$gzhiUb1ldc1Rf3lka4k/WOoFKKGPepHSzJxzcPSN5/65SzkMdc.SK",
             dept_id=1,

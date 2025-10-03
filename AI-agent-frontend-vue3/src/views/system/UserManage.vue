@@ -138,7 +138,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import type { User } from '@/api/user'
-import { Download } from '@element-plus/icons-vue'
+import { Download, Search, Refresh, Plus, Edit, Delete } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
 

@@ -24,7 +24,12 @@ class User(Base):
     
     # 关联关系
     roles = relationship("Role", secondary="t_user_role", back_populates="users")
-    
+
+    @property
+    def is_active(self) -> bool:
+        """用户是否激活（基于status字段）"""
+        return self.status == "1"
+
     def __repr__(self):
         return f"<User(user_id={self.user_id}, username={self.username})>"
 

@@ -90,7 +90,7 @@ class UserService:
             user.full_name = user_data.full_name
         
         if user_data.password is not None:
-            user.hashed_password = get_password_hash(user_data.password)
+            user.password = get_password_hash(user_data.password)
         
         return await self.user_repo.update(user)
     

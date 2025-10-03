@@ -37,12 +37,14 @@ class AuthService:
             )
         
         # 创建用户
+        from datetime import datetime
         hashed_password = get_password_hash(user_data.password)
         new_user = User(
             username=user_data.username,
             email=user_data.email,
-            hashed_password=hashed_password,
-            full_name=user_data.full_name
+            password=hashed_password,
+            status="1",  # 默认激活
+            create_time=datetime.now()
         )
         
         return await self.user_repo.create(new_user)
@@ -60,7 +62,7 @@ class AuthService:
             )
         
         # 验证密码
-        if not verify_password(login_data.password, user.hashed_password):
+        if not verify_password(login_data.password, user.password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="用户名或密码错误",
