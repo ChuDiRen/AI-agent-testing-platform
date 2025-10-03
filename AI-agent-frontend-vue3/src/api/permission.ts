@@ -2,7 +2,7 @@
 /**
  * 权限管理 API
  */
-import { get, post, del } from './request'
+import { get, post } from './request'
 
 export interface Permission {
   id: number
@@ -14,14 +14,14 @@ export interface Permission {
   created_at: string
 }
 
-export interface Menu {
+export interface PermissionMenu {
   id: number
   name: string
   path: string
   parent_id?: number
   icon?: string
   order_num: number
-  children?: Menu[]
+  children?: PermissionMenu[]
 }
 
 export interface PermissionListParams {
@@ -39,17 +39,17 @@ export function getApiList(params: PermissionListParams = {}) {
 }
 
 /**
- * 获取菜单列表
+ * 获取菜单列表（旧版本，建议使用 menu.ts 中的接口）
  */
-export function getMenuList(params: { menu_name?: string } = {}) {
-  return get<{ code: number; data: { items: Menu[]; total: number } }>('/api/v1/menu/list', params)
+export function getPermissionMenuList(params: { menu_name?: string } = {}) {
+  return get<{ code: number; data: { items: PermissionMenu[]; total: number } }>('/api/v1/menu/list', params)
 }
 
 /**
  * 获取角色权限
  */
 export function getRolePermissions(roleId: number) {
-  return get<{ code: number; data: { menus: Menu[]; apis: Permission[] } }>('/api/v1/role/authorized', { id: roleId })
+  return get<{ code: number; data: { menus: PermissionMenu[]; apis: Permission[] } }>('/api/v1/role/authorized', { id: roleId })
 }
 
 /**

@@ -1,74 +1,76 @@
 // Copyright (c) 2025 左岚. All rights reserved.
 /**
  * 角色管理 API
+ * 对接 FastAPI RBAC 权限系统
  */
-import { get, post, del } from './request'
+import { get, post, put, del } from './request'
+
+export interface RoleMenu {
+  menu_id: number
+  menu_name: string
+  perms?: string | null
+  type?: string
+}
 
 export interface Role {
-  id: number
-  name: string
-  code: string
-  description?: string
-  permissions: string[]
-  created_at: string
-  updated_at: string
+  role_id: number
+  role_name: string
+  remark?: string
+  create_time?: string
+  modify_time?: string
+}
+
+export interface RoleWithMenus extends Role {
+  menus: RoleMenu[]
 }
 
 export interface RoleListParams {
-  page?: number
-  page_size?: number
-  role_name?: string
+  skip?: number
+  limit?: number
 }
 
 export interface RoleCreateData {
-  name: string
-  code: string
-  description?: string
-  permission_ids?: number[]
+  role_name: string
+  remark?: string
 }
 
-/**
- * 获取角色列表
- */
-export function getRoleList(params: RoleListParams = {}) {
-  return get<{ code: number; data: { items: Role[]; total: number } }>('/api/v1/role/list', params)
-}
-
-/**
- * 获取角色详情
- */
-export function getRoleDetail(id: number) {
-  return get<{ code: number; data: Role }>(`/api/v1/role/${id}`)
+export interface RoleUpdateData {
+  role_name?: string
+  remark?: string
 }
 
 /**
  * 创建角色
  */
 export function createRole(data: RoleCreateData) {
-  return post<{ code: number; msg: string }>('/api/v1/role/create', data)
+  return post<{ success: boolean; message: string; data: Role }>('/api/v1/roles/', data)
+}
+
+/**
+ * 获取角色列表
+ */
+export function getRoleList(params: RoleListParams = {}) {
+  return get<{ success: boolean; data: RoleWithMenus[] }>('/api/v1/roles/', params)
+}
+
+/**
+ * 获取角色详情
+ */
+export function getRoleDetail(roleId: number) {
+  return get<{ success: boolean; data: RoleWithMenus }>(`/api/v1/roles/${roleId}`)
 }
 
 /**
  * 更新角色
  */
-export function updateRole(data: Partial<Role> & { id: number }) {
-  return post<{ code: number; msg: string }>('/api/v1/role/update', data)
+export function updateRole(roleId: number, data: RoleUpdateData) {
+  return put<{ success: boolean; message: string; data: Role }>(`/api/v1/roles/${roleId}`, data)
 }
 
 /**
  * 删除角色
  */
-export function deleteRole(id: number) {
-  return del<{ code: number; msg: string }>('/api/v1/role/delete', { id })
-}
-
-/**
- * 分配权限
- */
-export function assignPermissions(roleId: number, permissionIds: number[]) {
-  return post<{ code: number; msg: string }>('/api/v1/role/assign-permissions', {
-    role_id: roleId,
-    permission_ids: permissionIds
-  })
+export function deleteRole(roleId: number) {
+  return del<{ success: boolean; message: string }>(`/api/v1/roles/${roleId}`)
 }
 

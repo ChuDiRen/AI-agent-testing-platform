@@ -1,92 +1,90 @@
 // Copyright (c) 2025 左岚. All rights reserved.
 /**
  * 用户管理 API
+ * 对接 FastAPI RBAC 权限系统
  */
-import { get, post, put, del } from './request'
+import { get, put, del } from './request'
 
 export interface User {
-  id: number
+  user_id: number
   username: string
-  nickname: string
   email: string
-  phone?: string
-  avatar?: string
+  mobile?: string
   dept_id?: number
-  dept_name?: string
-  status: number
-  roles: Array<{
-    id: number
-    name: string
-    code: string
-  }>
-  created_at: string
-  updated_at: string
+  status: string
+  ssex?: string
+  avatar?: string
+  description?: string
+  create_time?: string
+  last_login_time?: string
+  modify_time?: string
 }
 
 export interface UserListParams {
   page?: number
   page_size?: number
-  username?: string
-  dept_id?: number
-  status?: string
+  keyword?: string
+  is_active?: boolean
 }
 
-export interface UserCreateData {
-  username: string
-  password: string
-  nickname: string
+export interface UserUpdateData {
   email?: string
-  phone?: string
-  dept_id?: number
-  role_ids?: number[]
+  mobile?: string
+  description?: string
+  status?: string
+  ssex?: string
+  avatar?: string
+}
+
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  page_size: number
+  pages: number
 }
 
 /**
- * 获取用户列表
+ * 获取用户列表（分页）
  */
 export function getUserList(params: UserListParams) {
-  return get<{ code: number; data: { items: User[]; total: number } }>('/api/v1/user/list', params)
+  return get<{ success: boolean; data: PaginatedResponse<User> }>('/api/v1/users/', params)
 }
 
 /**
  * 获取用户详情
  */
-export function getUserDetail(id: number) {
-  return get<{ code: number; data: User }>(`/api/v1/user/${id}`)
+export function getUserDetail(userId: number) {
+  return get<{ success: boolean; data: User }>(`/api/v1/users/${userId}`)
 }
 
 /**
- * 创建用户
+ * 更新用户信息
  */
-export function createUser(data: UserCreateData) {
-  return post<{ code: number; msg: string }>('/api/v1/user/create', data)
-}
-
-/**
- * 更新用户
- */
-export function updateUser(data: Partial<User> & { id: number }) {
-  return post<{ code: number; msg: string }>('/api/v1/user/update', data)
+export function updateUser(userId: number, data: UserUpdateData) {
+  return put<{ success: boolean; message: string; data: User }>(`/api/v1/users/${userId}`, data)
 }
 
 /**
  * 删除用户
  */
-export function deleteUser(id: number) {
-  return del<{ code: number; msg: string }>('/api/v1/user/delete', { id })
+export function deleteUser(userId: number) {
+  return del<{ success: boolean; message: string }>(`/api/v1/users/${userId}`)
 }
 
 /**
- * 重置密码
+ * 导出用户数据（CSV）
  */
-export function resetPassword(id: number, password: string) {
-  return post<{ code: number; msg: string }>('/api/v1/user/reset-password', { id, password })
+export function exportUsersCSV(keyword?: string) {
+  const params = keyword ? { keyword } : {}
+  return get<Blob>('/api/v1/users/export/csv', params)
 }
 
 /**
- * 修改用户状态
+ * 导出用户数据（JSON）
  */
-export function changeUserStatus(id: number, status: number) {
-  return post<{ code: number; msg: string }>('/api/v1/user/change-status', { id, status })
+export function exportUsersJSON(keyword?: string) {
+  const params = keyword ? { keyword } : {}
+  return get<Blob>('/api/v1/users/export/json', params)
 }
 

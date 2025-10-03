@@ -1,6 +1,7 @@
 // Copyright (c) 2025 左岚. All rights reserved.
 /**
  * 认证相关 API
+ * 对接 FastAPI RBAC 权限系统
  */
 import { post, get } from './request'
 
@@ -9,74 +10,77 @@ export interface LoginRequest {
   password: string
 }
 
+export interface RegisterRequest {
+  username: string
+  password: string
+  email: string
+  mobile?: string
+  dept_id?: number
+  ssex?: string
+}
+
 export interface LoginResponse {
-  code: number
+  success: boolean
+  message: string
   data: {
     access_token: string
-    refresh_token: string
     token_type: string
-    userinfo: {
-      id: number
-      username: string
-      nickname: string
-      email: string
-      avatar: string
-      roles: string[]
-      permissions: string[]
-    }
   }
+}
+
+export interface RegisterResponse {
+  success: boolean
   message: string
+  data: {
+    user_id: number
+    username: string
+    email: string
+    status: string
+  }
 }
 
 export interface UserInfo {
-  id: number
+  user_id: number
   username: string
-  nickname: string
   email: string
-  phone: string
-  avatar: string
-  dept_id: number
-  dept_name: string
-  roles: Array<{
-    id: number
-    name: string
-    code: string
-  }>
-  permissions: string[]
+  mobile?: string
+  dept_id?: number
+  status: string
+  ssex?: string
+  avatar?: string
+  description?: string
+  create_time?: string
+  last_login_time?: string
+}
+
+/**
+ * 用户注册
+ */
+export function register(data: RegisterRequest) {
+  return post<RegisterResponse>('/api/v1/auth/register', data)
 }
 
 /**
  * 用户登录
  */
 export function login(data: LoginRequest) {
-  return post<LoginResponse>('/api/v1/base/login', data)
+  return post<LoginResponse>('/api/v1/auth/login', data)
 }
 
 /**
- * 获取用户信息
+ * 获取当前用户信息
  */
 export function getUserInfo() {
-  return get<{ code: number; data: UserInfo }>('/api/v1/base/userinfo')
+  return get<{ success: boolean; data: UserInfo }>('/api/v1/users/me')
 }
 
 /**
- * 获取用户菜单
- */
-export function getUserMenu() {
-  return get<any>('/api/v1/base/user/menu')
-}
-
-/**
- * 获取用户API权限
- */
-export function getUserApi() {
-  return get<any>('/api/v1/base/user/api')
-}
-
-/**
- * 用户登出
+ * 用户登出（本地处理）
  */
 export function logout() {
-  return post('/api/v1/base/logout')
+  // FastAPI后端没有专门的logout接口，直接清除本地token
+  localStorage.removeItem('token')
+  localStorage.removeItem('refreshToken')
+  return Promise.resolve({ success: true, message: '登出成功' })
 }
 

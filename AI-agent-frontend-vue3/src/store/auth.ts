@@ -26,21 +26,16 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await login(loginData)
       
-      if (response.code === 200 && response.data) {
+      if (response.success && response.data) {
         // 保存 token
         token.value = response.data.access_token
-        refreshToken.value = response.data.refresh_token
         localStorage.setItem('token', response.data.access_token)
-        localStorage.setItem('refreshToken', response.data.refresh_token)
         
-        // 保存用户信息
-        if (response.data.userinfo) {
-          userInfo.value = response.data.userinfo as any
-          roles.value = response.data.userinfo.roles || []
-          permissions.value = response.data.userinfo.permissions || []
-        }
+        ElMessage.success(response.message || '登录成功')
         
-        ElMessage.success('登录成功')
+        // 登录成功后获取用户信息
+        await fetchUserInfo()
+        
         return true
       } else {
         ElMessage.error(response.message || '登录失败')
@@ -57,10 +52,11 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await getUserInfo()
       
-      if (response.code === 200 && response.data) {
+      if (response.success && response.data) {
         userInfo.value = response.data
-        roles.value = response.data.roles?.map(r => r.code) || []
-        permissions.value = response.data.permissions || []
+        // 暂时使用空数组，后续可以通过菜单接口获取权限
+        roles.value = []
+        permissions.value = []
         return true
       }
       return false

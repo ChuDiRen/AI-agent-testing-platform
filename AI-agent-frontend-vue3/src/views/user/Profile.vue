@@ -24,21 +24,20 @@
                 <span>更换头像</span>
               </div>
             </el-upload>
-            <h3 class="profile-name">{{ userInfo.nickname || userInfo.username }}</h3>
-            <p class="profile-role">{{ userInfo.role_name || '普通用户' }}</p>
+            <h3 class="profile-name">{{ userInfo.username }}</h3>
+            <p class="profile-role">普通用户</p>
           </div>
 
           <el-descriptions :column="1" border class="profile-info">
             <el-descriptions-item label="用户名">{{ userInfo.username }}</el-descriptions-item>
             <el-descriptions-item label="邮箱">{{ userInfo.email || '未设置' }}</el-descriptions-item>
-            <el-descriptions-item label="手机号">{{ userInfo.phone || '未设置' }}</el-descriptions-item>
-            <el-descriptions-item label="部门">{{ userInfo.dept_name || '未分配' }}</el-descriptions-item>
+            <el-descriptions-item label="手机号">{{ userInfo.mobile || '未设置' }}</el-descriptions-item>
             <el-descriptions-item label="账号状态">
-              <el-tag :type="userInfo.status === 1 ? 'success' : 'danger'">
-                {{ userInfo.status === 1 ? '正常' : '禁用' }}
+              <el-tag :type="userInfo.status === '1' ? 'success' : 'danger'">
+                {{ userInfo.status === '1' ? '正常' : '禁用' }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="注册时间">{{ userInfo.created_at }}</el-descriptions-item>
+            <el-descriptions-item label="注册时间">{{ userInfo.create_time }}</el-descriptions-item>
           </el-descriptions>
         </el-card>
       </el-col>
@@ -57,18 +56,15 @@
           <!-- 基本信息 -->
           <div v-show="activeTab === 'basic'" class="tab-content">
             <el-form :model="basicForm" :rules="basicRules" ref="basicFormRef" label-width="100px">
-              <el-form-item label="昵称" prop="nickname">
-                <el-input v-model="basicForm.nickname" placeholder="请输入昵称" />
-              </el-form-item>
               <el-form-item label="邮箱" prop="email">
                 <el-input v-model="basicForm.email" placeholder="请输入邮箱" />
               </el-form-item>
-              <el-form-item label="手机号" prop="phone">
-                <el-input v-model="basicForm.phone" placeholder="请输入手机号" />
+              <el-form-item label="手机号" prop="mobile">
+                <el-input v-model="basicForm.mobile" placeholder="请输入手机号" />
               </el-form-item>
               <el-form-item label="个人简介">
                 <el-input
-                  v-model="basicForm.bio"
+                  v-model="basicForm.description"
                   type="textarea"
                   :rows="4"
                   placeholder="请输入个人简介"
@@ -171,6 +167,9 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules, type UploadRequestOptions } from 'element-plus'
 import { Camera } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/store/auth'
+import { updateUser } from '@/api/user'
+import { uploadAvatar } from '@/api/upload'
+import { getUserInfo } from '@/api/auth'
 
 const authStore = useAuthStore()
 const activeTab = ref('basic')
@@ -179,36 +178,29 @@ const defaultAvatar = 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e5
 
 // 用户信息
 const userInfo = reactive({
+  user_id: 0,
   username: '',
-  nickname: '',
   email: '',
-  phone: '',
+  mobile: '',
   avatar: '',
-  role_name: '',
-  dept_name: '',
-  status: 1,
-  created_at: '',
-  bio: ''
+  status: '1',
+  description: '',
+  create_time: ''
 })
 
 // 基本信息表单
 const basicFormRef = ref<FormInstance>()
 const basicForm = reactive({
-  nickname: '',
   email: '',
-  phone: '',
-  bio: ''
+  mobile: '',
+  description: ''
 })
 
 const basicRules: FormRules = {
-  nickname: [
-    { required: true, message: '请输入昵称', trigger: 'blur' },
-    { min: 2, max: 20, message: '昵称长度在2-20个字符之间', trigger: 'blur' }
-  ],
   email: [
     { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
   ],
-  phone: [
+  mobile: [
     { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
   ]
 }
@@ -253,14 +245,17 @@ const notificationSettings = reactive({
 })
 
 // 加载用户信息
-const loadUserInfo = () => {
-  const user = authStore.userInfo
-  if (user) {
-    Object.assign(userInfo, user)
-    basicForm.nickname = user.nickname || ''
-    basicForm.email = user.email || ''
-    basicForm.phone = user.phone || ''
-    basicForm.bio = user.bio || ''
+const loadUserInfo = async () => {
+  try {
+    const response = await getUserInfo()
+    if (response.success && response.data) {
+      Object.assign(userInfo, response.data)
+      basicForm.email = response.data.email || ''
+      basicForm.mobile = response.data.mobile || ''
+      basicForm.description = response.data.description || ''
+    }
+  } catch (error) {
+    console.error('加载用户信息失败:', error)
   }
 }
 
@@ -272,14 +267,15 @@ const handleSaveBasic = async () => {
     if (valid) {
       saving.value = true
       try {
-        // TODO: 调用API保存用户信息
-        // await updateUserProfile(basicForm)
+        const response = await updateUser(userInfo.user_id, basicForm)
         
-        // 模拟保存
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        Object.assign(userInfo, basicForm)
-        ElMessage.success('保存成功')
+        if (response.success) {
+          Object.assign(userInfo, response.data)
+          ElMessage.success(response.message || '保存成功')
+          await loadUserInfo()
+        } else {
+          ElMessage.error(response.message || '保存失败')
+        }
       } catch (error) {
         ElMessage.error('保存失败')
       } finally {
@@ -363,15 +359,22 @@ const beforeAvatarUpload = (file: File) => {
 // 处理头像上传
 const handleAvatarUpload = async (options: UploadRequestOptions) => {
   try {
-    // TODO: 调用API上传头像
-    // const formData = new FormData()
-    // formData.append('file', options.file)
-    // const response = await uploadAvatar(formData)
-    // userInfo.avatar = response.url
+    const response = await uploadAvatar(options.file as File)
     
-    // 模拟上传
-    ElMessage.success('头像上传成功')
+    if (response.success && response.data) {
+      // 更新用户头像
+      const updateResponse = await updateUser(userInfo.user_id, {
+        avatar: response.data.filename
+      })
+      
+      if (updateResponse.success) {
+        userInfo.avatar = response.data.url
+        ElMessage.success('头像上传成功')
+        await loadUserInfo()
+      }
+    }
   } catch (error) {
+    console.error('头像上传失败:', error)
     ElMessage.error('头像上传失败')
   }
 }

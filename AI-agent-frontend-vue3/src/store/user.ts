@@ -1,19 +1,19 @@
 // Copyright (c) 2025 左岚. All rights reserved.
 /**
  * 用户管理状态
+ * 适配 FastAPI RBAC 权限系统
  */
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import {
   getUserList,
-  createUser,
   updateUser,
   deleteUser,
-  resetPassword,
-  changeUserStatus,
+  exportUsersCSV,
+  exportUsersJSON,
   type User,
   type UserListParams,
-  type UserCreateData
+  type UserUpdateData
 } from '@/api/user'
 import { ElMessage } from 'element-plus'
 
@@ -30,7 +30,7 @@ export const useUserStore = defineStore('user', () => {
       loading.value = true
       const response = await getUserList(params)
       
-      if (response.code === 200 && response.data) {
+      if (response.success && response.data) {
         users.value = response.data.items
         total.value = response.data.total
       }
@@ -42,37 +42,16 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  async function createUserAction(data: UserCreateData) {
+  async function updateUserAction(userId: number, data: UserUpdateData) {
     try {
       loading.value = true
-      const response = await createUser(data)
+      const response = await updateUser(userId, data)
       
-      if (response.code === 200) {
-        ElMessage.success('创建用户成功')
+      if (response.success) {
+        ElMessage.success(response.message || '更新用户成功')
         return true
       } else {
-        ElMessage.error(response.msg || '创建用户失败')
-        return false
-      }
-    } catch (error: any) {
-      console.error('创建用户失败:', error)
-      ElMessage.error(error.message || '创建用户失败')
-      return false
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function updateUserAction(data: Partial<User> & { id: number }) {
-    try {
-      loading.value = true
-      const response = await updateUser(data)
-      
-      if (response.code === 200) {
-        ElMessage.success('更新用户成功')
-        return true
-      } else {
-        ElMessage.error(response.msg || '更新用户失败')
+        ElMessage.error(response.message || '更新用户失败')
         return false
       }
     } catch (error: any) {
@@ -84,18 +63,18 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  async function deleteUserAction(id: number) {
+  async function deleteUserAction(userId: number) {
     try {
       loading.value = true
-      const response = await deleteUser(id)
+      const response = await deleteUser(userId)
       
-      if (response.code === 200) {
-        ElMessage.success('删除用户成功')
-        users.value = users.value.filter(u => u.id !== id)
+      if (response.success) {
+        ElMessage.success(response.message || '删除用户成功')
+        users.value = users.value.filter(u => u.user_id !== userId)
         total.value -= 1
         return true
       } else {
-        ElMessage.error(response.msg || '删除用户失败')
+        ElMessage.error(response.message || '删除用户失败')
         return false
       }
     } catch (error: any) {
@@ -107,47 +86,47 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  async function resetPasswordAction(id: number, password: string) {
+  async function exportCSV(keyword?: string) {
     try {
       loading.value = true
-      const response = await resetPassword(id, password)
+      const blob = await exportUsersCSV(keyword)
       
-      if (response.code === 200) {
-        ElMessage.success('重置密码成功')
-        return true
-      } else {
-        ElMessage.error(response.msg || '重置密码失败')
-        return false
-      }
+      // 创建下载链接
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `users_${new Date().getTime()}.csv`
+      link.click()
+      window.URL.revokeObjectURL(url)
+      
+      ElMessage.success('导出成功')
     } catch (error: any) {
-      console.error('重置密码失败:', error)
-      ElMessage.error(error.message || '重置密码失败')
-      return false
+      console.error('导出失败:', error)
+      ElMessage.error(error.message || '导出失败')
     } finally {
       loading.value = false
     }
   }
 
-  async function changeStatusAction(id: number, status: number) {
+  async function exportJSON(keyword?: string) {
     try {
-      const response = await changeUserStatus(id, status)
+      loading.value = true
+      const blob = await exportUsersJSON(keyword)
       
-      if (response.code === 200) {
-        ElMessage.success('修改状态成功')
-        // 更新本地状态
-        const user = users.value.find(u => u.id === id)
-        if (user) {
-          user.status = status
-        }
-        return true
-      } else {
-        ElMessage.error(response.msg || '修改状态失败')
-        return false
-      }
+      // 创建下载链接
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `users_${new Date().getTime()}.json`
+      link.click()
+      window.URL.revokeObjectURL(url)
+      
+      ElMessage.success('导出成功')
     } catch (error: any) {
-      console.error('修改状态失败:', error)
-      ElMessage.error(error.message || '修改状态失败')
-      return false
+      console.error('导出失败:', error)
+      ElMessage.error(error.message || '导出失败')
+    } finally {
+      loading.value = false
     }
   }
 
@@ -159,11 +138,10 @@ export const useUserStore = defineStore('user', () => {
     currentUser,
     // Actions
     fetchUserList,
-    createUser: createUserAction,
     updateUser: updateUserAction,
     deleteUser: deleteUserAction,
-    resetPassword: resetPasswordAction,
-    changeStatus: changeStatusAction
+    exportCSV,
+    exportJSON
   }
 })
 

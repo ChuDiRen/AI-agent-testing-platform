@@ -44,6 +44,18 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/system/PermissionManage.vue'),
     meta: { title: '权限管理', requiresAuth: true }
   },
+  {
+    path: '/system/menu',
+    name: 'SystemMenu',
+    component: () => import('@/views/system/MenuManage.vue'),
+    meta: { title: '菜单管理', requiresAuth: true }
+  },
+  {
+    path: '/system/department',
+    name: 'SystemDepartment',
+    component: () => import('@/views/system/DepartmentManage.vue'),
+    meta: { title: '部门管理', requiresAuth: true }
+  },
   // API自动化
   {
     path: '/api/testcase',

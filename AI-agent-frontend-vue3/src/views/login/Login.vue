@@ -84,8 +84,7 @@
       <div class="quick-login-tip">
         <el-divider>测试账号</el-divider>
         <div class="test-accounts">
-          <el-tag @click="fillTestAccount('admin')">管理员: admin / admin123</el-tag>
-          <el-tag type="success" @click="fillTestAccount('user')">普通用户: user / user123</el-tag>
+          <el-tag @click="fillTestAccount('admin')">管理员: BNTang / 1234qwer</el-tag>
         </div>
       </div>
     </el-card>
@@ -164,14 +163,9 @@ const handleRegister = () => {
 }
 
 // 填充测试账号
-const fillTestAccount = (type: 'admin' | 'user') => {
-  if (type === 'admin') {
-    loginForm.username = 'admin'
-    loginForm.password = 'admin123'
-  } else {
-    loginForm.username = 'user'
-    loginForm.password = 'user123'
-  }
+const fillTestAccount = (type: 'admin') => {
+  loginForm.username = 'BNTang'
+  loginForm.password = '1234qwer'
   ElMessage.success('已填充测试账号')
 }
 </script>
