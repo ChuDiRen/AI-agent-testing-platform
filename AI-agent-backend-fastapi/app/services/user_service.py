@@ -77,18 +77,26 @@ class UserService:
         
         # 更新字段
         if user_data.email is not None:
-            # 检查邮箱是否已被使用
-            existing_email = await self.user_repo.get_by_email(user_data.email)
-            if existing_email and existing_email.id != user_id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="邮箱已被使用"
-                )
             user.email = user_data.email
-        
-        if user_data.full_name is not None:
-            user.full_name = user_data.full_name
-        
+
+        if user_data.mobile is not None:
+            user.mobile = user_data.mobile
+
+        if user_data.dept_id is not None:
+            user.dept_id = user_data.dept_id
+
+        if user_data.ssex is not None:
+            user.ssex = user_data.ssex
+
+        if user_data.avatar is not None:
+            user.avatar = user_data.avatar
+
+        if user_data.description is not None:
+            user.description = user_data.description
+
+        if user_data.status is not None:
+            user.status = user_data.status
+
         if user_data.password is not None:
             user.password = get_password_hash(user_data.password)
         

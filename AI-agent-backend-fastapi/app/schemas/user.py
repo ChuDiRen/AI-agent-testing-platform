@@ -7,14 +7,16 @@ from datetime import datetime
 class UserBase(BaseModel):
     """用户基础模型"""
     username: str = Field(..., min_length=3, max_length=50, description="用户名")
-    email: EmailStr = Field(..., description="邮箱地址")
-    full_name: Optional[str] = Field(None, max_length=100, description="全名")
+    email: Optional[str] = Field(None, description="邮箱地址")
+    mobile: Optional[str] = Field(None, description="手机号")
 
 
 class UserCreate(UserBase):
     """用户创建模型"""
     password: str = Field(..., min_length=6, description="密码")
-    
+    dept_id: Optional[int] = Field(None, description="部门ID")
+    ssex: Optional[str] = Field(None, description="性别 0男 1女 2保密")
+
     @field_validator('password')
     @classmethod
     def validate_password(cls, v: str) -> str:
@@ -29,21 +31,33 @@ class UserLogin(BaseModel):
     password: str = Field(..., description="密码")
 
 
-class UserResponse(UserBase):
-    """用户响应模型"""
-    id: int
-    is_active: bool
-    is_superuser: bool
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    
+class UserResponse(BaseModel):
+    """用户响应模型 - 对应t_user表结构"""
+    user_id: int = Field(..., description="用户ID")
+    username: str = Field(..., description="用户名")
+    email: Optional[str] = Field(None, description="邮箱")
+    mobile: Optional[str] = Field(None, description="手机号")
+    dept_id: Optional[int] = Field(None, description="部门ID")
+    status: str = Field(..., description="状态 0锁定 1有效")
+    ssex: Optional[str] = Field(None, description="性别 0男 1女 2保密")
+    avatar: Optional[str] = Field(None, description="头像")
+    description: Optional[str] = Field(None, description="描述")
+    create_time: datetime = Field(..., description="创建时间")
+    modify_time: Optional[datetime] = Field(None, description="修改时间")
+    last_login_time: Optional[datetime] = Field(None, description="最近登录时间")
+
     class Config:
         from_attributes = True
 
 
 class UserUpdate(BaseModel):
     """用户更新模型"""
-    email: Optional[EmailStr] = None
-    full_name: Optional[str] = None
+    email: Optional[str] = None
+    mobile: Optional[str] = None
     password: Optional[str] = None
+    dept_id: Optional[int] = None
+    ssex: Optional[str] = None
+    avatar: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
 

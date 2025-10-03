@@ -14,7 +14,7 @@ class UserRepository:
     async def get_by_id(self, user_id: int) -> Optional[User]:
         """根据ID获取用户"""
         result = await self.db.execute(
-            select(User).where(User.id == user_id)
+            select(User).where(User.user_id == user_id)
         )
         return result.scalar_one_or_none()
     

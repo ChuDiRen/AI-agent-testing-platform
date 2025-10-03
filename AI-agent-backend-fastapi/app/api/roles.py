@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.schemas.role import RoleCreate, RoleUpdate, RoleResponse, RoleWithPermissions
+from app.schemas.role import RoleCreate, RoleUpdate, RoleResponse
 from app.schemas.common import APIResponse
 from app.services.role_service import RoleService
 from app.api.deps import get_current_active_user
@@ -29,34 +29,34 @@ async def create_role(
     )
 
 
-@router.get("/", response_model=APIResponse[List[RoleWithPermissions]])
+@router.get("/", response_model=APIResponse[List[RoleResponse]])
 async def get_roles(
     skip: int = Query(0, ge=0, description="跳过数量"),
     limit: int = Query(100, ge=1, le=100, description="限制数量"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> APIResponse[List[RoleWithPermissions]]:
+) -> APIResponse[List[RoleResponse]]:
     """获取角色列表"""
     role_service = RoleService(db)
     roles = await role_service.get_all_roles(skip=skip, limit=limit)
-    
+
     return APIResponse(
-        data=[RoleWithPermissions.model_validate(role) for role in roles]
+        data=[RoleResponse.model_validate(role) for role in roles]
     )
 
 
-@router.get("/{role_id}", response_model=APIResponse[RoleWithPermissions])
+@router.get("/{role_id}", response_model=APIResponse[RoleResponse])
 async def get_role(
     role_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> APIResponse[RoleWithPermissions]:
+) -> APIResponse[RoleResponse]:
     """获取角色详情"""
     role_service = RoleService(db)
     role = await role_service.get_role_by_id(role_id)
-    
+
     return APIResponse(
-        data=RoleWithPermissions.model_validate(role)
+        data=RoleResponse.model_validate(role)
     )
 
 

@@ -6,40 +6,29 @@ from datetime import datetime
 
 class RoleBase(BaseModel):
     """角色基础模型"""
-    name: str = Field(..., min_length=1, max_length=50, description="角色名称")
-    code: str = Field(..., min_length=1, max_length=50, description="角色代码")
-    description: Optional[str] = Field(None, max_length=200, description="角色描述")
+    role_name: str = Field(..., min_length=1, max_length=10, description="角色名称")
+    remark: Optional[str] = Field(None, max_length=100, description="角色描述")
 
 
 class RoleCreate(RoleBase):
     """角色创建模型"""
-    permission_ids: Optional[List[int]] = Field(None, description="权限ID列表")
+    pass
 
 
 class RoleUpdate(BaseModel):
     """角色更新模型"""
-    name: Optional[str] = Field(None, min_length=1, max_length=50, description="角色名称")
-    code: Optional[str] = Field(None, min_length=1, max_length=50, description="角色代码")
-    description: Optional[str] = Field(None, max_length=200, description="角色描述")
-    is_active: Optional[bool] = Field(None, description="是否激活")
-    permission_ids: Optional[List[int]] = Field(None, description="权限ID列表")
+    role_name: Optional[str] = Field(None, min_length=1, max_length=10, description="角色名称")
+    remark: Optional[str] = Field(None, max_length=100, description="角色描述")
 
 
-class RoleResponse(RoleBase):
-    """角色响应模型"""
-    id: int
-    is_active: bool
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    
-    class Config:
-        from_attributes = True
+class RoleResponse(BaseModel):
+    """角色响应模型 - 对应t_role表结构"""
+    role_id: int = Field(..., description="角色ID")
+    role_name: str = Field(..., description="角色名称")
+    remark: Optional[str] = Field(None, description="角色描述")
+    create_time: datetime = Field(..., description="创建时间")
+    modify_time: Optional[datetime] = Field(None, description="修改时间")
 
-
-class RoleWithPermissions(RoleResponse):
-    """角色及权限响应模型"""
-    permissions: List['PermissionResponse'] = []
-    
     class Config:
         from_attributes = True
 

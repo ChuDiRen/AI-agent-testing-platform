@@ -15,16 +15,14 @@ class RoleRepository:
     async def get_by_id(self, role_id: int) -> Optional[Role]:
         """根据ID获取角色"""
         result = await self.db.execute(
-            select(Role)
-            .options(selectinload(Role.permissions))
-            .where(Role.id == role_id)
+            select(Role).where(Role.role_id == role_id)
         )
         return result.scalar_one_or_none()
-    
-    async def get_by_code(self, code: str) -> Optional[Role]:
-        """根据代码获取角色"""
+
+    async def get_by_name(self, role_name: str) -> Optional[Role]:
+        """根据名称获取角色"""
         result = await self.db.execute(
-            select(Role).where(Role.code == code)
+            select(Role).where(Role.role_name == role_name)
         )
         return result.scalar_one_or_none()
     

@@ -30,7 +30,6 @@
           </template>
           <el-menu-item index="system-user" @click="router.push('/system/user')">用户管理</el-menu-item>
           <el-menu-item index="system-role" @click="router.push('/system/role')">角色管理</el-menu-item>
-          <el-menu-item index="system-permission" @click="router.push('/system/permission')">权限管理</el-menu-item>
           <el-menu-item index="system-menu" @click="router.push('/system/menu')">菜单管理</el-menu-item>
           <el-menu-item index="system-department" @click="router.push('/system/department')">部门管理</el-menu-item>
         </el-sub-menu>
@@ -140,8 +139,6 @@ const updateActiveMenu = () => {
     activeMenu.value = 'system-user'
   } else if (path.startsWith('/system/role')) {
     activeMenu.value = 'system-role'
-  } else if (path.startsWith('/system/permission')) {
-    activeMenu.value = 'system-permission'
   } else if (path.startsWith('/system/menu')) {
     activeMenu.value = 'system-menu'
   } else if (path.startsWith('/system/department')) {

@@ -11,7 +11,7 @@ from app.core.database import init_db
 from app.core.exceptions import APIException
 from app.middleware.logging import RequestLoggingMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
-from app.api import auth, users, roles, permissions, user_roles, upload, menus, departments, role_menus, dashboard
+from app.api import auth, users, roles, user_roles, upload, menus, departments, role_menus, dashboard
 
 
 @asynccontextmanager
@@ -41,23 +41,24 @@ app = FastAPI(
     openapi_url="/openapi.json"
 )
 
-# 配置 CORS
+# 添加限流中间件（最先添加，最后执行）
+app.add_middleware(
+    RateLimitMiddleware,
+    calls=settings.RATE_LIMIT_CALLS,
+    period=settings.RATE_LIMIT_PERIOD
+)
+
+# 添加请求日志中间件
+app.add_middleware(RequestLoggingMiddleware)
+
+# 配置 CORS（最后添加，最先执行）
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-)
-
-# 添加请求日志中间件
-app.add_middleware(RequestLoggingMiddleware)
-
-# 添加限流中间件
-app.add_middleware(
-    RateLimitMiddleware,
-    calls=settings.RATE_LIMIT_CALLS,
-    period=settings.RATE_LIMIT_PERIOD
+    expose_headers=["*"]
 )
 
 # 挂载静态文件目录（用于访问上传的文件）
@@ -86,7 +87,6 @@ app.include_router(users.router, prefix=settings.API_PREFIX, tags=["用户管理
 app.include_router(roles.router, prefix=settings.API_PREFIX, tags=["角色管理"])
 app.include_router(menus.router, prefix=settings.API_PREFIX, tags=["菜单管理"])
 app.include_router(departments.router, prefix=settings.API_PREFIX, tags=["部门管理"])
-app.include_router(permissions.router, prefix=settings.API_PREFIX, tags=["权限管理"])
 app.include_router(user_roles.router, prefix=settings.API_PREFIX, tags=["用户角色关联"])
 app.include_router(role_menus.router, prefix=settings.API_PREFIX, tags=["角色菜单关联"])
 app.include_router(upload.router, prefix=settings.API_PREFIX, tags=["文件上传"])

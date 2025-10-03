@@ -45,12 +45,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '角色管理', requiresAuth: true }
       },
       {
-        path: 'system/permission',
-        name: 'SystemPermission',
-        component: () => import('@/views/system/PermissionManage.vue'),
-        meta: { title: '权限管理', requiresAuth: true }
-      },
-      {
         path: 'system/menu',
         name: 'SystemMenu',
         component: () => import('@/views/system/MenuManage.vue'),
