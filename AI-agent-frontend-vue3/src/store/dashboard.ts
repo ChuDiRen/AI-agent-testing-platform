@@ -4,7 +4,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getDashboardStats, getTrendData, type DashboardStats, type TrendData } from '@/api/dashboard'
+import { getDashboardStats, getTrendData, getTaskStatus, type DashboardStats, type TrendData, type TaskStatusData } from '@/api/dashboard'
 
 export const useDashboardStore = defineStore('dashboard', () => {
   // State
@@ -22,6 +22,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
     app: []
   })
 
+  const taskStatusData = ref<TaskStatusData>({
+    labels: [],
+    data: [],
+    colors: []
+  })
+
   const loading = ref(false)
 
   // Actions
@@ -29,7 +35,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     try {
       loading.value = true
       const response = await getDashboardStats()
-      
+
       if (response.code === 200 && response.data) {
         stats.value = response.data
       }
@@ -51,7 +57,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     try {
       loading.value = true
       const response = await getTrendData()
-      
+
       if (response.code === 200 && response.data) {
         trendData.value = response.data
       }
@@ -69,18 +75,41 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
 
+  async function fetchTaskStatus() {
+    try {
+      loading.value = true
+      const response = await getTaskStatus()
+
+      if (response.code === 200 && response.data) {
+        taskStatusData.value = response.data
+      }
+    } catch (error) {
+      console.error('Fetch task status error:', error)
+      // 使用模拟数据作为后备
+      taskStatusData.value = {
+        labels: ['待执行', '执行中', '已完成', '失败', '已取消'],
+        data: [45, 23, 156, 12, 8],
+        colors: ['#909399', '#409EFF', '#67C23A', '#F56C6C', '#E6A23C']
+      }
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function fetchDashboardData() {
-    await Promise.all([fetchStats(), fetchTrendData()])
+    await Promise.all([fetchStats(), fetchTrendData(), fetchTaskStatus()])
   }
 
   return {
     // State
     stats,
     trendData,
+    taskStatusData,
     loading,
     // Actions
     fetchStats,
     fetchTrendData,
+    fetchTaskStatus,
     fetchDashboardData
   }
 })

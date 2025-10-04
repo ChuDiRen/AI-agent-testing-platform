@@ -1,5 +1,5 @@
 """菜单数据库模型 - 完全按照博客 t_menu 表结构设计"""
-from sqlalchemy import Column, BigInteger, String, CHAR, Float, DateTime
+from sqlalchemy import Column, Integer, String, CHAR, Float, DateTime
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -7,9 +7,9 @@ from app.core.database import Base
 class Menu(Base):
     """菜单表模型 - 对应博客 t_menu 表"""
     __tablename__ = "t_menu"
-    
-    menu_id = Column(BigInteger, primary_key=True, autoincrement=True, comment="菜单/按钮ID")
-    parent_id = Column(BigInteger, nullable=False, comment="上级菜单ID")
+
+    menu_id = Column(Integer, primary_key=True, autoincrement=True, comment="菜单/按钮ID")  # SQLite使用INTEGER支持自增
+    parent_id = Column(Integer, nullable=False, comment="上级菜单ID")  # SQLite使用INTEGER支持自增
     menu_name = Column(String(50), nullable=False, comment="菜单/按钮名称")
     path = Column(String(255), nullable=True, comment="对应路由path")
     component = Column(String(255), nullable=True, comment="对应路由组件component")

@@ -18,6 +18,12 @@ export interface TrendData {
   app: number[]
 }
 
+export interface TaskStatusData {
+  labels: string[]
+  data: number[]
+  colors: string[]
+}
+
 /**
  * 获取仪表板统计数据
  */
@@ -37,5 +43,12 @@ export function getTrendData() {
  */
 export function getRecentActivities() {
   return get<any>('/api/v1/dashboard/activities')
+}
+
+/**
+ * 获取任务状态统计数据
+ */
+export function getTaskStatus() {
+  return get<{ code: number; data: TaskStatusData }>('/api/v1/dashboard/task-status')
 }
 

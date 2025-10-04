@@ -65,7 +65,51 @@ class UserService:
         users = result.scalars().all()
         
         return list(users), total
-    
+
+    async def get_user_by_username(self, username: str) -> Optional[User]:
+        """根据用户名获取用户"""
+        query = select(User).where(User.username == username)
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none()
+
+    async def get_user_by_email(self, email: str) -> Optional[User]:
+        """根据邮箱获取用户"""
+        query = select(User).where(User.email == email)
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none()
+
+    async def create_user(
+        self,
+        username: str,
+        password: str,
+        email: Optional[str] = None,
+        mobile: Optional[str] = None,
+        dept_id: Optional[int] = None,
+        ssex: Optional[str] = '2',
+        description: Optional[str] = None
+    ) -> User:
+        """创建新用户"""
+        from datetime import datetime
+
+        # 创建用户对象
+        new_user = User(
+            username=username,
+            password=get_password_hash(password),
+            email=email,
+            mobile=mobile,
+            dept_id=dept_id,
+            status='1',  # 默认启用
+            ssex=ssex,
+            description=description,
+            create_time=datetime.now()
+        )
+
+        self.db.add(new_user)
+        await self.db.commit()
+        await self.db.refresh(new_user)
+
+        return new_user
+
     async def update_user(self, user_id: int, user_data: UserUpdate) -> User:
         """更新用户信息"""
         user = await self.user_repo.get_by_id(user_id)

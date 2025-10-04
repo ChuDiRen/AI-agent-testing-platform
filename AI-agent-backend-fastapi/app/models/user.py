@@ -1,5 +1,5 @@
 """用户数据库模型 - 完全按照博客 t_user 表结构设计"""
-from sqlalchemy import Column, BigInteger, String, CHAR, DateTime, Integer
+from sqlalchemy import Column, String, CHAR, DateTime, Integer
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -7,11 +7,11 @@ from app.core.database import Base
 class User(Base):
     """用户表模型 - 对应博客 t_user 表"""
     __tablename__ = "t_user"
-    
-    user_id = Column(BigInteger, primary_key=True, autoincrement=True, comment="用户ID")
+
+    user_id = Column(Integer, primary_key=True, autoincrement=True, comment="用户ID")  # SQLite使用INTEGER支持自增
     username = Column(String(50), nullable=False, comment="用户名")
     password = Column(String(128), nullable=False, comment="密码")
-    dept_id = Column(BigInteger, nullable=True, comment="部门ID")
+    dept_id = Column(Integer, nullable=True, comment="部门ID")  # SQLite使用INTEGER支持自增
     email = Column(String(128), nullable=True, comment="邮箱")
     mobile = Column(String(20), nullable=True, comment="联系电话")
     status = Column(CHAR(1), nullable=False, comment="状态 0锁定 1有效")
@@ -24,6 +24,7 @@ class User(Base):
     
     # 关联关系
     roles = relationship("Role", secondary="t_user_role", back_populates="users")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")  # 用户的通知列表
 
     @property
     def is_active(self) -> bool:

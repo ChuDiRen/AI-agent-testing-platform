@@ -140,6 +140,13 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/data/TestData.vue'),
         meta: { title: '测试数据管理', requiresAuth: true }
       },
+      // 系统数据管理
+      {
+        path: 'data/management',
+        name: 'DataManagement',
+        component: () => import('@/views/data/Management.vue'),
+        meta: { title: '数据管理', requiresAuth: true }
+      },
       // AI 功能
       {
         path: 'ai/chat',

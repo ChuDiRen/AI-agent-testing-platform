@@ -27,8 +27,8 @@
       <el-timeline style="margin-top: 20px">
         <el-timeline-item
           v-for="msg in filteredMessages"
-          :key="msg.id"
-          :timestamp="msg.created_at"
+          :key="msg.notification_id"
+          :timestamp="msg.create_time"
           placement="top"
           :type="msg.is_read ? 'default' : 'primary'"
         >
@@ -40,8 +40,8 @@
               </div>
               <div class="message-body">{{ msg.content }}</div>
               <div class="message-actions">
-                <el-button v-if="!msg.is_read" link type="primary" @click="handleMarkRead(msg.id)">标记已读</el-button>
-                <el-button link type="danger" @click="handleDelete(msg.id)">删除</el-button>
+                <el-button v-if="!msg.is_read" link type="primary" @click="handleMarkRead(msg.notification_id)">标记已读</el-button>
+                <el-button link type="danger" @click="handleDelete(msg.notification_id)">删除</el-button>
               </div>
             </div>
           </el-card>
@@ -65,74 +65,41 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useNotificationStore } from '@/store/notification'
+import type { Notification } from '@/api/notification'
 
-interface Message {
-  id: number
-  title: string
-  content: string
-  type: string // system | test | error | info
-  is_read: boolean
-  created_at: string
-}
+const notificationStore = useNotificationStore()
 
-// 模拟数据
-const messages = ref<Message[]>([
-  {
-    id: 1,
-    title: '系统通知',
-    content: '系统将于今晚22:00进行维护，预计维护时间1小时。',
-    type: 'system',
-    is_read: false,
-    created_at: '2025-10-03 10:30:00'
-  },
-  {
-    id: 2,
-    title: '测试报告生成完成',
-    content: 'API测试报告"用户模块测试"已生成完成，通过率85%。',
-    type: 'test',
-    is_read: false,
-    created_at: '2025-10-03 09:15:00'
-  },
-  {
-    id: 3,
-    title: '测试用例执行失败',
-    content: '测试用例"登录功能测试"执行失败，请查看详细信息。',
-    type: 'error',
-    is_read: true,
-    created_at: '2025-10-02 16:45:00'
-  },
-  {
-    id: 4,
-    title: '权限变更通知',
-    content: '您的系统权限已更新，新增"测试报告导出"权限。',
-    type: 'info',
-    is_read: true,
-    created_at: '2025-10-02 14:20:00'
-  }
-])
-
+// 状态
 const filterType = ref('all')
 const currentPage = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(20)
 
-// 过滤后的消息
-const filteredMessages = computed(() => {
-  let result = messages.value
-  
-  if (filterType.value === 'unread') {
-    result = result.filter(msg => !msg.is_read)
-  } else if (filterType.value === 'read') {
-    result = result.filter(msg => msg.is_read)
-  } else if (filterType.value !== 'all') {
-    result = result.filter(msg => msg.type === filterType.value)
-  }
-  
-  return result
+// 计算属性
+const filteredMessages = computed(() => notificationStore.notifications)
+const total = computed(() => notificationStore.stats.total)
+
+// 初始化
+onMounted(() => {
+  loadNotifications()
+  loadStats()
 })
 
-const total = computed(() => filteredMessages.value.length)
+// 加载通知列表
+const loadNotifications = async () => {
+  await notificationStore.fetchNotificationList({
+    filter_type: filterType.value,
+    skip: (currentPage.value - 1) * pageSize.value,
+    limit: pageSize.value
+  })
+}
+
+// 加载统计信息
+const loadStats = async () => {
+  await notificationStore.fetchNotificationStats()
+}
 
 // 获取消息类型颜色
 const getMessageTypeColor = (type: string) => {
@@ -157,52 +124,47 @@ const getMessageTypeName = (type: string) => {
 }
 
 // 标记已读
-const handleMarkRead = (id: number) => {
-  const msg = messages.value.find(m => m.id === id)
-  if (msg) {
-    msg.is_read = true
-    ElMessage.success('标记成功')
+const handleMarkRead = async (id: number) => {
+  const success = await notificationStore.markAsRead(id)
+  if (success) {
+    await loadStats()
   }
 }
 
 // 全部标记已读
-const handleMarkAllRead = () => {
-  messages.value.forEach(msg => {
-    msg.is_read = true
-  })
-  ElMessage.success('全部消息已标记为已读')
+const handleMarkAllRead = async () => {
+  const success = await notificationStore.markAllAsRead()
+  if (success) {
+    await loadNotifications()
+  }
 }
 
 // 删除消息
-const handleDelete = (id: number) => {
+const handleDelete = async (id: number) => {
   ElMessageBox.confirm('确定要删除这条消息吗？', '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
-  }).then(() => {
-    const index = messages.value.findIndex(m => m.id === id)
-    if (index !== -1) {
-      messages.value.splice(index, 1)
-      ElMessage.success('删除成功')
-    }
-  })
+  }).then(async () => {
+    await notificationStore.deleteNotification(id)
+  }).catch(() => {})
 }
 
 // 清空所有消息
-const handleClearAll = () => {
+const handleClearAll = async () => {
   ElMessageBox.confirm('确定要清空所有消息吗？此操作不可恢复。', '警告', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
-  }).then(() => {
-    messages.value = []
-    ElMessage.success('已清空所有消息')
-  })
+  }).then(async () => {
+    await notificationStore.deleteAllNotifications()
+  }).catch(() => {})
 }
 
 // 过滤器变化
 const handleFilterChange = () => {
   currentPage.value = 1
+  loadNotifications()
 }
 </script>
 

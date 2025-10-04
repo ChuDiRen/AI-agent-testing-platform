@@ -11,7 +11,7 @@ from app.core.database import init_db
 from app.core.exceptions import APIException
 from app.middleware.logging import RequestLoggingMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
-from app.api import auth, users, roles, user_roles, upload, menus, departments, role_menus, dashboard
+from app.api import auth, users, roles, user_roles, upload, menus, departments, role_menus, dashboard, notifications, data_management, testcases, reports, ai
 
 
 @asynccontextmanager
@@ -91,6 +91,11 @@ app.include_router(user_roles.router, prefix=settings.API_PREFIX, tags=["用户�
 app.include_router(role_menus.router, prefix=settings.API_PREFIX, tags=["角色菜单关联"])
 app.include_router(upload.router, prefix=settings.API_PREFIX, tags=["文件上传"])
 app.include_router(dashboard.router, prefix=settings.API_PREFIX, tags=["仪表板"])
+app.include_router(notifications.router, prefix=f"{settings.API_PREFIX}/notifications", tags=["消息通知"])
+app.include_router(data_management.router, prefix=f"{settings.API_PREFIX}/data", tags=["数据管理"])
+app.include_router(testcases.router, prefix=f"{settings.API_PREFIX}/testcases", tags=["测试用例"])
+app.include_router(reports.router, prefix=f"{settings.API_PREFIX}/reports", tags=["测试报告"])
+app.include_router(ai.router, prefix=f"{settings.API_PREFIX}/ai", tags=["AI助手"])
 
 
 @app.get("/")

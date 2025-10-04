@@ -1,5 +1,5 @@
 """操作日志数据库模型"""
-from sqlalchemy import Column, BigInteger, String, DateTime, Integer
+from sqlalchemy import Column, String, DateTime, Integer
 from datetime import datetime
 from app.core.database import Base
 
@@ -7,9 +7,9 @@ from app.core.database import Base
 class OperationLog(Base):
     """操作日志表模型"""
     __tablename__ = "t_operation_log"
-    
-    id = Column(BigInteger, primary_key=True, autoincrement=True, comment="日志ID")
-    user_id = Column(BigInteger, nullable=True, comment="用户ID")
+
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="日志ID")  # SQLite使用INTEGER支持自增
+    user_id = Column(Integer, nullable=True, comment="用户ID")  # SQLite使用INTEGER支持自增
     username = Column(String(50), nullable=True, comment="用户名")
     action = Column(String(200), nullable=False, comment="操作动作")
     method = Column(String(10), nullable=False, comment="请求方法")

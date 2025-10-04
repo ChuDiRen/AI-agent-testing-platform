@@ -3,7 +3,7 @@
  * 用户管理 API
  * 对接 FastAPI RBAC 权限系统
  */
-import { get, put, del } from './request'
+import { get, post, put, del } from './request'
 
 export interface User {
   user_id: number
@@ -25,6 +25,17 @@ export interface UserListParams {
   page_size?: number
   keyword?: string
   is_active?: boolean
+}
+
+export interface UserCreateData {
+  username: string
+  password: string
+  email?: string
+  mobile?: string
+  description?: string
+  status?: string
+  ssex?: string
+  dept_id?: number
 }
 
 export interface UserUpdateData {
@@ -56,6 +67,13 @@ export function getUserList(params: UserListParams) {
  */
 export function getUserDetail(userId: number) {
   return get<{ success: boolean; data: User }>(`/api/v1/users/${userId}`)
+}
+
+/**
+ * 创建用户
+ */
+export function createUser(data: UserCreateData) {
+  return post<{ success: boolean; message: string; data: User }>('/api/v1/users/', data)
 }
 
 /**

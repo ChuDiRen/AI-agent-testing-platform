@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from io import StringIO
 
 from app.core.database import get_db
-from app.schemas.user import UserResponse, UserUpdate
+from app.schemas.user import UserResponse, UserCreate, UserUpdate, PasswordChange, ProfileUpdate
 from app.schemas.common import APIResponse
 from app.schemas.pagination import PaginatedResponse, PaginationParams
 from app.services.user_service import UserService
@@ -24,6 +24,54 @@ async def get_current_user_info(
     """获取当前用户信息"""
     return APIResponse(
         data=UserResponse.model_validate(current_user)
+    )
+
+
+@router.put("/me", response_model=APIResponse[UserResponse])
+async def update_current_user_profile(
+    profile_data: ProfileUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> APIResponse[UserResponse]:
+    """更新当前用户的个人资料"""
+    user_service = UserService(db)
+
+    # 构建更新数据
+    update_data = UserUpdate(**profile_data.model_dump(exclude_unset=True))
+
+    # 更新用户信息
+    user = await user_service.update_user(current_user.user_id, update_data)
+
+    return APIResponse(
+        message="个人资料更新成功",
+        data=UserResponse.model_validate(user)
+    )
+
+
+@router.put("/me/password", response_model=APIResponse[None])
+async def change_current_user_password(
+    password_data: PasswordChange,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> APIResponse[None]:
+    """修改当前用户密码"""
+    from app.core.security import verify_password, get_password_hash
+
+    # 验证原密码
+    if not verify_password(password_data.old_password, current_user.password):
+        return APIResponse(
+            success=False,
+            message="原密码错误"
+        )
+
+    # 更新密码
+    user_service = UserService(db)
+    new_password_hash = get_password_hash(password_data.new_password)
+    update_data = UserUpdate(password=new_password_hash)
+    await user_service.update_user(current_user.user_id, update_data)
+
+    return APIResponse(
+        message="密码修改成功,请重新登录"
     )
 
 
@@ -54,6 +102,44 @@ async def get_users(
     )
     
     return APIResponse(data=paginated_data)
+
+
+@router.post("/", response_model=APIResponse[UserResponse])
+async def create_user(
+    user_data: UserCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> APIResponse[UserResponse]:
+    """创建新用户"""
+    user_service = UserService(db)
+
+    # 检查用户名是否已存在
+    existing_user = await user_service.get_user_by_username(user_data.username)
+    if existing_user:
+        return APIResponse(success=False, message="用户名已存在")
+
+    # 检查邮箱是否已存在
+    if user_data.email:
+        existing_email = await user_service.get_user_by_email(user_data.email)
+        if existing_email:
+            return APIResponse(success=False, message="邮箱已存在")
+
+    # 创建用户
+    new_user = await user_service.create_user(
+        username=user_data.username,
+        password=user_data.password,
+        email=user_data.email,
+        mobile=user_data.mobile,
+        dept_id=user_data.dept_id,
+        ssex=user_data.ssex or '2',
+        description=None
+    )
+
+    return APIResponse(
+        success=True,
+        message="创建用户成功",
+        data=UserResponse.model_validate(new_user)
+    )
 
 
 @router.get("/export/csv")

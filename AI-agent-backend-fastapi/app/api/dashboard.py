@@ -127,7 +127,7 @@ async def get_dashboard_summary(
     current_user: User = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """获取仪表板汇总信息"""
-    
+
     # 模拟数据 - 实际项目中应该从数据库查询
     summary = {
         "todayExecutions": 45,
@@ -139,9 +139,29 @@ async def get_dashboard_summary(
         "totalProjects": 8,
         "pendingTasks": 23
     }
-    
+
     return {
         "code": 200,
         "message": "获取汇总信息成功",
         "data": summary
+    }
+
+
+@router.get("/dashboard/task-status")
+async def get_task_status(
+    current_user: User = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """获取任务状态统计数据"""
+
+    # 模拟数据 - 实际项目中应该从数据库查询
+    task_status = {
+        "labels": ["待执行", "执行中", "已完成", "失败", "已取消"],
+        "data": [45, 23, 156, 12, 8],
+        "colors": ["#909399", "#409EFF", "#67C23A", "#F56C6C", "#E6A23C"]
+    }
+
+    return {
+        "code": 200,
+        "message": "获取任务状态成功",
+        "data": task_status
     }

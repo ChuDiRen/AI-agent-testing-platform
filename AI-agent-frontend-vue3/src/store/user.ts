@@ -7,12 +7,14 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import {
   getUserList,
+  createUser,
   updateUser,
   deleteUser,
   exportUsersCSV,
   exportUsersJSON,
   type User,
   type UserListParams,
+  type UserCreateData,
   type UserUpdateData
 } from '@/api/user'
 import { ElMessage } from 'element-plus'
@@ -29,7 +31,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       loading.value = true
       const response = await getUserList(params)
-      
+
       if (response.success && response.data) {
         users.value = response.data.items
         total.value = response.data.total
@@ -42,11 +44,32 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  async function createUserAction(data: UserCreateData) {
+    try {
+      loading.value = true
+      const response = await createUser(data)
+
+      if (response.success) {
+        ElMessage.success(response.message || '创建用户成功')
+        return true
+      } else {
+        ElMessage.error(response.message || '创建用户失败')
+        return false
+      }
+    } catch (error: any) {
+      console.error('创建用户失败:', error)
+      ElMessage.error(error.message || '创建用户失败')
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function updateUserAction(userId: number, data: UserUpdateData) {
     try {
       loading.value = true
       const response = await updateUser(userId, data)
-      
+
       if (response.success) {
         ElMessage.success(response.message || '更新用户成功')
         return true
@@ -67,7 +90,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       loading.value = true
       const response = await deleteUser(userId)
-      
+
       if (response.success) {
         ElMessage.success(response.message || '删除用户成功')
         users.value = users.value.filter(u => u.user_id !== userId)
@@ -90,7 +113,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       loading.value = true
       const blob = await exportUsersCSV(keyword)
-      
+
       // 创建下载链接
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -98,7 +121,7 @@ export const useUserStore = defineStore('user', () => {
       link.download = `users_${new Date().getTime()}.csv`
       link.click()
       window.URL.revokeObjectURL(url)
-      
+
       ElMessage.success('导出成功')
     } catch (error: any) {
       console.error('导出失败:', error)
@@ -112,7 +135,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       loading.value = true
       const blob = await exportUsersJSON(keyword)
-      
+
       // 创建下载链接
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -120,7 +143,7 @@ export const useUserStore = defineStore('user', () => {
       link.download = `users_${new Date().getTime()}.json`
       link.click()
       window.URL.revokeObjectURL(url)
-      
+
       ElMessage.success('导出成功')
     } catch (error: any) {
       console.error('导出失败:', error)
@@ -138,6 +161,7 @@ export const useUserStore = defineStore('user', () => {
     currentUser,
     // Actions
     fetchUserList,
+    createUser: createUserAction,
     updateUser: updateUserAction,
     deleteUser: deleteUserAction,
     exportCSV,

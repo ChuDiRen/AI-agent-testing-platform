@@ -1,3 +1,17 @@
 {
-    "java.compile.nullAnalysis.mode": "automatic"
+    "java.compile.nullAnalysis.mode": "automatic",
+    // 启用pylint代码检查（支持Django）
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true,
+    "python.linting.pylintArgs": ["--load-plugins", "pylint_django"],
+    // 禁用flake8（避免和pylint重复检查）
+    "python.linting.flake8Enabled": false,
+    // 用Black做代码格式化（自动统一代码风格）
+    "python.formatting.provider": "black",
+    "editor.formatOnSave": true,
+    // Python文件的单独配置
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.python",
+        "editor.tabSize": 4
+    }
 }

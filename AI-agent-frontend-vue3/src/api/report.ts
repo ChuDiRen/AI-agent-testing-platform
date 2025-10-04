@@ -72,8 +72,8 @@ export interface ReportStatistics {
  * 获取测试报告列表
  */
 export function getReportList(params: ReportListParams = {}) {
-  return get<{ code: number; data: { reports: TestReport[]; total: number; page: number; page_size: number } }>(
-    '/test-reports',
+  return get<{ success: boolean; data: { items: TestReport[]; total: number; page: number; page_size: number } }>(
+    '/api/v1/reports',
     params
   )
 }
@@ -82,34 +82,48 @@ export function getReportList(params: ReportListParams = {}) {
  * 获取测试报告详情
  */
 export function getReportDetail(id: number) {
-  return get<{ code: number; data: TestReport }>(`/test-reports/${id}`)
+  return get<{ success: boolean; data: TestReport }>(`/api/v1/reports/${id}`)
 }
 
 /**
  * 创建测试报告
  */
 export function createReport(data: ReportCreateData) {
-  return post<{ code: number; msg: string; data: TestReport }>('/test-reports', data)
+  return post<{ success: boolean; message: string; data: TestReport }>('/api/v1/reports', data)
 }
 
 /**
  * 更新测试报告
  */
 export function updateReport(id: number, data: ReportUpdateData) {
-  return put<{ code: number; msg: string; data: TestReport }>(`/test-reports/${id}`, data)
+  return put<{ success: boolean; message: string; data: TestReport }>(`/api/v1/reports/${id}`, data)
 }
 
 /**
  * 删除测试报告
  */
 export function deleteReport(id: number) {
-  return del<{ code: number; msg: string }>(`/test-reports/${id}`)
+  return del<{ success: boolean; message: string }>(`/api/v1/reports/${id}`)
 }
 
 /**
  * 获取测试报告统计信息
  */
 export function getReportStatistics() {
-  return get<{ code: number; data: ReportStatistics }>('/test-reports/statistics')
+  return get<{ success: boolean; data: ReportStatistics }>('/api/v1/reports/statistics')
+}
+
+/**
+ * 生成测试报告
+ */
+export function generateReport(data: { name: string; description?: string; report_type?: string; testcase_ids: number[]; environment?: string }) {
+  return post<{ success: boolean; message: string; data: TestReport }>('/api/v1/reports/generate', data)
+}
+
+/**
+ * 导出测试报告
+ */
+export function exportReport(data: { report_id: number; format: string; include_details?: boolean }) {
+  return post<{ success: boolean; message: string; data: { file_path: string; format: string } }>('/api/v1/reports/export', data)
 }
 

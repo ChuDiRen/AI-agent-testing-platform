@@ -6,6 +6,10 @@ from app.models.department import Department
 from app.models.user_role import t_user_role, UserRole
 from app.models.role_menu import t_role_menu
 from app.models.log import OperationLog
+from app.models.notification import Notification
+from app.models.testcase import TestCase
+from app.models.report import TestReport, TestExecution
+from app.models.ai_chat import ChatSession, ChatMessage, AIModel
 
 __all__ = [
     "User",
@@ -16,4 +20,11 @@ __all__ = [
     "UserRole",
     "t_role_menu",
     "OperationLog",
+    "Notification",
+    "TestCase",
+    "TestReport",
+    "TestExecution",
+    "ChatSession",
+    "ChatMessage",
+    "AIModel",
 ]

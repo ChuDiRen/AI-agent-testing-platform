@@ -40,7 +40,7 @@
                 <el-icon><User /></el-icon>
               </el-avatar>
               <el-avatar v-else class="ai-avatar">
-                <el-icon><Robot /></el-icon>
+                <el-icon><Service /></el-icon>
               </el-avatar>
             </div>
             <div class="message-content">
@@ -66,7 +66,7 @@
           <div v-if="isLoading" class="message-item assistant">
             <div class="message-avatar">
               <el-avatar class="ai-avatar">
-                <el-icon><Robot /></el-icon>
+                <el-icon><Service /></el-icon>
               </el-avatar>
             </div>
             <div class="message-content">
@@ -177,7 +177,7 @@ import {
   ChatDotRound,
   Setting,
   User,
-  Robot,
+  Service,
   CopyDocument,
   RefreshRight,
   Document,

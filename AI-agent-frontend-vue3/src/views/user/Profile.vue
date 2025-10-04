@@ -167,9 +167,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules, type UploadRequestOptions } from 'element-plus'
 import { Camera } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/store/auth'
-import { updateUser } from '@/api/user'
-import { uploadAvatar } from '@/api/upload'
-import { getUserInfo } from '@/api/auth'
+import { getCurrentUserInfo, updateProfile, changePassword, uploadAvatar } from '@/api/profile'
 
 const authStore = useAuthStore()
 const activeTab = ref('basic')
@@ -247,7 +245,7 @@ const notificationSettings = reactive({
 // 加载用户信息
 const loadUserInfo = async () => {
   try {
-    const response = await getUserInfo()
+    const response = await getCurrentUserInfo()
     if (response.success && response.data) {
       Object.assign(userInfo, response.data)
       basicForm.email = response.data.email || ''
@@ -267,8 +265,8 @@ const handleSaveBasic = async () => {
     if (valid) {
       saving.value = true
       try {
-        const response = await updateUser(userInfo.user_id, basicForm)
-        
+        const response = await updateProfile(basicForm)
+
         if (response.success) {
           Object.assign(userInfo, response.data)
           ElMessage.success(response.message || '保存成功')
@@ -298,18 +296,24 @@ const handleChangePassword = async () => {
     if (valid) {
       saving.value = true
       try {
-        // TODO: 调用API修改密码
-        // await changePassword(passwordForm)
-        
-        // 模拟保存
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        ElMessage.success('密码修改成功，请重新登录')
-        // 清空表单
-        passwordFormRef.value?.resetFields()
-        // 可以在这里触发重新登录
-      } catch (error) {
-        ElMessage.error('密码修改失败')
+        const response = await changePassword({
+          old_password: passwordForm.old_password,
+          new_password: passwordForm.new_password
+        })
+
+        if (response.success) {
+          ElMessage.success(response.message || '密码修改成功，请重新登录')
+          // 清空表单
+          passwordFormRef.value?.resetFields()
+          // 3秒后退出登录
+          setTimeout(() => {
+            authStore.logout()
+          }, 3000)
+        } else {
+          ElMessage.error(response.message || '密码修改失败')
+        }
+      } catch (error: any) {
+        ElMessage.error(error.message || '密码修改失败')
       } finally {
         saving.value = false
       }
@@ -343,14 +347,14 @@ const handleSaveNotification = async () => {
 // 头像上传前验证
 const beforeAvatarUpload = (file: File) => {
   const isImage = file.type.startsWith('image/')
-  const isLt2M = file.size / 1024 / 1024 < 2
+  const isLt5M = file.size / 1024 / 1024 < 5
 
   if (!isImage) {
     ElMessage.error('只能上传图片文件!')
     return false
   }
-  if (!isLt2M) {
-    ElMessage.error('图片大小不能超过 2MB!')
+  if (!isLt5M) {
+    ElMessage.error('图片大小不能超过 5MB!')
     return false
   }
   return true
@@ -360,22 +364,18 @@ const beforeAvatarUpload = (file: File) => {
 const handleAvatarUpload = async (options: UploadRequestOptions) => {
   try {
     const response = await uploadAvatar(options.file as File)
-    
+
     if (response.success && response.data) {
-      // 更新用户头像
-      const updateResponse = await updateUser(userInfo.user_id, {
-        avatar: response.data.filename
-      })
-      
-      if (updateResponse.success) {
-        userInfo.avatar = response.data.url
-        ElMessage.success('头像上传成功')
-        await loadUserInfo()
-      }
+      // 头像已经在后端自动更新到用户表
+      userInfo.avatar = response.data.avatar_url
+      ElMessage.success(response.message || '头像上传成功')
+      await loadUserInfo()
+    } else {
+      ElMessage.error('头像上传失败')
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('头像上传失败:', error)
-    ElMessage.error('头像上传失败')
+    ElMessage.error(error.message || '头像上传失败')
   }
 }
 

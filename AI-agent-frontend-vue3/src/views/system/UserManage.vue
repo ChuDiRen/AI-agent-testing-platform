@@ -28,6 +28,10 @@
             <el-icon><Refresh /></el-icon>
             重置
           </el-button>
+          <el-button type="success" @click="handleAdd">
+            <el-icon><Plus /></el-icon>
+            新增用户
+          </el-button>
           <el-button type="success" @click="handleExportCSV">
             <el-icon><Download /></el-icon>
             导出CSV
@@ -88,10 +92,10 @@
       </div>
     </el-card>
 
-    <!-- 编辑对话框 -->
+    <!-- 新增/编辑对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      title="编辑用户"
+      :title="isEdit ? '编辑用户' : '新增用户'"
       width="600px"
       @close="handleDialogClose"
     >
@@ -101,8 +105,11 @@
         :rules="formRules"
         label-width="100px"
       >
-        <el-form-item label="用户名">
-          <el-input v-model="formData.username" disabled />
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="formData.username" :disabled="isEdit" placeholder="请输入用户名" />
+        </el-form-item>
+        <el-form-item label="密码" prop="password" v-if="!isEdit">
+          <el-input v-model="formData.password" type="password" show-password placeholder="请输入密码" />
         </el-form-item>
         <el-form-item label="邮箱" prop="email">
           <el-input v-model="formData.email" placeholder="请输入邮箱" />
@@ -156,12 +163,14 @@ const pagination = reactive({
 
 // 对话框
 const dialogVisible = ref(false)
+const isEdit = ref(false)
 
 // 表单
 const formRef = ref<FormInstance>()
-const formData = reactive<Partial<User>>({
+const formData = reactive<Partial<User> & { password?: string }>({
   user_id: undefined,
   username: '',
+  password: '',
   email: '',
   mobile: '',
   description: '',
@@ -169,6 +178,13 @@ const formData = reactive<Partial<User>>({
 })
 
 const formRules: FormRules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
+  ],
   email: [
     { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
   ],
@@ -210,11 +226,28 @@ const handleExportJSON = () => {
   userStore.exportJSON(searchForm.keyword)
 }
 
+// 新增
+const handleAdd = () => {
+  isEdit.value = false
+  Object.assign(formData, {
+    user_id: undefined,
+    username: '',
+    password: '',
+    email: '',
+    mobile: '',
+    description: '',
+    status: '1'
+  })
+  dialogVisible.value = true
+}
+
 // 编辑
 const handleEdit = (row: User) => {
+  isEdit.value = true
   Object.assign(formData, {
     user_id: row.user_id,
     username: row.username,
+    password: '',
     email: row.email,
     mobile: row.mobile,
     description: row.description,
@@ -226,22 +259,35 @@ const handleEdit = (row: User) => {
 // 提交
 const handleSubmit = async () => {
   if (!formRef.value) return
-  
+
   await formRef.value.validate(async (valid) => {
     if (!valid) return
-    
-    if (!formData.user_id) {
-      ElMessage.error('用户ID不存在')
-      return
+
+    let success = false
+    if (isEdit.value) {
+      // 编辑用户
+      if (!formData.user_id) {
+        ElMessage.error('用户ID不存在')
+        return
+      }
+      success = await userStore.updateUser(formData.user_id, {
+        email: formData.email,
+        mobile: formData.mobile,
+        description: formData.description,
+        status: formData.status
+      })
+    } else {
+      // 新增用户
+      success = await userStore.createUser({
+        username: formData.username!,
+        password: formData.password!,
+        email: formData.email,
+        mobile: formData.mobile,
+        description: formData.description,
+        status: formData.status
+      })
     }
-    
-    const success = await userStore.updateUser(formData.user_id, {
-      email: formData.email,
-      mobile: formData.mobile,
-      description: formData.description,
-      status: formData.status
-    })
-    
+
     if (success) {
       dialogVisible.value = false
       handleSearch()

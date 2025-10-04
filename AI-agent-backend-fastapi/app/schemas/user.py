@@ -61,3 +61,25 @@ class UserUpdate(BaseModel):
     description: Optional[str] = None
     status: Optional[str] = None
 
+
+class PasswordChange(BaseModel):
+    """修改密码模型"""
+    old_password: str = Field(..., description="原密码")
+    new_password: str = Field(..., min_length=6, max_length=20, description="新密码")
+
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        if len(v) < 6:
+            raise ValueError('新密码长度至少6位')
+        if len(v) > 20:
+            raise ValueError('新密码长度最多20位')
+        return v
+
+
+class ProfileUpdate(BaseModel):
+    """个人资料更新模型"""
+    email: Optional[str] = Field(None, description="邮箱")
+    mobile: Optional[str] = Field(None, description="手机号")
+    description: Optional[str] = Field(None, max_length=200, description="个人简介")
+

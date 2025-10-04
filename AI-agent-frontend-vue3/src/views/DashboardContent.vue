@@ -48,16 +48,17 @@
       <div class="chart-note">结合你的选择，进行页面显示</div>
     </el-card>
 
-    <!-- 热点任务状态图表占位 -->
+    <!-- 任务状态图表 -->
     <el-card class="chart-card">
       <template #header>
         <div class="chart-header">
           <span class="chart-title">热点任务状态图列</span>
         </div>
       </template>
-      <div class="placeholder-content">
-        <el-empty description="功能开发中..." />
+      <div class="chart-container">
+        <v-chart class="chart" :option="taskStatusOption" autoresize />
       </div>
+      <div class="chart-note">实时统计各状态任务数量分布</div>
     </el-card>
   </div>
 </template>
@@ -71,7 +72,7 @@ import { ElMessage } from 'element-plus'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { LineChart } from 'echarts/charts'
+import { LineChart, PieChart } from 'echarts/charts'
 import {
   TitleComponent,
   TooltipComponent,
@@ -83,6 +84,7 @@ import {
 use([
   CanvasRenderer,
   LineChart,
+  PieChart,
   TitleComponent,
   TooltipComponent,
   LegendComponent,
@@ -267,6 +269,64 @@ const chartOption = computed(() => ({
           ]
         }
       }
+    }
+  ]
+}))
+
+// 任务状态图表配置
+const taskStatusOption = computed(() => ({
+  tooltip: {
+    trigger: 'item',
+    formatter: '{a} <br/>{b}: {c} ({d}%)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderColor: '#e5e7eb',
+    borderWidth: 1,
+    textStyle: {
+      color: '#374151'
+    }
+  },
+  legend: {
+    orient: 'vertical',
+    right: '10%',
+    top: 'center',
+    textStyle: {
+      color: '#374151',
+      fontSize: 14
+    }
+  },
+  series: [
+    {
+      name: '任务状态',
+      type: 'pie',
+      radius: ['40%', '70%'],
+      center: ['35%', '50%'],
+      avoidLabelOverlap: false,
+      itemStyle: {
+        borderRadius: 10,
+        borderColor: '#fff',
+        borderWidth: 2
+      },
+      label: {
+        show: false,
+        position: 'center'
+      },
+      emphasis: {
+        label: {
+          show: true,
+          fontSize: 20,
+          fontWeight: 'bold'
+        }
+      },
+      labelLine: {
+        show: false
+      },
+      data: dashboardStore.taskStatusData.labels.map((label, index) => ({
+        name: label,
+        value: dashboardStore.taskStatusData.data[index],
+        itemStyle: {
+          color: dashboardStore.taskStatusData.colors[index]
+        }
+      }))
     }
   ]
 }))

@@ -73,6 +73,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
+import { useNotificationStore } from '@/store/notification'
 import { ElMessageBox, ElMessage, ElNotification } from 'element-plus'
 import {
   Refresh,
@@ -85,11 +86,12 @@ import {
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
 
 const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
 const autoRefresh = ref(false)
 const refreshing = ref(false)
-const unreadCount = ref(0) // 未读消息数量
+const unreadCount = computed(() => notificationStore.stats.unread) // 未读消息数量
 let refreshTimer: number | null = null
 
 // 面包屑导航数据
@@ -195,17 +197,16 @@ const handleUserCommand = async (command: string) => {
   }
 }
 
-// 模拟获取未读消息数量
-const fetchUnreadCount = () => {
-  // 这里应该调用API获取真实的未读消息数量
-  unreadCount.value = Math.floor(Math.random() * 10)
+// 获取未读消息数量
+const fetchUnreadCount = async () => {
+  await notificationStore.fetchNotificationStats()
 }
 
 onMounted(() => {
   fetchUnreadCount()
   // 每分钟检查一次未读消息
   const unreadTimer = setInterval(fetchUnreadCount, 60000)
-  
+
   onUnmounted(() => {
     if (refreshTimer) {
       clearInterval(refreshTimer)

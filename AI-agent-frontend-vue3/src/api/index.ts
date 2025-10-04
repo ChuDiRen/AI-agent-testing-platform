@@ -33,6 +33,7 @@ export * from './permission'
 export * from './testcase'
 export * from './report'
 export * from './dashboard'
+export * from './ai'
 
 // 导出请求工具
 export { default as request } from './request'
