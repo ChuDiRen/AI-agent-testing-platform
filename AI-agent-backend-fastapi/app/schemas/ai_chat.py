@@ -86,18 +86,19 @@ class ChatResponse(BaseModel):
 class AIModelBase(BaseModel):
     """AI模型基础模型"""
     name: str = Field(..., description="模型名称")
-    provider: str = Field(..., description="提供商")
+    provider: str = Field(..., description="提供商: openai/claude/local")
     model_key: str = Field(..., description="模型标识")
     api_key: Optional[str] = Field(None, description="API密钥")
     api_base: Optional[str] = Field(None, description="API基础URL")
     max_tokens: int = Field(4096, description="最大Token数")
     temperature: str = Field("0.7", description="温度参数")
     description: Optional[str] = Field(None, description="模型描述")
+    config: Optional[Dict[str, Any]] = Field(None, description="额外配置")
 
 
 class AIModelCreate(AIModelBase):
     """创建AI模型"""
-    pass
+    is_enabled: bool = Field(True, description="是否启用")
 
 
 class AIModelUpdate(BaseModel):
@@ -109,6 +110,7 @@ class AIModelUpdate(BaseModel):
     temperature: Optional[str] = None
     is_enabled: Optional[bool] = None
     description: Optional[str] = None
+    config: Optional[Dict[str, Any]] = None
 
 
 class AIModelResponse(AIModelBase):

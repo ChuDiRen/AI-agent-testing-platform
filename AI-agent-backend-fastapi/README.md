@@ -1,352 +1,214 @@
-# FastAPI RBAC 权限管理系统
+# AI Agent Testing Platform - Backend
 
-基于 RBAC（Role-Based Access Control）权限模型的 FastAPI 后端系统。
+基于FastAPI的AI智能测试平台后端服务
 
-**参考设计**: [RBAC表结构设计 - BNTang](https://www.cnblogs.com/BNTang/articles/17024549.html)
+## 功能特性
 
----
+### 核心功能
+- ✅ 用户管理、角色管理、菜单管理、部门管理
+- ✅ 测试用例管理（API/Web/App）
+- ✅ 测试报告生成与导出
+- ✅ 消息通知、数据管理
 
-## ✨ 功能特性
+### AI功能
+- ✅ 多模型AI对话（GPT-3.5/4/4-Turbo, Claude 3 Sonnet/Opus/3.5）
+- ✅ 流式响应（SSE）
+- ✅ 模型动态切换
+- ✅ 会话历史管理
 
-### 🔐 RBAC 权限模型
-- **三层架构**: 用户 → 角色 → 菜单（权限）
-- **多对多关系**: 用户-角色、角色-菜单完整实现
-- **权限标识**: 规范的 `资源:操作` 格式（如 `user:view`）
-- **菜单树结构**: 支持多级菜单和按钮权限
+### RAG知识库
+- ✅ 多格式文档支持（PDF/Word/TXT/Markdown/HTML）
+- ✅ 智能文档分块
+- ✅ 向量化存储（Qdrant）
+- ✅ 语义相似度搜索
+- ✅ BGE-large-zh-v1.5中文向量模型
 
-### 📋 核心功能
-- ✅ **用户管理**: 注册、登录、CRUD、分页搜索、数据导出
-- ✅ **角色管理**: 角色 CRUD、角色权限分配
-- ✅ **菜单管理**: 菜单/按钮 CRUD、树形结构、用户菜单查询
-- ✅ **部门管理**: 部门 CRUD、树形结构
-- ✅ **权限关联**: 用户-角色、角色-菜单灵活配置
-- ✅ **文件上传**: 头像、文件上传管理
-- ✅ **JWT 认证**: 安全的 Token 认证机制
-- ✅ **请求日志**: 完整的请求日志记录
-- ✅ **API 限流**: 防止接口滥用
+### 任务队列
+- ✅ Celery + Redis异步处理
+- ✅ 大文件后台处理
+- ✅ 实时进度跟踪
+- ✅ 自动失败重试
+- ✅ 批量处理支持
 
----
+## 技术栈
 
-## 📊 数据库设计
+- **Web框架**: FastAPI 0.104.1
+- **数据库**: SQLite (可扩展到PostgreSQL/MySQL)
+- **ORM**: SQLAlchemy 2.0 (异步)
+- **AI SDK**: OpenAI 1.12.0, Anthropic 0.18.0
+- **LangChain**: 0.1.0
+- **向量数据库**: Qdrant 1.7.0
+- **向量模型**: sentence-transformers 2.3.0 (BGE-large-zh-v1.5)
+- **任务队列**: Celery 5.3.0 + Redis 5.0.0
+- **文档解析**: pypdf, python-docx, markdown, beautifulsoup4
 
-完全按照博客 [RBAC表结构设计](https://www.cnblogs.com/BNTang/articles/17024549.html) 实现：
-
-### 核心表结构
-
-| 表名 | 说明 | 字段数 |
-|-----|------|--------|
-| t_user | 用户表 | 13 |
-| t_role | 角色表 | 5 |
-| t_menu | 菜单表（权限表） | 11 |
-| t_user_role | 用户角色关联表 | 2 |
-| t_role_menu | 角色菜单关联表 | 2 |
-| t_dept | 部门表 | 6 |
-
-### RBAC 权限流程
-
-```
-用户登录 → 查询用户角色(t_user_role) → 查询角色菜单(t_role_menu) → 获取菜单权限(t_menu.perms)
-```
-
-以用户 **BNTang** 为例：
-1. 从 `t_user` 获取 user_id=1
-2. 从 `t_user_role` 获取 role_id=1（管理员）
-3. 从 `t_role_menu` 获取 menu_id 列表
-4. 从 `t_menu` 获取权限标识（如 `user:view`, `user:add`）
-
----
-
-## 🚀 快速开始
+## 快速开始
 
 ### 1. 安装依赖
 
 ```bash
-# 创建虚拟环境
-python -m venv venv
-
-# 激活虚拟环境
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# 安装依赖
 pip install -r requirements.txt
 ```
 
-### 2. 初始化数据库
+### 2. 安装Redis
 
 ```bash
-python init_data.py
+# Windows: 下载Redis for Windows或使用Docker
+docker run -d -p 6379:6379 redis:latest
+
+# Linux/Mac
+sudo apt-get install redis-server  # Ubuntu/Debian
+brew install redis  # Mac
 ```
 
-初始化数据（完全对应博客）：
-- ✅ 用户: BNTang（密码: 1234qwer）
-- ✅ 角色: 管理员
-- ✅ 部门: 开发部
-- ✅ 菜单: 5个（系统管理、用户管理及相关按钮）
-
-### 3. 启动服务
+### 3. 初始化系统
 
 ```bash
+python init_system.py
+```
+
+### 4. 启动服务
+
+```bash
+# 启动Redis
+redis-server
+
+# 启动Celery Worker
+python start_celery_worker.py
+
+# 启动FastAPI服务
 python run.py
+
+# (可选) 启动Flower监控
+celery -A app.core.celery_app flower --port=5555
 ```
 
-访问地址：
-- **API 文档 (Swagger)**: http://localhost:8000/docs
-- **API 文档 (ReDoc)**: http://localhost:8000/redoc
-- **健康检查**: http://localhost:8000/health
+### 5. 访问服务
 
-### 4. 测试登录
+- API文档: http://localhost:8000/docs
+- Flower监控: http://localhost:5555
 
-**测试账号**（来自博客数据）:
+### 6. 登录凭证
+
 - 用户名: `BNTang`
 - 密码: `1234qwer`
 
----
+## 配置AI模型
 
-## 📚 API 接口
+### 1. 获取API Key
 
-### 接口总览（60+ 个接口）
+- OpenAI: https://platform.openai.com/api-keys
+- Claude: https://console.anthropic.com/settings/keys
 
-| 模块 | 接口数 | 说明 |
-|-----|--------|------|
-| 认证 | 2 | 注册、登录 |
-| 用户管理 | 7 | CRUD、分页、导出 |
-| 角色管理 | 5 | 完整 CRUD |
-| 菜单管理 | 7 | CRUD、树结构、用户菜单 |
-| 部门管理 | 5 | 完整 CRUD |
-| 用户角色关联 | 3 | 分配、查询、移除 |
-| 角色菜单关联 | 3 | 分配、查询、移除 |
-| 文件上传 | 3 | 头像、文件上传删除 |
-| 测试用例 | 6 | CRUD、执行、统计 |
-| 测试报告 | 8 | CRUD、生成、导出、统计 |
-| AI助手 | 9 | 聊天、会话管理、用例生成 |
-| 消息通知 | 5 | CRUD、标记已读 |
-| 数据管理 | 5 | 备份、恢复、清理、优化 |
+### 2. 配置模型
 
-### 核心接口示例
+访问 http://localhost:8000/docs，使用以下接口配置：
 
-**1. 用户登录**
 ```bash
-POST /api/v1/auth/login
+PUT /api/v1/ai/models/{model_id}
 {
-  "username": "BNTang",
-  "password": "1234qwer"
+  "api_key": "your-api-key",
+  "is_enabled": true
 }
 ```
 
-**2. 获取菜单树**
-```bash
-GET /api/v1/menus/tree
-Authorization: Bearer {token}
-```
-
-**3. 创建测试用例**
-```bash
-POST /api/v1/testcases/
-{
-  "name": "登录功能测试",
-  "test_type": "API",
-  "module": "用户模块",
-  "priority": "P1"
-}
-```
-
-**4. 执行测试用例**
-```bash
-POST /api/v1/testcases/{testcase_id}/execute
-{
-  "environment": "test",
-  "config": {"timeout": 30}
-}
-```
-
-**5. 生成测试报告**
-```bash
-POST /api/v1/reports/generate
-{
-  "name": "API测试报告",
-  "testcase_ids": [1, 2, 3],
-  "environment": "test"
-}
-```
-
-**6. AI聊天**
-```bash
-POST /api/v1/ai/chat
-{
-  "message": "帮我生成登录功能的测试用例",
-  "model": "gpt-3.5-turbo"
-}
-```
-
-**7. AI生成测试用例**
-```bash
-POST /api/v1/ai/generate-testcases
-{
-  "requirement": "用户登录功能",
-  "test_type": "API",
-  "count": 5
-}
-```
-
-完整的 API 文档请查看：[API接口文档.md](API接口文档.md)
-
----
-
-## 🏗️ 项目结构
+## 项目结构
 
 ```
-AI-agent-frontend-fastapi/
+AI-agent-backend-fastapi/
 ├── app/
-│   ├── api/                    # API 路由层
-│   │   ├── auth.py            # 认证接口
-│   │   ├── users.py           # 用户管理
-│   │   ├── roles.py           # 角色管理
-│   │   ├── menus.py           # 菜单管理
-│   │   ├── departments.py     # 部门管理
-│   │   ├── user_roles.py      # 用户角色关联
-│   │   └── role_menus.py      # 角色菜单关联
-│   │
-│   ├── models/                 # 数据库模型（对应博客表结构）
-│   │   ├── user.py            # t_user 用户表
-│   │   ├── role.py            # t_role 角色表
-│   │   ├── menu.py            # t_menu 菜单表
-│   │   ├── department.py      # t_dept 部门表
-│   │   ├── user_role.py       # t_user_role 关联表
-│   │   └── role_menu.py       # t_role_menu 关联表
-│   │
-│   ├── schemas/                # Pydantic 数据验证
-│   ├── services/               # 业务逻辑层
-│   ├── repositories/           # 数据访问层
-│   ├── middleware/             # 中间件
-│   ├── utils/                  # 工具函数
-│   ├── core/                   # 核心配置
-│   └── main.py                 # 应用入口
-│
-├── init_data.py               # 数据初始化（博客数据）
-├── run.py                     # 启动脚本
-├── requirements.txt           # 依赖列表
-├── API接口文档.md              # 完整 API 文档
-└── README.md                  # 本文件
+│   ├── api/              # API路由
+│   ├── core/             # 核心配置
+│   ├── models/           # 数据模型
+│   ├── schemas/          # Pydantic Schema
+│   ├── services/         # 业务逻辑
+│   └── tasks/            # Celery任务
+├── init_system.py        # 系统初始化脚本
+├── start_celery_worker.py # Celery Worker启动脚本
+├── run.py                # 主程序入口
+└── requirements.txt      # 依赖列表
 ```
 
----
+## API接口
 
-## 📦 技术栈
+### 认证接口
+- POST `/api/v1/auth/login` - 用户登录
+- POST `/api/v1/auth/refresh` - 刷新Token
 
-| 技术 | 版本 | 说明 |
-|-----|------|------|
-| FastAPI | 0.104.1 | 高性能 Web 框架 |
-| SQLAlchemy | 2.0.23 | 异步 ORM |
-| Pydantic | 2.5.0 | 数据验证 |
-| Uvicorn | 0.24.0 | ASGI 服务器 |
-| Passlib | 1.7.4 | 密码加密（BCrypt） |
-| Python-Jose | 3.3.0 | JWT 认证 |
-| Aiosqlite | 0.19.0 | 异步 SQLite |
+### AI对话接口
+- POST `/api/v1/ai/chat` - AI对话（支持流式）
+- GET `/api/v1/ai/models` - 获取模型列表
+- PUT `/api/v1/ai/models/{id}` - 更新模型配置
+- POST `/api/v1/ai/models/{id}/test` - 测试模型连接
 
----
+### 知识库接口
+- POST `/api/v1/knowledge/bases` - 创建知识库
+- GET `/api/v1/knowledge/bases` - 获取知识库列表
+- POST `/api/v1/knowledge/documents/upload` - 上传文档
+- POST `/api/v1/knowledge/search` - 搜索知识库
+- GET `/api/v1/knowledge/tasks/{task_id}` - 查询任务状态
 
-## 🔑 初始化数据
+### 用户管理接口
+- GET `/api/v1/users` - 获取用户列表
+- POST `/api/v1/users` - 创建用户
+- PUT `/api/v1/users/{id}` - 更新用户
+- DELETE `/api/v1/users/{id}` - 删除用户
 
-完全按照博客数据初始化：
+## 开发说明
 
-### 用户 (t_user)
-```
-user_id: 1
-username: BNTang
-password: 1234qwer (BCrypt加密)
-email: 303158131@qq.com
-mobile: 17788888888
-status: 1 (有效)
-ssex: 0 (男)
-description: 我是帅比作者。
-```
+### 环境变量
 
-### 角色 (t_role)
-```
-role_id: 1
-role_name: 管理员
-remark: 管理员
-```
+创建 `.env` 文件：
 
-### 菜单 (t_menu)
-```
-1. 系统管理 (菜单, type=0)
-2. 用户管理 (菜单, type=0, perms=user:view)
-3. 新增用户 (按钮, type=1, perms=user:add)
-4. 修改用户 (按钮, type=1, perms=user:update)
-5. 删除用户 (按钮, type=1, perms=user:delete)
-```
+```env
+# 数据库
+DATABASE_URL=sqlite+aiosqlite:///./app.db
 
-### 部门 (t_dept)
-```
-dept_id: 1
-dept_name: 开发部
-parent_id: 0
+# JWT
+SECRET_KEY=your-secret-key
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Celery
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/1
+
+# CORS
+BACKEND_CORS_ORIGINS=["http://localhost:5173"]
 ```
 
-### 关联关系
-```
-t_user_role: user_id=1 ↔ role_id=1 (BNTang 是管理员)
-t_role_menu: role_id=1 拥有所有 5 个菜单权限
-```
-
----
-
-## 🐳 Docker 部署
-
-### 使用 Docker Compose
+### 数据库迁移
 
 ```bash
-# 构建并启动
-docker-compose up -d
-
-# 查看日志
-docker-compose logs -f
-
-# 停止服务
-docker-compose down
+# 重新初始化数据库
+python init_system.py
 ```
 
-### 使用 Docker
+### 运行测试
 
 ```bash
-# 构建镜像
-docker build -t fastapi-rbac .
-
-# 运行容器
-docker run -d -p 8000:8000 fastapi-rbac
+pytest
 ```
 
----
+## 常见问题
 
-## 📖 文档说明
+### Q: Worker无法启动?
+A: 检查Redis是否运行: `redis-cli ping`
 
-| 文档 | 说明 |
-|-----|------|
-| [README.md](README.md) | 项目主文档（本文件） |
-| [API接口文档.md](API接口文档.md) | 完整的 API 接口文档（35+ 接口） |
+### Q: 任务一直PENDING?
+A: 确保Worker已启动: `python start_celery_worker.py`
 
----
+### Q: 文档上传失败?
+A: 检查文件格式是否支持,文件大小是否超限
 
-## 🔗 参考资料
+### Q: AI对话无响应?
+A: 检查API Key是否配置正确,模型是否已启用
 
-- **博客文章**: [RBAC表结构设计 - BNTang](https://www.cnblogs.com/BNTang/articles/17024549.html)
-- [FastAPI 官方文档](https://fastapi.tiangolo.com/)
-- [SQLAlchemy 文档](https://docs.sqlalchemy.org/)
-- [Pydantic 文档](https://docs.pydantic.dev/)
+## 许可证
 
----
+Copyright (c) 2025 左岚. All rights reserved.
 
-## 📄 许可证
+## 联系方式
 
-MIT License
+- 开发团队: 左岚团队
+- 版本: v2.1.0
 
----
-
-**项目完成**: 2025-10-02  
-**表结构**: 100% 对应博客设计  
-**测试数据**: 100% 对应博客数据  
-**在线文档**: http://localhost:8000/docs

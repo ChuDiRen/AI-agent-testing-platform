@@ -11,7 +11,7 @@ from app.core.database import init_db
 from app.core.exceptions import APIException
 from app.middleware.logging import RequestLoggingMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
-from app.api import auth, users, roles, user_roles, upload, menus, departments, role_menus, dashboard, notifications, data_management, testcases, reports, ai
+from app.api import auth, users, roles, user_roles, upload, menus, departments, role_menus, dashboard, notifications, data_management, testcases, reports, ai, knowledge
 
 
 @asynccontextmanager
@@ -96,6 +96,7 @@ app.include_router(data_management.router, prefix=f"{settings.API_PREFIX}/data",
 app.include_router(testcases.router, prefix=f"{settings.API_PREFIX}/testcases", tags=["测试用例"])
 app.include_router(reports.router, prefix=f"{settings.API_PREFIX}/reports", tags=["测试报告"])
 app.include_router(ai.router, prefix=f"{settings.API_PREFIX}/ai", tags=["AI助手"])
+app.include_router(knowledge.router, prefix=f"{settings.API_PREFIX}", tags=["知识库"])
 
 
 @app.get("/")

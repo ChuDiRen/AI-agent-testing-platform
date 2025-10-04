@@ -45,7 +45,11 @@ class Settings(BaseSettings):
     # 限流配置
     RATE_LIMIT_CALLS: int = 100
     RATE_LIMIT_PERIOD: int = 60
-    
+
+    # Celery配置
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"  # Redis作为消息代理
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"  # Redis作为结果后端
+
     class Config:
         env_file = ".env"
         case_sensitive = True

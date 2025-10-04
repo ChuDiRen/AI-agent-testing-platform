@@ -1,152 +1,225 @@
-# AI Agent Testing Platform - 前端
+# AI Agent Testing Platform - Frontend
 
-基于 Vue 3 + TypeScript + Element Plus 的 AI 智能测试平台前端应用。
+基于Vue 3 + TypeScript + Element Plus的AI智能测试平台前端
+
+## 功能特性
+
+### 核心功能
+- ✅ 用户管理、角色管理、菜单管理、部门管理
+- ✅ 测试用例管理（API/Web/App）
+- ✅ 测试报告生成与导出
+- ✅ 数据可视化（ECharts）
+- ✅ 消息通知
+
+### AI功能
+- ✅ AI智能对话（支持流式显示）
+- ✅ 多模型切换
+- ✅ 会话历史管理
+- ✅ Markdown渲染
+
+### RAG知识库
+- ✅ 知识库管理
+- ✅ 文档上传（支持拖拽）
+- ✅ 语义搜索
+- ✅ 任务进度显示
 
 ## 技术栈
 
-- **框架**: Vue 3.5 + TypeScript 5.8
-- **构建工具**: Vite 7.1
-- **UI 组件**: Element Plus 2.11
-- **状态管理**: Pinia 3.0
-- **路由**: Vue Router 4.5
-- **HTTP 客户端**: Axios 1.12
-- **CSS**: WindiCSS 3.5
+- **框架**: Vue 3.5.18
+- **语言**: TypeScript 5.7.3
+- **UI库**: Element Plus 2.9.1
+- **状态管理**: Pinia 2.3.0
+- **路由**: Vue Router 4.5.0
+- **HTTP客户端**: Axios 1.11.0
+- **图表**: ECharts 5.6.0
+- **构建工具**: Vite 7.0.5
+- **CSS**: WindiCSS 3.5.6
 
 ## 快速开始
 
-### 环境要求
-
-- Node.js >= 18
-- pnpm >= 8
-
-### 安装依赖
+### 1. 安装依赖
 
 ```bash
+npm install
+# 或
 pnpm install
 ```
 
-### 开发模式
+### 2. 启动开发服务器
 
 ```bash
+npm run dev
+# 或
 pnpm dev
 ```
 
-访问 http://localhost:5173
+访问: http://localhost:5173
 
-### 生产构建
+### 3. 构建生产版本
 
 ```bash
+npm run build
+# 或
 pnpm build
 ```
 
-### 预览构建
+### 4. 预览生产版本
 
 ```bash
+npm run preview
+# 或
 pnpm preview
-```
-
-## 环境配置
-
-创建 `.env.development` 文件：
-
-```env
-VITE_API_BASE_URL=http://localhost:8000
-```
-
-创建 `.env.production` 文件：
-
-```env
-VITE_API_BASE_URL=https://api.your-domain.com
 ```
 
 ## 项目结构
 
 ```
-src/
-├── api/              # API 接口
-├── assets/           # 静态资源
-├── components/       # 公共组件
-├── composables/      # 组合式函数
-├── router/           # 路由配置
-├── store/            # 状态管理
-├── types/            # 类型定义
-├── utils/            # 工具函数
-└── views/            # 页面组件
-    ├── login/        # 登录
-    ├── system/       # 系统管理
-    ├── user/         # 用户中心
-    ├── api/          # API测试
-    ├── web/          # Web测试
-    ├── app/          # App测试
-    ├── ai/           # AI助手
-    ├── data/         # 测试数据
-    └── message/      # 消息通知
+AI-agent-frontend-vue3/
+├── src/
+│   ├── api/              # API接口
+│   │   ├── ai-enhanced.ts # AI增强API
+│   │   ├── knowledge.ts  # 知识库API
+│   │   └── ...
+│   ├── assets/           # 静态资源
+│   ├── components/       # 公共组件
+│   ├── composables/      # 组合式函数
+│   │   └── useAIChat.ts  # AI聊天Hook
+│   ├── router/           # 路由配置
+│   ├── stores/           # Pinia状态管理
+│   ├── styles/           # 全局样式
+│   ├── types/            # TypeScript类型
+│   ├── utils/            # 工具函数
+│   ├── views/            # 页面组件
+│   │   ├── ai/           # AI相关页面
+│   │   │   └── ChatEnhanced.vue # 增强版聊天
+│   │   ├── knowledge/    # 知识库页面
+│   │   │   ├── KnowledgeBase.vue # 知识库列表
+│   │   │   └── KnowledgeDetail.vue # 知识库详情
+│   │   └── ...
+│   ├── App.vue           # 根组件
+│   └── main.ts           # 入口文件
+├── public/               # 公共资源
+├── index.html            # HTML模板
+├── vite.config.ts        # Vite配置
+├── tsconfig.json         # TypeScript配置
+└── package.json          # 项目配置
 ```
 
-## 核心功能
+## 主要功能
 
-### 系统管理
-- ✅ 用户管理（CRUD、导出、批量操作）
-- ✅ 角色管理（CRUD、权限分配）
-- ✅ 菜单管理（CRUD、树形结构）
-- ✅ 部门管理（CRUD、树形结构）
+### 1. AI智能对话
 
-### 测试管理
-- ✅ API 自动化测试（用例管理、执行、报告）
-- ✅ Web 自动化测试（Selenium/Playwright）
-- ✅ App 自动化测试（Appium）
-- ✅ 测试用例管理（CRUD、批量操作、导入导出）
-- ✅ 测试报告（生成、查看、导出Excel/PDF）
-- ✅ 测试执行引擎（支持多种测试类型）
+- 支持多种AI模型（GPT-3.5/4, Claude 3系列）
+- 流式响应,逐字显示
+- 会话历史管理
+- Markdown格式渲染
+- 代码高亮显示
 
-### AI 功能
-- ✅ AI 智能助手（多轮对话、上下文记忆）
-- ✅ 测试用例自动生成（基于需求描述）
-- ✅ 测试建议与分析
-- ✅ 会话管理（创建、编辑、删除）
+### 2. RAG知识库
 
-### 数据管理
-- ✅ 测试数据管理（CRUD、导入导出）
-- ✅ 数据库备份与恢复
-- ✅ 数据清理与优化
-- ✅ 统计分析
+- 知识库CRUD管理
+- 文档上传（支持拖拽）
+- 支持多种文档格式（PDF/Word/TXT/Markdown/HTML）
+- 语义相似度搜索
+- 实时任务进度显示
 
-### 其他功能
-- ✅ 消息通知（实时推送、已读标记）
-- ✅ 个人中心（资料编辑、密码修改）
-- ✅ 仪表板（数据统计、图表展示）
+### 3. 测试用例管理
 
-## 默认账号
+- 测试用例CRUD
+- 支持API/Web/App三种类型
+- 批量操作
+- 数据导出（CSV/JSON）
 
-- 用户名: `BNTang`
-- 密码: `1234qwer`
+### 4. 数据可视化
 
-## 新增功能说明
+- 测试用例统计图表
+- 测试报告趋势分析
+- 实时数据更新
 
-### 测试报告模块
-- 支持生成执行报告、汇总报告、详细报告
-- 实时统计测试结果（通过率、执行率）
-- 支持导出Excel和PDF格式
-- 报告详情包含执行记录、截图、日志
+## 开发说明
 
-### AI助手模块
-- 智能对话：支持多轮对话，理解上下文
-- 用例生成：根据需求描述自动生成测试用例
-- 测试建议：提供测试策略和最佳实践建议
-- 会话管理：保存历史对话，随时继续
+### 环境要求
 
-### 测试执行引擎
-- API测试：HTTP请求、断言验证、性能测试
-- Web测试：浏览器自动化、元素定位、截图
-- App测试：移动端自动化、多平台支持
+- Node.js >= 18.0.0
+- npm >= 9.0.0 或 pnpm >= 8.0.0
 
-## License
+### 环境变量
 
-MIT
+创建 `.env.development` 文件：
 
----
+```env
+# API地址
+VITE_API_BASE_URL=http://localhost:8000
+VITE_API_PREFIX=/api/v1
+```
 
-**开发团队**: 左岚团队
-**更新时间**: 2025-10-04
-**版本**: v2.0.0 - 全功能完整版
+创建 `.env.production` 文件：
+
+```env
+# API地址
+VITE_API_BASE_URL=https://your-api-domain.com
+VITE_API_PREFIX=/api/v1
+```
+
+### 代码规范
+
+```bash
+# ESLint检查
+npm run lint
+
+# 类型检查
+npm run type-check
+```
+
+### 常用命令
+
+```bash
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+
+# 构建生产版本
+npm run build
+
+# 预览生产版本
+npm run preview
+
+# 代码检查
+npm run lint
+
+# 类型检查
+npm run type-check
+```
+
+## 常见问题
+
+### Q: 开发服务器启动失败?
+A: 检查端口5173是否被占用,或修改vite.config.ts中的端口配置
+
+### Q: API请求失败?
+A: 检查后端服务是否启动,环境变量配置是否正确
+
+### Q: 流式对话无法显示?
+A: 检查浏览器是否支持EventSource API
+
+### Q: 文档上传失败?
+A: 检查文件大小是否超限,格式是否支持
+
+## 浏览器支持
+
+- Chrome >= 90
+- Firefox >= 88
+- Safari >= 14
+- Edge >= 90
+
+## 许可证
+
+Copyright (c) 2025 左岚. All rights reserved.
+
+## 联系方式
+
+- 开发团队: 左岚团队
+- 版本: v2.1.0
 

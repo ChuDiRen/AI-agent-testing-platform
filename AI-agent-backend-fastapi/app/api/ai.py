@@ -1,8 +1,10 @@
 # Copyright (c) 2025 左岚. All rights reserved.
 """AI助手API路由"""
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
+import json
 
 from app.core.database import get_db
 from app.api.deps import get_current_active_user
@@ -11,32 +13,61 @@ from app.services.ai_service import AIService
 from app.schemas.ai_chat import (
     ChatSessionCreate, ChatSessionUpdate, ChatSessionResponse, ChatSessionDetail,
     ChatMessageResponse, ChatRequest, ChatResponse, AIModelResponse,
-    TestCaseGenerateRequest, TestCaseGenerateResponse
+    TestCaseGenerateRequest, TestCaseGenerateResponse, AIModelCreate, AIModelUpdate
 )
 from app.schemas.common import APIResponse
 
 router = APIRouter()
 
 
-@router.post("/chat", response_model=APIResponse[ChatResponse])
+@router.post("/chat")
 async def chat(
     request: ChatRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> APIResponse[ChatResponse]:
-    """AI聊天"""
+):
+    """AI聊天 - 支持流式和非流式"""
     service = AIService(db)
-    
+
     try:
-        response = await service.chat(request, current_user.user_id)
-        return APIResponse(
-            success=True,
-            data=response
-        )
+        if request.stream:
+            # 流式响应
+            async def event_generator():
+                """SSE事件生成器"""
+                try:
+                    async for chunk in await service.chat_stream(request, current_user.user_id):
+                        # SSE格式: data: {json}\n\n
+                        yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
+                    # 发送结束标记
+                    yield f"data: {json.dumps({'done': True}, ensure_ascii=False)}\n\n"
+                except Exception as e:
+                    yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
+
+            return StreamingResponse(
+                event_generator(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no"  # 禁用nginx缓冲
+                }
+            )
+        else:
+            # 非流式响应
+            response = await service.chat(request, current_user.user_id)
+            return APIResponse(
+                success=True,
+                data=response
+            )
     except ValueError as e:
         return APIResponse(
             success=False,
             message=str(e)
+        )
+    except Exception as e:
+        return APIResponse(
+            success=False,
+            message=f"聊天失败: {str(e)}"
         )
 
 
@@ -194,5 +225,87 @@ async def health_check(
             "service": "AI Assistant",
             "version": "1.0.0"
         }
+    )
+
+
+# ==================== AI模型管理API ====================
+
+@router.post("/models", response_model=APIResponse[AIModelResponse])
+async def create_model(
+    model_data: AIModelCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> APIResponse[AIModelResponse]:
+    """创建AI模型配置"""
+    service = AIService(db)
+    model = await service.create_model(model_data)
+
+    return APIResponse(
+        success=True,
+        message="模型创建成功",
+        data=AIModelResponse.model_validate(model)
+    )
+
+
+@router.put("/models/{model_id}", response_model=APIResponse[AIModelResponse])
+async def update_model(
+    model_id: int,
+    model_data: AIModelUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> APIResponse[AIModelResponse]:
+    """更新AI模型配置"""
+    service = AIService(db)
+    model = await service.update_model(model_id, model_data)
+
+    if not model:
+        return APIResponse(
+            success=False,
+            message="模型不存在"
+        )
+
+    return APIResponse(
+        success=True,
+        message="模型更新成功",
+        data=AIModelResponse.model_validate(model)
+    )
+
+
+@router.delete("/models/{model_id}", response_model=APIResponse[None])
+async def delete_model(
+    model_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> APIResponse[None]:
+    """删除AI模型配置"""
+    service = AIService(db)
+    success = await service.delete_model(model_id)
+
+    if not success:
+        return APIResponse(
+            success=False,
+            message="模型不存在"
+        )
+
+    return APIResponse(
+        success=True,
+        message="模型删除成功"
+    )
+
+
+@router.post("/models/{model_id}/test", response_model=APIResponse[dict])
+async def test_model_connection(
+    model_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> APIResponse[dict]:
+    """测试AI模型连接"""
+    service = AIService(db)
+    result = await service.test_model_connection(model_id)
+
+    return APIResponse(
+        success=result["success"],
+        message=result["message"],
+        data=result
     )
 

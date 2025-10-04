@@ -18,5 +18,43 @@ python-multipart==0.0.6
 python-dotenv==1.0.0
 email-validator==2.1.0
 
+# AI模型SDK
+openai>=1.12.0  # OpenAI官方SDK
+anthropic>=0.18.0  # Claude官方SDK
+
+# LangChain生态
+langchain>=0.1.0  # LangChain核心框架
+langchain-openai>=0.0.5  # OpenAI集成
+langchain-community>=0.0.20  # 社区集成
+langchain-core>=0.1.23  # 核心组件
+
+# 向量数据库
+qdrant-client>=1.7.0  # Qdrant向量数据库客户端
+
+# 文本向量化和Embedding
+sentence-transformers>=2.3.0  # 文本向量化模型
+torch>=2.0.0  # PyTorch (sentence-transformers依赖)
+transformers>=4.35.0  # Hugging Face Transformers
+
+# 文档处理
+pypdf>=3.17.0  # PDF解析
+python-docx>=1.1.0  # Word文档解析
+python-pptx>=0.6.23  # PPT解析
+openpyxl>=3.1.2  # Excel解析
+markdown>=3.5.0  # Markdown解析
+beautifulsoup4>=4.12.0  # HTML解析
+chardet>=5.2.0  # 字符编码检测
+
+# 文本分块
+langchain-text-splitters>=0.0.1  # 文本分块工具
+
+# 流式响应
+sse-starlette>=1.8.0  # SSE支持
+
+# 任务队列
+celery>=5.3.0  # 分布式任务队列
+redis>=5.0.0  # Redis客户端
+flower>=2.0.0  # Celery监控工具(可选)
+
 # 可选：Excel导出（如需要）
 # openpyxl==3.1.2
