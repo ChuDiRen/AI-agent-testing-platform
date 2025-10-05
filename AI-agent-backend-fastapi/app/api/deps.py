@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import decode_access_token
+from app.core.token_blacklist import token_blacklist
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 
@@ -18,6 +19,14 @@ async def get_current_user(
 ) -> User:
     """获取当前登录用户"""
     token = credentials.credentials
+    
+    # 检查 token 是否在黑名单中
+    if token_blacklist.is_blacklisted(token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="令牌已失效,请重新登录",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     # 解码令牌
     payload = decode_access_token(token)

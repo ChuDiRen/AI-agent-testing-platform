@@ -58,7 +58,7 @@ class Document(Base):
     char_count = Column(Integer, default=0, comment="字符数")  # 字符数
     
     # 元数据
-    metadata = Column(JSON, nullable=True, comment="元数据")  # 元数据
+    doc_metadata = Column(JSON, nullable=True, comment="元数据")  # 元数据（重命名避免与SQLAlchemy的metadata冲突）
     
     # 时间戳
     created_at = Column(DateTime, default=datetime.now, comment="创建时间")  # 创建时间
@@ -94,7 +94,7 @@ class DocumentChunk(Base):
     token_count = Column(Integer, nullable=True, comment="Token数")  # Token数
     
     # 元数据
-    metadata = Column(JSON, nullable=True, comment="元数据")  # 元数据
+    doc_metadata = Column(JSON, nullable=True, comment="元数据")  # 元数据（重命名避免与SQLAlchemy的metadata冲突）
     
     # 时间戳
     created_at = Column(DateTime, default=datetime.now, comment="创建时间")  # 创建时间

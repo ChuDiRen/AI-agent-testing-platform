@@ -5,6 +5,7 @@
 ## 功能特性
 
 ### 核心功能
+
 - ✅ 用户管理、角色管理、菜单管理、部门管理
 - ✅ 测试用例管理（API/Web/App）
 - ✅ 测试报告生成与导出
@@ -12,18 +13,21 @@
 - ✅ 消息通知
 
 ### AI功能
+
 - ✅ AI智能对话（支持流式显示）
 - ✅ 多模型切换
 - ✅ 会话历史管理
 - ✅ Markdown渲染
 
 ### 认证与安全
+
 - ✅ JWT Token认证
 - ✅ Token自动刷新机制
 - ✅ 401错误自动重试
 - ✅ 路由权限守卫
 
 ### RAG知识库
+
 - ✅ 知识库管理
 - ✅ 文档上传（支持拖拽）
 - ✅ 语义搜索
@@ -59,7 +63,7 @@ npm run dev
 pnpm dev
 ```
 
-访问: http://localhost:5173
+访问: <http://localhost:5173>
 
 ### 3. 构建生产版本
 
@@ -202,15 +206,19 @@ npm run type-check
 ## 常见问题
 
 ### Q: 开发服务器启动失败?
+
 A: 检查端口5173是否被占用,或修改vite.config.ts中的端口配置
 
 ### Q: API请求失败?
+
 A: 检查后端服务是否启动,环境变量配置是否正确
 
 ### Q: 流式对话无法显示?
+
 A: 检查浏览器是否支持EventSource API
 
 ### Q: 文档上传失败?
+
 A: 检查文件大小是否超限,格式是否支持
 
 ## 浏览器支持
@@ -220,6 +228,66 @@ A: 检查文件大小是否超限,格式是否支持
 - Safari >= 14
 - Edge >= 90
 
+## 最新优化 (v2.1.0)
+
+✨ 本版本进行了全面的前端优化:
+
+### 核心优化
+
+- ✅ **请求拦截器增强**: 自动重试、Token刷新队列、并发控制
+- ✅ **Markdown渲染**: AI回复支持Markdown格式和代码高亮
+- ✅ **用户体验**: 加载骨架屏、主题切换、键盘快捷键
+- ✅ **错误处理**: 增强的错误提示和恢复机制
+- ✅ **性能优化**: 请求重试、网络错误检测
+
+### 新增组件
+
+- 📝 MarkdownRenderer - Markdown渲染组件
+- 💀 LoadingSkeleton - 加载骨架屏组件
+
+### 新增Hook
+
+- 🎨 useTheme - 主题管理(支持 light/dark/auto)
+- ⌨️  useKeyboard - 键盘快捷键管理
+
+### 功能增强
+
+- 🔄 请求自动重试(最多3次)
+- 🔐 优化的Token刷新机制(防止并发)
+- 🌙 暗黑模式支持
+- 💅 代码块语法高亮
+- ⚡ 更流畅的用户交互体验
+
+## 使用示例
+
+### 主题切换
+
+```typescript
+import { useTheme } from '@/composables/useTheme'
+
+const { isDark, toggleDark, setTheme } = useTheme()
+
+// 切换暗黑模式
+toggleDark()
+
+// 设置特定主题
+setTheme('dark')  // 'light' | 'dark' | 'auto'
+```
+
+### 键盘快捷键
+
+```typescript
+import { useKeyboard, CommonShortcuts } from '@/composables/useKeyboard'
+
+const { register } = useKeyboard()
+
+// 注册快捷键
+register({
+  ...CommonShortcuts.SAVE,
+  callback: () => handleSave()
+})
+```
+
 ## 许可证
 
 Copyright (c) 2025 左岚. All rights reserved.
@@ -227,5 +295,4 @@ Copyright (c) 2025 左岚. All rights reserved.
 ## 联系方式
 
 - 开发团队: 左岚团队
-- 版本: v2.1.0
-
+- 版本: v2.1.0 (已全面优化)

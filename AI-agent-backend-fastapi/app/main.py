@@ -8,10 +8,10 @@ import os
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.core.exceptions import APIException
+from app.core.exceptions import BaseAPIException
 from app.middleware.logging import RequestLoggingMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
-from app.api import auth, users, roles, user_roles, upload, menus, departments, role_menus, dashboard, notifications, data_management, testcases, reports, ai, knowledge
+from app.api import auth, users, roles, user_roles, upload, menus, departments, role_menus, dashboard, notifications, data_management, testcases, reports, ai, knowledge, test_data
 
 
 @asynccontextmanager
@@ -67,8 +67,8 @@ if os.path.exists(settings.UPLOAD_DIR):
 
 
 # 全局异常处理
-@app.exception_handler(APIException)
-async def api_exception_handler(request: Request, exc: APIException):
+@app.exception_handler(BaseAPIException)
+async def api_exception_handler(request: Request, exc: BaseAPIException):
     """处理自定义API异常"""
     return JSONResponse(
         status_code=exc.status_code,
@@ -95,6 +95,7 @@ app.include_router(notifications.router, prefix=f"{settings.API_PREFIX}/notifica
 app.include_router(data_management.router, prefix=f"{settings.API_PREFIX}/data", tags=["数据管理"])
 app.include_router(testcases.router, prefix=f"{settings.API_PREFIX}/testcases", tags=["测试用例"])
 app.include_router(reports.router, prefix=f"{settings.API_PREFIX}/reports", tags=["测试报告"])
+app.include_router(test_data.router, prefix=f"{settings.API_PREFIX}", tags=["测试数据管理"])
 app.include_router(ai.router, prefix=f"{settings.API_PREFIX}/ai", tags=["AI助手"])
 app.include_router(knowledge.router, prefix=f"{settings.API_PREFIX}", tags=["知识库"])
 

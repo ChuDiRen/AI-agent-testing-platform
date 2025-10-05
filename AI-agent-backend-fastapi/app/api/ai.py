@@ -197,6 +197,76 @@ async def generate_testcases(
     )
 
 
+@router.post("/testcases/batch-save", response_model=APIResponse[dict])
+async def save_generated_testcases(
+    testcases: List[dict],
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> APIResponse[dict]:
+    """
+    批量保存AI生成的测试用例
+    
+    Args:
+        testcases: 测试用例列表
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        保存结果
+    """
+    from app.services.testcase_service import TestCaseService
+    from app.schemas.testcase import TestCaseCreate
+    
+    testcase_service = TestCaseService(db)
+    saved_count = 0
+    failed_count = 0
+    saved_ids = []
+    errors = []
+    
+    for tc_data in testcases:
+        try:
+            # 创建TestCaseCreate对象
+            testcase_create = TestCaseCreate(
+                name=tc_data.get("name", "AI生成用例"),
+                test_type=tc_data.get("test_type", "api"),
+                module=tc_data.get("module", "默认模块"),
+                description=tc_data.get("description", ""),
+                preconditions=tc_data.get("preconditions", ""),
+                test_steps=tc_data.get("test_steps", ""),
+                expected_result=tc_data.get("expected_result", ""),
+                priority=tc_data.get("priority", "P2"),
+                status=tc_data.get("status", "draft"),
+                tags=tc_data.get("tags", "AI生成")
+            )
+            
+            # 保存到数据库
+            testcase = await testcase_service.create_testcase(
+                testcase_create,
+                current_user.user_id
+            )
+            
+            saved_count += 1
+            saved_ids.append(testcase.testcase_id)
+            
+        except Exception as e:
+            failed_count += 1
+            errors.append({
+                "testcase_name": tc_data.get("name", "未知"),
+                "error": str(e)
+            })
+    
+    return APIResponse(
+        success=failed_count == 0,
+        message=f"成功保存 {saved_count} 个测试用例" + (f", {failed_count} 个失败" if failed_count > 0 else ""),
+        data={
+            "saved_count": saved_count,
+            "failed_count": failed_count,
+            "saved_ids": saved_ids,
+            "errors": errors
+        }
+    )
+
+
 @router.get("/models", response_model=APIResponse[List[AIModelResponse]])
 async def get_models(
     db: AsyncSession = Depends(get_db),

@@ -38,7 +38,7 @@ class ChatMessage(Base):
     content = Column(Text, nullable=False, comment="消息内容")  # 消息内容
     tokens = Column(Integer, nullable=True, comment="Token数量")  # Token数量
     model = Column(String(50), nullable=True, comment="使用的模型")  # 使用的模型
-    metadata = Column(JSON, nullable=True, comment="元数据")  # 元数据
+    msg_metadata = Column(JSON, nullable=True, comment="元数据")  # 元数据（重命名避免与SQLAlchemy的metadata冲突）
     
     # 时间戳
     created_at = Column(DateTime, default=datetime.now, comment="创建时间")  # 创建时间

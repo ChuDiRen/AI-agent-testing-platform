@@ -1,12 +1,34 @@
 // Copyright (c) 2025 左岚. All rights reserved.
 /**
- * Axios 请求封装
+ * Axios 请求封装 - 增强版
  */
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type AxiosError } from 'axios'
 import { ElMessage } from 'element-plus'
 
 // API 基础URL
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
+// 请求重试配置
+const RETRY_CONFIG = {
+  maxRetries: 3, // 最大重试次数
+  retryDelay: 1000, // 重试延迟(ms)
+  retryableStatuses: [408, 429, 500, 502, 503, 504] // 可重试的状态码
+}
+
+// Token 刷新状态
+let isRefreshing = false
+let refreshSubscribers: Array<(token: string) => void> = []
+
+// 订阅 Token 刷新
+function subscribeTokenRefresh(cb: (token: string) => void) {
+  refreshSubscribers.push(cb)
+}
+
+// 通知所有订阅者
+function onRefreshed(token: string) {
+  refreshSubscribers.forEach((cb) => cb(token))
+  refreshSubscribers = []
+}
 
 // 创建 axios 实例
 const service: AxiosInstance = axios.create({
@@ -16,6 +38,34 @@ const service: AxiosInstance = axios.create({
     'Content-Type': 'application/json'
   }
 })
+
+// 请求重试辅助函数
+function shouldRetry(error: AxiosError): boolean {
+  if (!error.config) return false
+  
+  const config: any = error.config
+  const retryCount = config.__retryCount || 0
+  
+  // 已达到最大重试次数
+  if (retryCount >= RETRY_CONFIG.maxRetries) return false
+  
+  // 检查状态码是否可重试
+  const status = error.response?.status
+  return status ? RETRY_CONFIG.retryableStatuses.includes(status) : false
+}
+
+function retryRequest(error: AxiosError): Promise<any> {
+  const config: any = error.config
+  config.__retryCount = (config.__retryCount || 0) + 1
+  
+  // 延迟重试
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      console.log(`🔄 重试请求 (${config.__retryCount}/${RETRY_CONFIG.maxRetries}): ${config.url}`)
+      resolve(service.request(config))
+    }, RETRY_CONFIG.retryDelay * config.__retryCount)
+  })
+}
 
 // 请求拦截器
 service.interceptors.request.use(
@@ -53,16 +103,23 @@ service.interceptors.response.use(
   async (error: AxiosError) => {
     console.error('Response error:', error)
 
+    // 检查是否需要重试
+    if (shouldRetry(error)) {
+      return retryRequest(error)
+    }
+
     // 处理 HTTP 错误
     if (error.response) {
       const status = error.response.status
+      const config = error.config
 
       switch (status) {
         case 401: {
           // Token过期，尝试刷新
           const refreshToken = localStorage.getItem('refreshToken')
+          
+          // 如果是刷新接口失败或没有 refresh_token
           if (!refreshToken || error.config?.url?.includes('/auth/refresh')) {
-            // 无refresh_token或刷新接口本身失败，直接跳转登录
             ElMessage.error('登录已过期，请重新登录')
             localStorage.removeItem('token')
             localStorage.removeItem('refreshToken')
@@ -70,19 +127,39 @@ service.interceptors.response.use(
             break
           }
 
+          // 如果正在刷新 token，将请求加入队列
+          if (isRefreshing) {
+            return new Promise((resolve) => {
+              subscribeTokenRefresh((token: string) => {
+                if (config) {
+                  config.headers!.Authorization = `Bearer ${token}`
+                  resolve(service.request(config))
+                }
+              })
+            })
+          }
+
+          isRefreshing = true
+
           try {
             // 动态导入避免循环依赖
             const { refreshToken: refreshTokenApi } = await import('./auth')
             const response = await refreshTokenApi(refreshToken)
 
-            // 更新token和refresh_token
-            localStorage.setItem('token', response.data.access_token)
-            localStorage.setItem('refreshToken', response.data.refresh_token)
+            const newToken = response.data.access_token
+            const newRefreshToken = response.data.refresh_token
+
+            // 更新 token
+            localStorage.setItem('token', newToken)
+            localStorage.setItem('refreshToken', newRefreshToken)
+
+            // 通知所有等待的请求
+            onRefreshed(newToken)
 
             // 重试原请求
-            if (error.config) {
-              error.config.headers.Authorization = `Bearer ${response.data.access_token}`
-              return service.request(error.config)
+            if (config) {
+              config.headers!.Authorization = `Bearer ${newToken}`
+              return service.request(config)
             }
           } catch (refreshError) {
             console.error('Token refresh failed:', refreshError)
@@ -90,6 +167,8 @@ service.interceptors.response.use(
             localStorage.removeItem('token')
             localStorage.removeItem('refreshToken')
             window.location.href = '/login'
+          } finally {
+            isRefreshing = false
           }
           break
         }
@@ -99,14 +178,33 @@ service.interceptors.response.use(
         case 404:
           ElMessage.error('请求资源不存在')
           break
+        case 429:
+          ElMessage.warning('请求过于频繁，请稍后再试')
+          break
         case 500:
           ElMessage.error('服务器错误')
+          break
+        case 502:
+          ElMessage.error('网关错误')
+          break
+        case 503:
+          ElMessage.error('服务暂时不可用')
+          break
+        case 504:
+          ElMessage.error('网关超时')
           break
         default:
           ElMessage.error(error.message || '请求失败')
       }
     } else if (error.request) {
-      ElMessage.error('网络错误，请检查网络连接')
+      // 网络错误
+      if (error.code === 'ECONNABORTED') {
+        ElMessage.error('请求超时，请检查网络连接')
+      } else if (error.code === 'ERR_NETWORK') {
+        ElMessage.error('网络错误，请检查网络连接')
+      } else {
+        ElMessage.error('网络错误，请稍后重试')
+      }
     } else {
       ElMessage.error('请求配置错误')
     }

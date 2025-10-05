@@ -226,8 +226,19 @@ class AIService:
         )
         return result.scalar_one_or_none()
 
-    async def _build_messages(self, session: ChatSession) -> List[Dict[str, str]]:
-        """构建消息历史"""
+    async def _build_messages(self, session: ChatSession, max_messages: Optional[int] = None) -> List[Dict[str, str]]:
+        """
+        构建消息历史
+        
+        Args:
+            session: 会话对象
+            max_messages: 最大消息数,默认从配置读取
+        
+        Returns:
+            消息列表
+        """
+        from app.core.config import settings
+        
         messages = []
 
         # 添加系统提示词
@@ -237,8 +248,11 @@ class AIService:
                 "content": session.system_prompt
             })
 
-        # 获取历史消息(最近10条)
-        history = await self.get_session_messages(session.session_id, limit=10)
+        # 获取历史消息(可配置数量)
+        if max_messages is None:
+            max_messages = settings.AI_MAX_CONTEXT_MESSAGES
+            
+        history = await self.get_session_messages(session.session_id, limit=max_messages)
         for msg in history:
             messages.append({
                 "role": msg.role,
@@ -329,10 +343,97 @@ class AIService:
             }
     
     async def generate_testcases(self, request: TestCaseGenerateRequest, user_id: int) -> List[Dict[str, Any]]:
-        """生成测试用例"""
+        """
+        使用 AI 生成测试用例
+        
+        Args:
+            request: 测试用例生成请求
+            user_id: 用户ID
+        
+        Returns:
+            生成的测试用例列表
+        """
+        # 构建提示词
+        prompt = f"""请根据以下需求生成 {request.count} 个{request.test_type}测试用例:
+
+需求描述:
+{request.requirement}
+
+模块: {request.module or '未指定'}
+
+请为每个测试用例生成以下内容:
+1. 测试用例名称
+2. 测试描述
+3. 前置条件
+4. 测试步骤(详细的步骤说明)
+5. 预期结果
+6. 优先级(P0/P1/P2/P3)
+
+输出格式为 JSON 数组,每个测试用例包含: name, description, preconditions, test_steps, expected_result, priority
+"""
+
+        try:
+            # 获取默认的 AI 模型
+            models = await self.get_available_models()
+            if not models:
+                # 如果没有可用模型,返回模拟数据
+                return self._generate_mock_testcases(request)
+            
+            # 使用第一个可用模型
+            model = models[0]
+            client = ai_client_service.get_client(model)
+            
+            # 调用 AI 生成
+            response = await client.chat(
+                messages=[{"role": "user", "content": prompt}],
+                stream=False,
+                temperature=0.7,
+                max_tokens=2000
+            )
+            
+            # 解析 AI 响应
+            content = response["content"]
+            
+            # 尝试提取 JSON
+            import json
+            import re
+            
+            # 查找 JSON 数组
+            json_match = re.search(r'\[[\s\S]*\]', content)
+            if json_match:
+                testcases_data = json.loads(json_match.group())
+                
+                # 补充字段
+                testcases = []
+                for i, tc in enumerate(testcases_data):
+                    testcase = {
+                        "name": tc.get("name", f"{request.module or '功能'}测试用例 {i+1}"),
+                        "test_type": request.test_type,
+                        "module": request.module or tc.get("module", "默认模块"),
+                        "description": tc.get("description", ""),
+                        "preconditions": tc.get("preconditions", ""),
+                        "test_steps": tc.get("test_steps", ""),
+                        "expected_result": tc.get("expected_result", ""),
+                        "priority": tc.get("priority", "P2"),
+                        "status": "draft",
+                        "tags": f"{request.test_type},AI生成"
+                    }
+                    testcases.append(testcase)
+                
+                return testcases
+            else:
+                # 如果无法解析,返回模拟数据
+                return self._generate_mock_testcases(request)
+                
+        except Exception as e:
+            print(f"❌ AI生成测试用例失败: {e}")
+            # 失败时返回模拟数据
+            return self._generate_mock_testcases(request)
+    
+    def _generate_mock_testcases(self, request: TestCaseGenerateRequest) -> List[Dict[str, Any]]:
+        """生成模拟测试用例(当AI不可用时)"""
         testcases = []
         
-        # 模拟生成测试用例
         for i in range(request.count):
             testcase = {
                 "name": f"{request.module or '功能'}测试用例 {i+1}",
@@ -344,24 +445,61 @@ class AIService:
                 "expected_result": "1. 操作成功\n2. 返回正确的结果\n3. 无异常错误",
                 "priority": random.choice(["P0", "P1", "P2", "P3"]),
                 "status": "draft",
-                "tags": f"{request.test_type},自动生成"
+                "tags": f"{request.test_type},模拟生成"
             }
             testcases.append(testcase)
         
         return testcases
     
-    async def get_available_models(self) -> List[AIModel]:
-        """获取可用的AI模型列表"""
+    async def get_token_usage_stats(self, user_id: int, days: int = 30) -> Dict[str, Any]:
+        """
+        获取 Token 使用统计
+        
+        Args:
+            user_id: 用户ID
+            days: 统计天数
+        
+        Returns:
+            统计数据
+        """
+        from datetime import datetime, timedelta
+        
+        # 计算起始日期
+        start_date = datetime.now() - timedelta(days=days)
+        
+        # 查询用户的消息
         result = await self.db.execute(
-            select(AIModel).where(AIModel.is_enabled == True)
+            select(ChatMessage)
+            .join(ChatSession)
+            .where(
+                and_(
+                    ChatSession.user_id == user_id,
+                    ChatMessage.created_at >= start_date,
+                    ChatMessage.tokens.isnot(None)
+                )
+            )
         )
-        return list(result.scalars().all())
-    
-    async def create_model(self, model_data: Dict[str, Any]) -> AIModel:
-        """创建AI模型配置"""
-        model = AIModel(**model_data)
-        self.db.add(model)
-        await self.db.commit()
-        await self.db.refresh(model)
-        return model
+        messages = result.scalars().all()
+        
+        # 统计
+        total_tokens = sum(msg.tokens for msg in messages if msg.tokens)
+        total_messages = len(messages)
+        
+        # 按模型统计
+        model_stats = {}
+        for msg in messages:
+            if msg.model:
+                if msg.model not in model_stats:
+                    model_stats[msg.model] = {"count": 0, "tokens": 0}
+                model_stats[msg.model]["count"] += 1
+                if msg.tokens:
+                    model_stats[msg.model]["tokens"] += msg.tokens
+        
+        return {
+            "total_tokens": total_tokens,
+            "total_messages": total_messages,
+            "period_days": days,
+            "by_model": model_stats,
+            "avg_tokens_per_message": total_tokens / total_messages if total_messages > 0 else 0
+        }
 

@@ -143,6 +143,16 @@ class KnowledgeService:
         if not kb or kb.user_id != user_id:
             raise ValueError("无权限访问该知识库")
         
+        # 文档去重检查
+        if doc_data.file_path:
+            existing = await self._check_duplicate_document(
+                db, 
+                doc_data.kb_id, 
+                doc_data.file_path
+            )
+            if existing:
+                raise ValueError(f"文档已存在: {existing.name}")
+        
         # 创建文档记录
         doc = Document(
             kb_id=doc_data.kb_id,
@@ -160,6 +170,22 @@ class KnowledgeService:
         await db.refresh(doc)
         
         return doc
+    
+    async def _check_duplicate_document(
+        self,
+        db: AsyncSession,
+        kb_id: int,
+        file_path: str
+    ) -> Optional[Document]:
+        """检查重复文档"""
+        result = await db.execute(
+            select(Document).where(
+                Document.kb_id == kb_id,
+                Document.file_path == file_path,
+                Document.status != "error"
+            )
+        )
+        return result.scalar_one_or_none()
     
     async def process_document(
         self,
@@ -391,6 +417,176 @@ class KnowledgeService:
             .order_by(DocumentChunk.chunk_index)
         )
         return list(result.scalars().all())
+    
+    async def get_knowledge_base_stats(
+        self,
+        db: AsyncSession,
+        kb_id: int,
+        user_id: int
+    ) -> Dict[str, Any]:
+        """
+        获取知识库统计信息
+        
+        Args:
+            db: 数据库会话
+            kb_id: 知识库ID
+            user_id: 用户ID
+        
+        Returns:
+            统计信息字典
+        """
+        # 检查权限
+        kb = await self.get_knowledge_base(db, kb_id, user_id)
+        if not kb:
+            raise ValueError("知识库不存在或无权限访问")
+        
+        # 文档统计
+        doc_result = await db.execute(
+            select(
+                func.count(Document.doc_id).label("total"),
+                func.count(func.nullif(Document.status == "completed", False)).label("completed"),
+                func.count(func.nullif(Document.status == "processing", False)).label("processing"),
+                func.count(func.nullif(Document.status == "error", False)).label("error")
+            ).where(Document.kb_id == kb_id)
+        )
+        doc_stats = doc_result.first()
+        
+        # 按文件类型统计
+        type_result = await db.execute(
+            select(
+                Document.file_type,
+                func.count(Document.doc_id).label("count")
+            )
+            .where(Document.kb_id == kb_id)
+            .group_by(Document.file_type)
+        )
+        type_stats = {row[0]: row[1] for row in type_result.fetchall()}
+        
+        # 搜索历史统计
+        search_result = await db.execute(
+            select(func.count(SearchHistory.id))
+            .where(SearchHistory.kb_id == kb_id)
+        )
+        total_searches = search_result.scalar()
+        
+        # 最近搜索
+        recent_result = await db.execute(
+            select(SearchHistory)
+            .where(SearchHistory.kb_id == kb_id)
+            .order_by(SearchHistory.created_at.desc())
+            .limit(10)
+        )
+        recent_searches = list(recent_result.scalars().all())
+        
+        return {
+            "knowledge_base": {
+                "id": kb.kb_id,
+                "name": kb.name,
+                "document_count": kb.document_count,
+                "chunk_count": kb.chunk_count,
+                "total_size": kb.total_size,
+                "created_at": kb.created_at.isoformat(),
+                "updated_at": kb.updated_at.isoformat()
+            },
+            "documents": {
+                "total": doc_stats.total if doc_stats else 0,
+                "completed": doc_stats.completed if doc_stats else 0,
+                "processing": doc_stats.processing if doc_stats else 0,
+                "error": doc_stats.error if doc_stats else 0,
+                "by_type": type_stats
+            },
+            "searches": {
+                "total": total_searches or 0,
+                "recent": [
+                    {
+                        "query": s.query,
+                        "result_count": s.result_count,
+                        "top_score": s.top_score,
+                        "search_time": s.search_time,
+                        "created_at": s.created_at.isoformat()
+                    }
+                    for s in recent_searches
+                ]
+            }
+        }
+    
+    async def search_with_rerank(
+        self,
+        db: AsyncSession,
+        search_req: SearchRequest,
+        user_id: int
+    ) -> SearchResponse:
+        """
+        增强搜索 - 带重排序
+        
+        使用向量搜索 + 关键词匹配的混合检索策略
+        """
+        start_time = time.time()
+        
+        # 检查权限
+        kb = await self.get_knowledge_base(db, search_req.kb_id, user_id)
+        if not kb:
+            raise ValueError("知识库不存在或无权限访问")
+        
+        # 1. 向量搜索
+        collection_name = f"kb_{search_req.kb_id}"
+        vector_results = vector_store.search(
+            collection_name,
+            search_req.query,
+            top_k=search_req.top_k * 2,  # 获取更多候选
+            score_threshold=max(0.3, search_req.score_threshold - 0.2),  # 降低阈值
+            filter_conditions={"kb_id": search_req.kb_id}
+        )
+        
+        # 2. 提取文本进行关键词匹配
+        query_keywords = set(search_req.query.lower().split())
+        
+        results = []
+        for vector_id, score, payload in vector_results:
+            content = payload.get("text", "")
+            
+            # 关键词匹配得分
+            content_lower = content.lower()
+            keyword_score = sum(1 for kw in query_keywords if kw in content_lower) / len(query_keywords)
+            
+            # 综合得分 (向量得分 70% + 关键词得分 30%)
+            combined_score = score * 0.7 + keyword_score * 0.3
+            
+            result = SearchResult(
+                chunk_id=payload.get("chunk_id"),
+                doc_id=payload.get("doc_id"),
+                doc_name=payload.get("doc_name", ""),
+                content=content if search_req.with_content else "",
+                score=combined_score,
+                chunk_index=payload.get("chunk_index", 0),
+                metadata=payload
+            )
+            results.append(result)
+        
+        # 3. 重排序
+        results.sort(key=lambda x: x.score, reverse=True)
+        results = results[:search_req.top_k]
+        
+        search_time = time.time() - start_time
+        
+        # 记录搜索历史
+        history = SearchHistory(
+            kb_id=search_req.kb_id,
+            user_id=user_id,
+            query=search_req.query,
+            result_count=len(results),
+            top_score=results[0].score if results else 0.0,
+            search_time=search_time
+        )
+        db.add(history)
+        await db.commit()
+        
+        return SearchResponse(
+            query=search_req.query,
+            results=results,
+            total=len(results),
+            search_time=search_time
+        )
 
 
 # 全局知识库服务实例

@@ -60,57 +60,66 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'api/testcase',
         name: 'ApiTestCase',
-        component: () => import('@/views/api/TestCase.vue'),
+        component: () => import('@/views/testcase/UnifiedTestCase.vue'),
+        props: { testType: 'api' },
         meta: { title: 'API测试用例', requiresAuth: true }
       },
       {
         path: 'api/execute',
         name: 'ApiExecute',
-        component: () => import('@/views/api/Execute.vue'),
+        component: () => import('@/views/testcase/UnifiedExecute.vue'),
+        props: { testType: 'api' },
         meta: { title: 'API测试执行', requiresAuth: true }
       },
       {
         path: 'api/report',
         name: 'ApiReport',
-        component: () => import('@/views/api/Report.vue'),
+        component: () => import('@/views/testcase/UnifiedReport.vue'),
+        props: { testType: 'api' },
         meta: { title: 'API测试报告', requiresAuth: true }
       },
       // WEB自动化
       {
         path: 'web/testcase',
         name: 'WebTestCase',
-        component: () => import('@/views/web/TestCase.vue'),
+        component: () => import('@/views/testcase/UnifiedTestCase.vue'),
+        props: { testType: 'web' },
         meta: { title: 'WEB测试用例', requiresAuth: true }
       },
       {
         path: 'web/execute',
         name: 'WebExecute',
-        component: () => import('@/views/web/Execute.vue'),
+        component: () => import('@/views/testcase/UnifiedExecute.vue'),
+        props: { testType: 'web' },
         meta: { title: 'WEB测试执行', requiresAuth: true }
       },
       {
         path: 'web/report',
         name: 'WebReport',
-        component: () => import('@/views/web/Report.vue'),
+        component: () => import('@/views/testcase/UnifiedReport.vue'),
+        props: { testType: 'web' },
         meta: { title: 'WEB测试报告', requiresAuth: true }
       },
       // APP自动化
       {
         path: 'app/testcase',
         name: 'AppTestCase',
-        component: () => import('@/views/app/TestCase.vue'),
+        component: () => import('@/views/testcase/UnifiedTestCase.vue'),
+        props: { testType: 'app' },
         meta: { title: 'APP测试用例', requiresAuth: true }
       },
       {
         path: 'app/execute',
         name: 'AppExecute',
-        component: () => import('@/views/app/Execute.vue'),
+        component: () => import('@/views/testcase/UnifiedExecute.vue'),
+        props: { testType: 'app' },
         meta: { title: 'APP测试执行', requiresAuth: true }
       },
       {
         path: 'app/report',
         name: 'AppReport',
-        component: () => import('@/views/app/Report.vue'),
+        component: () => import('@/views/testcase/UnifiedReport.vue'),
+        props: { testType: 'app' },
         meta: { title: 'APP测试报告', requiresAuth: true }
       },
       // 消息通知
@@ -137,7 +146,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'data/testdata',
         name: 'TestData',
-        component: () => import('@/views/data/TestData.vue'),
+        component: () => import('@/views/testdata/TestDataManagement.vue'),
         meta: { title: '测试数据管理', requiresAuth: true }
       },
       // 系统数据管理
@@ -151,7 +160,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'ai/chat',
         name: 'AIChat',
-        component: () => import('@/views/ai/Chat.vue'),
+        component: () => import('@/views/ai/ChatEnhanced.vue'),
         meta: { title: 'AI 助手', requiresAuth: true }
       },
       // 测试页面

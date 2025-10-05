@@ -2,12 +2,19 @@
 """向量存储服务 - Qdrant集成"""
 from typing import List, Dict, Any, Optional, Tuple
 import uuid
-from qdrant_client import QdrantClient
-from qdrant_client.models import (
-    Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
-)
-from sentence_transformers import SentenceTransformer
-import numpy as np
+import logging
+
+try:
+    from qdrant_client import QdrantClient
+    from qdrant_client.models import (
+        Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
+    )
+    from sentence_transformers import SentenceTransformer
+    import numpy as np
+    QDRANT_AVAILABLE = True
+except ImportError:
+    QDRANT_AVAILABLE = False
+    logging.warning("Qdrant client or sentence-transformers not installed. Vector store功能将不可用.")
 
 from app.core.config import settings
 
@@ -23,6 +30,10 @@ class VectorStore:
     
     def initialize(self):
         """初始化向量存储"""
+        if not QDRANT_AVAILABLE:
+            logging.warning("Qdrant not available, skipping vector store initialization")
+            return False
+            
         if self.client is None:
             # 连接Qdrant (本地模式)
             self.client = QdrantClient(path="./qdrant_data")  # 本地存储
@@ -33,6 +44,8 @@ class VectorStore:
             # 加载向量化模型
             self.embedding_model = SentenceTransformer(self.model_name)
             print(f"✅ 向量模型加载成功: {self.model_name}")
+        
+        return True
     
     def create_collection(self, collection_name: str, vector_dimension: int = None) -> bool:
         """创建向量集合"""

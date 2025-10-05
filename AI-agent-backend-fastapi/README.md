@@ -5,18 +5,21 @@
 ## 功能特性
 
 ### 核心功能
+
 - ✅ 用户管理、角色管理、菜单管理、部门管理
 - ✅ 测试用例管理（API/Web/App）
 - ✅ 测试报告生成与导出
 - ✅ 消息通知、数据管理
 
 ### AI功能
+
 - ✅ 多模型AI对话（GPT-3.5/4/4-Turbo, Claude 3 Sonnet/Opus/3.5）
 - ✅ 流式响应（SSE）
 - ✅ 模型动态切换
 - ✅ 会话历史管理
 
 ### RAG知识库
+
 - ✅ 多格式文档支持（PDF/Word/TXT/Markdown/HTML）
 - ✅ 智能文档分块
 - ✅ 向量化存储（Qdrant）
@@ -24,6 +27,7 @@
 - ✅ BGE-large-zh-v1.5中文向量模型
 
 ### 任务队列
+
 - ✅ Celery + Redis异步处理
 - ✅ 大文件后台处理
 - ✅ 实时进度跟踪
@@ -85,8 +89,8 @@ celery -A app.core.celery_app flower --port=5555
 
 ### 5. 访问服务
 
-- API文档: http://localhost:8000/docs
-- Flower监控: http://localhost:5555
+- API文档: <http://localhost:8000/docs>
+- Flower监控: <http://localhost:5555>
 
 ### 6. 登录凭证
 
@@ -97,12 +101,12 @@ celery -A app.core.celery_app flower --port=5555
 
 ### 1. 获取API Key
 
-- OpenAI: https://platform.openai.com/api-keys
-- Claude: https://console.anthropic.com/settings/keys
+- OpenAI: <https://platform.openai.com/api-keys>
+- Claude: <https://console.anthropic.com/settings/keys>
 
 ### 2. 配置模型
 
-访问 http://localhost:8000/docs，使用以下接口配置：
+访问 <http://localhost:8000/docs，使用以下接口配置：>
 
 ```bash
 PUT /api/v1/ai/models/{model_id}
@@ -132,17 +136,20 @@ AI-agent-backend-fastapi/
 ## API接口
 
 ### 认证接口
+
 - POST `/api/v1/auth/login` - 用户登录（返回access_token和refresh_token）
 - POST `/api/v1/auth/refresh` - 刷新访问令牌（使用refresh_token获取新的access_token）
 - POST `/api/v1/auth/register` - 用户注册
 
 ### AI对话接口
+
 - POST `/api/v1/ai/chat` - AI对话（支持流式）
 - GET `/api/v1/ai/models` - 获取模型列表
 - PUT `/api/v1/ai/models/{id}` - 更新模型配置
 - POST `/api/v1/ai/models/{id}/test` - 测试模型连接
 
 ### 知识库接口
+
 - POST `/api/v1/knowledge/bases` - 创建知识库
 - GET `/api/v1/knowledge/bases` - 获取知识库列表
 - POST `/api/v1/knowledge/documents/upload` - 上传文档
@@ -150,6 +157,7 @@ AI-agent-backend-fastapi/
 - GET `/api/v1/knowledge/tasks/{task_id}` - 查询任务状态
 
 ### 用户管理接口
+
 - GET `/api/v1/users` - 获取用户列表
 - POST `/api/v1/users` - 创建用户
 - PUT `/api/v1/users/{id}` - 更新用户
@@ -193,16 +201,49 @@ pytest
 ## 常见问题
 
 ### Q: Worker无法启动?
+
 A: 检查Redis是否运行: `redis-cli ping`
 
 ### Q: 任务一直PENDING?
+
 A: 确保Worker已启动: `python start_celery_worker.py`
 
 ### Q: 文档上传失败?
+
 A: 检查文件格式是否支持,文件大小是否超限
 
 ### Q: AI对话无响应?
+
 A: 检查API Key是否配置正确,模型是否已启用
+
+## 最新优化 (v2.1.0)
+
+✨ 本版本进行了全面的功能完善和性能优化:
+
+### 核心优化
+
+- ✅ **安全增强**: Token黑名单、密码强度验证、API密钥加密
+- ✅ **全局异常处理**: 统一异常处理、结构化日志、错误追踪
+- ✅ **数据库优化**: 连接池配置、健康检查、慢查询监控
+- ✅ **AI服务增强**: 真实AI测试用例生成、Token使用统计、上下文管理优化
+- ✅ **知识库优化**: 文档去重、混合检索、结果重排序、统计分析
+- ✅ **性能监控**: 请求追踪、性能指标记录、慢请求警告
+
+### 新增功能
+
+- 🔐 用户登出接口(Token黑名单)
+- 📊 健康检查端点(支持K8s探针)
+- 📈 知识库统计分析
+- 🔍 增强的混合检索(向量+关键词)
+- 📝 详细的部署文档
+
+详细内容请查看: [OPTIMIZATION_SUMMARY.md](./OPTIMIZATION_SUMMARY.md)
+
+## 文档
+
+- 📖 [部署指南](./DEPLOYMENT.md) - 详细的部署和配置说明
+- 📋 [优化总结](./OPTIMIZATION_SUMMARY.md) - 完整的优化内容说明
+- 📚 API文档: <http://localhost:8000/docs>
 
 ## 许可证
 
@@ -211,5 +252,4 @@ Copyright (c) 2025 左岚. All rights reserved.
 ## 联系方式
 
 - 开发团队: 左岚团队
-- 版本: v2.1.0
-
+- 版本: v2.1.0 (已全面优化)

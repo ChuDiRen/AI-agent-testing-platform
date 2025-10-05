@@ -121,9 +121,44 @@ export function generateReport(data: { name: string; description?: string; repor
 }
 
 /**
- * 导出测试报告
+ * 导出测试报告（直接下载文件）
  */
-export function exportReport(data: { report_id: number; format: string; include_details?: boolean }) {
-  return post<{ success: boolean; message: string; data: { file_path: string; format: string } }>('/api/v1/reports/export', data)
+export function exportReportFile(reportId: number, format: 'pdf' | 'excel') {
+  // 使用window.open直接触发下载
+  const token = localStorage.getItem('access_token')
+  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  const url = `${baseURL}/api/v1/reports/${reportId}/export/${format}`
+
+  // 创建隐藏的a标签触发下载
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', `test_report_${reportId}.${format === 'pdf' ? 'pdf' : 'xlsx'}`)
+
+  // 添加token到请求头（通过iframe方式）
+  // 由于下载链接需要认证，使用fetch+blob方式
+  return fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('导出失败')
+      }
+      return response.blob()
+    })
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob)
+      link.href = url
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      return { success: true, message: '导出成功' }
+    })
+    .catch(error => {
+      throw error
+    })
 }
 

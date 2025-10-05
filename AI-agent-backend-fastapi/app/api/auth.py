@@ -1,5 +1,6 @@
 """认证相关路由"""
 from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -13,6 +14,7 @@ from datetime import timedelta
 from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["认证"])
+security = HTTPBearer()
 
 
 @router.post("/register", response_model=APIResponse[UserResponse], status_code=status.HTTP_201_CREATED)
@@ -97,4 +99,28 @@ async def refresh_token(
             token_type="bearer"
         )
     )
+
+
+@router.post("/logout", response_model=APIResponse)
+async def logout(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> APIResponse:
+    """用户登出 - 将 token 加入黑名单"""
+    from app.core.token_blacklist import token_blacklist
+    
+    token = credentials.credentials
+    
+    # 将 token 加入黑名单
+    success = token_blacklist.add_to_blacklist(
+        token,
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
+    
+    if not success:
+        # 即使加入黑名单失败,也返回成功(可能是 Redis 不可用)
+        return APIResponse(
+            message="登出成功(Token黑名单服务不可用,请注意安全)"
+        )
+    
+    return APIResponse(message="登出成功")
 

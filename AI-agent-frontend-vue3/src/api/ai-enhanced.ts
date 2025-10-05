@@ -63,7 +63,7 @@ export function chatAPI(data: ChatRequest) {
 export function chatStreamAPI(data: ChatRequest): EventSource {
   const token = localStorage.getItem('token')
   const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-  
+
   // 构建查询参数
   const params = new URLSearchParams({
     message: data.message,
@@ -73,13 +73,13 @@ export function chatStreamAPI(data: ChatRequest): EventSource {
     ...(data.temperature && { temperature: data.temperature.toString() }),
     ...(data.max_tokens && { max_tokens: data.max_tokens.toString() })
   })
-  
+
   // 创建EventSource连接
   const url = `${baseURL}/api/v1/ai/chat?${params.toString()}`
   const eventSource = new EventSource(url, {
     withCredentials: false
   })
-  
+
   // 添加token到请求头(EventSource不支持自定义headers,需要后端支持token参数)
   return eventSource
 }
@@ -169,6 +169,41 @@ export function deleteSessionAPI(sessionId: number) {
   return request({
     url: `/ai/sessions/${sessionId}`,
     method: 'delete'
+  })
+}
+
+/**
+ * AI生成测试用例
+ */
+export function generateTestCasesAPI(data: {
+  requirement: string
+  test_type: string
+  count: number
+  module?: string
+}) {
+  return request<{
+    testcases: any[]
+    total: number
+  }>({
+    url: '/ai/generate-testcases',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 批量保存AI生成的测试用例
+ */
+export function saveGeneratedTestCasesAPI(testcases: any[]) {
+  return request<{
+    saved_count: number
+    failed_count: number
+    saved_ids: number[]
+    errors: any[]
+  }>({
+    url: '/ai/testcases/batch-save',
+    method: 'post',
+    data: testcases
   })
 }
 

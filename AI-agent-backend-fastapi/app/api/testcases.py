@@ -197,3 +197,103 @@ async def execute_testcase(
             message=str(e)
         )
 
+
+@router.post("/batch-execute", response_model=APIResponse[dict])
+async def batch_execute_testcases(
+    testcase_ids: list[int],
+    execute_data: TestCaseExecute,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> APIResponse[dict]:
+    """
+    批量执行测试用例
+    
+    Args:
+        testcase_ids: 测试用例ID列表
+        execute_data: 执行配置
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        执行结果汇总
+    """
+    from app.services.test_executor import TestExecutorFactory
+    import asyncio
+    
+    if not testcase_ids:
+        return APIResponse(
+            success=False,
+            message="请选择要执行的测试用例"
+        )
+    
+    service = TestCaseService(db)
+    results = []
+    passed_count = 0
+    failed_count = 0
+    error_count = 0
+    total_duration = 0.0
+    
+    # 并发执行测试用例
+    async def execute_single(testcase_id: int):
+        try:
+            testcase = await service.get_testcase(testcase_id)
+            if not testcase:
+                return {
+                    "testcase_id": testcase_id,
+                    "testcase_name": f"用例{testcase_id}",
+                    "status": "error",
+                    "error_message": "测试用例不存在",
+                    "duration": 0
+                }
+            
+            executor = TestExecutorFactory.get_executor(testcase.test_type)
+            result = await executor.execute(testcase, execute_data.config)
+            
+            result["testcase_id"] = testcase_id
+            result["testcase_name"] = testcase.name
+            
+            return result
+        except Exception as e:
+            return {
+                "testcase_id": testcase_id,
+                "testcase_name": f"用例{testcase_id}",
+                "status": "error",
+                "error_message": str(e),
+                "duration": 0
+            }
+    
+    # 并发执行所有用例（最多10个并发）
+    semaphore = asyncio.Semaphore(10)
+    
+    async def execute_with_semaphore(testcase_id: int):
+        async with semaphore:
+            return await execute_single(testcase_id)
+    
+    tasks = [execute_with_semaphore(tc_id) for tc_id in testcase_ids]
+    results = await asyncio.gather(*tasks)
+    
+    # 统计结果
+    for result in results:
+        total_duration += result.get("duration", 0)
+        status = result.get("status", "error")
+        
+        if status == "passed":
+            passed_count += 1
+        elif status == "failed":
+            failed_count += 1
+        else:
+            error_count += 1
+    
+    return APIResponse(
+        success=True,
+        message=f"批量执行完成: 通过{passed_count}个, 失败{failed_count}个, 错误{error_count}个",
+        data={
+            "total": len(testcase_ids),
+            "passed": passed_count,
+            "failed": failed_count,
+            "error": error_count,
+            "total_duration": round(total_duration, 2),
+            "results": results
+        }
+    )
+

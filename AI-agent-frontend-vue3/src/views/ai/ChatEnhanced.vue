@@ -47,6 +47,10 @@
             
             <!-- 操作按钮 -->
             <el-button-group size="small">
+              <el-button @click="showGenerateDialog = true" type="success">
+                <el-icon><MagicStick /></el-icon>
+                生成测试用例
+              </el-button>
               <el-button @click="handleClear">
                 <el-icon><Delete /></el-icon>
                 清空
@@ -88,7 +92,11 @@
             </div>
             
             <div class="message-text">
-              {{ message.content }}
+              <MarkdownRenderer 
+                v-if="message.role === 'assistant' && message.content" 
+                :content="message.content" 
+              />
+              <span v-else>{{ message.content }}</span>
               <span v-if="message.isStreaming" class="cursor-blink">▊</span>
             </div>
             
@@ -146,6 +154,199 @@
         </div>
       </div>
     </el-card>
+
+    <!-- 生成测试用例对话框 -->
+    <el-dialog
+      v-model="showGenerateDialog"
+      title="AI生成测试用例"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="generateForm" label-width="100px">
+        <el-form-item label="需求描述" required>
+          <el-input
+            v-model="generateForm.requirement"
+            type="textarea"
+            :rows="5"
+            placeholder="请输入测试需求描述，例如：用户登录功能测试"
+            maxlength="500"
+            show-word-limit
+          />
+        </el-form-item>
+        <el-form-item label="测试类型" required>
+          <el-select v-model="generateForm.test_type" style="width: 100%">
+            <el-option label="API测试" value="api">
+              <el-icon><Connection /></el-icon>
+              <span style="margin-left: 8px">API测试</span>
+            </el-option>
+            <el-option label="WEB测试" value="web">
+              <el-icon><Monitor /></el-icon>
+              <span style="margin-left: 8px">WEB测试</span>
+            </el-option>
+            <el-option label="APP测试" value="app">
+              <el-icon><Iphone /></el-icon>
+              <span style="margin-left: 8px">APP测试</span>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="模块名称">
+          <el-input v-model="generateForm.module" placeholder="例如：用户管理" />
+        </el-form-item>
+        <el-form-item label="生成数量" required>
+          <el-input-number
+            v-model="generateForm.count"
+            :min="1"
+            :max="10"
+            :step="1"
+          />
+          <el-text type="info" size="small" style="margin-left: 12px">
+            建议1-5个用例，最多10个
+          </el-text>
+        </el-form-item>
+        <el-form-item label="优先级">
+          <el-radio-group v-model="generateForm.priority">
+            <el-radio label="P0">P0 - 紧急</el-radio>
+            <el-radio label="P1">P1 - 高</el-radio>
+            <el-radio label="P2">P2 - 中</el-radio>
+            <el-radio label="P3">P3 - 低</el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showGenerateDialog = false">取消</el-button>
+        <el-button
+          type="primary"
+          @click="handleGenerate"
+          :loading="isGenerating"
+          :disabled="!generateForm.requirement || !generateForm.test_type"
+        >
+          <el-icon v-if="!isGenerating"><MagicStick /></el-icon>
+          {{ isGenerating ? '生成中...' : '开始生成' }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 生成结果对话框 -->
+    <el-dialog
+      v-model="showResultDialog"
+      title="生成的测试用例"
+      width="90%"
+      :close-on-click-modal="false"
+    >
+      <el-alert
+        v-if="generatedTestCases.length > 0"
+        type="success"
+        :closable="false"
+        style="margin-bottom: 16px"
+      >
+        <template #title>
+          成功生成 <strong>{{ generatedTestCases.length }}</strong> 个测试用例
+        </template>
+      </el-alert>
+      
+      <el-table
+        :data="generatedTestCases"
+        border
+        stripe
+        max-height="500"
+        style="width: 100%"
+      >
+        <el-table-column type="index" label="#" width="50" />
+        <el-table-column prop="name" label="用例名称" min-width="200" />
+        <el-table-column prop="test_type" label="类型" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.test_type === 'api' ? 'success' : row.test_type === 'web' ? 'primary' : 'warning'">
+              {{ row.test_type.toUpperCase() }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="module" label="模块" width="120" />
+        <el-table-column prop="priority" label="优先级" width="80">
+          <template #default="{ row }">
+            <el-tag :type="row.priority === 'P0' ? 'danger' : row.priority === 'P1' ? 'warning' : 'info'" size="small">
+              {{ row.priority }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+        <el-table-column label="操作" width="150" fixed="right">
+          <template #default="{ row, $index }">
+            <el-button
+              type="primary"
+              size="small"
+              link
+              @click="handlePreview(row)"
+            >
+              预览
+            </el-button>
+            <el-button
+              type="danger"
+              size="small"
+              link
+              @click="handleRemoveCase($index)"
+            >
+              移除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      
+      <template #footer>
+        <el-button @click="showResultDialog = false">取消</el-button>
+        <el-button
+          type="primary"
+          @click="handleSaveTestCases"
+          :loading="isSaving"
+          :disabled="generatedTestCases.length === 0"
+        >
+          <el-icon v-if="!isSaving"><Check /></el-icon>
+          {{ isSaving ? '保存中...' : `保存全部 (${generatedTestCases.length}个)` }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 预览对话框 -->
+    <el-dialog
+      v-model="showPreviewDialog"
+      title="测试用例详情"
+      width="700px"
+    >
+      <el-descriptions v-if="previewCase" :column="1" border>
+        <el-descriptions-item label="用例名称">
+          {{ previewCase.name }}
+        </el-descriptions-item>
+        <el-descriptions-item label="测试类型">
+          <el-tag :type="previewCase.test_type === 'api' ? 'success' : previewCase.test_type === 'web' ? 'primary' : 'warning'">
+            {{ previewCase.test_type.toUpperCase() }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="模块">
+          {{ previewCase.module }}
+        </el-descriptions-item>
+        <el-descriptions-item label="优先级">
+          <el-tag :type="previewCase.priority === 'P0' ? 'danger' : previewCase.priority === 'P1' ? 'warning' : 'info'">
+            {{ previewCase.priority }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="描述">
+          {{ previewCase.description }}
+        </el-descriptions-item>
+        <el-descriptions-item label="前置条件">
+          <div style="white-space: pre-wrap">{{ previewCase.preconditions || '无' }}</div>
+        </el-descriptions-item>
+        <el-descriptions-item label="测试步骤">
+          <div style="white-space: pre-wrap">{{ previewCase.test_steps }}</div>
+        </el-descriptions-item>
+        <el-descriptions-item label="预期结果">
+          <div style="white-space: pre-wrap">{{ previewCase.expected_result }}</div>
+        </el-descriptions-item>
+        <el-descriptions-item label="标签">
+          <el-tag v-for="tag in (previewCase.tags || '').split(',')" :key="tag" size="small" style="margin-right: 4px">
+            {{ tag }}
+          </el-tag>
+        </el-descriptions-item>
+      </el-descriptions>
+    </el-dialog>
   </div>
 </template>
 
@@ -161,10 +362,16 @@ import {
   Delete,
   Download,
   Promotion,
-  Close
+  Close,
+  MagicStick,
+  Check,
+  Connection,
+  Monitor,
+  Iphone
 } from '@element-plus/icons-vue'
 import { useAIChat } from '@/composables/useAIChat'
-import { getModelsAPI, type AIModel } from '@/api/ai-enhanced'
+import { getModelsAPI, type AIModel, generateTestCasesAPI, saveGeneratedTestCasesAPI } from '@/api/ai-enhanced'
+import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 
 // 使用AI聊天组合式函数
 const {
@@ -183,6 +390,24 @@ const messageListRef = ref<HTMLElement>()
 const selectedModel = ref('gpt-3.5-turbo')
 const useStream = ref(true)
 const availableModels = ref<AIModel[]>([])
+
+// 生成测试用例相关状态
+const showGenerateDialog = ref(false)
+const showResultDialog = ref(false)
+const showPreviewDialog = ref(false)
+const isGenerating = ref(false)
+const isSaving = ref(false)
+const generatedTestCases = ref<any[]>([])
+const previewCase = ref<any>(null)
+
+// 生成表单
+const generateForm = ref({
+  requirement: '',
+  test_type: 'api',
+  module: '默认模块',
+  count: 3,
+  priority: 'P2'
+})
 
 // 当前模型名称
 const currentModelName = computed(() => {
@@ -307,6 +532,111 @@ watch(
     scrollToBottom()
   }
 )
+
+// 生成测试用例
+const handleGenerate = async () => {
+  if (!generateForm.value.requirement || !generateForm.value.test_type) {
+    ElMessage.warning('请填写需求描述和测试类型')
+    return
+  }
+
+  isGenerating.value = true
+  try {
+    const response = await generateTestCasesAPI({
+      requirement: generateForm.value.requirement,
+      test_type: generateForm.value.test_type,
+      module: generateForm.value.module,
+      count: generateForm.value.count,
+      model_key: selectedModel.value
+    })
+
+    if (response.data && response.data.testcases) {
+      // 添加默认优先级到生成的用例
+      generatedTestCases.value = response.data.testcases.map((tc: any) => ({
+        ...tc,
+        priority: generateForm.value.priority,
+        module: tc.module || generateForm.value.module,
+        tags: tc.tags || 'AI生成'
+      }))
+      
+      showGenerateDialog.value = false
+      showResultDialog.value = true
+      ElMessage.success(`成功生成 ${generatedTestCases.value.length} 个测试用例`)
+    } else {
+      ElMessage.error('生成失败，请重试')
+    }
+  } catch (error: any) {
+    console.error('生成测试用例失败:', error)
+    ElMessage.error(error.response?.data?.message || '生成失败')
+  } finally {
+    isGenerating.value = false
+  }
+}
+
+// 保存测试用例
+const handleSaveTestCases = async () => {
+  if (generatedTestCases.value.length === 0) {
+    ElMessage.warning('没有可保存的测试用例')
+    return
+  }
+
+  isSaving.value = true
+  try {
+    const response = await saveGeneratedTestCasesAPI(generatedTestCases.value)
+    
+    if (response.data) {
+      const { saved_count, failed_count, errors } = response.data
+      
+      if (failed_count === 0) {
+        ElMessage.success(`成功保存 ${saved_count} 个测试用例`)
+        showResultDialog.value = false
+        generatedTestCases.value = []
+        // 重置表单
+        generateForm.value = {
+          requirement: '',
+          test_type: 'api',
+          module: '默认模块',
+          count: 3,
+          priority: 'P2'
+        }
+      } else {
+        ElMessage.warning(
+          `成功保存 ${saved_count} 个，失败 ${failed_count} 个`
+        )
+        console.error('保存失败的用例:', errors)
+      }
+    }
+  } catch (error: any) {
+    console.error('保存测试用例失败:', error)
+    ElMessage.error(error.response?.data?.message || '保存失败')
+  } finally {
+    isSaving.value = false
+  }
+}
+
+// 预览用例
+const handlePreview = (row: any) => {
+  previewCase.value = row
+  showPreviewDialog.value = true
+}
+
+// 移除用例
+const handleRemoveCase = (index: number) => {
+  ElMessageBox.confirm(
+    '确定要移除这个测试用例吗？',
+    '确认移除',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    generatedTestCases.value.splice(index, 1)
+    ElMessage.success('已移除')
+  }).catch(() => {
+    // 取消操作
+  })
+}
 
 // 初始化
 onMounted(() => {

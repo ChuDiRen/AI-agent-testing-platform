@@ -9,7 +9,7 @@ from pathlib import Path
 from celery.result import AsyncResult
 
 from app.core.database import get_db
-from app.core.auth import get_current_user
+from app.api.deps import get_current_user
 from app.models.user import User
 from app.schemas.knowledge import (
     KnowledgeBaseCreate, KnowledgeBaseUpdate, KnowledgeBaseResponse,
@@ -18,7 +18,7 @@ from app.schemas.knowledge import (
     BatchDeleteRequest, BatchDeleteResponse
 )
 from app.schemas.task import TaskStatus, TaskSubmitResponse, BatchTaskSubmitResponse
-from app.schemas.response import APIResponse
+from app.schemas.common import APIResponse
 from app.services.knowledge_service import knowledge_service
 from app.tasks.document_tasks import process_document_async, batch_process_documents
 

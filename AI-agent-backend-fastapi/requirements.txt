@@ -56,5 +56,9 @@ celery>=5.3.0  # 分布式任务队列
 redis>=5.0.0  # Redis客户端
 flower>=2.0.0  # Celery监控工具(可选)
 
-# 可选：Excel导出（如需要）
-# openpyxl==3.1.2
+# HTTP客户端
+httpx>=0.26.0  # 异步HTTP客户端
+
+# 报告导出
+reportlab>=4.0.0  # PDF生成
+xlsxwriter>=3.1.0  # Excel导出
