@@ -17,14 +17,18 @@ class TestCaseService:
     
     async def create_testcase(self, testcase_data: TestCaseCreate, created_by: int) -> TestCase:
         """创建测试用例"""
-        testcase = TestCase(
-            **testcase_data.model_dump(),
-            created_by=created_by
-        )
-        self.db.add(testcase)
-        await self.db.commit()
-        await self.db.refresh(testcase)
-        return testcase
+        try:
+            testcase = TestCase(
+                **testcase_data.model_dump(),
+                created_by=created_by
+            )
+            self.db.add(testcase)
+            await self.db.commit()
+            await self.db.refresh(testcase)
+            return testcase
+        except Exception as e:
+            await self.db.rollback()  # 发生异常时回滚事务
+            raise ValueError(f"创建测试用例失败: {str(e)}")
     
     async def get_testcase(self, testcase_id: int) -> Optional[TestCase]:
         """获取测试用例"""
@@ -80,24 +84,32 @@ class TestCaseService:
         testcase = await self.get_testcase(testcase_id)
         if not testcase:
             raise ValueError("测试用例不存在")
-        
-        # 更新字段
-        for field, value in testcase_data.model_dump(exclude_unset=True).items():
-            setattr(testcase, field, value)
-        
-        await self.db.commit()
-        await self.db.refresh(testcase)
-        return testcase
+
+        try:
+            # 更新字段
+            for field, value in testcase_data.model_dump(exclude_unset=True).items():
+                setattr(testcase, field, value)
+
+            await self.db.commit()
+            await self.db.refresh(testcase)
+            return testcase
+        except Exception as e:
+            await self.db.rollback()  # 发生异常时回滚事务
+            raise ValueError(f"更新测试用例失败: {str(e)}")
     
     async def delete_testcase(self, testcase_id: int) -> bool:
         """删除测试用例"""
         testcase = await self.get_testcase(testcase_id)
         if not testcase:
             return False
-        
-        await self.db.delete(testcase)
-        await self.db.commit()
-        return True
+
+        try:
+            await self.db.delete(testcase)
+            await self.db.commit()
+            return True
+        except Exception as e:
+            await self.db.rollback()  # 发生异常时回滚事务
+            raise ValueError(f"删除测试用例失败: {str(e)}")
     
     async def get_statistics(self, test_type: Optional[str] = None) -> dict:
         """获取统计信息"""

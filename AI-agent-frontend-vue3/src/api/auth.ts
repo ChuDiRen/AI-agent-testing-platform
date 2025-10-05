@@ -23,8 +23,9 @@ export interface LoginResponse {
   success: boolean
   message: string
   data: {
-    access_token: string
-    token_type: string
+    access_token: string  // 访问令牌
+    refresh_token: string  // 刷新令牌（必填）
+    token_type: string  // 令牌类型
   }
 }
 
@@ -82,5 +83,12 @@ export function logout() {
   localStorage.removeItem('token')
   localStorage.removeItem('refreshToken')
   return Promise.resolve({ success: true, message: '登出成功' })
+}
+
+/**
+ * 刷新访问令牌
+ */
+export function refreshToken(refreshToken: string) {
+  return post<LoginResponse>('/api/v1/auth/refresh', { refresh_token: refreshToken })
 }
 

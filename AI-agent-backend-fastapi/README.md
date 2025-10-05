@@ -132,8 +132,9 @@ AI-agent-backend-fastapi/
 ## API接口
 
 ### 认证接口
-- POST `/api/v1/auth/login` - 用户登录
-- POST `/api/v1/auth/refresh` - 刷新Token
+- POST `/api/v1/auth/login` - 用户登录（返回access_token和refresh_token）
+- POST `/api/v1/auth/refresh` - 刷新访问令牌（使用refresh_token获取新的access_token）
+- POST `/api/v1/auth/register` - 用户注册
 
 ### AI对话接口
 - POST `/api/v1/ai/chat` - AI对话（支持流式）

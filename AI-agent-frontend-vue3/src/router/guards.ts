@@ -13,7 +13,7 @@ export function setupRouterGuards(router: Router) {
   // 前置守卫
   router.beforeEach(async (to, from, next) => {
     const authStore = useAuthStore()
-    
+
     // 检查是否已登录
     if (authStore.isAuthenticated) {
       // 已登录
@@ -21,24 +21,38 @@ export function setupRouterGuards(router: Router) {
         // 如果已登录且要去登录页，重定向到首页
         next('/dashboard')
       } else {
+        // 如果用户信息不存在，尝试获取
+        if (!authStore.userInfo) {
+          try {
+            await authStore.fetchUserInfo()
+          } catch (error) {
+            console.error('Failed to fetch user info:', error)
+            // 获取用户信息失败，清除认证状态并跳转登录
+            authStore.clearAuth()
+            ElMessage.error('获取用户信息失败，请重新登录')
+            next(`/login?redirect=${encodeURIComponent(to.fullPath)}`)
+            return
+          }
+        }
+
         // 检查是否需要特定权限
         if (to.meta.permission && !authStore.hasPermission(to.meta.permission as string)) {
           ElMessage.error('您没有权限访问此页面')
-          next(from.path)
+          next(from.path || '/dashboard')  // 确保有默认路径
           return
         }
-        
+
         // 检查是否需要特定角色
         if (to.meta.roles) {
           const roles = to.meta.roles as string[]
           const hasRole = roles.some(role => authStore.hasRole(role))
           if (!hasRole) {
             ElMessage.error('您没有权限访问此页面')
-            next(from.path)
+            next(from.path || '/dashboard')  // 确保有默认路径
             return
           }
         }
-        
+
         next()
       }
     } else {

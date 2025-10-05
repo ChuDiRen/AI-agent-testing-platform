@@ -41,19 +41,31 @@ class UserRepository:
     
     async def create(self, user: User) -> User:
         """创建用户"""
-        self.db.add(user)
-        await self.db.commit()
-        await self.db.refresh(user)
-        return user
+        try:
+            self.db.add(user)
+            await self.db.commit()
+            await self.db.refresh(user)
+            return user
+        except Exception as e:
+            await self.db.rollback()  # 发生异常时回滚事务
+            raise e
     
     async def update(self, user: User) -> User:
         """更新用户"""
-        await self.db.commit()
-        await self.db.refresh(user)
-        return user
+        try:
+            await self.db.commit()
+            await self.db.refresh(user)
+            return user
+        except Exception as e:
+            await self.db.rollback()  # 发生异常时回滚事务
+            raise e
     
     async def delete(self, user: User) -> None:
         """删除用户"""
-        await self.db.delete(user)
-        await self.db.commit()
+        try:
+            await self.db.delete(user)
+            await self.db.commit()
+        except Exception as e:
+            await self.db.rollback()  # 发生异常时回滚事务
+            raise e
 

@@ -25,17 +25,19 @@ export const useAuthStore = defineStore('auth', () => {
   async function loginAction(loginData: LoginRequest) {
     try {
       const response = await login(loginData)
-      
+
       if (response.success && response.data) {
-        // 保存 token
+        // 保存 token 和 refresh_token
         token.value = response.data.access_token
+        refreshToken.value = response.data.refresh_token
         localStorage.setItem('token', response.data.access_token)
-        
+        localStorage.setItem('refreshToken', response.data.refresh_token)
+
         ElMessage.success(response.message || '登录成功')
-        
+
         // 登录成功后获取用户信息
         await fetchUserInfo()
-        
+
         return true
       } else {
         ElMessage.error(response.message || '登录失败')
@@ -51,7 +53,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchUserInfo() {
     try {
       const response = await getUserInfo()
-      
+
       if (response.success && response.data) {
         userInfo.value = response.data
         // 暂时使用空数组，后续可以通过菜单接口获取权限
@@ -80,7 +82,7 @@ export const useAuthStore = defineStore('auth', () => {
       roles.value = []
       localStorage.removeItem('token')
       localStorage.removeItem('refreshToken')
-      
+
       ElMessage.success('已退出登录')
     }
   }

@@ -53,14 +53,14 @@ class AuthService:
         """用户登录"""
         # 获取用户
         user = await self.user_repo.get_by_username(login_data.username)
-        
+
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="用户名或密码错误",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         # 验证密码
         if not verify_password(login_data.password, user.password):
             raise HTTPException(
@@ -68,22 +68,33 @@ class AuthService:
                 detail="用户名或密码错误",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         # 检查用户是否激活
         if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="用户账户已被禁用"
             )
-        
-        # 生成访问令牌
+
+        # 更新最后登录时间
+        from datetime import datetime
+        user.last_login_time = datetime.now()
+        await self.user_repo.update(user)
+
+        # 生成访问令牌和刷新令牌
+        from app.core.security import create_refresh_token
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": user.username},
             expires_delta=access_token_expires
         )
-        
-        return Token(access_token=access_token, token_type="bearer")
+        refresh_token = create_refresh_token(data={"sub": user.username})
+
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer"
+        )
     
     async def get_current_user(self, username: str) -> Optional[User]:
         """根据用户名获取当前用户"""

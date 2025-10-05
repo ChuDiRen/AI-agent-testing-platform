@@ -40,31 +40,31 @@ class UserService:
     ) -> Tuple[List[User], int]:
         """分页获取用户列表（支持搜索和过滤）"""
         query = select(User)
-        
-        # 搜索功能
+
+        # 搜索功能 - 修复字段名称
         if keyword:
             search_filter = or_(
                 User.username.contains(keyword),
-                User.email.contains(keyword),
-                User.full_name.contains(keyword)
+                User.email.contains(keyword) if User.email else False
             )
             query = query.where(search_filter)
-        
-        # 过滤功能
+
+        # 过滤功能 - 修复is_active判断
         if is_active is not None:
-            query = query.where(User.is_active == is_active)
-        
+            status_value = "1" if is_active else "0"  # User模型使用status字段，"1"表示激活
+            query = query.where(User.status == status_value)
+
         # 获取总数
         count_query = select(func.count()).select_from(query.subquery())
         total_result = await self.db.execute(count_query)
         total = total_result.scalar()
-        
+
         # 分页查询
         query = query.offset(pagination.skip).limit(pagination.limit)
         result = await self.db.execute(query)
         users = result.scalars().all()
-        
-        return list(users), total
+
+        return list(users), total or 0  # 确保返回值不为None
 
     async def get_user_by_username(self, username: str) -> Optional[User]:
         """根据用户名获取用户"""
@@ -91,24 +91,31 @@ class UserService:
         """创建新用户"""
         from datetime import datetime
 
-        # 创建用户对象
-        new_user = User(
-            username=username,
-            password=get_password_hash(password),
-            email=email,
-            mobile=mobile,
-            dept_id=dept_id,
-            status='1',  # 默认启用
-            ssex=ssex,
-            description=description,
-            create_time=datetime.now()
-        )
+        try:
+            # 创建用户对象
+            new_user = User(
+                username=username,
+                password=get_password_hash(password),
+                email=email,
+                mobile=mobile,
+                dept_id=dept_id,
+                status='1',  # 默认启用
+                ssex=ssex,
+                description=description,
+                create_time=datetime.now()
+            )
 
-        self.db.add(new_user)
-        await self.db.commit()
-        await self.db.refresh(new_user)
+            self.db.add(new_user)
+            await self.db.commit()
+            await self.db.refresh(new_user)
 
-        return new_user
+            return new_user
+        except Exception as e:
+            await self.db.rollback()  # 发生异常时回滚事务
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"创建用户失败: {str(e)}"
+            )
 
     async def update_user(self, user_id: int, user_data: UserUpdate) -> User:
         """更新用户信息"""
@@ -118,33 +125,28 @@ class UserService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="用户不存在"
             )
-        
-        # 更新字段
-        if user_data.email is not None:
-            user.email = user_data.email
 
-        if user_data.mobile is not None:
-            user.mobile = user_data.mobile
+        try:
+            # 更新字段
+            update_dict = user_data.model_dump(exclude_unset=True)
 
-        if user_data.dept_id is not None:
-            user.dept_id = user_data.dept_id
+            for field, value in update_dict.items():
+                if field == "password" and value is not None:
+                    user.password = get_password_hash(value)  # 密码需要加密
+                elif hasattr(user, field):
+                    setattr(user, field, value)
 
-        if user_data.ssex is not None:
-            user.ssex = user_data.ssex
+            # 更新修改时间
+            from datetime import datetime
+            user.modify_time = datetime.now()
 
-        if user_data.avatar is not None:
-            user.avatar = user_data.avatar
-
-        if user_data.description is not None:
-            user.description = user_data.description
-
-        if user_data.status is not None:
-            user.status = user_data.status
-
-        if user_data.password is not None:
-            user.password = get_password_hash(user_data.password)
-        
-        return await self.user_repo.update(user)
+            return await self.user_repo.update(user)
+        except Exception as e:
+            await self.db.rollback()  # 发生异常时回滚事务
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"更新用户失败: {str(e)}"
+            )
     
     async def delete_user(self, user_id: int) -> None:
         """删除用户"""
@@ -154,6 +156,13 @@ class UserService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="用户不存在"
             )
-        
-        await self.user_repo.delete(user)
+
+        try:
+            await self.user_repo.delete(user)
+        except Exception as e:
+            await self.db.rollback()  # 发生异常时回滚事务
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"删除用户失败: {str(e)}"
+            )
 
