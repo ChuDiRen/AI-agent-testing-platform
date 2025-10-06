@@ -51,7 +51,7 @@ export interface AIModel {
  */
 export function chatAPI(data: ChatRequest) {
   return request<ChatResponse>({
-    url: '/ai/chat',
+    url: '/api/v1/ai/chat',
     method: 'post',
     data: { ...data, stream: false }
   })
@@ -89,7 +89,7 @@ export function chatStreamAPI(data: ChatRequest): EventSource {
  */
 export function getModelsAPI() {
   return request<AIModel[]>({
-    url: '/ai/models',
+    url: '/api/v1/ai/models',
     method: 'get'
   })
 }
@@ -99,7 +99,7 @@ export function getModelsAPI() {
  */
 export function createModelAPI(data: Partial<AIModel>) {
   return request<AIModel>({
-    url: '/ai/models',
+    url: '/api/v1/ai/models',
     method: 'post',
     data
   })
@@ -110,7 +110,7 @@ export function createModelAPI(data: Partial<AIModel>) {
  */
 export function updateModelAPI(modelId: number, data: Partial<AIModel>) {
   return request<AIModel>({
-    url: `/ai/models/${modelId}`,
+    url: `/api/v1/ai/models/${modelId}`,
     method: 'put',
     data
   })
@@ -121,7 +121,7 @@ export function updateModelAPI(modelId: number, data: Partial<AIModel>) {
  */
 export function deleteModelAPI(modelId: number) {
   return request({
-    url: `/ai/models/${modelId}`,
+    url: `/api/v1/ai/models/${modelId}`,
     method: 'delete'
   })
 }
@@ -136,7 +136,7 @@ export function testModelConnectionAPI(modelId: number) {
     model?: string
     response_time?: number
   }>({
-    url: `/ai/models/${modelId}/test`,
+    url: `/api/v1/ai/models/${modelId}/test`,
     method: 'post'
   })
 }
@@ -146,7 +146,7 @@ export function testModelConnectionAPI(modelId: number) {
  */
 export function getSessionsAPI() {
   return request({
-    url: '/ai/sessions',
+    url: '/api/v1/ai/sessions',
     method: 'get'
   })
 }
@@ -156,7 +156,7 @@ export function getSessionsAPI() {
  */
 export function createSessionAPI(data: { title: string; model?: string }) {
   return request({
-    url: '/ai/sessions',
+    url: '/api/v1/ai/sessions',
     method: 'post',
     data
   })
@@ -167,7 +167,7 @@ export function createSessionAPI(data: { title: string; model?: string }) {
  */
 export function deleteSessionAPI(sessionId: number) {
   return request({
-    url: `/ai/sessions/${sessionId}`,
+    url: `/api/v1/ai/sessions/${sessionId}`,
     method: 'delete'
   })
 }
@@ -185,7 +185,7 @@ export function generateTestCasesAPI(data: {
     testcases: any[]
     total: number
   }>({
-    url: '/ai/generate-testcases',
+    url: '/api/v1/ai/generate-testcases',
     method: 'post',
     data
   })
@@ -201,7 +201,7 @@ export function saveGeneratedTestCasesAPI(testcases: any[]) {
     saved_ids: number[]
     errors: any[]
   }>({
-    url: '/ai/testcases/batch-save',
+    url: '/api/v1/ai/testcases/batch-save',
     method: 'post',
     data: testcases
   })

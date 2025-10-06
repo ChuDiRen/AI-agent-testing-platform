@@ -8,12 +8,28 @@ from pathlib import Path
 
 # 允许的文件类型
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
-ALLOWED_DOCUMENT_TYPES = {"application/pdf", "application/msword", 
+ALLOWED_DOCUMENT_TYPES = {"application/pdf", "application/msword",
                           "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
 
 # 文件大小限制（字节）
 MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
 MAX_DOCUMENT_SIZE = 10 * 1024 * 1024  # 10MB
+
+# upload_type 到文件类型的映射
+TYPE_MAPPING = {
+    "avatars": ALLOWED_IMAGE_TYPES,  # 头像只允许图片
+    "image": ALLOWED_IMAGE_TYPES,  # 图片类型
+    "files": ALLOWED_IMAGE_TYPES | ALLOWED_DOCUMENT_TYPES,  # 通用文件允许图片和文档
+    "document": ALLOWED_DOCUMENT_TYPES  # 文档类型
+}
+
+# upload_type 到文件大小限制的映射
+SIZE_MAPPING = {
+    "avatars": MAX_IMAGE_SIZE,  # 头像限制5MB
+    "image": MAX_IMAGE_SIZE,  # 图片限制5MB
+    "files": MAX_DOCUMENT_SIZE,  # 通用文件限制10MB
+    "document": MAX_DOCUMENT_SIZE  # 文档限制10MB
+}
 
 # 上传目录
 UPLOAD_DIR = Path("uploads")
@@ -37,12 +53,12 @@ async def save_upload_file(
     Returns:
         str: 文件保存路径
     """
-    # 设置默认值
+    # 设置默认值（使用映射表）
     if allowed_types is None:
-        allowed_types = ALLOWED_IMAGE_TYPES if upload_type == "image" else ALLOWED_DOCUMENT_TYPES
-    
+        allowed_types = TYPE_MAPPING.get(upload_type, ALLOWED_IMAGE_TYPES)
+
     if max_size is None:
-        max_size = MAX_IMAGE_SIZE if upload_type == "image" else MAX_DOCUMENT_SIZE
+        max_size = SIZE_MAPPING.get(upload_type, MAX_IMAGE_SIZE)
     
     # 验证文件类型
     if file.content_type not in allowed_types:
@@ -73,9 +89,9 @@ async def save_upload_file(
     file_path = type_dir / unique_filename
     with open(file_path, "wb") as f:
         f.write(contents)
-    
-    # 返回相对路径
-    return str(file_path)
+
+    # 返回URL路径（以/开头，符合Web标准）
+    return "/" + str(file_path).replace("\\", "/")
 
 
 async def delete_file(file_path: str) -> bool:

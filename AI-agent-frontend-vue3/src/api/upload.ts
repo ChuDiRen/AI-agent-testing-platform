@@ -21,14 +21,11 @@ export interface UploadResponse {
 export function uploadAvatar(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  
+
   return request<UploadResponse>({
     url: '/api/v1/upload/avatar',
     method: 'POST',
-    data: formData,
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+    data: formData
   })
 }
 
@@ -38,14 +35,11 @@ export function uploadAvatar(file: File) {
 export function uploadFile(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  
+
   return request<UploadResponse>({
     url: '/api/v1/upload/file',
     method: 'POST',
-    data: formData,
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+    data: formData
   })
 }
 

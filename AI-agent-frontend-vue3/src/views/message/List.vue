@@ -102,14 +102,14 @@ const loadStats = async () => {
 }
 
 // 获取消息类型颜色
-const getMessageTypeColor = (type: string) => {
-  const colorMap: Record<string, string> = {
-    system: '',
+const getMessageTypeColor = (type: string): string | undefined => {
+  const colorMap: Record<string, string | undefined> = {
+    system: undefined,
     test: 'success',
     error: 'danger',
     info: 'info'
   }
-  return colorMap[type] || ''
+  return colorMap[type]
 }
 
 // 获取消息类型名称

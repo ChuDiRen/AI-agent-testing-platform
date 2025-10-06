@@ -44,15 +44,10 @@ export function changePassword(data: PasswordChangeData) {
 export function uploadAvatar(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  
+
   return post<{ success: boolean; message: string; data: { avatar_url: string; filename: string } }>(
     '/api/v1/upload/avatar',
-    formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    }
+    formData
   )
 }
 
