@@ -468,7 +468,7 @@ const loadTestCases = async () => {
   loading.value = true
   try {
     const response = await request({
-      url: '/testcases',
+      url: '/api/v1/testcases/',
       method: 'get',
       params: {
         page: pagination.page,
@@ -549,7 +549,7 @@ const handleDelete = async (row: any) => {
     })
 
     await request({
-      url: `/testcases/${row.testcase_id}`,
+      url: `/api/v1/testcases/${row.testcase_id}`,
       method: 'delete'
     })
 
@@ -590,7 +590,7 @@ const handleBatchExecute = async () => {
     const testcaseIds = selectedTestCases.value.map(tc => tc.testcase_id)
     
     const response = await request({
-      url: '/testcases/batch-execute',
+      url: '/api/v1/testcases/batch-execute',
       method: 'post',
       data: {
         testcase_ids: testcaseIds,
@@ -638,7 +638,7 @@ const handleBatchDelete = async () => {
     for (const tc of selectedTestCases.value) {
       try {
         await request({
-          url: `/testcases/${tc.testcase_id}`,
+          url: `/api/v1/testcases/${tc.testcase_id}`,
           method: 'delete'
         })
         successCount++
@@ -690,8 +690,8 @@ const handleSubmit = async () => {
     submitting.value = true
 
     const url = formData.testcase_id
-      ? `/testcases/${formData.testcase_id}`
-      : '/testcases'
+      ? `/api/v1/testcases/${formData.testcase_id}`
+      : '/api/v1/testcases/'
     const method = formData.testcase_id ? 'put' : 'post'
 
     await request({

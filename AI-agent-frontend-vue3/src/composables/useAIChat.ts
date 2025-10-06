@@ -2,7 +2,7 @@
 /**
  * AI聊天组合式函数 - 支持流式响应
  */
-import { ref, Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { chatAPI, chatStreamAPI, type ChatRequest, type ChatResponse } from '@/api/ai-enhanced'
 

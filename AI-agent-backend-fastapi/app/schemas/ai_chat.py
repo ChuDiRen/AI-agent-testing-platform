@@ -85,6 +85,8 @@ class ChatResponse(BaseModel):
 
 class AIModelBase(BaseModel):
     """AI模型基础模型"""
+    model_config = {"protected_namespaces": ()}  # 禁用保护命名空间，允许model_开头的字段
+
     name: str = Field(..., description="模型名称")
     provider: str = Field(..., description="提供商: openai/claude/local")
     model_key: str = Field(..., description="模型标识")

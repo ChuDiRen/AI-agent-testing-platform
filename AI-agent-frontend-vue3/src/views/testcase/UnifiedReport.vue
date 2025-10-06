@@ -268,7 +268,7 @@ const loadReports = async () => {
   loading.value = true
   try {
     const response = await request({
-      url: '/reports',
+      url: '/api/v1/reports/',
       method: 'get',
       params: {
         page: pagination.page,
@@ -305,7 +305,7 @@ const handleReset = () => {
 const handleView = async (row: any) => {
   try {
     const response = await request({
-      url: `/reports/${row.report_id}`,
+      url: `/api/v1/reports/${row.report_id}`,
       method: 'get'
     })
 
@@ -527,7 +527,7 @@ const handleDelete = async (row: any) => {
     })
 
     await request({
-      url: `/reports/${row.report_id}`,
+      url: `/api/v1/reports/${row.report_id}`,
       method: 'delete'
     })
 

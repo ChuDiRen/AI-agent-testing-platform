@@ -1,3 +1,4 @@
+# Copyright (c) 2025 左岚. All rights reserved.
 """FastAPI 应用主入口"""
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,26 +6,41 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
+import logging
 
 from app.core.config import settings
-from app.core.database import init_db
+from app.core.database import init_db, check_db_empty, init_data
 from app.core.exceptions import BaseAPIException
 from app.middleware.logging import RequestLoggingMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.api import auth, users, roles, user_roles, upload, menus, departments, role_menus, dashboard, notifications, data_management, testcases, reports, ai, knowledge, test_data
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """应用生命周期管理"""
-    # 启动时初始化数据库
+    """应用生命周期管理 - 智能初始化"""
+    # 1. 初始化数据库表结构
     await init_db()
-    
-    # 创建上传目录
+
+    # 2. 智能检查并初始化数据
+    try:
+        is_empty = await check_db_empty()
+        if is_empty:
+            logger.info("🔍 检测到数据库为空，开始自动初始化数据...")
+            await init_data()
+            logger.info("✅ 数据库自动初始化完成")
+        else:
+            logger.info("✅ 数据库已有数据，跳过初始化")
+    except Exception as e:
+        logger.error(f"❌ 数据库初始化检查失败: {e}")
+
+    # 3. 创建上传目录
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     os.makedirs(f"{settings.UPLOAD_DIR}/avatars", exist_ok=True)
     os.makedirs(f"{settings.UPLOAD_DIR}/files", exist_ok=True)
-    
+
     yield
     # 关闭时的清理操作
     pass
@@ -54,11 +70,12 @@ app.add_middleware(RequestLoggingMiddleware)
 # 配置 CORS（最后添加，最先执行）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origins=["*"],  # 开发环境允许所有源
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
-    expose_headers=["*"]
+    expose_headers=["*"],
+    max_age=3600  # 预检请求缓存时间
 )
 
 # 挂载静态文件目录（用于访问上传的文件）

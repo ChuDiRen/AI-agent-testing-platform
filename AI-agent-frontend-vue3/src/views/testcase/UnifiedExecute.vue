@@ -302,7 +302,7 @@ const getResultType = (status: string) => {
 const loadTestCases = async () => {
   try {
     const response = await request({
-      url: '/testcases',
+      url: '/api/v1/testcases/',
       method: 'get',
       params: {
         test_type: props.testType,
@@ -362,7 +362,7 @@ const handleExecute = async () => {
     }
 
     const response = await request({
-      url: `/testcases/${selectedTestCaseId.value}/execute`,
+      url: `/api/v1/testcases/${selectedTestCaseId.value}/execute`,
       method: 'post',
       data: {
         config

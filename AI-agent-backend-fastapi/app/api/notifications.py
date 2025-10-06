@@ -56,18 +56,15 @@ async def get_notifications(
     from app.repositories.notification_repository import NotificationRepository
     repository = NotificationRepository(db)
     total = await repository.get_count_by_user_id(current_user.user_id, filter_type)
-    
-    # 计算总页数
-    pages = (total + limit - 1) // limit if limit > 0 else 0
-    
+
+    # 使用PaginatedResponse.create()方法自动计算total_pages
     return APIResponse(
         success=True,
-        data=PaginatedResponse(
+        data=PaginatedResponse.create(
             items=notifications,
             total=total,
             page=skip // limit + 1 if limit > 0 else 1,
-            page_size=limit,
-            pages=pages
+            page_size=limit
         )
     )
 

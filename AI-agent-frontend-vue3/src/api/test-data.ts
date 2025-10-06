@@ -23,7 +23,7 @@ export interface TestDataListParams {
  */
 export const getTestDataListAPI = (params: TestDataListParams) => {
     return request({
-        url: '/test-data',
+        url: '/api/v1/test-data',
         method: 'get',
         params
     })
@@ -34,7 +34,7 @@ export const getTestDataListAPI = (params: TestDataListParams) => {
  */
 export const getTestDataDetailAPI = (id: number) => {
     return request({
-        url: `/test-data/${id}`,
+        url: `/api/v1/test-data/${id}`,
         method: 'get'
     })
 }
@@ -44,7 +44,7 @@ export const getTestDataDetailAPI = (id: number) => {
  */
 export const createTestDataAPI = (data: TestData) => {
     return request({
-        url: '/test-data',
+        url: '/api/v1/test-data',
         method: 'post',
         data
     })
@@ -55,7 +55,7 @@ export const createTestDataAPI = (data: TestData) => {
  */
 export const updateTestDataAPI = (id: number, data: Partial<TestData>) => {
     return request({
-        url: `/test-data/${id}`,
+        url: `/api/v1/test-data/${id}`,
         method: 'put',
         data
     })
@@ -66,7 +66,7 @@ export const updateTestDataAPI = (id: number, data: Partial<TestData>) => {
  */
 export const deleteTestDataAPI = (id: number) => {
     return request({
-        url: `/test-data/${id}`,
+        url: `/api/v1/test-data/${id}`,
         method: 'delete'
     })
 }
