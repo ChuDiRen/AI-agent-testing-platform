@@ -15,8 +15,9 @@ export interface Keyword {
     keyword_id?: number
     name: string
     description?: string
-    code: string
+    code?: string
     parameters?: KeywordParameter[]
+    is_builtin?: boolean
     created_by?: number
     create_time?: string
     modify_time?: string

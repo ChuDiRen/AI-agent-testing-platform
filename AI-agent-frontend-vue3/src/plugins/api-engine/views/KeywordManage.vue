@@ -266,8 +266,10 @@ const filteredBuiltinKeywords = computed(() => {
 })
 
 const filteredCustomKeywords = computed(() => {
-  if (!customSearch.value) return store.keywords
-  return store.keywords.filter(k => 
+  // 只显示自定义关键字(is_builtin=false)
+  const customOnly = store.keywords.filter(k => !k.is_builtin)
+  if (!customSearch.value) return customOnly
+  return customOnly.filter(k =>
     k.name.toLowerCase().includes(customSearch.value.toLowerCase())
   )
 })
