@@ -25,6 +25,10 @@ from app.models.testcase import TestCase
 from app.models.ai_chat import AIModel, ChatSession, ChatMessage
 from app.models.knowledge import KnowledgeBase, Document, DocumentChunk, SearchHistory
 
+# 导入插件模型
+from app.plugins.api_engine.models import ApiEngineSuite, ApiEngineCase, ApiEngineExecution, ApiEngineKeyword
+from app.plugins.api_engine.init_db import init_api_engine_plugin_db
+
 # 密码加密
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -193,8 +197,17 @@ async def init_database():
         print("✅ AI模型配置初始化完成")
         print()
         
-        # ==================== 步骤 4: 提交所有更改 ====================
-        print("📦 步骤 4/4: 提交数据到数据库...")
+        # ==================== 步骤 4: 初始化插件数据 ====================
+        print("📦 步骤 4/5: 初始化API引擎插件数据...")
+        try:
+            await init_api_engine_plugin_db(session)
+            print("✅ API引擎插件数据初始化完成")
+        except Exception as e:
+            print(f"⚠️  API引擎插件初始化失败: {e}")
+        print()
+        
+        # ==================== 步骤 5: 提交所有更改 ====================
+        print("📦 步骤 5/5: 提交数据到数据库...")
         await session.commit()
         print("✅ 数据提交完成")
         print()
@@ -214,6 +227,7 @@ async def init_database():
     print("  ✓ 通知: 3条")
     print("  ✓ 测试用例: 3个")
     print("  ✓ AI模型: 6个")
+    print("  ✓ API引擎插件: 1个套件 + 2个示例用例")
     print()
     print("🔑 登录凭证:")
     print("  用户名: BNTang")
@@ -232,6 +246,7 @@ async def init_database():
     print("  ✓ RAG知识库（文档上传、语义搜索）")
     print("  ✓ 任务队列（异步处理大文件）")
     print("  ✓ 消息通知、数据管理")
+    print("  ✓ API引擎插件（接口自动化测试）")
     print()
     print("⚙️  配置AI模型:")
     print("  1. 访问: http://localhost:8000/docs")

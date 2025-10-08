@@ -20,15 +20,18 @@
     "echarts": "^6.0.0",
     "element-plus": "^2.11.3",
     "file-saver": "^2.0.5",
+    "js-yaml": "^4.1.0",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
     "pinia": "^3.0.3",
     "vue": "^3.5.21",
     "vue-echarts": "^8.0.0",
     "vue-router": "^4.5.1",
+    "vuedraggable": "^4.1.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.5.2",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/tsconfig": "^0.8.1",
