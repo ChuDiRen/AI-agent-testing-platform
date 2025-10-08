@@ -196,6 +196,16 @@ export const useApiEngineStore = defineStore('apiEngine', {
             return res.data
         },
 
+        async deleteExecution(id: number) {
+            await executionAPI.deleteExecution(id)
+            // 从列表中移除
+            const index = this.executions.findIndex(e => e.execution_id === id)
+            if (index !== -1) {
+                this.executions.splice(index, 1)
+                this.executionsTotal--
+            }
+        },
+
         // ==================== 关键字管理 ====================
         async fetchKeywords(params?: any) {
             this.keywordsLoading = true

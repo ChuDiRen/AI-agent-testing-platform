@@ -106,21 +106,12 @@ const breadcrumbItems = computed(() => {
     if (path.includes('/permission')) items.push({ path: '/system/permission', title: '权限管理' })
     if (path.includes('/menu')) items.push({ path: '/system/menu', title: '菜单管理' })
     if (path.includes('/department')) items.push({ path: '/system/department', title: '部门管理' })
-  } else if (path.startsWith('/api')) {
-    items.push({ path: '/api', title: '接口自动化' })
-    if (path.includes('/testcase')) items.push({ path: '/api/testcase', title: '测试用例' })
-    if (path.includes('/execute')) items.push({ path: '/api/execute', title: '测试执行' })
-    if (path.includes('/report')) items.push({ path: '/api/report', title: '测试报告' })
-  } else if (path.startsWith('/web')) {
-    items.push({ path: '/web', title: 'WEB自动化' })
-    if (path.includes('/testcase')) items.push({ path: '/web/testcase', title: '测试用例' })
-    if (path.includes('/execute')) items.push({ path: '/web/execute', title: '测试执行' })
-    if (path.includes('/report')) items.push({ path: '/web/report', title: '测试报告' })
-  } else if (path.startsWith('/app')) {
-    items.push({ path: '/app', title: 'APP自动化' })
-    if (path.includes('/testcase')) items.push({ path: '/app/testcase', title: '测试用例' })
-    if (path.includes('/execute')) items.push({ path: '/app/execute', title: '测试执行' })
-    if (path.includes('/report')) items.push({ path: '/app/report', title: '测试报告' })
+  } else if (path.startsWith('/plugin/api-engine')) {
+    items.push({ path: '/plugin/api-engine', title: 'API引擎' })
+    if (path.includes('/suites')) items.push({ path: '/plugin/api-engine/suites', title: '测试套件' })
+    if (path.includes('/cases')) items.push({ path: '/plugin/api-engine/cases', title: '用例管理' })
+    if (path.includes('/executions')) items.push({ path: '/plugin/api-engine/executions', title: '执行历史' })
+    if (path.includes('/keywords')) items.push({ path: '/plugin/api-engine/keywords', title: '关键字管理' })
   } else if (path.startsWith('/message')) {
     items.push({ path: '/message', title: '消息通知' })
     if (path.includes('/list')) items.push({ path: '/message/list', title: '消息列表' })

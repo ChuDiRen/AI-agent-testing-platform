@@ -23,35 +23,35 @@ export const suiteAPI = {
      * 获取套件列表
      */
     getSuites(params?: SuiteListParams) {
-        return request.get('/api/v1/api-engine/suites', { params })
+        return request.get('/api/v1/plugin/api-engine/suites', { params })
     },
 
     /**
      * 获取套件详情
      */
     getSuiteById(id: number) {
-        return request.get(`/api/v1/api-engine/suites/${id}`)
+        return request.get(`/api/v1/plugin/api-engine/suites/${id}`)
     },
 
     /**
      * 创建套件
      */
     createSuite(data: Suite) {
-        return request.post('/api/v1/api-engine/suites', data)
+        return request.post('/api/v1/plugin/api-engine/suites', data)
     },
 
     /**
      * 更新套件
      */
     updateSuite(id: number, data: Suite) {
-        return request.put(`/api/v1/api-engine/suites/${id}`, data)
+        return request.put(`/api/v1/plugin/api-engine/suites/${id}`, data)
     },
 
     /**
      * 删除套件
      */
     deleteSuite(id: number) {
-        return request.delete(`/api/v1/api-engine/suites/${id}`)
+        return request.delete(`/api/v1/plugin/api-engine/suites/${id}`)
     }
 }
 

@@ -32,49 +32,49 @@ export const caseAPI = {
      * 获取用例列表
      */
     getCases(params?: CaseListParams) {
-        return request.get('/api/v1/api-engine/cases', { params })
+        return request.get('/api/v1/plugin/api-engine/cases', { params })
     },
 
     /**
      * 获取用例详情
      */
     getCaseById(id: number) {
-        return request.get(`/api/v1/api-engine/cases/${id}`)
+        return request.get(`/api/v1/plugin/api-engine/cases/${id}`)
     },
 
     /**
      * 创建用例
      */
     createCase(data: Case) {
-        return request.post('/api/v1/api-engine/cases', data)
+        return request.post('/api/v1/plugin/api-engine/cases', data)
     },
 
     /**
      * 更新用例
      */
     updateCase(id: number, data: Case) {
-        return request.put(`/api/v1/api-engine/cases/${id}`, data)
+        return request.put(`/api/v1/plugin/api-engine/cases/${id}`, data)
     },
 
     /**
      * 删除用例
      */
     deleteCase(id: number) {
-        return request.delete(`/api/v1/api-engine/cases/${id}`)
+        return request.delete(`/api/v1/plugin/api-engine/cases/${id}`)
     },
 
     /**
      * 克隆用例
      */
     cloneCase(id: number) {
-        return request.post(`/api/v1/api-engine/cases/${id}/clone`)
+        return request.post(`/api/v1/plugin/api-engine/cases/${id}/clone`)
     },
 
     /**
      * 导入YAML用例
      */
     importYaml(data: { suite_id: number; yaml_content: string; name?: string }) {
-        return request.post('/api/v1/api-engine/cases/import', data)
+        return request.post('/api/v1/plugin/api-engine/cases/import', data)
     }
 }
 

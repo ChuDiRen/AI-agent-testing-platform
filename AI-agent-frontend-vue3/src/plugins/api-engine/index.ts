@@ -7,6 +7,9 @@ import { useApiEngineStore } from './store'
 
 const apiEnginePlugin: PluginModule = {
     name: 'api-engine',
+    version: '1.0.0',
+    description: 'API自动化测试引擎插件',
+    enabled: true,
     routes,
     store: useApiEngineStore,
     menuItems: [

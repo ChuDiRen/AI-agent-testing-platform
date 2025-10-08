@@ -11,7 +11,7 @@
     <!-- 登录卡片 -->
     <el-card class="login-card">
       <div class="login-header">
-        <el-icon class="logo-icon"><BulbFilled /></el-icon>
+        <el-icon class="logo-icon"><Star /></el-icon>
         <h1 class="title">华测自动化测试平台</h1>
         <p class="subtitle">AI Agent Testing Platform</p>
       </div>
@@ -102,6 +102,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { Star, User, Lock } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

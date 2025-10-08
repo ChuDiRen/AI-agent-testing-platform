@@ -107,13 +107,68 @@ post_script:
             created_by=1
         )
         db.add(example_case_form)
-        
+        await db.flush()
+
+        # 创建示例执行记录
+        from datetime import timedelta
+        import uuid
+
+        # 成功的执行记录
+        execution_success = ApiEngineExecution(
+            case_id=example_case_yaml.case_id,
+            task_id=str(uuid.uuid4()),
+            status="success",
+            result={"status": "passed", "message": "测试通过"},
+            logs="[INFO] 开始执行测试用例\n[INFO] 发送POST请求\n[INFO] 响应状态码: 200\n[INFO] 测试通过",
+            duration=2.35,
+            steps_total=3,
+            steps_passed=3,
+            steps_failed=0,
+            executed_by=1,
+            executed_at=example_suite.created_at - timedelta(hours=2),
+            finished_at=example_suite.created_at - timedelta(hours=2, minutes=-2)
+        )
+        db.add(execution_success)
+
+        # 失败的执行记录
+        execution_failed = ApiEngineExecution(
+            case_id=example_case_yaml.case_id,
+            task_id=str(uuid.uuid4()),
+            status="failed",
+            result={"status": "failed", "message": "断言失败"},
+            logs="[INFO] 开始执行测试用例\n[INFO] 发送POST请求\n[ERROR] 断言失败: 期望状态码200, 实际401",
+            error_message="断言失败: 期望状态码200, 实际401",
+            duration=1.82,
+            steps_total=3,
+            steps_passed=1,
+            steps_failed=2,
+            executed_by=1,
+            executed_at=example_suite.created_at - timedelta(hours=1),
+            finished_at=example_suite.created_at - timedelta(hours=1, minutes=-1)
+        )
+        db.add(execution_failed)
+
+        # 运行中的执行记录
+        execution_running = ApiEngineExecution(
+            case_id=example_case_form.case_id,
+            task_id=str(uuid.uuid4()),
+            status="running",
+            logs="[INFO] 开始执行测试用例\n[INFO] 正在发送GET请求...",
+            steps_total=1,
+            steps_passed=0,
+            steps_failed=0,
+            executed_by=1,
+            executed_at=example_suite.created_at - timedelta(minutes=5)
+        )
+        db.add(execution_running)
+
         await db.commit()
-        
+
         logger.info("API引擎插件数据库初始化完成")
         logger.info(f"- 创建示例套件: {example_suite.name}")
         logger.info(f"- 创建示例用例: {example_case_yaml.name}, {example_case_form.name}")
-        
+        logger.info(f"- 创建示例执行记录: 3条(成功1, 失败1, 运行中1)")
+
     except Exception as e:
         await db.rollback()
         logger.error(f"API引擎插件数据库初始化失败: {str(e)}")

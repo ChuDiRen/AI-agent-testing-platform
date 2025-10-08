@@ -28,9 +28,13 @@ app.use(pinia)
 app.use(router)
 
 // 注册API引擎插件
-pluginRegistry.registerPlugin(apiEnginePlugin)
+pluginRegistry.register(apiEnginePlugin)
 
 // 初始化插件(加载插件路由和store)
-pluginRegistry.init(app, router)
+// 将插件路由作为MainLayout的子路由添加
+const pluginRoutes = pluginRegistry.getRoutes()
+pluginRoutes.forEach(route => {
+  router.addRoute('MainLayout', route) // 添加到MainLayout下,使插件页面也有侧边栏和顶部导航
+})
 
 app.mount('#app')

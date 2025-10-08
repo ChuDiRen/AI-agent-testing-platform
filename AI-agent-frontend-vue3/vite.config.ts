@@ -25,6 +25,8 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       open: false,
       cors: true,
+      // 配置SPA的history模式回退
+      historyApiFallback: true,
       proxy: {
         '/api': {
           target: env.VITE_API_BASE_URL || 'http://localhost:8000',

@@ -1,7 +1,7 @@
 /**
  * HTTP请求封装
  */
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios'
+import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type AxiosError } from 'axios'
 import { ElMessage } from 'element-plus'
 
 // 创建axios实例

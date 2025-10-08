@@ -33,49 +33,49 @@ export const keywordAPI = {
      * 获取所有关键字(内置+自定义)
      */
     getKeywords(params?: KeywordListParams) {
-        return request.get('/api/v1/api-engine/keywords', { params })
+        return request.get('/api/v1/plugin/api-engine/keywords', { params })
     },
 
     /**
      * 获取内置关键字列表
      */
     getBuiltinKeywords() {
-        return request.get('/api/v1/api-engine/keywords/builtin')
+        return request.get('/api/v1/plugin/api-engine/keywords/builtin')
     },
 
     /**
      * 获取关键字详情
      */
     getKeywordById(id: number) {
-        return request.get(`/api/v1/api-engine/keywords/${id}`)
+        return request.get(`/api/v1/plugin/api-engine/keywords/${id}`)
     },
 
     /**
      * 创建自定义关键字
      */
     createKeyword(data: Keyword) {
-        return request.post('/api/v1/api-engine/keywords', data)
+        return request.post('/api/v1/plugin/api-engine/keywords', data)
     },
 
     /**
      * 更新自定义关键字
      */
     updateKeyword(id: number, data: Keyword) {
-        return request.put(`/api/v1/api-engine/keywords/${id}`, data)
+        return request.put(`/api/v1/plugin/api-engine/keywords/${id}`, data)
     },
 
     /**
      * 删除自定义关键字
      */
     deleteKeyword(id: number) {
-        return request.delete(`/api/v1/api-engine/keywords/${id}`)
+        return request.delete(`/api/v1/plugin/api-engine/keywords/${id}`)
     },
 
     /**
      * 测试关键字
      */
     testKeyword(id: number, params: any) {
-        return request.post(`/api/v1/api-engine/keywords/${id}/test`, params)
+        return request.post(`/api/v1/plugin/api-engine/keywords/${id}/test`, params)
     }
 }
 

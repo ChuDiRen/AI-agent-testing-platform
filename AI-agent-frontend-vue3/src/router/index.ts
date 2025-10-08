@@ -17,6 +17,7 @@ const routes: RouteRecordRaw[] = [
   // 主布局路由
   {
     path: '/',
+    name: 'MainLayout', // 添加name以便插件路由可以作为子路由添加
     component: () => import('@/components/Layout/MainLayout.vue'),
     meta: { requiresAuth: true },
     children: [
@@ -55,72 +56,6 @@ const routes: RouteRecordRaw[] = [
         name: 'SystemDepartment',
         component: () => import('@/views/system/DepartmentManage.vue'),
         meta: { title: '部门管理', requiresAuth: true }
-      },
-      // API自动化
-      {
-        path: 'api/testcase',
-        name: 'ApiTestCase',
-        component: () => import('@/views/testcase/UnifiedTestCase.vue'),
-        props: { testType: 'api' },
-        meta: { title: 'API测试用例', requiresAuth: true }
-      },
-      {
-        path: 'api/execute',
-        name: 'ApiExecute',
-        component: () => import('@/views/testcase/UnifiedExecute.vue'),
-        props: { testType: 'api' },
-        meta: { title: 'API测试执行', requiresAuth: true }
-      },
-      {
-        path: 'api/report',
-        name: 'ApiReport',
-        component: () => import('@/views/testcase/UnifiedReport.vue'),
-        props: { testType: 'api' },
-        meta: { title: 'API测试报告', requiresAuth: true }
-      },
-      // WEB自动化
-      {
-        path: 'web/testcase',
-        name: 'WebTestCase',
-        component: () => import('@/views/testcase/UnifiedTestCase.vue'),
-        props: { testType: 'web' },
-        meta: { title: 'WEB测试用例', requiresAuth: true }
-      },
-      {
-        path: 'web/execute',
-        name: 'WebExecute',
-        component: () => import('@/views/testcase/UnifiedExecute.vue'),
-        props: { testType: 'web' },
-        meta: { title: 'WEB测试执行', requiresAuth: true }
-      },
-      {
-        path: 'web/report',
-        name: 'WebReport',
-        component: () => import('@/views/testcase/UnifiedReport.vue'),
-        props: { testType: 'web' },
-        meta: { title: 'WEB测试报告', requiresAuth: true }
-      },
-      // APP自动化
-      {
-        path: 'app/testcase',
-        name: 'AppTestCase',
-        component: () => import('@/views/testcase/UnifiedTestCase.vue'),
-        props: { testType: 'app' },
-        meta: { title: 'APP测试用例', requiresAuth: true }
-      },
-      {
-        path: 'app/execute',
-        name: 'AppExecute',
-        component: () => import('@/views/testcase/UnifiedExecute.vue'),
-        props: { testType: 'app' },
-        meta: { title: 'APP测试执行', requiresAuth: true }
-      },
-      {
-        path: 'app/report',
-        name: 'AppReport',
-        component: () => import('@/views/testcase/UnifiedReport.vue'),
-        props: { testType: 'app' },
-        meta: { title: 'APP测试报告', requiresAuth: true }
       },
       // 消息通知
       {

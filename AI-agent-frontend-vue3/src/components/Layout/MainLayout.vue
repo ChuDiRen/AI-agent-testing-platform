@@ -34,37 +34,16 @@
           <el-menu-item index="system-department" @click="router.push('/system/department')">部门管理</el-menu-item>
         </el-sub-menu>
 
-        <!-- 接口自动化 -->
-        <el-sub-menu index="api">
+        <!-- API引擎插件 -->
+        <el-sub-menu index="api-engine">
           <template #title>
-            <el-icon><Monitor /></el-icon>
-            <span>接口自动化</span>
+            <el-icon><Promotion /></el-icon>
+            <span>API引擎</span>
           </template>
-          <el-menu-item index="api-testcase" @click="router.push('/api/testcase')">测试用例</el-menu-item>
-          <el-menu-item index="api-execute" @click="router.push('/api/execute')">测试执行</el-menu-item>
-          <el-menu-item index="api-report" @click="router.push('/api/report')">测试报告</el-menu-item>
-        </el-sub-menu>
-
-        <!-- WEB自动化 -->
-        <el-sub-menu index="web">
-          <template #title>
-            <el-icon><Monitor /></el-icon>
-            <span>WEB自动化</span>
-          </template>
-          <el-menu-item index="web-testcase" @click="router.push('/web/testcase')">测试用例</el-menu-item>
-          <el-menu-item index="web-execute" @click="router.push('/web/execute')">测试执行</el-menu-item>
-          <el-menu-item index="web-report" @click="router.push('/web/report')">测试报告</el-menu-item>
-        </el-sub-menu>
-
-        <!-- APP自动化 -->
-        <el-sub-menu index="app">
-          <template #title>
-            <el-icon><Monitor /></el-icon>
-            <span>APP自动化</span>
-          </template>
-          <el-menu-item index="app-testcase" @click="router.push('/app/testcase')">测试用例</el-menu-item>
-          <el-menu-item index="app-execute" @click="router.push('/app/execute')">测试执行</el-menu-item>
-          <el-menu-item index="app-report" @click="router.push('/app/report')">测试报告</el-menu-item>
+          <el-menu-item index="api-engine-suites" @click="router.push('/plugin/api-engine/suites')">测试套件</el-menu-item>
+          <el-menu-item index="api-engine-cases" @click="router.push('/plugin/api-engine/cases')">用例管理</el-menu-item>
+          <el-menu-item index="api-engine-executions" @click="router.push('/plugin/api-engine/executions')">执行历史</el-menu-item>
+          <el-menu-item index="api-engine-keywords" @click="router.push('/plugin/api-engine/keywords')">关键字管理</el-menu-item>
         </el-sub-menu>
 
         <!-- 消息通知管理 -->

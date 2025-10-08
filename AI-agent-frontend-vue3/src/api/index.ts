@@ -29,9 +29,6 @@ export * from './role-menu'
 export * from './upload'
 
 // 其他现有的API
-export * from './permission'
-export * from './testcase'
-export * from './report'
 export * from './dashboard'
 export * from './ai'
 

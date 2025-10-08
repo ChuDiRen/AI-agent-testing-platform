@@ -13,17 +13,18 @@ from typing import List
 
 
 def check_redis():
-    """检查Redis连接"""
+    """检查Redis连接 - 可选检查，失败时自动降级到内存缓存"""
     print("🔍 检查 Redis 连接...")
     try:
         import redis
         r = redis.Redis(host='localhost', port=6379, db=0, socket_timeout=2)
         r.ping()
-        print("✅ Redis 连接正常\n")
+        print("✅ Redis 连接正常，使用Redis缓存\n")
         return True
     except Exception as e:
-        print(f"❌ Redis 连接失败: {e}")
-        print("💡 提示: 请先启动 Redis 服务")
+        print(f"⚠️  Redis 连接失败: {e}")
+        print("📦 自动降级到内存缓存模式")
+        print("💡 如需使用Redis缓存，请启动Redis服务:")
         print("   Windows: redis-server")
         print("   Linux: sudo systemctl start redis")
         print("   Mac: brew services start redis\n")
@@ -91,28 +92,36 @@ def print_banner():
 def main():
     """主函数"""
     print_banner()
-    
-    # 检查Redis
-    if not check_redis():
-        print("❌ 启动失败: Redis 未运行")
-        sys.exit(1)
-    
-    # 启动Celery Worker进程
-    celery_worker_process = multiprocessing.Process(target=start_celery_worker)
-    celery_worker_process.daemon = True
-    celery_worker_process.start()
-    print(f"✅ Celery Worker 已启动 (PID: {celery_worker_process.pid})\n")
-    
-    time.sleep(2)
-    
-    # 启动Celery Beat进程(可选)
-    try:
-        celery_beat_process = multiprocessing.Process(target=start_celery_beat)
-        celery_beat_process.daemon = True
-        celery_beat_process.start()
-        print(f"✅ Celery Beat 已启动 (PID: {celery_beat_process.pid})\n")
-    except Exception as e:
-        print(f"⚠️  Celery Beat 启动失败 (可选服务): {e}\n")
+
+    # 检查Redis (可选，失败时自动降级)
+    redis_available = check_redis()
+    if not redis_available:
+        print("🔄 继续启动服务，将使用内存缓存...\n")
+        print("⚠️  Celery服务需要Redis支持，已跳过启动\n")
+
+    celery_worker_process = None
+    celery_beat_process = None
+
+    # 只有Redis可用时才启动Celery
+    if redis_available:
+        # 启动Celery Worker进程
+        try:
+            celery_worker_process = multiprocessing.Process(target=start_celery_worker)
+            celery_worker_process.daemon = True
+            celery_worker_process.start()
+            print(f"✅ Celery Worker 已启动 (PID: {celery_worker_process.pid})\n")
+            time.sleep(2)
+        except Exception as e:
+            print(f"⚠️  Celery Worker 启动失败: {e}\n")
+
+        # 启动Celery Beat进程(可选)
+        try:
+            celery_beat_process = multiprocessing.Process(target=start_celery_beat)
+            celery_beat_process.daemon = True
+            celery_beat_process.start()
+            print(f"✅ Celery Beat 已启动 (PID: {celery_beat_process.pid})\n")
+        except Exception as e:
+            print(f"⚠️  Celery Beat 启动失败 (可选服务): {e}\n")
     
     time.sleep(1)
     
@@ -130,11 +139,13 @@ def main():
         start_fastapi()
     except KeyboardInterrupt:
         print("\n\n⏹️  正在停止所有服务...")
-        celery_worker_process.terminate()
-        try:
-            celery_beat_process.terminate()
-        except:
-            pass
+        if celery_worker_process:
+            celery_worker_process.terminate()
+        if celery_beat_process:
+            try:
+                celery_beat_process.terminate()
+            except:
+                pass
         print("✅ 所有服务已停止")
         sys.exit(0)
 
