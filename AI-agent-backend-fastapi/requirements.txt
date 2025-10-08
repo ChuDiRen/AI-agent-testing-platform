@@ -12,6 +12,7 @@ alembic==1.13.0
 # 认证和安全
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt<4.0.0  # 兼容passlib 1.7.4,避免__about__属性错误
 python-multipart==0.0.6
 
 # 工具
@@ -63,3 +64,10 @@ httpx>=0.26.0  # 异步HTTP客户端
 reportlab>=4.0.0  # PDF生成
 xlsxwriter>=3.1.0  # Excel导出
 allure-pytest>=2.15.0  # Allure测试报告
+
+# 测试自动化
+selenium>=4.19.0  # Web UI自动化测试
+jsonpath>=0.82  # JSON路径解析,用于API响应断言
+pytest>=8.0.0  # 测试框架
+PyYAML>=6.0  # YAML文件解析
+Jinja2>=3.1.0  # 模板引擎,用于变量渲染

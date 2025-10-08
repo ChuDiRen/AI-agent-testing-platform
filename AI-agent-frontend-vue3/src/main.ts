@@ -2,6 +2,7 @@
 import { createApp } from 'vue'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
+import zhCn from 'element-plus/dist/locale/zh-cn.mjs' // Element Plus 中文语言包
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import App from './App.vue'
 import router from './router'
@@ -23,7 +24,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
-app.use(ElementPlus)
+app.use(ElementPlus, { locale: zhCn }) // 配置中文语言包
 app.use(pinia)
 
 // 先注册插件并添加路由，再安装路由，确保刷新时不会404

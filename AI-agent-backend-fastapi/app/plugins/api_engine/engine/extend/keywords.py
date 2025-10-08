@@ -2,9 +2,9 @@ import mimetypes
 from importlib.metadata import files
 
 import allure
-from selenium.webdriver.common.devtools.v85.indexed_db import request_data
+# 注: selenium 导入已移除,因为实际未使用且导入路径错误
 
-from apirun.core.globalContext import g_context
+from ..core.globalContext import g_context  # 修改为相对导入
 import requests
 import jsonpath
 import re

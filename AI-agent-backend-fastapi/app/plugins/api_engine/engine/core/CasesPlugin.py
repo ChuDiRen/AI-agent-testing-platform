@@ -1,7 +1,7 @@
 import pytest
 
-from apirun.parse.CaseParser import case_parser
-from apirun.core.globalContext import g_context
+from ..parse.CaseParser import case_parser  # 修改为相对导入
+from .globalContext import g_context  # 修改为相对导入
 
 
 class CasesPlugin:

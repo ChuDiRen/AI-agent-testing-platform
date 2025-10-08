@@ -19,7 +19,7 @@ class ApiEngineKeyword(Base):
     
     # 参数定义(JSON格式)
     # 例如: [{"name": "url", "type": "string", "required": true, "description": "请求URL"}]
-    params_schema = Column(JSON, nullable=True, comment="参数定义Schema")
+    parameters = Column(JSON, nullable=True, comment="参数定义")
     
     # Python代码
     code = Column(Text, nullable=False, comment="关键字实现代码(Python)")

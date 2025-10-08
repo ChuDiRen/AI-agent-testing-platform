@@ -263,6 +263,15 @@ async def init_data():
             ]
             session.add_all(models)
 
+            # 10. 初始化API引擎插件数据
+            logger.info("📦 初始化API引擎插件数据...")
+            try:
+                from app.plugins.api_engine.init_db import init_api_engine_plugin_db
+                await init_api_engine_plugin_db(session)
+                logger.info("✅ API引擎插件数据初始化完成")
+            except Exception as e:
+                logger.warning(f"⚠️  API引擎插件数据初始化失败: {e}")
+
             # 提交所有更改
             await session.commit()
 
