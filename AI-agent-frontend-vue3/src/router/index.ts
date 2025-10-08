@@ -104,7 +104,62 @@ const routes: RouteRecordRaw[] = [
         name: 'TestPage',
         component: () => import('@/views/TestPage.vue'),
         meta: { title: '测试页面', requiresAuth: true }
-      }
+      },
+      // API 引擎（静态注册，避免刷新404）
+      {
+        path: '/plugin/api-engine',
+        redirect: '/plugin/api-engine/suites',
+        meta: { title: 'API引擎', requiresAuth: true }
+      },
+      {
+        path: '/plugin/api-engine/suites',
+        name: 'ApiEngineSuiteList',
+        component: () => import('@/plugins/api-engine/views/SuiteList.vue'),
+        meta: { title: '测试套件', requiresAuth: true }
+      },
+      {
+        path: '/plugin/api-engine/suites/:id',
+        name: 'ApiEngineSuiteDetail',
+        component: () => import('@/plugins/api-engine/views/SuiteDetail.vue'),
+        meta: { title: '套件详情', hidden: true, requiresAuth: true }
+      },
+      {
+        path: '/plugin/api-engine/cases',
+        name: 'ApiEngineCaseList',
+        component: () => import('@/plugins/api-engine/views/CaseList.vue'),
+        meta: { title: '用例管理', requiresAuth: true }
+      },
+      {
+        path: '/plugin/api-engine/cases/create',
+        name: 'ApiEngineCaseCreate',
+        component: () => import('@/plugins/api-engine/views/CaseEditor.vue'),
+        meta: { title: '创建用例', hidden: true, requiresAuth: true }
+      },
+      {
+        path: '/plugin/api-engine/cases/:id/edit',
+        name: 'ApiEngineCaseEdit',
+        component: () => import('@/plugins/api-engine/views/CaseEditor.vue'),
+        meta: { title: '编辑用例', hidden: true, requiresAuth: true }
+      },
+      {
+        path: '/plugin/api-engine/executions',
+        name: 'ApiEngineExecutionHistory',
+        component: () => import('@/plugins/api-engine/views/ExecutionHistory.vue'),
+        meta: { title: '执行历史', requiresAuth: true }
+      },
+      {
+        path: '/plugin/api-engine/executions/:id',
+        name: 'ApiEngineExecutionDetail',
+        component: () => import('@/plugins/api-engine/views/ExecutionConsole.vue'),
+        meta: { title: '执行详情', hidden: true, requiresAuth: true }
+      },
+      {
+        path: '/plugin/api-engine/keywords',
+        name: 'ApiEngineKeywordManage',
+        component: () => import('@/plugins/api-engine/views/KeywordManage.vue'),
+        meta: { title: '关键字管理', requiresAuth: true }
+      },
+
     ]
   },
   // 404页面

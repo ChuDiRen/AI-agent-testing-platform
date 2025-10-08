@@ -72,7 +72,7 @@ async def execute_case(
     )
 
 
-@router.get("", response_model=APIResponse[ExecutionListResponse])
+@router.get("/", response_model=APIResponse[ExecutionListResponse])
 async def get_executions(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),

@@ -48,7 +48,8 @@ export const executionAPI = {
      * 获取执行历史列表
      */
     getExecutions(params?: ExecutionListParams) {
-        return request.get('/api/v1/plugin/api-engine/executions', { params })
+        // 使用以斜杠结尾的路径以兼容后端路由'/'
+        return request.get('/api/v1/plugin/api-engine/executions/', { params })
     },
 
     /**

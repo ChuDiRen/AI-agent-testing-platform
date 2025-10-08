@@ -25,16 +25,9 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 app.use(ElementPlus)
 app.use(pinia)
-app.use(router)
 
-// 注册API引擎插件
+// 先注册插件并添加路由，再安装路由，确保刷新时不会404
 pluginRegistry.register(apiEnginePlugin)
-
-// 初始化插件(加载插件路由和store)
-// 将插件路由作为MainLayout的子路由添加
-const pluginRoutes = pluginRegistry.getRoutes()
-pluginRoutes.forEach(route => {
-  router.addRoute('MainLayout', route) // 添加到MainLayout下,使插件页面也有侧边栏和顶部导航
-})
-
+// 静态路由已并入 router/index.ts，无需运行时动态注册
+app.use(router)
 app.mount('#app')

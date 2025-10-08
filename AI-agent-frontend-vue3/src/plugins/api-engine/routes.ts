@@ -5,6 +5,11 @@ import type { RouteRecordRaw } from 'vue-router'
 
 const routes: RouteRecordRaw[] = [
     {
+        path: '/plugin/api-engine',
+        redirect: '/plugin/api-engine/suites',
+        meta: { requiresAuth: true }
+    },
+    {
         path: '/plugin/api-engine/suites',
         name: 'ApiEngineSuiteList',
         component: () => import('./views/SuiteList.vue'),
