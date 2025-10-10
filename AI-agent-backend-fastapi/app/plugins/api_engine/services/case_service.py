@@ -34,6 +34,16 @@ class CaseService:
             select(ApiEngineCase).where(ApiEngineCase.case_id == case_id)
         )
         return result.scalar_one_or_none()
+
+    async def get_cases_by_ids(self, case_ids: List[int]) -> List[ApiEngineCase]:
+        """根据ID列表获取用例"""
+        if not case_ids:
+            return []
+
+        result = await self.db.execute(
+            select(ApiEngineCase).where(ApiEngineCase.case_id.in_(case_ids))
+        )
+        return list(result.scalars().all())
     
     async def get_cases_by_suite(
         self,

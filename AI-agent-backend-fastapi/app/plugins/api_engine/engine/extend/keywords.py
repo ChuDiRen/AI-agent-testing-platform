@@ -24,7 +24,7 @@ class Keywords:
     @allure.step(">>>>>>参数数据：")
     def send_request(self, **kwargs):
         self.request = requests.Session()
-        # 剔除不需要的字段，例如 EXVALUE
+        # 剔除不需要的字段，例如 关键字
         kwargs.pop("关键字", None)  # 如果存在 关键字 字段则删除，否则不操作
 
         files = kwargs.get("files", [])
@@ -53,12 +53,21 @@ class Keywords:
                 "url": unquote(response.url),
                 "method": response.request.method,
                 "headers": dict(response.request.headers),
-                "body": str(response.request.body), # 避免返回的是二进制数据 接口端报错。
-                "response": response.text
+                "body": str(response.request.body) if response.request.body else "", # 避免返回的是二进制数据 接口端报错。
+                "response": response.text,
+                "status_code": response.status_code,
+                "elapsed": str(response.elapsed.total_seconds()) + "s"
             }
             g_context().set_dict("current_response_data", request_data)  # 默认设置成全局变量
+
+            # 设置常用的响应数据到全局变量，方便后续断言使用
+            g_context().set_dict("response_status_code", response.status_code)
+            g_context().set_dict("response_text", response.text)
+            g_context().set_dict("response_json", response.json() if response.headers.get('content-type', '').startswith('application/json') else None)
+
         except Exception as e:
-            request_data.update({"response":str(e)})
+            request_data.update({"response":str(e), "status_code": 0})
+            g_context().set_dict("current_response_data", request_data)
             raise e
         finally:
             print("-----------current_response_data------------")
@@ -460,36 +469,41 @@ class Keywords:
         封装断言以进行不同的比较操作。
 
         参数:
-        value (Any): 要比较的值。
-        expected (Any): 预期的值。
-        op_str (str): 操作符的字符串表示（如 '>', '<', '==' 等）。
-        message (str, optional): 自定义的错误消息。
-
-        返回:
-        None: 如果断言成功，则不返回任何内容。
-
-        引发:
-        AssertionError: 如果断言失败。
+        ACTUAL (Any): 实际值
+        EXPECTED (Any): 期望值
+        OPERATOR (str): 操作符
+        MESSAGE (str, optional): 自定义的错误消息
         """
-        comparators = {
-            '>': lambda a, b: a > b,
-            '<': lambda a, b: a < b,
-            '==': lambda a, b: a == b,
-            '>=': lambda a, b: a >= b,
-            '<=': lambda a, b: a <= b,
-            '!=': lambda a, b: a != b,
+        from ..services.assertion_service import AssertionService
+
+        actual = kwargs.get("ACTUAL")
+        expected = kwargs.get("EXPECTED")
+        operator = kwargs.get("OPERATOR", "equals")
+        message = kwargs.get("MESSAGE", "")
+
+        # 映射旧的操作符到新的操作符
+        operator_mapping = {
+            '>': 'greater_than',
+            '<': 'less_than',
+            '==': 'equals',
+            '>=': 'greater_equal',
+            '<=': 'less_equal',
+            '!=': 'not_equals',
+            'contains': 'contains',
+            'not_contains': 'not_contains'
         }
 
-        message = kwargs.get("MESSAGE", None)
+        new_operator = operator_mapping.get(operator, operator)
 
-        if kwargs["OP_STR"] not in comparators:
-            raise ValueError(f"没有该操作方式: {kwargs['OP_STR']}")
-
-        if not comparators[kwargs['OP_STR']](kwargs['VALUE'], kwargs["EXPECTED"]):
-            if message:
-                raise AssertionError(message)
-            else:
-                raise AssertionError(f"{kwargs['VALUE']} {kwargs['OP_STR']} {kwargs['EXPECTED']} 失败")
+        try:
+            result = AssertionService.execute_assertion(new_operator, actual, expected)
+            if not result.success:
+                error_msg = message if message else result.message
+                raise AssertionError(error_msg)
+            print(f"✅ 断言成功: {result.message}")
+        except Exception as e:
+            print(f"❌ 断言失败: {str(e)}")
+            raise
 
     def get_md5_from_bytes(self,data):
         """
@@ -537,5 +551,363 @@ class Keywords:
         print("-----------------------")
         print(g_context().show_dict())
         print("-----------------------")
+
+    @allure.step(">>>>>>参数数据：")
+    def assert_status_code(self, **kwargs):
+        """
+        断言响应状态码
+        """
+        expected_status = kwargs.get("EXPECTED", 200)
+        actual_status = g_context().get_dict("response_status_code")
+
+        if actual_status != expected_status:
+            raise AssertionError(f"状态码断言失败: 期望 {expected_status}, 实际 {actual_status}")
+
+        print(f"✅ 状态码断言成功: {actual_status}")
+
+    @allure.step(">>>>>>参数数据：")
+    def assert_response_contains(self, **kwargs):
+        """
+        断言响应内容包含指定文本
+        """
+        expected_text = kwargs.get("EXPECTED", "")
+        response_text = g_context().get_dict("response_text", "")
+
+        if expected_text not in response_text:
+            raise AssertionError(f"响应内容断言失败: 响应中不包含文本 '{expected_text}'")
+
+        print(f"✅ 响应内容断言成功: 包含文本 '{expected_text}'")
+
+    @allure.step(">>>>>>参数数据：")
+    def assert_json_path_exists(self, **kwargs):
+        """
+        断言JSON路径存在
+        """
+        json_path = kwargs.get("JSON_PATH", "")
+        response_json = g_context().get_dict("response_json", {})
+
+        if not response_json:
+            raise AssertionError("JSON路径断言失败: 响应不是JSON格式")
+
+        try:
+            result = jsonpath.jsonpath(response_json, json_path)
+            if not result:
+                raise AssertionError(f"JSON路径断言失败: 路径 '{json_path}' 不存在")
+            print(f"✅ JSON路径断言成功: 路径 '{json_path}' 存在, 值: {result[0]}")
+        except Exception as e:
+            raise AssertionError(f"JSON路径断言失败: {str(e)}")
+
+    @allure.step(">>>>>>参数数据：")
+    def sleep(self, **kwargs):
+        """
+        等待指定秒数
+        """
+        seconds = kwargs.get("SECONDS", 1)
+        print(f"等待 {seconds} 秒...")
+        time.sleep(seconds)
+
+    @allure.step(">>>>>>参数数据：")
+    def set_variable(self, **kwargs):
+        """
+        设置变量到全局上下文
+        """
+        var_name = kwargs.get("VAR_NAME", "")
+        var_value = kwargs.get("VAR_VALUE", "")
+
+        if not var_name:
+            raise ValueError("变量名不能为空")
+
+        g_context().set_dict(var_name, var_value)
+        print(f"✅ 设置变量: {var_name} = {var_value}")
+
+    @allure.step(">>>>>>参数数据：")
+    def log_message(self, **kwargs):
+        """
+        输出日志消息
+        """
+        message = kwargs.get("MESSAGE", "")
+        level = kwargs.get("LEVEL", "INFO").upper()
+
+        if level == "ERROR":
+            print(f"❌ ERROR: {message}")
+        elif level == "WARNING":
+            print(f"⚠️  WARNING: {message}")
+        elif level == "SUCCESS":
+            print(f"✅ SUCCESS: {message}")
+        else:
+            print(f"ℹ️  INFO: {message}")
+
+    @allure.step(">>>>>>参数数据：")
+    def assert_response_time(self, **kwargs):
+        """
+        断言响应时间
+        """
+        from ..services.assertion_service import AssertionService
+
+        max_time = kwargs.get("MAX_TIME", 5.0)  # 默认最大5秒
+        response = g_context().get_dict("current_response")
+
+        if not response:
+            raise AssertionError("无法获取响应对象，请先发送请求")
+
+        actual_time = response.elapsed.total_seconds()
+        result = AssertionService.assert_less_than(actual_time, max_time)
+
+        if not result.success:
+            raise AssertionError(f"响应时间断言失败: {actual_time:.2f}s > {max_time}s")
+        print(f"✅ 响应时间断言成功: {actual_time:.2f}s < {max_time}s")
+
+    @allure.step(">>>>>>参数数据：")
+    def assert_response_header(self, **kwargs):
+        """
+        断言响应头
+        """
+        header_name = kwargs.get("HEADER_NAME", "")
+        expected_value = kwargs.get("EXPECTED_VALUE", "")
+        operator = kwargs.get("OPERATOR", "equals")
+
+        response = g_context().get_dict("current_response")
+        if not response:
+            raise AssertionError("无法获取响应对象，请先发送请求")
+
+        actual_value = response.headers.get(header_name)
+
+        if actual_value is None:
+            raise AssertionError(f"响应头中不存在: {header_name}")
+
+        from ..services.assertion_service import AssertionService
+        result = AssertionService.execute_assertion(operator, actual_value, expected_value)
+
+        if not result.success:
+            raise AssertionError(f"响应头断言失败: {header_name} - {result.message}")
+        print(f"✅ 响应头断言成功: {header_name} - {result.message}")
+
+    @allure.step(">>>>>>参数数据：")
+    def assert_response_schema(self, **kwargs):
+        """
+        断言响应JSON结构
+        """
+        expected_schema = kwargs.get("SCHEMA", {})
+        response_json = g_context().get_dict("response_json", {})
+
+        if not response_json:
+            raise AssertionError("响应不是JSON格式")
+
+        def validate_schema(data: dict, schema: dict, path: str = "") -> list:
+            """递归验证JSON结构"""
+            errors = []
+
+            for key, expected_type in schema.items():
+                current_path = f"{path}.{key}" if path else key
+
+                if key not in data:
+                    errors.append(f"缺少字段: {current_path}")
+                    continue
+
+                actual_value = data[key]
+
+                # 处理嵌套对象
+                if isinstance(expected_type, dict):
+                    if not isinstance(actual_value, dict):
+                        errors.append(f"字段 {current_path} 应该是对象，实际是 {type(actual_value).__name__}")
+                    else:
+                        errors.extend(validate_schema(actual_value, expected_type, current_path))
+                # 处理数组
+                elif isinstance(expected_type, list) and expected_type:
+                    expected_item_type = expected_type[0]
+                    if not isinstance(actual_value, list):
+                        errors.append(f"字段 {current_path} 应该是数组，实际是 {type(actual_value).__name__}")
+                    else:
+                        for i, item in enumerate(actual_value):
+                            item_path = f"{current_path}[{i}]"
+                            if isinstance(expected_item_type, dict) and isinstance(item, dict):
+                                errors.extend(validate_schema(item, expected_item_type, item_path))
+                            elif not isinstance(item, type(expected_item_type)):
+                                errors.append(f"数组项 {item_path} 类型错误，期望 {type(expected_item_type).__name__}")
+                else:
+                    # 处理基本类型
+                    expected_type_name = {
+                        str: "string",
+                        int: "integer",
+                        float: "number",
+                        bool: "boolean",
+                        type(None): "null"
+                    }.get(expected_type, str(expected_type))
+
+                    if not isinstance(actual_value, expected_type):
+                        errors.append(f"字段 {current_path} 类型错误，期望 {expected_type_name}，实际 {type(actual_value).__name__}")
+
+            return errors
+
+        errors = validate_schema(response_json, expected_schema)
+        if errors:
+            raise AssertionError(f"JSON结构断言失败:\n" + "\n".join(f"  - {error}" for error in errors))
+
+        print("✅ JSON结构断言成功: 响应结构符合预期")
+
+    @allure.step(">>>>>>参数数据：")
+    def assert_database_query(self, **kwargs):
+        """
+        断言数据库查询结果
+        """
+        query = kwargs.get("QUERY", "")
+        expected_count = kwargs.get("EXPECTED_COUNT", None)
+        expected_data = kwargs.get("EXPECTED_DATA", None)
+
+        try:
+            import pymysql
+            from pymysql import cursors
+
+            # 获取数据库配置
+            db_config = g_context().get_dict("_database", {}).get(kwargs.get("DATABASE", "default"))
+            if not db_config:
+                raise AssertionError("数据库配置不存在")
+
+            config = {"cursorclass": cursors.DictCursor}
+            config.update(db_config)
+
+            con = pymysql.connect(**config)
+            cur = con.cursor()
+            cur.execute(query)
+            results = cur.fetchall()
+            cur.close()
+            con.close()
+
+            if expected_count is not None:
+                from ..services.assertion_service import AssertionService
+                result = AssertionService.assert_equals(len(results), expected_count)
+                if not result.success:
+                    raise AssertionError(f"数据库查询结果数量断言失败: {result.message}")
+
+            if expected_data is not None:
+                if not results:
+                    raise AssertionError("数据库查询结果为空，无法进行数据比较")
+
+                # 比较第一条记录
+                first_record = results[0]
+                for key, expected_value in expected_data.items():
+                    actual_value = first_record.get(key)
+                    if actual_value != expected_value:
+                        raise AssertionError(f"数据库字段 {key} 值不匹配: 期望 {expected_value}, 实际 {actual_value}")
+
+            print(f"✅ 数据库查询断言成功: 查询返回 {len(results)} 条记录")
+
+        except Exception as e:
+            if isinstance(e, AssertionError):
+                raise
+            raise AssertionError(f"数据库查询断言失败: {str(e)}")
+
+    @allure.step(">>>>>>参数数据：")
+    def assert_file_exists(self, **kwargs):
+        """
+        断言文件存在
+        """
+        file_path = kwargs.get("FILE_PATH", "")
+
+        import os
+        exists = os.path.exists(file_path)
+
+        if not exists:
+            raise AssertionError(f"文件断言失败: 文件不存在 - {file_path}")
+
+        print(f"✅ 文件断言成功: 文件存在 - {file_path}")
+
+    @allure.step(">>>>>>参数数据：")
+    def assert_file_size(self, **kwargs):
+        """
+        断言文件大小
+        """
+        file_path = kwargs.get("FILE_PATH", "")
+        expected_size = kwargs.get("EXPECTED_SIZE", 0)
+        operator = kwargs.get("OPERATOR", "equals")
+
+        import os
+        if not os.path.exists(file_path):
+            raise AssertionError(f"文件大小断言失败: 文件不存在 - {file_path}")
+
+        actual_size = os.path.getsize(file_path)
+
+        from ..services.assertion_service import AssertionService
+        result = AssertionService.execute_assertion(operator, actual_size, expected_size)
+
+        if not result.success:
+            raise AssertionError(f"文件大小断言失败: {result.message}")
+
+        print(f"✅ 文件大小断言成功: {result.message}")
+
+    @allure.step(">>>>>>参数数据：")
+    def soft_assert(self, **kwargs):
+        """
+        软断言 - 断言失败不会终止测试，只记录结果
+        """
+        assertion_type = kwargs.get("TYPE", "equals")
+        actual = kwargs.get("ACTUAL")
+        expected = kwargs.get("EXPECTED")
+        message = kwargs.get("MESSAGE", "")
+
+        from ..services.assertion_service import AssertionService
+
+        try:
+            result = AssertionService.execute_assertion(assertion_type, actual, expected)
+
+            # 将软断言结果存储到全局变量中
+            soft_assert_results = g_context().get_dict("soft_assert_results", [])
+            soft_assert_results.append({
+                "type": assertion_type,
+                "actual": actual,
+                "expected": expected,
+                "success": result.success,
+                "message": result.message,
+                "custom_message": message
+            })
+            g_context().set_dict("soft_assert_results", soft_assert_results)
+
+            if result.success:
+                print(f"✅ 软断言成功: {result.message}")
+            else:
+                print(f"⚠️  软断言失败: {result.message} (测试继续)")
+
+        except Exception as e:
+            print(f"⚠️  软断言错误: {str(e)} (测试继续)")
+
+            # 记录错误到软断言结果
+            soft_assert_results = g_context().get_dict("soft_assert_results", [])
+            soft_assert_results.append({
+                "type": assertion_type,
+                "actual": actual,
+                "expected": expected,
+                "success": False,
+                "message": str(e),
+                "custom_message": message,
+                "error": True
+            })
+            g_context().set_dict("soft_assert_results", soft_assert_results)
+
+    @allure.step(">>>>>>参数数据：")
+    def validate_soft_asserts(self, **kwargs):
+        """
+        验证所有软断言结果，如果有失败的软断言则抛出异常
+        """
+        allow_failures = kwargs.get("ALLOW_FAILURES", 0)
+
+        soft_assert_results = g_context().get_dict("soft_assert_results", [])
+
+        if not soft_assert_results:
+            print("ℹ️  没有软断言结果需要验证")
+            return
+
+        failed_asserts = [r for r in soft_assert_results if not r.get("success", True)]
+        failure_count = len(failed_asserts)
+
+        print(f"📊 软断言统计: 总计 {len(soft_assert_results)}, 成功 {len(soft_assert_results) - failure_count}, 失败 {failure_count}")
+
+        if failure_count > allow_failures:
+            error_messages = [f"  - {r.get('message', '未知错误')}" for r in failed_asserts]
+            raise AssertionError(
+                f"软断言验证失败: 失败数量 ({failure_count}) 超过允许数量 ({allow_failures})\n" +
+                "\n".join(error_messages)
+            )
+        else:
+            print(f"✅ 软断言验证通过: 失败数量 ({failure_count}) 在允许范围内 ({allow_failures})")
 
 

@@ -29,6 +29,15 @@ class ExecutionService:
             select(ApiEngineExecution).where(ApiEngineExecution.task_id == task_id)
         )
         return result.scalar_one_or_none()
+
+    async def get_executions_by_batch_id(self, batch_execution_id: str) -> List[ApiEngineExecution]:
+        """根据批量执行ID获取执行记录列表"""
+        result = await self.db.execute(
+            select(ApiEngineExecution)
+            .where(ApiEngineExecution.batch_execution_id == batch_execution_id)
+            .order_by(ApiEngineExecution.executed_at)
+        )
+        return list(result.scalars().all())
     
     async def get_executions(
         self,

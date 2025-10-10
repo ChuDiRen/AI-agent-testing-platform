@@ -61,16 +61,31 @@
       <el-table-column prop="finished_at" label="完成时间" width="180">
         <template #default="{ row }">{{ formatDate(row.finished_at) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column label="操作" width="280" fixed="right">
         <template #default="{ row }">
           <el-button size="small" @click="viewDetail(row)">
             <el-icon><View /></el-icon>
             查看详情
           </el-button>
+          <el-dropdown @command="(format) => handleExport(row, format)" style="margin-left: 8px;">
+            <el-button size="small" type="primary">
+              <el-icon><Download /></el-icon>
+              导出
+              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="json">JSON格式</el-dropdown-item>
+                <el-dropdown-item command="pdf">PDF格式</el-dropdown-item>
+                <el-dropdown-item command="excel">Excel格式</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <el-button
             size="small"
             type="danger"
             @click="handleDelete(row)"
+            style="margin-left: 8px;"
           >
             <el-icon><Delete /></el-icon>
             删除
@@ -141,7 +156,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { View, Delete } from '@element-plus/icons-vue'
+import { View, Delete, Download, ArrowDown } from '@element-plus/icons-vue'
 import { useApiEngineStore } from '../store'
 import { executionAPI } from '../api'
 
@@ -240,6 +255,46 @@ const formatJson = (data: any) => {
     return JSON.stringify(data, null, 2)
   } catch {
     return String(data)
+  }
+}
+
+const handleExport = async (execution: any, format: 'pdf' | 'excel' | 'json') => {
+  try {
+    ElMessage.info('正在准备导出文件...')
+
+    // 调用导出API
+    const response = await executionAPI.exportExecutionReport(
+      execution.execution_id,
+      format
+    )
+
+    // 从响应头获取文件名，如果没有则生成默认文件名
+    const contentDisposition = response.headers['content-disposition']
+    let filename = `execution-report-${execution.execution_id}.${format}`
+
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+      if (filenameMatch && filenameMatch[1]) {
+        filename = filenameMatch[1].replace(/['"]/g, '')
+      }
+    }
+
+    // 创建下载链接
+    const blob = new Blob([response.data], {
+      type: response.headers['content-type'] || 'application/octet-stream'
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    ElMessage.success('报告导出成功')
+  } catch (error: any) {
+    ElMessage.error(error.message || '报告导出失败')
   }
 }
 

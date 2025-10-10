@@ -1,8 +1,7 @@
 class g_context(object): # 类继承
     _dic = {}  # 内置属性，外部不可修改
 
-
-    def set_dict(self, key, value): 
+    def set_dict(self, key, value):
         # 给字典添加对应的值
         self._dic[key] = value
 
@@ -17,6 +16,23 @@ class g_context(object): # 类继承
     def show_dict(self):
         # 显示当前字典的所有的数据
         return self._dic
+
+    def clear(self):
+        # 清空字典中的所有数据
+        self._dic.clear()
+
+    def remove(self, key):
+        # 删除字典中指定的key
+        if key in self._dic:
+            del self._dic[key]
+
+    def has_key(self, key):
+        # 检查字典中是否存在指定的key
+        return key in self._dic
+
+    def get_all_keys(self):
+        # 获取字典中所有的key
+        return list(self._dic.keys())
 
 
 

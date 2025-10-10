@@ -72,6 +72,34 @@ export const executionAPI = {
     getLogStreamUrl(taskId: string): string {
         const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
         return `${baseURL}/api/v1/plugin/api-engine/executions/task/${taskId}/log-stream`
+    },
+
+    /**
+     * 批量执行测试用例
+     */
+    executeBatch(caseIds: number[], context?: any, executionMode: 'parallel' | 'sequential' = 'parallel', maxConcurrent: number = 5) {
+        return request.post('/api/v1/plugin/api-engine/executions/batch', {
+            case_ids: caseIds,
+            context: context || {},
+            execution_mode: executionMode,
+            max_concurrent: maxConcurrent
+        })
+    },
+
+    /**
+     * 查询批量执行状态
+     */
+    getBatchExecutionStatus(batchExecutionId: string) {
+        return request.get(`/api/v1/plugin/api-engine/executions/batch/${batchExecutionId}/status`)
+    },
+
+    /**
+     * 导出执行报告
+     */
+    exportExecutionReport(executionId: number, format: 'pdf' | 'excel' | 'json') {
+        return request.get(`/api/v1/plugin/api-engine/executions/${executionId}/export/${format}`, {
+            responseType: 'blob'
+        })
     }
 }
 

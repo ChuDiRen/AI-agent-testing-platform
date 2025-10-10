@@ -41,6 +41,7 @@ class ApiEngineCase(Base):
     suite = relationship("ApiEngineSuite", back_populates="cases")
     creator = relationship("User", foreign_keys=[created_by], backref="api_engine_cases")
     executions = relationship("ApiEngineExecution", back_populates="case", cascade="all, delete-orphan")
+    ddt_datasets = relationship("ApiEngineDDT", back_populates="case", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<ApiEngineCase(case_id={self.case_id}, name='{self.name}', config_type='{self.config_type}')>"

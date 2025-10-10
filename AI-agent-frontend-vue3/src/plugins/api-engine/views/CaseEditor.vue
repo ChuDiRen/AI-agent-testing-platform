@@ -84,17 +84,74 @@
         <div class="yaml-header">
           <h3>YAML配置</h3>
           <div class="yaml-actions">
+            <el-button size="small" @click="generateTemplate">生成模板</el-button>
             <el-button size="small" @click="formatYaml">格式化</el-button>
             <el-button size="small" @click="validateYaml">验证</el-button>
+            <el-button size="small" @click="getStructure">结构分析</el-button>
           </div>
         </div>
-        <el-input
-          v-model="yamlContent"
-          type="textarea"
-          :rows="20"
-          placeholder="请输入YAML配置内容"
-          class="yaml-editor"
-        />
+        <div class="yaml-editor-wrapper">
+          <el-input
+            v-model="yamlContent"
+            type="textarea"
+            :rows="20"
+            placeholder="请输入YAML配置内容，支持以下格式：
+
+desc: '用例描述'
+pre_script:
+  - print('前置脚本')
+steps:
+  - send_request:
+      url: 'https://api.example.com/test'
+      method: 'GET'
+      headers:
+        Content-Type: 'application/json'
+  - assert_status_code:
+      EXPECTED: 200
+post_script:
+  - print('后置脚本')
+context:
+  base_url: 'https://api.example.com'
+ddts:
+  - username: 'user1'
+    password: 'pass1'"
+            class="yaml-editor"
+            @input="handleYamlChange"
+          />
+          <div v-if="yamlStructure" class="yaml-structure">
+            <h4>YAML结构</h4>
+            <el-descriptions :column="3" size="small" border>
+              <el-descriptions-item label="描述">
+                <el-tag :type="yamlStructure.hasDesc ? 'success' : 'info'">
+                  {{ yamlStructure.hasDesc ? '已设置' : '未设置' }}
+                </el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="步骤数">
+                <el-tag type="primary">{{ yamlStructure.stepCount }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="前置脚本">
+                <el-tag :type="yamlStructure.hasPreScript ? 'success' : 'info'">
+                  {{ yamlStructure.hasPreScript ? '已设置' : '未设置' }}
+                </el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="后置脚本">
+                <el-tag :type="yamlStructure.hasPostScript ? 'success' : 'info'">
+                  {{ yamlStructure.hasPostScript ? '已设置' : '未设置' }}
+                </el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="数据驱动">
+                <el-tag :type="yamlStructure.hasDdts ? 'success' : 'info'">
+                  {{ yamlStructure.hasDdts ? '已设置' : '未设置' }}
+                </el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="上下文">
+                <el-tag :type="yamlStructure.hasContext ? 'success' : 'info'">
+                  {{ yamlStructure.hasContext ? '已设置' : '未设置' }}
+                </el-tag>
+              </el-descriptions-item>
+            </el-descriptions>
+          </div>
+        </div>
       </div>
     </el-card>
   </div>
@@ -108,6 +165,7 @@ import { Check } from '@element-plus/icons-vue'
 import { useApiEngineStore } from '../store'
 import StepEditor from '../components/StepEditor.vue'
 import type { Case } from '../api'
+import { YamlUtils, type FormTestCase } from '@/utils/yaml'
 
 const route = useRoute()
 const router = useRouter()
@@ -132,11 +190,12 @@ const formData = reactive<Case>({
   status: 'draft'
 })
 
-const formConfig = reactive({
-  steps: [] as any[]
+const formConfig = reactive<FormTestCase>({
+  steps: []
 })
 
 const yamlContent = ref('')
+const yamlStructure = ref<any>(null)
 
 const rules = {
   suite_id: [{ required: true, message: '请选择所属套件', trigger: 'change' }],
@@ -154,13 +213,22 @@ const switchMode = (mode: 'form' | 'yaml') => {
   // 模式切换时进行数据转换
   if (mode === 'yaml') {
     // 表单转YAML
-    yamlContent.value = convertFormToYaml()
+    try {
+      // 使用表单配置中的描述
+      formConfig.desc = formData.description || formData.name
+      yamlContent.value = YamlUtils.formToYaml(formConfig)
+    } catch (error: any) {
+      ElMessage.error(`表单转YAML失败: ${error.message}`)
+      return
+    }
   } else {
     // YAML转表单
     try {
-      formConfig.steps = convertYamlToForm()
+      const form = YamlUtils.yamlToForm(yamlContent.value)
+      Object.assign(formConfig, form)
+      formData.description = formConfig.desc
     } catch (error: any) {
-      ElMessage.error('YAML格式错误,无法转换为表单模式')
+      ElMessage.error(`YAML转表单失败: ${error.message}`)
       return
     }
   }
@@ -169,43 +237,47 @@ const switchMode = (mode: 'form' | 'yaml') => {
   formData.config_mode = mode
 }
 
-const convertFormToYaml = (): string => {
-  // 简单的表单到YAML转换
-  const steps = formConfig.steps.map(step => {
-    const params = Object.entries(step.params)
-      .filter(([_, value]) => value !== undefined && value !== '')
-      .map(([key, value]) => `    ${key}: ${JSON.stringify(value)}`)
-      .join('\n')
-    
-    return `- ${step.keyword}:\n${params || '    # 无参数'}\n  name: ${step.name || step.keyword}`
-  })
-
-  return `# ${formData.name}
-# ${formData.description || ''}
-
-test:
-${steps.join('\n')}`
-}
-
-const convertYamlToForm = (): any[] => {
-  // 简单的YAML到表单转换 (实际应该用YAML解析库)
-  // 这里只是示例,实际需要更复杂的解析
-  ElMessage.info('YAML转表单功能需要完善')
-  return formConfig.steps
-}
-
 const formatYaml = () => {
-  // 格式化YAML
-  ElMessage.info('YAML格式化功能')
+  try {
+    yamlContent.value = YamlUtils.format(yamlContent.value)
+    ElMessage.success('YAML格式化成功')
+  } catch (error: any) {
+    ElMessage.error(`YAML格式化失败: ${error.message}`)
+  }
 }
 
 const validateYaml = () => {
-  // 验证YAML
-  try {
-    // 这里应该调用后端API验证
+  const result = YamlUtils.validate(yamlContent.value)
+  if (result.valid) {
     ElMessage.success('YAML格式正确')
+  } else {
+    ElMessage.error(`YAML格式错误: ${result.error}`)
+  }
+}
+
+const generateTemplate = () => {
+  yamlContent.value = YamlUtils.generateTemplate(formData.name || '测试用例')
+  ElMessage.success('已生成YAML模板')
+}
+
+const getStructure = () => {
+  try {
+    const structure = YamlUtils.getStructure(yamlContent.value)
+    yamlStructure.value = structure
+    ElMessage.success('YAML结构分析完成')
+  } catch (error: any) {
+    yamlStructure.value = null
+    ElMessage.error(`获取YAML结构失败: ${error.message}`)
+  }
+}
+
+const handleYamlChange = () => {
+  try {
+    // 实时更新YAML结构信息
+    const structure = YamlUtils.getStructure(yamlContent.value)
+    yamlStructure.value = structure
   } catch (error) {
-    ElMessage.error('YAML格式错误')
+    yamlStructure.value = null
   }
 }
 
@@ -221,6 +293,15 @@ const handleSave = async () => {
           config_mode: configMode.value,
           form_config: configMode.value === 'form' ? formConfig : undefined,
           yaml_config: configMode.value === 'yaml' ? yamlContent.value : undefined
+        }
+
+        // 如果是YAML模式，验证YAML格式
+        if (configMode.value === 'yaml') {
+          const validation = YamlUtils.validate(yamlContent.value)
+          if (!validation.valid) {
+            ElMessage.error(`YAML格式错误: ${validation.error}`)
+            return
+          }
         }
 
         if (isEdit.value && caseId.value) {
@@ -322,13 +403,41 @@ onMounted(async () => {
         }
       }
 
-      .yaml-editor {
-        font-family: 'Courier New', monospace;
-        font-size: 14px;
+      .yaml-editor-wrapper {
+        display: flex;
+        gap: 20px;
+        flex-direction: column;
 
-        :deep(textarea) {
+        .yaml-editor {
           font-family: 'Courier New', monospace;
-          line-height: 1.5;
+          font-size: 14px;
+
+          :deep(textarea) {
+            font-family: 'Courier New', monospace;
+            line-height: 1.5;
+            min-height: 400px;
+          }
+        }
+
+        .yaml-structure {
+          margin-top: 16px;
+          padding: 16px;
+          background-color: #f8f9fa;
+          border-radius: 6px;
+          border: 1px solid #e9ecef;
+
+          h4 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #495057;
+          }
+
+          :deep(.el-descriptions) {
+            .el-descriptions__body {
+              background-color: transparent;
+            }
+          }
         }
       }
     }

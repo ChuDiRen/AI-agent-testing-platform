@@ -70,6 +70,16 @@ const routes: RouteRecordRaw[] = [
         }
     },
     {
+        path: '/plugin/api-engine/batch-execution',
+        name: 'ApiEngineBatchExecution',
+        component: () => import('./views/BatchExecution.vue'),
+        meta: {
+            title: '批量执行',
+            icon: 'PlayCircleOutlined',
+            requiresAuth: true
+        }
+    },
+    {
         path: '/plugin/api-engine/executions/:id',
         name: 'ApiEngineExecutionDetail',
         component: () => import('./views/ExecutionConsole.vue'),

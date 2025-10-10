@@ -42,6 +42,7 @@
           </template>
           <el-menu-item index="api-engine-suites" @click="router.push('/plugin/api-engine/suites')">测试套件</el-menu-item>
           <el-menu-item index="api-engine-cases" @click="router.push('/plugin/api-engine/cases')">用例管理</el-menu-item>
+          <el-menu-item index="api-engine-batch-execution" @click="router.push('/plugin/api-engine/batch-execution')">批量执行</el-menu-item>
           <el-menu-item index="api-engine-executions" @click="router.push('/plugin/api-engine/executions')">执行历史</el-menu-item>
           <el-menu-item index="api-engine-keywords" @click="router.push('/plugin/api-engine/keywords')">关键字管理</el-menu-item>
         </el-sub-menu>
@@ -146,6 +147,18 @@ const updateActiveMenu = () => {
     activeMenu.value = 'message-setting'
   } else if (path.startsWith('/data/testdata')) {
     activeMenu.value = 'data-testdata'
+  } else if (path.startsWith('/plugin/api-engine/suites')) {
+    activeMenu.value = 'api-engine-suites'
+  } else if (path.startsWith('/plugin/api-engine/cases')) {
+    activeMenu.value = 'api-engine-cases'
+  } else if (path.startsWith('/plugin/api-engine/batch-execution')) {
+    activeMenu.value = 'api-engine-batch-execution'
+  } else if (path.startsWith('/plugin/api-engine/executions')) {
+    activeMenu.value = 'api-engine-executions'
+  } else if (path.startsWith('/plugin/api-engine/keywords')) {
+    activeMenu.value = 'api-engine-keywords'
+  } else if (path.startsWith('/plugin/api-engine')) {
+    activeMenu.value = 'api-engine-suites'  // 默认选中套件页面
   } else if (path.startsWith('/ai/chat')) {
     activeMenu.value = 'ai-chat'
   }

@@ -15,12 +15,14 @@ from .suite import router as suite_router
 from .case import router as case_router
 from .execution import router as execution_router
 from .keyword import router as keyword_router
+from .browser_test import router as browser_test_router
 
 # 挂载子路由
 router.include_router(suite_router, prefix="/suites", tags=["套件管理"])
 router.include_router(case_router, prefix="/cases", tags=["用例管理"])
 router.include_router(execution_router, prefix="/executions", tags=["执行管理"])
 router.include_router(keyword_router, prefix="/keywords", tags=["关键字管理"])
+router.include_router(browser_test_router, prefix="/browser", tags=["浏览器自动化测试"])
 
 
 @router.get("/health")

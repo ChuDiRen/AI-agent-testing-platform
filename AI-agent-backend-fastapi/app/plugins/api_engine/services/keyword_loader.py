@@ -36,8 +36,8 @@ class KeywordLoader:
         """加载内置关键字"""
         if self._builtin_keywords is None:
             try:
-                from ..engine.extend.keywords import Keywords
-                self._builtin_keywords = self._parse_keywords_class(Keywords)
+                from .builtin_keywords import BuiltinKeywords
+                self._builtin_keywords = BuiltinKeywords.get_builtin_keywords()
             except Exception as e:
                 print(f"加载内置关键字失败: {str(e)}")
                 self._builtin_keywords = []

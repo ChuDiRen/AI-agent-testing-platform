@@ -75,7 +75,7 @@ def execute_case_task(
         
         # 更新执行记录
         self.update_state(state='RUNNING', meta={'progress': 80, 'message': '保存结果'})
-        
+
         execution = db.query(ApiEngineExecution).filter_by(execution_id=execution_id).first()
         if execution:
             execution.status = result['status']
@@ -84,14 +84,34 @@ def execute_case_task(
             execution.error_message = result.get('error_message')
             execution.duration = duration
             execution.finished_at = datetime.now()
+
+            # 添加详细执行信息
+            execution.step_results = result.get('step_results', [])
+            execution.execution_context = result.get('context', {})
+            execution.start_time = result.get('start_time')
+            execution.end_time = result.get('end_time')
+            execution.execution_time = result.get('execution_time')
+
+            # 生成执行报告
+            from ..services.report_service import ReportService
+            case_info = {
+                "case_id": case_id,
+                "name": case.name if case else "未知用例",
+                "suite_name": suite.name if suite else "未知套件",
+                "executed_by": user_id
+            }
+            execution_report = ReportService.generate_execution_report(result, case_info)
+            execution.report_data = execution_report
+
             db.commit()
-        
+
         self.update_state(state='SUCCESS', meta={'progress': 100, 'message': '执行完成'})
-        
+
         return {
             'status': result['status'],
             'execution_id': execution_id,
             'duration': duration,
+            'step_count': len(result.get('step_results', [])),
             'message': '执行完成'
         }
         
