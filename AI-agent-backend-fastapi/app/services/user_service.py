@@ -86,7 +86,8 @@ class UserService:
         mobile: Optional[str] = None,
         dept_id: Optional[int] = None,
         ssex: Optional[str] = '2',
-        description: Optional[str] = None
+        description: Optional[str] = None,
+        status: Optional[str] = '1'
     ) -> User:
         """创建新用户"""
         from datetime import datetime
@@ -99,7 +100,7 @@ class UserService:
                 email=email,
                 mobile=mobile,
                 dept_id=dept_id,
-                status='1',  # 默认启用
+                status=status,  # 使用传入的状态值
                 ssex=ssex,
                 description=description,
                 create_time=datetime.now()

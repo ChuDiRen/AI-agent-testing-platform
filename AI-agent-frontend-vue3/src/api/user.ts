@@ -95,7 +95,10 @@ export function deleteUser(userId: number) {
  */
 export function exportUsersCSV(keyword?: string) {
   const params = keyword ? { keyword } : {}
-  return get<Blob>('/api/v1/users/export/csv', params)
+  return get<Blob>('/api/v1/users/export/csv', {
+    params,
+    responseType: 'blob'
+  })
 }
 
 /**
@@ -103,6 +106,9 @@ export function exportUsersCSV(keyword?: string) {
  */
 export function exportUsersJSON(keyword?: string) {
   const params = keyword ? { keyword } : {}
-  return get<Blob>('/api/v1/users/export/json', params)
+  return get<Blob>('/api/v1/users/export/json', {
+    params,
+    responseType: 'blob'
+  })
 }
 

@@ -26,7 +26,7 @@ from app.models.ai_chat import AIModel, ChatSession, ChatMessage
 from app.models.knowledge import KnowledgeBase, Document, DocumentChunk, SearchHistory
 
 # 导入插件模型
-from app.plugins.api_engine.models import ApiEngineSuite, ApiEngineCase, ApiEngineExecution, ApiEngineKeyword
+from app.plugins.api_engine.models import ApiEngineSuite, ApiEngineCase, ApiEngineExecution, ApiEngineKeyword, ApiEngineDDT, ApiEngineDDTExecution
 from app.plugins.api_engine.init_db import init_api_engine_plugin_db
 
 # 密码加密

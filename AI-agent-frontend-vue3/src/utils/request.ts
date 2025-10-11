@@ -34,9 +34,9 @@ service.interceptors.response.use(
     (response: AxiosResponse) => {
         const res = response.data
 
-        // 如果是文件下载,直接返回
+        // 如果是文件下载,直接返回Blob数据
         if (response.config.responseType === 'blob') {
-            return response
+            return response.data
         }
 
         // 统一处理响应

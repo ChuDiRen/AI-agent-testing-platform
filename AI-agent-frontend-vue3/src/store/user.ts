@@ -112,14 +112,28 @@ export const useUserStore = defineStore('user', () => {
   async function exportCSV(keyword?: string) {
     try {
       loading.value = true
-      const blob = await exportUsersCSV(keyword)
+      const response = await exportUsersCSV(keyword)
+
+      // 处理不同类型的响应
+      let blob: Blob
+      if (response instanceof Blob) {
+        blob = response
+      } else if (response && typeof response === 'object' && response.data instanceof Blob) {
+        blob = response.data
+      } else {
+        // 如果响应是字符串，创建Blob
+        const content = typeof response === 'string' ? response : JSON.stringify(response)
+        blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
+      }
 
       // 创建下载链接
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
       link.download = `users_${new Date().getTime()}.csv`
+      document.body.appendChild(link)
       link.click()
+      document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
 
       ElMessage.success('导出成功')
@@ -134,14 +148,28 @@ export const useUserStore = defineStore('user', () => {
   async function exportJSON(keyword?: string) {
     try {
       loading.value = true
-      const blob = await exportUsersJSON(keyword)
+      const response = await exportUsersJSON(keyword)
+
+      // 处理不同类型的响应
+      let blob: Blob
+      if (response instanceof Blob) {
+        blob = response
+      } else if (response && typeof response === 'object' && response.data instanceof Blob) {
+        blob = response.data
+      } else {
+        // 如果响应是字符串，创建Blob
+        const content = typeof response === 'string' ? response : JSON.stringify(response)
+        blob = new Blob([content], { type: 'application/json;charset=utf-8' })
+      }
 
       // 创建下载链接
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
       link.download = `users_${new Date().getTime()}.json`
+      document.body.appendChild(link)
       link.click()
+      document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
 
       ElMessage.success('导出成功')

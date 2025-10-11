@@ -16,6 +16,8 @@ class UserCreate(UserBase):
     password: str = Field(..., min_length=6, description="密码")
     dept_id: Optional[int] = Field(None, description="部门ID")
     ssex: Optional[str] = Field(None, description="性别 0男 1女 2保密")
+    status: Optional[str] = Field("1", description="状态 0锁定 1有效")
+    description: Optional[str] = Field(None, description="描述")
 
     @field_validator('password')
     @classmethod

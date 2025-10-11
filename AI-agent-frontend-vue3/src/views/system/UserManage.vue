@@ -14,7 +14,12 @@
           />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.is_active" placeholder="请选择状态" clearable>
+          <el-select
+            v-model="searchForm.is_active"
+            placeholder="请选择状态"
+            clearable
+            style="width: 120px"
+          >
             <el-option label="启用" :value="true" />
             <el-option label="禁用" :value="false" />
           </el-select>
@@ -236,7 +241,7 @@ const handleAdd = () => {
     email: '',
     mobile: '',
     description: '',
-    status: '1'
+    status: '1' // 默认启用状态，但用户可以修改
   })
   dialogVisible.value = true
 }

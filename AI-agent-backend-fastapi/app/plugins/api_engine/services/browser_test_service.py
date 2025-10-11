@@ -29,6 +29,7 @@ class BrowserTestService:
         self,
         name: str,
         description: str,
+        created_by: int,
         browser_type: str = 'chrome',
         browser_version: str = None,
         headless: bool = True,
@@ -39,8 +40,7 @@ class BrowserTestService:
         max_parallel: int = 3,
         environment: Dict = None,
         capabilities: Dict = None,
-        tags: str = None,
-        created_by: int
+        tags: str = None
     ) -> BrowserTestSuite:
         """创建测试套件"""
         suite = BrowserTestSuite(
@@ -148,14 +148,14 @@ class BrowserTestService:
         name: str,
         description: str,
         test_steps: List[Dict],
+        created_by: int,
         test_data: Dict = None,
         assertions: Dict = None,
         priority: str = 'P2',
         timeout: int = None,
         retry_count: int = None,
         tags: str = None,
-        sort_order: int = 0,
-        created_by: int
+        sort_order: int = 0
     ) -> BrowserTestCase:
         """创建测试用例"""
         case = BrowserTestCase(
@@ -389,6 +389,7 @@ class BrowserTestService:
         self,
         name: str,
         description: str,
+        created_by: int,
         base_url: str = None,
         proxy_config: Dict = None,
         network_conditions: Dict = None,
@@ -396,8 +397,7 @@ class BrowserTestService:
         capabilities: Dict = None,
         test_data_config: Dict = None,
         variables: Dict = None,
-        is_default: bool = False,
-        created_by: int
+        is_default: bool = False
     ) -> BrowserTestEnvironment:
         """创建测试环境"""
         environment = BrowserTestEnvironment(

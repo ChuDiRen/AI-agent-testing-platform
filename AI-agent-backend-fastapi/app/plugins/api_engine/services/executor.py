@@ -6,7 +6,7 @@ import yaml
 import io
 import sys
 from contextlib import redirect_stdout, redirect_stderr
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import re
 
 

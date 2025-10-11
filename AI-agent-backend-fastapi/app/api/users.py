@@ -140,7 +140,8 @@ async def create_user(
         mobile=user_data.mobile,
         dept_id=user_data.dept_id,
         ssex=user_data.ssex or '2',
-        description=None
+        description=user_data.description,
+        status=user_data.status or '1'
     )
 
     return APIResponse(
@@ -163,17 +164,18 @@ async def export_users_csv(
     # 转换为字典列表
     user_dicts = [
         {
-            "id": user.id,
+            "user_id": user.user_id,
             "username": user.username,
             "email": user.email,
-            "full_name": user.full_name,
-            "is_active": user.is_active,
-            "created_at": str(user.created_at)
+            "mobile": user.mobile,
+            "status": user.status,
+            "description": user.description,
+            "create_time": str(user.create_time)
         }
         for user in users
     ]
-    
-    headers = ["id", "username", "email", "full_name", "is_active", "created_at"]
+
+    headers = ["user_id", "username", "email", "mobile", "status", "description", "create_time"]
     csv_content = export_to_csv(user_dicts, headers)
     
     return StreamingResponse(
@@ -195,12 +197,13 @@ async def export_users_json(
     
     user_dicts = [
         {
-            "id": user.id,
+            "user_id": user.user_id,
             "username": user.username,
             "email": user.email,
-            "full_name": user.full_name,
-            "is_active": user.is_active,
-            "created_at": str(user.created_at)
+            "mobile": user.mobile,
+            "status": user.status,
+            "description": user.description,
+            "create_time": str(user.create_time)
         }
         for user in users
     ]

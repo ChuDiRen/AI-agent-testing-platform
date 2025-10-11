@@ -89,7 +89,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
 
@@ -194,31 +194,39 @@ const handleEdit = (row: RoleWithMenus) => {
   dialogVisible.value = true
 }
 
+// 提交状态
+const submitting = ref(false)
+
 // 提交
 const handleSubmit = async () => {
-  if (!formRef.value) return
-  
+  if (!formRef.value || submitting.value) return
+
   await formRef.value.validate(async (valid) => {
     if (!valid) return
-    
-    let success = false
-    if (formData.role_id) {
-      // 编辑
-      success = await roleStore.updateRole(formData.role_id, {
-        role_name: formData.role_name,
-        remark: formData.remark
-      })
-    } else {
-      // 新增
-      success = await roleStore.createRole({
-        role_name: formData.role_name!,
-        remark: formData.remark
-      })
-    }
-    
-    if (success) {
-      dialogVisible.value = false
-      handleSearch()
+
+    submitting.value = true
+    try {
+      let success = false
+      if (formData.role_id) {
+        // 编辑
+        success = await roleStore.updateRole(formData.role_id, {
+          role_name: formData.role_name,
+          remark: formData.remark
+        })
+      } else {
+        // 新增
+        success = await roleStore.createRole({
+          role_name: formData.role_name!,
+          remark: formData.remark
+        })
+      }
+
+      if (success) {
+        dialogVisible.value = false
+        handleSearch()
+      }
+    } finally {
+      submitting.value = false
     }
   })
 }
