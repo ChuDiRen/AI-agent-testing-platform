@@ -20,7 +20,9 @@
         </el-menu-item>
         </el-sub-menu>
         <el-menu-item v-else :index="item.frontpath">
-          <component :is="item.icon"></component>
+          <el-icon>
+            <component :is="item.icon"></component>
+          </el-icon>
           <span>{{ item.name }}</span>
         </el-menu-item>
       </template>
@@ -48,6 +50,11 @@ const handleSelect =(e)=>{
  router.push(e)
 }
 const asideMenus = [{
+    "name":"系统总览",
+    "icon":"Monitor",
+    "frontpath": "/Statistics"
+  },
+  {
     "name":"系统管理",
     "icon":"Tools",
      "child":[

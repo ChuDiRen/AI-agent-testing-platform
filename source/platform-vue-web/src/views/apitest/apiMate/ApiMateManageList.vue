@@ -24,7 +24,7 @@
         :prop="col.prop"
         :label="col.label"
         :key="col.prop"
-        show-overflow-tooltip="true"
+        :show-overflow-tooltip="true"
       />
 
       <!-- 操作 -->
@@ -70,7 +70,7 @@ const pageSize = ref(10);
 const total = ref(0);
 
 // 搜索功能 - 筛选表单
-const searchForm = reactive({ "mate_name": "","project_id": ""});
+const searchForm = reactive({ "mate_name": null, "project_id": null });
 
 // 表格列 - 不同页面不同的列
 const columnList = ref([

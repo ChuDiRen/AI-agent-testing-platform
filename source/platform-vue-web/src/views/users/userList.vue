@@ -15,7 +15,7 @@
         <!-- 数据列 -->
         <!-- 默认情况下，如果单元格内容过长，会占用多行显示。 若需要单行显示可以使用 show-overflow-tooltip -->
         <el-table-column v-for="col in columnList" :prop="col.prop" :label="col.label" :key="col.prop"
-            show-overflow-tooltip="true" />
+            :show-overflow-tooltip="true" />
         <!-- 操作 -->
         <el-table-column fixed="right" label="操作">
             <template #default="scope">
@@ -50,7 +50,7 @@ const pageSize = ref(10)
 const total = ref(0)
 
 // 搜索功能 - 筛选表单
-const searchForm = reactive({"username":""})
+const searchForm = reactive({"username": null})
 
 // 表格列 - 不同页面不同的列
 const columnList = ref([

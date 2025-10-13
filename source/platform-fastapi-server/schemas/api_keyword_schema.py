@@ -1,12 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 class ApiKeyWordQuery(BaseModel): # API关键字查询请求
-    page: int = 1
-    pageSize: int = 10
-    name: Optional[str] = ""
-    operation_type_id: Optional[int] = 0
-    page_id: Optional[int] = 0
+    page: int = Field(default=1, ge=1, description="页码")
+    pageSize: int = Field(default=10, ge=1, le=100, description="每页大小")
+    name: Optional[str] = Field(default=None, description="关键字名称")
+    operation_type_id: Optional[int] = Field(default=None, description="操作类型ID")
+    page_id: Optional[int] = Field(default=None, description="页面ID")
 
 class ApiKeyWordCreate(BaseModel): # API关键字创建请求
     name: str

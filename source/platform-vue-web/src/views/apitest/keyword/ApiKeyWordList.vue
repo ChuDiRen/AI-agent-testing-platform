@@ -91,7 +91,7 @@ const pageSize = ref(10);
 const total = ref(0);
 
 // 搜索功能 - 筛选表单
-const searchForm = reactive({ "name": "", "operation_type_id": "" });
+const searchForm = reactive({ "name": null, "operation_type_id": null });
 
 // 表格列 - 不同页面不同的列
 const columnList = ref([
