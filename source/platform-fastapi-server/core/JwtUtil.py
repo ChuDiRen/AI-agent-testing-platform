@@ -1,0 +1,26 @@
+from jose import jwt, JWTError
+from datetime import datetime, timedelta
+from config.dev_settings import settings
+from typing import Optional, Dict
+
+class JwtUtils:
+    
+    @staticmethod
+    def create_token(username: str, password: str) -> str: # 创建JWT token
+        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        payload = {
+            "username": username,
+            "password": password,
+            "exp": expire
+        }
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        return token
+    
+    @staticmethod
+    def verify_token(token: str) -> Optional[Dict]: # 验证JWT token
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            return payload
+        except JWTError as e:
+            print(f"无法校验的token: {e}")
+            return None
