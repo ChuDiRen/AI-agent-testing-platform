@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """FastAPI应用入口"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
