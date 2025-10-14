@@ -129,6 +129,28 @@ def create_initial_menus():
                 {"menu_id": 130, "parent_id": 103, "menu_name": "新增素材", "path": "", "component": "", "perms": "apitest:mate:add", "icon": "", "type": "1", "order_num": 1},
                 {"menu_id": 131, "parent_id": 103, "menu_name": "编辑素材", "path": "", "component": "", "perms": "apitest:mate:edit", "icon": "", "type": "1", "order_num": 2},
                 {"menu_id": 132, "parent_id": 103, "menu_name": "删除素材", "path": "", "component": "", "perms": "apitest:mate:delete", "icon": "", "type": "1", "order_num": 3},
+                
+                # 接口信息管理
+                {"menu_id": 140, "parent_id": 100, "menu_name": "接口信息管理", "path": "/apitest/apiinfo", "component": "apitest/apiinfo/index", "perms": "apitest:apiinfo:view", "icon": "el-icon-monitor", "type": "0", "order_num": 4},
+                {"menu_id": 141, "parent_id": 100, "menu_name": "接口分组管理", "path": "/apitest/apigroup", "component": "apitest/apigroup/index", "perms": "apitest:apigroup:view", "icon": "el-icon-folder", "type": "0", "order_num": 5},
+                {"menu_id": 142, "parent_id": 100, "menu_name": "测试历史记录", "path": "/apitest/testhistory", "component": "apitest/testhistory/index", "perms": "apitest:testhistory:view", "icon": "el-icon-document-copy", "type": "0", "order_num": 6},
+                
+                # 接口信息管理按钮权限
+                {"menu_id": 150, "parent_id": 140, "menu_name": "新增接口", "path": "", "component": "", "perms": "apitest:apiinfo:add", "icon": "", "type": "1", "order_num": 1},
+                {"menu_id": 151, "parent_id": 140, "menu_name": "编辑接口", "path": "", "component": "", "perms": "apitest:apiinfo:edit", "icon": "", "type": "1", "order_num": 2},
+                {"menu_id": 152, "parent_id": 140, "menu_name": "删除接口", "path": "", "component": "", "perms": "apitest:apiinfo:delete", "icon": "", "type": "1", "order_num": 3},
+                {"menu_id": 153, "parent_id": 140, "menu_name": "测试执行", "path": "", "component": "", "perms": "apitest:apiinfo:test", "icon": "", "type": "1", "order_num": 4},
+                {"menu_id": 154, "parent_id": 140, "menu_name": "查看详情", "path": "", "component": "", "perms": "apitest:apiinfo:detail", "icon": "", "type": "1", "order_num": 5},
+                
+                # 接口分组管理按钮权限
+                {"menu_id": 160, "parent_id": 141, "menu_name": "新增分组", "path": "", "component": "", "perms": "apitest:apigroup:add", "icon": "", "type": "1", "order_num": 1},
+                {"menu_id": 161, "parent_id": 141, "menu_name": "编辑分组", "path": "", "component": "", "perms": "apitest:apigroup:edit", "icon": "", "type": "1", "order_num": 2},
+                {"menu_id": 162, "parent_id": 141, "menu_name": "删除分组", "path": "", "component": "", "perms": "apitest:apigroup:delete", "icon": "", "type": "1", "order_num": 3},
+                
+                # 测试历史记录按钮权限
+                {"menu_id": 170, "parent_id": 142, "menu_name": "查看报告", "path": "", "component": "", "perms": "apitest:testhistory:report", "icon": "", "type": "1", "order_num": 1},
+                {"menu_id": 171, "parent_id": 142, "menu_name": "删除记录", "path": "", "component": "", "perms": "apitest:testhistory:delete", "icon": "", "type": "1", "order_num": 2},
+                {"menu_id": 172, "parent_id": 142, "menu_name": "重新执行", "path": "", "component": "", "perms": "apitest:testhistory:rerun", "icon": "", "type": "1", "order_num": 3},
             ]
 
             for menu_data in initial_menus:
@@ -214,7 +236,7 @@ def create_initial_role_menus():
             # 获取所有菜单ID
             statement = select(Menu)
             all_menus = session.exec(statement).all()
-            all_menu_ids = [menu.menu_id for menu in all_menus]
+            all_menu_ids = [menu.id for menu in all_menus]  # 修复：使用menu.id而不是menu.menu_id
             
             # 超级管理员拥有所有权限
             for menu_id in all_menu_ids:

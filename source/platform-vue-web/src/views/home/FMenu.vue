@@ -89,6 +89,9 @@ const routePathMap = {
   '/apitest/project': '/ApiProjectList',
   '/apitest/keyword': '/ApiKeyWordList',
   '/apitest/mate': '/ApiMateManageList',
+  '/apitest/apiinfo': '/ApiInfoList',
+  '/apitest/apigroup': '/ApiGroupList',
+  '/apitest/testhistory': '/ApiTestHistory',
 }
 
 // 将后端的菜单树转换为前端侧边栏结构

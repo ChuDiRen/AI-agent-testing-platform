@@ -31,6 +31,18 @@ import ApiKeyWordList from '~/views/apitest/keyword/ApiKeyWordList.vue'
 import ApiMateManageForm from '~/views/apitest/apiMate/ApiMateManageForm.vue'
 import ApiMateManageList from '~/views/apitest/apiMate/ApiMateManageList.vue'
 
+// 接口信息管理相关导入
+import ApiInfoList from '~/views/apitest/apiinfo/ApiInfoList.vue'
+import ApiInfoForm from '~/views/apitest/apiinfo/ApiInfoForm.vue'
+import ApiInfoEditor from '~/views/apitest/apiinfo/ApiInfoEditor.vue'
+
+// 接口分组管理相关导入
+import ApiGroupList from '~/views/apitest/apigroup/ApiGroupList.vue'
+import ApiGroupForm from '~/views/apitest/apigroup/ApiGroupForm.vue'
+
+// 测试历史相关导入
+import ApiTestHistory from '~/views/apitest/testhistory/ApiTestHistory.vue'
+
 const cookies = useCookies()
 const routes = [
     {
@@ -132,6 +144,42 @@ const routes = [
             component: ApiMateManageList,
             meta: {
                 title: "素材维护管列表页面"
+            }
+        }, {
+            path: "/ApiInfoList",
+            component: ApiInfoList,
+            meta: {
+                title: "接口信息管理"
+            }
+        }, {
+            path: "/ApiInfoForm",
+            component: ApiInfoForm,
+            meta: {
+                title: "接口信息表单"
+            }
+        }, {
+            path: "/ApiInfoEditor",
+            component: ApiInfoEditor,
+            meta: {
+                title: "接口测试编辑器"
+            }
+        }, {
+            path: "/ApiGroupList",
+            component: ApiGroupList,
+            meta: {
+                title: "接口分组管理"
+            }
+        }, {
+            path: "/ApiGroupForm",
+            component: ApiGroupForm,
+            meta: {
+                title: "接口分组表单"
+            }
+        }, {
+            path: "/ApiTestHistory",
+            component: ApiTestHistory,
+            meta: {
+                title: "测试历史记录"
             }
         }
         ]
