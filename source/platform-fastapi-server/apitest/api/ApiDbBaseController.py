@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 from core.resp_model import respModel
 from apitest.model.ApiDbBaseModel import ApiDbBase
-from schemas.api_database_schema import ApiDbBaseQuery, ApiDbBaseCreate, ApiDbBaseUpdate
+from apitest.schemas.api_database_schema import ApiDbBaseQuery, ApiDbBaseCreate, ApiDbBaseUpdate
 from core.database import get_session
 from datetime import datetime
 

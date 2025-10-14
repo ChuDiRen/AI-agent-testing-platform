@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 from core.resp_model import respModel
 from sysmanage.model.user import User
-from schemas.user_schema import UserQuery, UserCreate, UserUpdate
+from sysmanage.schemas.user_schema import UserQuery, UserCreate, UserUpdate
 from core.database import get_session
 from datetime import datetime
 

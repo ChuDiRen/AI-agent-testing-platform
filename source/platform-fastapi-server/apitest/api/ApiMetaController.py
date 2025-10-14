@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query, File, UploadFile, Form
 from sqlmodel import Session, select
 from core.resp_model import respModel
 from apitest.model.ApiMetaModel import ApiMeta
-from schemas.api_meta_schema import ApiMetaQuery, ApiMetaUpdate
+from apitest.schemas.api_meta_schema import ApiMetaQuery, ApiMetaUpdate
 from core.database import get_session
 from core.dependencies import get_minio_client
 from core.MinioUtils import MinioUtils

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 from core.resp_model import respModel
 from apitest.model.ApiKeyWordModel import ApiKeyWord
-from schemas.api_keyword_schema import ApiKeyWordQuery, ApiKeyWordCreate, ApiKeyWordUpdate, KeywordFileRequest
+from apitest.schemas.api_keyword_schema import ApiKeyWordQuery, ApiKeyWordCreate, ApiKeyWordUpdate, KeywordFileRequest
 from core.database import get_session
 from config.dev_settings import settings
 from datetime import datetime

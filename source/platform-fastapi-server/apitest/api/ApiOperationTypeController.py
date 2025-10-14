@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 from core.resp_model import respModel
 from apitest.model.ApiOperationTypeModel import OperationType
-from schemas.operation_type_schema import OperationTypeQuery, OperationTypeCreate, OperationTypeUpdate
+from apitest.schemas.operation_type_schema import OperationTypeQuery, OperationTypeCreate, OperationTypeUpdate
 from core.database import get_session
 from datetime import datetime
 
