@@ -41,6 +41,7 @@ import { ref } from "vue"
 import { getDeptTree, deleteData } from './dept'
 import { formatDateTime } from '~/utils/timeFormatter'
 import { useRouter } from "vue-router"
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 
@@ -49,8 +50,16 @@ const tableData = ref([])
 
 // 加载页面数据（树形结构）
 const loadData = () => {
-    getDeptTree().then((res: { data: { data: never[]; msg: string }; }) => {
-        tableData.value = res.data.data
+    getDeptTree().then((res: { data: { code: number; data: never[]; msg: string }; }) => {
+        if (res.data.code === 200) {
+            tableData.value = res.data.data || []
+            ElMessage.success('查询成功')
+        } else {
+            ElMessage.error(res.data.msg || '查询失败')
+        }
+    }).catch((error: any) => {
+        console.error('查询失败:', error)
+        ElMessage.error('查询失败，请稍后重试')
     })
 }
 loadData()
@@ -75,8 +84,28 @@ const onDataForm = (deptId: number, parentId: number | null) => {
 
 // 删除数据
 const onDelete = (deptId: number) => {
-    deleteData(deptId).then((res: {}) => {
-        loadData()
+    ElMessageBox.confirm(
+        '确定要删除该部门吗？',
+        '删除确认',
+        {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+        }
+    ).then(() => {
+        deleteData(deptId).then((res: { data: { code: number; msg: string } }) => {
+            if (res.data.code === 200) {
+                ElMessage.success('删除成功')
+                loadData()
+            } else {
+                ElMessage.error(res.data.msg || '删除失败')
+            }
+        }).catch((error: any) => {
+            console.error('删除失败:', error)
+            ElMessage.error('删除失败，请稍后重试')
+        })
+    }).catch(() => {
+        ElMessage.info('已取消删除')
     })
 }
 </script>

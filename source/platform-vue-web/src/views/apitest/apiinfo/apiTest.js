@@ -1,35 +1,28 @@
-import axios from '~/axios'  // 修复：使用配置好的axios实例
+import axios from '~/axios'
 
-const API_BASE_URL = '/ApiTest'  // 修复：移除/api前缀，因为axios已经配置了baseURL
+const module_name = "ApiTestHistory" // 模块名称
 
-// 执行接口测试
-export const executeApiTest = (data) => {
-    return axios.post(`${API_BASE_URL}/execute`, data)
+// 执行API测试
+export function executeApiTest(data) {
+    return axios.post(`/${module_name}/executeTest`, data)
 }
 
-// 查询测试状态
-export const getTestStatus = (testId) => {
-    return axios.get(`${API_BASE_URL}/status`, {
-        params: { test_id: testId }
-    })
+// 查询测试历史（分页）
+export function queryTestHistory(params) {
+    return axios.post(`/${module_name}/queryByPage`, params)
 }
 
-// 分页查询测试历史
-export const queryTestHistoryByPage = (data) => {
-    return axios.post(`${API_BASE_URL}/queryByPage`, data)
+// 查询测试历史（分页） - 别名
+export function queryTestHistoryByPage(params) {
+    return axios.post(`/${module_name}/queryByPage`, params)
 }
 
 // 根据ID查询测试历史
-export const getTestHistoryById = (id) => {
-    return axios.get(`${API_BASE_URL}/queryById`, {
-        params: { id }
-    })
+export function queryTestHistoryById(id) {
+    return axios.get(`/${module_name}/queryById?id=${id}`)
 }
 
 // 删除测试历史
-export const deleteTestHistory = (id) => {
-    return axios.delete(`${API_BASE_URL}/delete`, {
-        params: { id }
-    })
+export function deleteTestHistory(id) {
+    return axios.delete(`/${module_name}/delete?id=${id}`)
 }
-

@@ -1,375 +1,651 @@
 <template>
   <div class="api-editor-container">
-    <el-card class="header-card">
-      <div class="editor-header">
-        <el-input
-          v-model="apiInfo.api_name"
-          placeholder="接口名称"
-          class="name-input"
-        />
-        <el-button type="primary" @click="saveApiInfo">保存</el-button>
-        <el-button type="success" @click="executeTest">发送测试</el-button>
-        <el-button @click="goBack">返回</el-button>
+    <!-- 顶部操作栏 -->
+    <el-card class="header-card" shadow="never">
+      <div class="header-actions">
+        <el-button type="primary" @click="handleSave">保存</el-button>
+        <el-button type="success" @click="handleContinueEdit">继续编辑</el-button>
+        <el-button @click="goBack">关闭</el-button>
       </div>
     </el-card>
 
-    <div class="editor-content">
-      <!-- 左侧请求配置 -->
-      <div class="left-panel">
-        <el-card>
-          <template #header>
-            <span>请求配置</span>
-          </template>
-          
-          <!-- URL和请求方法 -->
-          <div class="url-row">
-            <el-select v-model="apiInfo.request_method" style="width: 120px">
-              <el-option label="GET" value="GET" />
-              <el-option label="POST" value="POST" />
-              <el-option label="PUT" value="PUT" />
-              <el-option label="DELETE" value="DELETE" />
-              <el-option label="PATCH" value="PATCH" />
-            </el-select>
-            <el-input
-              v-model="apiInfo.request_url"
-              placeholder="请输入请求URL"
-              class="url-input"
-            />
+    <!-- 基础信息区 -->
+    <el-card class="info-card" shadow="never">
+      <div class="base-info">
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <div class="info-item">
+              <label>接口编号：</label>
+              <el-input v-model="formData.id" disabled size="small" style="width: 200px" />
+            </div>
+          </el-col>
+          <el-col :span="8">
+            <div class="info-item">
+              <label>接口名称：</label>
+              <el-input v-model="formData.api_name" placeholder="示例：登录接口" size="small" style="width: 200px" />
+            </div>
+          </el-col>
+          <el-col :span="8">
+            <div class="info-item">
+              <label>所属项目ID：</label>
+              <el-select v-model="formData.project_id" placeholder="选择项目" size="small" style="width: 200px">
+                <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id" />
+              </el-select>
+            </div>
+          </el-col>
+        </el-row>
+        
+        <div class="info-item" style="margin-top: 15px">
+          <label>接口描述：</label>
+          <el-input 
+            v-model="formData.description" 
+            type="textarea" 
+            :rows="2" 
+            placeholder="请输入接口描述"
+            style="width: 100%"
+          />
+        </div>
+      </div>
+    </el-card>
+
+    <!-- 接口信息区 -->
+    <el-card class="request-card" shadow="never">
+      <template #header>
+        <span class="card-title">接口信息</span>
+      </template>
+
+      <!-- 请求方法和URL -->
+      <div class="request-line">
+        <el-select v-model="formData.request_method" size="large" style="width: 120px">
+          <el-option label="GET" value="GET" />
+          <el-option label="POST" value="POST" />
+          <el-option label="PUT" value="PUT" />
+          <el-option label="DELETE" value="DELETE" />
+          <el-option label="PATCH" value="PATCH" />
+        </el-select>
+        <el-input 
+          v-model="formData.request_url" 
+          placeholder="http://shop-xo.hctestedu.com/?application=app&s=api/user/login"
+          size="large"
+          style="flex: 1; margin-left: 10px"
+        />
+      </div>
+
+      <!-- URL参数标签页 -->
+      <el-tabs v-model="activeTab" class="url-params-tabs">
+        <!-- 请求头 Header -->
+        <el-tab-pane label="请求头Header" name="header">
+          <div class="params-editor">
+            <el-table :data="headerParams" border size="small">
+              <el-table-column prop="key" label="参数名" width="200">
+                <template #default="scope">
+                  <el-input v-model="scope.row.key" placeholder="参数名" size="small" />
+                </template>
+              </el-table-column>
+              <el-table-column prop="value" label="参数值">
+                <template #default="scope">
+                  <el-input v-model="scope.row.value" placeholder="参数值" size="small" />
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="100" align="center">
+                <template #default="scope">
+                  <el-button type="danger" link size="small" @click="removeHeaderParam(scope.$index)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-button type="primary" link size="small" @click="addHeaderParam" style="margin-top: 10px">+ 添加参数</el-button>
+          </div>
+        </el-tab-pane>
+
+        <!-- 请求Body -->
+        <el-tab-pane label="请求Body" name="body">
+          <el-radio-group v-model="bodyType" size="small" style="margin-bottom: 15px">
+            <el-radio-button label="none">无</el-radio-button>
+            <el-radio-button label="form-data">form-data</el-radio-button>
+            <el-radio-button label="x-www-form-urlencoded">x-www-form-urlencoded</el-radio-button>
+            <el-radio-button label="raw">raw (JSON)</el-radio-button>
+          </el-radio-group>
+
+          <!-- form-data -->
+          <div v-if="bodyType === 'form-data'" class="params-editor">
+            <el-table :data="formDataParams" border size="small">
+              <el-table-column prop="key" label="参数名" width="200">
+                <template #default="scope">
+                  <el-input v-model="scope.row.key" placeholder="参数名" size="small" />
+                </template>
+              </el-table-column>
+              <el-table-column prop="value" label="参数值">
+                <template #default="scope">
+                  <el-input v-model="scope.row.value" placeholder="参数值" size="small" />
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="100" align="center">
+                <template #default="scope">
+                  <el-button type="danger" link size="small" @click="removeFormDataParam(scope.$index)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-button type="primary" link size="small" @click="addFormDataParam" style="margin-top: 10px">+ 添加参数</el-button>
           </div>
 
-          <!-- 请求参数标签页 -->
-          <el-tabs v-model="activeTab" class="request-tabs">
-            <!-- Params -->
-            <el-tab-pane label="Params" name="params">
-              <RequestParams v-model="apiInfo.request_params" />
-            </el-tab-pane>
+          <!-- x-www-form-urlencoded -->
+          <div v-else-if="bodyType === 'x-www-form-urlencoded'" class="params-editor">
+            <el-table :data="wwwFormParams" border size="small">
+              <el-table-column prop="key" label="参数名" width="200">
+                <template #default="scope">
+                  <el-input v-model="scope.row.key" placeholder="参数名" size="small" />
+                </template>
+              </el-table-column>
+              <el-table-column prop="value" label="参数值">
+                <template #default="scope">
+                  <el-input v-model="scope.row.value" placeholder="参数值" size="small" />
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="100" align="center">
+                <template #default="scope">
+                  <el-button type="danger" link size="small" @click="removeWwwFormParam(scope.$index)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-button type="primary" link size="small" @click="addWwwFormParam" style="margin-top: 10px">+ 添加参数</el-button>
+          </div>
 
-            <!-- Headers -->
-            <el-tab-pane label="Headers" name="headers">
-              <RequestHeaders v-model="apiInfo.request_headers" />
-            </el-tab-pane>
+          <!-- raw (JSON) -->
+          <div v-else-if="bodyType === 'raw'">
+            <el-input 
+              v-model="jsonBody" 
+              type="textarea" 
+              :rows="10" 
+              placeholder='{\n  "username": "admin",\n  "password": "123456"\n}'
+              style="font-family: monospace"
+            />
+          </div>
+        </el-tab-pane>
 
-            <!-- Body -->
-            <el-tab-pane label="Body" name="body" v-if="showBodyTab">
-              <RequestBody
-                v-model:formData="apiInfo.request_form_datas"
-                v-model:wwwFormData="apiInfo.request_www_form_datas"
-                v-model:jsonData="apiInfo.requests_json_data"
-                v-model:files="apiInfo.request_files"
-              />
-            </el-tab-pane>
+        <!-- 变量定义 -->
+        <el-tab-pane label="变量定义" name="variables">
+          <div class="params-editor">
+            <el-table :data="variableParams" border size="small">
+              <el-table-column prop="key" label="变量名" width="200">
+                <template #default="scope">
+                  <el-input v-model="scope.row.key" placeholder="变量名" size="small" />
+                </template>
+              </el-table-column>
+              <el-table-column prop="value" label="变量值">
+                <template #default="scope">
+                  <el-input v-model="scope.row.value" placeholder="变量值" size="small" />
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="100" align="center">
+                <template #default="scope">
+                  <el-button type="danger" link size="small" @click="removeVariableParam(scope.$index)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-button type="primary" link size="small" @click="addVariableParam" style="margin-top: 10px">+ 添加变量</el-button>
+          </div>
+        </el-tab-pane>
 
-            <!-- Pre-Script -->
-            <el-tab-pane label="Pre-Script" name="pre-script">
-              <ScriptPanel v-model="preScript" placeholder="前置脚本（在请求发送前执行）" />
-            </el-tab-pane>
+        <!-- 测试编辑器 -->
+        <el-tab-pane label="测试编辑器" name="test">
+          <el-alert title="提示" type="info" :closable="false" style="margin-bottom: 15px">
+            这里可以编写测试断言和脚本
+          </el-alert>
+          <el-input 
+            v-model="testScript" 
+            type="textarea" 
+            :rows="10" 
+            placeholder="// 编写测试脚本示例：&#10;// assert(response.code === 200, '状态码应为200');"
+            style="font-family: monospace"
+          />
+        </el-tab-pane>
+      </el-tabs>
+    </el-card>
 
-            <!-- Post-Script -->
-            <el-tab-pane label="Post-Script" name="post-script">
-              <ScriptPanel v-model="postScript" placeholder="后置脚本（在请求完成后执行）" />
-            </el-tab-pane>
+    <!-- 测试结果区 -->
+    <el-card v-if="showTestResult" class="result-card" shadow="never">
+      <template #header>
+        <div class="result-header">
+          <span class="card-title">测试结果</span>
+          <el-tag v-if="testResult.status" :type="testResult.status === 'success' ? 'success' : 'danger'">
+            {{ testResult.status === 'success' ? '成功' : '失败' }}
+          </el-tag>
+        </div>
+      </template>
 
-            <!-- Assertions -->
-            <el-tab-pane label="Assertions" name="assertions">
-              <AssertPanel v-model="assertions" />
-            </el-tab-pane>
-
-            <!-- Variables -->
-            <el-tab-pane label="Variables" name="variables">
-              <VariablePanel v-model="contextVars" />
-            </el-tab-pane>
-          </el-tabs>
-        </el-card>
-      </div>
-
-      <!-- 右侧响应结果 -->
-      <div class="right-panel">
-        <el-card>
-          <template #header>
-            <div class="response-header">
-              <span>响应结果</span>
-              <el-tag v-if="testResult.status" :type="testResult.status === 'success' ? 'success' : 'danger'">
-                {{ testResult.status === 'success' ? '成功' : '失败' }}
-              </el-tag>
-            </div>
-          </template>
-          
-          <ResponsePanel :result="testResult" :loading="testLoading" />
-        </el-card>
-
-        <!-- YAML预览 -->
-        <el-card class="yaml-card">
-          <template #header>
-            <span>YAML用例预览</span>
-          </template>
-          <YamlPreview :apiInfo="apiInfo" :contextVars="contextVars" :assertions="assertions" />
-        </el-card>
-      </div>
-    </div>
+      <el-tabs v-model="resultTab">
+        <el-tab-pane label="响应Body" name="response">
+          <pre class="response-content">{{ formatJson(testResult.response) }}</pre>
+        </el-tab-pane>
+        <el-tab-pane label="响应头" name="headers">
+          <pre class="response-content">{{ formatJson(testResult.headers) }}</pre>
+        </el-tab-pane>
+        <el-tab-pane label="请求详情" name="request">
+          <pre class="response-content">{{ formatJson(testResult.request) }}</pre>
+        </el-tab-pane>
+      </el-tabs>
+    </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import RequestParams from './components/RequestParams.vue'
-import RequestHeaders from './components/RequestHeaders.vue'
-import RequestBody from './components/RequestBody.vue'
-import ScriptPanel from './components/ScriptPanel.vue'
-import AssertPanel from './components/AssertPanel.vue'
-import VariablePanel from './components/VariablePanel.vue'
-import ResponsePanel from './components/ResponsePanel.vue'
-import YamlPreview from './components/YamlPreview.vue'
-import { queryById as getApiInfo, insertData as createApiInfo, updateData as updateApiInfo } from './apiinfo.js'  // 修复：使用正确的导出名称
-import { executeApiTest, getTestStatus } from './apiTest.js'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { queryById, insertData, updateData } from './apiinfo.js'
+import { queryByPage as getProjectList } from '../project/ApiProject.js'
+import { executeApiTest } from './apiTest.js'
 
-const route = useRoute()
 const router = useRouter()
+const route = useRoute()
 
-// 当前激活的标签页
-const activeTab = ref('params')
+// 项目列表
+const projectList = ref([])
 
-// 接口信息
-const apiInfo = ref({
+// 表单数据
+const formData = reactive({
   id: null,
   api_name: '',
-  request_url: '',
-  request_method: 'GET',
-  request_params: '{}',
-  request_headers: '{}',
-  request_form_datas: '{}',
-  request_www_form_datas: '{}',
-  requests_json_data: '{}',
-  request_files: '{}',
   project_id: null,
-  group_id: null
+  description: '',
+  request_method: 'POST',
+  request_url: '',
+  request_headers: '',
+  request_params: '',
+  request_form_datas: '',
+  request_www_form_datas: '',
+  requests_json_data: '',
+  request_files: '',
+  debug_vars: ''
 })
 
-// 测试相关数据
-const preScript = ref([])
-const postScript = ref([])
-const assertions = ref([])
-const contextVars = ref({})
-const testResult = ref({})
-const testLoading = ref(false)
+// 当前激活的标签
+const activeTab = ref('header')
+const resultTab = ref('response')
 
-// 是否显示Body标签页
-const showBodyTab = computed(() => {
-  return ['POST', 'PUT', 'PATCH'].includes(apiInfo.value.request_method)
+// Body类型
+const bodyType = ref('none')
+
+// 参数列表
+const headerParams = ref([])
+const formDataParams = ref([])
+const wwwFormParams = ref([])
+const variableParams = ref([])
+
+// JSON Body
+const jsonBody = ref('')
+
+// 测试脚本
+const testScript = ref('')
+
+// 测试结果
+const showTestResult = ref(false)
+const testResult = reactive({
+  status: null,
+  response: null,
+  headers: null,
+  request: null
 })
 
-// 监听请求方法变化，自动切换标签页
-watch(() => apiInfo.value.request_method, (newMethod) => {
-  if (['POST', 'PUT', 'PATCH'].includes(newMethod) && activeTab.value === 'params') {
-    activeTab.value = 'body'
-  } else if (!['POST', 'PUT', 'PATCH'].includes(newMethod) && activeTab.value === 'body') {
-    activeTab.value = 'params'
-  }
-})
-
-// 加载接口信息
-const loadApiInfo = async () => {
-  const id = route.params.id
-  if (id && id !== 'new') {
-    try {
-      const res = await getApiInfo(id)
-      if (res.code === 200 && res.data) {
-        apiInfo.value = res.data
-      }
-    } catch (error) {
-      ElMessage.error('加载接口信息失败')
+// 加载项目列表
+const loadProjectList = async () => {
+  try {
+    const res = await getProjectList({ page: 1, pageSize: 1000 })
+    if (res.data.code === 200) {
+      projectList.value = res.data.data || []
     }
+  } catch (error) {
+    console.error('加载项目列表失败:', error)
   }
 }
 
-// 保存接口信息
-const saveApiInfo = async () => {
-  if (!apiInfo.value.api_name) {
+// 加载接口数据
+const loadApiInfo = async (id) => {
+  try {
+    const res = await queryById(id)
+    if (res.data.code === 200 && res.data.data) {
+      const data = res.data.data
+      Object.keys(formData).forEach(key => {
+        if (data[key] !== undefined) {
+          formData[key] = data[key]
+        }
+      })
+      
+      // 解析参数
+      parseParams()
+    }
+  } catch (error) {
+    console.error('加载接口数据失败:', error)
+    ElMessage.error('加载接口数据失败')
+  }
+}
+
+// 解析参数
+const parseParams = () => {
+  try {
+    // 解析Header
+    if (formData.request_headers) {
+      const headers = JSON.parse(formData.request_headers)
+      headerParams.value = Object.entries(headers).map(([key, value]) => ({ key, value }))
+    }
+    
+    // 解析form-data
+    if (formData.request_form_datas) {
+      const formDatas = JSON.parse(formData.request_form_datas)
+      formDataParams.value = Object.entries(formDatas).map(([key, value]) => ({ key, value }))
+      if (formDataParams.value.length > 0) bodyType.value = 'form-data'
+    }
+    
+    // 解析www-form
+    if (formData.request_www_form_datas) {
+      const wwwForms = JSON.parse(formData.request_www_form_datas)
+      wwwFormParams.value = Object.entries(wwwForms).map(([key, value]) => ({ key, value }))
+      if (wwwFormParams.value.length > 0) bodyType.value = 'x-www-form-urlencoded'
+    }
+    
+    // 解析JSON Body
+    if (formData.requests_json_data) {
+      jsonBody.value = typeof formData.requests_json_data === 'string' 
+        ? formData.requests_json_data 
+        : JSON.stringify(JSON.parse(formData.requests_json_data), null, 2)
+      if (jsonBody.value) bodyType.value = 'raw'
+    }
+    
+    // 解析变量
+    if (formData.debug_vars) {
+      const vars = JSON.parse(formData.debug_vars)
+      variableParams.value = Object.entries(vars).map(([key, value]) => ({ key, value }))
+    }
+  } catch (error) {
+    console.error('解析参数失败:', error)
+  }
+}
+
+// 序列化参数
+const serializeParams = () => {
+  try {
+    // 序列化Header
+    if (headerParams.value.length > 0) {
+      const headers = {}
+      headerParams.value.forEach(item => {
+        if (item.key) headers[item.key] = item.value || ''
+      })
+      formData.request_headers = JSON.stringify(headers)
+    }
+    
+    // 序列化form-data
+    if (bodyType.value === 'form-data' && formDataParams.value.length > 0) {
+      const formDatas = {}
+      formDataParams.value.forEach(item => {
+        if (item.key) formDatas[item.key] = item.value || ''
+      })
+      formData.request_form_datas = JSON.stringify(formDatas)
+    } else {
+      formData.request_form_datas = ''
+    }
+    
+    // 序列化www-form
+    if (bodyType.value === 'x-www-form-urlencoded' && wwwFormParams.value.length > 0) {
+      const wwwForms = {}
+      wwwFormParams.value.forEach(item => {
+        if (item.key) wwwForms[item.key] = item.value || ''
+      })
+      formData.request_www_form_datas = JSON.stringify(wwwForms)
+    } else {
+      formData.request_www_form_datas = ''
+    }
+    
+    // 序列化JSON Body
+    if (bodyType.value === 'raw' && jsonBody.value) {
+      formData.requests_json_data = jsonBody.value
+    } else {
+      formData.requests_json_data = ''
+    }
+    
+    // 序列化变量
+    if (variableParams.value.length > 0) {
+      const vars = {}
+      variableParams.value.forEach(item => {
+        if (item.key) vars[item.key] = item.value || ''
+      })
+      formData.debug_vars = JSON.stringify(vars)
+    }
+  } catch (error) {
+    console.error('序列化参数失败:', error)
+  }
+}
+
+// 添加Header参数
+const addHeaderParam = () => {
+  headerParams.value.push({ key: '', value: '' })
+}
+
+// 删除Header参数
+const removeHeaderParam = (index) => {
+  headerParams.value.splice(index, 1)
+}
+
+// 添加form-data参数
+const addFormDataParam = () => {
+  formDataParams.value.push({ key: '', value: '' })
+}
+
+// 删除form-data参数
+const removeFormDataParam = (index) => {
+  formDataParams.value.splice(index, 1)
+}
+
+// 添加www-form参数
+const addWwwFormParam = () => {
+  wwwFormParams.value.push({ key: '', value: '' })
+}
+
+// 删除www-form参数
+const removeWwwFormParam = (index) => {
+  wwwFormParams.value.splice(index, 1)
+}
+
+// 添加变量
+const addVariableParam = () => {
+  variableParams.value.push({ key: '', value: '' })
+}
+
+// 删除变量
+const removeVariableParam = (index) => {
+  variableParams.value.splice(index, 1)
+}
+
+// 保存
+const handleSave = async () => {
+  if (!formData.api_name) {
     ElMessage.warning('请输入接口名称')
     return
   }
-  if (!apiInfo.value.request_url) {
+  if (!formData.request_url) {
     ElMessage.warning('请输入请求URL')
     return
   }
-
+  
+  serializeParams()
+  
   try {
     let res
-    if (apiInfo.value.id) {
-      res = await updateApiInfo(apiInfo.value.id, apiInfo.value)
+    if (formData.id) {
+      res = await updateData(formData)
     } else {
-      res = await createApiInfo(apiInfo.value)
+      res = await insertData(formData)
     }
-
-    if (res.code === 200) {
+    
+    if (res.data.code === 200) {
       ElMessage.success('保存成功')
-      if (!apiInfo.value.id && res.data) {
-        apiInfo.value.id = res.data.id
-        router.replace(`/apitest/apiinfo/edit/${res.data.id}`)
+      if (!formData.id && res.data.data && res.data.data.id) {
+        formData.id = res.data.data.id
       }
     } else {
-      ElMessage.error(res.msg || '保存失败')
+      ElMessage.error(res.data.msg || '保存失败')
     }
   } catch (error) {
-    ElMessage.error('保存失败')
+    console.error('保存失败:', error)
+    ElMessage.error('保存失败，请稍后重试')
   }
+}
+
+// 继续编辑
+const handleContinueEdit = async () => {
+  await handleSave()
+  // 执行测试
+  executeTest()
 }
 
 // 执行测试
 const executeTest = async () => {
-  if (!apiInfo.value.id) {
-    const confirm = await ElMessageBox.confirm(
-      '接口信息尚未保存，是否先保存再执行测试？',
-      '提示',
-      {
-        confirmButtonText: '保存并测试',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    ).catch(() => false)
-
-    if (confirm) {
-      await saveApiInfo()
-      if (!apiInfo.value.id) {
-        return
-      }
-    } else {
-      return
-    }
+  if (!formData.request_url) {
+    ElMessage.warning('请输入请求URL')
+    return
   }
-
-  testLoading.value = true
-  testResult.value = {}
-
+  
+  serializeParams()
+  
   try {
-    const res = await executeApiTest({
-      api_info_id: apiInfo.value.id,
-      test_name: `${apiInfo.value.api_name}_测试`,
-      context_vars: contextVars.value,
-      pre_script: preScript.value,
-      post_script: postScript.value,
-      assertions: assertions.value
-    })
-
-    if (res.code === 200 && res.data) {
-      const testId = res.data.test_id
-      // 轮询查询测试状态
-      pollTestStatus(testId)
+    const testData = {
+      api_info_id: formData.id,
+      request_method: formData.request_method,
+      request_url: formData.request_url,
+      request_headers: formData.request_headers,
+      request_params: formData.request_params,
+      request_body: formData.requests_json_data || formData.request_form_datas || formData.request_www_form_datas
+    }
+    
+    const res = await executeApiTest(testData)
+    
+    if (res.data.code === 200) {
+      showTestResult.value = true
+      testResult.status = 'success'
+      testResult.response = res.data.data || res.data
+      testResult.headers = res.headers || {}
+      testResult.request = testData
+      ElMessage.success('测试执行成功')
     } else {
-      ElMessage.error(res.msg || '执行测试失败')
-      testLoading.value = false
+      showTestResult.value = true
+      testResult.status = 'error'
+      testResult.response = res.data
+      ElMessage.error(res.data.msg || '测试执行失败')
     }
   } catch (error) {
-    ElMessage.error('执行测试失败')
-    testLoading.value = false
+    console.error('测试执行失败:', error)
+    showTestResult.value = true
+    testResult.status = 'error'
+    testResult.response = error.message || '测试执行失败'
+    ElMessage.error('测试执行失败，请稍后重试')
   }
 }
 
-// 轮询查询测试状态
-const pollTestStatus = async (testId, maxAttempts = 30) => {
-  let attempts = 0
-  
-  const poll = async () => {
-    if (attempts >= maxAttempts) {
-      ElMessage.warning('测试执行超时')
-      testLoading.value = false
-      return
-    }
-
+// 格式化JSON
+const formatJson = (data) => {
+  if (!data) return ''
+  if (typeof data === 'string') {
     try {
-      const res = await getTestStatus(testId)
-      if (res.code === 200 && res.data) {
-        const status = res.data.status
-
-        if (status === 'success' || status === 'failed') {
-          testResult.value = res.data
-          testLoading.value = false
-          ElMessage.success('测试执行完成')
-        } else if (status === 'running') {
-          attempts++
-          setTimeout(poll, 2000) // 2秒后再次查询
-        }
-      }
-    } catch (error) {
-      attempts++
-      setTimeout(poll, 2000)
+      return JSON.stringify(JSON.parse(data), null, 2)
+    } catch {
+      return data
     }
   }
-
-  poll()
+  return JSON.stringify(data, null, 2)
 }
 
-// 返回列表
+// 返回
 const goBack = () => {
-  router.back()
+  router.push('/ApiInfoList')
 }
 
+// 页面加载
 onMounted(() => {
-  loadApiInfo()
+  loadProjectList()
+  
+  const id = route.query.id
+  if (id) {
+    loadApiInfo(parseInt(id))
+  } else {
+    // 新增模式，添加默认参数
+    addHeaderParam()
+  }
 })
 </script>
 
 <style scoped lang="scss">
 .api-editor-container {
   padding: 20px;
+  background: #f5f7fa;
+  min-height: calc(100vh - 60px);
 }
 
-.header-card {
+.header-card,
+.info-card,
+.request-card,
+.result-card {
   margin-bottom: 20px;
 }
 
-.editor-header {
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.base-info {
+  .info-item {
+    display: flex;
+    align-items: center;
+    
+    label {
+      white-space: nowrap;
+      margin-right: 10px;
+      font-weight: 500;
+      color: #606266;
+    }
+  }
+}
+
+.card-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #303133;
+}
+
+.request-line {
   display: flex;
   align-items: center;
-  gap: 10px;
-
-  .name-input {
-    flex: 1;
-  }
-}
-
-.editor-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.left-panel,
-.right-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.url-row {
-  display: flex;
-  gap: 10px;
   margin-bottom: 20px;
-
-  .url-input {
-    flex: 1;
-  }
 }
 
-.request-tabs {
+.url-params-tabs {
+  margin-top: 20px;
+  
   :deep(.el-tabs__content) {
-    min-height: 400px;
+    padding: 20px 0;
   }
 }
 
-.response-header {
+.params-editor {
+  :deep(.el-input__inner) {
+    border-radius: 4px;
+  }
+}
+
+.response-content {
+  background: #f5f7fa;
+  padding: 15px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #303133;
+  max-height: 400px;
+  overflow: auto;
+}
+
+.result-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.yaml-card {
-  margin-top: 20px;
-  
-  :deep(.el-card__body) {
-    max-height: 400px;
-    overflow: auto;
-  }
 }
 </style>

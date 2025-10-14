@@ -58,6 +58,7 @@ import { ref, reactive } from "vue"
 import { queryById, insertData, updateData } from './user' // 不同页面不同的接口
 import type { FormInstance, FormRules } from 'element-plus'
 import { useRouter } from "vue-router";
+import { ElMessage } from 'element-plus'
 const router = useRouter()
 
 // 表单实例
@@ -102,14 +103,26 @@ const submitForm = async (form: FormInstance | undefined) => {
         if (ruleForm.id > 0) {
             updateData(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
                 if (res.data.code == 200) {
+                    ElMessage.success('更新成功')
                     router.push('/userList') // 跳转回列表页面 - 不同的页面，不同的路径
+                } else {
+                    ElMessage.error(res.data.msg || '更新失败')
                 }
+            }).catch((error: any) => {
+                console.error('更新失败:', error)
+                ElMessage.error('更新失败，请稍后重试')
             })
         } else {
             insertData(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
                 if (res.data.code == 200) {
+                    ElMessage.success('新增成功')
                     router.push('/userList') // 跳转回列表页面 - 不同的页面，不同的路径
+                } else {
+                    ElMessage.error(res.data.msg || '新增失败')
                 }
+            }).catch((error: any) => {
+                console.error('新增失败:', error)
+                ElMessage.error('新增失败，请稍后重试')
             })
         }
     })

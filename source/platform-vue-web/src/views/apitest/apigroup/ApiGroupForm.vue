@@ -26,7 +26,7 @@
 
         <el-form-item label="父级分组" prop="parent_id">
           <el-select v-model="formData.parent_id" placeholder="请选择父级分组（可选）" clearable style="width: 100%">
-            <el-option label="无" :value="null" />
+            <el-option label="无" :value="0" />
             <el-option
               v-for="group in groupList"
               :key="group.id"
@@ -95,8 +95,8 @@ const formTitle = computed(() => {
 const loadProjects = async () => {
   try {
     const res = await queryProjectByPage({ page: 1, pageSize: 1000 })
-    if (res.code === 200) {
-      projectList.value = res.data.list || []
+    if (res.data.code === 200) {
+      projectList.value = res.data.data || []
     }
   } catch (error) {
     console.error('加载项目列表失败', error)
@@ -107,8 +107,8 @@ const loadProjects = async () => {
 const loadGroups = async () => {
   try {
     const res = await queryGroupByPage({ page: 1, pageSize: 1000 })
-    if (res.code === 200) {
-      groupList.value = res.data.list || []
+    if (res.data.code === 200) {
+      groupList.value = res.data.data || []
     }
   } catch (error) {
     console.error('加载分组列表失败', error)
@@ -121,8 +121,8 @@ const loadData = async () => {
   if (id) {
     try {
       const res = await getGroupById(id)
-      if (res.code === 200 && res.data) {
-        formData.value = res.data
+      if (res.data.code === 200 && res.data.data) {
+        formData.value = res.data.data
       }
     } catch (error) {
       ElMessage.error('加载数据失败')
@@ -144,11 +144,11 @@ const handleSubmit = async () => {
           res = await createGroup(formData.value)
         }
 
-        if (res.code === 200) {
+        if (res.data.code === 200) {
           ElMessage.success(formData.value.id ? '修改成功' : '新增成功')
           goBack()
         } else {
-          ElMessage.error(res.msg || '操作失败')
+          ElMessage.error(res.data.msg || '操作失败')
         }
       } catch (error) {
         ElMessage.error('操作失败')

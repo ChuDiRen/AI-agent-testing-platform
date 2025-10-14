@@ -115,7 +115,7 @@ def create_initial_menus():
                 {"menu_id": 102, "parent_id": 100, "menu_name": "关键字方法管理", "path": "/apitest/keyword", "component": "apitest/keyword/index", "perms": "apitest:keyword:view", "icon": "el-icon-key", "type": "0", "order_num": 2},
                 {"menu_id": 103, "parent_id": 100, "menu_name": "素材维护管理", "path": "/apitest/mate", "component": "apitest/mate/index", "perms": "apitest:mate:view", "icon": "el-icon-document", "type": "0", "order_num": 3},
                 
-                # 项目管理按钮权限
+                # 项目管理按·钮权限
                 {"menu_id": 110, "parent_id": 101, "menu_name": "新增项目", "path": "", "component": "", "perms": "apitest:project:add", "icon": "", "type": "1", "order_num": 1},
                 {"menu_id": 111, "parent_id": 101, "menu_name": "编辑项目", "path": "", "component": "", "perms": "apitest:project:edit", "icon": "", "type": "1", "order_num": 2},
                 {"menu_id": 112, "parent_id": 101, "menu_name": "删除项目", "path": "", "component": "", "perms": "apitest:project:delete", "icon": "", "type": "1", "order_num": 3},
@@ -154,11 +154,13 @@ def create_initial_menus():
             ]
 
             for menu_data in initial_menus:
-                existing = session.get(Menu, menu_data["menu_id"])
+                # 将menu_id映射到id字段，确保使用指定的主键ID
+                menu_id = menu_data.pop("menu_id")
+                existing = session.get(Menu, menu_id)
                 if not existing:
-                    menu = Menu(**menu_data, create_time=datetime.now(), modify_time=datetime.now())
+                    menu = Menu(id=menu_id, **menu_data, create_time=datetime.now(), modify_time=datetime.now())
                     session.add(menu)
-                    logger.info(f"创建菜单: {menu_data['menu_name']}")
+                    logger.info(f"创建菜单: {menu_data['menu_name']} (ID: {menu_id})")
 
             session.commit()
             logger.info("初始菜单数据创建完成")

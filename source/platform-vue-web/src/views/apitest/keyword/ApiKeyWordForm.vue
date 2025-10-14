@@ -79,6 +79,7 @@
   import { queryById, insertData, updateData } from './ApiKeyWord.js'; // 不同页面不同的接口
   import type { FormInstance, FormRules } from 'element-plus';
   import { useRouter } from "vue-router";
+  import { ElMessage } from 'element-plus';
   
   const router = useRouter();
   
@@ -105,8 +106,14 @@
   create_time: ''
   }]);
   function getOperationTypeList() {
-  queryAll().then((res) => {
-    operationTypeList.value = res.data.data;
+  queryAll().then((res: { data: { code: number; data: any; msg: string } }) => {
+    if (res.data.code === 200) {
+      operationTypeList.value = res.data.data || [];
+    } else {
+      console.error('加载操作类型失败:', res.data.msg);
+    }
+  }).catch((error: any) => {
+    console.error('加载操作类型失败:', error);
   });
   }
   getOperationTypeList();
@@ -144,8 +151,14 @@
           is_enabled: ruleForm.is_enabled
         }).then((res: { data: { code: number; msg: string; }; }) => {
           if (res.data.code == 200) {
+            ElMessage.success('更新成功');
             router.push('/ApikeywordList'); // 跳转回列表页面
+          } else {
+            ElMessage.error(res.data.msg || '更新失败');
           }
+        }).catch((error: any) => {
+          console.error('更新失败:', error);
+          ElMessage.error('更新失败，请稍后重试');
         });
       } else {
         insertData({
@@ -157,10 +170,15 @@
           operation_type_id: ruleForm.operation_type_id,
           is_enabled: ruleForm.is_enabled
         }).then((res: { data: { code: number; msg: string; }; }) => {
-          console.log(res)
           if (res.data.code == 200) {
+            ElMessage.success('新增成功');
             router.push('/ApikeywordList'); // 跳转回列表页面
+          } else {
+            ElMessage.error(res.data.msg || '新增失败');
           }
+        }).catch((error: any) => {
+          console.error('新增失败:', error);
+          ElMessage.error('新增失败，请稍后重试');
         });
       }
     });
@@ -259,7 +277,16 @@ const keywordFile = async (form: FormInstance | undefined) => {
     }
     // 有ID代表是则代表是直接生成
     if (ruleForm.id > 0) {
-      generateFile(ruleForm).then((res: { data: { code: number; msg: string; }; }) => { });
+      generateFile(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
+        if (res.data.code == 200) {
+          ElMessage.success('生成关键字文件成功');
+        } else {
+          ElMessage.error(res.data.msg || '生成关键字文件失败');
+        }
+      }).catch((error: any) => {
+        console.error('生成关键字文件失败:', error);
+        ElMessage.error('生成关键字文件失败，请稍后重试');
+      });
     } else {
       //  先插入数据再生成文件
       insertData({
@@ -272,12 +299,23 @@ const keywordFile = async (form: FormInstance | undefined) => {
         is_enabled: ruleForm.is_enabled
       }).then((res: { data: { code: number; msg: string; }; }) => {
         if (res.data.code == 200) {
-          generateFile(ruleForm).then((res: { data: { code: number; msg: string; }; }) => { });
-          
-          if (res.data.code == 200) {
-          router.push('/ApikeywordList'); // 跳转回列表页面
+          generateFile(ruleForm).then((fileRes: { data: { code: number; msg: string; }; }) => {
+            if (fileRes.data.code == 200) {
+              ElMessage.success('新增并生成关键字文件成功');
+              router.push('/ApikeywordList'); // 跳转回列表页面
+            } else {
+              ElMessage.error(fileRes.data.msg || '生成关键字文件失败');
+            }
+          }).catch((error: any) => {
+            console.error('生成关键字文件失败:', error);
+            ElMessage.error('生成关键字文件失败，请稍后重试');
+          });
+        } else {
+          ElMessage.error(res.data.msg || '新增失败');
         }
-        }
+      }).catch((error: any) => {
+        console.error('新增失败:', error);
+        ElMessage.error('新增失败，请稍后重试');
       });
     }
   });

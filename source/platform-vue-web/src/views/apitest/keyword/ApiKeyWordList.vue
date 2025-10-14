@@ -90,6 +90,7 @@ import { ref, reactive } from "vue";
 import { formatDateTime } from '~/utils/timeFormatter';
 import { queryByPage, deleteData } from "./ApiKeyWord.js"; // 不同页面不同的接口
 import { useRouter } from "vue-router";
+import { ElMessage, ElMessageBox } from 'element-plus';
 const router = useRouter();
 
 // 分页参数
@@ -119,11 +120,19 @@ const loadData = () => {
   searchData["pageSize"] = pageSize.value;
 
   queryByPage(searchData).then(
-    (res: { data: { data: never[]; total: number; msg: string } }) => {
-      tableData.value = res.data.data;
-      total.value = res.data.total;
+    (res: { data: { code: number; data: never[]; total: number; msg: string } }) => {
+      if (res.data.code === 200) {
+        tableData.value = res.data.data || [];
+        total.value = res.data.total || 0;
+        ElMessage.success('查询成功');
+      } else {
+        ElMessage.error(res.data.msg || '查询失败');
+      }
     }
-  );
+  ).catch((error: any) => {
+    console.error('查询失败:', error);
+    ElMessage.error('查询失败，请稍后重试');
+  });
 };
 loadData();
 
@@ -157,8 +166,29 @@ const onDataForm = (index: number) => {
 
 // 删除
 const onDelete = (index: number) => {
-  deleteData(tableData.value[index]["id"]).then((res: {}) => {
-    loadData();
+  const item = tableData.value[index];
+  ElMessageBox.confirm(
+    `确定要删除关键字"${item.name}"吗？`,
+    '删除确认',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+    deleteData(item.id).then((res: { data: { code: number; msg: string } }) => {
+      if (res.data.code === 200) {
+        ElMessage.success('删除成功');
+        loadData();
+      } else {
+        ElMessage.error(res.data.msg || '删除失败');
+      }
+    }).catch((error: any) => {
+      console.error('删除失败:', error);
+      ElMessage.error('删除失败，请稍后重试');
+    });
+  }).catch(() => {
+    ElMessage.info('已取消删除');
   });
 };
 
@@ -170,8 +200,14 @@ const operationTypeList = ref([{
   create_time: ''
 }]);
 function getOperationTypeList() {
-  queryAll().then((res) => {
-    operationTypeList.value = res.data.data;
+  queryAll().then((res: { data: { code: number; data: any; msg: string } }) => {
+    if (res.data.code === 200) {
+      operationTypeList.value = res.data.data || [];
+    } else {
+      console.error('加载操作类型失败:', res.data.msg);
+    }
+  }).catch((error: any) => {
+    console.error('加载操作类型失败:', error);
   });
 }
 getOperationTypeList();

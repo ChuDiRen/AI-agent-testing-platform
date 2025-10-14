@@ -67,6 +67,7 @@ import { queryByPage, deleteData } from './user' // 不同页面不同的接口
 import { useRouter } from "vue-router";
 import { formatDateTime } from '~/utils/timeFormatter'
 import axios from '~/axios'
+import { ElMessage, ElMessageBox } from 'element-plus'
 const router = useRouter()
 
 // 分页参数
@@ -104,9 +105,12 @@ const loadDeptData = async () => {
                 return map
             }
             deptMap.value = flattenDepts(depts)
+        } else {
+            console.error('加载部门数据失败:', res.data.msg)
         }
     } catch (error) {
         console.error('加载部门数据失败:', error)
+        ElMessage.error('加载部门数据失败，请稍后重试')
     }
 }
 
@@ -119,9 +123,17 @@ const loadData = () => {
     searchData["page"] = currentPage.value
     searchData["pageSize"] = pageSize.value
 
-    queryByPage(searchData).then((res: { data: { data: never[]; total: number; msg: string }; }) => {
-        tableData.value = res.data.data
-        total.value = res.data.total
+    queryByPage(searchData).then((res: { data: { code: number; data: never[]; total: number; msg: string }; }) => {
+        if (res.data.code === 200) {
+            tableData.value = res.data.data || []
+            total.value = res.data.total || 0
+            ElMessage.success('查询成功')
+        } else {
+            ElMessage.error(res.data.msg || '查询失败')
+        }
+    }).catch((error: any) => {
+        console.error('查询失败:', error)
+        ElMessage.error('查询失败，请稍后重试')
     })
 }
 
@@ -159,8 +171,29 @@ const onDataForm = (index: number) => {
 }
 // 删除数据
 const onDelete = (index: number) => {
-    deleteData(tableData.value[index]["id"]).then((res: {}) => {
-        loadData()
+    const item = tableData.value[index]
+    ElMessageBox.confirm(
+        `确定要删除用户"${item.username}"吗？`,
+        '删除确认',
+        {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+        }
+    ).then(() => {
+        deleteData(item.id).then((res: { data: { code: number; msg: string } }) => {
+            if (res.data.code === 200) {
+                ElMessage.success('删除成功')
+                loadData()
+            } else {
+                ElMessage.error(res.data.msg || '删除失败')
+            }
+        }).catch((error: any) => {
+            console.error('删除失败:', error)
+            ElMessage.error('删除失败，请稍后重试')
+        })
+    }).catch(() => {
+        ElMessage.info('已取消删除')
     })
 }
 

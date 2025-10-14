@@ -109,6 +109,9 @@ application.include_router(ApiGroupController.module_route)
 from apitest.api import ApiTestController
 application.include_router(ApiTestController.module_route)
 
+from apitest.api import ApiTestHistoryController
+application.include_router(ApiTestHistoryController.module_route)
+
 # 移除旧的 on_event 装饰器，已使用 lifespan 替代
 
 @application.get("/", tags=["根路径"]) # 根路径接口

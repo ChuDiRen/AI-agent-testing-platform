@@ -4,8 +4,10 @@ from datetime import datetime
 
 # 查询Schema
 class ApiGroupQuery(BaseModel):
-    project_id: Optional[int] = None
-    group_name: Optional[str] = None
+    page: int = 1  # 当前页码
+    pageSize: int = 10  # 每页数量
+    project_id: Optional[int] = None  # 项目ID筛选
+    group_name: Optional[str] = None  # 分组名称筛选
 
 # 创建Schema
 class ApiGroupCreate(BaseModel):

@@ -86,7 +86,7 @@
         </el-form-item>
         <el-form-item label="父级分组" prop="parent_id">
           <el-select v-model="formData.parent_id" placeholder="请选择父级分组（可选）" clearable style="width: 100%">
-            <el-option label="无" :value="null" />
+            <el-option label="无" :value="0" />
             <el-option
               v-for="group in groupList"
               :key="group.id"
@@ -191,8 +191,8 @@ const formRules = {
 const loadProjects = async () => {
   try {
     const res = await queryProjectByPage({ page: 1, pageSize: 1000 })
-    if (res.code === 200) {
-      projectList.value = res.data.list || []
+    if (res.data.code === 200) {
+      projectList.value = res.data.data || []
     }
   } catch (error) {
     console.error('加载项目列表失败', error)
@@ -203,8 +203,8 @@ const loadProjects = async () => {
 const loadGroups = async () => {
   try {
     const res = await queryGroupByPage({ page: 1, pageSize: 1000 })
-    if (res.code === 200) {
-      groupList.value = res.data.list || []
+    if (res.data.code === 200) {
+      groupList.value = res.data.data || []
     }
   } catch (error) {
     console.error('加载分组列表失败', error)
@@ -219,14 +219,16 @@ const handleQuery = async () => {
       ...queryForm.value,
       project_id: queryForm.value.project_id || null
     })
-    if (res.code === 200) {
-      tableData.value = res.data.list || []
+    if (res.data.code === 200) {
+      tableData.value = res.data.data || []
       total.value = res.data.total || 0
+      ElMessage.success('查询成功')
     } else {
-      ElMessage.error(res.msg || '查询失败')
+      ElMessage.error(res.data.msg || '查询失败')
     }
   } catch (error) {
-    ElMessage.error('查询失败')
+    console.error('查询失败:', error)
+    ElMessage.error('查询失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -278,15 +280,16 @@ const handleDelete = async (row) => {
     })
 
     const res = await deleteGroup(row.id)
-    if (res.code === 200) {
+    if (res.data.code === 200) {
       ElMessage.success('删除成功')
       handleQuery()
     } else {
-      ElMessage.error(res.msg || '删除失败')
+      ElMessage.error(res.data.msg || '删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      console.error('删除失败:', error)
+      ElMessage.error('删除失败，请稍后重试')
     }
   }
 }
@@ -305,15 +308,16 @@ const handleSubmit = async () => {
           res = await createGroup(formData.value)
         }
 
-        if (res.code === 200) {
+        if (res.data.code === 200) {
           ElMessage.success(formData.value.id ? '修改成功' : '新增成功')
           dialogVisible.value = false
           handleQuery()
         } else {
-          ElMessage.error(res.msg || '操作失败')
+          ElMessage.error(res.data.msg || '操作失败')
         }
       } catch (error) {
-        ElMessage.error('操作失败')
+        console.error('操作失败:', error)
+        ElMessage.error('操作失败，请稍后重试')
       }
     }
   })

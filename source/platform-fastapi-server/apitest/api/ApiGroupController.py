@@ -12,6 +12,38 @@ module_name = "ApiGroup" # 模块名称
 module_model = ApiInfoGroup
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API接口分组管理"])
 
+@module_route.post("/queryByPage") # 分页查询接口分组
+def queryByPage(query: ApiGroupQuery, session: Session = Depends(get_session)):
+    try:
+        offset = (query.page - 1) * query.pageSize
+        statement = select(module_model).limit(query.pageSize).offset(offset)
+        
+        # 如果指定了项目ID，则只查询该项目的分组
+        if query.project_id:
+            statement = statement.where(module_model.project_id == query.project_id)
+        
+        # 如果指定了分组名称，则模糊查询
+        if query.group_name:
+            statement = statement.where(module_model.group_name.like(f"%{query.group_name}%"))
+        
+        # 按排序号排序
+        statement = statement.order_by(module_model.order_num)
+        
+        datas = session.exec(statement).all()
+        
+        # 统计总数
+        count_statement = select(module_model)
+        if query.project_id:
+            count_statement = count_statement.where(module_model.project_id == query.project_id)
+        if query.group_name:
+            count_statement = count_statement.where(module_model.group_name.like(f"%{query.group_name}%"))
+        total = len(session.exec(count_statement).all())
+        
+        return respModel().ok_resp_list(lst=datas, total=total)
+    except Exception as e:
+        print(e)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
 def build_tree(groups: List[ApiInfoGroup], parent_id: int = 0) -> List[Dict]: # 构建分组树
     tree = []
     for group in groups:

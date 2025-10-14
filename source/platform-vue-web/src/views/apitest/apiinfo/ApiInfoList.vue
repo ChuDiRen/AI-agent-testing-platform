@@ -22,7 +22,7 @@
       
       <el-form-item label="接口分组：">
         <el-select v-model="searchForm.group_id" placeholder="选择分组" clearable style="width: 200px">
-          <el-option label="未分组" :value="null"/>
+          <el-option label="未分组" :value="0"/>
           <el-option v-for="group in groupList" :key="group.id" :label="group.group_name" :value="group.id"/>     
         </el-select>
       </el-form-item>
@@ -142,6 +142,7 @@ const loadData = () => {
     if (res.data.code === 200) {
       tableData.value = res.data.data;
       total.value = res.data.total;
+      ElMessage.success('查询成功');
     } else {
       ElMessage.error(res.data.msg || '查询失败');
     }
@@ -177,7 +178,7 @@ const loadMethodList = () => {
 const loadGroupList = () => {
   queryGroupByPage({ page: 1, pageSize: 1000 }).then((res) => {
     if (res.data.code === 200) {
-      groupList.value = res.data.data || res.data.data?.list || [];
+      groupList.value = res.data.data || [];
     }
   }).catch((error) => {
     console.error('加载分组列表失败:', error);

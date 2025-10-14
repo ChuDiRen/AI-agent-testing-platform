@@ -65,6 +65,7 @@ import { ref, reactive } from "vue";
 import { queryByPage, deleteData } from "./ApiMateManage.js"; // 不同页面不同的接口
 import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";
+import { ElMessage, ElMessageBox } from 'element-plus';
 const router = useRouter();
 
 // 分页参数
@@ -94,11 +95,19 @@ const loadData = () => {
   searchData["pageSize"] = pageSize.value;
 
   queryByPage(searchData).then(
-    (res: { data: { data: never[]; total: number; msg: string } }) => {
-      tableData.value = res.data.data;
-      total.value = res.data.total;
+    (res: { data: { code: number; data: never[]; total: number; msg: string } }) => {
+      if (res.data.code === 200) {
+        tableData.value = res.data.data || [];
+        total.value = res.data.total || 0;
+        ElMessage.success('查询成功');
+      } else {
+        ElMessage.error(res.data.msg || '查询失败');
+      }
     }
-  );
+  ).catch((error: any) => {
+    console.error('查询失败:', error);
+    ElMessage.error('查询失败，请稍后重试');
+  });
 };
 loadData();
 
@@ -125,8 +134,14 @@ const projectList = ref([{
   project_desc: ''
 }]);
 function getProjectList() {
-  queryAllProject().then((res) => {
-    projectList.value = res.data.data;
+  queryAllProject().then((res: { data: { code: number; data: any; msg: string } }) => {
+    if (res.data.code === 200) {
+      projectList.value = res.data.data || [];
+    } else {
+      console.error('加载项目列表失败:', res.data.msg);
+    }
+  }).catch((error: any) => {
+    console.error('加载项目列表失败:', error);
   });
 }
 getProjectList();
@@ -147,8 +162,29 @@ const onDataForm = (index: number) => {
 
 // 删除项目
 const onDelete = (index: number) => {
-    deleteData(tableData.value[index]["id"]).then((res: {}) => {
-    loadData();
+  const item = tableData.value[index];
+  ElMessageBox.confirm(
+    `确定要删除素材"${item.mate_name}"吗？`,
+    '删除确认',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+    deleteData(item.id).then((res: { data: { code: number; msg: string } }) => {
+      if (res.data.code === 200) {
+        ElMessage.success('删除成功');
+        loadData();
+      } else {
+        ElMessage.error(res.data.msg || '删除失败');
+      }
+    }).catch((error: any) => {
+      console.error('删除失败:', error);
+      ElMessage.error('删除失败，请稍后重试');
+    });
+  }).catch(() => {
+    ElMessage.info('已取消删除');
   });
 };
 

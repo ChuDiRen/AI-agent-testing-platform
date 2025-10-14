@@ -65,8 +65,16 @@ const projectList = ref([{
   project_desc: ''
 }]);
 function getProjectList() {
-  queryAllProject().then((res) => {
-    projectList.value = res.data.data;
+  queryAllProject().then((res: { data: { code: number; data: any; msg: string } }) => {
+    if (res.data.code === 200) {
+      projectList.value = res.data.data || [];
+    } else {
+      console.error('加载项目列表失败:', res.data.msg);
+      ElMessage.error('加载项目列表失败');
+    }
+  }).catch((error: any) => {
+    console.error('加载项目列表失败:', error);
+    ElMessage.error('加载项目列表失败，请稍后重试');
   });
 }
 getProjectList();
@@ -107,10 +115,11 @@ const onSubmit = () => {
         ElMessage.success('素材上传成功');
         router.push("/ApiMateManageList"); // 跳转回列表页面 - 不同的页面，不同的路径
       } else {
-        ElMessage.error('素材上传失败：' + res.data.msg);
+        ElMessage.error(res.data.msg || '素材上传失败');
       }
-    }).catch((error) => {
-      ElMessage.error('素材上传失败：' + error.message);
+    }).catch((error: any) => {
+      console.error('素材上传失败:', error);
+      ElMessage.error('素材上传失败，请稍后重试');
     });
   }
   else {

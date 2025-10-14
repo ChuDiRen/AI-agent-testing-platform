@@ -162,14 +162,16 @@ const handleQuery = async () => {
       api_info_id: queryForm.value.api_info_id ? parseInt(queryForm.value.api_info_id) : null,
       project_id: queryForm.value.project_id ? parseInt(queryForm.value.project_id) : null
     })
-    if (res.code === 200) {
-      tableData.value = res.data.list || []
+    if (res.data.code === 200) {
+      tableData.value = res.data.data || []
       total.value = res.data.total || 0
+      ElMessage.success('查询成功')
     } else {
-      ElMessage.error(res.msg || '查询失败')
+      ElMessage.error(res.data.msg || '查询失败')
     }
   } catch (error) {
-    ElMessage.error('查询失败')
+    console.error('查询失败:', error)
+    ElMessage.error('查询失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -201,15 +203,16 @@ const handleDelete = async (row) => {
     })
 
     const res = await deleteTestHistory(row.id)
-    if (res.code === 200) {
+    if (res.data.code === 200) {
       ElMessage.success('删除成功')
       handleQuery()
     } else {
-      ElMessage.error(res.msg || '删除失败')
+      ElMessage.error(res.data.msg || '删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      console.error('删除失败:', error)
+      ElMessage.error('删除失败，请稍后重试')
     }
   }
 }
