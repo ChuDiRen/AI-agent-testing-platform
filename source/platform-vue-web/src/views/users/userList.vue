@@ -13,16 +13,39 @@
     <!-- 数据表格 -->
     <el-table :data="tableData" style="width: 100%;" max-height="500">
         <!-- 数据列 -->
-        <!-- 默认情况下，如果单元格内容过长，会占用多行显示。 若需要单行显示可以使用 show-overflow-tooltip -->
-        <el-table-column v-for="col in columnList" :prop="col.prop" :label="col.label" :key="col.prop"
-            :show-overflow-tooltip="true" />
+        <el-table-column prop="id" label="用户ID" show-overflow-tooltip />
+        <el-table-column prop="username" label="用户名" show-overflow-tooltip />
+        <el-table-column prop="email" label="邮箱" show-overflow-tooltip />
+        <el-table-column prop="mobile" label="联系电话" show-overflow-tooltip />
+        <el-table-column prop="dept_id" label="部门" show-overflow-tooltip>
+            <template #default="scope">
+                {{ deptMap[scope.row.dept_id] || scope.row.dept_id }}
+            </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="80">
+            <template #default="scope">
+                <el-tag :type="scope.row.status === '1' ? 'success' : 'warning'">
+                    {{ scope.row.status === '1' ? '有效' : '锁定' }}
+                </el-tag>
+            </template>
+        </el-table-column>
+        <el-table-column prop="ssex" label="性别" width="80">
+            <template #default="scope">
+                {{ genderMap[scope.row.ssex] || '未知' }}
+            </template>
+        </el-table-column>
+        <el-table-column prop="create_time" label="创建时间" show-overflow-tooltip>
+            <template #default="scope">
+                {{ formatDateTime(scope.row.create_time) }}
+            </template>
+        </el-table-column>
         <!-- 操作 -->
-        <el-table-column fixed="right" label="操作">
+        <el-table-column fixed="right" label="操作" width="150">
             <template #default="scope">
                 <el-button link type="primary" size="small" @click.prevent="onDataForm(scope.$index)">
                     编辑
                 </el-button>
-                <el-button link type="primary" size="small" @click.prevent="onDelete(scope.$index)">
+                <el-button link type="danger" size="small" @click.prevent="onDelete(scope.$index)">
                     删除
                 </el-button>
             </template>
@@ -39,9 +62,11 @@
 </template>
   
 <script lang="ts" setup>
-import { ref, reactive } from "vue"
+import { ref, reactive, onMounted } from "vue"
 import { queryByPage, deleteData } from './user' // 不同页面不同的接口
 import { useRouter } from "vue-router";
+import { formatDateTime } from '~/utils/timeFormatter'
+import axios from '~/axios'
 const router = useRouter()
 
 // 分页参数
@@ -52,17 +77,39 @@ const total = ref(0)
 // 搜索功能 - 筛选表单
 const searchForm = reactive({"username": null})
 
-// 表格列 - 不同页面不同的列
-const columnList = ref([
-    { prop: "id", label: '用户ID' },
-    { prop: "username", label: '用户名' },
-    { prop: "email", label: '邮箱' },
-    { prop: "mobile", label: '联系电话' },
-    { prop: "dept_id", label: '部门ID' },
-    { prop: "status", label: '状态' },
-    { prop: "ssex", label: '性别' },
-    { prop: "create_time", label: '创建时间' }
-])
+// 数据字典映射
+const genderMap = {
+    '0': '男',
+    '1': '女',
+    '2': '保密'
+}
+
+// 部门映射（从后端加载）
+const deptMap = ref({})
+
+// 加载部门数据
+const loadDeptData = async () => {
+    try {
+        const res = await axios.get('/dept/tree')
+        if (res.data.code === 200) {
+            const depts = res.data.data
+            // 将部门树扁平化为映射表
+            const flattenDepts = (deptList, map = {}) => {
+                deptList.forEach(dept => {
+                    map[dept.dept_id] = dept.dept_name
+                    if (dept.children && dept.children.length > 0) {
+                        flattenDepts(dept.children, map)
+                    }
+                })
+                return map
+            }
+            deptMap.value = flattenDepts(depts)
+        }
+    } catch (error) {
+        console.error('加载部门数据失败:', error)
+    }
+}
+
 // 表格数据
 const tableData = ref([])
 
@@ -77,7 +124,12 @@ const loadData = () => {
         total.value = res.data.total
     })
 }
-loadData()
+
+// 页面初始化
+onMounted(() => {
+    loadDeptData() // 先加载部门数据
+    loadData() // 再加载用户数据
+})
 
 // 变更 页大小
 const handleSizeChange = (val: number) => {

@@ -19,13 +19,15 @@
     <!-- 数据表格 -->
     <el-table :data="tableData" style="width: 100%" max-height="500">
       <!-- 数据列 -->
-      <el-table-column
-        v-for="col in columnList"
-        :prop="col.prop"
-        :label="col.label"
-        :key="col.prop"
-        :show-overflow-tooltip="true"
-      />
+      <el-table-column prop="id" label="项目编号" show-overflow-tooltip />
+      <el-table-column prop="mate_name" label="素材名称" show-overflow-tooltip />
+      <el-table-column prop="object_url" label="素材路径" show-overflow-tooltip />
+      <el-table-column prop="file_type" label="素材类型" show-overflow-tooltip />
+      <el-table-column prop="create_time" label="上传时间" show-overflow-tooltip>
+        <template #default="scope">
+          {{ formatDateTime(scope.row.create_time) }}
+        </template>
+      </el-table-column>
 
       <!-- 操作 -->
       <el-table-column fixed="right" label="操作">
@@ -61,6 +63,7 @@
 <script lang="ts" setup>
 import { ref, reactive } from "vue";
 import { queryByPage, deleteData } from "./ApiMateManage.js"; // 不同页面不同的接口
+import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";
 const router = useRouter();
 

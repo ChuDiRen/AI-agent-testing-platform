@@ -110,9 +110,25 @@ def create_initial_menus():
                 {"menu_id": 42, "parent_id": 5, "menu_name": "删除部门", "path": "", "component": "", "perms": "system:dept:delete", "icon": "", "type": "1", "order_num": 3},
                 
                 # API测试
-                {"menu_id": 100, "parent_id": 0, "menu_name": "API测试", "path": "/apitest", "component": "Layout", "perms": "", "icon": "el-icon-document", "type": "0", "order_num": 2},
-                {"menu_id": 101, "parent_id": 100, "menu_name": "项目管理", "path": "/apitest/project", "component": "apitest/project/index", "perms": "apitest:project:view", "icon": "el-icon-folder", "type": "0", "order_num": 1},
-                {"menu_id": 102, "parent_id": 100, "menu_name": "用例管理", "path": "/apitest/case", "component": "apitest/case/index", "perms": "apitest:case:view", "icon": "el-icon-document-copy", "type": "0", "order_num": 2},
+                {"menu_id": 100, "parent_id": 0, "menu_name": "API自动化", "path": "/apitest", "component": "Layout", "perms": "", "icon": "el-icon-promotion", "type": "0", "order_num": 2},
+                {"menu_id": 101, "parent_id": 100, "menu_name": "项目管理", "path": "/apitest/project", "component": "apitest/project/index", "perms": "apitest:project:view", "icon": "el-icon-tickets", "type": "0", "order_num": 1},
+                {"menu_id": 102, "parent_id": 100, "menu_name": "关键字方法管理", "path": "/apitest/keyword", "component": "apitest/keyword/index", "perms": "apitest:keyword:view", "icon": "el-icon-key", "type": "0", "order_num": 2},
+                {"menu_id": 103, "parent_id": 100, "menu_name": "素材维护管理", "path": "/apitest/mate", "component": "apitest/mate/index", "perms": "apitest:mate:view", "icon": "el-icon-document", "type": "0", "order_num": 3},
+                
+                # 项目管理按钮权限
+                {"menu_id": 110, "parent_id": 101, "menu_name": "新增项目", "path": "", "component": "", "perms": "apitest:project:add", "icon": "", "type": "1", "order_num": 1},
+                {"menu_id": 111, "parent_id": 101, "menu_name": "编辑项目", "path": "", "component": "", "perms": "apitest:project:edit", "icon": "", "type": "1", "order_num": 2},
+                {"menu_id": 112, "parent_id": 101, "menu_name": "删除项目", "path": "", "component": "", "perms": "apitest:project:delete", "icon": "", "type": "1", "order_num": 3},
+                
+                # 关键字方法管理按钮权限
+                {"menu_id": 120, "parent_id": 102, "menu_name": "新增关键字", "path": "", "component": "", "perms": "apitest:keyword:add", "icon": "", "type": "1", "order_num": 1},
+                {"menu_id": 121, "parent_id": 102, "menu_name": "编辑关键字", "path": "", "component": "", "perms": "apitest:keyword:edit", "icon": "", "type": "1", "order_num": 2},
+                {"menu_id": 122, "parent_id": 102, "menu_name": "删除关键字", "path": "", "component": "", "perms": "apitest:keyword:delete", "icon": "", "type": "1", "order_num": 3},
+                
+                # 素材维护管理按钮权限
+                {"menu_id": 130, "parent_id": 103, "menu_name": "新增素材", "path": "", "component": "", "perms": "apitest:mate:add", "icon": "", "type": "1", "order_num": 1},
+                {"menu_id": 131, "parent_id": 103, "menu_name": "编辑素材", "path": "", "component": "", "perms": "apitest:mate:edit", "icon": "", "type": "1", "order_num": 2},
+                {"menu_id": 132, "parent_id": 103, "menu_name": "删除素材", "path": "", "component": "", "perms": "apitest:mate:delete", "icon": "", "type": "1", "order_num": 3},
             ]
 
             for menu_data in initial_menus:
@@ -214,7 +230,7 @@ def create_initial_role_menus():
             logger.info("超级管理员权限分配完成")
             
             # 普通用户只有查看权限
-            basic_menu_ids = [100, 101, 102] # API测试相关菜单
+            basic_menu_ids = [100, 101, 102, 103] # API测试相关菜单
             for menu_id in basic_menu_ids:
                 statement = select(RoleMenu).where(
                     RoleMenu.role_id == 3,

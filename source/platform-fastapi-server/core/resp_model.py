@@ -2,6 +2,7 @@
 from typing import Any, Optional, List, Dict
 from datetime import datetime
 from pydantic import BaseModel
+from core.time_utils import TimeFormatter
 
 class respModel:
     
@@ -63,7 +64,7 @@ class respModel:
             for key, value in obj.__dict__.items():
                 if not key.startswith('_'):
                     if isinstance(value, datetime):
-                        result[key] = value.strftime('%Y-%m-%d %H:%M:%S')
+                        result[key] = TimeFormatter.format_datetime(value)
                     else:
                         result[key] = value
         return result

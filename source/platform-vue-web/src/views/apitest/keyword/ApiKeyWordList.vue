@@ -42,6 +42,12 @@
               : "-"
           }}
         </span>
+        <span v-else-if="col.prop === 'create_time'">
+          {{ formatDateTime(scope.row.create_time) }}
+        </span>
+        <span v-else>
+          {{ scope.row[col.prop] }}
+        </span>
       </template>
 
     </el-table-column>
@@ -81,6 +87,7 @@
 <script lang="ts" setup>
 // 其他功能拓展
 import { ref, reactive } from "vue";
+import { formatDateTime } from '~/utils/timeFormatter';
 import { queryByPage, deleteData } from "./ApiKeyWord.js"; // 不同页面不同的接口
 import { useRouter } from "vue-router";
 const router = useRouter();

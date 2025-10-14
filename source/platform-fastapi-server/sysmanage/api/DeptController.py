@@ -4,6 +4,7 @@ from core.resp_model import respModel
 from sysmanage.model.dept import Dept
 from sysmanage.schemas.dept_schema import DeptQuery, DeptCreate, DeptUpdate, DeptTree
 from core.database import get_session
+from core.time_utils import TimeFormatter
 from datetime import datetime
 from typing import List, Dict
 
@@ -20,6 +21,8 @@ def build_tree(depts: List[Dept], parent_id: int = 0) -> List[Dict]: # 构建部
                 "parent_id": dept.parent_id,
                 "dept_name": dept.dept_name,
                 "order_num": dept.order_num,
+                "create_time": TimeFormatter.format_datetime(dept.create_time),
+                "modify_time": TimeFormatter.format_datetime(dept.modify_time),
                 "children": build_tree(depts, dept.id)
             }
             tree.append(node)

@@ -14,7 +14,11 @@
     >
         <el-table-column prop="dept_name" label="部门名称" width="300" />
         <el-table-column prop="order_num" label="排序" width="120" />
-        <el-table-column prop="create_time" label="创建时间" />
+        <el-table-column prop="create_time" label="创建时间">
+            <template #default="scope">
+                {{ formatDateTime(scope.row.create_time) }}
+            </template>
+        </el-table-column>
         <!-- 操作 -->
         <el-table-column fixed="right" label="操作" width="220">
             <template #default="scope">
@@ -35,6 +39,7 @@
 <script lang="ts" setup>
 import { ref } from "vue"
 import { getDeptTree, deleteData } from './dept'
+import { formatDateTime } from '~/utils/timeFormatter'
 import { useRouter } from "vue-router"
 
 const router = useRouter()

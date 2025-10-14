@@ -64,9 +64,12 @@ import { login } from './login'
 import { useCookies } from '@vueuse/integrations/useCookies';
 import { ElNotification } from 'element-plus'
 import { useRouter } from "vue-router";
+import { useStore } from 'vuex'
+import { getUserMenus, getMenuTree } from '~/views/system/menu/menu'
 
 const cookie = useCookies()
 const router = useRouter()
+const store = useStore()
 
 
 // do not use same name with ref
@@ -107,7 +110,38 @@ const onSubmit = () => {
             duration: 2000
           })
           cookie.set("l-token", res.data.data.token)
-          router.push("/home")
+          // 持久化一个用户ID，供刷新兜底拉取菜单
+          if(res?.data?.data?.id){
+            cookie.set('l-user-id', res.data.data.id)
+          }
+          // 保存用户信息到全局状态
+          try {
+            store.commit('setUserInfo', res.data.data)
+          } catch (e) {}
+          // 拉取并写入用户菜单树，然后再跳转首页
+          const userId = res?.data?.data?.id
+          if (userId) {
+            return getUserMenus(userId).then(menuRes => {
+              if (menuRes?.data?.code === 200) {
+                try {
+                  const tree = menuRes.data.data || []
+                  if (tree.length > 0) {
+                    store.commit('setMenuTree', tree)
+                  } else {
+                    // 兜底：用户无绑定权限，展示全量菜单树
+                    return getMenuTree().then(allRes => {
+                      if (allRes?.data?.code === 200) {
+                        store.commit('setMenuTree', allRes.data.data || [])
+                      }
+                    })
+                  }
+                } catch (e) {}
+              }
+              router.push("/home")
+            })
+          } else {
+            router.push("/home")
+          }
 
         } else {
           ElNotification({

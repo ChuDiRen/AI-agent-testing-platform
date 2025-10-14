@@ -2,7 +2,14 @@
   <div class="f-menu" :style="{width:$store.state.asideWidth}">
 
     <!--01 添加事件监听 @select="handleSelect-->
-    <el-menu unique-opened :collapse="isCollapse"  default-active="2" class="border-0" @select="handleSelect" :collapse-transition="false">
+    <el-menu 
+      unique-opened 
+      :collapse="isCollapse" 
+      :default-active="currentActive" 
+      :default-openeds="defaultOpeneds"
+      class="border-0" 
+      @select="handleSelect" 
+      :collapse-transition="false">
       <template v-for="(item,index) in asideMenus" :key="index">
         <el-sub-menu
           v-if="item.child && item.child.length > 0" :index="item.name">
@@ -33,11 +40,14 @@
 <script setup>
 //03 为了跳转，要引入useRouter 
 // 收起折叠功能 
-import { computed } from 'vue'
-import { useRouter } from 'vue-router';
+import { computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router';
 import {useStore} from 'vuex'
+import { useCookies } from '@vueuse/integrations/useCookies'
+import { getUserMenus, getMenuTree } from '~/views/system/menu/menu'
 // import store from '../../store';
 const router = useRouter()
+const route = useRoute()
 const store = useStore()
 
 //是否折叠
@@ -49,41 +59,121 @@ const handleSelect =(e)=>{
  console.log(e)
  router.push(e)
 }
-const asideMenus = [{
-    "name":"系统总览",
-    "icon":"Monitor",
-    "frontpath": "/Statistics"
-  },
-  {
-    "name":"系统管理",
-    "icon":"Tools",
-     "child":[
-      {
-        "name": "用户管理",
-        "icon": "User",
-        "frontpath": "/userList",
-      },]
-  },
-  {
-     "name":"API自动化",
-     "icon":"Promotion",
-     "child":[
-     {
-        "name": "项目管理",
-        "icon": "Tickets",
-        "frontpath": "/ApiProjectList",
-      },{
-        "name": "关键字方法管理",
-        "icon":"Key",
-        "frontpath": "/ApiKeyWordList",
-},{
-        "name": "素材维护管理",
-        "icon":"Document",
-        "frontpath": "/ApiMateManageList",
-},
-      ]
+const cookies = useCookies()
+
+// 图标映射（el-icon-xxx -> ElementPlus组件名）
+const iconMap = {
+  'el-icon-setting': 'Setting',
+  'el-icon-tools': 'Tools',
+  'el-icon-user': 'User',
+  'el-icon-s-custom': 'UserFilled',
+  'el-icon-menu': 'Menu',
+  'el-icon-office-building': 'OfficeBuilding',
+  'el-icon-document': 'Document',
+  'el-icon-folder': 'Folder',
+  'el-icon-document-copy': 'DocumentCopy',
+  'el-icon-tickets': 'Tickets',
+  'el-icon-key': 'Key',
+  'el-icon-promotion': 'Promotion',
+  'el-icon-monitor': 'Monitor'
+}
+
+// 路由映射（后端path -> 前端实际路由）
+const routePathMap = {
+  '/system': '', // 父级菜单不跳转
+  '/system/user': '/userList',
+  '/system/role': '/roleList',
+  '/system/menu': '/menuList',
+  '/system/dept': '/deptList',
+  '/apitest': '', // 父级菜单不跳转
+  '/apitest/project': '/ApiProjectList',
+  '/apitest/keyword': '/ApiKeyWordList',
+  '/apitest/mate': '/ApiMateManageList',
+}
+
+// 将后端的菜单树转换为前端侧边栏结构
+function transformMenuTree(tree){
+  if(!Array.isArray(tree)) return []
+  return tree
+    .filter(node => node.type === '0') // 只要菜单类型，过滤按钮
+    .sort((a,b) => (a.order_num||0) - (b.order_num||0))
+    .map(node => ({
+      name: node.menu_name,
+      icon: iconMap[node.icon] || node.icon || 'Menu', // 映射图标
+      frontpath: routePathMap[node.path] || '',
+      child: transformMenuTree(node.children||[])
+    }))
+    .filter(n => n.frontpath || (n.child && n.child.length > 0)) // 保留有路径或有子菜单的项
+}
+
+// 兜底：刷新后如无菜单，尝试根据cookie中的用户ID拉取
+onMounted(async ()=>{
+  if(!store.state.menuTree || store.state.menuTree.length === 0){
+    const uid = cookies.get('l-user-id')
+    if(uid){
+      try{
+        const res = await getUserMenus(uid)
+        if(res?.data?.code === 200){
+          const tree = res.data.data || []
+          if(tree.length > 0){
+            store.commit('setMenuTree', tree)
+          }else{
+            const allRes = await getMenuTree()
+            if(allRes?.data?.code === 200){
+              store.commit('setMenuTree', allRes.data.data || [])
+            }
+          }
+        }
+      }catch(e){}
+    }
   }
-];
+})
+
+const fixedMenus = computed(()=> [{ name:'系统总览', icon:'Monitor', frontpath:'/Statistics' }])
+const asideMenus = computed(()=> [...fixedMenus.value, ...transformMenuTree(store.state.menuTree)])
+
+// 根据当前路由计算激活的菜单项
+const currentActive = computed(() => {
+  const currentPath = route.path
+  
+  // 遍历所有菜单项找到匹配的路径
+  for (const menu of asideMenus.value) {
+    if (menu.frontpath === currentPath) {
+      return menu.frontpath
+    }
+    
+    // 检查子菜单
+    if (menu.child && menu.child.length > 0) {
+      for (const child of menu.child) {
+        if (child.frontpath === currentPath) {
+          return child.frontpath
+        }
+      }
+    }
+  }
+  
+  return '/Statistics' // 默认激活系统总览
+})
+
+// 根据当前路由计算需要展开的父菜单
+const defaultOpeneds = computed(() => {
+  const currentPath = route.path
+  const openeds = []
+  
+  // 遍历所有菜单项找到包含当前路径的父菜单
+  for (const menu of asideMenus.value) {
+    if (menu.child && menu.child.length > 0) {
+      for (const child of menu.child) {
+        if (child.frontpath === currentPath) {
+          openeds.push(menu.name)
+          break
+        }
+      }
+    }
+  }
+  
+  return openeds
+})
 </script>
 
 <!--01 bottom 表示到底部的距离，其他同理，shadow表示阴影 ，fixed表示滚动时自己不动 overflow: auto;长度问题可以自动滚动-->

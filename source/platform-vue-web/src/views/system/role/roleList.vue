@@ -12,8 +12,14 @@
     <!-- END 搜索表单 -->
     <!-- 数据表格 -->
     <el-table :data="tableData" style="width: 100%;" max-height="500">
-        <el-table-column v-for="col in columnList" :prop="col.prop" :label="col.label" :key="col.prop"
-            :show-overflow-tooltip="true" />
+        <el-table-column prop="id" label="角色ID" show-overflow-tooltip />
+        <el-table-column prop="role_name" label="角色名称" show-overflow-tooltip />
+        <el-table-column prop="remark" label="角色描述" show-overflow-tooltip />
+        <el-table-column prop="create_time" label="创建时间" show-overflow-tooltip>
+            <template #default="scope">
+                {{ formatDateTime(scope.row.create_time) }}
+            </template>
+        </el-table-column>
         <!-- 操作 -->
         <el-table-column fixed="right" label="操作" width="250">
             <template #default="scope">
@@ -59,6 +65,7 @@
 import { ref, reactive } from "vue"
 import { queryByPage, deleteData, assignMenus, getRoleMenus } from './role'
 import { getMenuTree } from '../menu/menu'
+import { formatDateTime } from '~/utils/timeFormatter'
 import { useRouter } from "vue-router"
 import { ElMessage } from 'element-plus'
 

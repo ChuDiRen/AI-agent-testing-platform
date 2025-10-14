@@ -10,7 +10,14 @@
   <!-- 数据表格 -->
   <el-table :data="tableData" style="width: 100%" max-height="500">
     <!-- 数据列 -->
-    <el-table-column v-for="col in columnList" :prop="col.prop" :label="col.label" :key="col.prop" :show-overflow-tooltip="true" />
+    <el-table-column prop="id" label="项目编号" show-overflow-tooltip />
+    <el-table-column prop="project_name" label="项目名称" show-overflow-tooltip />
+    <el-table-column prop="project_desc" label="项目描述" show-overflow-tooltip />
+    <el-table-column prop="create_time" label="创建时间" show-overflow-tooltip>
+      <template #default="scope">
+        {{ formatDateTime(scope.row.create_time) }}
+      </template>
+    </el-table-column>
     <!-- END数据列 -->
 
     <!-- 操作 -->
@@ -92,6 +99,7 @@
 // 1. 其他功能拓展
 import { ref, reactive, compile } from "vue";
 import { queryByPage, deleteData } from "./ApiProject.js"; // 不同页面不同的接口
+import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";
 
 const router = useRouter(); 
