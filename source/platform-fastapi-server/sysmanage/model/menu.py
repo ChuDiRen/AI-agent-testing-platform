@@ -4,7 +4,7 @@ from datetime import datetime
 
 class Menu(SQLModel, table=True): # 菜单/权限模型
     __tablename__ = "t_menu"
-    menu_id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
     parent_id: int = Field(default=0, index=True) # 上级菜单ID，0表示顶级菜单
     menu_name: str = Field(max_length=50) # 菜单/按钮名称
     path: Optional[str] = Field(default=None, max_length=255) # 对应路由path

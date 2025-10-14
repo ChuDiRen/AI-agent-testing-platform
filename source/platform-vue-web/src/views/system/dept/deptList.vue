@@ -7,7 +7,7 @@
     <!-- 数据表格 - 树形展示 -->
     <el-table
         :data="tableData"
-        row-key="dept_id"
+        row-key="id"
         style="width: 100%"
         default-expand-all
         :tree-props="{ children: 'children' }"
@@ -18,13 +18,13 @@
         <!-- 操作 -->
         <el-table-column fixed="right" label="操作" width="220">
             <template #default="scope">
-                <el-button link type="primary" size="small" @click.prevent="onDataForm(-1, scope.row.dept_id)">
+                <el-button link type="primary" size="small" @click.prevent="onDataForm(-1, scope.row.id)">
                     新增
                 </el-button>
-                <el-button link type="warning" size="small" @click.prevent="onDataForm(scope.row.dept_id, null)">
+                <el-button link type="warning" size="small" @click.prevent="onDataForm(scope.row.id, null)">
                     编辑
                 </el-button>
-                <el-button link type="danger" size="small" @click.prevent="onDelete(scope.row.dept_id)">
+                <el-button link type="danger" size="small" @click.prevent="onDelete(scope.row.id)">
                     删除
                 </el-button>
             </template>

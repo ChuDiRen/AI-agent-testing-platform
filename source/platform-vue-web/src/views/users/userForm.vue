@@ -9,7 +9,35 @@
             <el-input v-model="ruleForm.username" />
         </el-form-item>
         <el-form-item label="密码" prop="password">
-            <el-input v-model="ruleForm.password" />
+            <el-input v-model="ruleForm.password" type="password" />
+        </el-form-item>
+        <el-form-item label="邮箱" prop="email">
+            <el-input v-model="ruleForm.email" />
+        </el-form-item>
+        <el-form-item label="联系电话" prop="mobile">
+            <el-input v-model="ruleForm.mobile" />
+        </el-form-item>
+        <el-form-item label="部门ID" prop="dept_id">
+            <el-input v-model.number="ruleForm.dept_id" type="number" />
+        </el-form-item>
+        <el-form-item label="性别" prop="ssex">
+            <el-radio-group v-model="ruleForm.ssex">
+                <el-radio label="0">男</el-radio>
+                <el-radio label="1">女</el-radio>
+                <el-radio label="2">保密</el-radio>
+            </el-radio-group>
+        </el-form-item>
+        <el-form-item label="状态" prop="status">
+            <el-radio-group v-model="ruleForm.status">
+                <el-radio label="1">有效</el-radio>
+                <el-radio label="0">锁定</el-radio>
+            </el-radio-group>
+        </el-form-item>
+        <el-form-item label="头像" prop="avatar">
+            <el-input v-model="ruleForm.avatar" placeholder="头像URL" />
+        </el-form-item>
+        <el-form-item label="描述" prop="description">
+            <el-input v-model="ruleForm.description" type="textarea" :rows="3" />
         </el-form-item>
         <!-- 如果有不需要展示在页面的属性，建议通过 v-show="false" 进行控制，不要直接删除，这样方便你后续改来改去 -->
         <!-- END 表单字段 -->
@@ -38,7 +66,14 @@ const ruleFormRef = ref<FormInstance>()
 const ruleForm = reactive({
     id: 0,
     username: '',
-    password: ''
+    password: '',
+    email: '',
+    mobile: '',
+    dept_id: null,
+    ssex: '2',
+    status: '1',
+    avatar: '',
+    description: ''
 })
 
 // 表单验证规则 - 不同的页面，不同的校验规则
@@ -48,6 +83,12 @@ const rules = reactive<any>({
     ],
     password: [
         { required: true, message: '必填项', trigger: 'blur' }
+    ],
+    email: [
+        { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
+    ],
+    mobile: [
+        { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
     ]
 })
 // 提交表单
@@ -89,6 +130,13 @@ const loadData = async (id: number) => {
     ruleForm.id = res.data.data.id
     ruleForm.username = res.data.data.username
     ruleForm.password = res.data.data.password
+    ruleForm.email = res.data.data.email || ''
+    ruleForm.mobile = res.data.data.mobile || ''
+    ruleForm.dept_id = res.data.data.dept_id
+    ruleForm.ssex = res.data.data.ssex || '2'
+    ruleForm.status = res.data.data.status || '1'
+    ruleForm.avatar = res.data.data.avatar || ''
+    ruleForm.description = res.data.data.description || ''
 }
 
 // 如果有id参数，说明是编辑，需要获取数据

@@ -116,19 +116,19 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
 def assignRoles(request: UserRoleAssign, session: Session = Depends(get_session)):
     try:
         # 检查用户是否存在
-        user = session.get(User, request.user_id)
+        user = session.get(User, request.id)
         if not user:
             return respModel().error_resp("用户不存在")
         
         # 删除用户原有的角色
-        statement = select(UserRole).where(UserRole.user_id == request.user_id)
+        statement = select(UserRole).where(UserRole.user_id == request.id)
         old_user_roles = session.exec(statement).all()
         for ur in old_user_roles:
             session.delete(ur)
         
         # 添加新的角色
         for role_id in request.role_ids:
-            user_role = UserRole(user_id=request.user_id, role_id=role_id)
+            user_role = UserRole(user_id=request.id, role_id=role_id)
             session.add(user_role)
         
         session.commit()

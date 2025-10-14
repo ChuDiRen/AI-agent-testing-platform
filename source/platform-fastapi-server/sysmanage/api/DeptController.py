@@ -16,11 +16,11 @@ def build_tree(depts: List[Dept], parent_id: int = 0) -> List[Dict]: # 构建部
     for dept in depts:
         if dept.parent_id == parent_id:
             node = {
-                "dept_id": dept.dept_id,
+                "id": dept.id,
                 "parent_id": dept.parent_id,
                 "dept_name": dept.dept_name,
                 "order_num": dept.order_num,
-                "children": build_tree(depts, dept.dept_id)
+                "children": build_tree(depts, dept.id)
             }
             tree.append(node)
     return sorted(tree, key=lambda x: x["order_num"])
@@ -64,11 +64,11 @@ def insert(request: DeptCreate, session: Session = Depends(get_session)):
 @module_route.put("/update") # 更新部门
 def update(request: DeptUpdate, session: Session = Depends(get_session)):
     try:
-        obj = session.get(module_model, request.dept_id)
+        obj = session.get(module_model, request.id)
         if not obj:
             return respModel().error_resp("数据不存在")
         
-        update_data = request.model_dump(exclude_unset=True, exclude={"dept_id"})
+        update_data = request.model_dump(exclude_unset=True, exclude={"id"})
         update_data["modify_time"] = datetime.now()
         
         for key, value in update_data.items():

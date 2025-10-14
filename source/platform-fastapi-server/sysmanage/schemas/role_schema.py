@@ -12,11 +12,11 @@ class RoleCreate(BaseModel): # 角色创建请求
     remark: Optional[str] = None
 
 class RoleUpdate(BaseModel): # 角色更新请求
-    role_id: int
+    id: int
     role_name: Optional[str] = None
     remark: Optional[str] = None
 
 class RoleMenuAssign(BaseModel): # 角色分配菜单权限
-    role_id: int
+    id: int
     menu_ids: List[int] # 菜单ID列表
 

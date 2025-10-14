@@ -17,7 +17,7 @@ class MenuCreate(BaseModel): # 菜单创建请求
     order_num: int = 0
 
 class MenuUpdate(BaseModel): # 菜单更新请求
-    menu_id: int
+    id: int
     parent_id: Optional[int] = None
     menu_name: Optional[str] = None
     path: Optional[str] = None
@@ -28,7 +28,7 @@ class MenuUpdate(BaseModel): # 菜单更新请求
     order_num: Optional[int] = None
 
 class MenuTree(BaseModel): # 菜单树节点
-    menu_id: int
+    id: int
     parent_id: int
     menu_name: str
     path: Optional[str] = None

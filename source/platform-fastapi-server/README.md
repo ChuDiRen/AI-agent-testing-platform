@@ -158,6 +158,21 @@ uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
 - `GET /user/roles/{user_id}` - 获取用户的角色 🆕
 - `PUT /user/updateStatus` - 更新用户状态（锁定/启用）🆕
 
+**用户字段说明**：
+- `id`: 用户ID（主键）
+- `username`: 用户名（唯一索引）
+- `password`: 密码（加密存储）
+- `dept_id`: 部门ID
+- `email`: 邮箱
+- `mobile`: 联系电话
+- `status`: 状态（0锁定 1有效）
+- `ssex`: 性别（0男 1女 2保密）
+- `avatar`: 头像URL
+- `description`: 描述
+- `create_time`: 创建时间
+- `modify_time`: 修改时间
+- `last_login_time`: 最近访问时间
+
 #### 2.2 角色管理 🆕
 
 - `POST /role/queryByPage` - 分页查询角色
@@ -305,6 +320,9 @@ MINIO_SECURE=False
   - 菜单管理（支持菜单和按钮级权限）
   - 用户状态管理（启用/锁定）
   - 数据权限支持
+  - **统一主键命名**（简洁高效）
+    * 所有 RBAC 模型（User、Role、Menu、Dept）统一使用 `id` 作为主键
+    * 简化前后端字段映射，提升开发效率
 - ✅ 依赖注入（数据库会话、JWT认证、MinIO客户端）
 - ✅ 统一响应格式
 - ✅ 自动API文档生成

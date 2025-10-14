@@ -74,7 +74,7 @@ const searchForm = reactive({ "role_name": null })
 
 // 表格列
 const columnList = ref([
-    { prop: "role_id", label: '角色ID' },
+    { prop: "id", label: '角色ID' },
     { prop: "role_name", label: '角色名称' },
     { prop: "remark", label: '角色描述' },
     { prop: "create_time", label: '创建时间' }
@@ -113,7 +113,7 @@ const onDataForm = (index: number) => {
     let params_data = {}
     if (index >= 0) {
         params_data = {
-            id: tableData.value[index]["role_id"]
+            id: tableData.value[index]["id"]
         }
     }
     router.push({
@@ -124,7 +124,7 @@ const onDataForm = (index: number) => {
 
 // 删除数据
 const onDelete = (index: number) => {
-    deleteData(tableData.value[index]["role_id"]).then((res: {}) => {
+    deleteData(tableData.value[index]["id"]).then((res: {}) => {
         loadData()
     })
 }
@@ -137,7 +137,7 @@ const currentRoleId = ref(null)
 
 // 打开权限分配对话框
 const onAssignMenus = async (index: number) => {
-    currentRoleId.value = tableData.value[index]["role_id"]
+    currentRoleId.value = tableData.value[index]["id"]
     
     // 加载菜单树
     const menuRes = await getMenuTree()
@@ -161,7 +161,7 @@ const handleSaveMenus = async () => {
     const menuIds = [...checkedKeys, ...halfCheckedKeys]
     
     await assignMenus({
-        role_id: currentRoleId.value,
+        id: currentRoleId.value,
         menu_ids: menuIds
     })
     

@@ -33,7 +33,7 @@ class UserUpdate(BaseModel): # 用户更新请求
     description: Optional[str] = None
 
 class UserRoleAssign(BaseModel): # 用户分配角色
-    user_id: int
+    id: int  # 用户ID
     role_ids: List[int] # 角色ID列表
 
 class UserStatusUpdate(BaseModel): # 用户状态更新

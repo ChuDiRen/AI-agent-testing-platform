@@ -4,7 +4,7 @@ from datetime import datetime
 
 class Role(SQLModel, table=True): # 角色模型
     __tablename__ = "t_role"
-    role_id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
     role_name: str = Field(max_length=100, unique=True, index=True) # 角色名称
     remark: Optional[str] = Field(default=None, max_length=500) # 角色描述
     create_time: Optional[datetime] = Field(default_factory=datetime.now) # 创建时间

@@ -56,7 +56,11 @@ const searchForm = reactive({"username": null})
 const columnList = ref([
     { prop: "id", label: '用户ID' },
     { prop: "username", label: '用户名' },
-    { prop: "password", label: '密码' },
+    { prop: "email", label: '邮箱' },
+    { prop: "mobile", label: '联系电话' },
+    { prop: "dept_id", label: '部门ID' },
+    { prop: "status", label: '状态' },
+    { prop: "ssex", label: '性别' },
     { prop: "create_time", label: '创建时间' }
 ])
 // 表格数据

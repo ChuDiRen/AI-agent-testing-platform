@@ -1,14 +1,14 @@
 <template>
     <el-form ref="ruleFormRef" :model="ruleForm" :rules="rules" label-width="120px" class="demo-ruleForm"
         status-icon>
-        <el-form-item label="菜单ID" prop="menu_id">
-            <el-input v-model="ruleForm.menu_id" disabled/>
+        <el-form-item label="菜单ID" prop="id">
+            <el-input v-model="ruleForm.id" disabled/>
         </el-form-item>
         <el-form-item label="上级菜单" prop="parent_id">
             <el-tree-select
                 v-model="ruleForm.parent_id"
                 :data="menuTreeOptions"
-                :props="{ value: 'menu_id', label: 'menu_name', children: 'children' }"
+                :props="{ value: 'id', label: 'menu_name', children: 'children' }"
                 check-strictly
                 placeholder="请选择上级菜单"
             />
@@ -59,11 +59,11 @@ const router = useRouter()
 // 表单实例
 const ruleFormRef = ref<FormInstance>()
 // 菜单树选项
-const menuTreeOptions = ref([{ menu_id: 0, menu_name: '顶级菜单', children: [] }])
+const menuTreeOptions = ref([{ id: 0, menu_name: '顶级菜单', children: [] }])
 
 // 表单数据
 const ruleForm = reactive({
-    menu_id: 0,
+    id: 0,
     parent_id: 0,
     menu_name: '',
     path: '',
@@ -88,7 +88,7 @@ const rules = reactive<any>({
 const loadMenuTree = async () => {
     const res = await getMenuTree()
     if (res.data.code === 200) {
-        menuTreeOptions.value = [{ menu_id: 0, menu_name: '顶级菜单', children: res.data.data }]
+        menuTreeOptions.value = [{ id: 0, menu_name: '顶级菜单', children: res.data.data }]
     }
 }
 loadMenuTree()
@@ -101,7 +101,7 @@ const submitForm = async (form: FormInstance | undefined) => {
             return 
         } 
         // 有ID 代表是修改， 没ID 代表是新增
-        if (ruleForm.menu_id > 0) {
+        if (ruleForm.id > 0) {
             updateData(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
                 if (res.data.code == 200) {
                     router.push('/menuList')
@@ -131,7 +131,7 @@ const closeForm = () => {
 // 加载表单数据
 const loadData = async (id: number) => {
     const res = await queryById(id)
-    ruleForm.menu_id = res.data.data.menu_id
+    ruleForm.id = res.data.data.id
     ruleForm.parent_id = res.data.data.parent_id
     ruleForm.menu_name = res.data.data.menu_name
     ruleForm.path = res.data.data.path
@@ -146,9 +146,9 @@ const loadData = async (id: number) => {
 let query_id = router.currentRoute.value.query.id
 let query_parent_id = router.currentRoute.value.query.parent_id
 
-ruleForm.menu_id = query_id ? Number(query_id) : 0
-if (ruleForm.menu_id > 0) {
-    loadData(ruleForm.menu_id)
+ruleForm.id = query_id ? Number(query_id) : 0
+if (ruleForm.id > 0) {
+    loadData(ruleForm.id)
 } else if (query_parent_id !== undefined) {
     // 新增子菜单时，设置父菜单ID
     ruleForm.parent_id = Number(query_parent_id)

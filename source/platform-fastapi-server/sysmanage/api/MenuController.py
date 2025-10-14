@@ -18,7 +18,7 @@ def build_tree(menus: List[Menu], parent_id: int = 0) -> List[Dict]: # 构建菜
     for menu in menus:
         if menu.parent_id == parent_id:
             node = {
-                "menu_id": menu.menu_id,
+                "id": menu.id,
                 "parent_id": menu.parent_id,
                 "menu_name": menu.menu_name,
                 "path": menu.path,
@@ -27,7 +27,7 @@ def build_tree(menus: List[Menu], parent_id: int = 0) -> List[Dict]: # 构建菜
                 "icon": menu.icon,
                 "type": menu.type,
                 "order_num": menu.order_num,
-                "children": build_tree(menus, menu.menu_id)
+                "children": build_tree(menus, menu.id)
             }
             tree.append(node)
     return sorted(tree, key=lambda x: x["order_num"])
@@ -71,11 +71,11 @@ def insert(request: MenuCreate, session: Session = Depends(get_session)):
 @module_route.put("/update") # 更新菜单
 def update(request: MenuUpdate, session: Session = Depends(get_session)):
     try:
-        obj = session.get(module_model, request.menu_id)
+        obj = session.get(module_model, request.id)
         if not obj:
             return respModel().error_resp("数据不存在")
         
-        update_data = request.model_dump(exclude_unset=True, exclude={"menu_id"})
+        update_data = request.model_dump(exclude_unset=True, exclude={"id"})
         update_data["modify_time"] = datetime.now()
         
         for key, value in update_data.items():
@@ -137,7 +137,7 @@ def getUserMenus(user_id: int, session: Session = Depends(get_session)):
             return respModel().ok_resp_tree(treeData=[], msg="查询成功")
         
         # 获取菜单详情
-        statement = select(Menu).where(Menu.menu_id.in_(menu_ids))
+        statement = select(Menu).where(Menu.id.in_(menu_ids))
         menus = session.exec(statement).all()
         
         # 构建菜单树

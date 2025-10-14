@@ -70,12 +70,12 @@ def insert(request: RoleCreate, session: Session = Depends(get_session)):
 @module_route.put("/update") # 更新角色
 def update(request: RoleUpdate, session: Session = Depends(get_session)):
     try:
-        obj = session.get(module_model, request.role_id)
+        obj = session.get(module_model, request.id)
         if not obj:
             return respModel().error_resp("数据不存在")
         
         # 更新字段
-        update_data = request.model_dump(exclude_unset=True, exclude={"role_id"})
+        update_data = request.model_dump(exclude_unset=True, exclude={"id"})
         update_data["modify_time"] = datetime.now()
         
         for key, value in update_data.items():
@@ -115,19 +115,19 @@ def delete(id: int, session: Session = Depends(get_session)):
 def assignMenus(request: RoleMenuAssign, session: Session = Depends(get_session)):
     try:
         # 检查角色是否存在
-        role = session.get(Role, request.role_id)
+        role = session.get(Role, request.id)
         if not role:
             return respModel().error_resp("角色不存在")
         
         # 删除该角色原有的菜单权限
-        statement = select(RoleMenu).where(RoleMenu.role_id == request.role_id)
+        statement = select(RoleMenu).where(RoleMenu.role_id == request.id)
         old_role_menus = session.exec(statement).all()
         for rm in old_role_menus:
             session.delete(rm)
         
         # 添加新的菜单权限
         for menu_id in request.menu_ids:
-            role_menu = RoleMenu(role_id=request.role_id, menu_id=menu_id)
+            role_menu = RoleMenu(role_id=request.id, menu_id=menu_id)
             session.add(role_menu)
         
         session.commit()

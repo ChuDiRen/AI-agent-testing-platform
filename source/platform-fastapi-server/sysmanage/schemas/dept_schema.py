@@ -11,13 +11,13 @@ class DeptCreate(BaseModel): # 部门创建请求
     order_num: int = 0
 
 class DeptUpdate(BaseModel): # 部门更新请求
-    dept_id: int
+    id: int
     parent_id: Optional[int] = None
     dept_name: Optional[str] = None
     order_num: Optional[int] = None
 
 class DeptTree(BaseModel): # 部门树节点
-    dept_id: int
+    id: int
     parent_id: int
     dept_name: str
     order_num: int

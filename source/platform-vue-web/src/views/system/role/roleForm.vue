@@ -1,8 +1,8 @@
 <template>
     <el-form ref="ruleFormRef" :model="ruleForm" :rules="rules" label-width="120px" class="demo-ruleForm"
         status-icon>
-        <el-form-item label="角色ID" prop="role_id">
-            <el-input v-model="ruleForm.role_id" disabled/>
+        <el-form-item label="角色ID" prop="id">
+            <el-input v-model="ruleForm.id" disabled/>
         </el-form-item>
         <el-form-item label="角色名称" prop="role_name">
             <el-input v-model="ruleForm.role_name" placeholder="请输入角色名称" />
@@ -33,7 +33,7 @@ const router = useRouter()
 const ruleFormRef = ref<FormInstance>()
 // 表单数据
 const ruleForm = reactive({
-    role_id: 0,
+    id: 0,
     role_name: '',
     remark: ''
 })
@@ -53,7 +53,7 @@ const submitForm = async (form: FormInstance | undefined) => {
             return 
         } 
         // 有ID 代表是修改， 没ID 代表是新增
-        if (ruleForm.role_id > 0) {
+        if (ruleForm.id > 0) {
             updateData(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
                 if (res.data.code == 200) {
                     router.push('/roleList')
@@ -83,16 +83,16 @@ const closeForm = () => {
 // 加载表单数据
 const loadData = async (id: number) => {
     const res = await queryById(id)
-    ruleForm.role_id = res.data.data.role_id
+    ruleForm.id = res.data.data.id
     ruleForm.role_name = res.data.data.role_name
     ruleForm.remark = res.data.data.remark
 }
 
 // 如果有id参数，说明是编辑，需要获取数据
 let query_id = router.currentRoute.value.query.id
-ruleForm.role_id = query_id ? Number(query_id) : 0
-if (ruleForm.role_id > 0) {
-    loadData(ruleForm.role_id)
+ruleForm.id = query_id ? Number(query_id) : 0
+if (ruleForm.id > 0) {
+    loadData(ruleForm.id)
 }
 </script>
 
