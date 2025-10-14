@@ -76,6 +76,15 @@ application.include_router(LoginController.module_route)
 from sysmanage.api import UserController
 application.include_router(UserController.module_route)
 
+from sysmanage.api import RoleController
+application.include_router(RoleController.module_route)
+
+from sysmanage.api import MenuController
+application.include_router(MenuController.module_route)
+
+from sysmanage.api import DeptController
+application.include_router(DeptController.module_route)
+
 from apitest.api import ApiProjectContoller
 application.include_router(ApiProjectContoller.module_route)
 

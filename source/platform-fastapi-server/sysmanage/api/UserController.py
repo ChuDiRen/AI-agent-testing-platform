@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 from core.resp_model import respModel
 from sysmanage.model.user import User
-from sysmanage.schemas.user_schema import UserQuery, UserCreate, UserUpdate
+from sysmanage.model.user_role import UserRole
+from sysmanage.schemas.user_schema import UserQuery, UserCreate, UserUpdate, UserRoleAssign, UserStatusUpdate
 from core.database import get_session
 from datetime import datetime
 
@@ -14,10 +15,33 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["用户管理"])
 def queryByPage(query: UserQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
-        statement = select(module_model).limit(query.pageSize).offset(offset)
+        statement = select(module_model)
+        
+        # 模糊查询用户名
+        if query.username:
+            statement = statement.where(module_model.username.like(f"%{query.username}%"))
+        
+        # 按部门过滤
+        if query.dept_id:
+            statement = statement.where(module_model.dept_id == query.dept_id)
+        
+        # 按状态过滤
+        if query.status:
+            statement = statement.where(module_model.status == query.status)
+        
+        statement = statement.limit(query.pageSize).offset(offset)
         datas = session.exec(statement).all()
+        
+        # 统计总数
         count_statement = select(module_model)
+        if query.username:
+            count_statement = count_statement.where(module_model.username.like(f"%{query.username}%"))
+        if query.dept_id:
+            count_statement = count_statement.where(module_model.dept_id == query.dept_id)
+        if query.status:
+            count_statement = count_statement.where(module_model.status == query.status)
         total = len(session.exec(count_statement).all())
+        
         return respModel().ok_resp_list(lst=datas, total=total)
     except Exception as e:
         print(e)
@@ -72,6 +96,12 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
         if data:
+            # 删除用户的角色关联
+            statement = select(UserRole).where(UserRole.user_id == id)
+            user_roles = session.exec(statement).all()
+            for ur in user_roles:
+                session.delete(ur)
+            
             session.delete(data)
             session.commit()
             return respModel.ok_resp(msg="删除成功")
@@ -81,3 +111,59 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         session.rollback()
         print(e)
         return respModel.error_resp(msg=f"服务器错误,删除失败：{e}")
+
+@module_route.post("/assignRoles") # 为用户分配角色
+def assignRoles(request: UserRoleAssign, session: Session = Depends(get_session)):
+    try:
+        # 检查用户是否存在
+        user = session.get(User, request.user_id)
+        if not user:
+            return respModel().error_resp("用户不存在")
+        
+        # 删除用户原有的角色
+        statement = select(UserRole).where(UserRole.user_id == request.user_id)
+        old_user_roles = session.exec(statement).all()
+        for ur in old_user_roles:
+            session.delete(ur)
+        
+        # 添加新的角色
+        for role_id in request.role_ids:
+            user_role = UserRole(user_id=request.user_id, role_id=role_id)
+            session.add(user_role)
+        
+        session.commit()
+        return respModel().ok_resp_text(msg="分配角色成功")
+    except Exception as e:
+        session.rollback()
+        print(e)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
+@module_route.get("/roles/{user_id}") # 获取用户的角色
+def getRoles(user_id: int, session: Session = Depends(get_session)):
+    try:
+        statement = select(UserRole).where(UserRole.user_id == user_id)
+        user_roles = session.exec(statement).all()
+        role_ids = [ur.role_id for ur in user_roles]
+        return respModel().ok_resp_simple(lst=role_ids, msg="查询成功")
+    except Exception as e:
+        print(e)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
+@module_route.put("/updateStatus") # 更新用户状态（锁定/启用）
+def updateStatus(request: UserStatusUpdate, session: Session = Depends(get_session)):
+    try:
+        user = session.get(User, request.id)
+        if not user:
+            return respModel().error_resp("用户不存在")
+        
+        user.status = request.status
+        user.modify_time = datetime.now()
+        session.add(user)
+        session.commit()
+        
+        status_text = "启用" if request.status == "1" else "锁定"
+        return respModel().ok_resp_text(msg=f"用户{status_text}成功")
+    except Exception as e:
+        session.rollback()
+        print(e)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")

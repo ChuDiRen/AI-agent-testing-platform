@@ -145,15 +145,77 @@ uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
 
 - `POST /login` - 用户登录
 
-### 2. 用户管理
+### 2. RBAC权限管理系统 🆕
 
-- `POST /user/queryByPage` - 分页查询用户
+#### 2.1 用户管理
+
+- `POST /user/queryByPage` - 分页查询用户（支持按用户名、部门、状态过滤）
 - `GET /user/queryById` - 根据ID查询用户
 - `POST /user/insert` - 新增用户
 - `PUT /user/update` - 更新用户
 - `DELETE /user/delete` - 删除用户
+- `POST /user/assignRoles` - 为用户分配角色 🆕
+- `GET /user/roles/{user_id}` - 获取用户的角色 🆕
+- `PUT /user/updateStatus` - 更新用户状态（锁定/启用）🆕
 
-### 3. API项目管理
+#### 2.2 角色管理 🆕
+
+- `POST /role/queryByPage` - 分页查询角色
+- `GET /role/queryById` - 根据ID查询角色
+- `POST /role/insert` - 新增角色
+- `PUT /role/update` - 更新角色
+- `DELETE /role/delete` - 删除角色
+- `POST /role/assignMenus` - 为角色分配菜单权限
+- `GET /role/menus/{role_id}` - 获取角色的菜单权限
+
+#### 2.3 菜单/权限管理 🆕
+
+- `GET /menu/tree` - 获取菜单树
+- `GET /menu/queryById` - 根据ID查询菜单
+- `POST /menu/insert` - 新增菜单
+- `PUT /menu/update` - 更新菜单
+- `DELETE /menu/delete` - 删除菜单
+- `GET /menu/user/{user_id}` - 获取用户的菜单权限（用于前端动态路由）
+
+#### 2.4 部门管理 🆕
+
+- `GET /dept/tree` - 获取部门树
+- `GET /dept/queryById` - 根据ID查询部门
+- `POST /dept/insert` - 新增部门
+- `PUT /dept/update` - 更新部门
+- `DELETE /dept/delete` - 删除部门
+
+### 3. 初始数据 🆕
+
+首次启动时，系统会自动初始化以下RBAC数据：
+
+**默认账号**：
+- 用户名：`admin`
+- 密码：`admin123`
+- 角色：超级管理员
+
+**默认部门**：
+- 总公司（顶级部门）
+  - 技术部
+  - 产品部
+  - 运营部
+
+**默认角色**：
+- 超级管理员（拥有所有权限）
+- 管理员（拥有部分管理权限）
+- 普通用户（拥有基本权限）
+
+**默认菜单**：
+- 系统管理
+  - 用户管理（含增删改查、分配角色按钮权限）
+  - 角色管理（含增删改查、分配权限按钮权限）
+  - 菜单管理（含增删改查按钮权限）
+  - 部门管理（含增删改查按钮权限）
+- API测试
+  - 项目管理
+  - 用例管理
+
+### 4. API项目管理
 
 - `POST /ApiProject/queryByPage` - 分页查询项目
 - `GET /ApiProject/queryById` - 根据ID查询项目
@@ -162,7 +224,7 @@ uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
 - `PUT /ApiProject/update` - 更新项目
 - `DELETE /ApiProject/delete` - 删除项目
 
-### 4. API数据库配置管理
+### 5. API数据库配置管理
 
 - `POST /ApiDbBase/queryByPage` - 分页查询数据库配置
 - `GET /ApiDbBase/queryById` - 根据ID查询配置
@@ -170,7 +232,7 @@ uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
 - `PUT /ApiDbBase/update` - 更新配置
 - `DELETE /ApiDbBase/delete` - 删除配置
 
-### 5. API关键字管理
+### 6. API关键字管理
 
 - `GET /ApiKeyWord/queryAll` - 查询所有关键字
 - `POST /ApiKeyWord/queryByPage` - 分页查询关键字
@@ -180,7 +242,7 @@ uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
 - `DELETE /ApiKeyWord/delete` - 删除关键字
 - `POST /ApiKeyWord/keywordFile` - 生成关键字文件
 
-### 6. API元数据管理（文件管理）
+### 7. API元数据管理（文件管理）
 
 - `GET /ApiMeta/queryAll` - 查询所有元数据
 - `POST /ApiMeta/queryByPage` - 分页查询元数据
@@ -190,7 +252,7 @@ uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
 - `DELETE /ApiMeta/delete` - 删除元数据
 - `GET /ApiMeta/downloadFile` - 获取文件下载地址
 
-### 7. 操作类型管理
+### 8. 操作类型管理
 
 - `GET /OperationType/queryAll` - 查询所有操作类型
 - `POST /OperationType/queryByPage` - 分页查询操作类型
@@ -237,6 +299,12 @@ MINIO_SECURE=False
 
 - ✅ 同步SQLModel，保持与原Flask代码接近
 - ✅ 支持MySQL和SQLite数据库切换
+- ✅ **完整RBAC权限管理系统** 🆕
+  - 用户-角色-菜单权限模型
+  - 部门管理（树形结构）
+  - 菜单管理（支持菜单和按钮级权限）
+  - 用户状态管理（启用/锁定）
+  - 数据权限支持
 - ✅ 依赖注入（数据库会话、JWT认证、MinIO客户端）
 - ✅ 统一响应格式
 - ✅ 自动API文档生成
@@ -246,6 +314,7 @@ MINIO_SECURE=False
 - ✅ JWT认证
 - ✅ CORS支持
 - ✅ 唯一性校验
+- ✅ 自动初始化RBAC数据
 
 ## 开发规范
 
