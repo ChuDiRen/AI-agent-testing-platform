@@ -183,18 +183,107 @@ async def generate_testcases(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ) -> APIResponse[TestCaseGenerateResponse]:
-    """AI生成测试用例"""
+    """AI生成测试用例（文本输入）"""
     service = AIService(db)
-    testcases = await service.generate_testcases(request, current_user.user_id)
     
-    return APIResponse(
-        success=True,
-        message=f"成功生成 {len(testcases)} 个测试用例",
-        data=TestCaseGenerateResponse(
-            testcases=testcases,
-            total=len(testcases)
+    try:
+        testcases = await service.generate_testcases(request, current_user.user_id)
+        
+        return APIResponse(
+            success=True,
+            message=f"成功生成 {len(testcases)} 个测试用例",
+            data=TestCaseGenerateResponse(
+                testcases=testcases,
+                total=len(testcases)
+            )
         )
-    )
+    except ValueError as e:
+        return APIResponse(
+            success=False,
+            message=str(e)
+        )
+
+
+@router.post("/generate-testcases/upload", response_model=APIResponse[TestCaseGenerateResponse])
+async def generate_testcases_from_file(
+    file: UploadFile,
+    test_type: str = Form("API"),
+    module: Optional[str] = Form(None),
+    count: int = Form(5),
+    model_key: Optional[str] = Form(None),
+    template_id: Optional[int] = Form(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> APIResponse[TestCaseGenerateResponse]:
+    """AI生成测试用例（文件上传）"""
+    from fastapi import UploadFile, Form
+    
+    # 读取文件内容
+    try:
+        file_content = await file.read()
+        
+        # 根据文件类型解析内容
+        requirement = ""
+        file_ext = file.filename.split('.')[-1].lower() if file.filename else ""
+        
+        if file_ext == "txt":
+            requirement = file_content.decode('utf-8')
+        elif file_ext == "pdf":
+            # 解析PDF
+            from pypdf import PdfReader
+            import io
+            pdf_file = io.BytesIO(file_content)
+            reader = PdfReader(pdf_file)
+            requirement = "\n".join([page.extract_text() for page in reader.pages])
+        elif file_ext in ["doc", "docx"]:
+            # 解析Word
+            from docx import Document
+            import io
+            doc_file = io.BytesIO(file_content)
+            doc = Document(doc_file)
+            requirement = "\n".join([para.text for para in doc.paragraphs])
+        else:
+            # 尝试作为文本解析
+            try:
+                requirement = file_content.decode('utf-8')
+            except:
+                return APIResponse(
+                    success=False,
+                    message=f"不支持的文件格式: {file_ext}"
+                )
+        
+        if not requirement.strip():
+            return APIResponse(
+                success=False,
+                message="文件内容为空"
+            )
+        
+        # 构建生成请求
+        request = TestCaseGenerateRequest(
+            requirement=requirement,
+            test_type=test_type,
+            module=module,
+            count=count,
+            model_key=model_key,
+            template_id=template_id
+        )
+        
+        service = AIService(db)
+        testcases = await service.generate_testcases(request, current_user.user_id)
+        
+        return APIResponse(
+            success=True,
+            message=f"成功生成 {len(testcases)} 个测试用例",
+            data=TestCaseGenerateResponse(
+                testcases=testcases,
+                total=len(testcases)
+            )
+        )
+    except Exception as e:
+        return APIResponse(
+            success=False,
+            message=f"处理文件失败: {str(e)}"
+        )
 
 
 @router.post("/testcases/batch-save", response_model=APIResponse[dict])

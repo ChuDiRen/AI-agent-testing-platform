@@ -192,6 +192,34 @@ class ClaudeClient(BaseAIClient):
             }
 
 
+class DeepSeekClient(OpenAIClient):
+    """DeepSeek客户端（兼容OpenAI接口）"""
+    
+    def __init__(self, model: AIModel):
+        # DeepSeek使用兼容OpenAI的接口
+        super().__init__(model)
+        # 如果没有设置api_base，使用DeepSeek的默认地址
+        if not model.api_base:
+            self.client = AsyncOpenAI(
+                api_key=model.api_key,
+                base_url="https://api.deepseek.com"
+            )
+
+
+class QwenClient(OpenAIClient):
+    """通义千问客户端（兼容OpenAI接口）"""
+    
+    def __init__(self, model: AIModel):
+        # 通义千问使用兼容OpenAI的接口
+        super().__init__(model)
+        # 如果没有设置api_base，使用通义千问的默认地址
+        if not model.api_base:
+            self.client = AsyncOpenAI(
+                api_key=model.api_key,
+                base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+            )
+
+
 class AIClientFactory:
     """AI客户端工厂"""
     
@@ -204,6 +232,10 @@ class AIClientFactory:
             return OpenAIClient(model)
         elif provider == "claude" or provider == "anthropic":
             return ClaudeClient(model)
+        elif provider == "deepseek":
+            return DeepSeekClient(model)
+        elif provider == "qwen" or provider == "tongyi":
+            return QwenClient(model)
         else:
             raise ValueError(f"不支持的AI提供商: {provider}")
 

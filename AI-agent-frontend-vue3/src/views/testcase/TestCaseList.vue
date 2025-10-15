@@ -54,6 +54,10 @@
               <el-icon><Plus /></el-icon>
               创建用例
             </el-button>
+            <el-button type="success" @click="handleAIGenerate">
+              <el-icon><MagicStick /></el-icon>
+              AI 生成
+            </el-button>
             <el-button
               v-if="selectedIds.length > 0"
               type="success"
@@ -255,6 +259,12 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- AI 生成对话框 -->
+    <AIGenerateDialog
+      v-model="aiGenerateDialogVisible"
+      @success="handleAIGenerateSuccess"
+    />
   </div>
 </template>
 
@@ -274,8 +284,10 @@ import {
   Edit,
   Delete,
   View,
-  VideoPlay
+  VideoPlay,
+  MagicStick
 } from '@element-plus/icons-vue'
+import AIGenerateDialog from '@/components/testcase/AIGenerateDialog.vue'
 import {
   getTestCasesAPI,
   getTestCaseStatisticsAPI,
@@ -320,6 +332,9 @@ const pagination = reactive({
 const executionDialogVisible = ref(false)
 const executionResult = ref<TestCaseExecutionResult | null>(null)
 
+// AI 生成
+const aiGenerateDialogVisible = ref(false)
+
 // 加载测试用例列表
 const loadTestCases = async () => {
   loading.value = true
@@ -356,6 +371,17 @@ const loadStatistics = async () => {
 // 创建用例
 const handleCreate = () => {
   router.push('/testcase/create')
+}
+
+// AI 生成
+const handleAIGenerate = () => {
+  aiGenerateDialogVisible.value = true
+}
+
+// AI 生成成功回调
+const handleAIGenerateSuccess = () => {
+  loadTestCases()
+  loadStatistics()
 }
 
 // 查看用例

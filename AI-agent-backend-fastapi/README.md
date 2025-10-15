@@ -13,10 +13,12 @@
 
 ### AI功能
 
-- ✅ 多模型AI对话（GPT-3.5/4/4-Turbo, Claude 3 Sonnet/Opus/3.5）
+- ✅ 国产AI模型对话（DeepSeek Chat, 通义千问 Turbo/Plus/Max）
+- ✅ AI自动生成测试用例（支持文本和文件输入）
 - ✅ 流式响应（SSE）
 - ✅ 模型动态切换
 - ✅ 会话历史管理
+- ✅ 自定义提示词模板
 
 ### RAG知识库
 
@@ -101,17 +103,27 @@ celery -A app.core.celery_app flower --port=5555
 
 ### 1. 获取API Key
 
-- OpenAI: <https://platform.openai.com/api-keys>
-- Claude: <https://console.anthropic.com/settings/keys>
+- DeepSeek: <https://platform.deepseek.com/api_keys>
+- 通义千问: <https://bailian.console.aliyun.com/?tab=model#/api-key>
 
 ### 2. 配置模型
 
 访问 <http://localhost:8000/docs，使用以下接口配置：>
 
+**DeepSeek (模型ID: 1)**
 ```bash
-PUT /api/v1/ai/models/{model_id}
+PUT /api/v1/ai/models/1
 {
-  "api_key": "your-api-key",
+  "api_key": "your-deepseek-api-key",
+  "is_enabled": true
+}
+```
+
+**通义千问 (模型ID: 2/3/4)**
+```bash
+PUT /api/v1/ai/models/2
+{
+  "api_key": "your-qwen-api-key",
   "is_enabled": true
 }
 ```
@@ -147,6 +159,20 @@ AI-agent-backend-fastapi/
 - GET `/api/v1/ai/models` - 获取模型列表
 - PUT `/api/v1/ai/models/{id}` - 更新模型配置
 - POST `/api/v1/ai/models/{id}/test` - 测试模型连接
+
+### AI测试用例生成接口
+
+- POST `/api/v1/ai/generate-testcases` - 文本生成测试用例
+- POST `/api/v1/ai/generate-testcases/upload` - 文件上传生成测试用例
+- POST `/api/v1/ai/testcases/batch-save` - 批量保存测试用例
+
+### 提示词模板接口
+
+- GET `/api/v1/prompt-templates` - 获取模板列表
+- POST `/api/v1/prompt-templates` - 创建模板
+- PUT `/api/v1/prompt-templates/{id}` - 更新模板
+- DELETE `/api/v1/prompt-templates/{id}` - 删除模板
+- POST `/api/v1/prompt-templates/{id}/set-default` - 设置默认模板
 
 ### 知识库接口
 

@@ -201,3 +201,86 @@ export function exportTestCasesAPI(format: 'csv' | 'json', filters?: {
     })
 }
 
+// ==================== AI生成测试用例相关 ====================
+
+export interface AIGenerateRequest {
+    requirement: string
+    test_type: string
+    module?: string
+    count?: number
+    model_key?: string
+    template_id?: number
+    use_custom_prompt?: boolean
+    custom_prompt?: string
+}
+
+export interface AIGenerateResponse {
+    testcases: any[]
+    total: number
+}
+
+/**
+ * AI生成测试用例（文本输入）
+ */
+export function generateTestCasesWithTextAPI(data: AIGenerateRequest) {
+    return request<AIGenerateResponse>({
+        url: '/api/v1/ai/generate-testcases',
+        method: 'post',
+        data
+    })
+}
+
+/**
+ * AI生成测试用例（文件上传）
+ */
+export function generateTestCasesWithFileAPI(file: File, params: {
+    test_type?: string
+    module?: string
+    count?: number
+    model_key?: string
+    template_id?: number
+}) {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (params.test_type) formData.append('test_type', params.test_type)
+    if (params.module) formData.append('module', params.module)
+    if (params.count) formData.append('count', params.count.toString())
+    if (params.model_key) formData.append('model_key', params.model_key)
+    if (params.template_id) formData.append('template_id', params.template_id.toString())
+
+    return request<AIGenerateResponse>({
+        url: '/api/v1/ai/generate-testcases/upload',
+        method: 'post',
+        data: formData,
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
+}
+
+/**
+ * 批量保存AI生成的测试用例
+ */
+export function batchSaveTestCasesAPI(testcases: any[]) {
+    return request<{
+        saved_count: number
+        failed_count: number
+        saved_ids: number[]
+        errors: any[]
+    }>({
+        url: '/api/v1/ai/testcases/batch-save',
+        method: 'post',
+        data: testcases
+    })
+}
+
+/**
+ * 获取可用的AI模型列表
+ */
+export function getAIModelsAPI() {
+    return request<any[]>({
+        url: '/api/v1/ai/models',
+        method: 'get'
+    })
+}
+

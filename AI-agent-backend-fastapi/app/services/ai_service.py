@@ -354,33 +354,23 @@ class AIService:
             生成的测试用例列表
         """
         # 构建提示词
-        prompt = f"""请根据以下需求生成 {request.count} 个{request.test_type}测试用例:
-
-需求描述:
-{request.requirement}
-
-模块: {request.module or '未指定'}
-
-请为每个测试用例生成以下内容:
-1. 测试用例名称
-2. 测试描述
-3. 前置条件
-4. 测试步骤(详细的步骤说明)
-5. 预期结果
-6. 优先级(P0/P1/P2/P3)
-
-输出格式为 JSON 数组,每个测试用例包含: name, description, preconditions, test_steps, expected_result, priority
-"""
-
+        prompt = await self._build_testcase_prompt(request)
+        
         try:
-            # 获取默认的 AI 模型
-            models = await self.get_available_models()
-            if not models:
-                # 如果没有可用模型,返回模拟数据
-                return self._generate_mock_testcases(request)
+            # 获取 AI 模型
+            if request.model_key:
+                # 使用指定的模型
+                model = await self._get_model_by_key(request.model_key)
+                if not model:
+                    raise ValueError(f"指定的模型不存在或未启用: {request.model_key}")
+            else:
+                # 使用第一个可用模型
+                models = await self.get_available_models()
+                if not models:
+                    # 如果没有可用模型,返回模拟数据
+                    return self._generate_mock_testcases(request)
+                model = models[0]
             
-            # 使用第一个可用模型
-            model = models[0]
             client = ai_client_service.get_client(model)
             
             # 调用 AI 生成
@@ -388,38 +378,16 @@ class AIService:
                 messages=[{"role": "user", "content": prompt}],
                 stream=False,
                 temperature=0.7,
-                max_tokens=2000
+                max_tokens=4000
             )
             
             # 解析 AI 响应
             content = response["content"]
             
-            # 尝试提取 JSON
-            import json
-            import re
+            # 提取和解析 JSON
+            testcases = self._parse_testcases_from_response(content, request)
             
-            # 查找 JSON 数组
-            json_match = re.search(r'\[[\s\S]*\]', content)
-            if json_match:
-                testcases_data = json.loads(json_match.group())
-                
-                # 补充字段
-                testcases = []
-                for i, tc in enumerate(testcases_data):
-                    testcase = {
-                        "name": tc.get("name", f"{request.module or '功能'}测试用例 {i+1}"),
-                        "test_type": request.test_type,
-                        "module": request.module or tc.get("module", "默认模块"),
-                        "description": tc.get("description", ""),
-                        "preconditions": tc.get("preconditions", ""),
-                        "test_steps": tc.get("test_steps", ""),
-                        "expected_result": tc.get("expected_result", ""),
-                        "priority": tc.get("priority", "P2"),
-                        "status": "draft",
-                        "tags": f"{request.test_type},AI生成"
-                    }
-                    testcases.append(testcase)
-                
+            if testcases:
                 return testcases
             else:
                 # 如果无法解析,返回模拟数据
@@ -429,6 +397,170 @@ class AIService:
             print(f"❌ AI生成测试用例失败: {e}")
             # 失败时返回模拟数据
             return self._generate_mock_testcases(request)
+    
+    async def _build_testcase_prompt(self, request: TestCaseGenerateRequest) -> str:
+        """
+        构建测试用例生成提示词
+        
+        Args:
+            request: 测试用例生成请求
+        
+        Returns:
+            提示词内容
+        """
+        # 如果使用自定义提示词
+        if request.use_custom_prompt and request.custom_prompt:
+            prompt = request.custom_prompt.format(
+                count=request.count,
+                requirement=request.requirement,
+                test_type=request.test_type,
+                module=request.module or "未指定"
+            )
+            return prompt
+        
+        # 如果指定了模板ID
+        if request.template_id:
+            from app.services.prompt_template_service import PromptTemplateService
+            template_service = PromptTemplateService(self.db)
+            template = await template_service.get_template(request.template_id)
+            if template and template.is_active:
+                prompt = template.content.format(
+                    count=request.count,
+                    requirement=request.requirement,
+                    test_type=request.test_type,
+                    module=request.module or "未指定"
+                )
+                return prompt
+        
+        # 使用默认模板
+        from app.services.prompt_template_service import PromptTemplateService
+        template_service = PromptTemplateService(self.db)
+        template = await template_service.get_default_template(
+            template_type="testcase_generation",
+            test_type=request.test_type
+        )
+        
+        if template:
+            prompt = template.content.format(
+                count=request.count,
+                requirement=request.requirement,
+                test_type=request.test_type,
+                module=request.module or "未指定"
+            )
+            return prompt
+        
+        # 如果没有找到模板，使用简单提示词
+        prompt = f"""请根据以下需求生成 {request.count} 个{request.test_type}测试用例:
+
+需求描述:
+{request.requirement}
+
+模块: {request.module or '未指定'}
+
+请为每个测试用例生成以下内容:
+1. 测试用例名称（name）
+2. 测试描述（description）
+3. 前置条件（preconditions）
+4. 测试步骤（test_steps）
+5. 预期结果（expected_result）
+6. 优先级（priority: P0/P1/P2/P3）
+
+请严格按照JSON数组格式输出:
+```json
+[
+  {{
+    "name": "测试用例名称",
+    "description": "测试描述",
+    "preconditions": "前置条件",
+    "test_steps": "测试步骤",
+    "expected_result": "预期结果",
+    "priority": "P1"
+  }}
+]
+```
+"""
+        return prompt
+    
+    def _parse_testcases_from_response(
+        self, 
+        content: str, 
+        request: TestCaseGenerateRequest
+    ) -> List[Dict[str, Any]]:
+        """
+        从AI响应中解析测试用例
+        
+        Args:
+            content: AI响应内容
+            request: 测试用例生成请求
+        
+        Returns:
+            解析后的测试用例列表
+        """
+        import json
+        import re
+        
+        # 尝试多种方式提取 JSON
+        # 方式1: 查找 ```json ... ``` 代码块
+        json_match = re.search(r'```json\s*([\s\S]*?)\s*```', content)
+        if json_match:
+            try:
+                testcases_data = json.loads(json_match.group(1))
+                return self._format_testcases(testcases_data, request)
+            except json.JSONDecodeError:
+                pass
+        
+        # 方式2: 查找 ``` ... ``` 代码块
+        json_match = re.search(r'```\s*([\s\S]*?)\s*```', content)
+        if json_match:
+            try:
+                testcases_data = json.loads(json_match.group(1))
+                return self._format_testcases(testcases_data, request)
+            except json.JSONDecodeError:
+                pass
+        
+        # 方式3: 直接查找 JSON 数组
+        json_match = re.search(r'\[[\s\S]*\]', content)
+        if json_match:
+            try:
+                testcases_data = json.loads(json_match.group())
+                return self._format_testcases(testcases_data, request)
+            except json.JSONDecodeError:
+                pass
+        
+        return []
+    
+    def _format_testcases(
+        self, 
+        testcases_data: List[Dict[str, Any]], 
+        request: TestCaseGenerateRequest
+    ) -> List[Dict[str, Any]]:
+        """
+        格式化测试用例数据
+        
+        Args:
+            testcases_data: 原始测试用例数据
+            request: 测试用例生成请求
+        
+        Returns:
+            格式化后的测试用例列表
+        """
+        testcases = []
+        for i, tc in enumerate(testcases_data):
+            testcase = {
+                "name": tc.get("name", f"{request.module or '功能'}测试用例 {i+1}"),
+                "test_type": request.test_type,
+                "module": request.module or tc.get("module", "默认模块"),
+                "description": tc.get("description", ""),
+                "preconditions": tc.get("preconditions", ""),
+                "test_steps": tc.get("test_steps", ""),
+                "expected_result": tc.get("expected_result", ""),
+                "priority": tc.get("priority", "P2"),
+                "status": "draft",
+                "tags": f"{request.test_type},AI生成"
+            }
+            testcases.append(testcase)
+        
+        return testcases
     
     def _generate_mock_testcases(self, request: TestCaseGenerateRequest) -> List[Dict[str, Any]]:
         """生成模拟测试用例(当AI不可用时)"""

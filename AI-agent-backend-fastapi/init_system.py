@@ -24,6 +24,7 @@ from app.models.notification import Notification
 from app.models.testcase import TestCase
 from app.models.ai_chat import AIModel, ChatSession, ChatMessage
 from app.models.knowledge import KnowledgeBase, Document, DocumentChunk, SearchHistory
+from app.models.prompt_template import PromptTemplate
 
 # 导入插件模型
 from app.plugins.api_engine.models import ApiEngineSuite, ApiEngineCase, ApiEngineExecution, ApiEngineKeyword, ApiEngineDDT, ApiEngineDDTExecution
@@ -173,32 +174,41 @@ async def init_database():
         print("📦 步骤 3/4: 初始化AI模型配置...")
         
         models = [
-            AIModel(name="GPT-3.5 Turbo", provider="openai", model_key="gpt-3.5-turbo",
-                   api_base="https://api.openai.com/v1", max_tokens=4096, temperature="0.7",
-                   is_enabled=False, description="OpenAI GPT-3.5 Turbo模型，适合日常对话和测试用例生成"),
-            AIModel(name="GPT-4", provider="openai", model_key="gpt-4",
-                   api_base="https://api.openai.com/v1", max_tokens=8192, temperature="0.7",
-                   is_enabled=False, description="OpenAI GPT-4模型，更强大的推理能力"),
-            AIModel(name="GPT-4 Turbo", provider="openai", model_key="gpt-4-turbo-preview",
-                   api_base="https://api.openai.com/v1", max_tokens=128000, temperature="0.7",
-                   is_enabled=False, description="OpenAI GPT-4 Turbo模型，支持更长上下文"),
-            AIModel(name="Claude 3 Sonnet", provider="claude", model_key="claude-3-sonnet-20240229",
-                   api_base="https://api.anthropic.com/v1", max_tokens=4096, temperature="0.7",
-                   is_enabled=False, description="Anthropic Claude 3 Sonnet模型，平衡性能和成本"),
-            AIModel(name="Claude 3 Opus", provider="claude", model_key="claude-3-opus-20240229",
-                   api_base="https://api.anthropic.com/v1", max_tokens=4096, temperature="0.7",
-                   is_enabled=False, description="Anthropic Claude 3 Opus模型，最强推理能力"),
-            AIModel(name="Claude 3.5 Sonnet", provider="claude", model_key="claude-3-5-sonnet-20241022",
-                   api_base="https://api.anthropic.com/v1", max_tokens=8192, temperature="0.7",
-                   is_enabled=False, description="Anthropic Claude 3.5 Sonnet模型，最新版本")
+            AIModel(name="DeepSeek Chat", provider="deepseek", model_key="deepseek-chat",
+                   api_base="https://api.deepseek.com", max_tokens=4096, temperature="0.7",
+                   is_enabled=False, description="DeepSeek Chat模型，国产高性价比AI模型，适合测试用例生成"),
+            AIModel(name="通义千问 Turbo", provider="qwen", model_key="qwen-turbo",
+                   api_base="https://dashscope.aliyuncs.com/compatible-mode/v1", max_tokens=6000, temperature="0.7",
+                   is_enabled=False, description="阿里云通义千问 Turbo模型，快速响应"),
+            AIModel(name="通义千问 Plus", provider="qwen", model_key="qwen-plus",
+                   api_base="https://dashscope.aliyuncs.com/compatible-mode/v1", max_tokens=30000, temperature="0.7",
+                   is_enabled=False, description="阿里云通义千问 Plus模型，高性能版本"),
+            AIModel(name="通义千问 Max", provider="qwen", model_key="qwen-max",
+                   api_base="https://dashscope.aliyuncs.com/compatible-mode/v1", max_tokens=6000, temperature="0.7",
+                   is_enabled=False, description="阿里云通义千问 Max模型，最强推理能力")
         ]
         session.add_all(models)
         
         print("✅ AI模型配置初始化完成")
         print()
         
+        # ==================== 步骤 3.5: 初始化提示词模板 ====================
+        print("📦 步骤 3.5/5: 初始化提示词模板...")
+        
+        from app.prompts.default_templates import DEFAULT_TEMPLATES
+        
+        prompt_templates = []
+        for key, template_data in DEFAULT_TEMPLATES.items():
+            template = PromptTemplate(**template_data, created_by=None)
+            prompt_templates.append(template)
+        
+        session.add_all(prompt_templates)
+        
+        print("✅ 提示词模板初始化完成")
+        print()
+        
         # ==================== 步骤 4: 初始化插件数据 ====================
-        print("📦 步骤 4/5: 初始化API引擎插件数据...")
+        print("📦 步骤 4/6: 初始化API引擎插件数据...")
         try:
             await init_api_engine_plugin_db(session)
             print("✅ API引擎插件数据初始化完成")
@@ -207,7 +217,7 @@ async def init_database():
         print()
         
         # ==================== 步骤 5: 提交所有更改 ====================
-        print("📦 步骤 5/5: 提交数据到数据库...")
+        print("📦 步骤 5/6: 提交数据到数据库...")
         await session.commit()
         print("✅ 数据提交完成")
         print()
@@ -226,7 +236,8 @@ async def init_database():
     print("  ✓ 用户: 1个")
     print("  ✓ 通知: 3条")
     print("  ✓ 测试用例: 3个")
-    print("  ✓ AI模型: 6个")
+    print("  ✓ AI模型: 4个 (DeepSeek, 通义千问)")
+    print("  ✓ 提示词模板: 4个 (API/Web/App/通用)")
     print("  ✓ API引擎插件: 1个套件 + 2个示例用例")
     print()
     print("🔑 登录凭证:")
@@ -251,8 +262,8 @@ async def init_database():
     print("⚙️  配置AI模型:")
     print("  1. 访问: http://localhost:8000/docs")
     print("  2. 使用 PUT /api/v1/ai/models/{id} 配置API Key")
-    print("  3. OpenAI Key: https://platform.openai.com/api-keys")
-    print("  4. Claude Key: https://console.anthropic.com/settings/keys")
+    print("  3. DeepSeek Key: https://platform.deepseek.com/api_keys")
+    print("  4. 通义千问 Key: https://bailian.console.aliyun.com/?tab=model#/api-key")
     print()
     print("=" * 80)
 

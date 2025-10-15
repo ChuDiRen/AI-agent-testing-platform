@@ -13,7 +13,7 @@ from app.core.database import init_db, check_db_empty, init_data
 from app.core.exceptions import BaseAPIException
 from app.middleware.logging import RequestLoggingMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
-from app.api import auth, users, roles, user_roles, upload, menus, departments, role_menus, dashboard, notifications, data_management, testcases, reports, ai, knowledge, test_data
+from app.api import auth, users, roles, user_roles, upload, menus, departments, role_menus, dashboard, notifications, data_management, testcases, reports, ai, knowledge, test_data, prompt_templates
 
 # 导入插件管理器和插件
 from app.core.plugin_manager import plugin_manager
@@ -119,6 +119,7 @@ app.include_router(reports.router, prefix=f"{settings.API_PREFIX}/reports", tags
 app.include_router(test_data.router, prefix=f"{settings.API_PREFIX}", tags=["测试数据管理"])
 app.include_router(ai.router, prefix=f"{settings.API_PREFIX}/ai", tags=["AI助手"])
 app.include_router(knowledge.router, prefix=f"{settings.API_PREFIX}", tags=["知识库"])
+app.include_router(prompt_templates.router, prefix=f"{settings.API_PREFIX}/prompt-templates", tags=["提示词模板"])
 
 # 注册插件
 plugin_manager.register_plugin("api_engine", api_engine_plugin)

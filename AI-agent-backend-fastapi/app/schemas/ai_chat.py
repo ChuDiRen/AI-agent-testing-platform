@@ -128,10 +128,14 @@ class AIModelResponse(AIModelBase):
 
 class TestCaseGenerateRequest(BaseModel):
     """测试用例生成请求"""
-    requirement: str = Field(..., description="需求描述")
-    test_type: str = Field("API", description="测试类型: API/WEB/APP")
+    requirement: str = Field(..., description="需求描述（文本输入或文件内容）")
+    test_type: str = Field("API", description="测试类型: API/Web/App")
     module: Optional[str] = Field(None, description="所属模块")
     count: int = Field(5, ge=1, le=20, description="生成数量")
+    model_key: Optional[str] = Field(None, description="指定AI模型")
+    template_id: Optional[int] = Field(None, description="提示词模板ID")
+    use_custom_prompt: bool = Field(False, description="是否使用自定义提示词")
+    custom_prompt: Optional[str] = Field(None, description="自定义提示词内容")
 
 
 class TestCaseGenerateResponse(BaseModel):
