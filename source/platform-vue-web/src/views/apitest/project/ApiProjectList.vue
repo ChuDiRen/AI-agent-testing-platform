@@ -1,10 +1,15 @@
-<template><h2>项目列表</h2>
-  <!-- 搜索表单 -->
-  <el-form ref="searchFormRef"  :inline="true" :model="searchForm" class="demo-form-inline">
-    <el-row class="mb-4" type="flex" justify="end">
-      <el-button type="warning" @click="onDataForm(-1)">新增项目</el-button>
-    </el-row>
-  </el-form>
+<template>
+  <div class="page-container">
+    <el-card class="page-card">
+      <template #header>
+        <div class="card-header">
+          <h3>项目管理</h3>
+          <el-button type="primary" @click="onDataForm(-1)">
+            <el-icon><Plus /></el-icon>
+            新增项目
+          </el-button>
+        </div>
+      </template>
   <!-- END搜索表单 -->
 
   <!-- 数据表格 -->
@@ -39,8 +44,7 @@
   <!-- END 数据表格 -->
 
   <!-- 分页 -->
-  <div class="demo-pagination-block">
-    <div class="demonstration"></div>
+  <div class="pagination">
     <el-pagination
       v-model:current-page="currentPage"
       v-model:page-size="pageSize"
@@ -50,7 +54,9 @@
       @size-change="handleSizeChange"
       @current-change="handleCurrentChange"
     />
- </div>
+  </div>
+    </el-card>
+  </div>
   <!-- END 分页 -->
 
   <!-- 弹窗 - 增加功能：数据库配置 弹窗加载执行记录 -->
@@ -335,14 +341,11 @@ const onDeleteDb = (index: number) => {
 // ---------------------  END扩展：数据库展示弹窗-------------------------------
 </script>
   
-<style>
-.demo-pagination-block .demo-pagination-block {
-  margin-top: 10px;   /* 设置元素的上外边距,根据需要调整间隔大小 */
-}
-.demo-pagination-block .demonstration {
-  margin-bottom: 16px; /* 设置元素的下外边距,根据需要调整间隔大小 */
-}
+<style scoped>
+@import '@/styles/common-list.css';
+@import '@/styles/common-form.css';
+
 .input-group {  
-  margin-top: 16px; /* 设置元素的上外边距,根据需要调整间隔大小  */  
+  margin-top: 16px;
 }
 </style>

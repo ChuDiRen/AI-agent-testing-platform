@@ -168,34 +168,188 @@ const onSubmit = () => {
 
 <style scoped>
 .login-container {
-  @apply min-h-screen bg-indigo-400;
+  min-height: 100vh;
+  background: var(--primary-gradient);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 动态背景装饰 */
+.login-container::before,
+.login-container::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  animation: float 20s infinite ease-in-out;
+}
+
+.login-container::before {
+  width: 500px;
+  height: 500px;
+  top: -250px;
+  right: -250px;
+}
+
+.login-container::after {
+  width: 300px;
+  height: 300px;
+  bottom: -150px;
+  left: -150px;
+  animation-delay: -10s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(30px, -50px) rotate(120deg); }
+  66% { transform: translate(-20px, 20px) rotate(240deg); }
 }
 
 .login-container .left,
 .login-container .right {
-  @apply flex items-center justify-center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
 }
 
 .login-container .right {
-  @apply flex-col bg-indigo-50
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 48px;
+  box-shadow: var(--shadow-xl);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] .login-container .right {
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.login-container .right:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 24px 38px 3px rgba(0, 0, 0, 0.14);
 }
 
 .left>div>div:first-child {
-  @apply font-bold text-5xl text-light-50 mb-4;
+  font-weight: 700;
+  font-size: 3rem;
+  color: white;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: slideInLeft 0.8s ease;
 }
 
 .left>div>div:last-child {
-  @apply text-sm text-gray-200;
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 500px;
+  line-height: 1.6;
+  animation: slideInLeft 0.8s ease 0.2s both;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .right .title {
-  @apply font-bold text-3xl text-gray-800;
+  font-weight: 700;
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  animation: fadeIn 0.8s ease 0.4s both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .right>div {
-  @apply flex items-center justify-center my-5 text-gray-300 space-x-2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1.5rem 0;
+  color: var(--text-tertiary);
+  gap: 0.75rem;
+  animation: fadeIn 0.8s ease 0.5s both;
 }
 
 .right .line {
-  @apply h-[1px] w-16 bg-gray-200;
-}</style>
+  height: 1px;
+  width: 4rem;
+  background: var(--border-color);
+}
+
+/* 表单输入框动效 */
+:deep(.el-form) {
+  animation: fadeIn 0.8s ease 0.6s both;
+}
+
+:deep(.el-input) {
+  transition: all 0.3s ease;
+}
+
+:deep(.el-input:focus-within) {
+  transform: translateX(4px);
+}
+
+:deep(.el-input__wrapper) {
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+
+:deep(.el-input__wrapper:hover) {
+  box-shadow: var(--shadow-md);
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  transform: translateY(-2px);
+}
+
+:deep(.el-button) {
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+:deep(.el-button:hover) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+:deep(.el-button:active) {
+  transform: translateY(0);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .left {
+    display: none;
+  }
+  
+  .login-container .right {
+    padding: 32px 24px;
+    border-radius: 16px;
+    margin: 20px;
+  }
+  
+  .right .title {
+    font-size: 1.5rem;
+  }
+}
+</style>

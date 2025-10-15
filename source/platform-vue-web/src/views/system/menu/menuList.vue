@@ -1,9 +1,21 @@
 <template>
-    <!-- 操作按钮 -->
-    <el-row class="mb-4" type="flex" justify="end">
-        <el-button type="primary" @click="loadData()">刷新</el-button>
-        <el-button type="warning" @click="onDataForm(-1, 0)">新增菜单</el-button>
-    </el-row>
+  <div class="page-container">
+    <el-card class="page-card">
+      <template #header>
+        <div class="card-header">
+          <h3>菜单管理</h3>
+          <div class="header-actions">
+            <el-button @click="loadData()">
+              <el-icon><Refresh /></el-icon>
+              刷新
+            </el-button>
+            <el-button type="primary" @click="onDataForm(-1, 0)">
+              <el-icon><Plus /></el-icon>
+              新增菜单
+            </el-button>
+          </div>
+        </div>
+      </template>
     <!-- 数据表格 - 树形展示 -->
     <el-table
         :data="tableData"
@@ -40,6 +52,8 @@
             </template>
         </el-table-column>
     </el-table>
+    </el-card>
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -116,8 +130,12 @@ const onDelete = (menuId: number) => {
 </script>
 
 <style scoped>
-.mb-4 {
-    margin-bottom: 16px;
+@import '@/styles/common-list.css';
+@import '@/styles/common-form.css';
+
+.header-actions {
+  display: flex;
+  gap: 12px;
 }
 </style>
 

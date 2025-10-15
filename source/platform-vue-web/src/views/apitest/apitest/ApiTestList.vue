@@ -1,9 +1,9 @@
 <template>
-  <div class="test-history-container">
-    <el-card>
+  <div class="page-container">
+    <el-card class="page-card">
       <template #header>
-        <div class="header">
-          <span>测试历史</span>
+        <div class="card-header">
+          <h3>测试历史</h3>
         </div>
       </template>
 
@@ -238,45 +238,31 @@ onMounted(() => {
 })
 </script>
 
-<style scoped lang="scss">
-.test-history-container {
-  padding: 20px;
+<style scoped>
+@import '@/styles/common-list.css';
+@import '@/styles/common-form.css';
 
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+.error-section,
+.detail-section {
+  margin-top: 20px;
+}
 
-  .search-form {
-    margin-bottom: 20px;
-  }
+.error-section h4,
+.detail-section h4 {
+  margin-bottom: 10px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
 
-  .pagination {
-    margin-top: 20px;
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  .error-section,
-  .detail-section {
-    margin-top: 20px;
-
-    h4 {
-      margin-bottom: 10px;
-      color: #333;
-    }
-
-    pre {
-      background: #f5f5f5;
-      padding: 15px;
-      border-radius: 4px;
-      overflow: auto;
-      max-height: 300px;
-      font-size: 12px;
-      font-family: 'Courier New', monospace;
-    }
-  }
+pre {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  padding: 15px;
+  border-radius: 8px;
+  overflow: auto;
+  max-height: 300px;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
 }
 </style>
 

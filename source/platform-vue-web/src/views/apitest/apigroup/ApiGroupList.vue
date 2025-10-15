@@ -1,10 +1,13 @@
 <template>
-  <div class="api-group-container">
-    <el-card>
+  <div class="page-container">
+    <el-card class="page-card">
       <template #header>
-        <div class="header">
-          <span>接口分组管理</span>
-          <el-button type="primary" @click="handleAdd" v-if="hasPermission('api_group:add')">新增分组</el-button>
+        <div class="card-header">
+          <h3>接口分组管理</h3>
+          <el-button type="primary" @click="handleAdd" v-if="hasPermission('api_group:add')">
+            <el-icon><Plus /></el-icon>
+            新增分组
+          </el-button>
         </div>
       </template>
 
@@ -335,25 +338,10 @@ onMounted(() => {
 })
 </script>
 
-<style scoped lang="scss">
-.api-group-container {
-  padding: 20px;
+<style scoped>
+@import '@/styles/common-list.css';
+@import '@/styles/common-form.css';
 
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .search-form {
-    margin-bottom: 20px;
-  }
-
-  .pagination {
-    margin-top: 20px;
-    display: flex;
-    justify-content: flex-end;
-  }
-}
+/* 页面特定样式可以在这里添加 */
 </style>
 

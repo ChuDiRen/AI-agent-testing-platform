@@ -1,9 +1,18 @@
 <template>
-  <div class="api-info-container">
-    <h2>接口信息管理</h2>
-    
-    <!-- 搜索表单 -->
-    <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="demo-form-inline">
+  <div class="page-container">
+    <el-card class="page-card">
+      <template #header>
+        <div class="card-header">
+          <h3>接口信息管理</h3>
+          <el-button type="primary" @click="onDataForm(-1)">
+            <el-icon><Plus /></el-icon>
+            新增接口
+          </el-button>
+        </div>
+      </template>
+
+      <!-- 搜索表单 -->
+      <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="search-form">
       <el-form-item label="项目：">
         <el-select v-model="searchForm.project_id" placeholder="选择项目" clearable style="width: 200px">
           <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id"/>     
@@ -27,10 +36,10 @@
         </el-select>
       </el-form-item>
       
-      <el-row class="mb-4" type="flex" justify="end">
+      <el-form-item>
         <el-button type="primary" @click="loadData()">查询</el-button>
-        <el-button type="warning" @click="onDataForm(-1)">新增接口</el-button>
-      </el-row>
+        <el-button @click="resetSearch">重置</el-button>
+      </el-form-item>
     </el-form>
     <!-- END 搜索表单 -->
 
@@ -78,8 +87,7 @@
     <!-- END 数据表格 -->
 
     <!-- 分页 -->
-    <div class="demo-pagination-block">
-      <div class="demonstration"></div>
+    <div class="pagination">
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
@@ -90,7 +98,7 @@
         @current-change="handleCurrentChange"
       />
     </div>
-    <!-- END 分页 -->
+    </el-card>
   </div>
 </template>
 
@@ -279,13 +287,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.api-info-container {
-  padding: 20px;
-}
+@import '@/styles/common-list.css';
+@import '@/styles/common-form.css';
 
-.demo-pagination-block {
-  margin-top: 20px;
-  display: flex;
-  justify-content: center;
+/* 方法标签样式 */
+.el-tag {
+  font-weight: 600;
 }
 </style>

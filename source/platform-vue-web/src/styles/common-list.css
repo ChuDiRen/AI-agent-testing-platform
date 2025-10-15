@@ -1,0 +1,132 @@
+/* 卡片容器 */
+.page-container {
+    padding: 24px;
+    background: var(--bg-secondary);
+    min-height: calc(100vh - 64px - 40px);
+    transition: all 0.3s ease;
+}
+
+.page-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 卡片头部 */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-primary);
+}
+
+.card-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* 搜索表单 */
+.search-form {
+    padding: 20px 24px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    margin: 20px;
+}
+
+/* 表格样式增强 */
+:deep(.el-table) {
+    background: transparent;
+    color: var(--text-primary);
+}
+
+:deep(.el-table th) {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+:deep(.el-table tr) {
+    transition: all 0.3s ease;
+}
+
+:deep(.el-table tr:hover) {
+    background: var(--bg-hover) !important;
+    transform: scale(1.005);
+    box-shadow: var(--shadow-sm);
+}
+
+:deep(.el-table td),
+:deep(.el-table th) {
+    border-color: var(--border-color);
+}
+
+:deep(.el-table--border),
+:deep(.el-table--group),
+:deep(.el-table::before) {
+    border-color: var(--border-color);
+}
+
+/* 按钮动效 */
+.el-button {
+    transition: all 0.3s ease;
+    border-radius: 8px;
+}
+
+.el-button:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.el-button:active {
+    transform: translateY(0);
+}
+
+/* 分页样式 */
+.pagination {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+:deep(.el-pagination) {
+    font-weight: 500;
+}
+
+:deep(.el-pagination button),
+:deep(.el-pager li) {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+:deep(.el-pagination button:hover),
+:deep(.el-pager li:hover) {
+    color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+:deep(.el-pager li.is-active) {
+    background: var(--primary-gradient);
+    color: white;
+}

@@ -1,14 +1,26 @@
 <template>
-    <!-- 搜索表单 -->
-    <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="demo-form-inline">
+  <div class="page-container">
+    <el-card class="page-card">
+      <template #header>
+        <div class="card-header">
+          <h3>用户管理</h3>
+          <el-button type="primary" @click="onDataForm(-1)">
+            <el-icon><Plus /></el-icon>
+            新增用户
+          </el-button>
+        </div>
+      </template>
+
+      <!-- 搜索表单 -->
+      <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="search-form">
         <el-form-item label="用户名">
-            <el-input v-model="searchForm.username" placeholder="根据用户名筛选" />
+          <el-input v-model="searchForm.username" placeholder="根据用户名筛选" />
         </el-form-item>
-        <el-row class="mb-4" type="flex" justify="end"> <!-- 居右 type="flex" justify="end" -->
-            <el-button type="primary" @click="loadData()">查询</el-button>
-            <el-button type="warning" @click="onDataForm(-1)">新增数据</el-button>
-        </el-row>
-    </el-form>
+        <el-form-item>
+          <el-button type="primary" @click="loadData()">查询</el-button>
+          <el-button @click="resetSearch">重置</el-button>
+        </el-form-item>
+      </el-form>
     <!-- END 搜索表单 -->
     <!-- 数据表格 -->
     <el-table :data="tableData" style="width: 100%;" max-height="500">
@@ -51,14 +63,21 @@
             </template>
         </el-table-column>
     </el-table>
+    
     <!-- 分页 -->
-    <div class="demo-pagination-block">
-        <div class="demonstration"></div>
-        <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :page-sizes="[10, 20, 30, 50]"
-            layout="total, sizes, prev, pager, next, jumper" :total="total" @size-change="handleSizeChange"
-            @current-change="handleCurrentChange" />
+    <div class="pagination">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 30, 50]"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
     </div>
-    <!-- END 分页 -->
+    </el-card>
+  </div>
 </template>
   
 <script lang="ts" setup>
@@ -201,11 +220,6 @@ const onDelete = (index: number) => {
 
 </script>
 <style scoped>
-.demo-pagination-block+.demo-pagination-block {
-    margin-top: 10px;
-}
-
-.demo-pagination-block .demonstration {
-    margin-bottom: 16px;
-}
+@import '@/styles/common-list.css';
+@import '@/styles/common-form.css';
 </style>

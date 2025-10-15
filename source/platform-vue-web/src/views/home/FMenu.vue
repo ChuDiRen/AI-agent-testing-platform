@@ -179,16 +179,83 @@ const defaultOpeneds = computed(() => {
 })
 </script>
 
-<!--01 bottom 表示到底部的距离，其他同理，shadow表示阴影 ，fixed表示滚动时自己不动 overflow: auto;长度问题可以自动滚动-->
-<style>
+<style scoped>
 .f-menu {
-  transition: all 0.2s; 
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-color);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: fixed;
   top: 64px;
   bottom: 0;
   left: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  @apply shadow-md fixed bg-light-50;
+  box-shadow: var(--shadow-md);
+}
+
+/* 自定义滚动条 */
+.f-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.f-menu::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.f-menu::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
+:deep(.el-menu) {
+  border: none;
+  background: transparent;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  margin: 4px 8px;
+  color: var(--text-primary);
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  background: var(--bg-hover) !important;
+  transform: translateX(4px);
+  color: var(--primary-color);
+}
+
+:deep(.el-menu-item.is-active) {
+  background: var(--primary-gradient) !important;
+  color: white !important;
+  box-shadow: var(--shadow-md);
+  font-weight: 600;
+}
+
+:deep(.el-menu-item.is-active .el-icon) {
+  color: white !important;
+}
+
+:deep(.el-sub-menu .el-icon) {
+  color: var(--text-secondary);
+}
+
+:deep(.el-sub-menu__title) {
+  font-weight: 500;
+}
+
+/* 折叠状态优化 */
+:deep(.el-menu--collapse) {
+  width: 64px;
+}
+
+:deep(.el-menu--collapse .el-menu-item),
+:deep(.el-menu--collapse .el-sub-menu__title) {
+  justify-content: center;
+  padding: 0 !important;
 }
 </style>
 

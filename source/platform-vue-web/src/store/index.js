@@ -7,6 +7,7 @@ const store = createStore({
     state() {
         return {
             asideWidth: "250px",
+            theme: localStorage.getItem('theme') || 'light', // 主题模式
             userInfo: null, // 用户信息
             roles: [], // 用户角色
             permissions: [], // 用户权限
@@ -17,6 +18,19 @@ const store = createStore({
         // 侧边栏宽度切换
         handleAsideWidth(state) {
             state.asideWidth = state.asideWidth == "250px" ? "64px" : "250px"
+        },
+
+        // 设置主题
+        setTheme(state, theme) {
+            state.theme = theme
+            document.documentElement.setAttribute('data-theme', theme)
+            localStorage.setItem('theme', theme)
+        },
+
+        // 切换主题
+        toggleTheme(state) {
+            const newTheme = state.theme === 'light' ? 'dark' : 'light'
+            this.commit('setTheme', newTheme)
         },
 
         // 设置用户信息

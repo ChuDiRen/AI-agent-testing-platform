@@ -9,6 +9,11 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import store from '../src/store'
 import directives from './directives/permission'
 
+// 引入自定义主题和样式
+import './styles/theme.css'
+import './styles/common-list.css'
+import './styles/common-form.css'
+
 const app = createApp(App)
 console.log(router)
 app.use(store)
