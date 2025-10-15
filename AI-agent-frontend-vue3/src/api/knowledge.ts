@@ -71,7 +71,7 @@ export function createKnowledgeBaseAPI(data: {
   is_public?: boolean
 }) {
   return request<KnowledgeBase>({
-    url: '/knowledge/bases',
+    url: '/api/v1/knowledge/bases',
     method: 'post',
     data
   })
@@ -85,7 +85,7 @@ export function getKnowledgeBasesAPI(params?: {
   limit?: number
 }) {
   return request<KnowledgeBase[]>({
-    url: '/knowledge/bases',
+    url: '/api/v1/knowledge/bases',
     method: 'get',
     params
   })
@@ -96,7 +96,7 @@ export function getKnowledgeBasesAPI(params?: {
  */
 export function getKnowledgeBaseAPI(kbId: number) {
   return request<KnowledgeBase>({
-    url: `/knowledge/bases/${kbId}`,
+    url: `/api/v1/knowledge/bases/${kbId}`,
     method: 'get'
   })
 }
@@ -106,7 +106,7 @@ export function getKnowledgeBaseAPI(kbId: number) {
  */
 export function updateKnowledgeBaseAPI(kbId: number, data: Partial<KnowledgeBase>) {
   return request<KnowledgeBase>({
-    url: `/knowledge/bases/${kbId}`,
+    url: `/api/v1/knowledge/bases/${kbId}`,
     method: 'put',
     data
   })
@@ -117,7 +117,7 @@ export function updateKnowledgeBaseAPI(kbId: number, data: Partial<KnowledgeBase
  */
 export function deleteKnowledgeBaseAPI(kbId: number) {
   return request({
-    url: `/knowledge/bases/${kbId}`,
+    url: `/api/v1/knowledge/bases/${kbId}`,
     method: 'delete'
   })
 }
@@ -138,7 +138,7 @@ export function uploadDocumentAPI(kbId: number, file: File, useAsync: boolean = 
     doc_id: number
     message: string
   }>({
-    url: '/knowledge/documents/upload',
+    url: '/api/v1/knowledge/documents/upload',
     method: 'post',
     data: formData,
     headers: {
@@ -156,7 +156,7 @@ export function addTextDocumentAPI(data: {
   content: string
 }) {
   return request<Document>({
-    url: '/knowledge/documents/text',
+    url: '/api/v1/knowledge/documents/text',
     method: 'post',
     params: data
   })
@@ -167,7 +167,7 @@ export function addTextDocumentAPI(data: {
  */
 export function deleteDocumentAPI(docId: number) {
   return request({
-    url: `/knowledge/documents/${docId}`,
+    url: `/api/v1/knowledge/documents/${docId}`,
     method: 'delete'
   })
 }
@@ -177,7 +177,7 @@ export function deleteDocumentAPI(docId: number) {
  */
 export function batchDeleteDocumentsAPI(docIds: number[]) {
   return request({
-    url: '/knowledge/documents/batch-delete',
+    url: '/api/v1/knowledge/documents/batch-delete',
     method: 'post',
     data: { doc_ids: docIds }
   })
@@ -188,7 +188,7 @@ export function batchDeleteDocumentsAPI(docIds: number[]) {
  */
 export function getDocumentChunksAPI(docId: number) {
   return request({
-    url: `/knowledge/documents/${docId}/chunks`,
+    url: `/api/v1/knowledge/documents/${docId}/chunks`,
     method: 'get'
   })
 }
@@ -206,7 +206,7 @@ export function searchKnowledgeBaseAPI(data: {
   with_content?: boolean
 }) {
   return request<SearchResponse>({
-    url: '/knowledge/search',
+    url: '/api/v1/knowledge/search',
     method: 'post',
     data
   })
@@ -229,7 +229,7 @@ export interface TaskStatus {
  */
 export function getTaskStatusAPI(taskId: string) {
   return request<TaskStatus>({
-    url: `/knowledge/tasks/${taskId}`,
+    url: `/api/v1/knowledge/tasks/${taskId}`,
     method: 'get'
   })
 }
@@ -239,7 +239,7 @@ export function getTaskStatusAPI(taskId: string) {
  */
 export function batchProcessDocumentsAPI(docIds: number[]) {
   return request({
-    url: '/knowledge/tasks/batch-process',
+    url: '/api/v1/knowledge/tasks/batch-process',
     method: 'post',
     data: docIds
   })

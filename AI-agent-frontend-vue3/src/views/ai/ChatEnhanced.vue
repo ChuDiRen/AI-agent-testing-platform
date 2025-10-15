@@ -370,7 +370,7 @@ import {
   Iphone
 } from '@element-plus/icons-vue'
 import { useAIChat } from '@/composables/useAIChat'
-import { getModelsAPI, type AIModel, generateTestCasesAPI, saveGeneratedTestCasesAPI } from '@/api/ai-enhanced'
+import { getModelsAPI, type AIModel, generateTestCasesAPI, saveGeneratedTestCasesAPI } from '@/api/ai'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 
 // 使用AI聊天组合式函数

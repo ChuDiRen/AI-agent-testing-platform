@@ -98,6 +98,57 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/ai/ChatEnhanced.vue'),
         meta: { title: 'AI 助手', requiresAuth: true }
       },
+      // 知识库
+      {
+        path: 'knowledge',
+        name: 'KnowledgeBase',
+        component: () => import('@/views/knowledge/KnowledgeBase.vue'),
+        meta: { title: '知识库', requiresAuth: true }
+      },
+      {
+        path: 'knowledge/:id',
+        name: 'KnowledgeDetail',
+        component: () => import('@/views/knowledge/KnowledgeDetail.vue'),
+        meta: { title: '知识库详情', requiresAuth: true, hidden: true }
+      },
+      // 测试用例
+      {
+        path: 'testcase/list',
+        name: 'TestCaseList',
+        component: () => import('@/views/testcase/TestCaseList.vue'),
+        meta: { title: '测试用例', requiresAuth: true }
+      },
+      {
+        path: 'testcase/create',
+        name: 'TestCaseCreate',
+        component: () => import('@/views/testcase/TestCaseEditor.vue'),
+        meta: { title: '创建用例', requiresAuth: true, hidden: true }
+      },
+      {
+        path: 'testcase/:id',
+        name: 'TestCaseDetail',
+        component: () => import('@/views/testcase/TestCaseDetail.vue'),
+        meta: { title: '用例详情', requiresAuth: true, hidden: true }
+      },
+      // 测试报告
+      {
+        path: 'report/list',
+        name: 'ReportList',
+        component: () => import('@/views/report/ReportList.vue'),
+        meta: { title: '测试报告', requiresAuth: true }
+      },
+      {
+        path: 'report/generate',
+        name: 'ReportGenerate',
+        component: () => import('@/views/report/ReportGenerator.vue'),
+        meta: { title: '生成报告', requiresAuth: true, hidden: true }
+      },
+      {
+        path: 'report/:id',
+        name: 'ReportDetail',
+        component: () => import('@/views/report/ReportDetail.vue'),
+        meta: { title: '报告详情', requiresAuth: true, hidden: true }
+      },
       // 测试页面
       {
         path: 'test',
