@@ -119,7 +119,7 @@ const onSubmit = () => {
           // 拉取并写入用户菜单树，然后再跳转首页
           const userId = res?.data?.data?.id
           if (userId) {
-            return getUserMenus(userId).then(menuRes => {
+            return getUserMenus(userId).then(async menuRes => {
               if (menuRes?.data?.code === 200) {
                 try {
                   const tree = menuRes.data.data || []
@@ -127,18 +127,18 @@ const onSubmit = () => {
                     store.commit('setMenuTree', tree)
                   } else {
                     // 兜底：用户无绑定权限，展示全量菜单树
-                    return getMenuTree().then(allRes => {
-                      if (allRes?.data?.code === 200) {
-                        store.commit('setMenuTree', allRes.data.data || [])
-                      }
-                    })
+                    const allRes = await getMenuTree()
+                    if (allRes?.data?.code === 200) {
+                      store.commit('setMenuTree', allRes.data.data || [])
+                    }
                   }
                 } catch (e) {}
               }
-              router.push("/home")
+              // 确保菜单数据加载完成后再跳转
+              router.replace("/Statistics")
             })
           } else {
-            router.push("/home")
+            router.replace("/Statistics")
           }
 
         } else {

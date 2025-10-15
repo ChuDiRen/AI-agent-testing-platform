@@ -75,22 +75,25 @@ onBeforeRouteUpdate((to)=>{
 
 const changeTab = (t)=>{
     if(!t.endsWith("Form")){
-    activeTab.value = t
-    try{
-    router.push(t)
-    }catch(error){
+      activeTab.value = t
+      try{
+        if(t !== route.path){
+          router.replace(t) // 避免重复导航与历史堆叠
+        }
+      }catch(error){
         console.log("发生异常:",error)
+      }
     }
-}
 }
 
 // 初始化标签导航列表
 function initTabList(){
-    let tbs = cookies.get("tabList")
+    const tbs = cookies.get("tabList")
     if(tbs){
         tabList.value = tbs
-    } else { // 初次打开，默认进入第一个tab
-        changeTab(tabList.value[0].path)
+    } else {
+        // 首次打开不主动导航，避免与路由重定向/其它导航冲突
+        activeTab.value = route.path || tabList.value[0].path
     }
 }
 
