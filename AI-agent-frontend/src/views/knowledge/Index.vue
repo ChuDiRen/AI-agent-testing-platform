@@ -9,7 +9,9 @@ import {
   NFormItem,
   NInput,
   NSelect,
+  NUpload,
   NProgress,
+  NSwitch,
 } from 'naive-ui'
 
 import CommonPage from '@/components/page/CommonPage.vue'
@@ -22,7 +24,7 @@ import { useCRUD } from '@/composables'
 import api from '@/api'
 import TheIcon from '@/components/icon/TheIcon.vue'
 
-defineOptions({ name: '测试报告管理' })
+defineOptions({ name: '知识库管理' })
 
 const vPermission = resolveDirective('permission')
 const $table = ref(null)
@@ -40,71 +42,67 @@ const {
   handleDelete,
   handleAdd,
 } = useCRUD({
-  name: '测试报告',
+  name: '知识库',
   initForm: {
     name: '',
     description: '',
-    test_type: 'functional',
-    status: 'pending',
-    total_cases: 0,
-    passed_cases: 0,
-    failed_cases: 0,
-    skipped_cases: 0,
+    type: 'document',
+    status: 'active',
+    is_public: false,
+    tags: [],
   },
-  doCreate: api.createTestReport,
-  doUpdate: (data) => api.updateTestReport(data.id, data),
-  doDelete: api.deleteTestReport,
+  doCreate: api.createKnowledge,
+  doUpdate: (data) => api.updateKnowledge(data.id, data),
+  doDelete: api.deleteKnowledge,
   refresh: () => $table.value?.handleSearch(),
 })
 
-const testTypeOptions = [
-  { label: '功能测试', value: 'functional' },
-  { label: '性能测试', value: 'performance' },
-  { label: '安全测试', value: 'security' },
-  { label: 'UI测试', value: 'ui' },
-  { label: 'API测试', value: 'api' },
-  { label: '集成测试', value: 'integration' },
-  { label: '单元测试', value: 'unit' },
+// 知识库类型选项
+const typeOptions = [
+  { label: '文档', value: 'document' },
+  { label: 'API文档', value: 'api' },
+  { label: '测试用例', value: 'test_case' },
+  { label: '问答对', value: 'qa' },
+  { label: '代码片段', value: 'code' },
+  { label: '其他', value: 'other' },
 ]
 
+// 状态选项
 const statusOptions = [
-  { label: '待执行', value: 'pending' },
-  { label: '执行中', value: 'running' },
-  { label: '已完成', value: 'completed' },
-  { label: '失败', value: 'failed' },
+  { label: '启用', value: 'active' },
+  { label: '禁用', value: 'inactive' },
+  { label: '归档', value: 'archived' },
 ]
 
 const statusTagType = {
-  pending: 'warning',
-  running: 'info',
-  completed: 'success',
-  failed: 'error',
+  active: 'success',
+  inactive: 'default',
+  archived: 'warning',
 }
 
 const columns = [
   {
-    title: '报告名称',
+    title: '知识库名称',
     key: 'name',
     width: 200,
     align: 'center',
     ellipsis: { tooltip: true },
   },
   {
-    title: '测试类型',
-    key: 'test_type',
-    width: 100,
+    title: '类型',
+    key: 'type',
+    width: 120,
     align: 'center',
     render(row) {
       const typeMap = {
-        functional: '功能',
-        performance: '性能',
-        security: '安全',
-        ui: 'UI',
-        api: 'API',
-        integration: '集成',
-        unit: '单元',
+        document: '文档',
+        api: 'API文档',
+        test_case: '测试用例',
+        qa: '问答对',
+        code: '代码片段',
+        other: '其他',
       }
-      return h(NTag, { type: 'info' }, { default: () => typeMap[row.test_type] || row.test_type })
+      return h(NTag, { type: 'info' }, { default: () => typeMap[row.type] || row.type })
     },
   },
   {
@@ -114,10 +112,9 @@ const columns = [
     align: 'center',
     render(row) {
       const statusMap = {
-        pending: '待执行',
-        running: '执行中',
-        completed: '已完成',
-        failed: '失败',
+        active: '启用',
+        inactive: '禁用',
+        archived: '归档',
       }
       return h(NTag, { type: statusTagType[row.status] || 'default' }, {
         default: () => statusMap[row.status] || row.status
@@ -125,47 +122,29 @@ const columns = [
     },
   },
   {
-    title: '总用例数',
-    key: 'total_cases',
+    title: '文档数量',
+    key: 'document_count',
     width: 100,
     align: 'center',
-  },
-  {
-    title: '通过率',
-    key: 'pass_rate',
-    width: 150,
-    align: 'center',
     render(row) {
-      const total = row.total_cases || 0
-      const passed = row.passed_cases || 0
-      const rate = total > 0 ? Math.round((passed / total) * 100) : 0
-      return h(NProgress, {
-        type: 'line',
-        percentage: rate,
-        status: rate >= 90 ? 'success' : rate >= 60 ? 'warning' : 'error',
-        showIndicator: true,
-      })
+      return row.document_count || 0
     },
   },
   {
-    title: '通过/失败/跳过',
-    key: 'result_summary',
-    width: 150,
+    title: '公开',
+    key: 'is_public',
+    width: 80,
     align: 'center',
     render(row) {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NTag, { type: 'success', size: 'small' }, { default: () => `${row.passed_cases || 0}` }),
-          h(NTag, { type: 'error', size: 'small' }, { default: () => `${row.failed_cases || 0}` }),
-          h(NTag, { type: 'default', size: 'small' }, { default: () => `${row.skipped_cases || 0}` }),
-        ]
+      return h(NTag, { type: row.is_public ? 'success' : 'default', size: 'small' }, {
+        default: () => row.is_public ? '是' : '否'
       })
     },
   },
   {
     title: '创建时间',
     key: 'created_at',
-    width: 150,
+    width: 160,
     align: 'center',
     render(row) {
       return h(
@@ -181,11 +160,27 @@ const columns = [
   {
     title: '操作',
     key: 'actions',
-    width: 280,
+    width: 300,
     align: 'center',
     fixed: 'right',
     render(row) {
       return [
+        withDirectives(
+          h(
+            NButton,
+            {
+              size: 'small',
+              type: 'info',
+              style: 'margin-right: 8px;',
+              onClick: () => handleManageDocuments(row),
+            },
+            {
+              default: () => '文档管理',
+              icon: renderIcon('mdi:file-document-multiple', { size: 16 }),
+            }
+          ),
+          [[vPermission, 'get/api/v1/knowledge/*/documents']]
+        ),
         withDirectives(
           h(
             NButton,
@@ -200,20 +195,7 @@ const columns = [
               icon: renderIcon('material-symbols:edit', { size: 16 }),
             }
           ),
-          [[vPermission, 'put/api/v1/test-reports/*']]
-        ),
-        withDirectives(
-          h(
-            NButton,
-            {
-              size: 'small',
-              type: 'info',
-              style: 'margin-right: 8px;',
-              onClick: () => handleExportReport(row),
-            },
-            { default: () => '导出', icon: renderIcon('material-symbols:download', { size: 16 }) }
-          ),
-          [[vPermission, 'get/api/v1/test-reports/*/export']]
+          [[vPermission, 'put/api/v1/knowledge/*']]
         ),
         h(
           NPopconfirm,
@@ -235,9 +217,9 @@ const columns = [
                     icon: renderIcon('material-symbols:delete-outline', { size: 16 }),
                   }
                 ),
-                [[vPermission, 'delete/api/v1/test-reports/*']]
+                [[vPermission, 'delete/api/v1/knowledge/*']]
               ),
-            default: () => h('div', {}, '确定删除该测试报告吗?'),
+            default: () => h('div', {}, '确定删除该知识库吗?'),
           }
         ),
       ]
@@ -246,45 +228,33 @@ const columns = [
 ]
 
 // 表单验证规则
-const validateReport = {
+const validateKnowledge = {
   name: [
     {
       required: true,
-      message: '请输入报告名称',
+      message: '请输入知识库名称',
       trigger: ['input', 'blur'],
     },
     {
       min: 1,
       max: 200,
-      message: '报告名称长度应在1-200个字符之间',
+      message: '知识库名称长度应在1-200个字符之间',
       trigger: ['blur'],
     },
   ],
-  test_type: [
+  type: [
     {
       required: true,
-      message: '请选择测试类型',
+      message: '请选择知识库类型',
       trigger: ['change', 'blur'],
     },
   ],
 }
 
-async function handleExportReport(row) {
-  try {
-    const blob = await api.exportTestReport(row.id)
-    const url = window.URL.createObjectURL(blob.data)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `测试报告_${row.name}_${formatDate(new Date(), 'YYYY-MM-DD')}.pdf`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    window.URL.revokeObjectURL(url)
-    $message.success('报告导出成功')
-  } catch (error) {
-    console.error('导出报告失败:', error)
-    $message.error('导出报告失败')
-  }
+async function handleManageDocuments(row) {
+  // 跳转到文档管理页面
+  $message.info(`即将打开知识库 "${row.name}" 的文档管理界面`)
+  // TODO: 实现文档管理功能
 }
 
 onMounted(() => {
@@ -293,11 +263,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <CommonPage show-footer title="测试报告管理">
+  <CommonPage show-footer title="知识库管理">
     <template #action>
-      <NButton v-permission="'post/api/v1/test-reports/'" type="primary" @click="handleAdd">
+      <NButton v-permission="'post/api/v1/knowledge/'" type="primary" @click="handleAdd">
         <TheIcon icon="material-symbols:add" :size="18" class="mr-5" />
-        新增报告
+        新增知识库
       </NButton>
     </template>
 
@@ -305,27 +275,27 @@ onMounted(() => {
       ref="$table"
       v-model:query-items="queryItems"
       :columns="columns"
-      :get-data="api.getTestReportList"
+      :get-data="api.getKnowledgeList"
     >
       <template #queryBar>
-        <QueryBarItem label="报告名称" :label-width="80">
+        <QueryBarItem label="知识库名称" :label-width="90">
           <NInput
             v-model:value="queryItems.keyword"
             clearable
             type="text"
-            placeholder="请输入报告名称"
+            placeholder="请输入知识库名称"
             @keypress.enter="$table?.handleSearch()"
           />
         </QueryBarItem>
-        <QueryBarItem label="测试类型" :label-width="80">
+        <QueryBarItem label="类型" :label-width="60">
           <NSelect
-            v-model:value="queryItems.test_type"
+            v-model:value="queryItems.type"
             clearable
-            :options="testTypeOptions"
-            placeholder="请选择测试类型"
+            :options="typeOptions"
+            placeholder="请选择类型"
           />
         </QueryBarItem>
-        <QueryBarItem label="状态" :label-width="80">
+        <QueryBarItem label="状态" :label-width="60">
           <NSelect
             v-model:value="queryItems.status"
             clearable
@@ -348,24 +318,34 @@ onMounted(() => {
         label-align="left"
         :label-width="100"
         :model="modalForm"
-        :rules="validateReport"
+        :rules="validateKnowledge"
       >
-        <NFormItem label="报告名称" path="name">
-          <NInput v-model:value="modalForm.name" clearable placeholder="请输入报告名称" />
+        <NFormItem label="知识库名称" path="name">
+          <NInput v-model:value="modalForm.name" clearable placeholder="请输入知识库名称" />
         </NFormItem>
-        <NFormItem label="测试类型" path="test_type">
+        <NFormItem label="知识库类型" path="type">
           <NSelect
-            v-model:value="modalForm.test_type"
-            :options="testTypeOptions"
-            placeholder="请选择测试类型"
+            v-model:value="modalForm.type"
+            :options="typeOptions"
+            placeholder="请选择知识库类型"
           />
         </NFormItem>
-        <NFormItem label="报告描述" path="description">
+        <NFormItem label="状态" path="status">
+          <NSelect
+            v-model:value="modalForm.status"
+            :options="statusOptions"
+            placeholder="请选择状态"
+          />
+        </NFormItem>
+        <NFormItem label="公开访问" path="is_public">
+          <NSwitch v-model:value="modalForm.is_public" />
+        </NFormItem>
+        <NFormItem label="描述" path="description">
           <NInput
             v-model:value="modalForm.description"
             type="textarea"
             :rows="4"
-            placeholder="请输入报告描述"
+            placeholder="请输入知识库描述"
           />
         </NFormItem>
       </NForm>
@@ -374,3 +354,4 @@ onMounted(() => {
 </template>
 
 <style scoped></style>
+

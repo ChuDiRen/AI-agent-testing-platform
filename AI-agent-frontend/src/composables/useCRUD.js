@@ -75,11 +75,11 @@ export default function ({ name, initForm = {}, doCreate, doDelete, doUpdate, re
   }
 
   /** 删除 */
-  async function handleDelete(params = {}) {
-    if (!params || Object.keys(params).length === 0) return
+  async function handleDelete(row = {}) {
+    if (!row || !row.id) return
     try {
       modalLoading.value = true
-      const data = await doDelete(params)
+      const data = await doDelete(row.id)  // 只传id，不传整个row对象
       $message.success('删除成功')
       modalLoading.value = false
       refresh(data)

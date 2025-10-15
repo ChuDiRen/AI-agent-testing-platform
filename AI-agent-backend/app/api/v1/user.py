@@ -90,8 +90,12 @@ async def get_user_list(
             }
             user_list.append(user_data)
 
-        # 按照vue-fastapi-admin的分页格式,直接返回数组
-        return Success(data=user_list)
+        # 按照vue-fastapi-admin的分页格式
+        response_data = {
+            "items": user_list,
+            "total": total
+        }
+        return Success(data=response_data)
 
     except Exception as e:
         return Fail(msg=f"获取用户列表失败: {str(e)}")

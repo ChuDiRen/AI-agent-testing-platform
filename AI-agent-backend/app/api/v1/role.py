@@ -58,8 +58,12 @@ async def get_role_list(
             }
             role_list.append(role_data)
 
-        # 直接返回数组,用于角色选择器
-        return Success(data=role_list)
+        # 按照vue-fastapi-admin的分页格式
+        response_data = {
+            "items": role_list,
+            "total": total
+        }
+        return Success(data=response_data)
 
     except Exception as e:
         return Fail(msg=f"获取角色列表失败: {str(e)}")
