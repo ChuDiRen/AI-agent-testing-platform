@@ -35,50 +35,46 @@ async def get_test_case_list(
 ):
     """获取测试用例列表（分页）"""
     try:
+        from app.dto.test_case_dto import TestCaseSearchRequest
+        
         test_case_service = TestCaseService(db)
 
-        # 构建查询条件
-        filters = {}
-        if keyword:
-            filters['keyword'] = keyword
-        if module:
-            filters['module'] = module
-        if priority:
-            filters['priority'] = priority
-        if test_type:
-            filters['test_type'] = test_type
-        if status:
-            filters['status'] = status
-
-        # 获取用例列表
-        test_cases, total = await test_case_service.get_test_case_list(
+        # 使用 TestCaseSearchRequest 构建搜索请求
+        search_request = TestCaseSearchRequest(
+            keyword=keyword,
+            module=module,
+            priority=priority,
+            test_type=test_type,
+            status=status,
             page=page,
-            page_size=page_size,
-            filters=filters
+            page_size=page_size
         )
+
+        # 调用 search_test_cases 方法（同步方法，不需要 await）
+        result = test_case_service.search_test_cases(search_request)
 
         # 构建响应数据
         test_case_list = []
-        for test_case in test_cases:
+        for test_case_response in result.test_cases:
             test_case_data = {
-                "id": test_case.id,
-                "name": test_case.name,
-                "module": test_case.module,
-                "description": test_case.description or "",
-                "preconditions": test_case.preconditions or "",
-                "test_steps": test_case.test_steps or "",
-                "expected_result": test_case.expected_result or "",
-                "priority": test_case.priority,
-                "test_type": test_case.test_type,
-                "status": test_case.status,
-                "created_at": test_case.create_time.strftime("%Y-%m-%d %H:%M:%S") if test_case.create_time else "",
-                "updated_at": test_case.update_time.strftime("%Y-%m-%d %H:%M:%S") if test_case.update_time else ""
+                "id": test_case_response.id,
+                "name": test_case_response.name,
+                "module": test_case_response.module,
+                "description": test_case_response.description or "",
+                "preconditions": test_case_response.preconditions or "",
+                "test_steps": test_case_response.test_steps or "",
+                "expected_result": test_case_response.expected_result or "",
+                "priority": test_case_response.priority,
+                "test_type": test_case_response.test_type,
+                "status": test_case_response.status,
+                "created_at": test_case_response.created_at.strftime("%Y-%m-%d %H:%M:%S") if test_case_response.created_at else "",
+                "updated_at": test_case_response.updated_at.strftime("%Y-%m-%d %H:%M:%S") if test_case_response.updated_at else ""
             }
             test_case_list.append(test_case_data)
 
         response_data = {
             "items": test_case_list,
-            "total": total
+            "total": result.total
         }
         return Success(data=response_data)
 
@@ -96,7 +92,7 @@ async def get_test_case_detail(
     """获取单个测试用例的详细信息"""
     try:
         test_case_service = TestCaseService(db)
-        test_case = await test_case_service.get_test_case_by_id(test_case_id)
+        test_case = test_case_service.get_test_case_by_id(test_case_id)
 
         if not test_case:
             return Fail(msg="测试用例不存在")
@@ -138,10 +134,12 @@ async def create_test_case(
 ):
     """创建新的测试用例"""
     try:
+        from app.dto.test_case_dto import TestCaseCreateRequest
+        
         test_case_service = TestCaseService(db)
 
         # 创建测试用例
-        new_test_case = await test_case_service.create_test_case(
+        request = TestCaseCreateRequest(
             name=name,
             module=module,
             description=description,
@@ -149,9 +147,9 @@ async def create_test_case(
             test_steps=test_steps,
             expected_result=expected_result,
             priority=priority,
-            test_type=test_type,
-            created_by=current_user.id
+            test_type=test_type
         )
+        new_test_case = test_case_service.create_test_case(request, current_user.id)
 
         return Success(data={"id": new_test_case.id}, msg="创建成功")
 
@@ -176,16 +174,17 @@ async def update_test_case(
 ):
     """更新测试用例信息"""
     try:
+        from app.dto.test_case_dto import TestCaseUpdateRequest
+        
         test_case_service = TestCaseService(db)
 
         # 检查测试用例是否存在
-        test_case = await test_case_service.get_test_case_by_id(test_case_id)
+        test_case = test_case_service.get_test_case_by_id(test_case_id)
         if not test_case:
             return Fail(msg="测试用例不存在")
 
         # 更新测试用例
-        await test_case_service.update_test_case(
-            test_case_id=test_case_id,
+        request = TestCaseUpdateRequest(
             name=name,
             module=module,
             description=description,
@@ -193,9 +192,9 @@ async def update_test_case(
             test_steps=test_steps,
             expected_result=expected_result,
             priority=priority,
-            test_type=test_type,
-            updated_by=current_user.id
+            test_type=test_type
         )
+        test_case_service.update_test_case(test_case_id, request)
 
         return Success(msg="更新成功")
 
@@ -215,12 +214,12 @@ async def delete_test_case(
         test_case_service = TestCaseService(db)
 
         # 检查测试用例是否存在
-        test_case = await test_case_service.get_test_case_by_id(test_case_id)
+        test_case = test_case_service.get_test_case_by_id(test_case_id)
         if not test_case:
             return Fail(msg="测试用例不存在")
 
         # 删除测试用例
-        await test_case_service.delete_test_case(test_case_id)
+        test_case_service.delete_test_case(test_case_id)
 
         return Success(msg="删除成功")
 
@@ -242,17 +241,12 @@ async def execute_test_case(
         test_case_service = TestCaseService(db)
 
         # 检查测试用例是否存在
-        test_case = await test_case_service.get_test_case_by_id(test_case_id)
+        test_case = test_case_service.get_test_case_by_id(test_case_id)
         if not test_case:
             return Fail(msg="测试用例不存在")
 
         # 执行测试用例
-        execution_result = await test_case_service.execute_test_case(
-            test_case_id=test_case_id,
-            agent_id=agent_id,
-            environment=environment,
-            executed_by=current_user.id
-        )
+        execution_result = test_case_service.execute_test_case(test_case_id, current_user.id)
 
         return Success(data=execution_result, msg="测试用例执行成功")
 
@@ -276,13 +270,18 @@ async def batch_execute_test_cases(
         if not test_case_ids:
             return Fail(msg="请选择要执行的测试用例")
 
-        # 执行批量操作
-        success_count, error_messages, results = await test_case_service.batch_execute_test_cases(
-            test_case_ids=test_case_ids,
-            agent_id=agent_id,
-            environment=environment,
-            executed_by=current_user.id
-        )
+        # 简单实现：逐个执行
+        success_count = 0
+        error_messages = []
+        results = []
+
+        for test_case_id in test_case_ids:
+            try:
+                result = test_case_service.execute_test_case(test_case_id, current_user.id)
+                results.append({"id": test_case_id, "result": result})
+                success_count += 1
+            except Exception as e:
+                error_messages.append(f"测试用例 {test_case_id}: {str(e)}")
 
         if error_messages:
             return Success(
@@ -315,26 +314,34 @@ async def batch_delete_test_cases(
 ):
     """批量删除测试用例"""
     try:
+        from app.dto.test_case_dto import TestCaseBatchOperationRequest
+        
         test_case_service = TestCaseService(db)
 
         if not test_case_ids:
             return Fail(msg="请选择要删除的测试用例")
 
         # 执行批量删除
-        success_count, error_messages = await test_case_service.batch_delete_test_cases(
+        request = TestCaseBatchOperationRequest(
             test_case_ids=test_case_ids,
-            deleted_by=current_user.id
+            operation='delete',
+            operation_data={}
         )
+        result = test_case_service.batch_operation(request)
 
-        if error_messages:
+        if result.errors:
             return Success(
-                data={"success_count": success_count, "errors": error_messages},
-                msg=f"批量删除完成，成功 {success_count} 个，失败 {len(error_messages)} 个"
+                data={
+                    "success_count": result.success_count,
+                    "errors": result.errors,
+                    "failed_ids": result.failed_ids
+                },
+                msg=f"批量删除完成，成功 {result.success_count} 个，失败 {result.failed_count} 个"
             )
         else:
             return Success(
-                data={"success_count": success_count},
-                msg=f"批量删除完成，成功删除 {success_count} 个测试用例"
+                data={"success_count": result.success_count},
+                msg=f"批量删除完成，成功删除 {result.success_count} 个测试用例"
             )
 
     except Exception as e:
@@ -350,16 +357,35 @@ async def batch_create_test_cases(
 ):
     """批量创建测试用例（主要用于AI生成的用例保存）"""
     try:
+        from app.dto.test_case_dto import TestCaseCreateRequest
+        
         test_case_service = TestCaseService(db)
 
         if not test_cases:
             return Fail(msg="请提供要创建的测试用例数据")
 
-        # 批量创建测试用例
-        success_count, error_messages, created_ids = await test_case_service.batch_create_test_cases(
-            test_cases=test_cases,
-            created_by=current_user.id
-        )
+        # 简单实现：逐个创建
+        success_count = 0
+        error_messages = []
+        created_ids = []
+
+        for tc_data in test_cases:
+            try:
+                request = TestCaseCreateRequest(
+                    name=tc_data.get('name', ''),
+                    module=tc_data.get('module', ''),
+                    description=tc_data.get('description'),
+                    preconditions=tc_data.get('preconditions'),
+                    test_steps=tc_data.get('test_steps', ''),
+                    expected_result=tc_data.get('expected_result', ''),
+                    priority=tc_data.get('priority', 'P3'),
+                    test_type=tc_data.get('test_type', 'functional')
+                )
+                result = test_case_service.create_test_case(request, current_user.id)
+                created_ids.append(result.id)
+                success_count += 1
+            except Exception as e:
+                error_messages.append(f"用例 {tc_data.get('name', '未命名')}: {str(e)}")
 
         if error_messages:
             return Success(
@@ -396,23 +422,23 @@ async def export_test_cases(
 ):
     """导出测试用例数据为Excel文件"""
     try:
+        from app.dto.test_case_dto import TestCaseSearchRequest
+        
         test_case_service = TestCaseService(db)
 
-        # 构建查询条件
-        filters = {}
-        if keyword:
-            filters['keyword'] = keyword
-        if module:
-            filters['module'] = module
-        if priority:
-            filters['priority'] = priority
-        if test_type:
-            filters['test_type'] = test_type
-        if status:
-            filters['status'] = status
-
-        # 获取所有符合条件的测试用例（不分页）
-        test_cases = await test_case_service.get_all_test_cases(filters=filters)
+        # 使用 search_test_cases 获取数据
+        search_request = TestCaseSearchRequest(
+            keyword=keyword,
+            module=module,
+            priority=priority,
+            test_type=test_type,
+            status=status,
+            page=1,
+            page_size=10000  # 设置一个大的值以获取所有数据
+        )
+        
+        result = test_case_service.search_test_cases(search_request)
+        test_cases = result.test_cases
 
         # 构建导出数据
         export_data = []
@@ -428,8 +454,8 @@ async def export_test_cases(
                 "优先级": test_case.priority,
                 "测试类型": test_case.test_type,
                 "状态": test_case.status,
-                "创建时间": test_case.create_time.strftime("%Y-%m-%d %H:%M:%S") if test_case.create_time else "",
-                "更新时间": test_case.update_time.strftime("%Y-%m-%d %H:%M:%S") if test_case.update_time else ""
+                "创建时间": test_case.created_at.strftime("%Y-%m-%d %H:%M:%S") if test_case.created_at else "",
+                "更新时间": test_case.updated_at.strftime("%Y-%m-%d %H:%M:%S") if test_case.updated_at else ""
             })
 
         # 创建Excel文件
@@ -468,26 +494,8 @@ async def generate_test_cases(
 ):
     """使用AI生成测试用例"""
     try:
-        test_case_service = TestCaseService(db)
-
-        # 验证优先级分布总和是否为100
-        total_priority = sum(priority_distribution.values())
-        if total_priority != 100:
-            return Fail(msg="优先级分布总和必须为100%")
-
-        # 生成测试用例
-        generation_result = await test_case_service.generate_test_cases_by_ai(
-            api_endpoint_id=api_endpoint_id,
-            model_id=model_id,
-            generation_type=generation_type,
-            test_count=test_count,
-            priority_distribution=priority_distribution,
-            include_types=include_types,
-            description=description,
-            generated_by=current_user.id
-        )
-
-        return Success(data=generation_result, msg="AI生成测试用例成功")
+        # 注意：AI生成功能需要集成AI服务，当前未实现
+        return Fail(msg="AI生成测试用例功能正在开发中，敬请期待")
 
     except Exception as e:
         return Fail(msg=f"AI生成测试用例失败: {str(e)}")
@@ -503,32 +511,36 @@ async def get_generation_history(
 ):
     """获取AI生成测试用例的历史记录"""
     try:
+        from app.dto.test_case_dto import TestCaseGenerationHistoryRequest
+        
         test_case_service = TestCaseService(db)
 
         # 获取生成历史
-        history, total = await test_case_service.get_generation_history(
+        request = TestCaseGenerationHistoryRequest(
             page=page,
             page_size=page_size,
             user_id=current_user.id
         )
+        result = test_case_service.get_generation_history(request, current_user.id)
 
         # 构建响应数据
         history_list = []
-        for record in history:
+        for record in result.history:
             history_data = {
                 "id": record.id,
-                "api_endpoint": record.api_endpoint_info if hasattr(record, 'api_endpoint_info') else "",
-                "generation_type": record.generation_type,
+                "task_id": record.task_id,
+                "requirement_summary": record.requirement_summary,
+                "test_type": record.test_type,
+                "priority": record.priority,
                 "generated_count": record.generated_count,
-                "success_count": record.success_count,
                 "status": record.status,
-                "created_at": record.create_time.strftime("%Y-%m-%d %H:%M:%S") if record.create_time else ""
+                "created_at": record.created_at if isinstance(record.created_at, str) else record.created_at.strftime("%Y-%m-%d %H:%M:%S") if record.created_at else ""
             }
             history_list.append(history_data)
 
         response_data = {
             "items": history_list,
-            "total": total
+            "total": result.total
         }
         return Success(data=response_data)
 
@@ -551,31 +563,27 @@ async def search_test_cases(
 ):
     """搜索测试用例"""
     try:
+        from app.dto.test_case_dto import TestCaseSearchRequest
+        
         test_case_service = TestCaseService(db)
 
-        # 构建搜索条件
-        filters = {}
-        if keyword:
-            filters['keyword'] = keyword
-        if module:
-            filters['module'] = module
-        if priority:
-            filters['priority'] = priority
-        if test_type:
-            filters['test_type'] = test_type
-        if status:
-            filters['status'] = status
-
-        # 执行搜索
-        test_cases, total = await test_case_service.search_test_cases(
-            filters=filters,
+        # 使用 TestCaseSearchRequest 构建搜索请求
+        search_request = TestCaseSearchRequest(
+            keyword=keyword,
+            module=module,
+            priority=priority,
+            test_type=test_type,
+            status=status,
             page=page,
             page_size=page_size
         )
 
+        # 执行搜索
+        result = test_case_service.search_test_cases(search_request)
+
         # 构建响应数据
         test_case_list = []
-        for test_case in test_cases:
+        for test_case in result.test_cases:
             test_case_data = {
                 "id": test_case.id,
                 "name": test_case.name,
@@ -587,14 +595,14 @@ async def search_test_cases(
                 "priority": test_case.priority,
                 "test_type": test_case.test_type,
                 "status": test_case.status,
-                "created_at": test_case.create_time.strftime("%Y-%m-%d %H:%M:%S") if test_case.create_time else "",
-                "updated_at": test_case.update_time.strftime("%Y-%m-%d %H:%M:%S") if test_case.update_time else ""
+                "created_at": test_case.created_at.strftime("%Y-%m-%d %H:%M:%S") if test_case.created_at else "",
+                "updated_at": test_case.updated_at.strftime("%Y-%m-%d %H:%M:%S") if test_case.updated_at else ""
             }
             test_case_list.append(test_case_data)
 
         response_data = {
             "items": test_case_list,
-            "total": total
+            "total": result.total
         }
         return Success(data=response_data)
 
@@ -613,7 +621,7 @@ async def get_test_case_statistics(
         test_case_service = TestCaseService(db)
         
         # 获取统计数据
-        statistics = await test_case_service.get_test_case_statistics()
+        statistics = test_case_service.get_test_case_statistics()
         
         return Success(data=statistics)
 

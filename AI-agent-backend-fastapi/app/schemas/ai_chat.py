@@ -128,6 +128,8 @@ class AIModelResponse(AIModelBase):
 
 class TestCaseGenerateRequest(BaseModel):
     """测试用例生成请求"""
+    model_config = {"protected_namespaces": ()}  # 禁用保护命名空间，允许model_开头的字段
+    
     requirement: str = Field(..., description="需求描述（文本输入或文件内容）")
     test_type: str = Field("API", description="测试类型: API/Web/App")
     module: Optional[str] = Field(None, description="所属模块")

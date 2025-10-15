@@ -34,29 +34,26 @@ async def get_model_list(
 ):
     """获取AI模型列表（分页）"""
     try:
+        from app.dto.ai_model_dto import AIModelSearchRequest
+        
         model_service = AIModelService(db)
 
-        # 构建查询条件
-        filters = {}
-        if keyword:
-            filters['keyword'] = keyword
-        if provider:
-            filters['provider'] = provider
-        if model_type:
-            filters['model_type'] = model_type
-        if status:
-            filters['status'] = status
+        # 使用 AIModelSearchRequest 构建搜索请求
+        search_request = AIModelSearchRequest(
+            keyword=keyword,
+            provider=provider,
+            model_type=model_type,
+            status=status,
+            page=page,
+            page_size=page_size
+        )
 
         # 获取模型列表
-        models, total = await model_service.get_model_list(
-            page=page,
-            page_size=page_size,
-            filters=filters
-        )
+        result = model_service.search_models(search_request)
 
         # 构建响应数据
         model_list = []
-        for model in models:
+        for model in result.models:
             model_data = {
                 "id": model.id,
                 "name": model.name,
@@ -65,18 +62,18 @@ async def get_model_list(
                 "model_type": model.model_type,
                 "version": model.version or "",
                 "status": model.status,
-                "api_key": model.api_key[:10] + "***" if model.api_key else "",  # 脱敏显示
-                "base_url": model.base_url or "",
+                "api_key": model.api_key[:10] + "***" if model.api_key and len(model.api_key) > 10 else "***",  # 脱敏显示
+                "api_endpoint": model.api_endpoint or "",  # AIModelResponse 使用 api_endpoint 字段
                 "temperature": model.temperature if hasattr(model, 'temperature') else 0.7,
                 "description": model.description or "",
-                "created_at": model.create_time.strftime("%Y-%m-%d %H:%M:%S") if model.create_time else "",
-                "updated_at": model.update_time.strftime("%Y-%m-%d %H:%M:%S") if model.update_time else ""
+                "created_at": model.created_at.strftime("%Y-%m-%d %H:%M:%S") if model.created_at else "",
+                "updated_at": model.updated_at.strftime("%Y-%m-%d %H:%M:%S") if model.updated_at else ""
             }
             model_list.append(model_data)
 
         response_data = {
             "items": model_list,
-            "total": total
+            "total": result.total
         }
         return Success(data=response_data)
 

@@ -4,7 +4,7 @@
  */
 import { ref, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { chatAPI, chatStreamAPI, type ChatRequest, type ChatResponse } from '@/api/ai-enhanced'
+import { chatAPI, chatStreamAPI, type ChatRequest, type ChatResponse } from '@/api/ai'
 
 export interface Message {
   role: 'user' | 'assistant' | 'system'
@@ -17,7 +17,7 @@ export function useAIChat() {
   const messages: Ref<Message[]> = ref([])
   const isLoading = ref(false)
   const currentEventSource: Ref<EventSource | null> = ref(null)
-  
+
   /**
    * 发送消息(流式)
    */
@@ -31,7 +31,7 @@ export function useAIChat() {
     } = {}
   ): Promise<void> => {
     if (!content.trim()) return
-    
+
     // 添加用户消息
     const userMessage: Message = {
       role: 'user',
@@ -39,7 +39,7 @@ export function useAIChat() {
       timestamp: new Date().toLocaleTimeString()
     }
     messages.value.push(userMessage)
-    
+
     // 创建AI消息占位符
     const aiMessage: Message = {
       role: 'assistant',
@@ -48,9 +48,9 @@ export function useAIChat() {
       isStreaming: true
     }
     messages.value.push(aiMessage)
-    
+
     isLoading.value = true
-    
+
     try {
       // 创建SSE连接
       const eventSource = chatStreamAPI({
@@ -61,14 +61,14 @@ export function useAIChat() {
         max_tokens: options.maxTokens,
         stream: true
       })
-      
+
       currentEventSource.value = eventSource
-      
+
       // 监听消息事件
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
-          
+
           if (data.done) {
             // 流式传输完成
             aiMessage.isStreaming = false
@@ -91,7 +91,7 @@ export function useAIChat() {
           console.error('解析SSE数据失败:', error)
         }
       }
-      
+
       // 监听错误事件
       eventSource.onerror = (error) => {
         console.error('SSE连接错误:', error)
@@ -102,7 +102,7 @@ export function useAIChat() {
         currentEventSource.value = null
         isLoading.value = false
       }
-      
+
     } catch (error: any) {
       console.error('发送消息失败:', error)
       ElMessage.error(error.message || '发送失败')
@@ -111,7 +111,7 @@ export function useAIChat() {
       isLoading.value = false
     }
   }
-  
+
   /**
    * 发送消息(非流式)
    */
@@ -125,7 +125,7 @@ export function useAIChat() {
     } = {}
   ): Promise<void> => {
     if (!content.trim()) return
-    
+
     // 添加用户消息
     const userMessage: Message = {
       role: 'user',
@@ -133,9 +133,9 @@ export function useAIChat() {
       timestamp: new Date().toLocaleTimeString()
     }
     messages.value.push(userMessage)
-    
+
     isLoading.value = true
-    
+
     try {
       const response = await chatAPI({
         message: content,
@@ -145,7 +145,7 @@ export function useAIChat() {
         max_tokens: options.maxTokens,
         stream: false
       })
-      
+
       if (response.data) {
         const aiMessage: Message = {
           role: 'assistant',
@@ -161,7 +161,7 @@ export function useAIChat() {
       isLoading.value = false
     }
   }
-  
+
   /**
    * 停止流式传输
    */
@@ -170,7 +170,7 @@ export function useAIChat() {
       currentEventSource.value.close()
       currentEventSource.value = null
       isLoading.value = false
-      
+
       // 标记最后一条消息为非流式
       const lastMessage = messages.value[messages.value.length - 1]
       if (lastMessage && lastMessage.isStreaming) {
@@ -178,14 +178,14 @@ export function useAIChat() {
       }
     }
   }
-  
+
   /**
    * 清空消息
    */
   const clearMessages = () => {
     messages.value = []
   }
-  
+
   /**
    * 重新生成最后一条消息
    */
@@ -197,12 +197,12 @@ export function useAIChat() {
     // 找到最后一条用户消息
     const lastUserMessageIndex = messages.value.findLastIndex(m => m.role === 'user')
     if (lastUserMessageIndex === -1) return
-    
+
     const lastUserMessage = messages.value[lastUserMessageIndex]
-    
+
     // 删除该消息之后的所有消息
     messages.value = messages.value.slice(0, lastUserMessageIndex + 1)
-    
+
     // 重新发送
     if (options.useStream !== false) {
       await sendMessageStream(lastUserMessage.content, options)
@@ -210,7 +210,7 @@ export function useAIChat() {
       await sendMessage(lastUserMessage.content, options)
     }
   }
-  
+
   return {
     messages,
     isLoading,

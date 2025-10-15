@@ -1,7 +1,11 @@
 import Layout from '@/layout/index.vue'
 
-// 动态导入所有视图组件
-export const vueModules = import.meta.glob('/src/views/**/index.vue')
+// 动态导入所有视图组件 (同时匹配 index.vue 和 Index.vue)
+const vueModulesLower = import.meta.glob('/src/views/**/index.vue')
+const vueModulesUpper = import.meta.glob('/src/views/**/Index.vue')
+
+// 合并两个对象，优先使用大写的
+export const vueModules = { ...vueModulesLower, ...vueModulesUpper }
 
 // 基础路由
 export const basicRoutes = [
@@ -37,7 +41,7 @@ export const basicRoutes = [
       {
         name: 'Profile',
         path: '/profile',
-        component: () => import('@/views/profile/index.vue'),
+        component: () => import('@/views/profile/Index.vue'),
         isHidden: true, // 隐藏个人资料路由，不在左侧菜单显示，通过用户菜单访问
         meta: {
           title: '个人资料',

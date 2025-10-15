@@ -1,9 +1,9 @@
 # Copyright (c) 2025 左岚. All rights reserved.
 """AI助手API路由"""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
 import json
 
 from app.core.database import get_db
@@ -216,8 +216,6 @@ async def generate_testcases_from_file(
     current_user: User = Depends(get_current_active_user)
 ) -> APIResponse[TestCaseGenerateResponse]:
     """AI生成测试用例（文件上传）"""
-    from fastapi import UploadFile, Form
-    
     # 读取文件内容
     try:
         file_content = await file.read()

@@ -31,10 +31,26 @@ function buildRoutes(routes = []) {
           return null // 按钮类型不创建路由
         }
 
+        // 获取组件，尝试 index.vue 和 Index.vue 两种情况
+        if (!e_child.component) {
+          return null
+        }
+
+        const componentPathLower = `/src/views${e_child.component}/index.vue`
+        const componentPathUpper = `/src/views${e_child.component}/Index.vue`
+
+        let component = vueModules[componentPathLower] || vueModules[componentPathUpper]
+
+        // 如果没有组件，跳过该路由
+        if (!component) {
+          console.warn(`Component not found for menu: ${e_child.menu_name}, tried: ${componentPathLower} and ${componentPathUpper}`)
+          return null
+        }
+
         return {
           name: e_child.menu_name,
           path: e_child.path,
-          component: vueModules[`/src/views${e_child.component}/index.vue`],
+          component: component,
           isHidden: e_child.menu_type === '1',
           meta: {
             title: e_child.menu_name,
@@ -46,20 +62,29 @@ function buildRoutes(routes = []) {
       }).filter(Boolean) // 过滤掉null值
     } else if (e.component) {
       // 没有子菜单，创建一个默认的子路由（但标记为直接菜单）
-      route.children.push({
-        name: `${e.menu_name}Default`,
-        path: '',
-        component: vueModules[`/src/views${e.component}/index.vue`],
-        isHidden: true,
-        meta: {
-          title: e.menu_name,
-          icon: e.icon,
-          order: e.order_num,
-          keepAlive: false,
-        },
-      })
-      // 标记为直接菜单，用于前端判断是否显示下拉箭头
-      route.meta.isDirect = true
+      const componentPathLower = `/src/views${e.component}/index.vue`
+      const componentPathUpper = `/src/views${e.component}/Index.vue`
+
+      const component = vueModules[componentPathLower] || vueModules[componentPathUpper]
+
+      if (component) {
+        route.children.push({
+          name: `${e.menu_name}Default`,
+          path: '',
+          component: component,
+          isHidden: true,
+          meta: {
+            title: e.menu_name,
+            icon: e.icon,
+            order: e.order_num,
+            keepAlive: false,
+          },
+        })
+        // 标记为直接菜单，用于前端判断是否显示下拉箭头
+        route.meta.isDirect = true
+      } else {
+        console.warn(`Component not found for menu: ${e.menu_name}, tried: ${componentPathLower} and ${componentPathUpper}`)
+      }
     }
 
     return route
@@ -73,7 +98,7 @@ export const usePermissionStore = defineStore('permission', {
       accessApis: [],
     }
   },
-  
+
   getters: {
     routes() {
       return basicRoutes.concat(this.accessRoutes)
@@ -85,7 +110,7 @@ export const usePermissionStore = defineStore('permission', {
       return this.accessApis
     },
   },
-  
+
   actions: {
     async generateRoutes() {
       try {
@@ -117,7 +142,7 @@ export const usePermissionStore = defineStore('permission', {
         return []
       }
     },
-    
+
     resetPermission() {
       this.$reset()
     },

@@ -199,6 +199,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '执行历史', requiresAuth: true }
       },
       {
+        path: '/plugin/api-engine/batch-execution',
+        name: 'ApiEngineBatchExecution',
+        component: () => import('@/plugins/api-engine/views/BatchExecution.vue'),
+        meta: { title: '批量执行', requiresAuth: true }
+      },
+      {
         path: '/plugin/api-engine/executions/:id',
         name: 'ApiEngineExecutionDetail',
         component: () => import('@/plugins/api-engine/views/ExecutionConsole.vue'),

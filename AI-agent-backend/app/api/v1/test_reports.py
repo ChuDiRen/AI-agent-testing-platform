@@ -40,27 +40,25 @@ async def get_test_report_list(
 ):
     """获取测试报告列表（分页）"""
     try:
+        from app.dto.test_report_dto import TestReportSearchRequest
+        
         report_service = TestReportService(db)
 
-        # 构建查询条件
-        filters = {}
-        if keyword:
-            filters['keyword'] = keyword
-        if test_type:
-            filters['test_type'] = test_type
-        if status:
-            filters['status'] = status
+        # 使用 TestReportSearchRequest 构建搜索请求
+        search_request = TestReportSearchRequest(
+            keyword=keyword,
+            report_type=test_type,  # API 参数名是 test_type，但 DTO 字段名是 report_type
+            status=status,
+            page=page,
+            page_size=page_size
+        )
 
         # 获取报告列表
-        reports, total = await report_service.get_report_list(
-            page=page,
-            page_size=page_size,
-            filters=filters
-        )
+        result = report_service.get_report_list(search_request)
 
         # 构建响应数据
         report_list = []
-        for report in reports:
+        for report in result.reports:
             # 计算通过率
             total_cases = report.total_cases or 0
             passed_cases = report.passed_cases or 0
@@ -69,7 +67,7 @@ async def get_test_report_list(
             report_data = {
                 "id": report.id,
                 "name": report.name,
-                "test_type": report.test_type,
+                "report_type": report.report_type,  # 正确的字段名
                 "status": report.status,
                 "total_cases": total_cases,
                 "passed_cases": passed_cases,
@@ -77,14 +75,14 @@ async def get_test_report_list(
                 "skipped_cases": report.skipped_cases or 0,
                 "pass_rate": pass_rate,
                 "description": report.description or "",
-                "created_at": report.create_time.strftime("%Y-%m-%d %H:%M:%S") if report.create_time else "",
-                "updated_at": report.update_time.strftime("%Y-%m-%d %H:%M:%S") if report.update_time else ""
+                "created_at": report.created_at.strftime("%Y-%m-%d %H:%M:%S") if report.created_at else "",
+                "updated_at": report.updated_at.strftime("%Y-%m-%d %H:%M:%S") if report.updated_at else ""
             }
             report_list.append(report_data)
 
         response_data = {
             "items": report_list,
-            "total": total
+            "total": result.total
         }
         return Success(data=response_data)
 

@@ -33,43 +33,41 @@ async def get_agent_list(
 ):
     """获取AI代理列表（分页）"""
     try:
+        from app.dto.agent_dto import AgentSearchRequest
+        
         agent_service = AgentService(db)
 
-        # 构建查询条件
-        filters = {}
-        if keyword:
-            filters['keyword'] = keyword
-        if type:
-            filters['type'] = type
-        if status:
-            filters['status'] = status
+        # 使用 AgentSearchRequest 构建搜索请求
+        search_request = AgentSearchRequest(
+            keyword=keyword,
+            type=type,  # AgentSearchRequest 使用 type 字段
+            status=status,
+            page=page,
+            page_size=page_size
+        )
 
         # 获取代理列表
-        agents, total = await agent_service.get_agent_list(
-            page=page,
-            page_size=page_size,
-            filters=filters
-        )
+        result = agent_service.search_agents(search_request)
 
         # 构建响应数据
         agent_list = []
-        for agent in agents:
+        for agent in result.agents:
             agent_data = {
                 "id": agent.id,
                 "name": agent.name,
-                "type": agent.type,
+                "type": agent.type,  # AgentResponse 使用 type 字段
                 "status": agent.status,
                 "version": agent.version,
                 "description": agent.description or "",
                 "config": agent.config or {},
-                "created_at": agent.create_time.strftime("%Y-%m-%d %H:%M:%S") if agent.create_time else "",
-                "updated_at": agent.update_time.strftime("%Y-%m-%d %H:%M:%S") if agent.update_time else ""
+                "created_at": agent.created_at.strftime("%Y-%m-%d %H:%M:%S") if agent.created_at else "",
+                "updated_at": agent.updated_at.strftime("%Y-%m-%d %H:%M:%S") if agent.updated_at else ""
             }
             agent_list.append(agent_data)
 
         response_data = {
             "items": agent_list,
-            "total": total
+            "total": result.total
         }
         return Success(data=response_data)
 

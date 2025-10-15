@@ -189,7 +189,10 @@ const renderMenuIcon = (icon) => {
 
 // 菜单选项
 const menuOptions = computed(() => {
-  return permissionStore.menus.map(menu => {
+  // 过滤掉个人资料菜单（它应该只在用户下拉菜单中显示）
+  const filteredMenus = permissionStore.menus.filter(menu => menu.path !== '/profile')
+  
+  return filteredMenus.map(menu => {
     const menuOption = {
       label: menu.meta?.title || menu.name,
       key: menu.path,

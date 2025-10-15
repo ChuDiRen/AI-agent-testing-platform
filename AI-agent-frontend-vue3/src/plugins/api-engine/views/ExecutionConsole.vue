@@ -643,39 +643,30 @@ const exportReport = async () => {
 
   try {
     // 显示格式选择对话框
-    const format = await ElMessageBox.prompt(
-      '请选择导出格式',
+    const { value: format } = await ElMessageBox.prompt(
+      '请输入导出格式 (json/pdf/excel)',
       '导出报告',
       {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        inputType: 'select',
-        inputOptions: [
-          { value: 'json', label: 'JSON格式 (包含详细数据)' },
-          { value: 'pdf', label: 'PDF格式 (适合打印和分享)' },
-          { value: 'excel', label: 'Excel格式 (适合数据分析)' }
-        ],
-        inputPlaceholder: '选择导出格式',
-        inputValidator: (value) => {
-          if (!value) {
-            return '请选择导出格式'
-          }
-          return true
-        }
+        inputPattern: /^(json|pdf|excel)$/,
+        inputErrorMessage: '请输入有效的格式: json, pdf 或 excel',
+        inputPlaceholder: '例如: json',
+        inputValue: 'json'
       }
     )
 
-    if (!format.value) return
+    if (!format) return
 
     // 调用导出API
     const response = await executionAPI.exportExecutionReport(
       executionResult.value.execution_id,
-      format.value as 'pdf' | 'excel' | 'json'
+      format as 'pdf' | 'excel' | 'json'
     )
 
     // 从响应头获取文件名，如果没有则生成默认文件名
     const contentDisposition = response.headers['content-disposition']
-    let filename = `execution-report-${executionResult.value.execution_id}.${format.value}`
+    let filename = `execution-report-${executionResult.value.execution_id}.${format}`
 
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
