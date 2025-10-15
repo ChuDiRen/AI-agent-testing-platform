@@ -98,7 +98,7 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from "vue";
 import { queryById, insertData, updateData, getMethods } from './apiinfo.js';
-import { queryByPage as getProjectList } from '../project/ApiProject.js';
+import { queryByPage as getProjectList } from '../project/apiProject.js';
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from 'element-plus';
 

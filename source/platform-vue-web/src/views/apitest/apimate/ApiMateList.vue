@@ -62,7 +62,7 @@
 
 <script lang="ts" setup>
 import { ref, reactive } from "vue";
-import { queryByPage, deleteData } from "./ApiMateManage.js"; // 不同页面不同的接口
+import { queryByPage, deleteData } from "./apiMate.js"; // 不同页面不同的接口
 import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -127,7 +127,7 @@ const handleCurrentChange = (val: number) => {
 
 
 // 1. 加载项目
-import { queryAllProject } from "../project/ApiProject.js"; // 不同页面不同的接口
+import { queryAllProject } from "../project/apiProject.js"; // 不同页面不同的接口
 const projectList = ref([{
   id: 0,
   project_name: '',
@@ -192,7 +192,7 @@ const onDelete = (index: number) => {
 
 // ====================================扩展： 下载/复制链接的功能========================================
 import { ElMessage } from "element-plus";
-import { downloadFile } from "./ApiMateManage.js"; // 不同页面不同的接口
+import { downloadFile } from "./apiMate.js"; // 不同页面不同的接口
 // 下载文件 - 获取地址 打开链接
 const onDownloadFile = (index: number) => {
   const id = tableData.value[index]["id"];

@@ -98,7 +98,7 @@
 <script lang="ts" setup>
 // 1. 其他功能拓展
 import { ref, reactive, compile } from "vue";
-import { queryByPage, deleteData } from "./ApiProject.js"; // 不同页面不同的接口
+import { queryByPage, deleteData } from "./apiProject.js"; // 不同页面不同的接口
 import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -208,10 +208,10 @@ const onDelete = (index: number) => {
 // ---------------------扩展：数据库展示弹窗-------------------------------
 
 // 11. 增加功能：数据库相关的操作
-import { queryByPage as queryByPageList } from "./DbBaseManage.js"; // 不同页面不同的接口
-import { updateData } from "./DbBaseManage.js"; // 不同页面不同的接口
-import { insertData } from "./DbBaseManage.js"; // 不同页面不同的接口
-import { deleteData as deleteDbData } from "./DbBaseManage.js"; // 不同页面不同的接口
+import { queryByPage as queryByPageList } from "./dbBase.js"; // 不同页面不同的接口
+import { updateData } from "./dbBase.js"; // 不同页面不同的接口
+import { insertData } from "./dbBase.js"; // 不同页面不同的接口
+import { deleteData as deleteDbData } from "./dbBase.js"; // 不同页面不同的接口
 
 const DbBaseManageList = ref([] as any[]); // 数据库数据列表数据
 const currentApiHistoryPage = ref(1) // 页码

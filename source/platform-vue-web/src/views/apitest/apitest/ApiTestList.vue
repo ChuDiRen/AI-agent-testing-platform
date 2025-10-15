@@ -132,7 +132,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { queryTestHistoryByPage, deleteTestHistory } from '../apiinfo/apiTest.js'
+import { queryByPage, deleteData } from './apiTest.js'
 import { formatDateTime } from '~/utils/timeFormatter'
 
 // 查询表单
@@ -157,7 +157,7 @@ const currentRow = ref({})
 const handleQuery = async () => {
   loading.value = true
   try {
-    const res = await queryTestHistoryByPage({
+    const res = await queryByPage({
       ...queryForm.value,
       api_info_id: queryForm.value.api_info_id ? parseInt(queryForm.value.api_info_id) : null,
       project_id: queryForm.value.project_id ? parseInt(queryForm.value.project_id) : null
@@ -202,7 +202,7 @@ const handleDelete = async (row) => {
       type: 'warning'
     })
 
-    const res = await deleteTestHistory(row.id)
+    const res = await deleteData(row.id)
     if (res.data.code === 200) {
       ElMessage.success('删除成功')
       handleQuery()

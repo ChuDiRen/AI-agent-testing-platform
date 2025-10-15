@@ -135,7 +135,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { queryGroupByPage, getGroupById, createGroup, updateGroup, deleteGroup } from './apiGroup.js'
-import { queryByPage as queryProjectByPage } from '../project/ApiProject.js'  // 修复：使用正确的导出名称
+import { queryByPage as queryProjectByPage } from '../project/apiProject.js'  // 修复：使用正确的导出名称
 import { formatDateTime } from '~/utils/timeFormatter'
 
 // 权限检查

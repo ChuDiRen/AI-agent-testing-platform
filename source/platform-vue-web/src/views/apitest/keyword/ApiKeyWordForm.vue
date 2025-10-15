@@ -76,7 +76,7 @@
   
   <script lang="ts" setup>
   import { ref, reactive } from "vue";
-  import { queryById, insertData, updateData } from './ApiKeyWord.js'; // 不同页面不同的接口
+  import { queryById, insertData, updateData } from './apiKeyWord.js'; // 不同页面不同的接口
   import type { FormInstance, FormRules } from 'element-plus';
   import { useRouter } from "vue-router";
   import { ElMessage } from 'element-plus';
@@ -99,7 +99,7 @@
   });
   
   
-  import { queryAll } from "./ApiOperationType.js"; // 不同页面不同的接口
+  import { queryAll } from "./operationType.js"; // 不同页面不同的接口
   const operationTypeList = ref([{
   id: 0,
   operation_type_name: '',
@@ -267,7 +267,7 @@ vars.placeholder = "";
 
 
 // ---------------------- 扩展功能：生成关键字文件方法---------------------------
-import {keywordFile as generateFile } from './ApiKeyWord.js'; // 不同页面不同的接口
+import {keywordFile as generateFile } from './apiKeyWord.js'; // 不同页面不同的接口
 
 const keywordFile = async (form: FormInstance | undefined) => {
   if (!form) return;

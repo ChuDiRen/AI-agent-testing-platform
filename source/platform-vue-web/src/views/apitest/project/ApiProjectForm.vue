@@ -23,7 +23,7 @@
   import { useRouter } from "vue-router";
       
   // 不同页面不同的接口
-  import { queryById, insertData, updateData } from './ApiProject.js'; 
+  import { queryById, insertData, updateData } from './apiProject.js'; 
   
   const router = useRouter();
   

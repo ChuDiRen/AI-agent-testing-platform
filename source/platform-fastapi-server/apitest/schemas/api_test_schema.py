@@ -19,6 +19,7 @@ class ApiTestExecuteRequest(BaseModel):
     context_vars: Optional[Dict[str, Any]] = {}  # 上下文变量
     pre_script: Optional[List[str]] = []         # 前置脚本列表
     post_script: Optional[List[str]] = []        # 后置脚本列表
+    variable_extracts: Optional[List['VariableExtract']] = []  # 变量提取配置列表
     assertions: Optional[List[Dict]] = []        # 断言配置列表
     
 # 断言配置Schema

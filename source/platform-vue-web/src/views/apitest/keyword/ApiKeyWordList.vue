@@ -88,7 +88,7 @@
 // 其他功能拓展
 import { ref, reactive } from "vue";
 import { formatDateTime } from '~/utils/timeFormatter';
-import { queryByPage, deleteData } from "./ApiKeyWord.js"; // 不同页面不同的接口
+import { queryByPage, deleteData } from "./apiKeyWord.js"; // 不同页面不同的接口
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
 const router = useRouter();
@@ -193,7 +193,7 @@ const onDelete = (index: number) => {
 };
 
 // 加载元素操作类型
-import { queryAll } from "./ApiOperationType.js"; // 不同页面不同的接口
+import { queryAll } from "./operationType.js"; // 不同页面不同的接口
 const operationTypeList = ref([{
   id: 0,
   operation_type_name: '',

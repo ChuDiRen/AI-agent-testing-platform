@@ -28,8 +28,8 @@ import ApiProjectForm from '~/views/apitest/project/ApiProjectForm.vue'
 import ApiKeyWordForm from '~/views/apitest/keyword/ApiKeyWordForm.vue'
 import ApiKeyWordList from '~/views/apitest/keyword/ApiKeyWordList.vue'
 
-import ApiMateManageForm from '~/views/apitest/apiMate/ApiMateManageForm.vue'
-import ApiMateManageList from '~/views/apitest/apiMate/ApiMateManageList.vue'
+import ApiMateForm from '~/views/apitest/apimate/ApiMateForm.vue'
+import ApiMateList from '~/views/apitest/apimate/ApiMateList.vue'
 
 // 接口信息管理相关导入
 import ApiInfoList from '~/views/apitest/apiinfo/ApiInfoList.vue'
@@ -41,7 +41,7 @@ import ApiGroupList from '~/views/apitest/apigroup/ApiGroupList.vue'
 import ApiGroupForm from '~/views/apitest/apigroup/ApiGroupForm.vue'
 
 // 测试历史相关导入
-import ApiTestHistory from '~/views/apitest/testhistory/ApiTestHistory.vue'
+import ApiTestList from '~/views/apitest/apitest/ApiTestList.vue'
 
 const cookies = useCookies()
 const routes = [
@@ -135,13 +135,13 @@ const routes = [
             }
         }, {
             path: "/ApiMateManageForm",
-            component: ApiMateManageForm,
+            component: ApiMateForm,
             meta: {
                 title: "素材维护管理编辑页面"
             }
         }, {
             path: "/ApiMateManageList",
-            component: ApiMateManageList,
+            component: ApiMateList,
             meta: {
                 title: "素材维护管列表页面"
             }
@@ -177,7 +177,7 @@ const routes = [
             }
         }, {
             path: "/ApiTestHistory",
-            component: ApiTestHistory,
+            component: ApiTestList,
             meta: {
                 title: "测试历史记录"
             }

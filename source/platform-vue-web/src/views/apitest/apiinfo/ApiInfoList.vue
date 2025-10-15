@@ -97,7 +97,7 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from "vue";
 import { queryByPage, deleteData, getMethods } from './apiinfo.js';
-import { queryByPage as getProjectList } from '../project/ApiProject.js';
+import { queryByPage as getProjectList } from '../project/apiProject.js';
 import { queryGroupByPage } from '../apigroup/apiGroup.js';
 import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";

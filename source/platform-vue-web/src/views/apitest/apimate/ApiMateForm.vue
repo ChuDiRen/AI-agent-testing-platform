@@ -27,7 +27,7 @@
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus"; // 弹窗
-import { updateData,  insertData,  deleteData,queryById } from "./ApiMateManage.js"; // 不同页面不同的接口
+import { updateData,  insertData,  deleteData,queryById } from "./apiMate.js"; // 不同页面不同的接口
 import axios from 'axios';
 
 // 获取当前路由的实例
@@ -58,7 +58,7 @@ const rules = reactive<any>({
 
 // 加载对应的所有项目的数据
 // 1. 加载项目
-import { queryAllProject } from "../project/ApiProject.js"; // 不同页面不同的接口
+import { queryAllProject } from "../project/apiProject.js"; // 不同页面不同的接口
 const projectList = ref([{
   id: 0,
   project_name: '',

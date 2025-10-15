@@ -64,7 +64,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { queryGroupByPage, getGroupById, createGroup, updateGroup } from './apiGroup.js'
-import { queryByPage as queryProjectByPage } from '../project/ApiProject.js'  // 使用正确的导出名称
+import { queryByPage as queryProjectByPage } from '../project/apiProject.js'  // 使用正确的导出名称
 
 const route = useRoute()
 const router = useRouter()

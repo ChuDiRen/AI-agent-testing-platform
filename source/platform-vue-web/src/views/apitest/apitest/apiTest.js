@@ -1,24 +1,41 @@
-/**
- * api-engine执行客户端封装
- */
+import axios from '~/axios'
 
-import axios from 'axios'
+// 模块名 - 和后台对应
+const module_name = "ApiTest"
 
-const API_TEST_BASE_URL = '/api/ApiTest'
+// ==================== 标准 CRUD 接口 ====================
+
+// 分页查询测试历史
+export function queryByPage(data) {
+    return axios.post(`/${module_name}/queryByPage`, data)
+}
+
+// 根据ID查询测试历史
+export function queryById(id) {
+    return axios.get(`/${module_name}/queryById?id=${id}`)
+}
+
+// 删除测试历史
+export function deleteData(id) {
+    return axios.delete(`/${module_name}/delete?id=${id}`)
+}
+
+// ==================== 测试执行相关接口 ====================
 
 /**
  * 执行API测试
  * @param {Object} params - 测试参数
+ * @param {Number} params.api_info_id - 接口信息ID
+ * @param {String} params.test_name - 测试名称（可选）
+ * @param {Object} params.context_vars - 上下文变量（可选）
+ * @param {Array} params.pre_script - 前置脚本列表（可选）
+ * @param {Array} params.post_script - 后置脚本列表（可选）
+ * @param {Array} params.variable_extracts - 变量提取配置列表（可选）
+ * @param {Array} params.assertions - 断言配置列表（可选）
  * @returns {Promise}
  */
-export const executeTest = async (params) => {
-    try {
-        const response = await axios.post(`${API_TEST_BASE_URL}/execute`, params)
-        return response.data
-    } catch (error) {
-        console.error('执行测试失败:', error)
-        throw error
-    }
+export function executeTest(params) {
+    return axios.post(`/${module_name}/execute`, params)
 }
 
 /**
@@ -26,25 +43,26 @@ export const executeTest = async (params) => {
  * @param {Number} testId - 测试ID
  * @returns {Promise}
  */
-export const getTestStatus = async (testId) => {
-    try {
-        const response = await axios.get(`${API_TEST_BASE_URL}/status`, {
-            params: { test_id: testId }
-        })
-        return response.data
-    } catch (error) {
-        console.error('查询测试状态失败:', error)
-        throw error
-    }
+export function getTestStatus(testId) {
+    return axios.get(`/${module_name}/status`, {
+        params: { test_id: testId }
+    })
 }
+
+// ==================== 高级功能 ====================
 
 /**
  * 轮询查询测试状态
  * @param {Number} testId - 测试ID
  * @param {Object} options - 配置选项
+ * @param {Number} options.interval - 轮询间隔（毫秒），默认2000
+ * @param {Number} options.maxAttempts - 最大尝试次数，默认30
+ * @param {Function} options.onProgress - 进度回调
+ * @param {Function} options.onComplete - 完成回调
+ * @param {Function} options.onError - 错误回调
  * @returns {Promise}
  */
-export const pollTestStatus = (testId, options = {}) => {
+export function pollTestStatus(testId, options = {}) {
     const {
         interval = 2000,      // 轮询间隔（毫秒）
         maxAttempts = 30,     // 最大尝试次数
@@ -119,9 +137,12 @@ export const pollTestStatus = (testId, options = {}) => {
  * 批量执行测试
  * @param {Array} apiInfoList - 接口信息列表
  * @param {Object} options - 配置选项
+ * @param {Number} options.concurrent - 并发数，默认1
+ * @param {Function} options.onProgress - 进度回调
+ * @param {Function} options.onComplete - 完成回调
  * @returns {Promise}
  */
-export const executeBatchTests = async (apiInfoList, options = {}) => {
+export async function executeBatchTests(apiInfoList, options = {}) {
     const {
         concurrent = 1,       // 并发数
         onProgress = null,    // 进度回调
@@ -190,22 +211,11 @@ export const executeBatchTests = async (apiInfoList, options = {}) => {
 }
 
 /**
- * 取消测试执行（如果支持）
- * @param {Number} testId - 测试ID
- * @returns {Promise}
- */
-export const cancelTest = async (testId) => {
-    // TODO: 后端需要实现取消测试的接口
-    console.warn('取消测试功能尚未实现')
-    return Promise.reject(new Error('功能未实现'))
-}
-
-/**
  * 获取测试报告URL
  * @param {Number} testId - 测试ID
  * @returns {String}
  */
-export const getReportUrl = (testId) => {
+export function getReportUrl(testId) {
     return `/api/reports/allure/${testId}/index.html`
 }
 
@@ -213,10 +223,10 @@ export const getReportUrl = (testId) => {
  * 检查api-engine是否可用
  * @returns {Promise<Boolean>}
  */
-export const checkEngineAvailable = async () => {
+export async function checkEngineAvailable() {
     try {
         const response = await axios.get('/api/engine/health')
-        return response.data.code === 200
+        return response.code === 200
     } catch {
         return false
     }
