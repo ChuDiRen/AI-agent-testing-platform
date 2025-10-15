@@ -225,7 +225,6 @@ const handleQuery = async () => {
     if (res.data.code === 200) {
       tableData.value = res.data.data || []
       total.value = res.data.total || 0
-      ElMessage.success('查询成功')
     } else {
       ElMessage.error(res.data.msg || '查询失败')
     }
@@ -284,7 +283,6 @@ const handleDelete = async (row) => {
 
     const res = await deleteGroup(row.id)
     if (res.data.code === 200) {
-      ElMessage.success('删除成功')
       handleQuery()
     } else {
       ElMessage.error(res.data.msg || '删除失败')
@@ -312,7 +310,6 @@ const handleSubmit = async () => {
         }
 
         if (res.data.code === 200) {
-          ElMessage.success(formData.value.id ? '修改成功' : '新增成功')
           dialogVisible.value = false
           handleQuery()
         } else {

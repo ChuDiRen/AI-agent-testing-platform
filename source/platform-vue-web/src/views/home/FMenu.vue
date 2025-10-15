@@ -55,8 +55,6 @@ const isCollapse = computed(()=>!(store.state.asideWidth== '250px'))
 
 //02 添加事件
 const handleSelect =(e)=>{
- //可以看看这里点击后事什么?
- console.log(e)
  router.push(e)
 }
 const cookies = useCookies()

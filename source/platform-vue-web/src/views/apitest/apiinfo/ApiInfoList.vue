@@ -138,6 +138,16 @@ const groupList = ref([]);
 // 请求方法列表
 const methodList = ref([]);
 
+// 重置搜索
+const resetSearch = () => {
+  searchForm.project_id = null;
+  searchForm.api_name = null;
+  searchForm.request_method = null;
+  searchForm.group_id = null;
+  currentPage.value = 1;
+  loadData();
+};
+
 // 加载页面数据
 const loadData = () => {
   let searchData = {
@@ -145,12 +155,11 @@ const loadData = () => {
     page: currentPage.value,
     pageSize: pageSize.value
   };
-  
+
   queryByPage(searchData).then((res) => {
     if (res.data.code === 200) {
       tableData.value = res.data.data;
       total.value = res.data.total;
-      ElMessage.success('查询成功');
     } else {
       ElMessage.error(res.data.msg || '查询失败');
     }

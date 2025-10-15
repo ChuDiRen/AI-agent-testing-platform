@@ -146,7 +146,6 @@ const loadData = () => {
         if (res.data.code === 200) {
             tableData.value = res.data.data || []
             total.value = res.data.total || 0
-            ElMessage.success('查询成功')
         } else {
             ElMessage.error(res.data.msg || '查询失败')
         }
@@ -154,6 +153,13 @@ const loadData = () => {
         console.error('查询失败:', error)
         ElMessage.error('查询失败，请稍后重试')
     })
+}
+
+// 重置搜索
+const resetSearch = () => {
+    searchForm.username = null
+    currentPage.value = 1
+    loadData()
 }
 
 // 页面初始化

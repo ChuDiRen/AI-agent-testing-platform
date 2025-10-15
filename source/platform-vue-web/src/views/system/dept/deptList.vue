@@ -67,7 +67,6 @@ const loadData = () => {
     getDeptTree().then((res: { data: { code: number; data: never[]; msg: string }; }) => {
         if (res.data.code === 200) {
             tableData.value = res.data.data || []
-            ElMessage.success('查询成功')
         } else {
             ElMessage.error(res.data.msg || '查询失败')
         }

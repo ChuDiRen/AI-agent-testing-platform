@@ -43,15 +43,6 @@ service.interceptors.response.use(response => {
     close()
     if (response.data.code != 200) {
         ElMessage.error(response.data.msg + ',状态码:' + response.data.code)
-    } else {
-        if (response.data.msg != null) {
-            ElNotification({
-                title: response.data.msg,
-                type: 'success',
-                duration: 1000
-            })
-        }
-
     }
     return response
 }, error => {

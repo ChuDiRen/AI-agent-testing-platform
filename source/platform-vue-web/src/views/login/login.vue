@@ -100,8 +100,6 @@ const onSubmit = () => {
     }
     login(form.username, form.password)
       .then(res => {
-        console.log("请求成功")
-        console.log(res.data.data)
         if (res.data.code == 200 && res.data.data.token != null) {
           ElNotification({
             title: 'Success',

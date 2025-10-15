@@ -48,37 +48,36 @@
         </el-table-column>
     </el-table>
     
-    <!-- 分页 -->
-    <div class="pagination">
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :page-sizes="[10, 20, 30, 50]"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
-    </div>
+      <!-- 分页 -->
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 30, 50]"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </el-card>
-  </div>
-    <!-- END 分页 -->
 
     <!-- 权限分配对话框 -->
     <el-dialog v-model="menuDialogVisible" title="分配菜单权限" width="400px">
-        <el-tree
-            ref="menuTreeRef"
-            :data="menuTree"
-            show-checkbox
-            node-key="menu_id"
-            :props="{ children: 'children', label: 'menu_name' }"
-            default-expand-all
-        />
-        <template #footer>
-            <el-button @click="menuDialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="handleSaveMenus">确定</el-button>
-        </template>
+      <el-tree
+        ref="menuTreeRef"
+        :data="menuTree"
+        show-checkbox
+        node-key="menu_id"
+        :props="{ children: 'children', label: 'menu_name' }"
+        default-expand-all
+      />
+      <template #footer>
+        <el-button @click="menuDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSaveMenus">确定</el-button>
+      </template>
     </el-dialog>
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -119,7 +118,6 @@ const loadData = () => {
         if (res.data.code === 200) {
             tableData.value = res.data.data || []
             total.value = res.data.total || 0
-            ElMessage.success('查询成功')
         } else {
             ElMessage.error(res.data.msg || '查询失败')
         }
@@ -129,6 +127,13 @@ const loadData = () => {
     })
 }
 loadData()
+
+// 重置搜索
+const resetSearch = () => {
+    searchForm.role_name = null
+    currentPage.value = 1
+    loadData()
+}
 
 // 变更 页大小
 const handleSizeChange = (val: number) => {

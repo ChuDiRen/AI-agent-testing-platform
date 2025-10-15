@@ -10,95 +10,87 @@
           </el-button>
         </div>
       </template>
-  <!-- END搜索表单 -->
 
-  <!-- 数据表格 -->
-  <el-table :data="tableData" style="width: 100%" max-height="500">
-    <!-- 数据列 -->
-    <el-table-column prop="id" label="项目编号" show-overflow-tooltip />
-    <el-table-column prop="project_name" label="项目名称" show-overflow-tooltip />
-    <el-table-column prop="project_desc" label="项目描述" show-overflow-tooltip />
-    <el-table-column prop="create_time" label="创建时间" show-overflow-tooltip>
-      <template #default="scope">
-        {{ formatDateTime(scope.row.create_time) }}
-      </template>
-    </el-table-column>
-    <!-- END数据列 -->
+          <!-- 数据表格 -->
+      <el-table :data="tableData" style="width: 100%" max-height="500">
+        <!-- 数据列 -->
+        <el-table-column prop="id" label="项目编号" show-overflow-tooltip />
+        <el-table-column prop="project_name" label="项目名称" show-overflow-tooltip />
+        <el-table-column prop="project_desc" label="项目描述" show-overflow-tooltip />
+        <el-table-column prop="create_time" label="创建时间" show-overflow-tooltip>
+          <template #default="scope">
+            {{ formatDateTime(scope.row.create_time) }}
+          </template>
+        </el-table-column>
 
-    <!-- 操作 -->
-    <el-table-column fixed="right" label="操作">
-      <template #default="scope">
-        <el-button  link  type="primary" size="small" @click.prevent="onDataForm(scope.$index)">
-          编辑
-        </el-button>
-        <el-button  link  type="primary" size="small" @click.prevent="showDbBaseManage(scope.$index)">
-      数据库配置
-        </el-button>
-        <el-button  link  type="primary" size="small" @click.prevent="onDelete(scope.$index)">
-          删除
-        </el-button>
-      </template>
-    </el-table-column>
-  </el-table>
-  <!-- END操作 -->
-  <!-- END 数据表格 -->
+        <!-- 操作 -->
+        <el-table-column fixed="right" label="操作">
+          <template #default="scope">
+            <el-button link type="primary" size="small" @click.prevent="onDataForm(scope.$index)">
+              编辑
+            </el-button>
+            <el-button link type="primary" size="small" @click.prevent="showDbBaseManage(scope.$index)">
+              数据库配置
+            </el-button>
+            <el-button link type="primary" size="small" @click.prevent="onDelete(scope.$index)">
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-  <!-- 分页 -->
-  <div class="pagination">
-    <el-pagination
-      v-model:current-page="currentPage"
-      v-model:page-size="pageSize"
-      :page-sizes="[10, 20, 30, 50]"
-      layout="total, sizes, prev, pager, next, jumper"
-      :total="total"
-      @size-change="handleSizeChange"
-      @current-change="handleCurrentChange"
-    />
-  </div>
+      <!-- 分页 -->
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 30, 50]"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </el-card>
-  </div>
-  <!-- END 分页 -->
 
-  <!-- 弹窗 - 增加功能：数据库配置 弹窗加载执行记录 -->
-  <el-dialog v-model="DbBaseManageDialogFormVisible" style="width: 1100px">
-     <el-form-item >
-           <!-- 数据库数据信息显示 -->
-          <el-table :data="DbBaseManageList" style="width: 100%"  max-height="300">
+    <!-- 弹窗 - 增加功能:数据库配置 -->
+    <el-dialog v-model="DbBaseManageDialogFormVisible" style="width: 1100px">
+      <el-form-item>
+        <!-- 数据库数据信息显示 -->
+        <el-table :data="DbBaseManageList" style="width: 100%" max-height="300">
           <el-table-column prop="name" label="连接名" style="width: 10%" />
           <el-table-column prop="ref_name" label="引用变量" style="width: 20%" :show-overflow-tooltip="true" />
           <el-table-column prop="db_info" label="数据库连接信息" style="width: 40%" :show-overflow-tooltip="true" />
-          <el-table-column prop="is_enabled" label="是否启用" style="width: 10%" :show-overflow-tooltip="true" >
+          <el-table-column prop="is_enabled" label="是否启用" style="width: 10%" :show-overflow-tooltip="true">
             <template #default="scope">
-              {{ scope.row.is_enabled === "0"?'否' : scope.row.is_enabled === "1"?'是':'-' }}
+              {{ scope.row.is_enabled === "0" ? '否' : scope.row.is_enabled === "1" ? '是' : '-' }}
             </template>
           </el-table-column>
           <el-table-column prop="db_type" label="数据库类型" style="width: 10%" :show-overflow-tooltip="true" />
-         
           <el-table-column label="操作" style="width: 5%" :show-overflow-tooltip="true">
             <template #default="scope">
-                <el-button link type="primary" size="small" @click.prevent="upDataDbinfo(scope.$index)">修改是否启动</el-button>
-                <el-button link type="primary" size="small" @click.prevent="onDeleteDb(scope.$index)">删除</el-button>
+              <el-button link type="primary" size="small" @click.prevent="upDataDbinfo(scope.$index)">修改是否启动</el-button>
+              <el-button link type="primary" size="small" @click.prevent="onDeleteDb(scope.$index)">删除</el-button>
             </template>
           </el-table-column>
-          </el-table>
+        </el-table>
 
-
-           <!-- 数据库添加数据信息 -->
-          <div class="input-group" style="width: 100%" >
-          <el-input v-model="ruleForm.name" placeholder="连接名" style="width: 15%"/>
-          <el-input v-model="ruleForm.ref_name" placeholder="引用变量" style="width: 15%"/>
-          <el-input v-model="ruleForm.db_info" placeholder="数据库连接信息，如：{host: 主机IP/服务器, port: 端口号, username: 用户名, password: 密码, database: 数据库名}" style="width: 30%"/>
-          <el-select v-model="ruleForm.is_enabled"  placeholder="是否启用"  style="width: 20%">
-            <el-option v-for="item in options"  :key="item.value" :label="item.label"  :value="item.value" />
+        <!-- 数据库添加数据信息 -->
+        <div class="input-group" style="width: 100%">
+          <el-input v-model="ruleForm.name" placeholder="连接名" style="width: 15%" />
+          <el-input v-model="ruleForm.ref_name" placeholder="引用变量" style="width: 15%" />
+          <el-input v-model="ruleForm.db_info" placeholder="数据库连接信息，如：{host: 主机IP/服务器, port: 端口号, username: 用户名, password: 密码, database: 数据库名}" style="width: 30%" />
+          <el-select v-model="ruleForm.is_enabled" placeholder="是否启用" style="width: 20%">
+            <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
           <el-select v-model="ruleForm.db_type" placeholder="数据库类型" style="width: 10%">
-            <el-option v-for="item in optionsDbType"  :key="item.value" :label="item.label"  :value="item.value" />
+            <el-option v-for="item in optionsDbType" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
           <el-button style="width: 10%" type="primary" @click="onAddDbinfo">添加</el-button>
-         </div> 
-    </el-form-item>
-  </el-dialog>
-
+        </div>
+      </el-form-item>
+    </el-dialog>
+  </div>
 </template>
   
 <script lang="ts" setup>
@@ -142,7 +134,6 @@ const loadData = () => {
       if (res.data.code === 200) {
         tableData.value = res.data.data || [];
         total.value = res.data.total || 0;
-        ElMessage.success('查询成功');
       } else {
         ElMessage.error(res.data.msg || '查询失败');
       }

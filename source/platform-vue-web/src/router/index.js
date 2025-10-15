@@ -10,8 +10,8 @@ import ServerError from '~/views/500.vue'
 import Login from '~/views/login/login.vue'
 import Home from '~/views/home/home.vue'
 import Statistics from '~/views/statistics/statistics.vue'
-import userList from '~/views/users/userList.vue'
-import userForm from '~/views/users/userForm.vue'
+import userList from '~/views/system/users/userList.vue'
+import userForm from '~/views/system/users/userForm.vue'
 
 // 系统管理相关导入
 import roleList from '~/views/system/role/roleList.vue'
@@ -54,6 +54,7 @@ const routes = [
     }, {
         path: "/home",
         component: Home,
+        redirect: '/Statistics', // 默认重定向到系统总览页面
         //子路由概念，后续所有的子页面都要放在这里
         children: [{
             path: "/Statistics",

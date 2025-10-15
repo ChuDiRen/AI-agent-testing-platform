@@ -135,7 +135,6 @@ const loadData = () => {
       if (res.data.code === 200) {
         tableData.value = res.data.data || [];
         total.value = res.data.total || 0;
-        ElMessage.success('查询成功');
       } else {
         ElMessage.error(res.data.msg || '查询失败');
       }
@@ -173,6 +172,14 @@ const onDataForm = (index: number) => {
     path: "/ApiKeyWordForm", // 不同页面不同的表单路径
     query: params_data,
   });
+};
+
+// 重置搜索
+const resetSearch = () => {
+  searchForm.name = null;
+  searchForm.operation_type_id = null;
+  currentPage.value = 1;
+  loadData();
 };
 
 // 删除

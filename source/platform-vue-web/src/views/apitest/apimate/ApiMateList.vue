@@ -101,6 +101,14 @@ const columnList = ref([
 // 表格数据
 const tableData = ref([]);
 
+// 重置搜索
+const resetSearch = () => {
+  searchForm.mate_name = null;
+  searchForm.project_id = null;
+  currentPage.value = 1;
+  loadData();
+};
+
 // 加载页面数据
 const loadData = () => {
   let searchData = searchForm;
@@ -112,7 +120,6 @@ const loadData = () => {
       if (res.data.code === 200) {
         tableData.value = res.data.data || [];
         total.value = res.data.total || 0;
-        ElMessage.success('查询成功');
       } else {
         ElMessage.error(res.data.msg || '查询失败');
       }
