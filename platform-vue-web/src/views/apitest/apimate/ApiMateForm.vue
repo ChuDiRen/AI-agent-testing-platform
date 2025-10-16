@@ -79,12 +79,6 @@ function getProjectList() {
 }
 getProjectList();
 
-console.log("======================")
-console.log(projectList.value)
-console.log("======================")
-
-
-
 // 提交表单
 const onSubmit = () => {
   //   1. 获取表单数据
@@ -103,11 +97,6 @@ const onSubmit = () => {
     formData.append('project_id', apiMate.project_id);
     formData.append('mate_name', apiMate.mate_name);
     formData.append('file', apiMate.material_file);
-
-    console.log("=========当前获取的数据提交数据：formData===========")
-    console.log("formData:",formData)
-    console.log("=========END 当前获取的数据提交数据：formData===========")
-
 
     // 2.调用insertData方法提交表单数据，并且设置请求头
     insertData(formData).then((res: { data: { code: number; msg: string; data: any } }) => {

@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, Query, BackgroundTasks
 from sqlmodel import Session, select
 from core.resp_model import respModel
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 from apitest.model.ApiTestHistoryModel import ApiTestHistory
 from apitest.model.ApiInfoModel import ApiInfo
 from apitest.schemas.api_test_schema import ApiTestHistoryQuery, ApiTestExecuteRequest, ApiTestResult
@@ -379,7 +382,7 @@ def parse_allure_results(report_dir: Path) -> Optional[Dict[str, Any]]:
         return summary
         
     except Exception as e:
-        print(f"解析Allure结果失败: {e}")
+        logger.error(f"解析Allure结果失败: {e}", exc_info=True)
         return None
 
 def extract_response_data(allure_results: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -474,10 +477,10 @@ def queryByPage(query: ApiTestHistoryQuery, session: Session = Depends(get_sessi
             count_statement = count_statement.where(module_model.create_time <= query.end_date)
         total = len(session.exec(count_statement).all())
         
-        return respModel().ok_resp_list(lst=datas, total=total)
+        return respModel.ok_resp_list(lst=datas, total=total)
     except Exception as e:
-        print(e)
-        return respModel().error_resp(f"服务器错误,请联系管理员:{e}")
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById") # 根据ID查询测试历史
 def queryById(id: int = Query(...), session: Session = Depends(get_session)):
@@ -485,12 +488,12 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
         if data:
-            return respModel().ok_resp(obj=data)
+            return respModel.ok_resp(obj=data)
         else:
-            return respModel().ok_resp(msg="查询成功,但是没有数据")
+            return respModel.ok_resp(msg="查询成功,但是没有数据")
     except Exception as e:
-        print(e)
-        return respModel().error_resp(f"服务器错误,请联系管理员:{e}")
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/execute") # 执行接口测试
 def execute_test(request: ApiTestExecuteRequest, background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
@@ -513,21 +516,21 @@ def execute_test(request: ApiTestExecuteRequest, background_tasks: BackgroundTas
         # 添加后台任务执行测试
         background_tasks.add_task(execute_test_background, test_history.id, request)
         
-        return respModel().ok_resp(
+        return respModel.ok_resp(
             dic_t={"test_id": test_history.id, "status": "running"}, 
             msg="测试已开始执行"
         )
     except Exception as e:
         session.rollback()
-        print(e)
-        return respModel().error_resp(f"服务器错误,请联系管理员:{e}")
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/status") # 查询测试状态
 def get_test_status(test_id: int = Query(...), session: Session = Depends(get_session)):
     try:
         test_history = session.get(module_model, test_id)
         if not test_history:
-            return respModel().error_resp("测试记录不存在")
+            return respModel.error_resp("测试记录不存在")
         
         result = {
             "test_id": test_history.id,
@@ -540,25 +543,25 @@ def get_test_status(test_id: int = Query(...), session: Session = Depends(get_se
             "finish_time": TimeFormatter.format_datetime(test_history.finish_time)
         }
         
-        return respModel().ok_resp(obj=result, msg="查询成功")
+        return respModel.ok_resp(obj=result, msg="查询成功")
     except Exception as e:
-        print(e)
-        return respModel().error_resp(f"服务器错误,请联系管理员:{e}")
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.delete("/delete") # 删除测试历史
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, id)
         if not obj:
-            return respModel().error_resp("数据不存在")
+            return respModel.error_resp("数据不存在")
         
         session.delete(obj)
         session.commit()
-        return respModel().ok_resp_text(msg="删除成功")
+        return respModel.ok_resp_text(msg="删除成功")
     except Exception as e:
         session.rollback()
-        print(e)
-        return respModel().error_resp(f"服务器错误,请联系管理员:{e}")
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 # ==================== 后台任务函数 ====================
 
@@ -573,7 +576,7 @@ def execute_test_background(test_id: int, request: ApiTestExecuteRequest):
         # 1. 获取测试历史记录
         test_history = db.get(ApiTestHistory, test_id)
         if not test_history:
-            print(f"测试记录不存在: {test_id}")
+            logger.warning(f"测试记录不存在: {test_id}")
             return
         
         # 2. 获取接口信息
@@ -639,10 +642,10 @@ def execute_test_background(test_id: int, request: ApiTestExecuteRequest):
         
         db.commit()
         
-        print(f"测试任务执行完成: {test_id}, 结果: {test_history.test_status}")
+        logger.info(f"测试任务执行完成: {test_id}, 结果: {test_history.test_status}")
         
     except Exception as e:
-        print(f"测试任务执行失败: {test_id}, 错误: {e}")
+        logger.error(f"测试任务执行失败: {test_id}, 错误: {e}", exc_info=True)
         if test_history:
             test_history.test_status = "failed"
             test_history.error_message = str(e)

@@ -13,7 +13,6 @@ export function queryById(id) {
 }
 
 export function insertData(data) {
-    console.log(data)
     return axios.post(`/${module_name}/insert`, data)
 }
 
@@ -21,11 +20,11 @@ export function updateData(data) {
     return axios.put(`/${module_name}/update`, data)
 }
 
-export function deleteData(id){
+export function deleteData(id) {
     return axios.delete(`/${module_name}/delete?id=${id}`)
 }
 
 // 拓展其他方法
-export function queryAll(){
+export function queryAll() {
     return axios.get(`/${module_name}/queryAll`)
 }

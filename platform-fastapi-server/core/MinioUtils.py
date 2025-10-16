@@ -2,6 +2,9 @@ import os
 from datetime import timedelta
 from minio import Minio
 from minio.error import S3Error
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 
 class MinioUtils:
     _instance = None
@@ -72,7 +75,8 @@ class MinioUtils:
             url = self.client.presigned_get_object(bucket_name, file_name, expires=expires)
             return url
         except Exception as err:
-            print(err)
+            logger.error(f"获取文件URL失败: {err}", exc_info=True)
+            return None
 
 # 测试当前工具类
 # 注意：MinIO 通常有两个端口：

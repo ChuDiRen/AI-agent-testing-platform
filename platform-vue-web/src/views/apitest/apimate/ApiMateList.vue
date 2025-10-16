@@ -133,14 +133,12 @@ loadData();
 
 // 变更页大小
 const handleSizeChange = (val: number) => {
-  console.log("页大小变化:" + val);
   pageSize.value = val;
   loadData();
 };
 
 // 变更页码
 const handleCurrentChange = (val: number) => {
-  console.log("页码变化:" + val);
   currentPage.value = val;
   loadData();
 };

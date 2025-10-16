@@ -122,7 +122,9 @@ const formatJson = (data) => {
 // 打开Allure报告
 const openAllureReport = () => {
   // TODO: 实现打开Allure报告的逻辑
-  console.log('打开Allure报告:', props.result.allure_report_path)
+  if (props.result.allure_report_path) {
+    ElMessage.info('打开Allure报告功能开发中...')
+  }
 }
 </script>
 

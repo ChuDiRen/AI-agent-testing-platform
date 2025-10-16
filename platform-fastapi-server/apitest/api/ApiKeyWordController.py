@@ -2,6 +2,9 @@ import os
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 from core.resp_model import respModel
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 from apitest.model.ApiKeyWordModel import ApiKeyWord
 from apitest.schemas.api_keyword_schema import ApiKeyWordQuery, ApiKeyWordCreate, ApiKeyWordUpdate, KeywordFileRequest
 from core.database import get_session
@@ -43,9 +46,9 @@ def queryByPage(query: ApiKeyWordQuery, session: Session = Depends(get_session))
         if query.page_id and query.page_id > 0:
             count_statement = count_statement.where(module_model.page_id == query.page_id)
         total = len(session.exec(count_statement).all())
-        return respModel().ok_resp_list(lst=datas, total=total)
+        return respModel.ok_resp_list(lst=datas, total=total)
     except Exception as e:
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById") # 根据ID查询关键字
@@ -54,11 +57,11 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
         if data:
-            return respModel().ok_resp(obj=data)
+            return respModel.ok_resp(obj=data)
         else:
             return respModel.ok_resp(msg="查询成功,但是没有数据")
     except Exception as e:
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/insert") # 新增关键字
@@ -76,7 +79,7 @@ def insert(keyword: ApiKeyWordCreate, session: Session = Depends(get_session)):
         return respModel.ok_resp(msg="添加成功", dic_t={"id": data.id})
     except Exception as e:
         session.rollback()
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"添加失败:{e}")
 
 @module_route.put("/update") # 更新关键字
@@ -100,7 +103,7 @@ def update(keyword: ApiKeyWordUpdate, session: Session = Depends(get_session)):
             return respModel.error_resp(msg="关键字不存在")
     except Exception as e:
         session.rollback()
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
 @module_route.delete("/delete") # 删除关键字
@@ -116,7 +119,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
             return respModel.error_resp(msg="关键字不存在")
     except Exception as e:
         session.rollback()
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"服务器错误,删除失败：{e}")
 
 @module_route.post("/keywordFile") # 生成关键字文件
@@ -130,5 +133,5 @@ def keywordFile(request: KeywordFileRequest):
             f.write(keyword_value)
         return respModel.ok_resp(msg="生成文件成功", dic_t={"id": file_name})
     except Exception as e:
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"添加失败:{e}")

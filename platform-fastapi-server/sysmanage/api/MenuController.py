@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from core.resp_model import respModel
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 from sysmanage.model.menu import Menu
 from sysmanage.model.user_role import UserRole
 from sysmanage.model.role_menu import RoleMenu
@@ -39,9 +42,9 @@ def getTree(session: Session = Depends(get_session)):
         statement = select(module_model)
         menus = session.exec(statement).all()
         tree = build_tree(menus)
-        return respModel().ok_resp_tree(treeData=tree, msg="查询成功")
+        return respModel.ok_resp_tree(treeData=tree, msg="查询成功")
     except Exception as e:
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById") # 根据ID查询菜单
@@ -49,11 +52,11 @@ def queryById(id: int, session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, id)
         if obj:
-            return respModel().ok_resp(obj=obj)
+            return respModel.ok_resp(obj=obj)
         else:
-            return respModel().error_resp("数据不存在")
+            return respModel.error_resp("数据不存在")
     except Exception as e:
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/insert") # 新增菜单
@@ -63,10 +66,10 @@ def insert(request: MenuCreate, session: Session = Depends(get_session)):
         session.add(obj)
         session.commit()
         session.refresh(obj)
-        return respModel().ok_resp(obj=obj, msg="新增成功")
+        return respModel.ok_resp(obj=obj, msg="新增成功")
     except Exception as e:
         session.rollback()
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.put("/update") # 更新菜单
@@ -74,7 +77,7 @@ def update(request: MenuUpdate, session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, request.id)
         if not obj:
-            return respModel().error_resp("数据不存在")
+            return respModel.error_resp("数据不存在")
         
         update_data = request.model_dump(exclude_unset=True, exclude={"id"})
         update_data["modify_time"] = datetime.now()
@@ -85,10 +88,10 @@ def update(request: MenuUpdate, session: Session = Depends(get_session)):
         session.add(obj)
         session.commit()
         session.refresh(obj)
-        return respModel().ok_resp(obj=obj, msg="更新成功")
+        return respModel.ok_resp(obj=obj, msg="更新成功")
     except Exception as e:
         session.rollback()
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.delete("/delete") # 删除菜单
@@ -96,13 +99,13 @@ def delete(id: int, session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, id)
         if not obj:
-            return respModel().error_resp("数据不存在")
+            return respModel.error_resp("数据不存在")
         
         # 检查是否有子菜单
         statement = select(module_model).where(module_model.parent_id == id)
         children = session.exec(statement).all()
         if children:
-            return respModel().error_resp("存在子菜单，无法删除")
+            return respModel.error_resp("存在子菜单，无法删除")
         
         # 删除菜单关联的角色权限
         statement = select(RoleMenu).where(RoleMenu.menu_id == id)
@@ -112,10 +115,10 @@ def delete(id: int, session: Session = Depends(get_session)):
         
         session.delete(obj)
         session.commit()
-        return respModel().ok_resp_text(msg="删除成功")
+        return respModel.ok_resp_text(msg="删除成功")
     except Exception as e:
         session.rollback()
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/user/{user_id}") # 获取用户的菜单权限（用于前端路由）
@@ -127,7 +130,7 @@ def getUserMenus(user_id: int, session: Session = Depends(get_session)):
         role_ids = [ur.role_id for ur in user_roles]
         
         if not role_ids:
-            return respModel().ok_resp_tree(treeData=[], msg="查询成功")
+            return respModel.ok_resp_tree(treeData=[], msg="查询成功")
         
         # 获取角色的所有菜单权限
         statement = select(RoleMenu).where(RoleMenu.role_id.in_(role_ids))
@@ -135,7 +138,7 @@ def getUserMenus(user_id: int, session: Session = Depends(get_session)):
         menu_ids = list(set([rm.menu_id for rm in role_menus]))
         
         if not menu_ids:
-            return respModel().ok_resp_tree(treeData=[], msg="查询成功")
+            return respModel.ok_resp_tree(treeData=[], msg="查询成功")
         
         # 获取菜单详情
         statement = select(Menu).where(Menu.id.in_(menu_ids))
@@ -143,8 +146,8 @@ def getUserMenus(user_id: int, session: Session = Depends(get_session)):
         
         # 构建菜单树
         tree = build_tree(menus)
-        return respModel().ok_resp_tree(treeData=tree, msg="查询成功")
+        return respModel.ok_resp_tree(treeData=tree, msg="查询成功")
     except Exception as e:
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 

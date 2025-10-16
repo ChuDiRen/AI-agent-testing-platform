@@ -153,7 +153,6 @@ const loadData = async (id: number) => {
 }
 
 // 如果有id参数，说明是编辑，需要获取数据
-console.log(router)
 let query_id = router.currentRoute.value.query.id
 ruleForm.id = query_id ? Number(query_id) : 0
 if (ruleForm.id > 0) {

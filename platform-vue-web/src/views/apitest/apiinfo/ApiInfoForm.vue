@@ -226,7 +226,7 @@ const submitForm = async () => {
         });
       }
     } else {
-      console.log('表单验证失败!', fields);
+      ElMessage.warning('表单验证失败，请检查输入');
     }
   });
 };

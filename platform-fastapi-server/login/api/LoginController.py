@@ -14,6 +14,6 @@ def login(request: LoginRequest, session: Session = Depends(get_session)):
     user = session.exec(statement).first()
     if user:
         token = JwtUtils.create_token(request.username, request.password)
-        return respModel().ok_resp(obj=user, msg="登录成功", dic_t={"token": token})
+        return respModel.ok_resp(obj=user, msg="登录成功", dic_t={"token": token})
     else:
-        return respModel().error_resp("登录失败，用户名或密码错误")
+        return respModel.error_resp("登录失败，用户名或密码错误")

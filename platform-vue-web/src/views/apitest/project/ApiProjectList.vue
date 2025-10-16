@@ -147,14 +147,12 @@ loadData();
 
 // 7. 变更页大小
 const handleSizeChange = (val: number) => {
-  console.log("页大小变化:" + val);
   pageSize.value = val;
   loadData();
 };
 
 // 8. 变更页码
 const handleCurrentChange = (val: number) => {
-  console.log("页码变化:" + val);
   currentPage.value = val;
   loadData();
 };
@@ -220,7 +218,6 @@ const currentProjectId = ref(0) // 当前展示的执行记录关联的 ProjectI
 const showDbBaseManage = (index: number) => {
     DbBaseManageDialogFormVisible.value = true
     currentProjectId.value = tableData.value[index]["id"]
-    console.log("当前添加数据库的ID",currentProjectId.value)
     loadDbBaseManage(currentProjectId.value)
 }
 

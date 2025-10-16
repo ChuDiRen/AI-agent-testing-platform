@@ -63,7 +63,6 @@
         });
       } else {
         insertData(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
-          console.log(res)
           if (res.data.code == 200) {
             router.push('/ApiProjectList'); // 跳转回列表页面
           }

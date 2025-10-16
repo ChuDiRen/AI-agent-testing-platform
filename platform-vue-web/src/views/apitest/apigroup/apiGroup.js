@@ -1,40 +1,57 @@
-import axios from 'axios'
+import axios from "~/axios"
 
-const API_BASE_URL = '/api/ApiGroup'
+// 模块名 - 和后台对应
+const module_name = "ApiGroup"
 
-// 分页查询分组
-export const queryGroupByPage = (data) => {
-    return axios.post(`${API_BASE_URL}/queryByPage`, data)
+// 标准 - 增删改查接口调用
+
+/**
+ * 分页查询分组
+ */
+export function queryByPage(data) {
+    return axios.post(`/${module_name}/queryByPage`, data)
 }
 
-// 根据ID查询分组
-export const getGroupById = (id) => {
-    return axios.get(`${API_BASE_URL}/queryById`, {
-        params: { id }
-    })
+/**
+ * 根据ID查询分组
+ */
+export function queryById(id) {
+    return axios.get(`/${module_name}/queryById?id=${id}`)
 }
 
-// 新增分组
-export const createGroup = (data) => {
-    return axios.post(`${API_BASE_URL}/add`, data)
+/**
+ * 新增分组
+ */
+export function insertData(data) {
+    return axios.post(`/${module_name}/insert`, data)
 }
 
-// 更新分组
-export const updateGroup = (id, data) => {
-    return axios.post(`${API_BASE_URL}/update`, data)
+/**
+ * 更新分组
+ */
+export function updateData(data) {
+    return axios.put(`/${module_name}/update`, data)
 }
 
-// 删除分组
-export const deleteGroup = (id) => {
-    return axios.delete(`${API_BASE_URL}/delete`, {
-        params: { id }
-    })
+/**
+ * 删除分组
+ */
+export function deleteData(id) {
+    return axios.delete(`/${module_name}/delete?id=${id}`)
 }
 
-// 获取项目下的分组树
-export const getGroupTree = (projectId) => {
-    return axios.get(`${API_BASE_URL}/tree`, {
-        params: { project_id: projectId }
-    })
+// 拓展其他方法
+
+/**
+ * 获取项目下的分组树
+ */
+export function getGroupTree(projectId) {
+    return axios.get(`/${module_name}/tree?project_id=${projectId}`)
 }
 
+/**
+ * 根据项目获取所有分组（平铺）
+ */
+export function getByProject(projectId) {
+    return axios.get(`/${module_name}/getByProject?project_id=${projectId}`)
+}

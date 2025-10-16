@@ -7,6 +7,9 @@ from core.database import get_session
 from core.time_utils import TimeFormatter
 from datetime import datetime
 from typing import List, Dict
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 
 module_name = "ApiGroup" # 模块名称
 module_model = ApiInfoGroup
@@ -39,9 +42,9 @@ def queryByPage(query: ApiGroupQuery, session: Session = Depends(get_session)):
             count_statement = count_statement.where(module_model.group_name.like(f"%{query.group_name}%"))
         total = len(session.exec(count_statement).all())
         
-        return respModel().ok_resp_list(lst=datas, total=total)
+        return respModel.ok_resp_list(lst=datas, total=total)
     except Exception as e:
-        print(e)
+        logger.error(f"分页查询API分组失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 def build_tree(groups: List[ApiInfoGroup], parent_id: int = 0) -> List[Dict]: # 构建分组树
@@ -68,9 +71,9 @@ def getTree(project_id: int = Query(...), session: Session = Depends(get_session
         statement = select(module_model).where(module_model.project_id == project_id)
         groups = session.exec(statement).all()
         tree = build_tree(groups)
-        return respModel().ok_resp_tree(treeData=tree, msg="查询成功")
+        return respModel.ok_resp_tree(treeData=tree, msg="查询成功")
     except Exception as e:
-        print(e)
+        logger.error(f"获取分组树失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById") # 根据ID查询分组
@@ -78,11 +81,11 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, id)
         if obj:
-            return respModel().ok_resp(obj=obj)
+            return respModel.ok_resp(obj=obj)
         else:
-            return respModel().error_resp("数据不存在")
+            return respModel.error_resp("数据不存在")
     except Exception as e:
-        print(e)
+        logger.error(f"根据ID查询分组失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/insert") # 新增分组
@@ -92,10 +95,10 @@ def insert(request: ApiGroupCreate, session: Session = Depends(get_session)):
         session.add(obj)
         session.commit()
         session.refresh(obj)
-        return respModel().ok_resp(obj=obj, msg="新增成功")
+        return respModel.ok_resp(obj=obj, msg="新增成功")
     except Exception as e:
         session.rollback()
-        print(e)
+        logger.error(f"新增分组失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.put("/update") # 更新分组
@@ -103,7 +106,7 @@ def update(request: ApiGroupUpdate, session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, request.id)
         if not obj:
-            return respModel().error_resp("数据不存在")
+            return respModel.error_resp("数据不存在")
         
         update_data = request.model_dump(exclude_unset=True, exclude={"id"})
         update_data["modify_time"] = datetime.now()
@@ -114,10 +117,10 @@ def update(request: ApiGroupUpdate, session: Session = Depends(get_session)):
         session.add(obj)
         session.commit()
         session.refresh(obj)
-        return respModel().ok_resp(obj=obj, msg="更新成功")
+        return respModel.ok_resp(obj=obj, msg="更新成功")
     except Exception as e:
         session.rollback()
-        print(e)
+        logger.error(f"更新分组失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.delete("/delete") # 删除分组
@@ -125,13 +128,13 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, id)
         if not obj:
-            return respModel().error_resp("数据不存在")
+            return respModel.error_resp("数据不存在")
         
         # 检查是否有子分组
         statement = select(module_model).where(module_model.parent_id == id)
         children = session.exec(statement).all()
         if children:
-            return respModel().error_resp("存在子分组，无法删除")
+            return respModel.error_resp("存在子分组，无法删除")
         
         # 检查是否有关联的接口
         from apitest.model.ApiInfoModel import ApiInfo
@@ -139,10 +142,10 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         
         session.delete(obj)
         session.commit()
-        return respModel().ok_resp_text(msg="删除成功")
+        return respModel.ok_resp_text(msg="删除成功")
     except Exception as e:
         session.rollback()
-        print(e)
+        logger.error(f"删除分组失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/getByProject") # 根据项目获取所有分组（平铺）
@@ -150,7 +153,7 @@ def getByProject(project_id: int = Query(...), session: Session = Depends(get_se
     try:
         statement = select(module_model).where(module_model.project_id == project_id).order_by(module_model.order_num)
         groups = session.exec(statement).all()
-        return respModel().ok_resp_list(lst=groups, total=len(groups))
+        return respModel.ok_resp_list(lst=groups, total=len(groups))
     except Exception as e:
-        print(e)
+        logger.error(f"根据项目获取分组失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")

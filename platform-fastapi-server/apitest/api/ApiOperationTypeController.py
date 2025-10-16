@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 from core.resp_model import respModel
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 from apitest.model.ApiOperationTypeModel import OperationType
 from apitest.schemas.operation_type_schema import OperationTypeQuery, OperationTypeCreate, OperationTypeUpdate
 from core.database import get_session
@@ -31,9 +34,9 @@ def queryByPage(query: OperationTypeQuery, session: Session = Depends(get_sessio
         if query.operation_type_name:
             count_statement = count_statement.where(module_model.operation_type_name.like(f'%{query.operation_type_name}%'))
         total = len(session.exec(count_statement).all())
-        return respModel().ok_resp_list(lst=datas, total=total)
+        return respModel.ok_resp_list(lst=datas, total=total)
     except Exception as e:
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById") # 根据ID查询操作类型
@@ -42,11 +45,11 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
         if data:
-            return respModel().ok_resp(obj=data)
+            return respModel.ok_resp(obj=data)
         else:
             return respModel.ok_resp(msg="查询成功,但是没有数据")
     except Exception as e:
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/insert") # 新增操作类型
@@ -59,7 +62,7 @@ def insert(op_type: OperationTypeCreate, session: Session = Depends(get_session)
         return respModel.ok_resp(msg="添加成功", dic_t={"id": data.id})
     except Exception as e:
         session.rollback()
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"添加失败:{e}")
 
 @module_route.put("/update") # 更新操作类型
@@ -77,7 +80,7 @@ def update(op_type: OperationTypeUpdate, session: Session = Depends(get_session)
             return respModel.error_resp(msg="操作类型不存在")
     except Exception as e:
         session.rollback()
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
 @module_route.delete("/delete") # 删除操作类型
@@ -93,5 +96,5 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
             return respModel.error_resp(msg="操作类型不存在")
     except Exception as e:
         session.rollback()
-        print(e)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"服务器错误,删除失败：{e}")

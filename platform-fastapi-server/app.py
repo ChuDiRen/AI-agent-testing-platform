@@ -3,16 +3,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.database import init_db, init_data
-import logging
+from core.logger import setup_logging, get_logger
+from core.middleware import TraceIDMiddleware, CORSHeaderMiddleware
 import asyncio
 from contextlib import asynccontextmanager
 
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# 配置日志系统
+setup_logging()
+logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -59,7 +57,14 @@ application = FastAPI(
     lifespan=lifespan  # 使用新的生命周期管理
 )
 
-# 配置CORS
+# 配置中间件
+# 1. 请求追踪中间件（必须在其他中间件之前）
+application.add_middleware(TraceIDMiddleware)
+
+# 2. CORS 头部中间件
+application.add_middleware(CORSHeaderMiddleware)
+
+# 3. CORS 中间件
 application.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # 生产环境应配置具体域名
