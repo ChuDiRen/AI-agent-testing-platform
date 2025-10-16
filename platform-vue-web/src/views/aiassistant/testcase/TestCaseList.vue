@@ -108,7 +108,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { queryByPage, deleteData, exportYaml, exportBatchYaml } from './testcase'
-import { queryAll as getProjects } from '../../apitest/project/project'
+import { queryAllProject as getProjects } from '../../apitest/project/apiProject.js'
 import TestCaseForm from './TestCaseForm.vue'
 
 // 搜索表单

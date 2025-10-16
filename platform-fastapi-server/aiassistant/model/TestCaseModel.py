@@ -1,25 +1,26 @@
 from sqlmodel import SQLModel, Field
+from sqlalchemy import Text
 from typing import Optional
 from datetime import datetime
 
 
 class TestCase(SQLModel, table=True):
     """测试用例表 - 支持JSON和YAML两种格式"""
-    
+
     __tablename__ = "test_case"
-    
+
     id: Optional[int] = Field(default=None, primary_key=True)
     case_name: str = Field(max_length=200, index=True)  # 测试用例名称
     project_id: int = Field(index=True)  # 所属项目ID
     module_name: Optional[str] = Field(default=None, max_length=100)  # 模块名称
     test_type: str = Field(max_length=20, index=True)  # 测试类型（API/Web/App）
     priority: str = Field(max_length=10, default="P1")  # 优先级（P0/P1/P2/P3）
-    precondition: Optional[str] = Field(default=None, sa_column_kwargs={"type_": "TEXT"})  # 前置条件
-    test_steps: Optional[str] = Field(default=None, sa_column_kwargs={"type_": "TEXT"})  # 测试步骤（JSON格式数组）
-    expected_result: Optional[str] = Field(default=None, sa_column_kwargs={"type_": "TEXT"})  # 预期结果
-    test_data: Optional[str] = Field(default=None, sa_column_kwargs={"type_": "TEXT"})  # 测试数据
+    precondition: Optional[str] = Field(default=None, sa_type=Text)  # 前置条件
+    test_steps: Optional[str] = Field(default=None, sa_type=Text)  # 测试步骤（JSON格式数组）
+    expected_result: Optional[str] = Field(default=None, sa_type=Text)  # 预期结果
+    test_data: Optional[str] = Field(default=None, sa_type=Text)  # 测试数据
     case_format: str = Field(max_length=20, default="JSON")  # 格式类型（JSON/YAML）
-    yaml_content: Optional[str] = Field(default=None, sa_column_kwargs={"type_": "LONGTEXT"})  # YAML格式内容
+    yaml_content: Optional[str] = Field(default=None, sa_type=Text)  # YAML格式内容
     created_by: Optional[int] = Field(default=None)  # 创建人ID
     create_time: datetime = Field(default_factory=datetime.now)  # 创建时间
     modify_time: datetime = Field(default_factory=datetime.now)  # 修改时间

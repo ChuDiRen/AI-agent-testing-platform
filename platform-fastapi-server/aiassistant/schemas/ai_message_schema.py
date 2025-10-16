@@ -9,7 +9,7 @@ class AiMessageCreate(BaseModel):
     content: str
     message_type: str = Field(default="text")
     test_cases_json: Optional[str] = None
-    metadata: Optional[str] = None
+    message_metadata: Optional[str] = None
 
 
 class MessageStreamRequest(BaseModel):
@@ -33,7 +33,7 @@ class AiMessageResponse(BaseModel):
     content: str
     message_type: str
     test_cases_json: Optional[str]
-    metadata: Optional[str]
+    message_metadata: Optional[str]
     create_time: datetime
 
     class Config:

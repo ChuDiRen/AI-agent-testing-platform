@@ -137,7 +137,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { queryGroupByPage, getGroupById, createGroup, updateGroup, deleteGroup } from './apiGroup.js'
+import { queryByPage, queryById, insertData, updateData, deleteData } from './apiGroup.js'
 import { queryByPage as queryProjectByPage } from '../project/apiProject.js'  // 修复：使用正确的导出名称
 import { formatDateTime } from '~/utils/timeFormatter'
 
@@ -204,7 +204,7 @@ const loadProjects = async () => {
 // 加载分组列表（用于父级选择）
 const loadGroups = async () => {
   try {
-    const res = await queryGroupByPage({ page: 1, pageSize: 1000 })
+    const res = await queryByPage({ page: 1, pageSize: 1000 })
     if (res.data.code === 200) {
       groupList.value = res.data.data || []
     }
@@ -217,7 +217,7 @@ const loadGroups = async () => {
 const handleQuery = async () => {
   loading.value = true
   try {
-    const res = await queryGroupByPage({
+    const res = await queryByPage({
       ...queryForm.value,
       project_id: queryForm.value.project_id || null
     })
@@ -280,7 +280,7 @@ const handleDelete = async (row) => {
       type: 'warning'
     })
 
-    const res = await deleteGroup(row.id)
+    const res = await deleteData(row.id)
     if (res.data.code === 200) {
       handleQuery()
     } else {
@@ -303,9 +303,9 @@ const handleSubmit = async () => {
       try {
         let res
         if (formData.value.id) {
-          res = await updateGroup(formData.value.id, formData.value)
+          res = await updateData(formData.value)
         } else {
-          res = await createGroup(formData.value)
+          res = await insertData(formData.value)
         }
 
         if (res.data.code === 200) {

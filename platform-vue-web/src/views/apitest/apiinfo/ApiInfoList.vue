@@ -106,7 +106,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { queryByPage, deleteData, getMethods } from './apiinfo.js';
 import { queryByPage as getProjectList } from '../project/apiProject.js';
-import { queryGroupByPage } from '../apigroup/apiGroup.js';
+import { queryByPage as queryGroupByPage } from '../apigroup/apiGroup.js';
 import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';

@@ -63,7 +63,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { queryGroupByPage, getGroupById, createGroup, updateGroup } from './apiGroup.js'
+import { queryByPage, queryById, insertData, updateData } from './apiGroup.js'
 import { queryByPage as queryProjectByPage } from '../project/apiProject.js'  // 使用正确的导出名称
 
 const route = useRoute()
@@ -106,7 +106,7 @@ const loadProjects = async () => {
 // 加载分组列表
 const loadGroups = async () => {
   try {
-    const res = await queryGroupByPage({ page: 1, pageSize: 1000 })
+    const res = await queryByPage({ page: 1, pageSize: 1000 })
     if (res.data.code === 200) {
       groupList.value = res.data.data || []
     }
@@ -120,7 +120,7 @@ const loadData = async () => {
   const id = route.query.id
   if (id) {
     try {
-      const res = await getGroupById(id)
+      const res = await queryById(id)
       if (res.data.code === 200 && res.data.data) {
         formData.value = res.data.data
       }
@@ -139,9 +139,9 @@ const handleSubmit = async () => {
       try {
         let res
         if (formData.value.id) {
-          res = await updateGroup(formData.value.id, formData.value)
+          res = await updateData(formData.value)
         } else {
-          res = await createGroup(formData.value)
+          res = await insertData(formData.value)
         }
 
         if (res.data.code === 200) {
