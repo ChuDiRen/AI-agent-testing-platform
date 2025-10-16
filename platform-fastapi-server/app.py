@@ -113,6 +113,13 @@ application.include_router(ApiGroupController.module_route)
 from apitest.api import ApiTestController
 application.include_router(ApiTestController.module_route)
 
+# 注册AI测试助手模块路由
+from aiassistant.api import AiConversationController, AiModelController, PromptTemplateController, TestCaseController
+application.include_router(AiConversationController.router)  # AI对话流式接口
+application.include_router(AiModelController.module_route)  # AI模型管理
+application.include_router(PromptTemplateController.module_route)  # 提示词模板管理
+application.include_router(TestCaseController.module_route)  # 测试用例管理
+
 # 移除旧的 on_event 装饰器，已使用 lifespan 替代
 
 @application.get("/", tags=["根路径"]) # 根路径接口

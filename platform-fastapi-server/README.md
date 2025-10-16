@@ -14,7 +14,7 @@
 ## 项目结构
 
 ```
-platform-flask-server/
+platform-fastapi-server/
 ├── app.py                 # FastAPI应用入口
 ├── run.py                 # 启动脚本
 ├── requirements.txt       # 项目依赖
@@ -27,35 +27,61 @@ platform-flask-server/
 │   ├── dependencies.py   # 依赖注入函数
 │   ├── JwtUtil.py        # JWT工具类
 │   ├── MinioUtils.py     # MinIO对象存储工具
-│   └── resp_model.py     # 统一响应模型
-├── schemas/              # Pydantic数据模型
-│   ├── user_schema.py
-│   ├── api_project_schema.py
-│   ├── api_database_schema.py
-│   ├── api_keyword_schema.py
-│   ├── api_meta_schema.py
-│   └── operation_type_schema.py
+│   ├── resp_model.py     # 统一响应模型
+│   ├── AiStreamService.py      # AI流式调用服务
+│   ├── ConversationService.py  # 对话上下文管理
+│   ├── StreamTestCaseParser.py # 流式测试用例解析器
+│   ├── PromptService.py        # 提示词渲染服务
+│   ├── FileService.py          # 文件处理服务
+│   └── init_ai_data.py         # AI数据初始化
 ├── login/                # 登录模块
 │   └── api/
 │       └── LoginController.py
 ├── sysmanage/            # 系统管理模块
 │   ├── model/
-│   │   └── user.py       # 用户模型
+│   │   ├── user.py       # 用户模型
+│   │   ├── role.py       # 角色模型
+│   │   ├── menu.py       # 菜单模型
+│   │   └── dept.py       # 部门模型
 │   └── api/
-│       └── UserController.py
-└── apitest/              # API测试模块
+│       ├── UserController.py
+│       ├── RoleController.py
+│       ├── MenuController.py
+│       └── DeptController.py
+├── apitest/              # API测试模块
+│   ├── model/            # 数据模型
+│   │   ├── ApiProjectModel.py
+│   │   ├── ApiDbBaseModel.py
+│   │   ├── ApiKeyWordModel.py
+│   │   ├── ApiMetaModel.py
+│   │   ├── ApiInfoModel.py
+│   │   └── ApiOperationTypeModel.py
+│   └── api/              # 接口控制器
+│       ├── ApiProjectContoller.py
+│       ├── ApiDbBaseController.py
+│       ├── ApiKeyWordController.py
+│       ├── ApiMetaController.py
+│       ├── ApiInfoController.py
+│       └── ApiOperationTypeController.py
+└── aiassistant/          # AI测试助手模块 ⭐新增
     ├── model/            # 数据模型
-    │   ├── ApiProjectModel.py
-    │   ├── ApiDbBaseModel.py
-    │   ├── ApiKeyWordModel.py
-    │   ├── ApiMetaModel.py
-    │   └── ApiOperationTypeModel.py
-    └── api/              # 接口控制器
-        ├── ApiProjectContoller.py
-        ├── ApiDbBaseController.py
-        ├── ApiKeyWordController.py
-        ├── ApiMetaController.py
-        └── ApiOperationTypeController.py
+    │   ├── AiModel.py            # AI模型配置
+    │   ├── PromptTemplate.py     # 提示词模板
+    │   ├── AiConversation.py     # AI对话会话
+    │   ├── AiMessage.py          # AI对话消息
+    │   ├── AiGenerateHistory.py  # 生成历史记录
+    │   └── TestCaseModel.py      # AI生成的测试用例
+    ├── api/              # 接口控制器
+    │   ├── AiModelController.py          # AI模型管理
+    │   ├── PromptTemplateController.py   # 提示词模板管理
+    │   ├── TestCaseController.py         # 测试用例管理
+    │   └── AiConversationController.py   # AI对话接口（SSE流式）
+    └── schemas/          # Schema定义
+        ├── ai_model_schema.py
+        ├── prompt_template_schema.py
+        ├── test_case_schema.py
+        ├── ai_conversation_schema.py
+        └── ai_message_schema.py
 ```
 
 ## 安装依赖
@@ -145,9 +171,94 @@ uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
 
 - `POST /login` - 用户登录
 
-### 2. RBAC权限管理系统 🆕
+### 2. AI测试助手模块 ⭐新增
 
-#### 2.1 用户管理
+完整的AI驱动测试用例生成系统，支持ChatGPT风格的对话式交互。
+
+#### 2.1 AI模型管理
+
+- `GET /AiModel/queryByPage` - 分页查询AI模型
+- `GET /AiModel/queryById/{id}` - 根据ID查询AI模型
+- `POST /AiModel/insert` - 新增AI模型
+- `PUT /AiModel/update` - 更新AI模型
+- `DELETE /AiModel/delete/{id}` - 删除AI模型
+- `PUT /AiModel/toggle/{id}` - 启用/禁用AI模型
+- `POST /AiModel/test/{id}` - 测试AI模型连接
+
+**AI模型配置字段**：
+- `model_name`: 模型名称（如：DeepSeek-Chat）
+- `model_code`: 模型代码（如：deepseek-chat）
+- `provider`: 提供商（如：DeepSeek、阿里云）
+- `api_url`: API接口地址
+- `api_key`: API密钥
+- `is_enabled`: 是否启用
+- `description`: 模型描述
+
+#### 2.2 提示词模板管理
+
+- `GET /PromptTemplate/queryByPage` - 分页查询提示词模板
+- `GET /PromptTemplate/queryById/{id}` - 根据ID查询模板
+- `POST /PromptTemplate/insert` - 新增提示词模板
+- `PUT /PromptTemplate/update` - 更新提示词模板
+- `DELETE /PromptTemplate/delete/{id}` - 删除提示词模板
+- `PUT /PromptTemplate/toggle/{id}` - 激活/停用模板
+- `GET /PromptTemplate/by-test-type` - 按测试类型查询模板
+
+**提示词模板字段**：
+- `name`: 模板名称
+- `template_type`: 模板类型（system/user/assistant）
+- `test_type`: 测试类型（API/Web/App/通用）
+- `content`: 模板内容（支持变量替换）
+- `variables`: 模板变量（JSON格式）
+- `is_active`: 是否激活
+
+#### 2.3 测试用例管理
+
+- `GET /TestCase/queryByPage` - 分页查询测试用例
+- `GET /TestCase/queryById/{id}` - 根据ID查询测试用例
+- `POST /TestCase/insert` - 新增测试用例
+- `PUT /TestCase/update` - 更新测试用例
+- `DELETE /TestCase/delete/{id}` - 删除测试用例
+- `POST /TestCase/batch-insert` - 批量保存测试用例
+- `GET /TestCase/export-yaml/{id}` - 导出单个用例为YAML
+- `POST /TestCase/export-batch-yaml` - 批量导出用例为YAML
+
+**测试用例字段**：
+- `case_name`: 用例名称
+- `test_type`: 测试类型（API/Web/App）
+- `priority`: 优先级（P0/P1/P2/P3）
+- `test_steps_json`: 测试步骤（JSON格式）
+- `test_steps_yaml`: 测试步骤（YAML格式）
+- `expected_result`: 预期结果
+- `tags`: 标签
+- `project_id`: 所属项目
+- `conversation_id`: 来源对话会话
+
+#### 2.4 AI对话接口（核心功能）
+
+- `POST /AiConversation/create` - 创建新对话会话
+- `GET /AiConversation/list` - 获取用户的对话列表
+- `GET /AiConversation/detail/{id}` - 获取对话详情（包含消息历史）
+- `POST /AiConversation/stream` - **流式对话接口（SSE）** ⭐核心
+- `DELETE /AiConversation/delete/{id}` - 删除对话会话
+
+**流式对话特性**：
+- ✅ Server-Sent Events (SSE) 实时流式输出
+- ✅ 支持多轮对话，自动管理上下文
+- ✅ 实时解析AI输出中的JSON测试用例
+- ✅ 支持文件上传（TXT/Word/PDF需求文档）
+- ✅ 可配置AI模型和提示词模板
+- ✅ 自动保存对话历史和生成的测试用例
+
+**流式输出事件类型**：
+- `message`: 普通文本消息
+- `testcase`: 完整测试用例JSON
+- `error`: 错误信息
+- `done`: 生成完成
+
+### 3. RBAC权限管理系统 🆕
+
+#### 3.1 用户管理
 
 - `POST /user/queryByPage` - 分页查询用户（支持按用户名、部门、状态过滤）
 - `GET /user/queryById` - 根据ID查询用户
@@ -173,7 +284,7 @@ uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
 - `modify_time`: 修改时间
 - `last_login_time`: 最近访问时间
 
-#### 2.2 角色管理 🆕
+#### 3.2 角色管理 🆕
 
 - `POST /role/queryByPage` - 分页查询角色
 - `GET /role/queryById` - 根据ID查询角色
@@ -183,7 +294,7 @@ uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
 - `POST /role/assignMenus` - 为角色分配菜单权限
 - `GET /role/menus/{role_id}` - 获取角色的菜单权限
 
-#### 2.3 菜单/权限管理 🆕
+#### 3.3 菜单/权限管理 🆕
 
 - `GET /menu/tree` - 获取菜单树
 - `GET /menu/queryById` - 根据ID查询菜单
@@ -192,7 +303,7 @@ uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
 - `DELETE /menu/delete` - 删除菜单
 - `GET /menu/user/{user_id}` - 获取用户的菜单权限（用于前端动态路由）
 
-#### 2.4 部门管理 🆕
+#### 3.4 部门管理 🆕
 
 - `GET /dept/tree` - 获取部门树
 - `GET /dept/queryById` - 根据ID查询部门
@@ -275,6 +386,94 @@ uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
 - `POST /OperationType/insert` - 新增操作类型
 - `PUT /OperationType/update` - 更新操作类型
 - `DELETE /OperationType/delete` - 删除操作类型
+
+### 9. AI测试助手 🆕🔥
+
+#### 9.1 AI模型管理
+
+- `GET /AiModel/list` - 获取AI模型列表（分页）
+- `GET /AiModel/enabled` - 获取所有已启用的模型
+- `GET /AiModel/{model_id}` - 获取单个AI模型详情
+- `POST /AiModel/create` - 创建AI模型
+- `PUT /AiModel/{model_id}` - 更新AI模型
+- `DELETE /AiModel/{model_id}` - 删除AI模型
+- `POST /AiModel/{model_id}/toggle` - 切换模型启用/禁用状态
+- `POST /AiModel/{model_id}/test` - 测试模型API连接
+- `GET /AiModel/providers/list` - 获取所有提供商列表
+
+#### 9.2 提示词模板管理
+
+- `GET /PromptTemplate/list` - 获取提示词模板列表（分页）
+- `GET /PromptTemplate/by-type/{test_type}` - 按测试类型获取所有激活的模板
+- `GET /PromptTemplate/{template_id}` - 获取单个提示词模板详情
+- `POST /PromptTemplate/create` - 创建提示词模板
+- `PUT /PromptTemplate/{template_id}` - 更新提示词模板
+- `DELETE /PromptTemplate/{template_id}` - 删除提示词模板
+- `POST /PromptTemplate/{template_id}/toggle` - 切换模板激活/停用状态
+
+#### 9.3 测试用例管理
+
+- `GET /TestCase/list` - 获取测试用例列表（分页）
+- `GET /TestCase/{case_id}` - 获取单个测试用例详情
+- `POST /TestCase/create` - 创建测试用例
+- `POST /TestCase/batch-insert` - 批量插入测试用例
+- `PUT /TestCase/{case_id}` - 更新测试用例
+- `DELETE /TestCase/{case_id}` - 删除测试用例
+- `GET /TestCase/{case_id}/export-yaml` - 导出单个测试用例为YAML格式
+- `POST /TestCase/export-batch-yaml` - 批量导出测试用例为YAML格式
+
+#### 9.4 AI对话接口（核心）
+
+- `POST /chat` - 流式对话接口（SSE推送实时生成的内容）
+- `POST /create` - 创建新对话
+- `GET /list` - 获取用户对话列表
+- `GET /{conversation_id}/messages` - 获取对话消息历史
+- `DELETE /{conversation_id}` - 删除对话
+- `PUT /{conversation_id}/title` - 更新对话标题
+
+#### 特性说明
+
+**🎯 完整的ChatGPT风格对话界面**：
+- 实时流式输出（SSE技术）
+- 消息气泡形式展示
+- 测试用例卡片化显示
+- 支持编辑、保存、复制操作
+
+**🤖 多模型支持**：
+- DeepSeek（推荐，高性价比）
+- 通义千问（阿里云）
+- ChatGPT-4/3.5（OpenAI）
+- Kimi、智谱AI、文心一言、讯飞星火、Claude-3
+- 支持自定义添加AI模型
+
+**📝 可配置提示词**：
+- 4种测试类型模板（API/Web/App/通用）
+- 支持变量替换（`{case_count}`、`{test_type}`）
+- 可自定义编辑提示词内容
+
+**💬 多轮对话**：
+- 会话自动保存
+- 上下文记忆（最近10条消息）
+- 支持追加需求、调整参数
+- 会话管理（切换、重命名、删除）
+
+**📂 文件上传**：
+- 支持TXT/Word/PDF格式
+- AI根据文档内容生成测试用例
+- 自动提取文本内容
+
+**⚡ 快捷命令**：
+- `/generate N` - 生成N个测试用例
+- `/format yaml` - 切换YAML格式
+- `/save` - 保存当前所有用例
+- `/clear` - 清空对话
+
+**初始化数据**：
+- 10个主流AI模型配置（需配置API Key）
+- 4个提示词模板（开箱即用）
+- AI功能菜单权限
+
+详见: [QUICK_START_AI_TESTCASE.md](QUICK_START_AI_TESTCASE.md)
 
 ## 数据库迁移
 

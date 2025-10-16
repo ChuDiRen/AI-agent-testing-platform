@@ -43,6 +43,12 @@ import ApiGroupForm from '~/views/apitest/apigroup/ApiGroupForm.vue'
 // 测试历史相关导入
 import ApiTestList from '~/views/apitest/apitest/ApiTestList.vue'
 
+// AI测试助手模块相关导入
+import AiChatInterface from '~/views/aiassistant/chat/index.vue'
+import AiModelList from '~/views/aiassistant/model/index.vue'
+import PromptTemplateList from '~/views/aiassistant/prompt/index.vue'
+import TestCaseList from '~/views/aiassistant/testcase/index.vue'
+
 const cookies = useCookies()
 const routes = [
     {
@@ -181,6 +187,30 @@ const routes = [
             component: ApiTestList,
             meta: {
                 title: "测试历史记录"
+            }
+        }, {
+            path: "/ai-chat",
+            component: AiChatInterface,
+            meta: {
+                title: "AI测试助手"
+            }
+        }, {
+            path: "/test-cases",
+            component: TestCaseList,
+            meta: {
+                title: "测试用例管理"
+            }
+        }, {
+            path: "/ai-models",
+            component: AiModelList,
+            meta: {
+                title: "AI模型管理"
+            }
+        }, {
+            path: "/ai-prompts",
+            component: PromptTemplateList,
+            meta: {
+                title: "提示词模板管理"
             }
         }
         ]

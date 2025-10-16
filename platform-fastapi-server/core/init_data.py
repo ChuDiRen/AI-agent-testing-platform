@@ -151,6 +151,28 @@ def create_initial_menus():
                 {"menu_id": 170, "parent_id": 142, "menu_name": "查看报告", "path": "", "component": "", "perms": "apitest:testhistory:report", "icon": "", "type": "1", "order_num": 1},
                 {"menu_id": 171, "parent_id": 142, "menu_name": "删除记录", "path": "", "component": "", "perms": "apitest:testhistory:delete", "icon": "", "type": "1", "order_num": 2},
                 {"menu_id": 172, "parent_id": 142, "menu_name": "重新执行", "path": "", "component": "", "perms": "apitest:testhistory:rerun", "icon": "", "type": "1", "order_num": 3},
+                
+                # AI测试助手（新增）
+                {"menu_id": 180, "parent_id": 100, "menu_name": "AI测试助手", "path": "/apitest/ai-chat", "component": "apitest/testcase/AiChatInterface", "perms": "apitest:ai:chat", "icon": "el-icon-chat-dot-round", "type": "0", "order_num": 7},
+                {"menu_id": 181, "parent_id": 100, "menu_name": "测试用例管理", "path": "/apitest/testcase", "component": "apitest/testcase/index", "perms": "apitest:testcase:view", "icon": "el-icon-document", "type": "0", "order_num": 8},
+                
+                # AI配置管理（新增）
+                {"menu_id": 200, "parent_id": 0, "menu_name": "AI配置", "path": "/ai-config", "component": "Layout", "perms": "", "icon": "el-icon-setting", "type": "0", "order_num": 3},
+                {"menu_id": 201, "parent_id": 200, "menu_name": "AI模型管理", "path": "/ai-config/models", "component": "sysmanage/aimodel/index", "perms": "ai:model:view", "icon": "el-icon-cpu", "type": "0", "order_num": 1},
+                {"menu_id": 202, "parent_id": 200, "menu_name": "提示词模板管理", "path": "/ai-config/prompts", "component": "sysmanage/prompt/index", "perms": "ai:prompt:view", "icon": "el-icon-edit", "type": "0", "order_num": 2},
+                
+                # AI模型管理按钮权限
+                {"menu_id": 210, "parent_id": 201, "menu_name": "新增模型", "path": "", "component": "", "perms": "ai:model:add", "icon": "", "type": "1", "order_num": 1},
+                {"menu_id": 211, "parent_id": 201, "menu_name": "编辑模型", "path": "", "component": "", "perms": "ai:model:edit", "icon": "", "type": "1", "order_num": 2},
+                {"menu_id": 212, "parent_id": 201, "menu_name": "删除模型", "path": "", "component": "", "perms": "ai:model:delete", "icon": "", "type": "1", "order_num": 3},
+                {"menu_id": 213, "parent_id": 201, "menu_name": "启用禁用", "path": "", "component": "", "perms": "ai:model:toggle", "icon": "", "type": "1", "order_num": 4},
+                {"menu_id": 214, "parent_id": 201, "menu_name": "测试连接", "path": "", "component": "", "perms": "ai:model:test", "icon": "", "type": "1", "order_num": 5},
+                
+                # 提示词模板管理按钮权限
+                {"menu_id": 220, "parent_id": 202, "menu_name": "新增模板", "path": "", "component": "", "perms": "ai:prompt:add", "icon": "", "type": "1", "order_num": 1},
+                {"menu_id": 221, "parent_id": 202, "menu_name": "编辑模板", "path": "", "component": "", "perms": "ai:prompt:edit", "icon": "", "type": "1", "order_num": 2},
+                {"menu_id": 222, "parent_id": 202, "menu_name": "删除模板", "path": "", "component": "", "perms": "ai:prompt:delete", "icon": "", "type": "1", "order_num": 3},
+                {"menu_id": 223, "parent_id": 202, "menu_name": "激活停用", "path": "", "component": "", "perms": "ai:prompt:toggle", "icon": "", "type": "1", "order_num": 4},
             ]
 
             for menu_data in initial_menus:
@@ -280,7 +302,11 @@ def init_all_data():
         
         # 检查是否已有数据
         if check_data_exists():
-            logger.info("数据库中已有数据，跳过初始化")
+            logger.info("数据库中已有数据，跳过RBAC初始化")
+            # 但仍然尝试初始化AI数据（如果未初始化）
+            from core.init_ai_data import init_all_ai_data
+            with Session(engine) as session:
+                init_all_ai_data(session)
             return
         
         # 按顺序创建初始数据
@@ -291,6 +317,12 @@ def init_all_data():
         create_initial_user_roles() # 5. 分配用户角色
         create_initial_role_menus() # 6. 分配角色权限
         
+        # 初始化AI数据
+        logger.info("开始初始化AI数据...")
+        from core.init_ai_data import init_all_ai_data
+        with Session(engine) as session:
+            init_all_ai_data(session)
+        
         logger.info("RBAC数据初始化完成！")
         logger.info("=" * 60)
         logger.info("默认登录账号:")
@@ -299,8 +331,10 @@ def init_all_data():
         logger.info("RBAC功能清单:")
         logger.info("✓ 4个部门 (总公司、技术部、产品部、运营部)")
         logger.info("✓ 3个角色 (超级管理员、管理员、普通用户)")
-        logger.info("✓ 完整菜单权限体系 (系统管理 + API测试)")
+        logger.info("✓ 完整菜单权限体系 (系统管理 + API测试 + AI配置)")
         logger.info("✓ 用户-角色-菜单权限关联")
+        logger.info("✓ 10个AI模型（需配置API Key）")
+        logger.info("✓ 4个提示词模板（API/Web/App/通用）")
         logger.info("=" * 60)
         
     except Exception as e:
