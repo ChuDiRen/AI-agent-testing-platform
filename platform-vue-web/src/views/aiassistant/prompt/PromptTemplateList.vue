@@ -89,55 +89,21 @@
       />
     </el-card>
 
-    <!-- 查看/编辑对话框 -->
-    <el-dialog
-      :title="dialogTitle"
-      v-model="dialogVisible"
-      width="800px"
-      :close-on-click-modal="false"
-      @close="handleDialogClose"
-    >
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
-        <el-form-item label="模板名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入模板名称" :disabled="viewMode" />
-        </el-form-item>
-        <el-form-item label="模板类型" prop="template_type">
-          <el-select v-model="form.template_type" placeholder="请选择" :disabled="viewMode" style="width: 100%">
-            <el-option label="system" value="system" />
-            <el-option label="user" value="user" />
-            <el-option label="assistant" value="assistant" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="测试类型" prop="test_type">
-          <el-select v-model="form.test_type" placeholder="请选择" :disabled="viewMode" style="width: 100%">
-            <el-option label="API" value="API" />
-            <el-option label="Web" value="Web" />
-            <el-option label="App" value="App" />
-            <el-option label="通用" value="通用" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="模板内容" prop="content">
-          <el-input v-model="form.content" type="textarea" :rows="10" placeholder="请输入模板内容，支持变量如{case_count}" :disabled="viewMode" />
-        </el-form-item>
-        <el-form-item label="变量说明">
-          <el-input v-model="form.variables" placeholder='如:["case_count", "test_type"]' :disabled="viewMode" />
-        </el-form-item>
-        <el-form-item label="是否激活" prop="is_active">
-          <el-switch v-model="form.is_active" :disabled="viewMode" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">{{ viewMode ? '关闭' : '取消' }}</el-button>
-        <el-button v-if="!viewMode" type="primary" @click="handleSubmit" :loading="submitLoading">确定</el-button>
-      </template>
-    </el-dialog>
+    <!-- 表单对话框组件 -->
+    <PromptTemplateForm 
+      v-model="dialogVisible" 
+      :formData="formData"
+      :viewMode="viewMode"
+      @success="handleFormSuccess"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { queryByPage, queryById, insertData, updateData, deleteData, toggleActive, queryByTestType } from './prompttemplate'
+import { queryByPage, deleteData, toggleActive } from './prompttemplate'
+import PromptTemplateForm from './PromptTemplateForm.vue'
 
 // 搜索表单
 const searchForm = reactive({
@@ -157,32 +123,10 @@ const pagination = reactive({
   total: 0
 })
 
-// 对话框
+// 对话框控制
 const dialogVisible = ref(false)
-const dialogTitle = ref('新增模板')
-const isEdit = ref(false)
+const formData = ref({})
 const viewMode = ref(false)
-const submitLoading = ref(false)
-
-// 表单
-const formRef = ref(null)
-const form = reactive({
-  id: null,
-  name: '',
-  template_type: 'system',
-  test_type: 'API',
-  content: '',
-  variables: '',
-  is_active: true
-})
-
-// 表单验证规则
-const rules = {
-  name: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
-  template_type: [{ required: true, message: '请选择模板类型', trigger: 'change' }],
-  test_type: [{ required: true, message: '请选择测试类型', trigger: 'change' }],
-  content: [{ required: true, message: '请输入模板内容', trigger: 'blur' }]
-}
 
 // 模板类型颜色
 const getTemplateTypeColor = (type) => {
@@ -233,78 +177,39 @@ const handleReset = () => {
 
 // 新增
 const handleAdd = () => {
-  isEdit.value = false
   viewMode.value = false
-  dialogTitle.value = '新增模板'
-  resetForm()
+  formData.value = {}
   dialogVisible.value = true
 }
 
 // 查看
 const handleView = (row) => {
   viewMode.value = true
-  dialogTitle.value = '查看模板'
-  Object.assign(form, row)
+  formData.value = { ...row }
   dialogVisible.value = true
 }
 
 // 编辑
 const handleEdit = (row) => {
-  isEdit.value = true
   viewMode.value = false
-  dialogTitle.value = '编辑模板'
-  Object.assign(form, row)
+  formData.value = { ...row }
   dialogVisible.value = true
 }
 
-// 提交表单
-const handleSubmit = async () => {
-  try {
-    await formRef.value.validate()
-    submitLoading.value = true
-    
-    const data = { ...form }
-    if (isEdit.value) {
-      delete data.create_time
-      delete data.modify_time
-      delete data.created_by
-    } else {
-      delete data.id
-      delete data.create_time
-      delete data.modify_time
-      delete data.created_by
-    }
-    
-    let res
-    if (isEdit.value) {
-      res = await updateData(data)
-    } else {
-      res = await insertData(data)
-    }
-    
-    if (res.data.code === 200) {
-      ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
-      dialogVisible.value = false
-      loadData()
-    } else {
-      ElMessage.error(res.data.message || '操作失败')
-    }
-  } catch (error) {
-    console.error('提交失败', error)
-  } finally {
-    submitLoading.value = false
-  }
+// 表单提交成功回调
+const handleFormSuccess = () => {
+  loadData()
 }
 
 // 切换激活/停用
 const handleToggle = async (row) => {
   try {
-    const res = await toggleActive(row.id, !row.is_active)
+    const res = await toggleActive(row.id)
     if (res.data.code === 200) {
-      ElMessage.success(res.data.message)
+      ElMessage.success(res.data.msg || res.data.message)
       loadData()
     } else {
-      ElMessage.error(res.data.message || '操作失败')
+      ElMessage.error(res.data.msg || res.data.message || '操作失败')
     }
   } catch (error) {
     ElMessage.error('操作失败')
@@ -330,23 +235,6 @@ const handleDelete = (row) => {
       ElMessage.error('删除失败')
     }
   })
-}
-
-// 重置表单
-const resetForm = () => {
-  form.id = null
-  form.name = ''
-  form.template_type = 'system'
-  form.test_type = 'API'
-  form.content = ''
-  form.variables = ''
-  form.is_active = true
-}
-
-// 关闭对话框
-const handleDialogClose = () => {
-  formRef.value?.clearValidate()
-  resetForm()
 }
 
 // 分页处理

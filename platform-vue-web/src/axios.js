@@ -1,6 +1,6 @@
-import axios from "platform-vue-web/src/axios.js"
-import { ref, reactive } from "vue"
-import { ElLoading, ElMessage, ElNotification } from 'element-plus'
+import axios from "axios" // 修复循环导入问题
+import { ref } from "vue"
+import { ElLoading, ElMessage } from 'element-plus' // 移除未使用的ElNotification
 import router from './router/index.js'
 
 const service = axios.create({

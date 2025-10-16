@@ -93,95 +93,23 @@
       />
     </el-card>
 
-    <!-- 查看/编辑对话框 -->
-    <el-dialog
-      :title="dialogTitle"
-      v-model="dialogVisible"
-      width="900px"
-      :close-on-click-modal="false"
-      @close="handleDialogClose"
-    >
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="用例名称" prop="case_name">
-              <el-input v-model="form.case_name" placeholder="请输入用例名称" :disabled="viewMode" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="所属项目" prop="project_id">
-              <el-select v-model="form.project_id" placeholder="请选择项目" :disabled="viewMode" style="width: 100%">
-                <el-option v-for="p in projects" :key="p.id" :label="p.project_name" :value="p.id" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item label="测试类型" prop="test_type">
-              <el-select v-model="form.test_type" placeholder="请选择" :disabled="viewMode" style="width: 100%">
-                <el-option label="API" value="API" />
-                <el-option label="Web" value="Web" />
-                <el-option label="App" value="App" />
-                <el-option label="通用" value="通用" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="优先级" prop="priority">
-              <el-select v-model="form.priority" placeholder="请选择" :disabled="viewMode" style="width: 100%">
-                <el-option label="P0" value="P0" />
-                <el-option label="P1" value="P1" />
-                <el-option label="P2" value="P2" />
-                <el-option label="P3" value="P3" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="模块名称">
-              <el-input v-model="form.module_name" placeholder="请输入模块名称" :disabled="viewMode" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="前置条件">
-          <el-input v-model="form.precondition" type="textarea" :rows="2" placeholder="请输入前置条件" :disabled="viewMode" />
-        </el-form-item>
-        <el-form-item label="测试步骤" prop="test_steps">
-          <JsonEditor 
-            v-model="testStepsJson" 
-            title="测试步骤（JSON数组格式）" 
-            :readonly="viewMode"
-            :show-preview="false"
-            @save="handleStepsSave"
-          />
-        </el-form-item>
-        <el-form-item label="预期结果" prop="expected_result">
-          <el-input v-model="form.expected_result" type="textarea" :rows="3" placeholder="请输入预期结果" :disabled="viewMode" />
-        </el-form-item>
-        <el-form-item label="测试数据">
-          <JsonEditor 
-            v-model="testDataJson" 
-            title="测试数据（JSON格式）" 
-            :readonly="viewMode"
-            :show-preview="false"
-            @save="handleDataSave"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">{{ viewMode ? '关闭' : '取消' }}</el-button>
-        <el-button v-if="!viewMode" type="primary" @click="handleSubmit" :loading="submitLoading">确定</el-button>
-      </template>
-    </el-dialog>
+    <!-- 表单对话框组件 -->
+    <TestCaseForm 
+      v-model="dialogVisible" 
+      :formData="formData"
+      :viewMode="viewMode"
+      :projects="projects"
+      @success="handleFormSuccess"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { queryByPage, queryById, insertData, updateData, deleteData, exportYaml, exportBatchYaml } from './testcase'
+import { queryByPage, deleteData, exportYaml, exportBatchYaml } from './testcase'
 import { queryAll as getProjects } from '../../apitest/project/project'
-import JsonEditor from '@/components/JsonEditor.vue'
+import TestCaseForm from './TestCaseForm.vue'
 
 // 搜索表单
 const searchForm = reactive({
@@ -205,41 +133,10 @@ const pagination = reactive({
 // 项目列表
 const projects = ref([])
 
-// 对话框
+// 对话框控制
 const dialogVisible = ref(false)
-const dialogTitle = ref('新增用例')
-const isEdit = ref(false)
+const formData = ref({})
 const viewMode = ref(false)
-const submitLoading = ref(false)
-
-// 表单
-const formRef = ref(null)
-const form = reactive({
-  id: null,
-  case_name: '',
-  project_id: null,
-  module_name: '',
-  test_type: 'API',
-  priority: 'P1',
-  precondition: '',
-  test_steps: '',
-  expected_result: '',
-  test_data: '',
-  case_format: 'json'
-})
-
-const testStepsJson = ref([])
-const testDataJson = ref({})
-
-// 表单验证规则
-const rules = {
-  case_name: [{ required: true, message: '请输入用例名称', trigger: 'blur' }],
-  project_id: [{ required: true, message: '请选择项目', trigger: 'change' }],
-  test_type: [{ required: true, message: '请选择测试类型', trigger: 'change' }],
-  priority: [{ required: true, message: '请选择优先级', trigger: 'change' }],
-  test_steps: [{ required: true, message: '请输入测试步骤', trigger: 'blur' }],
-  expected_result: [{ required: true, message: '请输入预期结果', trigger: 'blur' }]
-}
 
 // 测试类型颜色
 const getTestTypeColor = (type) => {
@@ -309,105 +206,37 @@ const handleSelectionChange = (selection) => {
 
 // 新增
 const handleAdd = () => {
-  isEdit.value = false
   viewMode.value = false
-  dialogTitle.value = '新增用例'
-  resetForm()
+  formData.value = {}
   dialogVisible.value = true
 }
 
 // 查看
 const handleView = (row) => {
   viewMode.value = true
-  dialogTitle.value = '查看用例'
-  loadFormData(row)
+  formData.value = { ...row }
   dialogVisible.value = true
 }
 
 // 编辑
 const handleEdit = (row) => {
-  isEdit.value = true
   viewMode.value = false
-  dialogTitle.value = '编辑用例'
-  loadFormData(row)
+  formData.value = { ...row }
   dialogVisible.value = true
 }
 
-// 加载表单数据
-const loadFormData = (row) => {
-  Object.assign(form, row)
-  
-  // 解析JSON字段
-  try {
-    testStepsJson.value = row.test_steps ? JSON.parse(row.test_steps) : []
-  } catch (e) {
-    testStepsJson.value = []
-  }
-  
-  try {
-    testDataJson.value = row.test_data ? JSON.parse(row.test_data) : {}
-  } catch (e) {
-    testDataJson.value = {}
-  }
-}
-
-// 测试步骤保存回调
-const handleStepsSave = (data) => {
-  form.test_steps = JSON.stringify(data)
-}
-
-// 测试数据保存回调
-const handleDataSave = (data) => {
-  form.test_data = JSON.stringify(data)
-}
-
-// 提交表单
-const handleSubmit = async () => {
-  try {
-    await formRef.value.validate()
-    
-    // 确保JSON字段被序列化
-    form.test_steps = JSON.stringify(testStepsJson.value)
-    form.test_data = JSON.stringify(testDataJson.value)
-    
-    submitLoading.value = true
-    
-    const data = { ...form }
-    delete data.id
-    delete data.create_time
-    delete data.modify_time
-    delete data.created_by
-    
-    let res
-    if (isEdit.value) {
-      data.id = form.id
-      res = await updateData(data)
-    } else {
-      res = await insertData(data)
-    }
-    
-    if (res.data.code === 200) {
-      ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
-      dialogVisible.value = false
-      loadData()
-    } else {
-      ElMessage.error(res.data.message || '操作失败')
-    }
-  } catch (error) {
-    console.error('提交失败', error)
-  } finally {
-    submitLoading.value = false
-  }
+// 表单提交成功回调
+const handleFormSuccess = () => {
+  loadData()
 }
 
 // 复制
 const handleCopy = (row) => {
-  isEdit.value = false
   viewMode.value = false
-  dialogTitle.value = '复制用例'
-  loadFormData(row)
-  form.id = null
-  form.case_name = `${row.case_name}_副本`
+  const copyData = { ...row }
+  delete copyData.id
+  copyData.case_name = `${row.case_name}_副本`
+  formData.value = copyData
   dialogVisible.value = true
 }
 
@@ -464,29 +293,6 @@ const handleDelete = (row) => {
       ElMessage.error('删除失败')
     }
   })
-}
-
-// 重置表单
-const resetForm = () => {
-  form.id = null
-  form.case_name = ''
-  form.project_id = null
-  form.module_name = ''
-  form.test_type = 'API'
-  form.priority = 'P1'
-  form.precondition = ''
-  form.test_steps = ''
-  form.expected_result = ''
-  form.test_data = ''
-  form.case_format = 'json'
-  testStepsJson.value = []
-  testDataJson.value = {}
-}
-
-// 关闭对话框
-const handleDialogClose = () => {
-  formRef.value?.clearValidate()
-  resetForm()
 }
 
 // 分页处理

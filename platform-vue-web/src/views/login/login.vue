@@ -59,7 +59,6 @@
 
 <script setup>
 import { reactive, ref } from "vue";
-// import { Lock,User } from '@element-plus/icons-vue';
 import { login } from './login.js'
 import { useCookies } from '@vueuse/integrations/useCookies';
 import { ElNotification } from 'element-plus'
@@ -92,9 +91,8 @@ const rules = {
 
 const formRef = ref(null)
 
-const onSubmit = () => {
+const onSubmit = () => { // 提交登录表单
   formRef.value.validate((valid) => {
-    // console.log(valid);
     if (!valid) {
       return false
     }

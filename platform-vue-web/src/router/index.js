@@ -44,10 +44,10 @@ import ApiGroupForm from '~/views/apitest/apigroup/ApiGroupForm.vue'
 import ApiTestList from '~/views/apitest/apitest/ApiTestList.vue'
 
 // AI测试助手模块相关导入
-import AiChatInterface from '~/views/aiassistant/chat/index.vue'
-import AiModelList from '~/views/aiassistant/model/index.vue'
-import PromptTemplateList from '~/views/aiassistant/prompt/index.vue'
-import TestCaseList from '~/views/aiassistant/testcase/index.vue'
+import AiChatInterface from '~/views/aiassistant/chat/AiChatInterface.vue'
+import AiModelList from '~/views/aiassistant/model/AiModelList.vue'
+import PromptTemplateList from '~/views/aiassistant/prompt/PromptTemplateList.vue'
+import TestCaseList from '~/views/aiassistant/testcase/TestCaseList.vue'
 
 const cookies = useCookies()
 const routes = [

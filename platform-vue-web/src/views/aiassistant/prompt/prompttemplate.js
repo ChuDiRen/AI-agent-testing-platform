@@ -1,64 +1,59 @@
 // 提示词模板管理API服务
-import request from '@/axios'
+import axios from "~/axios" // 统一使用~别名
 
-// 分页查询提示词模板
-export function queryByPage(params) {
-    return request({
-        url: '/PromptTemplate/queryByPage',
-        method: 'get',
-        params
-    })
+// 模块名 - 和后台对应
+const module_name = "PromptTemplate"
+
+// 标准 - 增删改查接口调用
+
+/**
+ * 分页查询
+ */
+export function queryByPage(data) {
+    return axios.post(`/${module_name}/queryByPage`, data)
 }
 
-// 根据ID查询提示词模板
+/**
+ * 根据ID查询
+ */
 export function queryById(id) {
-    return request({
-        url: `/PromptTemplate/queryById/${id}`,
-        method: 'get'
-    })
+    return axios.get(`/${module_name}/queryById?id=${id}`)
 }
 
-// 新增提示词模板
+/**
+ * 插入数据
+ */
 export function insertData(data) {
-    return request({
-        url: '/PromptTemplate/insert',
-        method: 'post',
-        data
-    })
+    return axios.post(`/${module_name}/insert`, data)
 }
 
-// 更新提示词模板
+/**
+ * 更新数据
+ */
 export function updateData(data) {
-    return request({
-        url: '/PromptTemplate/update',
-        method: 'put',
-        data
-    })
+    return axios.put(`/${module_name}/update`, data)
 }
 
-// 删除提示词模板
+/**
+ * 删除数据
+ */
 export function deleteData(id) {
-    return request({
-        url: `/PromptTemplate/delete/${id}`,
-        method: 'delete'
-    })
+    return axios.delete(`/${module_name}/delete?id=${id}`)
 }
 
-// 激活/停用提示词模板
-export function toggleActive(id, isActive) {
-    return request({
-        url: `/PromptTemplate/toggle/${id}`,
-        method: 'put',
-        params: { is_active: isActive }
-    })
+// 拓展其他方法
+
+/**
+ * 切换模板激活/停用状态
+ */
+export function toggleActive(id) {
+    return axios.post(`/${module_name}/toggleActive?id=${id}`)
 }
 
-// 按类型查询模板
+/**
+ * 按测试类型查询模板
+ */
 export function queryByTestType(testType) {
-    return request({
-        url: '/PromptTemplate/by-test-type',
-        method: 'get',
-        params: { test_type: testType }
-    })
+    return axios.get(`/${module_name}/queryByTestType?test_type=${testType}`)
 }
 

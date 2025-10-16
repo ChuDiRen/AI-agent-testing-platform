@@ -1,73 +1,69 @@
 // 测试用例管理API服务
-import request from '@/axios'
+import axios from "~/axios" // 统一使用~别名
 
-// 分页查询测试用例
-export function queryByPage(params) {
-    return request({
-        url: '/TestCase/queryByPage',
-        method: 'get',
-        params
-    })
+// 模块名 - 和后台对应
+const module_name = "TestCase"
+
+// 标准 - 增删改查接口调用
+
+/**
+ * 分页查询
+ */
+export function queryByPage(data) {
+    return axios.post(`/${module_name}/queryByPage`, data)
 }
 
-// 根据ID查询测试用例
+/**
+ * 根据ID查询
+ */
 export function queryById(id) {
-    return request({
-        url: `/TestCase/queryById/${id}`,
-        method: 'get'
-    })
+    return axios.get(`/${module_name}/queryById?id=${id}`)
 }
 
-// 新增测试用例
+/**
+ * 插入数据
+ */
 export function insertData(data) {
-    return request({
-        url: '/TestCase/insert',
-        method: 'post',
-        data
-    })
+    return axios.post(`/${module_name}/insert`, data)
 }
 
-// 更新测试用例
+/**
+ * 更新数据
+ */
 export function updateData(data) {
-    return request({
-        url: '/TestCase/update',
-        method: 'put',
-        data
-    })
+    return axios.put(`/${module_name}/update`, data)
 }
 
-// 删除测试用例
+/**
+ * 删除数据
+ */
 export function deleteData(id) {
-    return request({
-        url: `/TestCase/delete/${id}`,
-        method: 'delete'
-    })
+    return axios.delete(`/${module_name}/delete?id=${id}`)
 }
 
-// 批量保存测试用例
+// 拓展其他方法
+
+/**
+ * 批量保存测试用例
+ */
 export function batchInsert(data) {
-    return request({
-        url: '/TestCase/batch-insert',
-        method: 'post',
-        data
-    })
+    return axios.post(`/${module_name}/batchInsert`, data)
 }
 
-// 导出单个测试用例为YAML
+/**
+ * 导出单个测试用例为YAML
+ */
 export function exportYaml(id) {
-    return request({
-        url: `/TestCase/export-yaml/${id}`,
-        method: 'get',
+    return axios.get(`/${module_name}/exportYaml?id=${id}`, {
         responseType: 'blob'
     })
 }
 
-// 批量导出测试用例为YAML
+/**
+ * 批量导出测试用例为YAML
+ */
 export function exportBatchYaml(data) {
-    return request({
-        url: '/TestCase/export-batch-yaml',
-        method: 'post',
-        data,
+    return axios.post(`/${module_name}/exportBatchYaml`, data, {
         responseType: 'blob'
     })
 }

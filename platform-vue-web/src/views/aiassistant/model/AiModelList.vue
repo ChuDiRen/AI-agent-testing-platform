@@ -68,49 +68,20 @@
       />
     </el-card>
 
-    <!-- 编辑对话框 -->
-    <el-dialog
-      :title="dialogTitle"
-      v-model="dialogVisible"
-      width="600px"
-      :close-on-click-modal="false"
-      @close="handleDialogClose"
-    >
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
-        <el-form-item label="模型名称" prop="model_name">
-          <el-input v-model="form.model_name" placeholder="请输入模型名称" />
-        </el-form-item>
-        <el-form-item label="模型代码" prop="model_code">
-          <el-input v-model="form.model_code" placeholder="如:deepseek-chat" :disabled="isEdit" />
-        </el-form-item>
-        <el-form-item label="提供商" prop="provider">
-          <el-input v-model="form.provider" placeholder="如:DeepSeek" />
-        </el-form-item>
-        <el-form-item label="API地址" prop="api_url">
-          <el-input v-model="form.api_url" placeholder="请输入API地址" />
-        </el-form-item>
-        <el-form-item label="API Key" prop="api_key">
-          <el-input v-model="form.api_key" type="password" show-password placeholder="请输入API Key" />
-        </el-form-item>
-        <el-form-item label="是否启用" prop="is_enabled">
-          <el-switch v-model="form.is_enabled" />
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="请输入模型描述" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确定</el-button>
-      </template>
-    </el-dialog>
+    <!-- 表单对话框组件 -->
+    <AiModelForm 
+      v-model="dialogVisible" 
+      :formData="formData"
+      @success="handleFormSuccess"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { queryByPage, queryById, insertData, updateData, deleteData, toggleEnable, testConnection } from './aimodel'
+import { queryByPage, deleteData, testConnection, toggleStatus } from './aimodel'
+import AiModelForm from './AiModelForm.vue'
 
 // 搜索表单
 const searchForm = reactive({
@@ -132,33 +103,9 @@ const pagination = reactive({
 // 提供商列表
 const providers = ref([])
 
-// 对话框
+// 对话框控制
 const dialogVisible = ref(false)
-const dialogTitle = ref('新增模型')
-const isEdit = ref(false)
-const submitLoading = ref(false)
-
-// 表单
-const formRef = ref(null)
-const form = reactive({
-  id: null,
-  model_name: '',
-  model_code: '',
-  provider: '',
-  api_url: '',
-  api_key: '',
-  is_enabled: true,
-  description: ''
-})
-
-// 表单验证规则
-const rules = {
-  model_name: [{ required: true, message: '请输入模型名称', trigger: 'blur' }],
-  model_code: [{ required: true, message: '请输入模型代码', trigger: 'blur' }],
-  provider: [{ required: true, message: '请输入提供商', trigger: 'blur' }],
-  api_url: [{ required: true, message: '请输入API地址', trigger: 'blur' }],
-  api_key: [{ required: true, message: '请输入API Key', trigger: 'blur' }]
-}
+const formData = ref({})
 
 // 加载数据
 const loadData = async () => {
@@ -202,55 +149,19 @@ const handleReset = () => {
 
 // 新增
 const handleAdd = () => {
-  isEdit.value = false
-  dialogTitle.value = '新增模型'
-  resetForm()
+  formData.value = {}
   dialogVisible.value = true
 }
 
 // 编辑
 const handleEdit = (row) => {
-  isEdit.value = true
-  dialogTitle.value = '编辑模型'
-  Object.assign(form, row)
+  formData.value = { ...row }
   dialogVisible.value = true
 }
 
-// 提交表单
-const handleSubmit = async () => {
-  try {
-    await formRef.value.validate()
-    submitLoading.value = true
-    
-    const data = { ...form }
-    if (isEdit.value) {
-      delete data.create_time
-      delete data.modify_time
-    } else {
-      delete data.id
-      delete data.create_time
-      delete data.modify_time
-    }
-    
-    let res
-    if (isEdit.value) {
-      res = await updateData(data)
-    } else {
-      res = await insertData(data)
-    }
-    
-    if (res.data.code === 200) {
-      ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
-      dialogVisible.value = false
-      loadData()
-    } else {
-      ElMessage.error(res.data.message || '操作失败')
-    }
-  } catch (error) {
-    console.error('提交失败', error)
-  } finally {
-    submitLoading.value = false
-  }
+// 表单提交成功回调
+const handleFormSuccess = () => {
+  loadData()
 }
 
 // 测试连接
@@ -273,12 +184,12 @@ const handleTest = async (row) => {
 // 切换启用/禁用
 const handleToggle = async (row) => {
   try {
-    const res = await toggleEnable(row.id, !row.is_enabled)
+    const res = await toggleStatus(row.id)
     if (res.data.code === 200) {
-      ElMessage.success(res.data.message)
+      ElMessage.success(res.data.msg || res.data.message)
       loadData()
     } else {
-      ElMessage.error(res.data.message || '操作失败')
+      ElMessage.error(res.data.msg || res.data.message || '操作失败')
     }
   } catch (error) {
     ElMessage.error('操作失败')
@@ -304,24 +215,6 @@ const handleDelete = (row) => {
       ElMessage.error('删除失败')
     }
   })
-}
-
-// 重置表单
-const resetForm = () => {
-  form.id = null
-  form.model_name = ''
-  form.model_code = ''
-  form.provider = ''
-  form.api_url = ''
-  form.api_key = ''
-  form.is_enabled = true
-  form.description = ''
-}
-
-// 关闭对话框
-const handleDialogClose = () => {
-  formRef.value?.clearValidate()
-  resetForm()
 }
 
 // 分页处理

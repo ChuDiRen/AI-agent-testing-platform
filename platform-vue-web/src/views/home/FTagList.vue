@@ -73,7 +73,7 @@ onBeforeRouteUpdate((to)=>{
 }
 })
 
-const changeTab = (t)=>{
+const changeTab = (t)=>{ // 切换标签页
     if(!t.endsWith("Form")){
       activeTab.value = t
       try{
@@ -81,7 +81,7 @@ const changeTab = (t)=>{
           router.replace(t) // 避免重复导航与历史堆叠
         }
       }catch(error){
-        console.log("发生异常:",error)
+        // 静默处理导航异常
       }
     }
 }

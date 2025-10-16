@@ -68,17 +68,6 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 
-@module_route.get("/queryAll") # 查询所有测试用例
-def queryAll(session: Session = Depends(get_session)):
-    try:
-        statement = select(module_model).order_by(module_model.create_time.desc())
-        datas = session.exec(statement).all()
-        return respModel.ok_resp_list(lst=datas, total=len(datas))
-    except Exception as e:
-        logger.error(f"查询失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
-
-
 @module_route.post("/insert") # 新增测试用例
 def insert(case: TestCaseCreate, session: Session = Depends(get_session)):
     try:

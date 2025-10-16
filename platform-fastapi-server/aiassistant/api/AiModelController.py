@@ -207,13 +207,3 @@ async def testConnection(id: int = Query(...), session: Session = Depends(get_se
         return respModel.error_resp(msg=f"测试失败:{e}")
 
 
-@module_route.get("/getProviders") # 获取所有提供商列表
-def getProviders(session: Session = Depends(get_session)):
-    try:
-        providers = session.exec(
-            select(module_model.provider).distinct()
-        ).all()
-        return respModel.ok_resp_list(lst=list(providers), total=len(providers))
-    except Exception as e:
-        logger.error(f"查询失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")

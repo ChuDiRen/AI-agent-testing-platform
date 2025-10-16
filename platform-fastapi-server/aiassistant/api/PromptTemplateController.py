@@ -145,8 +145,8 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"删除失败，请联系管理员:{e}")
 
 
-@module_route.post("/toggleStatus") # 切换模板激活/停用状态
-def toggleStatus(id: int = Query(...), session: Session = Depends(get_session)):
+@module_route.post("/toggleActive") # 切换模板激活/停用状态
+def toggleActive(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         template = session.get(module_model, id)
         if not template:
@@ -163,3 +163,17 @@ def toggleStatus(id: int = Query(...), session: Session = Depends(get_session)):
         session.rollback()
         logger.error(f"切换状态失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"操作失败:{e}")
+
+
+@module_route.get("/queryByTestType") # 按测试类型查询模板
+def queryByTestType(test_type: str = Query(...), session: Session = Depends(get_session)):
+    try:
+        statement = select(module_model).where(
+            module_model.test_type == test_type,
+            module_model.is_active == True
+        ).order_by(module_model.create_time)
+        datas = session.exec(statement).all()
+        return respModel.ok_resp_list(lst=datas, total=len(datas))
+    except Exception as e:
+        logger.error(f"查询失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
