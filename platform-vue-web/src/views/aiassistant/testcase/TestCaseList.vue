@@ -1,8 +1,24 @@
 <template>
-  <div class="test-case-list">
-    <!-- 搜索和操作栏 -->
-    <el-card class="search-card" shadow="never">
-      <el-form :inline="true" :model="searchForm" class="search-form">
+  <div class="page-container">
+    <el-card class="page-card">
+      <template #header>
+        <div class="card-header">
+          <h3>测试用例管理</h3>
+          <div>
+            <el-button type="success" :disabled="selectedIds.length === 0" @click="handleBatchExport">
+              <el-icon><Download /></el-icon>
+              批量导出YAML
+            </el-button>
+            <el-button type="primary" @click="handleAdd">
+              <el-icon><Plus /></el-icon>
+              新增用例
+            </el-button>
+          </div>
+        </div>
+      </template>
+
+      <!-- 搜索表单 -->
+      <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="search-form">
         <el-form-item label="项目">
           <el-select v-model="searchForm.project_id" placeholder="全部项目" clearable @change="handleSearch" style="width: 200px">
             <el-option label="全部项目" value="" />
@@ -28,22 +44,18 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" icon="el-icon-search" @click="handleSearch">搜索</el-button>
-          <el-button icon="el-icon-refresh" @click="handleReset">重置</el-button>
-          <el-button type="primary" icon="el-icon-plus" @click="handleAdd">新增用例</el-button>
-          <el-button type="success" icon="el-icon-download" :disabled="selectedIds.length === 0" @click="handleBatchExport">批量导出YAML</el-button>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+      <!-- END 搜索表单 -->
 
-    <!-- 数据表格 -->
-    <el-card class="table-card" shadow="never">
-      <el-table 
-        :data="tableData" 
-        v-loading="loading" 
-        border 
-        stripe 
+      <!-- 数据表格 -->
+      <el-table
+        :data="tableData"
+        v-loading="loading"
         style="width: 100%"
+        max-height="500"
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55" align="center" />
@@ -71,26 +83,28 @@
         <el-table-column prop="create_time" label="创建时间" width="160" />
         <el-table-column label="操作" width="300" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button type="text" icon="el-icon-view" @click="handleView(row)">查看</el-button>
-            <el-button type="text" icon="el-icon-edit" @click="handleEdit(row)">编辑</el-button>
-            <el-button type="text" icon="el-icon-document-copy" @click="handleCopy(row)">复制</el-button>
-            <el-button type="text" icon="el-icon-download" @click="handleExport(row)">导出YAML</el-button>
-            <el-button type="text" icon="el-icon-delete" style="color: #f56c6c" @click="handleDelete(row)">删除</el-button>
+            <el-button link type="primary" icon="el-icon-view" @click="handleView(row)">查看</el-button>
+            <el-button link type="primary" icon="el-icon-edit" @click="handleEdit(row)">编辑</el-button>
+            <el-button link type="primary" icon="el-icon-document-copy" @click="handleCopy(row)">复制</el-button>
+            <el-button link type="primary" icon="el-icon-download" @click="handleExport(row)">导出YAML</el-button>
+            <el-button link type="danger" icon="el-icon-delete" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <!-- 分页 -->
-      <el-pagination
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        v-model:current-page="pagination.page"
-        :page-sizes="[10, 20, 50, 100]"
-        v-model:page-size="pagination.page_size"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="pagination.total"
-        style="margin-top: 20px; text-align: right"
-      />
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.page_size"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="pagination.total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="loadData"
+          @current-change="loadData"
+        />
+      </div>
+      <!-- END 分页 -->
     </el-card>
 
     <!-- 表单对话框组件 -->
@@ -107,6 +121,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, Download } from '@element-plus/icons-vue'
 import { queryByPage, deleteData, exportYaml, exportBatchYaml } from './testcase'
 import { queryAllProject as getProjects } from '../../apitest/project/apiProject.js'
 import TestCaseForm from './TestCaseForm.vue'
@@ -295,17 +310,7 @@ const handleDelete = (row) => {
   })
 }
 
-// 分页处理
-const handleSizeChange = (val) => {
-  pagination.page_size = val
-  pagination.page = 1
-  loadData()
-}
 
-const handleCurrentChange = (val) => {
-  pagination.page = val
-  loadData()
-}
 
 // 初始化
 onMounted(() => {
@@ -315,20 +320,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.test-case-list {
-  padding: 20px;
-}
+@import '~/styles/common-list.css';
+@import '~/styles/common-form.css';
 
-.search-card {
-  margin-bottom: 20px;
-}
-
-.search-form {
-  margin-bottom: 0;
-}
-
-.table-card {
-  margin-top: 20px;
+.card-header div {
+  display: flex;
+  gap: 10px;
 }
 </style>
 

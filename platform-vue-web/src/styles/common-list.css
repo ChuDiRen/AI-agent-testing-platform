@@ -46,10 +46,8 @@
 
 /* 搜索表单 */
 .search-form {
-    padding: 20px 24px;
-    background: var(--bg-secondary);
-    border-radius: 12px;
-    margin: 20px;
+    padding: 16px 0;
+    margin: 0;
 }
 
 /* 表格样式增强 */
