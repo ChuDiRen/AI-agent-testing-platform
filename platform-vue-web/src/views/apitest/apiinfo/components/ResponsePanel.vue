@@ -119,11 +119,12 @@ const formatJson = (data) => {
   return data
 }
 
-// 打开Allure报告
+// 打开Allure报告 - 在新窗口打开报告路径
 const openAllureReport = () => {
-  // TODO: 实现打开Allure报告的逻辑
   if (props.result.allure_report_path) {
-    ElMessage.info('打开Allure报告功能开发中...')
+    window.open(props.result.allure_report_path, '_blank') // 新窗口打开报告
+  } else {
+    ElMessage.warning('暂无Allure报告')
   }
 }
 </script>

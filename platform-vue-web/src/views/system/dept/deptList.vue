@@ -113,8 +113,7 @@ const onDelete = (deptId: number) => {
             } else {
                 ElMessage.error(res.data.msg || '删除失败')
             }
-        }).catch((error: any) => {
-            console.error('删除失败:', error)
+        }).catch(() => { // 删除失败处理
             ElMessage.error('删除失败，请稍后重试')
         })
     }).catch(() => {
@@ -124,8 +123,8 @@ const onDelete = (deptId: number) => {
 </script>
 
 <style scoped>
-@import '@/styles/common-list.css';
-@import '@/styles/common-form.css';
+@import '~/styles/common-list.css'; /* 统一使用~别名 */
+@import '~/styles/common-form.css'; /* 统一使用~别名 */
 
 .header-actions {
   display: flex;

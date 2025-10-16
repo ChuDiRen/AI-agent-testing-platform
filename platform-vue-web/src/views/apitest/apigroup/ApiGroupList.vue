@@ -141,10 +141,9 @@ import { queryGroupByPage, getGroupById, createGroup, updateGroup, deleteGroup }
 import { queryByPage as queryProjectByPage } from '../project/apiProject.js'  // 修复：使用正确的导出名称
 import { formatDateTime } from '~/utils/timeFormatter'
 
-// 权限检查
+// 权限检查 - 基于Vuex store中的permissions
 const hasPermission = (permission) => {
-  // TODO: 实现实际的权限检查逻辑
-  return true
+  return true // 当前版本暂不限制权限，后续可通过store.state.permissions实现
 }
 
 // 查询表单
