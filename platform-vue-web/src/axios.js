@@ -1,7 +1,7 @@
-import axios from "axios"
+import axios from "platform-vue-web/src/axios.js"
 import { ref, reactive } from "vue"
 import { ElLoading, ElMessage, ElNotification } from 'element-plus'
-import router from './router'
+import router from './router/index.js'
 
 const service = axios.create({
     baseURL: "/api"

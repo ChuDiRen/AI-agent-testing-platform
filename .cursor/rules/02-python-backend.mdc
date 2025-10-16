@@ -1,0 +1,276 @@
+---
+globs: "*.py"
+description: Python后端开发规范和最佳实践
+---
+
+# Python 后端开发规范
+
+## FastAPI 项目结构规范
+
+### 模块组织
+项目采用分层架构，每个业务模块包含：
+- `api/` - 控制器层 (Controller)，处理HTTP请求
+- `model/` - 数据模型层 (Model)，SQLModel定义
+- `schemas/` - 数据传输对象 (DTO/Schema)，请求响应模型
+
+### 示例模块结构
+```
+apitest/
+├── api/
+│   ├── ApiProjectController.py
+│   └── ApiInfoController.py
+├── model/
+│   ├── ApiProjectModel.py
+│   └── ApiInfoModel.py
+└── schemas/
+    ├── api_project_schema.py
+    └── api_info_schema.py
+```
+
+## 编码规范
+
+### 1. 控制器层 (Controller)
+```python
+from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import Session
+from core.database import get_db
+
+router = APIRouter(prefix="/api/v1/projects", tags=["项目管理"])
+
+@router.post("/", response_model=ProjectResponse)
+async def create_project(
+    project: ProjectCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    创建新项目
+    
+    Args:
+        project: 项目创建数据
+        db: 数据库会话
+        
+    Returns:
+        ProjectResponse: 创建的项目信息
+    """
+    # 实现逻辑
+    pass
+```
+
+### 2. 数据模型层 (Model)
+```python
+from sqlmodel import SQLModel, Field
+from typing import Optional
+from datetime import datetime
+
+class ApiProject(SQLModel, table=True):
+    """API项目模型"""
+    __tablename__ = "api_project"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    project_name: str = Field(max_length=100, index=True)
+    description: Optional[str] = Field(default=None, max_length=500)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+```
+
+### 3. Schema层 (DTO)
+```python
+from pydantic import BaseModel, Field
+from typing import Optional
+from datetime import datetime
+
+class ProjectCreate(BaseModel):
+    """项目创建请求模型"""
+    project_name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+
+class ProjectResponse(BaseModel):
+    """项目响应模型"""
+    id: int
+    project_name: str
+    description: Optional[str]
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+```
+
+## 依赖注入规范
+
+### 数据库依赖
+使用 [core/database.py](mdc:platform-fastapi-server/core/database.py) 中的 `get_db()`
+
+### JWT认证依赖
+使用 [core/dependencies.py](mdc:platform-fastapi-server/core/dependencies.py) 中的依赖函数
+
+## 错误处理规范
+
+### 统一响应模型
+使用 [core/resp_model.py](mdc:platform-fastapi-server/core/resp_model.py) 中定义的响应格式：
+```python
+from core.resp_model import success_response, error_response
+
+# 成功响应
+return success_response(data=result, message="操作成功")
+
+# 错误响应
+raise HTTPException(
+    status_code=400,
+    detail=error_response(message="参数错误")
+)
+```
+
+### 常见HTTP状态码
+- 200: 成功
+- 201: 创建成功
+- 400: 请求参数错误
+- 401: 未授权
+- 403: 禁止访问
+- 404: 资源不存在
+- 500: 服务器内部错误
+
+## 数据库操作规范
+
+### CRUD操作模板
+```python
+from sqlmodel import select
+
+# Create
+def create_project(db: Session, project: ProjectCreate):
+    db_project = ApiProject(**project.dict())
+    db.add(db_project)
+    db.commit()
+    db.refresh(db_project)
+    return db_project
+
+# Read
+def get_project(db: Session, project_id: int):
+    statement = select(ApiProject).where(ApiProject.id == project_id)
+    return db.exec(statement).first()
+
+# Update
+def update_project(db: Session, project_id: int, project: ProjectUpdate):
+    db_project = get_project(db, project_id)
+    if not db_project:
+        return None
+    for key, value in project.dict(exclude_unset=True).items():
+        setattr(db_project, key, value)
+    db.commit()
+    db.refresh(db_project)
+    return db_project
+
+# Delete
+def delete_project(db: Session, project_id: int):
+    db_project = get_project(db, project_id)
+    if db_project:
+        db.delete(db_project)
+        db.commit()
+        return True
+    return False
+```
+
+## 配置管理
+
+### 环境配置
+- 开发环境: [config/dev_settings.py](mdc:platform-fastapi-server/config/dev_settings.py)
+- 测试环境: [config/test_settings.py](mdc:platform-fastapi-server/config/test_settings.py)
+- 生产环境: [config/prod_settings.py](mdc:platform-fastapi-server/config/prod_settings.py)
+
+### 配置使用
+```python
+from config.dev_settings import settings
+
+DATABASE_URL = settings.DATABASE_URL
+SECRET_KEY = settings.SECRET_KEY
+```
+
+## 核心工具类
+
+### JWT工具
+使用 [core/JwtUtil.py](mdc:platform-fastapi-server/core/JwtUtil.py) 进行token生成和验证
+
+### MinIO工具
+使用 [core/MinioUtils.py](mdc:platform-fastapi-server/core/MinioUtils.py) 进行文件上传下载
+
+### 时间工具
+使用 [core/time_utils.py](mdc:platform-fastapi-server/core/time_utils.py) 进行时间格式化
+
+## 文档注释规范
+
+### 函数文档
+```python
+def complex_function(param1: str, param2: int) -> dict:
+    """
+    函数简短描述
+    
+    详细描述（如果需要）
+    
+    Args:
+        param1: 参数1说明
+        param2: 参数2说明
+        
+    Returns:
+        dict: 返回值说明
+        
+    Raises:
+        ValueError: 异常说明
+    """
+    pass
+```
+
+### 类文档
+```python
+class MyClass:
+    """
+    类的简短描述
+    
+    Attributes:
+        attr1: 属性1说明
+        attr2: 属性2说明
+    """
+    pass
+```
+
+## 测试规范
+
+### 单元测试
+- 使用 pytest 框架
+- 测试文件以 `test_` 开头
+- 测试函数以 `test_` 开头
+
+### 测试示例
+```python
+import pytest
+from fastapi.testclient import TestClient
+
+def test_create_project(client: TestClient):
+    response = client.post(
+        "/api/v1/projects/",
+        json={"project_name": "测试项目", "description": "描述"}
+    )
+    assert response.status_code == 200
+    assert response.json()["project_name"] == "测试项目"
+```
+
+## 性能优化建议
+
+1. **数据库查询优化**
+   - 使用索引
+   - 避免N+1查询
+   - 使用分页
+
+2. **异步处理**
+   - 使用 `async/await` 处理I/O密集操作
+   - 使用后台任务处理耗时操作
+
+3. **缓存策略**
+   - 考虑使用 Redis 缓存热点数据
+   - 合理设置缓存过期时间
+
+## 安全规范
+
+1. **密码处理**: 使用 bcrypt 加密存储
+2. **SQL注入防护**: 使用参数化查询
+3. **XSS防护**: 对用户输入进行验证和转义
+4. **CSRF防护**: API使用JWT，前端使用CSRF token
+5. **敏感信息**: 不在日志中输出密码、token等敏感信息

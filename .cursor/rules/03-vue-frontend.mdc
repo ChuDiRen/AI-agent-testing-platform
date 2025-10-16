@@ -1,0 +1,634 @@
+---
+globs: "*.vue,*.js,*.ts"
+description: Vue3前端开发规范和最佳实践
+---
+
+# Vue 3 前端开发规范
+
+## 项目技术栈
+
+### 核心依赖
+- **Vue 3.2.47** - 渐进式JavaScript框架
+- **Vue Router 4.2.2** - 官方路由管理器
+- **Vuex 4.1.0** - 状态管理
+- **Element Plus 2.6.3** - UI组件库
+- **Axios 1.4.0** - HTTP客户端
+- **Vite 4.3.9** - 构建工具
+
+参考配置: [platform-vue-web/package.json](mdc:platform-vue-web/package.json)
+
+## 项目结构
+
+```
+src/
+├── assets/          # 静态资源
+├── components/      # 公共组件
+├── composables/     # 组合式函数
+├── directives/      # 自定义指令
+├── router/          # 路由配置
+├── store/           # Vuex状态管理
+├── styles/          # 全局样式
+├── utils/           # 工具函数
+├── views/           # 页面组件
+├── axios.js         # Axios配置
+├── main.js          # 应用入口
+└── style.css        # 全局样式
+```
+
+## 组件开发规范
+
+### 1. Composition API (推荐)
+```vue
+<template>
+  <div class="project-list">
+    <el-button @click="handleCreate">创建项目</el-button>
+    <el-table :data="projects" v-loading="loading">
+      <el-table-column prop="project_name" label="项目名称" />
+      <el-table-column prop="description" label="描述" />
+    </el-table>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { getProjects, createProject } from '@/api/project'
+import { ElMessage } from 'element-plus'
+
+// 响应式数据
+const projects = ref([])
+const loading = ref(false)
+
+// 方法
+const fetchProjects = async () => {
+  loading.value = true
+  try {
+    const res = await getProjects()
+    projects.value = res.data
+  } catch (error) {
+    ElMessage.error('获取项目列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleCreate = () => {
+  // 创建逻辑
+}
+
+// 生命周期
+onMounted(() => {
+  fetchProjects()
+})
+</script>
+
+<style scoped>
+.project-list {
+  padding: 20px;
+}
+</style>
+```
+
+### 2. Options API (兼容)
+```vue
+<template>
+  <div class="project-list">
+    <!-- 模板内容 -->
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'ProjectList',
+  data() {
+    return {
+      projects: [],
+      loading: false
+    }
+  },
+  methods: {
+    async fetchProjects() {
+      // 实现逻辑
+    }
+  },
+  mounted() {
+    this.fetchProjects()
+  }
+}
+</script>
+```
+
+## API 调用规范
+
+### Axios 配置
+参考 [platform-vue-web/src/axios.js](mdc:platform-vue-web/src/axios.js)
+
+项目使用自定义的 axios 实例，配置了：
+- **baseURL**: `/api` - 统一的API前缀
+- **请求拦截器**: 自动显示 Loading 加载提示
+- **响应拦截器**: 统一处理错误状态码（403/404/500）
+- **错误处理**: 自动显示错误消息并跳转错误页面
+
+```javascript
+// platform-vue-web/src/axios.js (核心配置)
+import axios from "axios"
+import { ElLoading, ElMessage } from 'element-plus'
+import router from './router/index.js'
+
+const service = axios.create({
+    baseURL: "/api"  // 所有请求的统一前缀
+})
+
+// 请求拦截器 - 显示 Loading
+service.interceptors.request.use(config => {
+    // 显示加载动画
+    return config
+}, error => {
+    ElMessage.error('网络异常，请稍后再试')
+    return Promise.reject(error)
+})
+
+// 响应拦截器 - 统一错误处理
+service.interceptors.response.use(response => {
+    if (response.data.code != 200) {
+        ElMessage.error(response.data.msg)
+    }
+    return response
+}, error => {
+    // 根据状态码处理
+    if (error.response) {
+        switch (error.response.status) {
+            case 403:
+                ElMessage.error('无权限访问')
+                router.push('/403')
+                break
+            case 500:
+                ElMessage.error('服务器错误')
+                router.push('/500')
+                break
+            case 404:
+                ElMessage.error('请求的资源不存在')
+                break
+        }
+    }
+    return Promise.reject(error)
+})
+
+export default service
+```
+
+### API 模块化（标准模式）
+项目采用模块化的 API 封装，每个业务模块对应一个 API 文件。
+
+```javascript
+// src/views/apitest/apimate/apiMate.js
+import axios from "~/axios"
+
+// 模块名 - 和后台对应
+const module_name = "ApiMeta"
+
+// 标准 - 增删改查接口调用
+
+/**
+ * 分页查询
+ */
+export function queryByPage(data) {
+    return axios.post(`/${module_name}/queryByPage`, data)
+}
+
+/**
+ * 根据ID查询
+ */
+export function queryById(id) {
+    return axios.get(`/${module_name}/queryById?id=${id}`)
+}
+
+/**
+ * 插入数据
+ */
+export function insertData(data) {
+    return axios.post(`/${module_name}/insert`, data)
+}
+
+/**
+ * 更新数据
+ */
+export function updateData(data) {
+    return axios.put(`/${module_name}/update`, data)
+}
+
+/**
+ * 删除数据
+ */
+export function deleteData(id) {
+    return axios.delete(`/${module_name}/delete?id=${id}`)
+}
+
+// 拓展其他方法
+
+/**
+ * 查询所有数据
+ */
+export function queryAll() {
+    return axios.get(`/${module_name}/queryAll`)
+}
+
+/**
+ * 下载文件
+ */
+export function downloadFile(id) {
+    return axios.get(`/${module_name}/downloadFile?id=${id}`)
+}
+```
+
+### API 文件命名规范
+- 文件位置：`src/views/{模块名}/{子模块}/xxx.js`
+- 导入路径：使用 `~/axios` 引用 axios 实例
+- 模块名常量：定义 `module_name` 与后端控制器对应
+- 方法命名：
+  - `queryByPage` - 分页查询
+  - `queryById` - 根据ID查询
+  - `queryAll` - 查询所有
+  - `insertData` - 插入数据
+  - `updateData` - 更新数据
+  - `deleteData` - 删除数据
+
+### API URL 格式规范
+项目使用的 URL 格式：`/{模块名}/{方法名}`
+
+示例：
+- `/ApiMeta/queryByPage` - API元数据分页查询
+- `/ApiProject/insert` - 创建项目
+- `/ApiInfo/update` - 更新接口信息
+- `/ApiGroup/delete?id=1` - 删除分组
+
+### 在组件中使用 API
+```javascript
+// 在 Vue 组件中调用 API
+import { queryByPage, insertData, updateData, deleteData } from './apiMate.js'
+import { ElMessage } from 'element-plus'
+
+// 查询列表数据
+const fetchList = async () => {
+  try {
+    const res = await queryByPage({
+      page: 1,
+      size: 10
+    })
+    if (res.data.code === 200) {
+      tableData.value = res.data.data
+      ElMessage.success('查询成功')
+    }
+  } catch (error) {
+    // 错误已在 axios 拦截器中处理
+    console.error('查询失败:', error)
+  }
+}
+
+// 新增数据
+const handleCreate = async (formData) => {
+  try {
+    const res = await insertData(formData)
+    if (res.data.code === 200) {
+      ElMessage.success('创建成功')
+      fetchList() // 刷新列表
+    }
+  } catch (error) {
+    // 错误已在 axios 拦截器中处理
+  }
+}
+
+// 更新数据
+const handleUpdate = async (formData) => {
+  try {
+    const res = await updateData(formData)
+    if (res.data.code === 200) {
+      ElMessage.success('更新成功')
+      fetchList() // 刷新列表
+    }
+  } catch (error) {
+    // 错误已在 axios 拦截器中处理
+  }
+}
+
+// 删除数据
+const handleDelete = async (id) => {
+  try {
+    const res = await deleteData(id)
+    if (res.data.code === 200) {
+      ElMessage.success('删除成功')
+      fetchList() // 刷新列表
+    }
+  } catch (error) {
+    // 错误已在 axios 拦截器中处理
+  }
+}
+```
+
+### 响应数据格式
+项目后端统一返回格式：
+```javascript
+{
+  code: 200,      // 状态码：200-成功，其他-失败
+  msg: "操作成功",  // 消息提示
+  data: { ... }   // 返回数据
+}
+```
+
+因此在组件中使用时，需要检查 `res.data.code` 而不是 HTTP 状态码。
+
+## 路由配置规范
+
+参考 [platform-vue-web/src/router](mdc:platform-vue-web/src/router)
+
+```javascript
+import { createRouter, createWebHistory } from 'vue-router'
+
+const routes = [
+  {
+    path: '/',
+    redirect: '/login'
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/Login.vue')
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('@/views/Dashboard.vue'),
+    meta: { requiresAuth: true }
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+// 路由守卫
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token')
+  if (to.meta.requiresAuth && !token) {
+    next('/login')
+  } else {
+    next()
+  }
+})
+
+export default router
+```
+
+## 状态管理规范
+
+参考 [platform-vue-web/src/store](mdc:platform-vue-web/src/store)
+
+### Vuex Store 结构
+```javascript
+import { createStore } from 'vuex'
+
+export default createStore({
+  state: {
+    user: null,
+    token: localStorage.getItem('token') || ''
+  },
+  
+  mutations: {
+    SET_USER(state, user) {
+      state.user = user
+    },
+    SET_TOKEN(state, token) {
+      state.token = token
+      localStorage.setItem('token', token)
+    }
+  },
+  
+  actions: {
+    async login({ commit }, credentials) {
+      const res = await loginApi(credentials)
+      commit('SET_TOKEN', res.data.access_token)
+      commit('SET_USER', res.data.user_info)
+    },
+    
+    logout({ commit }) {
+      commit('SET_TOKEN', '')
+      commit('SET_USER', null)
+      localStorage.removeItem('token')
+    }
+  },
+  
+  getters: {
+    isAuthenticated: state => !!state.token,
+    currentUser: state => state.user
+  }
+})
+```
+
+## Element Plus 使用规范
+
+### 1. 按需引入组件
+```javascript
+import { ElButton, ElTable, ElMessage } from 'element-plus'
+```
+
+### 2. 表单验证
+```vue
+<template>
+  <el-form :model="form" :rules="rules" ref="formRef">
+    <el-form-item label="项目名称" prop="project_name">
+      <el-input v-model="form.project_name" />
+    </el-form-item>
+    <el-form-item>
+      <el-button type="primary" @click="submitForm">提交</el-button>
+    </el-form-item>
+  </el-form>
+</template>
+
+<script setup>
+import { ref, reactive } from 'vue'
+import { ElMessage } from 'element-plus'
+
+const formRef = ref(null)
+const form = reactive({
+  project_name: ''
+})
+
+const rules = {
+  project_name: [
+    { required: true, message: '请输入项目名称', trigger: 'blur' },
+    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
+  ]
+}
+
+const submitForm = async () => {
+  const valid = await formRef.value.validate()
+  if (valid) {
+    // 提交逻辑
+    ElMessage.success('提交成功')
+  }
+}
+</script>
+```
+
+### 3. 对话框使用
+```vue
+<template>
+  <el-dialog v-model="dialogVisible" title="创建项目" width="600px">
+    <!-- 对话框内容 -->
+    <template #footer>
+      <el-button @click="dialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="handleConfirm">确定</el-button>
+    </template>
+  </el-dialog>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const dialogVisible = ref(false)
+
+const handleConfirm = () => {
+  // 确认逻辑
+  dialogVisible.value = false
+}
+</script>
+```
+
+## 样式规范
+
+### 1. Scoped 样式
+```vue
+<style scoped>
+.project-list {
+  padding: 20px;
+}
+
+.project-list .header {
+  margin-bottom: 20px;
+}
+</style>
+```
+
+### 2. 全局样式
+参考 [platform-vue-web/src/styles](mdc:platform-vue-web/src/styles)
+
+### 3. 深度选择器
+```vue
+<style scoped>
+/* 修改子组件样式 */
+:deep(.el-button) {
+  margin-right: 10px;
+}
+</style>
+```
+
+## Composables (组合式函数)
+
+参考 [platform-vue-web/src/composables/useTheme.js](mdc:platform-vue-web/src/composables/useTheme.js)
+
+```javascript
+// src/composables/useProject.js
+import { ref } from 'vue'
+import { getProjects } from '@/api/project'
+import { ElMessage } from 'element-plus'
+
+export function useProject() {
+  const projects = ref([])
+  const loading = ref(false)
+  
+  const fetchProjects = async (params) => {
+    loading.value = true
+    try {
+      const res = await getProjects(params)
+      projects.value = res.data
+    } catch (error) {
+      ElMessage.error('获取项目列表失败')
+    } finally {
+      loading.value = false
+    }
+  }
+  
+  return {
+    projects,
+    loading,
+    fetchProjects
+  }
+}
+```
+
+使用：
+```vue
+<script setup>
+import { useProject } from '@/composables/useProject'
+
+const { projects, loading, fetchProjects } = useProject()
+
+onMounted(() => {
+  fetchProjects()
+})
+</script>
+```
+
+## 自定义指令
+
+参考 [platform-vue-web/src/directives](mdc:platform-vue-web/src/directives)
+
+## 工具函数
+
+参考 [platform-vue-web/src/utils](mdc:platform-vue-web/src/utils)
+
+## 命名规范
+
+### 文件命名
+- 组件文件: PascalCase (如 `ProjectList.vue`)
+- 工具文件: camelCase (如 `formatDate.js`)
+- 样式文件: kebab-case (如 `global-styles.css`)
+
+### 变量命名
+- 常量: UPPER_SNAKE_CASE
+- 变量/函数: camelCase
+- 组件: PascalCase
+
+## 性能优化
+
+### 1. 懒加载路由
+```javascript
+component: () => import('@/views/Dashboard.vue')
+```
+
+### 2. v-if vs v-show
+- `v-if`: 条件很少改变时使用
+- `v-show`: 需要频繁切换时使用
+
+### 3. 列表渲染优化
+```vue
+<template>
+  <div v-for="item in list" :key="item.id">
+    {{ item.name }}
+  </div>
+</template>
+```
+
+### 4. 计算属性缓存
+```javascript
+const filteredList = computed(() => {
+  return list.value.filter(item => item.status === 'active')
+})
+```
+
+## 调试技巧
+
+### Vue Devtools
+安装 Vue.js devtools 浏览器插件
+
+### Console Logging
+```javascript
+console.log('用户信息:', user.value)
+console.table(projects.value)
+```
+
+## 常见问题
+
+1. **跨域问题**: 在 [vite.config.js](mdc:platform-vue-web/vite.config.js) 配置代理
+2. **Token失效**: 在 axios 拦截器中处理
+3. **路由守卫**: 检查权限和登录状态

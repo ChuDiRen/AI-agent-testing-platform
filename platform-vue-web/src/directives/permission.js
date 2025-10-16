@@ -1,4 +1,4 @@
-import store from '../store'
+import store from '../store/index.js'
 
 // 权限指令 - v-permission="'system:user:add'"
 export const permission = {

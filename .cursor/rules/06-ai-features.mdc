@@ -1,0 +1,494 @@
+---
+description: AI功能开发和使用规范
+alwaysApply: false
+---
+
+# AI 功能开发规范
+
+## AI 模型管理
+
+### 支持的AI模型
+项目支持多个主流 AI 模型，包括：
+
+1. **DeepSeek** (推荐，高性价比)
+   - DeepSeek Chat
+   - DeepSeek Coder
+
+2. **通义千问** (阿里云)
+   - 通义千问 Turbo (免费额度)
+   - 通义千问 Plus
+   - 通义千问 Max
+
+3. **其他模型**
+   - ChatGPT (OpenAI)
+   - Claude (Anthropic)
+   - 文心一言 (百度)
+   - 讯飞星火
+
+### AI模型配置
+
+#### 数据模型
+```python
+class AiModel(SQLModel, table=True):
+    """AI模型配置"""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    model_name: str = Field(max_length=100)  # 模型名称
+    model_code: str = Field(max_length=50)   # 模型代码
+    provider: str = Field(max_length=50)      # 提供商
+    api_url: str = Field(max_length=200)      # API地址
+    api_key: Optional[str] = None             # API密钥
+    is_enabled: bool = Field(default=False)   # 是否启用
+    description: Optional[str] = None         # 描述
+```
+
+#### 配置API接口
+```python
+@router.put("/api/v1/ai/models/{model_id}")
+async def update_model_config(
+    model_id: int,
+    api_key: str,
+    is_enabled: bool = True,
+    db: Session = Depends(get_db)
+):
+    """更新AI模型配置"""
+    # 实现逻辑
+    pass
+```
+
+## 提示词模板管理
+
+### 模板类型
+- **testcase_generation** - 测试用例生成
+- **api_testing** - API测试
+- **web_testing** - Web测试
+- **app_testing** - App测试
+- **custom** - 自定义模板
+
+### 模板结构
+```python
+class PromptTemplate(SQLModel, table=True):
+    """提示词模板"""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(max_length=100)
+    template_type: str = Field(max_length=50)
+    test_type: str = Field(max_length=20)  # API/Web/App/通用
+    content: str = Field(sa_column=Column(Text))
+    variables: Optional[str] = None  # JSON格式变量定义
+    is_active: bool = Field(default=True)
+    created_by: Optional[int] = None
+    created_at: datetime = Field(default_factory=datetime.now)
+```
+
+### 提示词编写规范
+
+#### API测试用例生成提示词
+```text
+你是一个专业的API测试工程师，请根据以下需求生成API测试用例。
+
+## 需求信息
+{requirement}
+
+## 输出格式要求
+请生成 {count} 个测试用例，每个用例包含：
+1. 用例名称
+2. 测试目的
+3. 优先级 (P0/P1/P2/P3)
+4. 前置条件
+5. 测试步骤
+6. 预期结果
+7. 测试数据
+
+## 测试类型覆盖
+- 正常场景测试
+- 异常场景测试
+- 边界值测试
+- 安全性测试
+
+## 输出格式
+以JSON数组格式输出，每个测试用例为一个对象。
+
+## 示例
+[
+  {
+    "name": "用户登录成功测试",
+    "purpose": "验证用户使用正确的用户名和密码能够成功登录",
+    "priority": "P0",
+    "precondition": "用户已注册且账号状态正常",
+    "steps": ["打开登录页面", "输入用户名", "输入密码", "点击登录按钮"],
+    "expected": "登录成功，跳转到首页，显示用户信息",
+    "test_data": {
+      "username": "testuser",
+      "password": "123456"
+    }
+  }
+]
+```
+
+#### Web测试用例生成提示词
+```text
+你是一个专业的Web测试工程师，请根据以下需求生成Web UI测试用例。
+
+## 需求信息
+{requirement}
+
+## 输出要求
+生成 {count} 个Web测试用例，覆盖：
+- 功能测试
+- UI/UX测试
+- 兼容性测试
+- 响应式测试
+- 性能测试
+
+## 测试要点
+1. 页面元素定位
+2. 用户交互流程
+3. 数据验证
+4. 错误提示
+5. 边界条件
+
+请以JSON格式输出测试用例。
+```
+
+#### App测试用例生成提示词
+```text
+你是一个专业的移动App测试工程师，请根据以下需求生成App测试用例。
+
+## 需求信息
+{requirement}
+
+## 测试平台
+- iOS 13+
+- Android 8+
+
+## 输出要求
+生成 {count} 个App测试用例，覆盖：
+- 功能测试
+- UI测试
+- 兼容性测试
+- 性能测试
+- 网络环境测试
+- 权限测试
+
+请以JSON格式输出测试用例。
+```
+
+## AI测试用例生成流程
+
+### 1. 前端调用
+```javascript
+import { generateTestCases } from '@/api/ai'
+
+const generateCases = async () => {
+  const params = {
+    model_id: selectedModel.value,  // AI模型ID
+    template_id: selectedTemplate.value,  // 提示词模板ID
+    requirement: requirementText.value,  // 需求描述
+    test_type: testType.value,  // API/Web/App
+    count: caseCount.value,  // 生成数量
+    custom_prompt: customPrompt.value  // 自定义提示词（可选）
+  }
+  
+  try {
+    const res = await generateTestCases(params)
+    generatedCases.value = res.data.test_cases
+    ElMessage.success('生成成功')
+  } catch (error) {
+    ElMessage.error('生成失败: ' + error.message)
+  }
+}
+```
+
+### 2. 后端处理
+```python
+@router.post("/api/v1/ai/generate-testcases")
+async def generate_test_cases(
+    request: TestCaseGenerateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """AI生成测试用例"""
+    
+    # 1. 获取AI模型配置
+    ai_model = db.exec(
+        select(AiModel).where(AiModel.id == request.model_id)
+    ).first()
+    
+    if not ai_model or not ai_model.is_enabled:
+        raise HTTPException(status_code=400, detail="AI模型未配置或未启用")
+    
+    # 2. 获取提示词模板
+    if request.template_id:
+        template = db.exec(
+            select(PromptTemplate).where(PromptTemplate.id == request.template_id)
+        ).first()
+        prompt = template.content
+    else:
+        prompt = request.custom_prompt
+    
+    # 3. 替换模板变量
+    prompt = prompt.format(
+        requirement=request.requirement,
+        count=request.count,
+        test_type=request.test_type
+    )
+    
+    # 4. 调用AI模型
+    try:
+        response = await call_ai_model(
+            api_url=ai_model.api_url,
+            api_key=ai_model.api_key,
+            model_code=ai_model.model_code,
+            prompt=prompt
+        )
+        
+        # 5. 解析响应
+        test_cases = parse_ai_response(response)
+        
+        # 6. 保存生成记录
+        history = AiGenerateHistory(
+            user_id=current_user.id,
+            model_id=request.model_id,
+            template_id=request.template_id,
+            requirement=request.requirement,
+            test_cases=json.dumps(test_cases, ensure_ascii=False),
+            created_at=datetime.now()
+        )
+        db.add(history)
+        db.commit()
+        
+        return success_response(data={"test_cases": test_cases})
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI生成失败: {str(e)}")
+```
+
+### 3. AI模型调用
+```python
+import httpx
+
+async def call_ai_model(
+    api_url: str,
+    api_key: str,
+    model_code: str,
+    prompt: str,
+    temperature: float = 0.7,
+    max_tokens: int = 2000
+) -> str:
+    """
+    调用AI模型
+    
+    Args:
+        api_url: API地址
+        api_key: API密钥
+        model_code: 模型代码
+        prompt: 提示词
+        temperature: 温度参数
+        max_tokens: 最大token数
+        
+    Returns:
+        str: AI响应内容
+    """
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "model": model_code,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens
+    }
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            api_url,
+            headers=headers,
+            json=payload,
+            timeout=60.0
+        )
+        response.raise_for_status()
+        result = response.json()
+        
+        # 不同模型的响应格式可能不同，需要适配
+        if "choices" in result:
+            return result["choices"][0]["message"]["content"]
+        elif "output" in result:
+            return result["output"]["text"]
+        else:
+            raise ValueError("无法解析AI响应")
+```
+
+## 响应解析
+
+### JSON格式解析
+```python
+import json
+import re
+
+def parse_ai_response(response: str) -> list:
+    """
+    解析AI返回的测试用例
+    
+    Args:
+        response: AI响应文本
+        
+    Returns:
+        list: 测试用例列表
+    """
+    # 尝试提取JSON
+    json_pattern = r'\[[\s\S]*\]'
+    match = re.search(json_pattern, response)
+    
+    if match:
+        json_str = match.group(0)
+        try:
+            test_cases = json.loads(json_str)
+            return test_cases
+        except json.JSONDecodeError:
+            pass
+    
+    # 如果无法解析JSON，返回原文本
+    return [{"raw_content": response}]
+```
+
+## 最佳实践
+
+### 1. 提示词优化
+- 明确输出格式要求
+- 提供示例参考
+- 限制输出长度
+- 使用结构化输出
+
+### 2. 错误处理
+- API调用超时处理
+- 响应格式验证
+- 重试机制
+- 降级策略
+
+### 3. 成本控制
+- 控制生成数量
+- 缓存常用结果
+- 选择合适的模型
+- 监控API调用量
+
+### 4. 质量保证
+- 人工审核生成结果
+- 提供编辑功能
+- 支持反馈优化
+- 版本管理
+
+## 前端AI生成对话框
+
+### 对话框结构
+```vue
+<template>
+  <el-dialog v-model="dialogVisible" title="AI生成测试用例" width="800px">
+    <el-form :model="form" label-width="100px">
+      <!-- AI模型选择 -->
+      <el-form-item label="AI模型">
+        <el-select v-model="form.model_id" placeholder="选择AI模型">
+          <el-option
+            v-for="model in enabledModels"
+            :key="model.id"
+            :label="model.model_name"
+            :value="model.id"
+          />
+        </el-select>
+      </el-form-item>
+      
+      <!-- 测试类型 -->
+      <el-form-item label="测试类型">
+        <el-radio-group v-model="form.test_type">
+          <el-radio label="API">API测试</el-radio>
+          <el-radio label="Web">Web测试</el-radio>
+          <el-radio label="App">App测试</el-radio>
+        </el-radio-group>
+      </el-form-item>
+      
+      <!-- 需求描述 -->
+      <el-form-item label="需求描述">
+        <el-input
+          v-model="form.requirement"
+          type="textarea"
+          :rows="8"
+          placeholder="请输入需求描述..."
+        />
+      </el-form-item>
+      
+      <!-- 生成数量 -->
+      <el-form-item label="生成数量">
+        <el-input-number
+          v-model="form.count"
+          :min="1"
+          :max="20"
+        />
+      </el-form-item>
+    </el-form>
+    
+    <template #footer>
+      <el-button @click="dialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="handleGenerate" :loading="loading">
+        生成
+      </el-button>
+    </template>
+  </el-dialog>
+</template>
+
+<script setup>
+import { ref, reactive } from 'vue'
+import { generateTestCases } from '@/api/ai'
+import { ElMessage } from 'element-plus'
+
+const dialogVisible = ref(false)
+const loading = ref(false)
+const form = reactive({
+  model_id: null,
+  test_type: 'API',
+  requirement: '',
+  count: 10
+})
+
+const handleGenerate = async () => {
+  loading.value = true
+  try {
+    const res = await generateTestCases(form)
+    // 处理生成结果
+    emit('generated', res.data.test_cases)
+    dialogVisible.value = false
+    ElMessage.success('生成成功')
+  } catch (error) {
+    ElMessage.error('生成失败')
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+```
+
+## 使用指南
+
+详细使用指南请参考: [QUICK_START_AI_TESTCASE.md](mdc:QUICK_START_AI_TESTCASE.md)
+
+### 快速开始
+1. 配置AI模型 API Key
+2. 选择或创建提示词模板
+3. 输入需求描述
+4. 生成测试用例
+5. 审核并保存用例
+
+### 提示词编写技巧
+1. 明确任务目标
+2. 提供充足上下文
+3. 指定输出格式
+4. 给出示例参考
+5. 限制输出长度
+6. 使用分步指导
+
+### 常见问题
+1. **生成质量不高**: 优化提示词，提供更详细的需求描述
+2. **API调用失败**: 检查API Key和网络连接
+3. **响应超时**: 减少生成数量或调整超时时间
+4. **格式解析失败**: 优化提示词中的格式要求

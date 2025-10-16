@@ -4,10 +4,10 @@ import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 import 'element-plus/dist/index.css'
 import App from './App.vue'
 import 'virtual:windi.css'
-import router from './router'
+import router from './router/index.js'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
-import store from '../src/store'
-import directives from './directives/permission'
+import store from './store/index.js'
+import directives from './directives/permission.js'
 
 // 引入自定义主题和样式
 import './styles/theme.css'

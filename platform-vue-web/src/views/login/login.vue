@@ -60,7 +60,7 @@
 <script setup>
 import { reactive, ref } from "vue";
 // import { Lock,User } from '@element-plus/icons-vue';
-import { login } from './login'
+import { login } from './login.js'
 import { useCookies } from '@vueuse/integrations/useCookies';
 import { ElNotification } from 'element-plus'
 import { useRouter } from "vue-router";

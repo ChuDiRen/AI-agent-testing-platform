@@ -1,0 +1,368 @@
+---
+description: API测试引擎开发规范和用例编写指南
+globs: "*.yaml,*.yml"
+---
+
+# API 测试引擎规范
+
+## 测试引擎架构
+
+### 核心模块
+- **ApiTestRunner** - [api-engine/apirun/core/ApiTestRunner.py](mdc:api-engine/apirun/core/ApiTestRunner.py) - 测试执行器
+- **YamlCaseParser** - [api-engine/apirun/parse/YamlCaseParser.py](mdc:api-engine/apirun/parse/YamlCaseParser.py) - YAML用例解析器
+- **Keywords** - [api-engine/apirun/extend/keywords.py](mdc:api-engine/apirun/extend/keywords.py) - 关键字扩展
+- **CasesPlugin** - [api-engine/apirun/core/CasesPlugin.py](mdc:api-engine/apirun/core/CasesPlugin.py) - 用例插件
+
+### 配置文件
+- **pytest.ini** - [api-engine/apirun/pytest.ini](mdc:api-engine/apirun/pytest.ini) - Pytest配置
+- **context.yaml** - 全局上下文配置
+
+## YAML 测试用例格式
+
+### 基础用例结构
+```yaml
+# 用例基本信息
+name: 用户登录成功测试
+description: 测试用户使用正确的用户名和密码登录
+priority: P0
+tags:
+  - 登录
+  - 冒烟测试
+
+# 测试步骤
+test_steps:
+  - name: 登录接口
+    request:
+      method: POST
+      url: ${base_url}/api/v1/auth/login
+      headers:
+        Content-Type: application/json
+      json:
+        username: testuser
+        password: "123456"
+    validate:
+      - eq: [status_code, 200]
+      - eq: [body.code, 0]
+      - contains: [body.data.access_token, "eyJ"]
+    extract:
+      - access_token: body.data.access_token
+```
+
+### 完整用例示例
+参考 [api-engine/examples/example-api-cases](mdc:api-engine/examples/example-api-cases) 目录
+
+#### 1. 登录成功用例
+参考: [api-engine/examples/example-api-cases/1_login_success.yaml](mdc:api-engine/examples/example-api-cases/1_login_success.yaml)
+
+#### 2. 接口关联用例
+参考: [api-engine/examples/example-api-cases/2_interface_association.yaml](mdc:api-engine/examples/example-api-cases/2_interface_association.yaml)
+
+#### 3. 数据库关键字调用
+参考: [api-engine/examples/example-api-cases/2_database_keyword_call.yaml](mdc:api-engine/examples/example-api-cases/2_database_keyword_call.yaml)
+
+#### 4. 文件上传用例
+参考: [api-engine/examples/example-api-cases/4_upload_image_and_update_avatar.yaml](mdc:api-engine/examples/example-api-cases/4_upload_image_and_update_avatar.yaml)
+
+## 用例编写规范
+
+### 1. 用例元数据
+```yaml
+name: 用例名称（必填）
+description: 用例描述（推荐）
+priority: P0/P1/P2/P3（用例优先级）
+tags:
+  - 标签1
+  - 标签2
+author: 作者名称
+created_at: 创建时间
+```
+
+### 2. 请求配置
+```yaml
+request:
+  method: GET/POST/PUT/DELETE/PATCH
+  url: ${base_url}/api/path
+  headers:
+    Content-Type: application/json
+    Authorization: Bearer ${access_token}
+  params:  # URL查询参数
+    page: 1
+    size: 10
+  json:    # JSON请求体
+    key: value
+  data:    # 表单数据
+    key: value
+  files:   # 文件上传
+    file: @/path/to/file.png
+```
+
+### 3. 变量使用
+
+#### 环境变量
+```yaml
+url: ${base_url}/api/v1/users
+headers:
+  Authorization: Bearer ${token}
+```
+
+#### 变量提取
+```yaml
+extract:
+  - user_id: body.data.id
+  - token: body.data.access_token
+  - username: body.data.username
+```
+
+#### 变量引用
+```yaml
+# 后续步骤使用提取的变量
+url: ${base_url}/api/v1/users/${user_id}
+headers:
+  Authorization: Bearer ${token}
+```
+
+### 4. 断言验证
+```yaml
+validate:
+  # 相等断言
+  - eq: [status_code, 200]
+  - eq: [body.code, 0]
+  
+  # 包含断言
+  - contains: [body.message, "成功"]
+  - contains: [body.data.username, "test"]
+  
+  # 不等于断言
+  - ne: [status_code, 500]
+  
+  # 大于/小于断言
+  - gt: [body.data.id, 0]
+  - lt: [body.data.age, 100]
+  
+  # 存在性断言
+  - exists: [body.data.access_token]
+  - not_exists: [body.error]
+  
+  # 类型断言
+  - type: [body.data.id, int]
+  - type: [body.data.username, str]
+  
+  # 长度断言
+  - length: [body.data.list, 10]
+  
+  # 正则断言
+  - regex: [body.data.email, "^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+$"]
+```
+
+### 5. 关键字驱动
+
+#### 内置关键字
+参考: [api-engine/apirun/extend/keywords.yaml](mdc:api-engine/apirun/extend/keywords.yaml)
+
+#### 使用关键字
+```yaml
+test_steps:
+  - name: 执行SQL查询
+    keyword: database.query
+    params:
+      sql: SELECT * FROM users WHERE id = ${user_id}
+    extract:
+      - db_username: result[0].username
+```
+
+#### 自定义关键字
+在 [api-engine/apirun/extend/keywords.py](mdc:api-engine/apirun/extend/keywords.py) 中添加：
+```python
+class CustomKeywords:
+    @keyword("custom.generate_random_email")
+    def generate_random_email(self):
+        """生成随机邮箱"""
+        import random
+        import string
+        username = ''.join(random.choices(string.ascii_lowercase, k=8))
+        return f"{username}@test.com"
+```
+
+### 6. 测试套件组织
+```yaml
+# 测试套件配置
+test_suite:
+  name: 用户管理测试套件
+  base_url: http://localhost:8000
+  
+  # 前置操作
+  setup:
+    - name: 清理测试数据
+      keyword: database.execute
+      params:
+        sql: DELETE FROM users WHERE username LIKE 'test_%'
+  
+  # 测试用例
+  test_cases:
+    - 1_login_success.yaml
+    - 2_interface_association.yaml
+    - 3_json_login.yaml
+  
+  # 后置操作
+  teardown:
+    - name: 清理测试数据
+      keyword: database.execute
+      params:
+        sql: DELETE FROM users WHERE username LIKE 'test_%'
+```
+
+## 上下文管理
+
+### context.yaml 配置
+参考: [api-engine/examples/example-api-cases/context.yaml](mdc:api-engine/examples/example-api-cases/context.yaml)
+
+```yaml
+# 全局变量
+variables:
+  base_url: http://localhost:8000
+  default_timeout: 30
+  
+# 数据库配置
+database:
+  host: localhost
+  port: 3306
+  user: root
+  password: password
+  database: test_db
+  
+# 环境配置
+environment: dev
+
+# 全局请求头
+default_headers:
+  Content-Type: application/json
+  User-Agent: ApiTestRunner/1.0
+```
+
+## 执行测试用例
+
+### 命令行执行
+```bash
+# 执行单个用例
+pytest api-engine/examples/example-api-cases/1_login_success.yaml
+
+# 执行目录下所有用例
+pytest api-engine/examples/example-api-cases/
+
+# 执行指定标签的用例
+pytest -m "登录" api-engine/examples/example-api-cases/
+
+# 生成测试报告
+pytest --html=report.html api-engine/examples/example-api-cases/
+```
+
+### Python代码执行
+```python
+from apirun.core.ApiTestRunner import ApiTestRunner
+
+runner = ApiTestRunner()
+result = runner.run_case("1_login_success.yaml")
+print(result)
+```
+
+## 最佳实践
+
+### 1. 用例独立性
+- 每个用例应该独立运行
+- 不依赖其他用例的执行顺序
+- 用例开始前清理环境
+
+### 2. 数据驱动
+```yaml
+# 参数化测试
+parameters:
+  - username: user1
+    password: pass1
+    expected_code: 0
+  - username: user2
+    password: pass2
+    expected_code: 0
+  - username: invalid
+    password: wrong
+    expected_code: 401
+
+test_steps:
+  - name: 登录测试
+    request:
+      method: POST
+      url: ${base_url}/api/v1/auth/login
+      json:
+        username: ${username}
+        password: ${password}
+    validate:
+      - eq: [body.code, ${expected_code}]
+```
+
+### 3. 错误处理
+```yaml
+test_steps:
+  - name: 可能失败的步骤
+    request:
+      method: GET
+      url: ${base_url}/api/v1/resource
+    on_error:
+      action: continue  # 或 stop
+      log: 资源获取失败，继续执行
+```
+
+### 4. 测试数据管理
+- 使用独特的测试数据标识（如 test_ 前缀）
+- 测试后清理数据
+- 使用数据库事务（如可能）
+
+### 5. 断言最佳实践
+- 关键字段必须断言
+- 状态码必须断言
+- 响应结构必须断言
+- 业务逻辑必须断言
+
+## 调试技巧
+
+### 1. 日志输出
+```yaml
+test_steps:
+  - name: 调试步骤
+    request:
+      method: GET
+      url: ${base_url}/api/v1/debug
+    debug: true  # 输出详细日志
+```
+
+### 2. 断点调试
+在关键字函数中使用 `import pdb; pdb.set_trace()`
+
+### 3. 变量查看
+```yaml
+test_steps:
+  - name: 打印变量
+    keyword: utils.print_vars
+    params:
+      vars: [user_id, token, username]
+```
+
+## 常见问题
+
+### 1. 变量未定义
+- 检查变量是否已提取
+- 检查变量名拼写
+- 检查变量作用域
+
+### 2. 断言失败
+- 检查响应数据结构
+- 使用 debug: true 查看详细响应
+- 检查数据类型匹配
+
+### 3. 文件上传失败
+- 检查文件路径
+- 检查文件格式
+- 检查请求头设置
+
+### 4. 数据库连接失败
+- 检查数据库配置
+- 检查网络连接
+- 检查权限设置

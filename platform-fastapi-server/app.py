@@ -3,7 +3,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.database import init_db, init_data
-import uvicorn
 import logging
 import asyncio
 from contextlib import asynccontextmanager
