@@ -73,7 +73,17 @@ const iconMap = {
   'el-icon-tickets': 'Tickets',
   'el-icon-key': 'Key',
   'el-icon-promotion': 'Promotion',
-  'el-icon-monitor': 'Monitor'
+  'el-icon-monitor': 'Monitor',
+  // AI 配置相关图标
+  'el-icon-cpu': 'Cpu',
+  'el-icon-connection': 'Connection',
+  'el-icon-data-analysis': 'DataAnalysis',
+  'el-icon-magic-stick': 'MagicStick',
+  'el-icon-edit': 'Edit',
+  'el-icon-notebook': 'Notebook',
+  'el-icon-reading': 'Reading',
+  'el-icon-chat-dot-round': 'ChatDotRound',
+  'el-icon-tickets': 'Tickets'
 }
 
 // 路由映射（后端path -> 前端实际路由）
@@ -90,6 +100,11 @@ const routePathMap = {
   '/apitest/apiinfo': '/ApiInfoList',
   '/apitest/apigroup': '/ApiGroupList',
   '/apitest/testhistory': '/ApiTestHistory',
+  '/ai-config': '', // 父级菜单不跳转
+  '/ai-config/models': '/ai-models',
+  '/ai-config/prompts': '/ai-prompts',
+  '/ai-config/ai-chat': '/ai-chat',
+  '/ai-config/testcase': '/test-cases',
 }
 
 // 将后端的菜单树转换为前端侧边栏结构

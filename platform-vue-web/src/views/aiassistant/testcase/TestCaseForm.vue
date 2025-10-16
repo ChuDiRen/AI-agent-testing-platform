@@ -155,6 +155,25 @@ const rules = {
   expected_result: [{ required: true, message: '请输入预期结果', trigger: 'blur' }]
 }
 
+// 重置表单
+const resetForm = () => {
+  Object.assign(form, {
+    id: null,
+    case_name: '',
+    project_id: null,
+    test_type: 'API',
+    priority: 'P1',
+    module_name: '',
+    precondition: '',
+    test_steps: [],
+    expected_result: '',
+    test_data: {}
+  })
+  testStepsJson.value = '[]'
+  testDataJson.value = '{}'
+  formRef.value?.clearValidate()
+}
+
 // 监听formData变化，更新表单数据
 watch(() => props.formData, (newData) => {
   if (newData && Object.keys(newData).length > 0) {
@@ -183,25 +202,6 @@ const handleDataSave = (jsonStr) => {
   } catch (error) {
     ElMessage.warning('测试数据JSON格式有误')
   }
-}
-
-// 重置表单
-const resetForm = () => {
-  Object.assign(form, {
-    id: null,
-    case_name: '',
-    project_id: null,
-    test_type: 'API',
-    priority: 'P1',
-    module_name: '',
-    precondition: '',
-    test_steps: [],
-    expected_result: '',
-    test_data: {}
-  })
-  testStepsJson.value = '[]'
-  testDataJson.value = '{}'
-  formRef.value?.clearValidate()
 }
 
 // 提交表单

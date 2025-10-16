@@ -152,14 +152,12 @@ def create_initial_menus():
                 {"menu_id": 171, "parent_id": 142, "menu_name": "删除记录", "path": "", "component": "", "perms": "apitest:testhistory:delete", "icon": "", "type": "1", "order_num": 2},
                 {"menu_id": 172, "parent_id": 142, "menu_name": "重新执行", "path": "", "component": "", "perms": "apitest:testhistory:rerun", "icon": "", "type": "1", "order_num": 3},
                 
-                # AI测试助手（新增）
-                {"menu_id": 180, "parent_id": 100, "menu_name": "AI测试助手", "path": "/apitest/ai-chat", "component": "apitest/testcase/AiChatInterface", "perms": "apitest:ai:chat", "icon": "el-icon-chat-dot-round", "type": "0", "order_num": 7},
-                {"menu_id": 181, "parent_id": 100, "menu_name": "测试用例管理", "path": "/apitest/testcase", "component": "apitest/testcase/index", "perms": "apitest:testcase:view", "icon": "el-icon-document", "type": "0", "order_num": 8},
-                
                 # AI配置管理（新增）
                 {"menu_id": 200, "parent_id": 0, "menu_name": "AI配置", "path": "/ai-config", "component": "Layout", "perms": "", "icon": "el-icon-setting", "type": "0", "order_num": 3},
                 {"menu_id": 201, "parent_id": 200, "menu_name": "AI模型管理", "path": "/ai-config/models", "component": "sysmanage/aimodel/index", "perms": "ai:model:view", "icon": "el-icon-cpu", "type": "0", "order_num": 1},
                 {"menu_id": 202, "parent_id": 200, "menu_name": "提示词模板管理", "path": "/ai-config/prompts", "component": "sysmanage/prompt/index", "perms": "ai:prompt:view", "icon": "el-icon-edit", "type": "0", "order_num": 2},
+                {"menu_id": 180, "parent_id": 200, "menu_name": "AI测试助手", "path": "/ai-config/ai-chat", "component": "apitest/testcase/AiChatInterface", "perms": "ai:chat:view", "icon": "el-icon-chat-dot-round", "type": "0", "order_num": 3},
+                {"menu_id": 181, "parent_id": 200, "menu_name": "测试用例管理", "path": "/ai-config/testcase", "component": "apitest/testcase/index", "perms": "ai:testcase:view", "icon": "el-icon-tickets", "type": "0", "order_num": 4},
                 
                 # AI模型管理按钮权限
                 {"menu_id": 210, "parent_id": 201, "menu_name": "新增模型", "path": "", "component": "", "perms": "ai:model:add", "icon": "", "type": "1", "order_num": 1},

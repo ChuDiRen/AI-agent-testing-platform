@@ -93,15 +93,6 @@ const rules = {
   api_key: [{ required: true, message: '请输入API Key', trigger: 'blur' }]
 }
 
-// 监听formData变化，更新表单数据
-watch(() => props.formData, (newData) => {
-  if (newData && Object.keys(newData).length > 0) {
-    Object.assign(form, newData)
-  } else {
-    resetForm()
-  }
-}, { immediate: true, deep: true })
-
 // 重置表单
 const resetForm = () => {
   Object.assign(form, {
@@ -116,6 +107,15 @@ const resetForm = () => {
   })
   formRef.value?.clearValidate()
 }
+
+// 监听formData变化，更新表单数据
+watch(() => props.formData, (newData) => {
+  if (newData && Object.keys(newData).length > 0) {
+    Object.assign(form, newData)
+  } else {
+    resetForm()
+  }
+}, { immediate: true, deep: true })
 
 // 提交表单
 const handleSubmit = async () => {

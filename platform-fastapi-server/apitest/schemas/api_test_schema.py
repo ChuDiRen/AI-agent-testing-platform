@@ -2,6 +2,21 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
+# 变量提取配置Schema
+class VariableExtract(BaseModel):
+    var_name: str  # 变量名
+    extract_path: str  # JSONPath提取路径
+    index: int = 0  # 提取索引
+    description: Optional[str] = None
+
+# 断言配置Schema
+class AssertionConfig(BaseModel):
+    type: str  # assert_text_comparators, assert_json_path等
+    extract_path: Optional[str] = None  # JSONPath提取路径
+    expected_value: str  # 期望值
+    operator: str = "=="  # 比较操作符
+    description: Optional[str] = None  # 断言描述
+
 # 测试历史查询Schema
 class ApiTestHistoryQuery(BaseModel):
     page: int = 1
@@ -19,23 +34,8 @@ class ApiTestExecuteRequest(BaseModel):
     context_vars: Optional[Dict[str, Any]] = {}  # 上下文变量
     pre_script: Optional[List[str]] = []         # 前置脚本列表
     post_script: Optional[List[str]] = []        # 后置脚本列表
-    variable_extracts: Optional[List['VariableExtract']] = []  # 变量提取配置列表
+    variable_extracts: Optional[List[VariableExtract]] = []  # 变量提取配置列表
     assertions: Optional[List[Dict]] = []        # 断言配置列表
-    
-# 断言配置Schema
-class AssertionConfig(BaseModel):
-    type: str  # assert_text_comparators, assert_json_path等
-    extract_path: Optional[str] = None  # JSONPath提取路径
-    expected_value: str  # 期望值
-    operator: str = "=="  # 比较操作符
-    description: Optional[str] = None  # 断言描述
-
-# 变量提取配置Schema
-class VariableExtract(BaseModel):
-    var_name: str  # 变量名
-    extract_path: str  # JSONPath提取路径
-    index: int = 0  # 提取索引
-    description: Optional[str] = None
 
 # 测试结果Schema
 class ApiTestResult(BaseModel):
