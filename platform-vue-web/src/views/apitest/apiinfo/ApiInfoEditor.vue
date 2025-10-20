@@ -100,10 +100,10 @@
         <!-- 请求Body -->
         <el-tab-pane label="请求Body" name="body">
           <el-radio-group v-model="bodyType" size="small" style="margin-bottom: 15px">
-            <el-radio-button label="none">无</el-radio-button>
-            <el-radio-button label="form-data">form-data</el-radio-button>
-            <el-radio-button label="x-www-form-urlencoded">x-www-form-urlencoded</el-radio-button>
-            <el-radio-button label="raw">raw (JSON)</el-radio-button>
+            <el-radio-button value="none">无</el-radio-button>
+            <el-radio-button value="form-data">form-data</el-radio-button>
+            <el-radio-button value="x-www-form-urlencoded">x-www-form-urlencoded</el-radio-button>
+            <el-radio-button value="raw">raw (JSON)</el-radio-button>
           </el-radio-group>
 
           <!-- form-data -->

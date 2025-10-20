@@ -38,25 +38,37 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, toRefs, computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useRouter } from "vue-router"
 import { useCookies } from '@vueuse/integrations/useCookies'
 import { useStore } from 'vuex'
+import axios from '~/axios'
 
 const cookies = useCookies()
 const router = useRouter()
 const store = useStore()
 
-const state = reactive({
-  circleUrl:
-    'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
-  squareUrl:
-    'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png',
-  sizeList: ['small', '', 'large'] as const,
+// 从 Vuex 获取用户头像
+const circleUrl = computed(() => {
+  return store.state.userInfo?.avatar || ''
 })
 
-const { circleUrl, squareUrl, sizeList } = toRefs(state)
+// 页面加载时获取用户信息
+onMounted(async () => {
+  // 如果 Vuex 中没有用户信息，但有 token 和 user-id，则重新获取
+  if (!store.state.userInfo && cookies.get('l-token') && cookies.get('l-user-id')) {
+    try {
+      const userId = cookies.get('l-user-id')
+      const res = await axios.get(`/user/queryById?id=${userId}`)
+      if (res.data.code === 200) {
+        store.commit('setUserInfo', res.data.data)
+      }
+    } catch (error) {
+      // 静默处理错误
+    }
+  }
+})
 
 // 主题相关
 const isDark = computed(() => store.state.theme === 'dark')

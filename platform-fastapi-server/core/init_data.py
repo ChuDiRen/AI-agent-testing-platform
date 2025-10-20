@@ -202,6 +202,7 @@ def create_initial_users():
                     "mobile": "13800138000",
                     "status": "1",
                     "ssex": "0",
+                    "avatar": "https://avatars.githubusercontent.com/u/1?v=4",
                     "description": "超级管理员",
                     "create_time": datetime.now(),
                     "modify_time": datetime.now()

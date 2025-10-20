@@ -18,8 +18,8 @@
         </el-form-item>
         <el-form-item label="菜单类型" prop="type">
             <el-radio-group v-model="ruleForm.type">
-                <el-radio label="0">菜单</el-radio>
-                <el-radio label="1">按钮</el-radio>
+                <el-radio value="0">菜单</el-radio>
+                <el-radio value="1">按钮</el-radio>
             </el-radio-group>
         </el-form-item>
         <el-form-item label="图标" v-show="ruleForm.type === '0'">

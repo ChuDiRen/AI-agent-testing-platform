@@ -52,8 +52,11 @@
             </template>
         </el-table-column>
         <!-- 操作 -->
-        <el-table-column fixed="right" label="操作" width="150">
+        <el-table-column fixed="right" label="操作" width="220">
             <template #default="scope">
+                <el-button link type="info" size="small" @click.prevent="onDataView(scope.$index)">
+                    查看
+                </el-button>
                 <el-button link type="primary" size="small" @click.prevent="onDataForm(scope.$index)">
                     编辑
                 </el-button>
@@ -115,8 +118,14 @@ const loadDeptData = async () => {
             const depts = res.data.data
             // 将部门树扁平化为映射表
             const flattenDepts = (deptList, map = {}) => {
+                if (!deptList || !Array.isArray(deptList)) {
+                    return map
+                }
                 deptList.forEach(dept => {
-                    map[dept.dept_id] = dept.dept_name
+                    // 修正字段名：使用 id 而不是 dept_id
+                    if (dept.id !== undefined && dept.id !== null) {
+                        map[dept.id] = dept.dept_name
+                    }
                     if (dept.children && dept.children.length > 0) {
                         flattenDepts(dept.children, map)
                     }
@@ -124,11 +133,8 @@ const loadDeptData = async () => {
                 return map
             }
             deptMap.value = flattenDepts(depts)
-        } else {
-            console.error('加载部门数据失败:', res.data.msg)
         }
     } catch (error) {
-        console.error('加载部门数据失败:', error)
         ElMessage.error('加载部门数据失败，请稍后重试')
     }
 }
@@ -149,8 +155,7 @@ const loadData = () => {
         } else {
             ElMessage.error(res.data.msg || '查询失败')
         }
-    }).catch((error: any) => {
-        console.error('查询失败:', error)
+    }).catch(() => {
         ElMessage.error('查询失败，请稍后重试')
     })
 }
@@ -177,6 +182,18 @@ const handleSizeChange = (val: number) => {
 const handleCurrentChange = (val: number) => {
     currentPage.value = val
     loadData()
+}
+
+// 查看用户详情
+const onDataView = (index: number) => {
+    const item = tableData.value[index]
+    router.push({
+        path: 'userForm',
+        query: {
+            id: item.id,
+            view: 'true' // 标记为查看模式
+        }
+    })
 }
 
 // 打开表单 （编辑/新增）
