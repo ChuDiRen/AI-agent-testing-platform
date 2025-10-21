@@ -24,19 +24,38 @@
         default-expand-all
         :tree-props="{ children: 'children' }"
     >
-        <el-table-column prop="menu_name" label="菜单名称" width="200" />
-        <el-table-column prop="icon" label="图标" width="100" />
-        <el-table-column prop="type" label="类型" width="80">
+        <el-table-column prop="menu_name" label="菜单名称" width="180" show-overflow-tooltip />
+        <el-table-column prop="icon" label="图标" width="100" align="center">
             <template #default="scope">
-                <el-tag :type="scope.row.type === '0' ? 'primary' : 'success'">
-                    {{ scope.row.type === '0' ? '菜单' : '按钮' }}
-                </el-tag>
+                <el-icon v-if="scope.row.icon" :size="18">
+                    <component :is="scope.row.icon" />
+                </el-icon>
+                <span v-else style="color: var(--el-text-color-placeholder);">-</span>
             </template>
         </el-table-column>
-        <el-table-column prop="path" label="路由路径" show-overflow-tooltip />
-        <el-table-column prop="component" label="组件路径" show-overflow-tooltip />
-        <el-table-column prop="perms" label="权限标识" show-overflow-tooltip />
-        <el-table-column prop="order_num" label="排序" width="80" />
+        <el-table-column prop="order_num" label="排序" width="70" align="center" />
+        <el-table-column prop="perms" label="权限标识" width="160" show-overflow-tooltip />
+        <el-table-column prop="component" label="组件路径" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="menu_type" label="类型" width="80" align="center">
+            <template #default="scope">
+                <el-tag v-if="scope.row.menu_type === 'M'" type="warning">目录</el-tag>
+                <el-tag v-else-if="scope.row.menu_type === 'C'" type="primary">菜单</el-tag>
+                <el-tag v-else type="success">按钮</el-tag>
+            </template>
+        </el-table-column>
+        <el-table-column prop="visible" label="可见" width="70" align="center">
+            <template #default="scope">
+                <el-tag v-if="scope.row.visible === '0'" type="success" size="small">显示</el-tag>
+                <el-tag v-else type="info" size="small">隐藏</el-tag>
+            </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="70" align="center">
+            <template #default="scope">
+                <el-tag v-if="scope.row.status === '0'" type="success" size="small">正常</el-tag>
+                <el-tag v-else type="danger" size="small">停用</el-tag>
+            </template>
+        </el-table-column>
+        <el-table-column prop="create_time" label="创建时间" width="160" show-overflow-tooltip />
         <!-- 操作 -->
         <el-table-column fixed="right" label="操作" width="220">
             <template #default="scope">

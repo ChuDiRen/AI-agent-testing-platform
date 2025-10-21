@@ -23,13 +23,13 @@
       </el-form>
     <!-- END 搜索表单 -->
     <!-- 数据表格 -->
-    <el-table :data="tableData" style="width: 100%;" max-height="500">
+    <el-table :data="tableData" row-key="id" style="width: 100%;" max-height="600">
         <!-- 数据列 -->
-        <el-table-column prop="id" label="用户ID" show-overflow-tooltip />
-        <el-table-column prop="username" label="用户名" show-overflow-tooltip />
-        <el-table-column prop="email" label="邮箱" show-overflow-tooltip />
-        <el-table-column prop="mobile" label="联系电话" show-overflow-tooltip />
-        <el-table-column prop="dept_id" label="部门" show-overflow-tooltip>
+        <el-table-column prop="id" label="用户ID" width="100" />
+        <el-table-column prop="username" label="用户名" width="120" show-overflow-tooltip />
+        <el-table-column prop="email" label="邮箱" width="200" show-overflow-tooltip />
+        <el-table-column prop="mobile" label="联系电话" width="130" />
+        <el-table-column prop="dept_id" label="部门" width="120">
             <template #default="scope">
                 {{ deptMap[scope.row.dept_id] || scope.row.dept_id }}
             </template>
@@ -46,7 +46,7 @@
                 {{ genderMap[scope.row.ssex] || '未知' }}
             </template>
         </el-table-column>
-        <el-table-column prop="create_time" label="创建时间" show-overflow-tooltip>
+        <el-table-column prop="create_time" label="创建时间" width="180">
             <template #default="scope">
                 {{ formatDateTime(scope.row.create_time) }}
             </template>
@@ -54,10 +54,10 @@
         <!-- 操作 -->
         <el-table-column fixed="right" label="操作" width="220">
             <template #default="scope">
-                <el-button link type="info" size="small" @click.prevent="onDataView(scope.$index)">
+                <el-button link type="primary" size="small" @click.prevent="onDataView(scope.$index)">
                     查看
                 </el-button>
-                <el-button link type="primary" size="small" @click.prevent="onDataForm(scope.$index)">
+                <el-button link type="success" size="small" @click.prevent="onDataForm(scope.$index)">
                     编辑
                 </el-button>
                 <el-button link type="danger" size="small" @click.prevent="onDelete(scope.$index)">

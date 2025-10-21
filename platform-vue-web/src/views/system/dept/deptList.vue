@@ -26,7 +26,7 @@
     >
         <el-table-column prop="dept_name" label="部门名称" width="300" />
         <el-table-column prop="order_num" label="排序" width="120" />
-        <el-table-column prop="create_time" label="创建时间">
+        <el-table-column prop="create_time" label="创建时间" width="180">
             <template #default="scope">
                 {{ formatDateTime(scope.row.create_time) }}
             </template>

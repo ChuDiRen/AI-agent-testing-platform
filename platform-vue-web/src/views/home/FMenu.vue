@@ -61,29 +61,46 @@ const cookies = useCookies()
 
 // 图标映射（el-icon-xxx -> ElementPlus组件名）
 const iconMap = {
+  // 系统管理图标
   'el-icon-setting': 'Setting',
+  'Setting': 'Setting',
   'el-icon-tools': 'Tools',
   'el-icon-user': 'User',
+  'User': 'User',
   'el-icon-s-custom': 'UserFilled',
+  'UserFilled': 'UserFilled',
   'el-icon-menu': 'Menu',
+  'Menu': 'Menu',
   'el-icon-office-building': 'OfficeBuilding',
+  'OfficeBuilding': 'OfficeBuilding',
+  // API 测试相关图标
   'el-icon-document': 'Document',
   'el-icon-folder': 'Folder',
+  'Folder': 'Folder',
   'el-icon-document-copy': 'DocumentCopy',
+  'DocumentCopy': 'DocumentCopy',
   'el-icon-tickets': 'Tickets',
+  'Tickets': 'Tickets',
   'el-icon-key': 'Key',
+  'Key': 'Key',
   'el-icon-promotion': 'Promotion',
+  'Promotion': 'Promotion',
   'el-icon-monitor': 'Monitor',
+  'Monitor': 'Monitor',
+  'el-icon-picture': 'Picture',
+  'Picture': 'Picture',
   // AI 配置相关图标
   'el-icon-cpu': 'Cpu',
+  'Cpu': 'Cpu',
   'el-icon-connection': 'Connection',
   'el-icon-data-analysis': 'DataAnalysis',
   'el-icon-magic-stick': 'MagicStick',
   'el-icon-edit': 'Edit',
+  'Edit': 'Edit',
   'el-icon-notebook': 'Notebook',
   'el-icon-reading': 'Reading',
   'el-icon-chat-dot-round': 'ChatDotRound',
-  'el-icon-tickets': 'Tickets'
+  'ChatDotRound': 'ChatDotRound'
 }
 
 // 路由映射（后端path -> 前端实际路由）
@@ -111,7 +128,7 @@ const routePathMap = {
 function transformMenuTree(tree){
   if(!Array.isArray(tree)) return []
   return tree
-    .filter(node => node.type === '0') // 只要菜单类型，过滤按钮
+    .filter(node => node.menu_type !== 'F') // 只要菜单和目录类型，过滤按钮(F)
     .sort((a,b) => (a.order_num||0) - (b.order_num||0))
     .map(node => ({
       name: node.menu_name,

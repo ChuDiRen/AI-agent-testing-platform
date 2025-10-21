@@ -1,6 +1,6 @@
 /* 卡片容器 */
 .page-container {
-    padding: 24px;
+    padding: 2px;
     background: var(--bg-secondary);
     min-height: calc(100vh - 64px - 40px);
     transition: all 0.3s ease;
@@ -13,6 +13,8 @@
     overflow: hidden;
     transition: all 0.3s ease;
     animation: fadeInUp 0.5s ease;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
 @keyframes fadeInUp {
@@ -54,6 +56,7 @@
 :deep(.el-table) {
     background: transparent;
     color: var(--text-primary);
+    font-size: 14px;
 }
 
 :deep(.el-table th) {
@@ -81,6 +84,10 @@
 :deep(.el-table--group),
 :deep(.el-table::before) {
     border-color: var(--border-color);
+}
+
+:deep(.el-table-column) {
+    padding: 8px 0;
 }
 
 /* 按钮动效 */

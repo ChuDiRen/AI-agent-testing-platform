@@ -23,19 +23,22 @@
       </el-form>
     <!-- END 搜索表单 -->
     <!-- 数据表格 -->
-    <el-table :data="tableData" style="width: 100%;" max-height="500">
-        <el-table-column prop="id" label="角色ID" show-overflow-tooltip />
-        <el-table-column prop="role_name" label="角色名称" show-overflow-tooltip />
-        <el-table-column prop="remark" label="角色描述" show-overflow-tooltip />
-        <el-table-column prop="create_time" label="创建时间" show-overflow-tooltip>
+    <el-table :data="tableData" row-key="id" style="width: 100%;" max-height="600">
+        <el-table-column prop="id" label="角色ID" width="100" />
+        <el-table-column prop="role_name" label="角色名称" width="150" show-overflow-tooltip />
+        <el-table-column prop="remark" label="角色描述" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="create_time" label="创建时间" width="180">
             <template #default="scope">
                 {{ formatDateTime(scope.row.create_time) }}
             </template>
         </el-table-column>
         <!-- 操作 -->
-        <el-table-column fixed="right" label="操作" width="250">
+        <el-table-column fixed="right" label="操作" width="280">
             <template #default="scope">
-                <el-button link type="primary" size="small" @click.prevent="onDataForm(scope.$index)">
+                <el-button link type="primary" size="small" @click.prevent="onDataView(scope.$index)">
+                    查看
+                </el-button>
+                <el-button link type="success" size="small" @click.prevent="onDataForm(scope.$index)">
                     编辑
                 </el-button>
                 <el-button link type="warning" size="small" @click.prevent="onAssignMenus(scope.$index)">
@@ -68,7 +71,7 @@
         ref="menuTreeRef"
         :data="menuTree"
         show-checkbox
-        node-key="menu_id"
+        node-key="id"
         :props="{ children: 'children', label: 'menu_name' }"
         default-expand-all
       />
@@ -146,6 +149,18 @@ const handleCurrentChange = (val: number) => {
     loadData()
 }
 
+// 查看角色详情
+const onDataView = (index: number) => {
+    const item = tableData.value[index]
+    router.push({
+        path: '/roleForm',
+        query: {
+            id: item.id,
+            view: 'true' // 标记为查看模式
+        }
+    })
+}
+
 // 打开表单 （编辑/新增）
 const onDataForm = (index: number) => {
     let params_data = {}
@@ -217,15 +232,25 @@ const onAssignMenus = async (index: number) => {
 const handleSaveMenus = async () => {
     const checkedKeys = menuTreeRef.value.getCheckedKeys()
     const halfCheckedKeys = menuTreeRef.value.getHalfCheckedKeys()
-    const menuIds = [...checkedKeys, ...halfCheckedKeys]
+    // 合并全选和半选的节点，并过滤掉null值，确保都是整数
+    const menuIds = [...checkedKeys, ...halfCheckedKeys].filter(id => id !== null && id !== undefined)
     
-    await assignMenus({
-        id: currentRoleId.value,
-        menu_ids: menuIds
-    })
-    
-    menuDialogVisible.value = false
-    ElMessage.success('权限分配成功')
+    try {
+        const res = await assignMenus({
+            id: currentRoleId.value,
+            menu_ids: menuIds
+        })
+        
+        if (res.data.code === 200) {
+            menuDialogVisible.value = false
+            ElMessage.success('权限分配成功')
+        } else {
+            ElMessage.error(res.data.msg || '权限分配失败')
+        }
+    } catch (error) {
+        console.error('分配权限失败:', error)
+        ElMessage.error('分配权限失败，请稍后重试')
+    }
 }
 </script>
 

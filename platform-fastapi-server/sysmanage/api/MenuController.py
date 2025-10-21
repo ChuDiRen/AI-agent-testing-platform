@@ -17,7 +17,7 @@ module_name = "menu"
 module_model = Menu
 module_route = APIRouter(prefix=f"/{module_name}", tags=["菜单管理"])
 
-def build_tree(menus: List[Menu], parent_id: int = 0) -> List[Dict]: # 构建菜单树
+def build_tree(menus: List[Menu], parent_id: int = 0) -> List[Dict]: # 构建菜单树（参考RuoYi-Vue-Plus）
     tree = []
     for menu in menus:
         if menu.parent_id == parent_id:
@@ -27,10 +27,17 @@ def build_tree(menus: List[Menu], parent_id: int = 0) -> List[Dict]: # 构建菜
                 "menu_name": menu.menu_name,
                 "path": menu.path,
                 "component": menu.component,
+                "query": menu.query,
                 "perms": menu.perms,
                 "icon": menu.icon,
-                "type": menu.type,
+                "menu_type": menu.menu_type,
+                "visible": menu.visible,
+                "status": menu.status,
+                "is_cache": menu.is_cache,
+                "is_frame": menu.is_frame,
                 "order_num": menu.order_num,
+                "remark": menu.remark,
+                "create_time": menu.create_time.strftime("%Y-%m-%d %H:%M:%S") if menu.create_time else None,
                 "children": build_tree(menus, menu.id)
             }
             tree.append(node)
