@@ -7,8 +7,8 @@
       
       <el-form-item label="是否启动" prop="is_enabled">
         <el-radio-group v-model="ruleForm.is_enabled" class="ml-4">
-        <el-radio value="true" size="large">启动</el-radio>
-        <el-radio value="false" size="large">不启动</el-radio>
+        <el-radio value="1" size="large">启动</el-radio>
+        <el-radio value="0" size="large">不启动</el-radio>
         </el-radio-group>
       </el-form-item>
   
@@ -95,7 +95,7 @@
     keyword_fun_name: '',
     keyword_value: '',
     operation_type_id: '',
-    is_enabled: 'true'
+    is_enabled: '1'
   });
   
   

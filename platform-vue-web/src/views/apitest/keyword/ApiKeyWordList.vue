@@ -47,9 +47,9 @@
       <template #default="scope">
         <span v-if="col.prop === 'is_enabled'">
           {{
-              scope.row.is_enabled === "false"
+              scope.row.is_enabled === "0" || scope.row.is_enabled === "false"
               ? "否"
-              : scope.row.is_enabled === "true"
+              : scope.row.is_enabled === "1" || scope.row.is_enabled === "true"
               ? "是"
               : "-"
           }}

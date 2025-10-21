@@ -9,6 +9,7 @@ from sysmanage.model.menu import Menu
 from sysmanage.model.dept import Dept
 from sysmanage.model.user_role import UserRole
 from sysmanage.model.role_menu import RoleMenu
+from apitest.model.ApiKeyWordModel import ApiKeyWord
 from datetime import datetime
 import logging
 
@@ -365,6 +366,667 @@ def create_initial_role_menus():
         logger.error(f"创建角色菜单关联失败: {e}")
         raise
 
+def create_initial_keywords():
+    """创建初始关键字数据"""
+    try:
+        with Session(engine) as session:
+            # 检查是否已存在关键字数据
+            existing_keywords = session.exec(select(ApiKeyWord)).first()
+            if existing_keywords:
+                logger.info("关键字数据已存在，跳过初始化")
+                return
+            
+            initial_keywords = [
+                # ================================
+                # HTTP请求类关键字
+                # ================================
+                {
+                    "name": "GET请求",
+                    "keyword_desc": "发送GET请求",
+                    "operation_type_id": 1,
+                    "keyword_fun_name": "request_get",
+                    "keyword_value": """def request_get(self, **kwargs):
+    \"\"\"发送GET请求\"\"\"
+    url = kwargs.get("URL", None)
+    params = kwargs.get("PARAMS", None)
+    headers = kwargs.get("HEADERS", None)
+    
+    request_data = {
+        "url": url,
+        "params": params,
+        "headers": headers,
+    }
+    response = requests.get(**request_data)
+    g_context().set_dict("current_response", response)
+    return response""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "POST请求(JSON)",
+                    "keyword_desc": "发送POST请求，数据格式为JSON",
+                    "operation_type_id": 1,
+                    "keyword_fun_name": "request_post_json",
+                    "keyword_value": """def request_post_json(self, **kwargs):
+    \"\"\"发送POST请求，数据格式为JSON\"\"\"
+    url = kwargs.get("URL", None)
+    params = kwargs.get("PARAMS", None)
+    headers = kwargs.get("HEADERS", None)
+    data = kwargs.get("DATA", None)
+    
+    request_data = {
+        "url": url,
+        "params": params,
+        "headers": headers,
+        "json": data,
+    }
+    response = requests.post(**request_data)
+    g_context().set_dict("current_response", response)
+    return response""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "POST请求(表单)",
+                    "keyword_desc": "发送POST请求，数据格式为表单",
+                    "operation_type_id": 1,
+                    "keyword_fun_name": "request_post_form",
+                    "keyword_value": """def request_post_form(self, **kwargs):
+    \"\"\"发送POST请求，数据格式为表单\"\"\"
+    url = kwargs.get("URL", None)
+    params = kwargs.get("PARAMS", None)
+    headers = kwargs.get("HEADERS", None)
+    data = kwargs.get("DATA", None)
+    
+    request_data = {
+        "url": url,
+        "params": params,
+        "headers": headers,
+        "data": data,
+    }
+    response = requests.post(**request_data)
+    g_context().set_dict("current_response", response)
+    return response""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "POST请求(文件上传)",
+                    "keyword_desc": "发送POST请求，支持文件上传",
+                    "operation_type_id": 1,
+                    "keyword_fun_name": "request_post_file",
+                    "keyword_value": """def request_post_file(self, **kwargs):
+    \"\"\"发送POST请求，支持文件上传\"\"\"
+    url = kwargs.get("URL", None)
+    params = kwargs.get("PARAMS", None)
+    headers = kwargs.get("HEADERS", None)
+    data = kwargs.get("DATA", None)
+    files = kwargs.get("FILES", None)
+    
+    request_data = {
+        "url": url,
+        "params": params,
+        "headers": headers,
+        "data": data,
+        "files": files,
+    }
+    response = requests.post(**request_data)
+    g_context().set_dict("current_response", response)
+    return response""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "PUT请求",
+                    "keyword_desc": "发送PUT请求",
+                    "operation_type_id": 1,
+                    "keyword_fun_name": "request_put",
+                    "keyword_value": """def request_put(self, **kwargs):
+    \"\"\"发送PUT请求\"\"\"
+    url = kwargs.get("URL", None)
+    params = kwargs.get("PARAMS", None)
+    headers = kwargs.get("HEADERS", None)
+    data = kwargs.get("DATA", None)
+    
+    request_data = {
+        "url": url,
+        "params": params,
+        "headers": headers,
+        "json": data,
+    }
+    response = requests.put(**request_data)
+    g_context().set_dict("current_response", response)
+    return response""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "DELETE请求",
+                    "keyword_desc": "发送DELETE请求",
+                    "operation_type_id": 1,
+                    "keyword_fun_name": "request_delete",
+                    "keyword_value": """def request_delete(self, **kwargs):
+    \"\"\"发送DELETE请求\"\"\"
+    url = kwargs.get("URL", None)
+    params = kwargs.get("PARAMS", None)
+    headers = kwargs.get("HEADERS", None)
+    
+    request_data = {
+        "url": url,
+        "params": params,
+        "headers": headers,
+    }
+    response = requests.delete(**request_data)
+    g_context().set_dict("current_response", response)
+    return response""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "PATCH请求",
+                    "keyword_desc": "发送PATCH请求",
+                    "operation_type_id": 1,
+                    "keyword_fun_name": "request_patch",
+                    "keyword_value": """def request_patch(self, **kwargs):
+    \"\"\"发送PATCH请求\"\"\"
+    url = kwargs.get("URL", None)
+    params = kwargs.get("PARAMS", None)
+    headers = kwargs.get("HEADERS", None)
+    data = kwargs.get("DATA", None)
+    
+    request_data = {
+        "url": url,
+        "params": params,
+        "headers": headers,
+        "json": data,
+    }
+    response = requests.patch(**request_data)
+    g_context().set_dict("current_response", response)
+    return response""",
+                    "is_enabled": "1"
+                },
+                
+                # ================================
+                # 数据提取类关键字
+                # ================================
+                {
+                    "name": "提取JSON数据",
+                    "keyword_desc": "使用JSONPath表达式提取响应中的JSON数据",
+                    "operation_type_id": 2,
+                    "keyword_fun_name": "extract_json_data",
+                    "keyword_value": """def extract_json_data(self, **kwargs):
+    \"\"\"使用JSONPath表达式提取JSON数据\"\"\"
+    expression = kwargs.get("EXPRESSION", None)
+    index = int(kwargs.get("INDEX", 0))
+    var_name = kwargs.get("VAR_NAME", None)
+    
+    response = g_context().get_dict("current_response").json()
+    extracted_data = jsonpath.jsonpath(response, expression)
+    
+    if extracted_data and len(extracted_data) > index:
+        result = extracted_data[index]
+        g_context().set_dict(var_name, result)
+        return result
+    else:
+        raise ValueError(f"JSONPath提取失败: {expression}")""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "提取正则数据",
+                    "keyword_desc": "使用正则表达式提取响应中的数据",
+                    "operation_type_id": 2,
+                    "keyword_fun_name": "extract_regex_data",
+                    "keyword_value": """def extract_regex_data(self, **kwargs):
+    \"\"\"使用正则表达式提取数据\"\"\"
+    expression = kwargs.get("EXPRESSION", None)
+    index = int(kwargs.get("INDEX", 0))
+    var_name = kwargs.get("VAR_NAME", None)
+    
+    response = g_context().get_dict("current_response").text
+    matches = re.findall(expression, response)
+    
+    if matches and len(matches) > index:
+        result = matches[index]
+        g_context().set_dict(var_name, result)
+        return result
+    else:
+        raise ValueError(f"正则表达式提取失败: {expression}")""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "提取响应头",
+                    "keyword_desc": "提取HTTP响应头信息",
+                    "operation_type_id": 2,
+                    "keyword_fun_name": "extract_header",
+                    "keyword_value": """def extract_header(self, **kwargs):
+    \"\"\"提取HTTP响应头信息\"\"\"
+    header_name = kwargs.get("HEADER_NAME", None)
+    var_name = kwargs.get("VAR_NAME", None)
+    
+    response = g_context().get_dict("current_response")
+    header_value = response.headers.get(header_name)
+    
+    if header_value:
+        g_context().set_dict(var_name, header_value)
+        return header_value
+    else:
+        raise ValueError(f"响应头不存在: {header_name}")""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "提取Cookie",
+                    "keyword_desc": "提取响应中的Cookie信息",
+                    "operation_type_id": 2,
+                    "keyword_fun_name": "extract_cookie",
+                    "keyword_value": """def extract_cookie(self, **kwargs):
+    \"\"\"提取Cookie信息\"\"\"
+    cookie_name = kwargs.get("COOKIE_NAME", None)
+    var_name = kwargs.get("VAR_NAME", None)
+    
+    response = g_context().get_dict("current_response")
+    cookie_value = response.cookies.get(cookie_name)
+    
+    if cookie_value:
+        g_context().set_dict(var_name, cookie_value)
+        return cookie_value
+    else:
+        raise ValueError(f"Cookie不存在: {cookie_name}")""",
+                    "is_enabled": "1"
+                },
+                
+                # ================================
+                # 断言验证类关键字
+                # ================================
+                {
+                    "name": "断言状态码",
+                    "keyword_desc": "验证HTTP响应状态码",
+                    "operation_type_id": 3,
+                    "keyword_fun_name": "assert_status_code",
+                    "keyword_value": """def assert_status_code(self, **kwargs):
+    \"\"\"验证HTTP响应状态码\"\"\"
+    expected_code = int(kwargs.get("EXPECTED_CODE", 200))
+    
+    response = g_context().get_dict("current_response")
+    actual_code = response.status_code
+    
+    if actual_code != expected_code:
+        raise AssertionError(f"状态码断言失败: 期望{expected_code}, 实际{actual_code}")
+    return True""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "断言响应时间",
+                    "keyword_desc": "验证响应时间是否在预期范围内",
+                    "operation_type_id": 3,
+                    "keyword_fun_name": "assert_response_time",
+                    "keyword_value": """def assert_response_time(self, **kwargs):
+    \"\"\"验证响应时间\"\"\"
+    max_time = float(kwargs.get("MAX_TIME", 5.0))
+    
+    response = g_context().get_dict("current_response")
+    actual_time = response.elapsed.total_seconds()
+    
+    if actual_time > max_time:
+        raise AssertionError(f"响应时间断言失败: 期望<{max_time}s, 实际{actual_time}s")
+    return True""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "断言包含文本",
+                    "keyword_desc": "验证响应内容包含指定文本",
+                    "operation_type_id": 3,
+                    "keyword_fun_name": "assert_contains_text",
+                    "keyword_value": """def assert_contains_text(self, **kwargs):
+    \"\"\"验证响应内容包含指定文本\"\"\"
+    expected_text = kwargs.get("EXPECTED_TEXT", None)
+    
+    response = g_context().get_dict("current_response")
+    response_text = response.text
+    
+    if expected_text not in response_text:
+        raise AssertionError(f"文本断言失败: 响应中不包含'{expected_text}'")
+    return True""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "断言JSON字段",
+                    "keyword_desc": "验证JSON响应中指定字段的值",
+                    "operation_type_id": 3,
+                    "keyword_fun_name": "assert_json_field",
+                    "keyword_value": """def assert_json_field(self, **kwargs):
+    \"\"\"验证JSON响应中指定字段的值\"\"\"
+    json_path = kwargs.get("JSON_PATH", None)
+    expected_value = kwargs.get("EXPECTED_VALUE", None)
+    
+    response = g_context().get_dict("current_response").json()
+    actual_values = jsonpath.jsonpath(response, json_path)
+    
+    if not actual_values:
+        raise AssertionError(f"JSON字段断言失败: 路径'{json_path}'不存在")
+    
+    actual_value = actual_values[0]
+    if str(actual_value) != str(expected_value):
+        raise AssertionError(f"JSON字段断言失败: 期望'{expected_value}', 实际'{actual_value}'")
+    return True""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "断言数值比较",
+                    "keyword_desc": "比较数值大小关系",
+                    "operation_type_id": 3,
+                    "keyword_fun_name": "assert_number_compare",
+                    "keyword_value": """def assert_number_compare(self, **kwargs):
+    \"\"\"比较数值大小关系\"\"\"
+    actual_value = float(kwargs.get("ACTUAL_VALUE", 0))
+    expected_value = float(kwargs.get("EXPECTED_VALUE", 0))
+    operator = kwargs.get("OPERATOR", "==")
+    
+    operators = {
+        ">": lambda a, b: a > b,
+        "<": lambda a, b: a < b,
+        "==": lambda a, b: a == b,
+        ">=": lambda a, b: a >= b,
+        "<=": lambda a, b: a <= b,
+        "!=": lambda a, b: a != b,
+    }
+    
+    if operator not in operators:
+        raise ValueError(f"不支持的操作符: {operator}")
+    
+    if not operators[operator](actual_value, expected_value):
+        raise AssertionError(f"数值比较断言失败: {actual_value} {operator} {expected_value}")
+    return True""",
+                    "is_enabled": "1"
+                },
+                
+                # ================================
+                # 数据库操作类关键字
+                # ================================
+                {
+                    "name": "执行SQL查询",
+                    "keyword_desc": "执行SQL查询并将结果存储到变量",
+                    "operation_type_id": 4,
+                    "keyword_fun_name": "execute_sql_query",
+                    "keyword_value": """def execute_sql_query(self, **kwargs):
+    \"\"\"执行SQL查询\"\"\"
+    import pymysql
+    from pymysql import cursors
+    
+    db_name = kwargs.get("DB_NAME", None)
+    sql = kwargs.get("SQL", None)
+    var_names = kwargs.get("VAR_NAMES", [])
+    
+    config = {"cursorclass": cursors.DictCursor}
+    db_config = g_context().get_dict("_database")[db_name]
+    config.update(db_config)
+    
+    con = pymysql.connect(**config)
+    cur = con.cursor()
+    cur.execute(sql)
+    results = cur.fetchall()
+    cur.close()
+    con.close()
+    
+    # 存储查询结果到变量
+    if var_names:
+        for i, row in enumerate(results, start=1):
+            for j, (key, value) in enumerate(row.items()):
+                if j < len(var_names):
+                    g_context().set_dict(f"{var_names[j]}_{i}", value)
+    
+    return results""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "执行SQL更新",
+                    "keyword_desc": "执行SQL更新操作(INSERT/UPDATE/DELETE)",
+                    "operation_type_id": 4,
+                    "keyword_fun_name": "execute_sql_update",
+                    "keyword_value": """def execute_sql_update(self, **kwargs):
+    \"\"\"执行SQL更新操作\"\"\"
+    import pymysql
+    
+    db_name = kwargs.get("DB_NAME", None)
+    sql = kwargs.get("SQL", None)
+    
+    db_config = g_context().get_dict("_database")[db_name]
+    
+    con = pymysql.connect(**db_config)
+    cur = con.cursor()
+    affected_rows = cur.execute(sql)
+    con.commit()
+    cur.close()
+    con.close()
+    
+    return affected_rows""",
+                    "is_enabled": "1"
+                },
+                
+                # ================================
+                # 工具类关键字
+                # ================================
+                {
+                    "name": "等待时间",
+                    "keyword_desc": "等待指定的时间(秒)",
+                    "operation_type_id": 5,
+                    "keyword_fun_name": "wait_time",
+                    "keyword_value": """def wait_time(self, **kwargs):
+    \"\"\"等待指定的时间\"\"\"
+    import time
+    
+    seconds = float(kwargs.get("SECONDS", 1))
+    time.sleep(seconds)
+    return True""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "生成随机字符串",
+                    "keyword_desc": "生成指定长度的随机字符串",
+                    "operation_type_id": 5,
+                    "keyword_fun_name": "generate_random_string",
+                    "keyword_value": """def generate_random_string(self, **kwargs):
+    \"\"\"生成随机字符串\"\"\"
+    import random
+    import string
+    
+    length = int(kwargs.get("LENGTH", 10))
+    var_name = kwargs.get("VAR_NAME", None)
+    
+    chars = string.ascii_letters + string.digits
+    random_str = ''.join(random.choice(chars) for _ in range(length))
+    
+    if var_name:
+        g_context().set_dict(var_name, random_str)
+    
+    return random_str""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "生成随机数字",
+                    "keyword_desc": "生成指定范围的随机数字",
+                    "operation_type_id": 5,
+                    "keyword_fun_name": "generate_random_number",
+                    "keyword_value": """def generate_random_number(self, **kwargs):
+    \"\"\"生成随机数字\"\"\"
+    import random
+    
+    min_val = int(kwargs.get("MIN_VALUE", 1))
+    max_val = int(kwargs.get("MAX_VALUE", 100))
+    var_name = kwargs.get("VAR_NAME", None)
+    
+    random_num = random.randint(min_val, max_val)
+    
+    if var_name:
+        g_context().set_dict(var_name, random_num)
+    
+    return random_num""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "获取当前时间戳",
+                    "keyword_desc": "获取当前时间戳(毫秒)",
+                    "operation_type_id": 5,
+                    "keyword_fun_name": "get_timestamp",
+                    "keyword_value": """def get_timestamp(self, **kwargs):
+    \"\"\"获取当前时间戳\"\"\"
+    import time
+    
+    var_name = kwargs.get("VAR_NAME", None)
+    timestamp = int(time.time() * 1000)
+    
+    if var_name:
+        g_context().set_dict(var_name, timestamp)
+    
+    return timestamp""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "格式化时间",
+                    "keyword_desc": "格式化当前时间为指定格式",
+                    "operation_type_id": 5,
+                    "keyword_fun_name": "format_datetime",
+                    "keyword_value": """def format_datetime(self, **kwargs):
+    \"\"\"格式化当前时间\"\"\"
+    from datetime import datetime
+    
+    format_str = kwargs.get("FORMAT", "%Y-%m-%d %H:%M:%S")
+    var_name = kwargs.get("VAR_NAME", None)
+    
+    formatted_time = datetime.now().strftime(format_str)
+    
+    if var_name:
+        g_context().set_dict(var_name, formatted_time)
+    
+    return formatted_time""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "MD5加密",
+                    "keyword_desc": "对字符串进行MD5加密",
+                    "operation_type_id": 5,
+                    "keyword_fun_name": "md5_encrypt",
+                    "keyword_value": """def md5_encrypt(self, **kwargs):
+    \"\"\"MD5加密\"\"\"
+    import hashlib
+    
+    text = kwargs.get("TEXT", "")
+    var_name = kwargs.get("VAR_NAME", None)
+    
+    md5_hash = hashlib.md5(text.encode()).hexdigest()
+    
+    if var_name:
+        g_context().set_dict(var_name, md5_hash)
+    
+    return md5_hash""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "Base64编码",
+                    "keyword_desc": "对字符串进行Base64编码",
+                    "operation_type_id": 5,
+                    "keyword_fun_name": "base64_encode",
+                    "keyword_value": """def base64_encode(self, **kwargs):
+    \"\"\"Base64编码\"\"\"
+    import base64
+    
+    text = kwargs.get("TEXT", "")
+    var_name = kwargs.get("VAR_NAME", None)
+    
+    encoded = base64.b64encode(text.encode()).decode()
+    
+    if var_name:
+        g_context().set_dict(var_name, encoded)
+    
+    return encoded""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "Base64解码",
+                    "keyword_desc": "对Base64字符串进行解码",
+                    "operation_type_id": 5,
+                    "keyword_fun_name": "base64_decode",
+                    "keyword_value": """def base64_decode(self, **kwargs):
+    \"\"\"Base64解码\"\"\"
+    import base64
+    
+    encoded_text = kwargs.get("ENCODED_TEXT", "")
+    var_name = kwargs.get("VAR_NAME", None)
+    
+    decoded = base64.b64decode(encoded_text).decode()
+    
+    if var_name:
+        g_context().set_dict(var_name, decoded)
+    
+    return decoded""",
+                    "is_enabled": "1"
+                },
+                
+                # ================================
+                # 文件操作类关键字
+                # ================================
+                {
+                    "name": "读取文件",
+                    "keyword_desc": "读取文件内容",
+                    "operation_type_id": 6,
+                    "keyword_fun_name": "read_file",
+                    "keyword_value": """def read_file(self, **kwargs):
+    \"\"\"读取文件内容\"\"\"
+    file_path = kwargs.get("FILE_PATH", None)
+    encoding = kwargs.get("ENCODING", "utf-8")
+    var_name = kwargs.get("VAR_NAME", None)
+    
+    with open(file_path, 'r', encoding=encoding) as f:
+        content = f.read()
+    
+    if var_name:
+        g_context().set_dict(var_name, content)
+    
+    return content""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "写入文件",
+                    "keyword_desc": "写入内容到文件",
+                    "operation_type_id": 6,
+                    "keyword_fun_name": "write_file",
+                    "keyword_value": """def write_file(self, **kwargs):
+    \"\"\"写入内容到文件\"\"\"
+    file_path = kwargs.get("FILE_PATH", None)
+    content = kwargs.get("CONTENT", "")
+    encoding = kwargs.get("ENCODING", "utf-8")
+    mode = kwargs.get("MODE", "w")
+    
+    with open(file_path, mode, encoding=encoding) as f:
+        f.write(content)
+    
+    return True""",
+                    "is_enabled": "1"
+                },
+                {
+                    "name": "删除文件",
+                    "keyword_desc": "删除指定文件",
+                    "operation_type_id": 6,
+                    "keyword_fun_name": "delete_file",
+                    "keyword_value": """def delete_file(self, **kwargs):
+    \"\"\"删除文件\"\"\"
+    import os
+    
+    file_path = kwargs.get("FILE_PATH", None)
+    
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        return True
+    else:
+        raise FileNotFoundError(f"文件不存在: {file_path}")""",
+                    "is_enabled": "1"
+                }
+            ]
+
+            for keyword_data in initial_keywords:
+                keyword = ApiKeyWord(**keyword_data, create_time=datetime.now())
+                session.add(keyword)
+                logger.info(f"创建关键字: {keyword_data['name']}")
+
+            session.commit()
+            logger.info(f"初始关键字数据创建完成，共创建{len(initial_keywords)}个关键字")
+    except Exception as e:
+        logger.error(f"创建初始关键字失败: {e}")
+        raise
+
 def init_all_data():
     """初始化所有数据"""
     try:
@@ -393,7 +1055,11 @@ def init_all_data():
         with Session(engine) as session:
             init_all_ai_data(session)
         
-        logger.info("RBAC数据初始化完成！")
+        # 初始化关键字数据
+        logger.info("开始初始化关键字数据...")
+        create_initial_keywords()
+        
+        logger.info("系统数据初始化完成！")
         logger.info("=" * 70)
         logger.info("默认登录账号:")
         logger.info("  admin / admin123 (超级管理员)")
@@ -407,6 +1073,15 @@ def init_all_data():
         logger.info("  ✓ AI配置: 模型、提示词、助手、用例管理")
         logger.info("  ✓ 用户-角色-菜单权限关联")
         logger.info("  ✓ 按钮级权限控制 (查询、新增、修改、删除)")
+        logger.info("")
+        logger.info("关键字功能清单:")
+        logger.info("  ✓ 7个HTTP请求关键字 (GET/POST/PUT/DELETE/PATCH等)")
+        logger.info("  ✓ 4个数据提取关键字 (JSON/正则/响应头/Cookie)")
+        logger.info("  ✓ 5个断言验证关键字 (状态码/响应时间/文本/JSON字段/数值比较)")
+        logger.info("  ✓ 2个数据库操作关键字 (查询/更新)")
+        logger.info("  ✓ 8个工具类关键字 (等待/随机数/时间/加密/编码等)")
+        logger.info("  ✓ 3个文件操作关键字 (读取/写入/删除)")
+        logger.info("  ✓ 共计29个内置关键字，覆盖API测试全流程")
         logger.info("=" * 70)
         
     except Exception as e:

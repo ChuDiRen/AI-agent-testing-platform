@@ -59,69 +59,33 @@ const handleSelect =(e)=>{
 }
 const cookies = useCookies()
 
-// 图标映射（el-icon-xxx -> ElementPlus组件名）
-const iconMap = {
-  // 系统管理图标
-  'el-icon-setting': 'Setting',
-  'Setting': 'Setting',
-  'el-icon-tools': 'Tools',
-  'el-icon-user': 'User',
-  'User': 'User',
-  'el-icon-s-custom': 'UserFilled',
-  'UserFilled': 'UserFilled',
-  'el-icon-menu': 'Menu',
-  'Menu': 'Menu',
-  'el-icon-office-building': 'OfficeBuilding',
-  'OfficeBuilding': 'OfficeBuilding',
-  // API 测试相关图标
-  'el-icon-document': 'Document',
-  'el-icon-folder': 'Folder',
-  'Folder': 'Folder',
-  'el-icon-document-copy': 'DocumentCopy',
-  'DocumentCopy': 'DocumentCopy',
-  'el-icon-tickets': 'Tickets',
-  'Tickets': 'Tickets',
-  'el-icon-key': 'Key',
-  'Key': 'Key',
-  'el-icon-promotion': 'Promotion',
-  'Promotion': 'Promotion',
-  'el-icon-monitor': 'Monitor',
-  'Monitor': 'Monitor',
-  'el-icon-picture': 'Picture',
-  'Picture': 'Picture',
-  // AI 配置相关图标
-  'el-icon-cpu': 'Cpu',
-  'Cpu': 'Cpu',
-  'el-icon-connection': 'Connection',
-  'el-icon-data-analysis': 'DataAnalysis',
-  'el-icon-magic-stick': 'MagicStick',
-  'el-icon-edit': 'Edit',
-  'Edit': 'Edit',
-  'el-icon-notebook': 'Notebook',
-  'el-icon-reading': 'Reading',
-  'el-icon-chat-dot-round': 'ChatDotRound',
-  'ChatDotRound': 'ChatDotRound'
+// 获取菜单图标名称
+function getIconName(iconName) {
+  // 如果没有图标或图标为空，返回默认图标
+  if (!iconName) {
+    return 'Menu'
+  }
+  
+  // 直接返回后端配置的图标名称
+  // 后端已经存储的是 Element Plus 的图标组件名（如 'Key', 'User', 'Setting' 等）
+  return iconName
 }
 
-// 路由映射（后端path -> 前端实际路由）
-const routePathMap = {
-  '/system': '', // 父级菜单不跳转
-  '/system/user': '/userList',
-  '/system/role': '/roleList',
-  '/system/menu': '/menuList',
-  '/system/dept': '/deptList',
-  '/apitest': '', // 父级菜单不跳转
-  '/apitest/project': '/ApiProjectList',
-  '/apitest/keyword': '/ApiKeyWordList',
-  '/apitest/mate': '/ApiMateManageList',
-  '/apitest/apiinfo': '/ApiInfoList',
-  '/apitest/apigroup': '/ApiGroupList',
-  '/apitest/testhistory': '/ApiTestHistory',
-  '/ai-config': '', // 父级菜单不跳转
-  '/ai-config/models': '/ai-models',
-  '/ai-config/prompts': '/ai-prompts',
-  '/ai-config/ai-chat': '/ai-chat',
-  '/ai-config/testcase': '/test-cases',
+// 根据菜单类型和component字段生成前端路由路径
+function getRoutePath(node) {
+  // 如果是目录类型(M)且没有component，返回空字符串（不跳转）
+  if (node.menu_type === 'M' && !node.component) {
+    return ''
+  }
+  
+  // 如果有component字段，使用component作为路由路径
+  if (node.component) {
+    // 如果component不是以/开头，添加/前缀
+    return node.component.startsWith('/') ? node.component : `/${node.component}`
+  }
+  
+  // 其他情况返回空字符串
+  return ''
 }
 
 // 将后端的菜单树转换为前端侧边栏结构
@@ -129,11 +93,12 @@ function transformMenuTree(tree){
   if(!Array.isArray(tree)) return []
   return tree
     .filter(node => node.menu_type !== 'F') // 只要菜单和目录类型，过滤按钮(F)
+    .filter(node => node.visible === '0' && node.status === '0') // 过滤隐藏和停用的菜单
     .sort((a,b) => (a.order_num||0) - (b.order_num||0))
     .map(node => ({
       name: node.menu_name,
-      icon: iconMap[node.icon] || node.icon || 'Menu', // 映射图标
-      frontpath: routePathMap[node.path] || '',
+      icon: getIconName(node.icon), // 直接使用后端返回的图标名称
+      frontpath: getRoutePath(node), // 使用动态路径生成函数
       child: transformMenuTree(node.children||[])
     }))
     .filter(n => n.frontpath || (n.child && n.child.length > 0)) // 保留有路径或有子菜单的项
@@ -185,7 +150,7 @@ const currentActive = computed(() => {
     }
   }
   
-  return '/Statistics' // 默认激活系统总览
+  return currentPath // 返回当前路径，不强制激活系统总览
 })
 
 // 根据当前路由计算需要展开的父菜单

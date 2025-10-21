@@ -1,24 +1,178 @@
 # 用来维护关键字对应的对应的变量数据
-request_post_form_urlencoded: URL,PARAMS,HEADERS,DATA
-request_post_row_json: URL,PARAMS,HEADERS,DATA
-request_post_form_data: URL,PARAMS,HEADERS,DATA,FILES
+
+# ================================
+# HTTP请求类关键字
+# ================================
 request_get:
   - URL
   - PARAMS
   - HEADERS
+
+request_post_json:
+  - URL
+  - PARAMS
+  - HEADERS
+  - DATA
+
+request_post_form:
+  - URL
+  - PARAMS
+  - HEADERS
+  - DATA
+
+request_post_file:
+  - URL
+  - PARAMS
+  - HEADERS
+  - DATA
+  - FILES
+
+request_put:
+  - URL
+  - PARAMS
+  - HEADERS
+  - DATA
+
+request_delete:
+  - URL
+  - PARAMS
+  - HEADERS
+
+request_patch:
+  - URL
+  - PARAMS
+  - HEADERS
+  - DATA
+
+# 兼容旧版本关键字
+request_post_form_urlencoded: URL,PARAMS,HEADERS,DATA
+request_post_row_json: URL,PARAMS,HEADERS,DATA
+request_post_form_data: URL,PARAMS,HEADERS,DATA,FILES
+
+# ================================
+# 数据提取类关键字
+# ================================
+extract_json_data:
+  - EXPRESSION  # JSONPath表达式
+  - INDEX       # 下标，默认0
+  - VAR_NAME    # 需要存储的变量名
+
+extract_regex_data:
+  - EXPRESSION  # 正则表达式
+  - INDEX       # 下标，默认0
+  - VAR_NAME    # 需要存储的变量名
+
+extract_header:
+  - HEADER_NAME # 响应头名称
+  - VAR_NAME    # 需要存储的变量名
+
+extract_cookie:
+  - COOKIE_NAME # Cookie名称
+  - VAR_NAME    # 需要存储的变量名
+
+# 兼容旧版本关键字
 ex_jsonData:
   - EXVALUE  # JSON表达式
-  - INDEX # 下标，默认0
-  - VARNAME # 需要存储的变量
+  - INDEX    # 下标，默认0
+  - VARNAME  # 需要存储的变量
+
 ex_reData:
   - EXVALUE  # 正则表达式
-  - INDEX # 下标，默认0
-  - VARNAME # 需要存储的变量
-ex_mysqlData:
-  - 数据库 # 数据库的名字，在你context中维护的
-  - SQL
-  - 引用变量  # 列表格式
+  - INDEX    # 下标，默认0
+  - VARNAME  # 需要存储的变量
+
+# ================================
+# 断言验证类关键字
+# ================================
+assert_status_code:
+  - EXPECTED_CODE  # 期望的状态码
+
+assert_response_time:
+  - MAX_TIME  # 最大响应时间(秒)
+
+assert_contains_text:
+  - EXPECTED_TEXT  # 期望包含的文本
+
+assert_json_field:
+  - JSON_PATH      # JSONPath表达式
+  - EXPECTED_VALUE # 期望的值
+
+assert_number_compare:
+  - ACTUAL_VALUE   # 实际值
+  - EXPECTED_VALUE # 期望值
+  - OPERATOR       # 操作符 (>, <, ==, >=, <=, !=)
+
+# 兼容旧版本关键字
 assert_text_comparators:
-  - VALUE # 实际结果
+  - VALUE    # 实际结果
   - EXPECTED # 期望结果
-  - OP_STR # 操作符的字符串表示（如 '>', '<', '==' 等）
+  - OP_STR   # 操作符的字符串表示（如 '>', '<', '==' 等）
+
+# ================================
+# 数据库操作类关键字
+# ================================
+execute_sql_query:
+  - DB_NAME    # 数据库名称
+  - SQL        # SQL查询语句
+  - VAR_NAMES  # 变量名列表
+
+execute_sql_update:
+  - DB_NAME  # 数据库名称
+  - SQL      # SQL更新语句
+
+# 兼容旧版本关键字
+ex_mysqlData:
+  - 数据库    # 数据库的名字，在你context中维护的
+  - SQL      # SQL语句
+  - 引用变量  # 列表格式
+
+# ================================
+# 工具类关键字
+# ================================
+wait_time:
+  - SECONDS  # 等待时间(秒)
+
+generate_random_string:
+  - LENGTH    # 字符串长度
+  - VAR_NAME  # 存储变量名
+
+generate_random_number:
+  - MIN_VALUE  # 最小值
+  - MAX_VALUE  # 最大值
+  - VAR_NAME   # 存储变量名
+
+get_timestamp:
+  - VAR_NAME  # 存储变量名
+
+format_datetime:
+  - FORMAT    # 时间格式，默认 %Y-%m-%d %H:%M:%S
+  - VAR_NAME  # 存储变量名
+
+md5_encrypt:
+  - TEXT      # 要加密的文本
+  - VAR_NAME  # 存储变量名
+
+base64_encode:
+  - TEXT      # 要编码的文本
+  - VAR_NAME  # 存储变量名
+
+base64_decode:
+  - ENCODED_TEXT  # 要解码的文本
+  - VAR_NAME      # 存储变量名
+
+# ================================
+# 文件操作类关键字
+# ================================
+read_file:
+  - FILE_PATH  # 文件路径
+  - ENCODING   # 文件编码，默认utf-8
+  - VAR_NAME   # 存储变量名
+
+write_file:
+  - FILE_PATH  # 文件路径
+  - CONTENT    # 文件内容
+  - ENCODING   # 文件编码，默认utf-8
+  - MODE       # 写入模式，默认w
+
+delete_file:
+  - FILE_PATH  # 文件路径
