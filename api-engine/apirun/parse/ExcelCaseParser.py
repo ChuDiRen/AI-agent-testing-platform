@@ -1,5 +1,5 @@
 import copy, os, yaml
-from apirun.core.globalContext import g_context
+from ..core.globalContext import g_context
 import pandas as pd
 import json
 import ast
@@ -51,7 +51,7 @@ def load_excel_files(config_path):
     file_names = [f[-1] for f in file_names]
 
     # 因为需要excel的参数一一对应起来关键字，所以需要结合：keywords.yaml中的参数描述变成字典格式。
-    keywords_file_path = r"F:\ProjectHcEdu\api-engine\apirun\extend\keywords.yaml"
+    keywords_file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'extend', 'keywords.yaml')
     keywords_info = {}
     with open(keywords_file_path, "r", encoding='utf-8') as rfile:
         keywords_info = yaml.full_load(rfile)

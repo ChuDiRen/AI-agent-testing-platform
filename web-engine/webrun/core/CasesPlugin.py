@@ -1,7 +1,7 @@
 import pytest
 
-from webrun.parse.CaseParser import case_parser
-from webrun.core.globalContext import g_context
+from ..parse.CaseParser import case_parser
+from .globalContext import g_context
 
 
 class CasesPlugin:

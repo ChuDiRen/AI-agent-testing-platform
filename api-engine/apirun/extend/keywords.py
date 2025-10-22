@@ -2,9 +2,10 @@ import mimetypes
 from importlib.metadata import files
 
 import allure
-from selenium.webdriver.common.devtools.v85.indexed_db import request_data
+# 移除过时的selenium devtools导入，这个模块在新版本selenium中已不存在
+# from selenium.webdriver.common.devtools.v85.indexed_db import request_data
 
-from apirun.core.globalContext import g_context
+from ..core.globalContext import g_context
 import requests
 import jsonpath
 import re

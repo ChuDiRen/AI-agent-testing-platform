@@ -1,7 +1,8 @@
 import pytest
+import os
 
-from apirun.parse.CaseParser import case_parser
-from apirun.core.globalContext import g_context
+from ..parse.CaseParser import case_parser
+from .globalContext import g_context
 
 
 class CasesPlugin:
@@ -21,9 +22,10 @@ class CasesPlugin:
         parser.addoption(
             "--cases", action="store", default="../examples", help="测试用例目录"
         )
-        # 添加一个指定的关键字目录
+        # 添加一个指定的关键字目录（默认指向包内 extend/script 路径）
+        default_key_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'extend', 'script')
         parser.addoption(
-            "--keyDir", action="store", default="F:\\key_py", help="拓展关键字目录"
+            "--keyDir", action="store", default=default_key_dir, help="拓展关键字目录"
         )
 
     def pytest_generate_tests(self, metafunc):

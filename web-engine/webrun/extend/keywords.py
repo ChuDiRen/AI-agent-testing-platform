@@ -12,8 +12,8 @@ from selenium.webdriver.support.select import Select
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
-from webrun.core.globalContext import g_context
-from webrun.utils.DriverManager import DriverManager
+from ..core.globalContext import g_context
+from ..utils.DriverManager import DriverManager
 
 
 class Keywords:

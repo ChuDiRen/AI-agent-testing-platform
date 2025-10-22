@@ -1,7 +1,7 @@
 import copy, os, yaml
 import uuid
 from yamlinclude import YamlIncludeConstructor
-from apirun.core.globalContext import g_context
+from ..core.globalContext import g_context
 
 
 # 获取以context开头 .yaml结尾的内容，并放入到公共参数中去!

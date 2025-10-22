@@ -1,8 +1,10 @@
 import copy
 import os
 import yaml
+import copy
 import uuid
-from webrun.core.globalContext import g_context
+
+from ..core.globalContext import g_context
 
 
 def load_context_from_yaml(folder_path):

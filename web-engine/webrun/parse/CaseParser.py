@@ -2,7 +2,7 @@
 测试用例解析器入口
 根据用例类型选择对应的解析器
 """
-from webrun.parse.YamlCaseParser import yaml_case_parser
+from .YamlCaseParser import yaml_case_parser
 
 
 def case_parser(case_type, cases_dir):

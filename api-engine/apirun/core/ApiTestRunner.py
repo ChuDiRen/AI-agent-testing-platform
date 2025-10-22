@@ -1,12 +1,12 @@
 import copy
 import sys, allure
 
-from apirun.extend.keywords import Keywords
-from apirun.extend.script import run_script
-from apirun.core.globalContext import g_context
-from apirun.utils.VarRender import refresh
+from ..extend.keywords import Keywords
+from ..extend.script import run_script
+from .globalContext import g_context
+from ..utils.VarRender import refresh
 # TODO 扩展-多文件执行：
-from apirun.utils.DynamicTitle import dynamicTitle  # 动态标题
+from ..utils.DynamicTitle import dynamicTitle  # 动态标题
 
 class TestRunner:
     def test_case_execute(self, caseinfo):
