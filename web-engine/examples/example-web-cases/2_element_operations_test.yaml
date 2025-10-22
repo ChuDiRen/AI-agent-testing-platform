@@ -1,0 +1,70 @@
+desc: 元素操作测试用例
+steps:
+  - 打开浏览器:
+      关键字: open_browser
+      浏览器: chrome
+      无头模式: false
+  
+  - 导航到测试页面:
+      关键字: navigate_to
+      url: https://www.selenium.dev/selenium/web/web-form.html
+  
+  - 输入文本框内容:
+      关键字: input_text
+      定位方式: id
+      元素: my-text-id
+      文本: Hello Selenium
+  
+  - 获取文本框内容:
+      关键字: get_attribute
+      定位方式: id
+      元素: my-text-id
+      属性名: value
+      变量名: input_value
+  
+  - 输入密码:
+      关键字: input_text
+      定位方式: name
+      元素: my-password
+      文本: test123456
+  
+  - 输入文本域:
+      关键字: input_text
+      定位方式: name
+      元素: my-textarea
+      文本: This is a test textarea content
+  
+  - 选择下拉框:
+      关键字: select_dropdown
+      定位方式: name
+      元素: my-select
+      选择方式: value
+      选项值: "2"
+  
+  - 点击提交按钮:
+      关键字: click_element
+      定位方式: xpath
+      元素: //button[@type='submit']
+  
+  - 等待成功页面:
+      关键字: wait_for_element_visible
+      定位方式: id
+      元素: message
+      超时时间: 5
+  
+  - 断言成功消息可见:
+      关键字: assert_element_visible
+      定位方式: id
+      元素: message
+  
+  - 截图:
+      关键字: take_screenshot
+      文件名: form_submit_success
+  
+  - 关闭浏览器:
+      关键字: close_browser
+
+post_script:
+  - 'print("元素操作测试完成")'
+  - 'print("输入的值:", g_context().get_dict("input_value"))'
+

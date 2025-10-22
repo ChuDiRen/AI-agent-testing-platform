@@ -1,0 +1,18 @@
+# Web 测试全局配置文件
+
+# 基础URL
+BASE_URL: https://www.baidu.com
+
+# 浏览器配置
+BROWSER: chrome
+HEADLESS: false
+IMPLICIT_WAIT: 10
+WINDOW_SIZE: maximize
+
+# 测试账号配置（示例）
+TEST_USERNAME: testuser
+TEST_PASSWORD: testpass123
+
+# 超时配置
+DEFAULT_TIMEOUT: 10
+

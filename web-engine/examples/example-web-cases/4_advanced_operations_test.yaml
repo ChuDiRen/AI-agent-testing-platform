@@ -1,0 +1,51 @@
+desc: 高级操作测试用例
+steps:
+  - 打开浏览器:
+      关键字: open_browser
+      浏览器: chrome
+      无头模式: false
+  
+  - 导航到W3School:
+      关键字: navigate_to
+      url: https://www.w3school.com.cn/tiy/t.asp?f=html_form_submit
+  
+  - 等待页面加载:
+      关键字: sleep
+      时间: 2
+  
+  - 切换到iframe:
+      关键字: switch_to_frame
+      定位方式: id
+      元素: iframeResult
+  
+  - 输入名字:
+      关键字: input_text
+      定位方式: name
+      元素: fname
+      文本: John
+  
+  - 输入姓氏:
+      关键字: input_text
+      定位方式: name
+      元素: lname
+      文本: Doe
+  
+  - 截图iframe内容:
+      关键字: take_screenshot
+      文件名: iframe_form
+  
+  - 切换回主文档:
+      关键字: switch_to_frame
+  
+  - 执行JavaScript获取标题:
+      关键字: execute_script
+      脚本: return document.title;
+      变量名: page_title
+  
+  - 关闭浏览器:
+      关键字: close_browser
+
+post_script:
+  - 'print("高级操作测试完成")'
+  - 'print("页面标题:", g_context().get_dict("page_title"))'
+

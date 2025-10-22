@@ -1,0 +1,58 @@
+desc: 百度搜索测试用例
+pre_script:
+  - 'print("开始执行百度搜索测试...")'
+steps:
+  - 打开浏览器:
+      关键字: open_browser
+      浏览器: "{{BROWSER}}"
+      无头模式: "{{HEADLESS}}"
+      隐式等待: "{{IMPLICIT_WAIT}}"
+      窗口大小: "{{WINDOW_SIZE}}"
+  
+  - 导航到百度首页:
+      关键字: navigate_to
+      url: "{{BASE_URL}}"
+  
+  - 断言页面标题包含百度:
+      关键字: assert_title_contains
+      期望文本: 百度
+  
+  - 输入搜索关键词:
+      关键字: input_text
+      定位方式: id
+      元素: kw
+      文本: Selenium WebDriver
+      清空: true
+  
+  - 点击搜索按钮:
+      关键字: click_element
+      定位方式: id
+      元素: su
+  
+  - 等待搜索结果出现:
+      关键字: wait_for_element_visible
+      定位方式: id
+      元素: content_left
+      超时时间: 10
+  
+  - 截图保存搜索结果:
+      关键字: take_screenshot
+      文件名: baidu_search_result
+  
+  - 断言搜索结果包含关键词:
+      关键字: assert_text_contains
+      定位方式: id
+      元素: content_left
+      期望文本: Selenium
+  
+  - 获取当前URL:
+      关键字: get_current_url
+      变量名: search_result_url
+  
+  - 关闭浏览器:
+      关键字: close_browser
+
+post_script:
+  - 'print("百度搜索测试执行完毕")'
+  - 'print("搜索结果URL:", g_context().get_dict("search_result_url"))'
+
