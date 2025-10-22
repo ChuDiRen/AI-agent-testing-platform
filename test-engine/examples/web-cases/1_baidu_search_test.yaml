@@ -34,7 +34,7 @@ steps:
 
   - 等待搜索结果出现:
       关键字: wait_for_page_load
-      等待条件: networkidle
+      等待条件: load
       超时时间: 10000
 
   - 截图保存搜索结果:

@@ -78,12 +78,15 @@ pip install -e .
 # API 测试
 python -m testrun.cli --engine-type=api --type=yaml --cases=examples/api-cases
 
-# Web 测试
-python -m testrun.cli --engine-type=web --type=yaml --cases=examples/web-cases --browser=chrome --headless=false
+# Web 测试（有头模式）
+python -m testrun.cli --engine-type=web --type=yaml --cases=examples/web-cases --browser=chromium --headless=false
+
+# Web 测试（无头模式 - 适用于 CI/CD）
+python -m testrun.cli --engine-type=web --type=yaml --cases=examples/web-cases --browser=chromium --headless=true
 
 # 安装后可直接使用 testrun 命令
 testrun --engine-type=api --type=yaml --cases=examples/api-cases
-testrun --engine-type=web --type=yaml --cases=examples/web-cases --browser=chrome
+testrun --engine-type=web --type=yaml --cases=examples/web-cases --browser=chromium --headless=true
 ```
 
 #### 方式二：通过配置文件指定
@@ -354,8 +357,14 @@ TEST_PASSWORD: testpass123
 
 | 参数 | 说明 | 默认值 | 示例 |
 |------|------|--------|------|
-| `--browser` | 浏览器类型 | chrome | `--browser=firefox` |
-| `--headless` | 无头模式 | false | `--headless=true` |
+| `--browser` | 浏览器类型 (chromium/firefox/webkit) | chrome | `--browser=chromium` |
+| `--headless` | 无头模式 (true/false) | false | `--headless=true` |
+
+**参数优先级**: 命令行参数 > context.yaml 配置文件 > 默认值
+
+**说明**:
+- 命令行参数会覆盖 `context.yaml` 中的 `BROWSER` 和 `HEADLESS` 配置
+- 适用于 CI/CD 环境动态切换浏览器模式，无需修改配置文件
 
 ## 🔧 自定义关键字
 
@@ -429,7 +438,18 @@ Web 测试推荐使用稳定的定位方式：
 - 命令行：`--engine-type=api` 或 `--engine-type=web`
 - 配置文件：在 `context.yaml` 中添加 `ENGINE_TYPE: api` 或 `ENGINE_TYPE: web`
 
-### 2. 可以在一次运行中同时执行 API 和 Web 测试吗？
+### 2. 命令行参数 --headless=true 不生效怎么办？
+
+**已修复**！现在命令行参数会正确覆盖 `context.yaml` 中的配置。
+
+**参数优先级**: 命令行参数 > context.yaml > 默认值
+
+```bash
+# 命令行参数会覆盖配置文件中的 HEADLESS: false
+testrun --engine-type=web --cases=examples/web-cases --headless=true
+```
+
+### 3. 可以在一次运行中同时执行 API 和 Web 测试吗？
 
 不可以。每次运行只能选择一种引擎类型。如需同时执行，请分别运行两次。
 
