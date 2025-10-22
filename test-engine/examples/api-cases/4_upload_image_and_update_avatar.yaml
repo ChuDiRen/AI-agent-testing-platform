@@ -1,0 +1,48 @@
+desc: 4_上传图片并且修改头像.yaml
+pre_script:
+- 'print("执行前...")'
+steps:
+- 发送请求-登录接口:
+    关键字: send_request
+    method: POST
+    url: "{{DSWURL}}/user/login"
+#    headers: ~
+#    params: {}
+    data:
+      username: 15096268001
+      password: 123456
+- 通过JSONPATH提取数据-TOKEN:
+    关键字: ex_jsonData
+    EXVALUE: $..token
+    INDEX: 0
+    VARNAME: msg_token
+- 发送请求-上传图片接口:
+    关键字: send_request
+    method: POST
+    url: "{{DSWURL}}/file/picUpload"
+#    headers: ~
+#    params: {}
+    files:
+      - file: ..\examples\engine-case-backup\P1.png  # 本地地址直接给文件名即可
+#      - file: http://192.168.1.106:9000/apitest/需求-4.png # URL 则先要下载本地，再进行上传
+- 通过JSONPATH提取数据-图片路径:
+     关键字: ex_jsonData
+     EXVALUE: $..data
+     INDEX: 0
+     VARNAME: msg_pic_path
+- 通过JSONPATH提取数据-图片路径:
+     关键字: ex_jsonData
+     EXVALUE: $..data
+     INDEX: 0
+     VARNAME: msg_pic_path
+- 发送请求-设置用户头像:
+    关键字: send_request
+    method: POST
+    url: "{{DSWURL}}/user/updateUserInfo"
+    headers:
+      Authorization: "{{msg_token}}"
+    data:
+      userPhoto:  "{{msg_pic_path}}"
+post_script:
+- 'print("执行后...")'
+

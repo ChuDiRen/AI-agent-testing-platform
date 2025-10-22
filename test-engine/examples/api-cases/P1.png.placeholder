@@ -1,0 +1,12 @@
+# P1.png 图片文件说明
+
+这里应该放置一个名为 P1.png 的测试图片文件。
+
+该图片用于测试用例：
+- 4_upload_image_and_update_avatar.yaml （上传图片并修改头像）
+- 5_download_image_comparison.yaml （下载图片文件接口比对）
+
+MD5 值应为: e589f7595e2cf290149774a27269d876
+
+请将测试用的图片文件命名为 P1.png 并放置在此目录。
+

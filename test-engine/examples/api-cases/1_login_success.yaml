@@ -1,0 +1,31 @@
+desc: 示例-登录接口
+steps:
+- 示例-登录接口:
+    data:
+      accounts: '{{username}}'
+      pwd: '{{password}}'
+      type: username
+    method: POST
+    params:
+      application: app
+      s: api/user/login
+    url: '{{URL}}'
+    关键字: send_request
+- 提取msg:
+    关键字: ex_jsonData
+    EXVALUE: $..msg
+    VARNAME: msg_msg
+    INDEX: '0'
+- 是否是登录成功:
+    关键字: assert_text_comparators
+    VALUE: '{{msg_msg}}'
+    EXPECTED: 登录成功
+    OP_STR: ==
+ddts:
+  - desc: 用户hami登录成功
+    username: hami
+    password: '123456'
+  - desc: 用户hami11登录成功
+    username: hami11
+    password: '123456'
+

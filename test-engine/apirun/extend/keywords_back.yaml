@@ -1,0 +1,37 @@
+# 用来维护关键字对应的对应的变量数据
+request_post_form_urlencoded:
+  - URL
+  - PARAMS
+  - HEADERS
+  - DATA
+request_post_row_json:
+  - URL
+  - PARAMS
+  - HEADERS
+  - DATA
+request_post_form_data:
+  - URL
+  - PARAMS
+  - HEADERS
+  - DATA
+  - FILES
+request_get:
+  - URL
+  - PARAMS
+  - HEADERS
+ex_jsonData:
+  - EXVALUE  # JSON表达式
+  - INDEX # 下标，默认0
+  - VARNAME # 需要存储的变量
+ex_reData:
+  - EXVALUE  # 正则表达式
+  - INDEX # 下标，默认0
+  - VARNAME # 需要存储的变量
+ex_mysqlData:
+  - 数据库 # 数据库的名字，在你context中维护的
+  - SQL
+  - 引用变量  # 列表格式
+assert_text_comparators:
+  - VALUE # 实际结果
+  - EXPECTED # 期望结果
+  - OP_STR # 操作符的字符串表示（如 '>', '<', '==' 等）
