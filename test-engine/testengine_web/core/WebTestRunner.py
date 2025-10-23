@@ -2,11 +2,11 @@ import copy
 import sys
 import allure
 
-from webrun.extend.keywords import Keywords
-from webrun.extend.script import run_script
-from webrun.core.globalContext import g_context
-from webrun.utils.VarRender import refresh
-from webrun.utils.DynamicTitle import dynamicTitle
+from ..extend.keywords import Keywords  # 相对导入: webrun内部模块
+from ..extend.script import run_script  # 相对导入: webrun内部模块
+from .globalContext import g_context  # 相对导入: 同级模块
+from ..utils.VarRender import refresh  # 相对导入: webrun内部模块
+from ..utils.DynamicTitle import dynamicTitle  # 相对导入: webrun内部模块
 
 
 class TestRunner:

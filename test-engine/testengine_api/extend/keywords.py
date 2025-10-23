@@ -3,7 +3,7 @@ from importlib.metadata import files
 
 import allure
 
-from apirun.core.globalContext import g_context
+from ..core.globalContext import g_context  # 相对导入: apirun内部模块
 import requests
 import jsonpath
 import re

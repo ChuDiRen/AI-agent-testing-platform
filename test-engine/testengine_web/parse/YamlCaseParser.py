@@ -2,7 +2,7 @@ import copy
 import os
 import yaml
 import uuid
-from webrun.core.globalContext import g_context
+from ..core.globalContext import g_context  # 相对导入: webrun内部模块
 
 
 def load_context_from_yaml(folder_path):

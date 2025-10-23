@@ -37,12 +37,12 @@ test-engine/
 ├── testrun/                # 统一入口模块
 │   ├── __init__.py
 │   └── cli.py             # 统一命令行入口
-├── apirun/                # API测试引擎
+├── testengine_api/        # API测试引擎
 │   ├── core/              # 核心运行器
 │   ├── extend/            # 关键字扩展
 │   ├── parse/             # 用例解析器
 │   └── utils/             # 工具类
-├── webrun/                # Web测试引擎
+├── testengine_web/        # Web测试引擎
 │   ├── core/              # 核心运行器
 │   ├── extend/            # 关键字扩展
 │   ├── parse/             # 用例解析器

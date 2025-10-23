@@ -1,8 +1,8 @@
 # 用例解析器， 根据你传过来的参数，选择不同的解析器
 import os
 
-from apirun.parse.YamlCaseParser import yaml_case_parser
-from apirun.parse.ExcelCaseParser import excel_case_parser
+from .YamlCaseParser import yaml_case_parser  # 相对导入: 同级模块
+from .ExcelCaseParser import excel_case_parser  # 相对导入: 同级模块
 
 
 def case_parser(case_type, case_dir):

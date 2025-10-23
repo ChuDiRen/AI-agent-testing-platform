@@ -68,7 +68,7 @@ def run_api_engine():
     运行 API 测试引擎
     """
     try:
-        from apirun.core.CasesPlugin import CasesPlugin
+        from testengine_api.core.CasesPlugin import CasesPlugin  # 绝对导入: 跨包导入
 
         # 获取 python 运行参数
         pytest_cmd_config = []
@@ -77,7 +77,7 @@ def run_api_engine():
                 pytest_cmd_config.append(arg)
 
         # 构建 pytest 参数
-        api_runner_path = os.path.join(os.path.dirname(__file__), "..", "apirun", "core", "ApiTestRunner.py")
+        api_runner_path = os.path.join(os.path.dirname(__file__), "..", "testengine_api", "core", "ApiTestRunner.py")
         pytest_args = [api_runner_path]
         pytest_args.extend(pytest_cmd_config)
 
@@ -94,7 +94,7 @@ def run_web_engine():
     运行 Web 测试引擎
     """
     try:
-        from webrun.core.CasesPlugin import CasesPlugin
+        from testengine_web.core.CasesPlugin import CasesPlugin  # 绝对导入: 跨包导入
 
         # 获取 python 运行参数
         pytest_cmd_config = []
@@ -103,7 +103,7 @@ def run_web_engine():
                 pytest_cmd_config.append(arg)
 
         # 构建 pytest 参数
-        web_runner_path = os.path.join(os.path.dirname(__file__), "..", "webrun", "core", "WebTestRunner.py")
+        web_runner_path = os.path.join(os.path.dirname(__file__), "..", "testengine_web", "core", "WebTestRunner.py")
         pytest_args = [web_runner_path]
         pytest_args.extend(pytest_cmd_config)
 

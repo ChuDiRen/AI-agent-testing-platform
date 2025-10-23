@@ -6,7 +6,7 @@ try:
 except ImportError:
     # pyyaml-include 1.x
     from yamlinclude import YamlIncludeConstructor
-from apirun.core.globalContext import g_context
+from ..core.globalContext import g_context  # 相对导入: apirun内部模块
 
 
 # 获取以context开头 .yaml结尾的内容，并放入到公共参数中去!

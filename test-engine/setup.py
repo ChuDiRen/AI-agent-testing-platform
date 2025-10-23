@@ -26,8 +26,8 @@ setup(
     # 包含非 Python 文件
     include_package_data=True,
     package_data={
-        'apirun': ['*.yaml', '*.ini'],
-        'webrun': ['*.yaml', '*.ini'],
+        'testengine_api': ['*.yaml', '*.ini'],
+        'testengine_web': ['*.yaml', '*.ini'],
     },
     
     # 安装依赖

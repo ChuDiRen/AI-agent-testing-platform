@@ -7,8 +7,8 @@ import time
 import allure
 from playwright.sync_api import expect, TimeoutError as PlaywrightTimeoutError
 
-from webrun.core.globalContext import g_context
-from webrun.utils.PlaywrightManager import PlaywrightManager
+from ..core.globalContext import g_context  # 相对导入: webrun内部模块
+from ..utils.PlaywrightManager import PlaywrightManager  # 相对导入: webrun内部模块
 
 
 class Keywords:
