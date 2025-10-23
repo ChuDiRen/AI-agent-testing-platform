@@ -2,10 +2,10 @@ import os
 import sys
 import pytest
 
-# 添加父目录到Python路径，使webrun可以被导入
+# 添加父目录到Python路径,使webrun可以被导入
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from webrun.core.CasesPlugin import CasesPlugin
+from webrun.core.CasesPlugin import CasesPlugin  # 绝对导入: cli.py作为入口文件
 
 
 def run():

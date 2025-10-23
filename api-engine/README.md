@@ -17,25 +17,32 @@
 ```
 api-engine/
 ├── apirun/                 # 核心引擎代码
-│   ├── core/              # 核心运行器
+│   ├── core/              # 核心运行器 (使用相对导入)
 │   │   ├── ApiTestRunner.py    # 测试执行器
 │   │   ├── globalContext.py    # 全局上下文
 │   │   └── CasesPlugin.py      # pytest 插件
-│   ├── extend/            # 关键字扩展
+│   ├── extend/            # 关键字扩展 (使用相对导入)
 │   │   ├── keywords.py         # 关键字库
 │   │   └── script/            # 脚本执行器
-│   ├── parse/             # 用例解析器
+│   ├── parse/             # 用例解析器 (使用相对导入)
 │   │   ├── YamlCaseParser.py   # YAML 解析器
+│   │   ├── ExcelCaseParser.py  # Excel 解析器
 │   │   └── CaseParser.py       # 解析器入口
-│   └── utils/             # 工具类
-│       ├── VarRender.py        # 变量渲染
-│       └── DynamicTitle.py     # 动态标题
+│   ├── utils/             # 工具类 (使用相对导入)
+│   │   ├── VarRender.py        # 变量渲染
+│   │   └── DynamicTitle.py     # 动态标题
+│   └── cli.py             # 命令行入口 (使用绝对导入,支持直接运行)
 ├── examples/              # 示例用例
 │   ├── example-api-cases/     # YAML 用例
 │   └── example-pytest-scripts/ # Pytest 脚本
 ├── requirements.txt       # 依赖配置
 └── setup.py              # 安装配置
 ```
+
+## 导入策略说明
+
+- **cli.py**: 作为命令行入口文件,使用**绝对导入**,支持直接运行 `python cli.py`
+- **其他模块**: apirun 内部模块(core/extend/parse/utils)使用**相对导入**,提高模块独立性
 
 ## 快速开始
 
@@ -50,15 +57,31 @@ pip install -r requirements.txt
 
 #### 方式一：运行 YAML 用例
 
+**推荐方式 - 直接运行 cli.py**:
+
 ```bash
 cd apirun
 python cli.py --type=yaml --cases=../examples/example-api-cases
 ```
 
+**模块方式运行**:
+
+```bash
+cd api-engine
+python -m apirun.cli --type=yaml --cases=examples/example-api-cases
+```
+
+**使用 pytest 直接运行**:
+
+```bash
+cd apirun
+pytest core/ApiTestRunner.py --type=yaml --cases=../examples/example-api-cases
+```
+
 #### 方式二：运行 Pytest 脚本
 
 ```bash
-cd api-engine/examples/example-pytest-scripts
+cd examples/example-pytest-scripts
 pytest -v -s
 ```
 
@@ -287,16 +310,36 @@ class MyKeyword:
 
 ## 常见问题
 
-### 1. 如何在 YAML 和 Pytest 之间选择？
+### 1. 为什么 cli.py 使用绝对导入,其他模块使用相对导入?
+
+- **cli.py**: 作为入口文件,需要支持直接运行 `python cli.py`,因此使用绝对导入
+- **其他模块**: 内部模块使用相对导入,提高模块独立性和可移植性
+- **最佳实践**: 入口文件绝对导入,内部模块相对导入
+
+### 2. 运行 cli.py 时报 ImportError 怎么办?
+
+确保在正确的目录运行:
+```bash
+cd apirun
+python cli.py --type=yaml --cases=../examples/example-api-cases
+```
+
+或使用模块方式:
+```bash
+cd api-engine
+python -m apirun.cli --type=yaml --cases=examples/example-api-cases
+```
+
+### 3. 如何在 YAML 和 Pytest 之间选择？
 
 - **YAML**：适合简单测试、数据驱动、非编程人员
 - **Pytest**：适合复杂逻辑、需要编程灵活性、开发人员
 
-### 2. Pytest 脚本可以使用 g_context 吗？
+### 4. Pytest 脚本可以使用 g_context 吗？
 
 不建议。原生 Pytest 脚本应该使用 Python 原生方式管理变量，保持独立性。
 
-### 3. 如何在 Pytest 中使用框架关键字？
+### 5. 如何在 Pytest 中使用框架关键字？
 
 通过 `api_keywords` fixture 注入：
 
