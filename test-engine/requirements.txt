@@ -18,7 +18,7 @@ pyyaml-include>=1.3.1
 Jinja2>=3.1.3
 
 # ===== API 测试相关 =====
-requests>=2.31.0
+httpx>=0.27.0  # 异步 HTTP 客户端,替代 requests
 jsonpath>=0.82.2
 
 # ===== Web 测试相关 =====

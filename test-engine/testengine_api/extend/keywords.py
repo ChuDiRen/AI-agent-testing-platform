@@ -4,7 +4,9 @@ from importlib.metadata import files
 import allure
 
 from ..core.globalContext import g_context  # 相对导入: apirun内部模块
-import requests
+import httpx  # 使用 httpx 替代 requests
+import asyncio  # 异步支持
+from ..utils.async_client import AsyncClientManager, run_async  # 异步客户端管理器
 import jsonpath
 import re
 import time
@@ -22,7 +24,6 @@ class Keywords:
 
     @allure.step(">>>>>>参数数据：")
     def send_request(self, **kwargs):
-        self.request = requests.Session()
         # 剔除不需要的字段，例如 EXVALUE
         kwargs.pop("关键字", None)  # 如果存在 关键字 字段则删除，否则不操作
 
@@ -33,26 +34,38 @@ class Keywords:
             kwargs.update(files=files)
 
         #  先初始化请求数据，避免接口请求不通过，前端没有请求数据显示
+        params = kwargs.get("params")
+        url_with_params = kwargs.get("url", "")
+        if params:
+            url_with_params = f'{url_with_params}?{urlencode(params)}'
+
         request_data = {
-            "url": unquote(f'{kwargs.get("url", "")}?{urlencode(kwargs.get("params", ""))}'),
+            "url": unquote(url_with_params),
             "method": kwargs.get("method", ""),
             "headers": kwargs.get("headers", ""),
             "body": kwargs.get("data", "") or kwargs.get("json", "") or kwargs.get("files", ""),
             "response": kwargs.get("response", "")
         }
 
+        # 定义异步请求函数
+        async def _async_request():
+            client = await AsyncClientManager.get_client()  # 获取复用的异步客户端
+            response = await client.request(**kwargs)  # 执行异步请求
+            return response
+
         try:
-            #  可能报错
-            response = self.request.request(**kwargs)
+            #  执行异步请求
+            response = run_async(_async_request())
+            self.request = response  # 保存 response 对象供后续使用
 
             g_context().set_dict("current_response", response)  # 默认设置成全局变量-- 对象
 
             #  组装请求数据到全局变量，从response进行获取。方便平台进行显示, 可能请求出错，所以结合请求数据进行填写
             request_data = {
-                "url": unquote(response.url),
+                "url": unquote(str(response.url)),  # httpx.URL 需要转字符串
                 "method": response.request.method,
                 "headers": dict(response.request.headers),
-                "body": str(response.request.body), # 避免返回的是二进制数据 接口端报错。
+                "body": str(response.request.content), # httpx 使用 content 而非 body
                 "response": response.text
             }
             g_context().set_dict("current_response_data", request_data)  # 默认设置成全局变量
@@ -67,7 +80,6 @@ class Keywords:
 
     @allure.step(">>>>>>参数数据：")
     def send_request_and_download(self, **kwargs):
-        self.request = requests.Session()
         # 剔除不需要的字段，例如 EXVALUE
         kwargs.pop("关键字", None)  # 如果存在 关键字 字段则删除，否则不操作
 
@@ -87,9 +99,16 @@ class Keywords:
             "current_response_file_path": ""
         }
 
+        # 定义异步请求函数
+        async def _async_request():
+            client = await AsyncClientManager.get_client()  # 获取复用的异步客户端
+            response = await client.request(**kwargs)  # 执行异步请求
+            return response
+
         try:
-            #  可能报错
-            response = self.request.request(**kwargs)
+            #  执行异步请求
+            response = run_async(_async_request())
+            self.request = response  # 保存 response 对象供后续使用
 
             g_context().set_dict("current_response", response)  # 默认设置成全局变量-- 对象
 
@@ -105,10 +124,10 @@ class Keywords:
 
             #  组装请求数据到全局变量，从response进行获取。方便平台进行显示, 可能请求出错，所以结合请求数据进行填写
             request_data = {
-                "url": unquote(response.url),
+                "url": unquote(str(response.url)),  # httpx.URL 需要转字符串
                 "method": response.request.method,
                 "headers": dict(response.request.headers),
-                "body": response.request.body,
+                "body": str(response.request.content),  # httpx 使用 content
                 "response": response.text,
                 "current_response_file_path":file_path
             }
@@ -216,13 +235,12 @@ class Keywords:
 
     def process_upload_files(self, file_list):
         """
-        处理上传文件，返回 requests 支持的 files 列表格式
+        处理上传文件，返回 httpx 支持的 files 列表格式
         :param file_list: 文件列表，格式如 [{'file': 'path_or_url'}, {'avatar': 'path2'}]
         :return: 处理后的 files 列表
         """
 
         import os
-        import requests as req
         from urllib.parse import urlparse
 
         processed_files = []
@@ -232,13 +250,20 @@ class Keywords:
         if not os.path.exists(download_dir):
             os.makedirs(download_dir)
 
+        # 定义异步下载函数
+        async def _download_file(url):
+            client = await AsyncClientManager.get_client()
+            response = await client.get(url)
+            response.raise_for_status()
+            return response
+
         for item in file_list:
             for field_name, file_path in item.items():
                 # 判断是否是 URL
                 if file_path.startswith(('http://', 'https://')):
                     try:
-                        response = req.get(file_path, stream=True)
-                        response.raise_for_status()
+                        # 使用异步 httpx 下载文件
+                        response = run_async(_download_file(file_path))
 
                         # 提取文件名（从URL）
                         parsed_url = urlparse(file_path)
@@ -250,9 +275,7 @@ class Keywords:
 
                         # 写入本地文件
                         with open(local_path, 'wb') as f:
-                            for chunk in response.iter_content(chunk_size=1024):
-                                if chunk:
-                                    f.write(chunk)
+                            f.write(response.content)  # httpx 直接使用 content
 
                         file_path = local_path  # 替换为本地路径
                     except Exception as e:
@@ -289,7 +312,13 @@ class Keywords:
             "data": data,
         }
 
-        response = requests.post(**request_data)
+        # 定义异步请求函数
+        async def _async_post():
+            client = await AsyncClientManager.get_client()
+            response = await client.post(**request_data)
+            return response
+
+        response = run_async(_async_post())  # 执行异步请求
         g_context().set_dict("current_response", response)  # 默认设置成全局变量
         print("-----------------------")
         print(response.text)
@@ -312,7 +341,13 @@ class Keywords:
             "json": data,
         }
 
-        response = requests.post(**request_data)
+        # 定义异步请求函数
+        async def _async_post():
+            client = await AsyncClientManager.get_client()
+            response = await client.post(**request_data)
+            return response
+
+        response = run_async(_async_post())  # 执行异步请求
         g_context().set_dict("current_response", response)  # 默认设置成全局变量
         print("-----------------------")
         print(response.text)
@@ -337,7 +372,13 @@ class Keywords:
             "data": data,
         }
 
-        response = requests.post(**request_data)
+        # 定义异步请求函数
+        async def _async_post():
+            client = await AsyncClientManager.get_client()
+            response = await client.post(**request_data)
+            return response
+
+        response = run_async(_async_post())  # 执行异步请求
         g_context().set_dict("current_response", response)  # 默认设置成全局变量
         print("-----------------------")
         print(response.text)
@@ -357,7 +398,14 @@ class Keywords:
             "params": params,
             "headers": headers,
         }
-        response = requests.get(**request_data)
+
+        # 定义异步请求函数
+        async def _async_get():
+            client = await AsyncClientManager.get_client()
+            response = await client.get(**request_data)
+            return response
+
+        response = run_async(_async_get())  # 执行异步请求
         g_context().set_dict("current_response", response)  # 默认设置成全局变量
         print("-----------------------")
         print(response.json())

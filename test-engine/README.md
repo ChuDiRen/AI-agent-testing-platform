@@ -14,7 +14,9 @@
 - 🔧 **易扩展**：支持自定义关键字扩展
 
 ### API 测试特性
-- 📡 基于 requests 库
+- 📡 基于 httpx 异步库 - 高性能 HTTP 客户端
+- ⚡ 异步请求支持 - 连接池复用,性能更优
+- 🔄 HTTP/2 支持 - 现代化协议支持
 - 🗄️ 支持数据库操作
 - 🔗 支持接口关联
 - 📤 支持文件上传下载
@@ -63,6 +65,8 @@ test-engine/
 cd test-engine
 pip install -r requirements.txt
 ```
+
+**注意**: API 测试引擎已从 `requests` 迁移到 `httpx` 异步库,享受更高性能和 HTTP/2 支持。
 
 或者安装整个包：
 
