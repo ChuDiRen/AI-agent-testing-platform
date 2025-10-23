@@ -12,9 +12,13 @@ import re
 import time
 import os
 import json
+import logging
 from urllib.parse import unquote
 from urllib.parse import urlparse
 from urllib.parse import urlencode
+
+# 配置日志
+logger = logging.getLogger(__name__)
 
 class Keywords:
     request = None
@@ -54,7 +58,9 @@ class Keywords:
             return response
 
         try:
-            #  执行异步请求
+            #  执行异步请求(复用 AsyncClient 连接池)
+            logger.info(f"📤 发送请求 | {kwargs.get('method', 'GET')} {kwargs.get('url', '')}")
+
             response = run_async(_async_request())
             self.request = response  # 保存 response 对象供后续使用
 
@@ -69,8 +75,13 @@ class Keywords:
                 "response": response.text
             }
             g_context().set_dict("current_response_data", request_data)  # 默认设置成全局变量
+
+            # 记录响应日志
+            logger.info(f"📥 收到响应 | 状态码: {response.status_code} | 响应大小: {len(response.content)} bytes")
+
         except Exception as e:
             request_data.update({"response":str(e)})
+            logger.error(f"❌ 请求异常 | {kwargs.get('method', 'GET')} {kwargs.get('url', '')} | 错误: {str(e)}")
             raise e
         finally:
             print("-----------current_response_data------------")
@@ -106,7 +117,7 @@ class Keywords:
             return response
 
         try:
-            #  执行异步请求
+            #  执行异步请求(复用 AsyncClient 连接池)
             response = run_async(_async_request())
             self.request = response  # 保存 response 对象供后续使用
 
@@ -252,7 +263,7 @@ class Keywords:
 
         # 定义异步下载函数
         async def _download_file(url):
-            client = await AsyncClientManager.get_client()
+            client = await AsyncClientManager.get_client()  # 获取复用的异步客户端
             response = await client.get(url)
             response.raise_for_status()
             return response
@@ -314,11 +325,11 @@ class Keywords:
 
         # 定义异步请求函数
         async def _async_post():
-            client = await AsyncClientManager.get_client()
+            client = await AsyncClientManager.get_client()  # 获取复用的异步客户端
             response = await client.post(**request_data)
             return response
 
-        response = run_async(_async_post())  # 执行异步请求
+        response = run_async(_async_post())  # 执行异步请求(复用连接池)
         g_context().set_dict("current_response", response)  # 默认设置成全局变量
         print("-----------------------")
         print(response.text)
@@ -343,11 +354,11 @@ class Keywords:
 
         # 定义异步请求函数
         async def _async_post():
-            client = await AsyncClientManager.get_client()
+            client = await AsyncClientManager.get_client()  # 获取复用的异步客户端
             response = await client.post(**request_data)
             return response
 
-        response = run_async(_async_post())  # 执行异步请求
+        response = run_async(_async_post())  # 执行异步请求(复用连接池)
         g_context().set_dict("current_response", response)  # 默认设置成全局变量
         print("-----------------------")
         print(response.text)
@@ -374,11 +385,11 @@ class Keywords:
 
         # 定义异步请求函数
         async def _async_post():
-            client = await AsyncClientManager.get_client()
+            client = await AsyncClientManager.get_client()  # 获取复用的异步客户端
             response = await client.post(**request_data)
             return response
 
-        response = run_async(_async_post())  # 执行异步请求
+        response = run_async(_async_post())  # 执行异步请求(复用连接池)
         g_context().set_dict("current_response", response)  # 默认设置成全局变量
         print("-----------------------")
         print(response.text)
@@ -401,11 +412,11 @@ class Keywords:
 
         # 定义异步请求函数
         async def _async_get():
-            client = await AsyncClientManager.get_client()
+            client = await AsyncClientManager.get_client()  # 获取复用的异步客户端
             response = await client.get(**request_data)
             return response
 
-        response = run_async(_async_get())  # 执行异步请求
+        response = run_async(_async_get())  # 执行异步请求(复用连接池)
         g_context().set_dict("current_response", response)  # 默认设置成全局变量
         print("-----------------------")
         print(response.json())
