@@ -41,8 +41,11 @@ class CasesPlugin:
         cases_dir = metafunc.config.getoption("cases")
         key_dir = metafunc.config.getoption("keyDir")
         browser = metafunc.config.getoption("browser")
-        headless = metafunc.config.getoption("headless")
-        
+        headless_str = metafunc.config.getoption("headless")
+
+        # 将字符串 "true"/"false" 转换为布尔值
+        headless = headless_str.lower() in ["true", "1", "yes"]
+
         # 把配置放入到公共变量去
         g_context().set_dict("key_dir", key_dir)
         g_context().set_dict("_browser", browser)
@@ -50,7 +53,11 @@ class CasesPlugin:
         
         # 读取测试用例,同时需要进行参数化
         data = case_parser(case_type, cases_dir)
-        
+
+        # 命令行参数覆盖 context.yaml 中的配置（优先级：命令行 > context.yaml）
+        g_context().set_dict("BROWSER", browser)  # 覆盖 context.yaml 中的 BROWSER
+        g_context().set_dict("HEADLESS", headless)  # 覆盖 context.yaml 中的 HEADLESS
+
         # 把测试用例作为参数化，交给 runner 执行
         if "caseinfo" in metafunc.fixturenames:
             metafunc.parametrize("caseinfo", data['case_infos'], ids=data['case_names'])

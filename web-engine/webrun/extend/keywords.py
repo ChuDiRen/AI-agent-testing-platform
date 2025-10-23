@@ -351,21 +351,21 @@ class Keywords:
     def wait_for_element(self, **kwargs):
         """
         等待元素出现
-        
+
         参数:
             定位方式: id/name/xpath/css 等
             元素: 元素标识
-            超时时间: 超时时间（秒，默认 10）
+            超时时间: 超时时间（秒，默认 15）
         """
         kwargs.pop("关键字", None)
-        
+
         定位方式 = kwargs.get("定位方式")
         元素 = kwargs.get("元素")
-        超时时间 = int(kwargs.get("超时时间", 10))
-        
+        超时时间 = int(kwargs.get("超时时间", 15))  # 默认超时时间增加到15秒
+
         driver = self._get_driver()
         by, locator = self._get_locator(定位方式, 元素)
-        
+
         try:
             WebDriverWait(driver, 超时时间).until(
                 EC.presence_of_element_located((by, locator))
@@ -379,49 +379,61 @@ class Keywords:
     def wait_for_element_visible(self, **kwargs):
         """
         等待元素可见
-        
+
         参数:
             定位方式: id/name/xpath/css 等
             元素: 元素标识
-            超时时间: 超时时间（秒，默认 10）
+            超时时间: 超时时间（秒，默认 15）
         """
         kwargs.pop("关键字", None)
-        
+
         定位方式 = kwargs.get("定位方式")
         元素 = kwargs.get("元素")
-        超时时间 = int(kwargs.get("超时时间", 10))
-        
+        超时时间 = int(kwargs.get("超时时间", 15))  # 默认超时时间增加到15秒
+
         driver = self._get_driver()
         by, locator = self._get_locator(定位方式, 元素)
-        
+
         try:
+            # 使用更智能的等待策略：先等待元素存在，再等待可见
+            WebDriverWait(driver, 超时时间).until(
+                EC.presence_of_element_located((by, locator))
+            )
             WebDriverWait(driver, 超时时间).until(
                 EC.visibility_of_element_located((by, locator))
             )
             print(f"元素已可见: {定位方式}={元素}")
         except TimeoutException as e:
+            # 提供更详细的错误信息
+            try:
+                # 尝试查找元素是否存在但不可见
+                element = driver.find_element(by, locator)
+                error_msg = f"等待元素可见超时: {定位方式}={元素} (元素存在但不可见，display={element.value_of_css_property('display')})"
+            except:
+                error_msg = f"等待元素可见超时: {定位方式}={元素} (元素不存在)"
+
             self._take_screenshot_on_error(f"等待元素可见超时_{定位方式}_{元素}")
-            raise TimeoutException(f"等待元素可见超时: {定位方式}={元素}") from e
+            raise TimeoutException(error_msg) from e
 
     @allure.step("等待元素可点击")
     def wait_for_element_clickable(self, **kwargs):
         """
         等待元素可点击
-        
+
         参数:
             定位方式: id/name/xpath/css 等
             元素: 元素标识
-            超时时间: 超时时间（秒，默认 10）
+            超时时间: 超时时间（秒，默认 15）
         """
         kwargs.pop("关键字", None)
-        
+
         定位方式 = kwargs.get("定位方式")
         元素 = kwargs.get("元素")
-        超时时间 = int(kwargs.get("超时时间", 10))
-        
+        超时时间 = int(kwargs.get("超时时间", 15))  # 默认超时时间增加到15秒
+
         driver = self._get_driver()
         by, locator = self._get_locator(定位方式, 元素)
-        
+
         try:
             WebDriverWait(driver, 超时时间).until(
                 EC.element_to_be_clickable((by, locator))

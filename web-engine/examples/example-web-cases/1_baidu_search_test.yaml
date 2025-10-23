@@ -1,7 +1,10 @@
-desc: 百度搜索测试用例
+desc: 百度搜索功能测试 - 验证搜索基本流程
+
 pre_script:
-  - 'print("开始执行百度搜索测试...")'
+  - 'print("=== 开始执行百度搜索测试 ===")'
+
 steps:
+  # ========== 步骤1：初始化浏览器 ==========
   - 打开浏览器:
       关键字: open_browser
       浏览器: "{{BROWSER}}"
@@ -9,50 +12,73 @@ steps:
       隐式等待: "{{IMPLICIT_WAIT}}"
       窗口大小: "{{WINDOW_SIZE}}"
   
+  # ========== 步骤2：访问百度首页 ==========
   - 导航到百度首页:
       关键字: navigate_to
       url: "{{BASE_URL}}"
   
+  # ========== 步骤3：验证页面标题 ==========
   - 断言页面标题包含百度:
       关键字: assert_title_contains
       期望文本: 百度
   
+  # ========== 步骤3.5：等待搜索框出现 ==========
+  - 等待搜索框加载:
+      关键字: wait_for_element_visible
+      定位方式: id
+      元素: "{{BAIDU_SEARCH_INPUT}}"
+      超时时间: "{{DEFAULT_TIMEOUT}}"
+  
+  # ========== 步骤4：输入搜索关键词 ==========
   - 输入搜索关键词:
       关键字: input_text
       定位方式: id
-      元素: kw
+      元素: "{{BAIDU_SEARCH_INPUT}}"
       文本: Selenium WebDriver
-      清空: true
+      清空: false
   
+  # ========== 步骤5：等待搜索按钮可点击 ==========
+  - 等待搜索按钮可点击:
+      关键字: wait_for_element_clickable
+      定位方式: id
+      元素: "{{BAIDU_SEARCH_BUTTON}}"
+      超时时间: "{{DEFAULT_TIMEOUT}}"
+  
+  # ========== 步骤6：点击搜索按钮 ==========
   - 点击搜索按钮:
       关键字: click_element
       定位方式: id
-      元素: su
+      元素: "{{BAIDU_SEARCH_BUTTON}}"
   
+  # ========== 步骤7：等待搜索结果加载 ==========
   - 等待搜索结果出现:
       关键字: wait_for_element_visible
       定位方式: id
-      元素: content_left
-      超时时间: 10
+      元素: "{{BAIDU_RESULT_CONTAINER}}"
+      超时时间: 15
   
+  # ========== 步骤8：截图保存证据 ==========
   - 截图保存搜索结果:
       关键字: take_screenshot
-      文件名: baidu_search_result
+      文件名: baidu_search_selenium_result
   
+  # ========== 步骤9：断言搜索结果 ==========
   - 断言搜索结果包含关键词:
       关键字: assert_text_contains
       定位方式: id
-      元素: content_left
+      元素: "{{BAIDU_RESULT_CONTAINER}}"
       期望文本: Selenium
   
+  # ========== 步骤10：获取当前URL ==========
   - 获取当前URL:
       关键字: get_current_url
       变量名: search_result_url
   
+  # ========== 步骤11：清理环境 ==========
   - 关闭浏览器:
       关键字: close_browser
 
 post_script:
-  - 'print("百度搜索测试执行完毕")'
-  - 'print("搜索结果URL:", g_context().get_dict("search_result_url"))'
+  - 'print("=== 百度搜索测试执行完成 ===")'
+  - 'url = g_context().get_dict("search_result_url"); print(f"搜索结果URL: {url}")'
 

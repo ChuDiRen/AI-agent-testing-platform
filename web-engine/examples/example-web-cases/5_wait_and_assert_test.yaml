@@ -1,81 +1,109 @@
-desc: 等待和断言测试用例
+desc: 等待与断言全场景测试 - 验证各类等待和断言策略
+
+pre_script:
+  - 'print("=== 开始等待与断言测试 ===")'
+
 steps:
+  # ========== 步骤1：初始化浏览器 ==========
   - 打开浏览器:
       关键字: open_browser
-      浏览器: chrome
-      无头模式: false
+      浏览器: "{{BROWSER}}"
+      无头模式: "{{HEADLESS}}"
+      隐式等待: "{{IMPLICIT_WAIT}}"
+      窗口大小: "{{WINDOW_SIZE}}"
   
+  # ========== 步骤2：访问百度首页 ==========
   - 导航到百度:
       关键字: navigate_to
-      url: https://www.baidu.com
+      url: "{{BASE_URL}}"
   
+  # ========== 步骤3：断言页面标题 ==========
   - 断言标题相等:
       关键字: assert_title_equals
       期望标题: 百度一下，你就知道
   
+  # ========== 步骤4：等待元素出现（DOM中存在） ==========
   - 等待搜索框出现:
       关键字: wait_for_element
       定位方式: id
-      元素: kw
-      超时时间: 10
+      元素: "{{BAIDU_SEARCH_INPUT}}"
+      超时时间: "{{DEFAULT_TIMEOUT}}"
   
+  # ========== 步骤5：等待元素可见（用户可见） ==========
   - 等待搜索框可见:
       关键字: wait_for_element_visible
       定位方式: id
-      元素: kw
-      超时时间: 10
+      元素: "{{BAIDU_SEARCH_INPUT}}"
+      超时时间: "{{DEFAULT_TIMEOUT}}"
   
+  # ========== 步骤6：等待元素可点击（可交互） ==========
   - 等待搜索框可点击:
       关键字: wait_for_element_clickable
       定位方式: id
-      元素: kw
-      超时时间: 10
+      元素: "{{BAIDU_SEARCH_INPUT}}"
+      超时时间: "{{DEFAULT_TIMEOUT}}"
   
+  # ========== 步骤7：断言元素可见性 ==========
   - 断言搜索框可见:
       关键字: assert_element_visible
       定位方式: id
-      元素: kw
+      元素: "{{BAIDU_SEARCH_INPUT}}"
   
+  # ========== 步骤8：输入搜索内容 ==========
   - 输入搜索内容:
       关键字: input_text
       定位方式: id
-      元素: kw
+      元素: "{{BAIDU_SEARCH_INPUT}}"
       文本: 自动化测试
+      清空: false
   
+  # ========== 步骤9：滚动到搜索按钮 ==========
   - 滚动到搜索按钮:
       关键字: scroll_to_element
       定位方式: id
-      元素: su
+      元素: "{{BAIDU_SEARCH_BUTTON}}"
   
+  # ========== 步骤10：鼠标悬停操作 ==========
   - 鼠标悬停搜索按钮:
       关键字: hover_element
       定位方式: id
-      元素: su
+      元素: "{{BAIDU_SEARCH_BUTTON}}"
   
+  # ========== 步骤11：强制等待（确保悬停效果） ==========
   - 强制等待1秒:
       关键字: sleep
       时间: 1
   
+  # ========== 步骤12：点击搜索按钮 ==========
   - 点击搜索:
       关键字: click_element
       定位方式: id
-      元素: su
+      元素: "{{BAIDU_SEARCH_BUTTON}}"
   
+  # ========== 步骤13：等待搜索结果加载 ==========
   - 等待搜索结果:
       关键字: wait_for_element_visible
       定位方式: id
-      元素: content_left
-      超时时间: 10
+      元素: "{{BAIDU_RESULT_CONTAINER}}"
+      超时时间: 15
   
+  # ========== 步骤14：断言搜索结果内容 ==========
   - 断言搜索结果包含关键词:
       关键字: assert_text_contains
       定位方式: id
-      元素: content_left
+      元素: "{{BAIDU_RESULT_CONTAINER}}"
       期望文本: 自动化
   
-  - 截图:
+  # ========== 步骤15：截图保存证据 ==========
+  - 截图验证结果:
       关键字: take_screenshot
+      文件名: wait_and_assert_test_result
   
+  # ========== 步骤16：清理环境 ==========
   - 关闭浏览器:
       关键字: close_browser
+
+post_script:
+  - 'print("=== 等待与断言测试完成 ===")'
+  - 'print("验证内容：页面标题断言、元素等待策略、鼠标操作、搜索结果断言")'
 

@@ -9,6 +9,23 @@ from ..utils.VarRender import refresh
 from ..utils.DynamicTitle import dynamicTitle
 
 
+def _safe_copy_context(context_dict):
+    """安全拷贝上下文，过滤不可序列化对象（如WebDriver实例）"""
+    # 不可序列化对象的键名列表
+    exclude_keys = ['current_driver']  # WebDriver对象无法被deepcopy
+    
+    # 浅拷贝字典，排除不可序列化对象
+    safe_dict = {}
+    for key, value in context_dict.items():
+        if key not in exclude_keys:
+            try:
+                safe_dict[key] = copy.deepcopy(value)  # 尝试深拷贝
+            except (TypeError, AttributeError):
+                safe_dict[key] = value  # 无法深拷贝则使用浅拷贝
+    
+    return safe_dict
+
+
 class TestRunner:
     """Web 测试用例执行器"""
     
@@ -20,14 +37,14 @@ class TestRunner:
             keywords = Keywords()
             # 单用例范围内的变量数据
             local_context = caseinfo.get("context", {})
-            context = copy.deepcopy(g_context().show_dict())
+            context = _safe_copy_context(g_context().show_dict())  # 安全拷贝上下文
             context.update(local_context)
             
             # 执行前置脚本
             pre_script = refresh(caseinfo.get("pre_script", None), context)
             if pre_script:
                 for script in eval(pre_script):
-                    run_script.exec_script(script, g_context().show_dict())
+                    run_script.exec_script(script, g_context().show_dict(), caseinfo)
             
             # 准备执行用例 - 刷新用例内变量
             steps = caseinfo.get("steps", None)
@@ -35,7 +52,7 @@ class TestRunner:
                 step_name = list(step.keys())[0]
                 step_value = list(step.values())[0]
                 # 刷新步骤内容的变量值
-                context = copy.deepcopy(g_context().show_dict())
+                context = _safe_copy_context(g_context().show_dict())  # 安全拷贝上下文
                 context.update(local_context)
                 step_value = eval(refresh(step_value, context))  # 全局变量+用例变量渲染
                 print(f"开始执行步骤：{step_name} - {step_value}")
@@ -54,13 +71,13 @@ class TestRunner:
                     key_func(**step_value)  # 调用关键字方法
             
             # 后置脚本执行
-            context = copy.deepcopy(g_context().show_dict())
+            context = _safe_copy_context(g_context().show_dict())  # 安全拷贝上下文
             context.update(local_context)
             post_script = refresh(caseinfo.get("post_script", None), context)
-            
+
             if post_script:
                 for script in eval(post_script):
-                    run_script.exec_script(script, g_context().show_dict())
+                    run_script.exec_script(script, g_context().show_dict(), caseinfo)
         
         finally:
             print("========执行完毕========")

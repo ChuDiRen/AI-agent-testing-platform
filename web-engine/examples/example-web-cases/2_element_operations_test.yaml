@@ -1,20 +1,31 @@
-desc: 元素操作测试用例
+desc: 元素操作全场景测试 - 验证各类表单元素交互
+
+pre_script:
+  - 'print("=== 开始元素操作测试 ===")'
+
 steps:
+  # ========== 步骤1：初始化浏览器 ==========
   - 打开浏览器:
       关键字: open_browser
-      浏览器: chrome
-      无头模式: false
+      浏览器: "{{BROWSER}}"
+      无头模式: "{{HEADLESS}}"
+      隐式等待: "{{IMPLICIT_WAIT}}"
+      窗口大小: "{{WINDOW_SIZE}}"
   
+  # ========== 步骤2：访问测试表单页面 ==========
   - 导航到测试页面:
       关键字: navigate_to
       url: https://www.selenium.dev/selenium/web/web-form.html
   
+  # ========== 步骤3：输入文本框 ==========
   - 输入文本框内容:
       关键字: input_text
       定位方式: id
       元素: my-text-id
-      文本: Hello Selenium
+      文本: Hello Selenium WebDriver
+      清空: true
   
+  # ========== 步骤4：验证输入内容 ==========
   - 获取文本框内容:
       关键字: get_attribute
       定位方式: id
@@ -22,49 +33,59 @@ steps:
       属性名: value
       变量名: input_value
   
+  # ========== 步骤5：输入密码框 ==========
   - 输入密码:
       关键字: input_text
       定位方式: name
       元素: my-password
       文本: test123456
+      清空: true
   
+  # ========== 步骤6：输入文本域 ==========
   - 输入文本域:
       关键字: input_text
       定位方式: name
       元素: my-textarea
-      文本: This is a test textarea content
+      文本: 这是一段测试文本域内容，用于验证多行文本输入功能。
+      清空: true
   
-  - 选择下拉框:
+  # ========== 步骤7：选择下拉框 ==========
+  - 选择下拉框选项:
       关键字: select_dropdown
       定位方式: name
       元素: my-select
       选择方式: value
       选项值: "2"
   
+  # ========== 步骤8：提交表单 ==========
   - 点击提交按钮:
       关键字: click_element
       定位方式: xpath
       元素: //button[@type='submit']
   
+  # ========== 步骤9：等待成功消息 ==========
   - 等待成功页面:
       关键字: wait_for_element_visible
       定位方式: id
       元素: message
-      超时时间: 5
+      超时时间: "{{DEFAULT_TIMEOUT}}"
   
+  # ========== 步骤10：断言提交成功 ==========
   - 断言成功消息可见:
       关键字: assert_element_visible
       定位方式: id
       元素: message
   
-  - 截图:
+  # ========== 步骤11：截图保存证据 ==========
+  - 截图保存:
       关键字: take_screenshot
       文件名: form_submit_success
   
+  # ========== 步骤12：清理环境 ==========
   - 关闭浏览器:
       关键字: close_browser
 
 post_script:
-  - 'print("元素操作测试完成")'
-  - 'print("输入的值:", g_context().get_dict("input_value"))'
+  - 'print("=== 元素操作测试完成 ===")'
+  - 'val = g_context().get_dict("input_value"); print(f"输入的文本框值: {val}")'
 
