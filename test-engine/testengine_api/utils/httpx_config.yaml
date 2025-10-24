@@ -1,0 +1,25 @@
+# httpx 连接池配置文件
+
+# 连接池配置
+pool:
+  max_connections: 100              # 最大连接数
+  max_keepalive_connections: 20     # keep-alive 连接数
+  keepalive_expiry: 30.0            # keep-alive 过期时间(秒)
+
+# 超时配置
+timeout:
+  connect: 10.0   # 连接超时(秒)
+  read: 30.0      # 读取超时(秒)
+  write: 10.0     # 写入超时(秒)
+  pool: 10.0      # 连接池超时(秒)
+
+# 重试配置
+retry:
+  max_retries: 3  # 最大重试次数
+
+# 其他配置
+other:
+  follow_redirects: true  # 是否跟随重定向
+  verify: true            # SSL 验证
+  http2: false            # HTTP/2 支持
+

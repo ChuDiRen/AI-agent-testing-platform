@@ -1,43 +1,32 @@
 import mimetypes
 from importlib.metadata import files
-
 import allure
-
-from ..core.globalContext import g_context  # 相对导入: apirun内部模块
-import httpx  # 使用 httpx 替代 requests
-import asyncio  # 异步支持
-from ..utils.async_client import AsyncClientManager, run_async  # 异步客户端管理器
+from ..core.globalContext import g_context # 相对导入
+import httpx
+from ..utils.async_client import AsyncClientManager # 异步客户端管理器
 import jsonpath
 import re
 import time
 import os
 import json
 import logging
-from urllib.parse import unquote
-from urllib.parse import urlparse
-from urllib.parse import urlencode
+from urllib.parse import unquote, urlparse, urlencode
 
-# 配置日志
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__) # 配置日志
 
 class Keywords:
     request = None
 
-    # def __init__(self, request: requests):
-    #     self.request = requests.Session()
-
     @allure.step(">>>>>>参数数据：")
-    def send_request(self, **kwargs):
-        # 剔除不需要的字段，例如 EXVALUE
-        kwargs.pop("关键字", None)  # 如果存在 关键字 字段则删除，否则不操作
-
+    async def send_request(self, **kwargs): # 改为异步方法
+        kwargs.pop("关键字", None) # 剔除不需要的字段
         files = kwargs.get("files", [])
 
         if files:
-            files = self.process_upload_files(files)
+            files = await self.process_upload_files(files) # 异步处理文件上传
             kwargs.update(files=files)
 
-        #  先初始化请求数据，避免接口请求不通过，前端没有请求数据显示
+        # 初始化请求数据
         params = kwargs.get("params")
         url_with_params = kwargs.get("url", "")
         if params:
@@ -51,56 +40,45 @@ class Keywords:
             "response": kwargs.get("response", "")
         }
 
-        # 定义异步请求函数
-        async def _async_request():
-            client = await AsyncClientManager.get_client()  # 获取复用的异步客户端
-            response = await client.request(**kwargs)  # 执行异步请求
-            return response
-
+        client = None
         try:
-            #  执行异步请求(复用 AsyncClient 连接池)
-            logger.info(f"📤 发送请求 | {kwargs.get('method', 'GET')} {kwargs.get('url', '')}")
+            client = await AsyncClientManager.get_client() # 获取异步客户端
+            response = await client.request(**kwargs) # 执行异步请求
+            self.request = response
+            g_context().set_dict("current_response", response)
 
-            response = run_async(_async_request())
-            self.request = response  # 保存 response 对象供后续使用
-
-            g_context().set_dict("current_response", response)  # 默认设置成全局变量-- 对象
-
-            #  组装请求数据到全局变量，从response进行获取。方便平台进行显示, 可能请求出错，所以结合请求数据进行填写
+            # 组装请求数据
             request_data = {
-                "url": unquote(str(response.url)),  # httpx.URL 需要转字符串
+                "url": unquote(str(response.url)),
                 "method": response.request.method,
                 "headers": dict(response.request.headers),
-                "body": str(response.request.content), # httpx 使用 content 而非 body
+                "body": str(response.request.content),
                 "response": response.text
             }
-            g_context().set_dict("current_response_data", request_data)  # 默认设置成全局变量
-
-            # 记录响应日志
-            logger.info(f"📥 收到响应 | 状态码: {response.status_code} | 响应大小: {len(response.content)} bytes")
+            g_context().set_dict("current_response_data", request_data)
+            logger.debug(f"请求成功: {response.status_code} {kwargs.get('url', '')}") # 简化日志
 
         except Exception as e:
-            request_data.update({"response":str(e)})
-            logger.error(f"❌ 请求异常 | {kwargs.get('method', 'GET')} {kwargs.get('url', '')} | 错误: {str(e)}")
+            request_data.update({"response": str(e)})
+            logger.error(f"请求失败: {kwargs.get('method', 'GET')} {kwargs.get('url', '')} - {str(e)}") # 移除 emoji
             raise e
         finally:
+            if client:
+                await client.aclose() # 关闭客户端,释放连接回连接池
             print("-----------current_response_data------------")
-            print(request_data)  # 一定要打印，后续是利用它进行前端的显示
+            print(request_data)
             print("----------end current_response_data-------------")
 
 
     @allure.step(">>>>>>参数数据：")
-    def send_request_and_download(self, **kwargs):
-        # 剔除不需要的字段，例如 EXVALUE
-        kwargs.pop("关键字", None)  # 如果存在 关键字 字段则删除，否则不操作
-
+    async def send_request_and_download(self, **kwargs): # 改为异步方法
+        kwargs.pop("关键字", None)
         files = kwargs.get("files", [])
 
         if files:
-            files = self.process_upload_files(files)
+            files = await self.process_upload_files(files) # 异步处理文件
             kwargs.update(files=files)
 
-        #  先初始化请求数据，避免接口请求不通过，前端没有请求数据显示
         request_data = {
             "url": unquote(f'{kwargs.get("url", "")}?{urlencode(kwargs.get("params", ""))}'),
             "method": kwargs.get("method", ""),
@@ -110,46 +88,36 @@ class Keywords:
             "current_response_file_path": ""
         }
 
-        # 定义异步请求函数
-        async def _async_request():
-            client = await AsyncClientManager.get_client()  # 获取复用的异步客户端
-            response = await client.request(**kwargs)  # 执行异步请求
-            return response
-
+        client = None
         try:
-            #  执行异步请求(复用 AsyncClient 连接池)
-            response = run_async(_async_request())
-            self.request = response  # 保存 response 对象供后续使用
+            client = await AsyncClientManager.get_client()
+            response = await client.request(**kwargs)
+            self.request = response
+            g_context().set_dict("current_response", response)
 
-            g_context().set_dict("current_response", response)  # 默认设置成全局变量-- 对象
-
-            # 进行上传文件，固定命名：response_时间.文件扩展名
-            # 判断response.text的格式，如果是文件，则下载到本地，并返回下载后的文件路径
-            # 如果是json，则返回 json，则下载到本地，并返回下载后的文件路径
-            # 调用对应的方法，并且返回对应的路径
-            file_path = self.save_response_content(response)
-
+            file_path = self.save_response_content(response) # 保存响应内容
             print("-----------------------")
             print(response.text)
             print("-----------------------")
 
-            #  组装请求数据到全局变量，从response进行获取。方便平台进行显示, 可能请求出错，所以结合请求数据进行填写
             request_data = {
-                "url": unquote(str(response.url)),  # httpx.URL 需要转字符串
+                "url": unquote(str(response.url)),
                 "method": response.request.method,
                 "headers": dict(response.request.headers),
-                "body": str(response.request.content),  # httpx 使用 content
+                "body": str(response.request.content),
                 "response": response.text,
-                "current_response_file_path":file_path
+                "current_response_file_path": file_path
             }
-            g_context().set_dict("current_response_data", request_data)  # 默认设置成全局变量
+            g_context().set_dict("current_response_data", request_data)
 
         except Exception as e:
-            request_data.update({"response":str(e)})
+            request_data.update({"response": str(e)})
             raise e
         finally:
+            if client:
+                await client.aclose() # 关闭客户端
             print("-----------current_response_data------------")
-            print(request_data)  # 一定要打印，后续是利用它进行前端的显示
+            print(request_data)
             print("----------end current_response_data-------------")
 
 
@@ -244,61 +212,40 @@ class Keywords:
             return file_path
 
 
-    def process_upload_files(self, file_list):
-        """
-        处理上传文件，返回 httpx 支持的 files 列表格式
-        :param file_list: 文件列表，格式如 [{'file': 'path_or_url'}, {'avatar': 'path2'}]
-        :return: 处理后的 files 列表
-        """
-
-        import os
-        from urllib.parse import urlparse
-
+    async def process_upload_files(self, file_list): # 改为异步方法
+        """处理上传文件,返回 httpx 支持的 files 列表格式"""
         processed_files = []
-        download_dir = r'/img'  # 本地保存路径
+        download_dir = r'/img' # 本地保存路径
 
-        # 创建目录（如果不存在）
         if not os.path.exists(download_dir):
             os.makedirs(download_dir)
 
-        # 定义异步下载函数
-        async def _download_file(url):
-            client = await AsyncClientManager.get_client()  # 获取复用的异步客户端
-            response = await client.get(url)
-            response.raise_for_status()
-            return response
-
         for item in file_list:
             for field_name, file_path in item.items():
-                # 判断是否是 URL
-                if file_path.startswith(('http://', 'https://')):
+                if file_path.startswith(('http://', 'https://')): # 判断是否是 URL
                     try:
-                        # 使用异步 httpx 下载文件
-                        response = run_async(_download_file(file_path))
+                        client = await AsyncClientManager.get_client()
+                        response = await client.get(file_path) # 异步下载文件
+                        response.raise_for_status()
 
-                        # 提取文件名（从URL）
                         parsed_url = urlparse(file_path)
                         filename = os.path.basename(parsed_url.path)
                         if not filename:
                             filename = 'downloaded_file'
 
                         local_path = os.path.join(download_dir, filename)
-
-                        # 写入本地文件
                         with open(local_path, 'wb') as f:
-                            f.write(response.content)  # httpx 直接使用 content
+                            f.write(response.content)
 
-                        file_path = local_path  # 替换为本地路径
+                        file_path = local_path
                     except Exception as e:
                         raise RuntimeError(f"文件下载失败: {file_path}, 错误: {e}")
 
-                # 获取文件名和 MIME 类型
                 file_name = os.path.basename(file_path)
                 mime_type, _ = mimetypes.guess_type(file_path)
                 if not mime_type:
                     mime_type = 'application/octet-stream'
 
-                # 添加到上传结构中
                 processed_files.append(
                     (field_name, (file_name, open(file_path, 'rb'), mime_type))
                 )
@@ -307,117 +254,69 @@ class Keywords:
 
 
     @allure.step(">>>>>>参数数据：")
-    def request_post_form_urlencoded(self, **kwargs):
-        """
-        发送Post请求
-        """
-        url = kwargs.get("URL", None)
-        params = kwargs.get("PARAMS", None)
-        headers = kwargs.get("HEADERS", None)
-        data = kwargs.get("DATA", None)
-
+    async def request_post_form_urlencoded(self, **kwargs): # 改为异步方法
+        """发送Post请求"""
         request_data = {
-            "url": url,
-            "params": params,
-            "headers": headers,
-            "data": data,
+            "url": kwargs.get("URL", None),
+            "params": kwargs.get("PARAMS", None),
+            "headers": kwargs.get("HEADERS", None),
+            "data": kwargs.get("DATA", None),
         }
 
-        # 定义异步请求函数
-        async def _async_post():
-            client = await AsyncClientManager.get_client()  # 获取复用的异步客户端
-            response = await client.post(**request_data)
-            return response
-
-        response = run_async(_async_post())  # 执行异步请求(复用连接池)
-        g_context().set_dict("current_response", response)  # 默认设置成全局变量
+        client = await AsyncClientManager.get_client()
+        response = await client.post(**request_data)
+        g_context().set_dict("current_response", response)
         print("-----------------------")
         print(response.text)
         print("-----------------------")
 
     @allure.step(">>>>>>参数数据：")
-    def request_post_row_json(self, **kwargs):
-        """
-        发送Post请求
-        """
-        url = kwargs.get("URL", None)
-        params = kwargs.get("PARAMS", None)
-        headers = kwargs.get("HEADERS", None)
-        data = kwargs.get("DATA", None)
-
+    async def request_post_row_json(self, **kwargs): # 改为异步方法
+        """发送Post请求"""
         request_data = {
-            "url": url,
-            "params": params,
-            "headers": headers,
-            "json": data,
+            "url": kwargs.get("URL", None),
+            "params": kwargs.get("PARAMS", None),
+            "headers": kwargs.get("HEADERS", None),
+            "json": kwargs.get("DATA", None),
         }
 
-        # 定义异步请求函数
-        async def _async_post():
-            client = await AsyncClientManager.get_client()  # 获取复用的异步客户端
-            response = await client.post(**request_data)
-            return response
-
-        response = run_async(_async_post())  # 执行异步请求(复用连接池)
-        g_context().set_dict("current_response", response)  # 默认设置成全局变量
+        client = await AsyncClientManager.get_client()
+        response = await client.post(**request_data)
+        g_context().set_dict("current_response", response)
         print("-----------------------")
         print(response.text)
         print("-----------------------")
 
     @allure.step(">>>>>>参数数据：")
-    def request_post_form_data(self, **kwargs):
-        """
-        发送Post请求
-        """
-        url = kwargs.get("URL", None)
-        params = kwargs.get("PARAMS", None)
-        headers = kwargs.get("HEADERS", None)
-        data = kwargs.get("DATA", None)
-        files = kwargs.get("FILES", None)
-
+    async def request_post_form_data(self, **kwargs): # 改为异步方法
+        """发送Post请求"""
         request_data = {
-            "url": url,
-            "params": params,
-            "headers": headers,
-            "files": files,
-            "data": data,
+            "url": kwargs.get("URL", None),
+            "params": kwargs.get("PARAMS", None),
+            "headers": kwargs.get("HEADERS", None),
+            "files": kwargs.get("FILES", None),
+            "data": kwargs.get("DATA", None),
         }
 
-        # 定义异步请求函数
-        async def _async_post():
-            client = await AsyncClientManager.get_client()  # 获取复用的异步客户端
-            response = await client.post(**request_data)
-            return response
-
-        response = run_async(_async_post())  # 执行异步请求(复用连接池)
-        g_context().set_dict("current_response", response)  # 默认设置成全局变量
+        client = await AsyncClientManager.get_client()
+        response = await client.post(**request_data)
+        g_context().set_dict("current_response", response)
         print("-----------------------")
         print(response.text)
         print("-----------------------")
 
     @allure.step(">>>>>>参数数据：")
-    def request_get(self, **kwargs):
-        """
-        发送GET请求
-        """
-        url = kwargs.get("URL", None)
-        params = kwargs.get("PARAMS", None)
-        headers = kwargs.get("HEADERS", None)
-
+    async def request_get(self, **kwargs): # 改为异步方法
+        """发送GET请求"""
         request_data = {
-            "url": url,
-            "params": params,
-            "headers": headers,
+            "url": kwargs.get("URL", None),
+            "params": kwargs.get("PARAMS", None),
+            "headers": kwargs.get("HEADERS", None),
         }
 
-        # 定义异步请求函数
-        async def _async_get():
-            client = await AsyncClientManager.get_client()  # 获取复用的异步客户端
-            response = await client.get(**request_data)
-            return response
-
-        response = run_async(_async_get())  # 执行异步请求(复用连接池)
-        g_context().set_dict("current_response", response)  # 默认设置成全局变量
+        client = await AsyncClientManager.get_client()
+        response = await client.get(**request_data)
+        g_context().set_dict("current_response", response)
         print("-----------------------")
         print(response.json())
         print("-----------------------")

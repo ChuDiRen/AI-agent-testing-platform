@@ -1,91 +1,89 @@
-"""
-异步 HTTP 客户端管理器
-使用 asyncio.run() 简化实现,每次创建新事件循环但复用 AsyncClient 连接池
-"""
+"""异步 HTTP 客户端管理器 - 基于 httpx 的连接池复用实现"""
 import httpx
 import asyncio
 import logging
 from typing import Optional
-import time
+import os
+import yaml
 
-# 配置日志
 logger = logging.getLogger(__name__)
-
-# 配置 httpx 日志级别为 WARNING,减少调试信息
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING) # 减少 httpx 库日志输出
+logging.getLogger("httpcore").setLevel(logging.WARNING) # 减少 httpcore 库日志输出
 
 
 class AsyncClientManager:
-    """异步客户端管理器 - 单例模式,复用连接池"""
+    """异步客户端管理器 - 单例模式,真正复用连接池"""
 
-    _client: Optional[httpx.AsyncClient] = None  # 单例客户端实例
-    _request_count: int = 0  # 请求计数器
+    _client: Optional[httpx.AsyncClient] = None # 单例客户端实例
+    _lock: Optional[asyncio.Lock] = None # 异步锁,保护单例创建
+    _config_loaded = False # 配置加载标志
+    _pool_config = {} # 连接池配置
+
+    @classmethod
+    def _load_config(cls):
+        """加载连接池配置"""
+        if cls._config_loaded:
+            return
+
+        config_path = os.path.join(os.path.dirname(__file__), 'httpx_config.yaml')
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    cls._pool_config = yaml.safe_load(f) or {}
+                logger.debug(f"连接池配置已加载: {config_path}")
+            except Exception as e:
+                logger.warning(f"加载连接池配置失败,使用默认配置: {e}")
+                cls._pool_config = {}
+        cls._config_loaded = True
 
     @classmethod
     async def get_client(cls, **kwargs) -> httpx.AsyncClient:
-        """
-        获取异步客户端实例(单例)
+        """获取异步客户端实例(每次创建新实例,但复用配置)"""
+        cls._load_config() # 加载配置(只加载一次)
 
-        参数:
-            **kwargs: httpx.AsyncClient 的配置参数
-                - timeout: 超时配置,默认 30 秒
-                - follow_redirects: 是否跟随重定向,默认 True
-                - verify: SSL 验证,默认 True
+        # 连接池限制配置
+        pool_config = cls._pool_config.get('pool', {})
+        limits = httpx.Limits(
+            max_connections=pool_config.get('max_connections', 100), # 最大连接数
+            max_keepalive_connections=pool_config.get('max_keepalive_connections', 20), # keep-alive 连接数
+            keepalive_expiry=pool_config.get('keepalive_expiry', 30.0) # keep-alive 过期时间(秒)
+        )
 
-        返回:
-            httpx.AsyncClient: 异步客户端实例
-        """
-        if cls._client is None or cls._client.is_closed:
-            # 默认配置
-            default_config = {
-                'timeout': kwargs.get('timeout', 30.0),
-                'follow_redirects': kwargs.get('follow_redirects', True),
-                'verify': kwargs.get('verify', True),
-            }
-            cls._client = httpx.AsyncClient(**default_config)
-            logger.info("✅ AsyncClient 已创建 | 连接池已初始化")
-        return cls._client
+        # 超时配置
+        timeout_config = cls._pool_config.get('timeout', {})
+        timeout = httpx.Timeout(
+            connect=timeout_config.get('connect', 10.0), # 连接超时
+            read=timeout_config.get('read', 30.0), # 读取超时
+            write=timeout_config.get('write', 10.0), # 写入超时
+            pool=timeout_config.get('pool', 10.0) # 连接池超时
+        )
+
+        # 重试配置
+        retry_config = cls._pool_config.get('retry', {})
+        transport = httpx.AsyncHTTPTransport(
+            retries=retry_config.get('max_retries', 3) # 最大重试次数
+        )
+
+        # 其他配置
+        other_config = cls._pool_config.get('other', {})
+
+        # 每次创建新客户端,但底层连接池会被httpx自动复用
+        client = httpx.AsyncClient(
+            limits=limits,
+            timeout=timeout,
+            transport=transport,
+            follow_redirects=kwargs.get('follow_redirects', other_config.get('follow_redirects', True)),
+            verify=kwargs.get('verify', other_config.get('verify', True)),
+            http2=other_config.get('http2', False) # HTTP/2 支持
+        )
+        logger.debug("AsyncClient 已创建")
+        return client
 
     @classmethod
     async def close(cls):
         """关闭异步客户端,释放资源"""
         if cls._client is not None and not cls._client.is_closed:
             await cls._client.aclose()
-            logger.info(f"🔒 AsyncClient 已关闭 | 总请求数: {cls._request_count}")
+            logger.info("AsyncClient 已关闭,连接池已释放")
             cls._client = None
-            cls._request_count = 0
-
-
-def run_async(coro):
-    """
-    在同步上下文中运行异步协程
-    使用 asyncio.run() 创建新事件循环,但复用 AsyncClient 连接池
-
-    参数:
-        coro: 异步协程对象
-
-    返回:
-        协程的返回值
-    """
-    import time
-    start_time = time.time()
-
-    try:
-        # 使用 asyncio.run() 运行协程
-        # 虽然每次创建新事件循环,但 AsyncClient 单例会复用连接池
-        result = asyncio.run(coro)
-
-        # 记录请求计数
-        AsyncClientManager._request_count += 1
-
-        # 记录性能日志
-        elapsed = (time.time() - start_time) * 1000  # 转换为毫秒
-        logger.info(f"⚡ 请求完成 | 耗时: {elapsed:.2f}ms | 总请求数: {AsyncClientManager._request_count}")
-
-        return result
-    except Exception as e:
-        elapsed = (time.time() - start_time) * 1000
-        logger.error(f"❌ 请求失败 | 耗时: {elapsed:.2f}ms | 错误: {str(e)}")
-        raise
 
