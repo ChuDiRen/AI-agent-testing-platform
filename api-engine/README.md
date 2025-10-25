@@ -16,28 +16,76 @@
 
 ```
 api-engine/
-├── apirun/                 # 核心引擎代码
-│   ├── core/              # 核心运行器 (使用相对导入)
-│   │   ├── ApiTestRunner.py    # 测试执行器
-│   │   ├── globalContext.py    # 全局上下文
-│   │   └── CasesPlugin.py      # pytest 插件
-│   ├── extend/            # 关键字扩展 (使用相对导入)
-│   │   ├── keywords.py         # 关键字库
-│   │   └── script/            # 脚本执行器
-│   ├── parse/             # 用例解析器 (使用相对导入)
-│   │   ├── YamlCaseParser.py   # YAML 解析器
-│   │   ├── ExcelCaseParser.py  # Excel 解析器
-│   │   └── CaseParser.py       # 解析器入口
-│   ├── utils/             # 工具类 (使用相对导入)
-│   │   ├── VarRender.py        # 变量渲染
-│   │   └── DynamicTitle.py     # 动态标题
-│   └── cli.py             # 命令行入口 (使用绝对导入,支持直接运行)
-├── examples/              # 示例用例
-│   ├── example-api-cases/     # YAML 用例
-│   └── example-pytest-scripts/ # Pytest 脚本
-├── requirements.txt       # 依赖配置
-└── setup.py              # 安装配置
+├── __init__.py                # 包初始化文件
+├── README.md                  # 项目说明文档（本文件）
+├── requirements.txt           # Python 依赖包配置
+├── setup.py                   # 安装配置脚本
+│
+├── apirun/                    # 核心测试引擎代码
+│   ├── __init__.py           # 包初始化文件
+│   ├── cli.py                # 命令行入口（支持直接运行）
+│   ├── pytest.ini            # Pytest 配置文件
+│   │
+│   ├── core/                 # 核心运行器模块
+│   │   ├── __init__.py
+│   │   ├── ApiTestRunner.py      # 测试执行器
+│   │   ├── CasesPlugin.py        # Pytest 插件
+│   │   ├── globalContext.py      # 全局上下文管理
+│   │   ├── models.py             # 数据模型定义
+│   │   ├── enums.py              # 枚举类型定义
+│   │   └── exceptions.py         # 自定义异常类
+│   │
+│   ├── extend/               # 关键字扩展模块
+│   │   ├── __init__.py
+│   │   ├── keywords.py           # 关键字实现库
+│   │   ├── keywords.yaml         # 关键字配置文件
+│   │   ├── keywords_back.yaml    # 关键字备份配置
+│   │   └── script/              # 脚本执行器
+│   │       ├── __init__.py
+│   │       └── run_script.py    # Python 脚本运行器
+│   │
+│   ├── parse/                # 用例解析器模块
+│   │   ├── __init__.py
+│   │   ├── CaseParser.py         # 解析器工厂/入口
+│   │   ├── YamlCaseParser.py     # YAML 用例解析器
+│   │   └── ExcelCaseParser.py    # Excel 用例解析器
+│   │
+│   └── utils/                # 工具类模块
+│       ├── __init__.py
+│       ├── VarRender.py          # 变量渲染工具
+│       └── DynamicTitle.py       # 动态标题生成
+│
+├── examples/                 # 示例用例目录
+│   ├── example-api-cases/        # YAML 格式用例示例
+│   │   ├── context.yaml              # 全局配置（URL、数据库等）
+│   │   ├── 1_login_success.yaml      # 登录成功用例
+│   │   ├── 1_login_test_cases.yaml   # 登录测试用例集
+│   │   ├── 2_database_keyword_call.yaml  # 数据库操作用例
+│   │   ├── 2_interface_association.yaml  # 接口关联用例
+│   │   ├── 3_json_login.yaml         # JSON 登录用例
+│   │   ├── 4_upload_image_and_update_avatar.yaml  # 文件上传用例
+│   │   ├── 5_download_image_comparison.yaml       # 文件下载用例
+│   │   └── P1.png                    # 测试图片资源
+│   │
+│   └── example-pytest-scripts/   # Pytest 脚本示例
+│       ├── conftest.py               # Pytest 配置和 Fixtures
+│       ├── test_api_basic.py         # 基础 API 测试
+│       ├── test_api_advanced.py      # 高级 API 测试
+│       └── README.md                 # Pytest 示例说明
+│
+└── reports/                  # 测试报告目录（运行时自动生成）
+    ├── allure-results/           # Allure 原始测试数据（JSON）
+    ├── allure-report/            # Allure HTML 可视化报告
+    └── logdata/                  # Pytest 测试日志
+        └── log.log              # 测试执行日志文件
 ```
+
+> **注意**:
+>
+> - `__pycache__/` 和 `.pytest_cache/` 等缓存目录已自动忽略
+> - `reports/` 目录在首次运行测试后自动创建
+> - 所有日志统一保存到 `reports/logdata/` 目录
+> - 所有模块使用相对导入，`cli.py` 使用绝对导入以支持直接运行
 
 ## 导入策略说明
 
@@ -87,19 +135,28 @@ pytest -v -s
 
 ### 3. 查看测试报告
 
-```bash
-# 生成 Allure 报告
-allure generate -c -o allure-report
+测试执行完成后，报告会自动生成在 `reports/` 目录下：
 
-# 打开报告
-allure open allure-report
+```bash
+# 报告已自动生成，直接打开查看
+cd api-engine
+allure open reports/allure-report
+
+# 或手动生成报告
+allure generate -c -o reports/allure-report reports/allure-results
 ```
+
+**报告位置**：
+
+- 测试结果数据：`api-engine/reports/allure-results/`
+- HTML 报告：`api-engine/reports/allure-report/`
 
 ## 测试方式对比
 
 ### YAML 驱动测试
 
 **适用场景**：
+
 - 测试人员不熟悉编程
 - 快速编写简单测试用例
 - 数据驱动测试
@@ -121,6 +178,7 @@ steps:
 ### 原生 Pytest 测试
 
 **适用场景**：
+
 - 开发人员或熟悉 Python 的测试人员
 - 需要复杂逻辑的测试场景
 - 需要使用 pytest 高级特性
@@ -319,12 +377,14 @@ class MyKeyword:
 ### 2. 运行 cli.py 时报 ImportError 怎么办?
 
 确保在正确的目录运行:
+
 ```bash
 cd apirun
 python cli.py --type=yaml --cases=../examples/example-api-cases
 ```
 
 或使用模块方式:
+
 ```bash
 cd api-engine
 python -m apirun.cli --type=yaml --cases=examples/example-api-cases
@@ -355,4 +415,3 @@ def test_example(api_keywords):
 ## 许可证
 
 MIT License
-

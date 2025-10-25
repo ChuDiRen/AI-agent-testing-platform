@@ -1,6 +1,7 @@
-import allure
 import copy
 import sys
+
+import allure
 
 from .globalContext import g_context
 from ..extend.keywords import Keywords

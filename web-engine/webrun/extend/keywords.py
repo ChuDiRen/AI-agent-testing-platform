@@ -86,12 +86,14 @@ class Keywords:
         """错误时截图"""
         try:
             driver = self._get_driver()
-            screenshot_dir = "screenshots"
+            # 获取项目根目录下的 reports/screenshots 目录
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            screenshot_dir = os.path.join(project_root, "reports", "screenshots")
             if not os.path.exists(screenshot_dir):
                 os.makedirs(screenshot_dir)
             
             timestamp = time.strftime("%Y%m%d_%H%M%S")
-            filename = f"{screenshot_dir}/{name}_{timestamp}.png"
+            filename = os.path.join(screenshot_dir, f"{name}_{timestamp}.png")
             driver.save_screenshot(filename)
             
             # 附加到 Allure 报告
@@ -705,7 +707,9 @@ class Keywords:
         文件名 = kwargs.get("文件名")
         driver = self._get_driver()
         
-        screenshot_dir = "screenshots"
+        # 获取项目根目录下的 reports/screenshots 目录
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        screenshot_dir = os.path.join(project_root, "reports", "screenshots")
         if not os.path.exists(screenshot_dir):
             os.makedirs(screenshot_dir)
         

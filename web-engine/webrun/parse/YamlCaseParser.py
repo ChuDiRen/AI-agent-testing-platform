@@ -5,15 +5,15 @@ YAML 用例解析器
 import copy
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeAlias
 
 import yaml
 
 from ..core.globalContext import g_context
 
 # 类型别名
-type CaseDict = dict[str, Any]
-type CaseList = list[CaseDict]
+CaseDict: TypeAlias = dict[str, Any]
+CaseList: TypeAlias = list[CaseDict]
 
 
 def load_context_from_yaml(folder_path: Path) -> bool:
@@ -57,12 +57,15 @@ def load_yaml_files(config_path: Path) -> CaseList:
         key=lambda f: int(f.stem.split("_")[0])
     )
     
-    # 使用列表推导式 + 海象操作符加载并过滤文件
-    return [
-        caseinfo
-        for file_path in sorted_files
-        if (caseinfo := yaml.full_load(file_path.open("r", encoding='utf-8')))
-    ]
+    # 加载并过滤文件（确保文件句柄正确关闭）
+    case_list = []
+    for file_path in sorted_files:
+        with file_path.open("r", encoding='utf-8') as f:
+            caseinfo = yaml.full_load(f)
+            if caseinfo:
+                case_list.append(caseinfo)
+    
+    return case_list
 
 
 def yaml_case_parser(config_path: Path) -> dict[str, list[Any]]:

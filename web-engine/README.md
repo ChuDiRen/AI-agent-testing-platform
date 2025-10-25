@@ -18,38 +18,73 @@
 
 ```
 web-engine/
-├── webrun/                 # 核心引擎代码
-│   ├── core/              # 核心运行器 (使用相对导入)
-│   │   ├── WebTestRunner.py    # 测试执行器
-│   │   ├── globalContext.py    # 全局上下文
-│   │   └── CasesPlugin.py      # pytest 插件
-│   ├── extend/            # 关键字扩展 (使用相对导入)
-│   │   ├── keywords.py         # 关键字库
-│   │   └── script/            # 脚本执行器
-│   ├── parse/             # 用例解析器 (使用相对导入)
-│   │   ├── YamlCaseParser.py   # YAML 解析器
-│   │   └── CaseParser.py       # 解析器入口
-│   ├── utils/             # 工具类 (使用相对导入)
-│   │   ├── DriverManager.py    # 浏览器驱动管理
-│   │   ├── VarRender.py        # 变量渲染
-│   │   └── DynamicTitle.py     # 动态标题
-│   └── cli.py             # 命令行入口 (使用绝对导入,支持直接运行)
-├── examples/              # 示例用例
-│   ├── example-web-cases/     # YAML 用例
-│   │   ├── context.yaml
-│   │   ├── 1_baidu_search_test.yaml
-│   │   ├── 2_element_operations_test.yaml
-│   │   ├── 3_ddt_search_test.yaml
-│   │   ├── 4_advanced_operations_test.yaml
-│   │   └── 5_wait_and_assert_test.yaml
-│   └── example-pytest-scripts/ # Pytest 脚本
-│       ├── conftest.py
-│       ├── test_web_basic.py
-│       └── test_web_advanced.py
-├── requirements.txt       # 依赖配置
-├── setup.py              # 安装配置
-└── README.md             # 项目文档
+├── __init__.py                # 包初始化文件
+├── README.md                  # 项目说明文档（本文件）
+├── requirements.txt           # Python 依赖包配置
+├── setup.py                   # 安装配置脚本
+│
+├── webrun/                    # 核心测试引擎代码
+│   ├── __init__.py           # 包初始化文件
+│   ├── cli.py                # 命令行入口（支持直接运行）
+│   ├── pytest.ini            # Pytest 配置文件
+│   │
+│   ├── core/                 # 核心运行器模块
+│   │   ├── __init__.py
+│   │   ├── WebTestRunner.py      # Web 测试执行器
+│   │   ├── CasesPlugin.py        # Pytest 插件
+│   │   ├── globalContext.py      # 全局上下文管理
+│   │   ├── models.py             # 数据模型定义
+│   │   ├── enums.py              # 枚举类型定义
+│   │   └── exceptions.py         # 自定义异常类
+│   │
+│   ├── extend/               # 关键字扩展模块
+│   │   ├── __init__.py
+│   │   ├── keywords.py           # Selenium 关键字库
+│   │   └── script/              # 脚本执行器
+│   │       ├── __init__.py
+│   │       └── run_script.py    # Python 脚本运行器
+│   │
+│   ├── parse/                # 用例解析器模块
+│   │   ├── __init__.py
+│   │   ├── CaseParser.py         # 解析器工厂/入口
+│   │   └── YamlCaseParser.py     # YAML 用例解析器
+│   │
+│   └── utils/                # 工具类模块
+│       ├── __init__.py
+│       ├── DriverManager.py      # 浏览器驱动管理
+│       ├── VarRender.py          # 变量渲染工具
+│       └── DynamicTitle.py       # 动态标题生成
+│
+├── examples/                 # 示例用例目录
+│   ├── example-web-cases/        # YAML 格式用例示例
+│   │   ├── context.yaml              # 全局配置（URL等）
+│   │   ├── 1_baidu_search_test.yaml      # 百度搜索测试
+│   │   ├── 2_element_operations_test.yaml # 元素操作测试
+│   │   ├── 3_ddt_search_test.yaml        # 数据驱动搜索测试
+│   │   ├── 4_advanced_operations_test.yaml # 高级操作测试
+│   │   └── 5_wait_and_assert_test.yaml   # 等待和断言测试
+│   │
+│   └── example-pytest-scripts/   # Pytest 脚本示例
+│       ├── conftest.py               # Pytest 配置和 Fixtures
+│       ├── test_web_basic.py         # 基础 Web 测试
+│       ├── test_web_advanced.py      # 高级 Web 测试
+│       └── README.md                 # Pytest 示例说明
+│
+└── reports/                  # 测试报告目录（运行时自动生成）
+    ├── allure-results/           # Allure 原始测试数据（JSON）
+    ├── allure-report/            # Allure HTML 可视化报告
+    ├── screenshots/              # 测试截图（错误截图和主动截图）
+    └── logdata/                  # Pytest 测试日志
+        └── log.log              # 测试执行日志文件
 ```
+
+> **注意**:
+>
+> - `__pycache__/` 和 `.pytest_cache/` 等缓存目录已自动忽略
+> - `reports/` 目录在首次运行测试后自动创建
+> - 所有截图统一保存到 `reports/screenshots/` 目录
+> - 所有日志统一保存到 `reports/logdata/` 目录
+> - 所有模块使用相对导入，`cli.py` 使用绝对导入以支持直接运行
 
 ## 导入策略说明
 
@@ -96,7 +131,18 @@ cd webrun
 pytest core/WebTestRunner.py --type=yaml --cases=../examples/example-web-cases --browser=chrome --headless=false
 ```
 
-#### 方式二：运行 Pytest 脚本
+#### 方式二：运行 Excel 用例
+
+**模块方式运行**:
+
+```bash
+cd web-engine
+python -m webrun.cli --type=excel --cases=examples/example-excel-cases --browser=chrome --headless=false
+```
+
+**说明**: Excel 用例格式详见 `examples/example-excel-cases/README.md`
+
+#### 方式三：运行 Pytest 脚本
 
 ```bash
 cd examples/example-pytest-scripts
@@ -105,13 +151,21 @@ pytest -v -s --browser=chrome --headless=false
 
 ### 3. 查看测试报告
 
-```bash
-# 生成 Allure 报告
-allure generate -c -o allure-report
+测试执行完成后，报告会自动生成在 `reports/` 目录下：
 
-# 打开报告
-allure open allure-report
+```bash
+# 报告已自动生成，直接打开查看
+cd web-engine
+allure open reports/allure-report
+
+# 或手动生成报告
+allure generate -c -o reports/allure-report reports/allure-results
 ```
+
+**报告位置**：
+
+- 测试结果数据：`web-engine/reports/allure-results/`
+- HTML 报告：`web-engine/reports/allure-report/`
 
 ## 关键字说明
 
@@ -187,6 +241,7 @@ allure open allure-report
 ### YAML 驱动测试
 
 **适用场景**：
+
 - 测试人员不熟悉编程
 - 快速编写简单测试用例
 - 数据驱动测试
@@ -194,6 +249,7 @@ allure open allure-report
 ### 原生 Pytest 测试
 
 **适用场景**：
+
 - 开发人员或熟悉 Python 的测试人员
 - 需要复杂逻辑的测试场景
 - 需要使用 pytest 高级特性
@@ -429,6 +485,78 @@ class MyCustomKeyword:
 | 截图功能 | ❌ | ✅ |
 | 等待策略 | - | 隐式/显式等待 |
 
+## Excel 用例编写指南
+
+### Excel 用例格式
+
+Web Engine 支持使用 Excel 文件编写测试用例，适合非技术人员编写和维护测试用例。
+
+### Excel 文件结构
+
+#### 1. context.xlsx - 全局配置文件（可选）
+
+**表格格式**:
+
+| 类型 | 变量描述 | 变量值 |
+|------|---------|--------|
+| 变量 | BASE_URL | <https://www.baidu.com> |
+| 变量 | TEST_USERNAME | testuser |
+| 变量 | TEST_PASSWORD | test123456 |
+
+#### 2. 测试用例文件
+
+**文件命名**: `数字_用例名称.xlsx` (例如: `1_百度搜索测试.xlsx`)
+
+**表格格式**:
+
+| 编号 | 测试用例标题 | 用例等级 | 步骤描述 | 关键字 | 参数_1 | 参数_2 | 参数_3 | 参数_4 |
+|-----|-------------|---------|---------|--------|--------|--------|--------|--------|
+| 1 | 百度搜索测试 | P0 | 打开浏览器 | open_browser | chrome | false | 10 | maximize |
+| 2 |  |  | 导航到百度 | navigate_to | <https://www.baidu.com> |  |  |  |
+| 3 |  |  | 等待搜索框 | wait_for_element_visible | id | kw | 15 |  |
+| 4 |  |  | 输入关键词 | input_text | id | kw | Selenium | true |
+| 5 |  |  | 点击搜索 | click_element | id | su |  |  |
+| 6 |  |  | 等待结果 | wait_for_element_visible | id | content_left | 15 |  |
+| 7 |  |  | 断言包含 | assert_text_contains | id | content_left | Selenium |  |
+| 8 |  |  | 截图 | take_screenshot | search_result |  |  |  |
+| 9 |  |  | 关闭浏览器 | close_browser |  |  |  |  |
+
+### Excel 用例说明
+
+1. **文件命名**: 必须以数字开头，格式为 `数字_名称.xlsx`
+2. **用例标题**: 每个测试用例的第一行必须填写标题
+3. **步骤描述**: 清晰描述每个步骤的目的
+4. **关键字**: 必须是 `keywords.yaml` 中定义的关键字
+5. **参数列**: 从 `参数_1` 开始，根据关键字需要添加足够的参数列
+6. **数据类型**:
+   - 字符串: 直接填写
+   - 数字: 直接填写数字
+   - 布尔值: `true` 或 `false`
+   - 列表: `['item1', 'item2']`
+   - 字典: `{'key': 'value'}`
+
+### 运行 Excel 用例
+
+```bash
+cd web-engine
+python -m webrun.cli --type=excel --cases=examples/example-excel-cases
+```
+
+### Excel 用例优势
+
+- ✅ **易于编写**: 使用 Excel 编写，无需编程基础
+- ✅ **易于维护**: 表格格式直观，易于修改
+- ✅ **团队协作**: 测试人员和业务人员都能参与编写
+- ✅ **版本管理**: Excel 文件可以纳入版本控制
+- ✅ **数据驱动**: 通过复制行可以快速创建数据驱动测试
+
+### 详细示例
+
+完整的 Excel 用例示例和说明，请参考:
+
+- `examples/example-excel-cases/README.md` - Excel 用例详细文档
+- `webrun/extend/keywords.yaml` - 所有可用关键字及参数说明
+
 ## 常见问题
 
 ### 1. 为什么 cli.py 使用绝对导入,其他模块使用相对导入?
@@ -445,12 +573,14 @@ class MyCustomKeyword:
 ### 3. 运行 cli.py 时报 ImportError 怎么办?
 
 确保在正确的目录运行:
+
 ```bash
 cd webrun
 python cli.py --type=yaml --cases=../examples/example-web-cases
 ```
 
 或使用模块方式:
+
 ```bash
 cd web-engine
 python -m webrun.cli --type=yaml --cases=examples/example-web-cases
@@ -481,7 +611,7 @@ def test_example(web_keywords, driver):
 
 ### 8. 截图保存在哪里？
 
-截图默认保存在 `screenshots/` 目录，同时会附加到 Allure 报告中。
+所有截图统一保存在 `reports/screenshots/` 目录，同时会自动附加到 Allure 报告中。
 
 ### 9. Pytest 测试失败时会自动截图吗？
 
@@ -499,4 +629,3 @@ MIT License
 
 - 项目地址：[GitHub](https://github.com/yourusername/web-engine)
 - 问题反馈：[Issues](https://github.com/yourusername/web-engine/issues)
-
