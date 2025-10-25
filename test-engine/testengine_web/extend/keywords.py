@@ -87,8 +87,11 @@ class Keywords:
             page = self._get_page()
             timestamp = int(time.time())
             filename = f"{filename_prefix}_{timestamp}.png"
-            screenshot_path = os.path.join("screenshots", filename)
-            os.makedirs("screenshots", exist_ok=True)
+            # 使用项目根目录下的 reports/screenshots
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            screenshot_dir = os.path.join(project_root, "reports", "screenshots")
+            os.makedirs(screenshot_dir, exist_ok=True)
+            screenshot_path = os.path.join(screenshot_dir, filename)
             page.screenshot(path=screenshot_path, full_page=True)
             allure.attach.file(screenshot_path, name=f"错误截图_{filename_prefix}", attachment_type=allure.attachment_type.PNG)
             print(f"错误截图已保存: {screenshot_path}")
@@ -333,8 +336,9 @@ class Keywords:
         if not 文件名.endswith('.png'):
             文件名 += '.png'
         
-        # 创建截图目录
-        screenshot_dir = "screenshots"
+        # 使用项目根目录下的 reports/screenshots
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        screenshot_dir = os.path.join(project_root, "reports", "screenshots")
         os.makedirs(screenshot_dir, exist_ok=True)
         screenshot_path = os.path.join(screenshot_dir, 文件名)
         

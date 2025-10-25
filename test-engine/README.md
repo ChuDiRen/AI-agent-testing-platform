@@ -5,6 +5,7 @@
 ## ✨ 特性
 
 ### 核心特性
+
 - 🔄 **统一入口**：一个命令支持 API 和 Web 两种测试类型
 - ✨ **关键字驱动**：丰富的测试关键字库，简化用例编写
 - 📝 **YAML 格式**：使用 YAML 编写测试用例，清晰易读
@@ -14,6 +15,7 @@
 - 🔧 **易扩展**：支持自定义关键字扩展
 
 ### API 测试特性
+
 - 📡 **纯异步架构** - 基于 httpx 异步库,真正的异步执行
 - ⚡ **连接池复用** - 智能连接池管理,性能提升 3-5 倍
 - 🔄 **HTTP/2 支持** - 现代化协议支持
@@ -23,6 +25,7 @@
 - 📤 **文件上传下载** - 支持文件上传和下载功能
 
 ### Web 测试特性
+
 - 🌐 基于 Playwright - 现代化 Web 自动化测试框架
 - 🎯 多浏览器支持（Chromium、Firefox、WebKit）
 - ⚡ 内置自动等待 - 无需显式等待
@@ -44,19 +47,34 @@ test-engine/
 │   ├── core/              # 核心运行器
 │   ├── extend/            # 关键字扩展
 │   ├── parse/             # 用例解析器
-│   └── utils/             # 工具类
+│   ├── utils/             # 工具类
+│   └── pytest.ini         # Pytest 配置文件
 ├── testengine_web/        # Web测试引擎
 │   ├── core/              # 核心运行器
 │   ├── extend/            # 关键字扩展
 │   ├── parse/             # 用例解析器
-│   └── utils/             # 工具类
+│   ├── utils/             # 工具类
+│   └── pytest.ini         # Pytest 配置文件
 ├── examples/              # 示例用例
 │   ├── api-cases/         # API测试示例
 │   └── web-cases/         # Web测试示例
+├── reports/               # 测试报告目录（运行时自动生成）
+│   ├── allure-results/    # Allure 原始测试数据（JSON）
+│   ├── allure-report/     # Allure HTML 可视化报告
+│   ├── screenshots/       # Web 测试截图（仅 Web 测试）
+│   └── logdata/           # Pytest 测试日志
+│       └── log.log       # 测试执行日志文件
 ├── requirements.txt       # 依赖配置
 ├── setup.py              # 安装配置
 └── README.md             # 项目文档
 ```
+
+> **注意**:
+>
+> - `__pycache__/` 和 `.pytest_cache/` 等缓存目录已自动忽略
+> - `reports/` 目录在首次运行测试后自动创建
+> - 所有日志统一保存到 `reports/logdata/` 目录
+> - Web 测试的所有截图统一保存到 `reports/screenshots/` 目录
 
 ## 🚀 快速开始
 
@@ -115,13 +133,25 @@ testrun --type=yaml --cases=examples/api-cases
 
 ### 3. 查看测试报告
 
-```bash
-# 生成 Allure 报告
-allure generate -c -o allure-report
+测试执行完成后，报告会自动生成到 `reports/` 目录：
 
-# 打开报告
-allure open allure-report
+```bash
+# 打开 Allure 报告（测试执行后自动生成）
+allure open reports/allure-report
+
+# 查看测试日志
+cat reports/logdata/log.log
+
+# 查看 Web 测试截图（仅 Web 测试）
+ls reports/screenshots/
 ```
+
+**报告文件说明**:
+
+- `reports/allure-report/` - HTML 可视化报告，可在浏览器中查看
+- `reports/allure-results/` - Allure 原始数据（JSON 格式）
+- `reports/logdata/log.log` - 测试执行日志
+- `reports/screenshots/` - Web 测试截图（仅 Web 测试）
 
 ## 📖 使用指南
 
@@ -368,6 +398,7 @@ TEST_PASSWORD: testpass123
 **参数优先级**: 命令行参数 > context.yaml 配置文件 > 默认值
 
 **说明**:
+
 - 命令行参数会覆盖 `context.yaml` 中的 `BROWSER` 和 `HEADLESS` 配置
 - 适用于 CI/CD 环境动态切换浏览器模式，无需修改配置文件
 
@@ -420,6 +451,7 @@ API 测试中使用 `ex_jsonData` 提取响应数据，保存到变量中供后�
 ### 5. 元素定位
 
 Web 测试推荐使用稳定的定位方式：
+
 1. ID（最稳定）
 2. CSS Selector
 3. XPath（最灵活但维护成本高）
@@ -440,6 +472,7 @@ Web 测试推荐使用稳定的定位方式：
 ### 1. 如何指定测试引擎类型？
 
 有两种方式，命令行参数优先级更高：
+
 - 命令行：`--engine-type=api` 或 `--engine-type=web`
 - 配置文件：在 `context.yaml` 中添加 `ENGINE_TYPE: api` 或 `ENGINE_TYPE: web`
 
@@ -519,6 +552,7 @@ other:
 ```
 
 **配置说明：**
+
 - `max_connections`: 控制最大并发连接数,根据目标服务器性能调整
 - `max_keepalive_connections`: 保持活跃的连接数,提高复用率
 - `keepalive_expiry`: 连接保持时间,过期后自动关闭
@@ -536,4 +570,3 @@ MIT License
 
 - 项目地址：[GitHub](https://github.com/yourusername/test-engine)
 - 问题反馈：[Issues](https://github.com/yourusername/test-engine/issues)
-

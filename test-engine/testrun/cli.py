@@ -4,30 +4,32 @@
 """
 import os
 import sys
+from pathlib import Path
+from typing import Optional, List
 import yaml
 import pytest
 
 
-def get_engine_type_from_args():
+def get_engine_type_from_args() -> Optional[str]:
     """
     从命令行参数中获取 engine-type
     返回: 'api', 'web' 或 None
     """
-    for arg in sys.argv:
-        if arg.startswith("--engine-type="):
-            engine_type = arg.split("=")[1].lower()
-            if engine_type in ['api', 'web']:
-                # 从 sys.argv 中移除这个参数，避免传递给子引擎
-                sys.argv.remove(arg)
-                return engine_type
-            else:
-                print(f"错误: 不支持的 engine-type: {engine_type}")
-                print("支持的类型: api, web")
-                sys.exit(1)
+    engine_arg = next((arg for arg in sys.argv if arg.startswith("--engine-type=")), None)
+    if engine_arg:
+        engine_type = engine_arg.split("=")[1].lower()
+        if engine_type in ['api', 'web']:
+            # 从 sys.argv 中移除这个参数，避免传递给子引擎
+            sys.argv.remove(engine_arg)
+            return engine_type
+        else:
+            print(f"错误: 不支持的 engine-type: {engine_type}")
+            print("支持的类型: api, web")
+            sys.exit(1)
     return None
 
 
-def get_engine_type_from_config(cases_dir):
+def get_engine_type_from_config(cases_dir: str) -> Optional[str]:
     """
     从 context.yaml 配置文件中读取 ENGINE_TYPE
     返回: 'api', 'web' 或 None
@@ -36,15 +38,15 @@ def get_engine_type_from_config(cases_dir):
         return None
 
     # 查找 context.yaml 文件
-    context_file = os.path.join(cases_dir, "context.yaml")
-    if not os.path.exists(context_file):
+    context_file = Path(cases_dir) / "context.yaml"
+    if not context_file.exists():
         return None
 
     try:
         with open(context_file, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
-            if config and 'ENGINE_TYPE' in config:
-                engine_type = config['ENGINE_TYPE'].lower()
+            if config and (engine_type := config.get('ENGINE_TYPE')):
+                engine_type = engine_type.lower()
                 if engine_type in ['api', 'web']:
                     return engine_type
     except Exception as e:
@@ -53,69 +55,125 @@ def get_engine_type_from_config(cases_dir):
     return None
 
 
-def get_cases_dir_from_args():
+def get_cases_dir_from_args() -> Optional[str]:
     """
     从命令行参数中获取 cases 目录
     """
-    for arg in sys.argv:
-        if arg.startswith("--cases="):
-            return arg.split("=")[1]
-    return None
+    cases_arg = next((arg for arg in sys.argv if arg.startswith("--cases=")), None)
+    return cases_arg.split("=")[1] if cases_arg else None
 
 
-def run_api_engine():
+def run_api_engine() -> int:
     """
     运行 API 测试引擎
     """
     try:
         from testengine_api.core.CasesPlugin import CasesPlugin  # 绝对导入: 跨包导入
 
-        # 获取 python 运行参数
-        pytest_cmd_config = []
-        for arg in sys.argv:
-            if arg.startswith("-"):
-                pytest_cmd_config.append(arg)
+        # 获取项目根目录（test-engine目录）
+        project_root = Path(__file__).parent.parent
+        reports_dir = project_root / "reports"
+        
+        # 创建 reports 目录（如果不存在）
+        reports_dir.mkdir(exist_ok=True)
+        
+        # 定义报告路径
+        allure_results_dir = reports_dir / "allure-results"
+        allure_report_dir = reports_dir / "allure-report"
+        
+        # 创建 logdata 目录并定义日志文件路径
+        logdata_dir = reports_dir / "logdata"
+        logdata_dir.mkdir(exist_ok=True)
+        log_file = logdata_dir / "log.log"
+
+        # 获取 python 运行参数（使用列表推导式）
+        pytest_cmd_config = [arg for arg in sys.argv if arg.startswith("-")]
 
         # 构建 pytest 参数
-        api_runner_path = os.path.join(os.path.dirname(__file__), "..", "testengine_api", "core", "ApiTestRunner.py")
-        pytest_args = [api_runner_path]
-        pytest_args.extend(pytest_cmd_config)
+        api_runner_path = Path(__file__).parent.parent / "testengine_api" / "core" / "ApiTestRunner.py"
+        pytest_args = [
+            "-s", "-v", "--capture=tee-sys",
+            str(api_runner_path),
+            "--clean-alluredir", f"--alluredir={allure_results_dir}",
+            f"--log-file={log_file}",
+            "--log-file-level=INFO",
+            "--log-file-format=%(asctime)s %(levelname)s %(message)s %(lineno)d",
+            "--log-file-date-format=%Y-%m-%d %H:%M:%S",
+            *pytest_cmd_config
+        ]
 
         print("运行 API 测试引擎:", pytest_args)
-        pytest.main(pytest_args, plugins=[CasesPlugin()])
+        exit_code = pytest.main(pytest_args, plugins=[CasesPlugin()])
+        
+        # 测试执行完成后自动生成Allure报告
+        print("\n=== 测试执行完成，正在生成Allure报告... ===")
+        print(f"报告目录: {allure_report_dir}")
+        os.system(f'allure generate -c -o "{allure_report_dir}" "{allure_results_dir}"')
+        
+        return exit_code
 
     except ImportError as e:
         print(f"错误: 无法导入 API 引擎模块: {e}")
         sys.exit(1)
 
 
-def run_web_engine():
+def run_web_engine() -> int:
     """
     运行 Web 测试引擎
     """
     try:
         from testengine_web.core.CasesPlugin import CasesPlugin  # 绝对导入: 跨包导入
 
-        # 获取 python 运行参数
-        pytest_cmd_config = []
-        for arg in sys.argv:
-            if arg.startswith("-"):
-                pytest_cmd_config.append(arg)
+        # 获取项目根目录（test-engine目录）
+        project_root = Path(__file__).parent.parent
+        reports_dir = project_root / "reports"
+        
+        # 创建 reports 目录（如果不存在）
+        reports_dir.mkdir(exist_ok=True)
+        
+        # 定义报告路径
+        allure_results_dir = reports_dir / "allure-results"
+        allure_report_dir = reports_dir / "allure-report"
+        
+        # 创建 logdata 和 screenshots 目录
+        logdata_dir = reports_dir / "logdata"
+        screenshots_dir = reports_dir / "screenshots"
+        logdata_dir.mkdir(exist_ok=True)
+        screenshots_dir.mkdir(exist_ok=True)
+        log_file = logdata_dir / "log.log"
+
+        # 获取 python 运行参数（使用列表推导式）
+        pytest_cmd_config = [arg for arg in sys.argv if arg.startswith("-")]
 
         # 构建 pytest 参数
-        web_runner_path = os.path.join(os.path.dirname(__file__), "..", "testengine_web", "core", "WebTestRunner.py")
-        pytest_args = [web_runner_path]
-        pytest_args.extend(pytest_cmd_config)
+        web_runner_path = Path(__file__).parent.parent / "testengine_web" / "core" / "WebTestRunner.py"
+        pytest_args = [
+            "-s", "-v", "--capture=tee-sys",
+            str(web_runner_path),
+            "--clean-alluredir", f"--alluredir={allure_results_dir}",
+            f"--log-file={log_file}",
+            "--log-file-level=INFO",
+            "--log-file-format=%(asctime)s %(levelname)s %(message)s %(lineno)d",
+            "--log-file-date-format=%Y-%m-%d %H:%M:%S",
+            *pytest_cmd_config
+        ]
 
         print("运行 Web 测试引擎:", pytest_args)
-        pytest.main(pytest_args, plugins=[CasesPlugin()])
+        exit_code = pytest.main(pytest_args, plugins=[CasesPlugin()])
+        
+        # 测试执行完成后自动生成Allure报告
+        print("\n=== 测试执行完成，正在生成Allure报告... ===")
+        print(f"报告目录: {allure_report_dir}")
+        os.system(f'allure generate -c -o "{allure_report_dir}" "{allure_results_dir}"')
+        
+        return exit_code
 
     except ImportError as e:
         print(f"错误: 无法导入 Web 引擎模块: {e}")
         sys.exit(1)
 
 
-def run():
+def run() -> None:
     """
     统一入口函数
     1. 从命令行参数获取 engine-type（优先级高）
@@ -131,10 +189,8 @@ def run():
 
     # 2. 如果未指定，尝试从配置文件读取
     if not engine_type:
-        cases_dir = get_cases_dir_from_args()
-        if cases_dir:
-            engine_type = get_engine_type_from_config(cases_dir)
-            if engine_type:
+        if cases_dir := get_cases_dir_from_args():
+            if engine_type := get_engine_type_from_config(cases_dir):
                 print(f"从配置文件读取 ENGINE_TYPE: {engine_type}")
 
     # 3. 如果还是没有，提示用户
@@ -152,11 +208,14 @@ def run():
     print("=" * 60)
     print()
 
-    # 4. 根据类型运行对应的引擎
-    if engine_type == 'api':
-        run_api_engine()
-    elif engine_type == 'web':
-        run_web_engine()
+    # 4. 根据类型运行对应的引擎（使用字典映射）
+    engine_runners = {
+        'api': run_api_engine,
+        'web': run_web_engine
+    }
+    
+    if runner := engine_runners.get(engine_type):
+        runner()
 
 
 if __name__ == '__main__':
