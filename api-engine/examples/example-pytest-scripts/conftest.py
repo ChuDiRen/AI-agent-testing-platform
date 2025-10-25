@@ -3,7 +3,6 @@ API Engine Pytest 配置文件
 提供测试 fixtures 和配置
 """
 import pytest
-import allure
 from apirun.extend.keywords import Keywords
 
 

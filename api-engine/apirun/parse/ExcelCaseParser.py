@@ -1,8 +1,11 @@
-import copy, os, yaml
-from ..core.globalContext import g_context
-import pandas as pd
-import json
 import ast
+import json
+import os
+import yaml
+
+import pandas as pd
+
+from ..core.globalContext import g_context
 
 
 # 获取以context开头 .xlsx结尾的内容，并放入到公共参数中去!

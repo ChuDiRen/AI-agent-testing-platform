@@ -2,9 +2,10 @@
 脚本执行器
 支持执行前置和后置脚本
 """
+from typing import Any
 
 
-def exec_script(script_code, context, caseinfo=None):
+def exec_script(script_code: str, context: dict[str, Any], caseinfo: dict[str, Any] | None = None) -> None:
     """
     执行 Python 脚本
 

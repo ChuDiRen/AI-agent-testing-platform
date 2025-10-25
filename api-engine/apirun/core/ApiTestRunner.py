@@ -1,12 +1,14 @@
+import allure
 import copy
-import sys, allure
+import sys
 
+from .globalContext import g_context
 from ..extend.keywords import Keywords
 from ..extend.script import run_script
-from .globalContext import g_context
-from ..utils.VarRender import refresh
 # TODO 扩展-多文件执行：
 from ..utils.DynamicTitle import dynamicTitle  # 动态标题
+from ..utils.VarRender import refresh
+
 
 class TestRunner:
     def test_case_execute(self, caseinfo):

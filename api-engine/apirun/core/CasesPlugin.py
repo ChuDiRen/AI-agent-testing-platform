@@ -1,8 +1,7 @@
-import pytest
 import os
 
-from ..parse.CaseParser import case_parser
 from .globalContext import g_context
+from ..parse.CaseParser import case_parser
 
 
 class CasesPlugin:
@@ -32,16 +31,22 @@ class CasesPlugin:
         """
         method_meta: 运行的方法信息
         """
+        from pathlib import Path
+        
         # 读取用户传过来的参数
         case_type = metafunc.config.getoption("type")
         cases_dir = metafunc.config.getoption("cases")
         key_dir = metafunc.config.getoption("keyDir")
 
-        # 把这个key_dir 放入到公共变量去
-        g_context().set_dict("key_dir", key_dir)
+        # 立即转换为 Path 对象 - 不允许兼容代码
+        cases_path = Path(cases_dir).resolve()
+        key_path = Path(key_dir) if key_dir else None
 
-        # 读取测试用例,同时需要进行参数化
-        data = case_parser(case_type, cases_dir)
+        # 把这个key_dir 放入到公共变量去
+        g_context().set_dict("key_dir", str(key_path) if key_path else key_dir)
+
+        # 读取测试用例 - 传递 Path 对象
+        data = case_parser(case_type, cases_path)
 
         # 把测试用例作为参数化，交给 runner 执行
         if "caseinfo" in metafunc.fixturenames:

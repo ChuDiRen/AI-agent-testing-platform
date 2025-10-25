@@ -2,11 +2,11 @@
 Web Engine Pytest 配置文件
 提供测试 fixtures 和配置
 """
-import pytest
 import allure
+import pytest
+from webrun.core.globalContext import g_context
 from webrun.extend.keywords import Keywords
 from webrun.utils.DriverManager import DriverManager
-from webrun.core.globalContext import g_context
 
 
 @pytest.fixture(scope="function")

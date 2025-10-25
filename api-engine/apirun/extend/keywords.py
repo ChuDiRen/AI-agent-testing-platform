@@ -1,20 +1,20 @@
+import json
 import mimetypes
-from importlib.metadata import files
-
-import allure
-# 移除过时的selenium devtools导入，这个模块在新版本selenium中已不存在
-# from selenium.webdriver.common.devtools.v85.indexed_db import request_data
-
-from ..core.globalContext import g_context
-import requests
-import jsonpath
+import os
 import re
 import time
-import os
-import json
 from urllib.parse import unquote
-from urllib.parse import urlparse
 from urllib.parse import urlencode
+
+import allure
+import jsonpath
+import requests
+
+from ..core.globalContext import g_context
+
+
+# 移除过时的selenium devtools导入，这个模块在新版本selenium中已不存在
+# from selenium.webdriver.common.devtools.v85.indexed_db import request_data
 
 class Keywords:
     request = None

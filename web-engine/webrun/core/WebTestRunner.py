@@ -1,12 +1,13 @@
 import copy
 import sys
+
 import allure
 
+from .globalContext import g_context
 from ..extend.keywords import Keywords
 from ..extend.script import run_script
-from .globalContext import g_context
-from ..utils.VarRender import refresh
 from ..utils.DynamicTitle import dynamicTitle
+from ..utils.VarRender import refresh
 
 
 def _safe_copy_context(context_dict):

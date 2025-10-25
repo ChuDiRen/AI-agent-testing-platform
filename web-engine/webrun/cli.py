@@ -1,5 +1,6 @@
 import os
 import sys
+
 import pytest
 
 # 添加父目录到Python路径,使webrun可以被导入
@@ -15,26 +16,35 @@ def run():
     # 获取 python运行参数
     # 1. 读取命令行传入的参数
     pytest_cmd_config = []
-    for arg in sys.argv[1:]:  # 跳过脚本名称
-        if arg.startswith("-"):
+    i = 1  # 跳过脚本名称
+    while i < len(sys.argv):
+        arg = sys.argv[i]
+        if arg.startswith("--"):
+            # 处理长选项，如 --type=yaml 或 --cases=path
+            if "=" in arg:
+                pytest_cmd_config.append(arg)
+            else:
+                # 处理分离的参数，如 --type yaml
+                if i + 1 < len(sys.argv):
+                    pytest_cmd_config.append(arg)
+                    pytest_cmd_config.append(sys.argv[i + 1])
+                    i += 1  # 跳过下一个参数，因为它是当前选项的值
+                else:
+                    pytest_cmd_config.append(arg)
+        elif arg.startswith("-"):
             pytest_cmd_config.append(arg)
+        i += 1
 
+    print("解析到的参数:", pytest_cmd_config)  # 调试输出
+
+    print(os.path.join(os.path.dirname(__file__), "core/WebTestRunner.py"))
     # 2. 构建pytest参数
-    runner_path = os.path.join(os.path.dirname(__file__), "core", "WebTestRunner.py")
-    print(f"测试运行器路径: {runner_path}")
-
-    # 基础 pytest 参数
-    pytest_args = [
-        "-s", "-v", "--capture=tee-sys",
-        runner_path,
-        "--clean-alluredir",
-        "--alluredir=allure-results"
-    ]
-
-    # 添加命令行传入的参数
+    pytest_args = ["-s", "-v", "--capture=tee-sys"]
+    pytest_args.append(os.path.join(os.path.dirname(__file__), "core/WebTestRunner.py"))
+    pytest_args.extend(["--clean-alluredir", "--alluredir=allure-results"])
     pytest_args.extend(pytest_cmd_config)
 
-    print(f"run pytest: {pytest_args}")
+    print("run pytest：", pytest_args)
 
     # 执行测试
     pytest.main(pytest_args, plugins=[CasesPlugin()])
@@ -45,9 +55,6 @@ def run():
 
 
 if __name__ == '__main__':
-    # 直接调用 run() 函数，使用命令行参数
+    # 调用run函数而不是直接执行测试代码
     run()
-
-    # 集成 allure 示例（可选）
-    # os.system(r"allure generate -c -o allure-report")
 

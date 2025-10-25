@@ -2,8 +2,8 @@
 Web Engine 高级测试示例
 演示 pytest 高级特性：参数化、测试类、fixture 等
 """
-import pytest
 import allure
+import pytest
 
 
 # ==================== 参数化测试 ====================
