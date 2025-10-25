@@ -2,8 +2,8 @@
 
 # 动态生成标题
 from typing import Dict, Any, Callable
-import allure
 
+import allure
 
 # 字段映射：字段名 -> Allure 动态方法
 DYNAMIC_FIELDS: Dict[str, Callable] = {

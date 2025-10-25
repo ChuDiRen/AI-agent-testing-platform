@@ -1,8 +1,9 @@
 from typing import List
+
 import pytest
 
-from ..parse.CaseParser import case_parser  # 相对导入: webrun内部模块
 from .globalContext import g_context  # 相对导入: 同级模块
+from ..parse.CaseParser import case_parser  # 相对导入: webrun内部模块
 
 
 class CasesPlugin:
@@ -22,7 +23,7 @@ class CasesPlugin:
         :param parser: pytest 参数解析器
         """
         parser.addoption(
-            "--type", action="store", default="yaml", help="测试用例类型 (yaml)"
+            "--type", action="store", default="yaml", help="测试用例类型 (yaml/pytest)"
         )
         parser.addoption(
             "--cases", action="store", default="../examples", help="测试用例目录路径"

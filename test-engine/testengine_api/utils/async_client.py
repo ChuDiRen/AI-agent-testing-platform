@@ -1,9 +1,10 @@
 """异步 HTTP 客户端管理器 - 基于 httpx 的连接池复用实现"""
-import httpx
 import asyncio
 import logging
-from typing import Optional
 import os
+from typing import Optional
+
+import httpx
 import yaml
 
 logger = logging.getLogger(__name__)

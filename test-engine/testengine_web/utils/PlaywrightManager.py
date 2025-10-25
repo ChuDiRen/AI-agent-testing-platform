@@ -3,8 +3,7 @@ Playwright 浏览器管理器
 支持 Chromium、Firefox、WebKit 浏览器
 使用 Playwright 原生浏览器管理
 """
-from playwright.sync_api import sync_playwright, Browser, BrowserContext, Page
-import os
+from playwright.sync_api import sync_playwright
 
 
 class PlaywrightManager:

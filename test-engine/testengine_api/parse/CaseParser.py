@@ -2,8 +2,8 @@
 import os
 from typing import List, Dict
 
-from .YamlCaseParser import yaml_case_parser  # 相对导入: 同级模块
 from .ExcelCaseParser import excel_case_parser  # 相对导入: 同级模块
+from .YamlCaseParser import yaml_case_parser  # 相对导入: 同级模块
 
 
 def case_parser(case_type: str, case_dir: str) -> Dict[str, List]:

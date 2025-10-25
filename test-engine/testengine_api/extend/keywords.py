@@ -1,16 +1,16 @@
-import mimetypes
-from importlib.metadata import files
-import allure
-from ..core.globalContext import g_context # 相对导入
-import httpx
-from ..utils.async_client import AsyncClientManager # 异步客户端管理器
-import jsonpath
-import re
-import time
-import os
 import json
 import logging
+import mimetypes
+import os
+import re
+import time
 from urllib.parse import unquote, urlparse, urlencode
+
+import allure
+import jsonpath
+
+from ..core.globalContext import g_context  # 相对导入
+from ..utils.async_client import AsyncClientManager  # 异步客户端管理器
 
 logger = logging.getLogger(__name__) # 配置日志
 

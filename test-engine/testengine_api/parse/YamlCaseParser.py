@@ -1,8 +1,10 @@
 import copy
 import os
-import yaml
 import uuid
 from typing import List, Dict, Any
+
+import yaml
+
 try:
     # pyyaml-include 2.x
     from yaml_include import Constructor as YamlIncludeConstructor
