@@ -5,6 +5,7 @@
 ## 特性
 
 - ✨ **关键字驱动**：丰富的 Selenium 关键字库，简化测试用例编写
+- 🤖 **AI驱动操作**：基于Qwen-VL视觉模型，使用自然语言描述定位和操作元素（新功能）
 - 📝 **YAML 格式**：使用 YAML 编写测试用例，清晰易读
 - 🐍 **原生 Pytest**：支持使用 Python pytest 脚本编写测试
 - 🔄 **数据驱动**：支持 DDT 数据驱动测试，一个用例多组数据
@@ -222,6 +223,40 @@ allure generate -c -o reports/allure-report reports/allure-results
 | `scroll_to_element` | 滚动到元素 | 定位方式, 元素, 等待时间 |
 | `hover_element` | 鼠标悬停 | 定位方式, 元素, 等待时间 |
 | `get_current_url` | 获取当前URL | 变量名 |
+
+### AI 驱动操作 🤖 NEW
+
+| 关键字 | 说明 | 参数 |
+|--------|------|------|
+| `ai_operation` | AI通用操作 | 操作描述 |
+| `ai_click` | AI点击元素 | 元素描述 |
+| `ai_input` | AI输入文本 | 元素描述, 文本 |
+| `ai_extract_text` | AI提取文本 | 文本描述, 变量名 |
+| `ai_scroll` | AI滚动到元素 | 元素描述 |
+| `ai_hover` | AI鼠标悬停 | 元素描述 |
+| `ai_drag` | AI拖拽元素 | 源元素描述, 目标元素描述 |
+| `ai_assert_visible` | AI断言可见 | 元素描述 |
+
+**AI操作特点**：
+
+- ✅ 使用自然语言描述元素，无需编写XPath或CSS选择器
+- ✅ 基于Qwen-VL视觉模型，智能识别页面元素
+- ✅ 适用于元素定位困难或动态变化的场景
+- ⚠️ 需要配置阿里云百炼API Key
+- 📖 详细文档请参考：[AI_OPERATIONS_README.md](AI_OPERATIONS_README.md)
+
+**快速示例**：
+
+```yaml
+- AI点击登录按钮:
+    关键字: ai_click
+    元素描述: 蓝色的登录按钮
+
+- AI输入用户名:
+    关键字: ai_input
+    元素描述: 用户名输入框
+    文本: admin
+```
 
 ## 定位方式
 

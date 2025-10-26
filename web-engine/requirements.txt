@@ -30,3 +30,10 @@ PyMySQL>=1.1.0
 jsonpath>=0.82.2
 requests>=2.31.0
 
+# AI 相关
+openai>=1.57.4  # 最新稳定版，完全支持 Pydantic V2
+pydantic>=2.10.6  # 最新稳定版，修复字段命名问题
+Pillow>=10.2.0
+qwen-vl-utils>=0.0.3
+
+VV

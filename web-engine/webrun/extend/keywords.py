@@ -186,25 +186,126 @@ class Keywords:
 
     # ==================== 元素操作 ====================
 
+    def _close_common_popups(self):
+        """检测并关闭常见页面弹窗（如百度登录提示）"""
+        driver = self._get_driver()
+        try:
+            # 百度登录弹窗关闭按钮选择器列表
+            popup_close_selectors = [
+                (By.CSS_SELECTOR, ".tang-pass-loginPop-close"),  # 百度登录弹窗关闭按钮
+                (By.CSS_SELECTOR, ".guide-close"),  # 百度引导弹窗
+                (By.XPATH, "//div[contains(@class, 'dialog')]//span[contains(@class, 'close')]"),  # 通用弹窗
+                (By.XPATH, "//div[contains(@class, 'modal')]//button[contains(@class, 'close')]"),  # 模态框
+            ]
+            
+            for by, selector in popup_close_selectors:
+                try:
+                    close_btn = WebDriverWait(driver, 0.5).until(
+                        EC.element_to_be_clickable((by, selector))
+                    )
+                    close_btn.click()
+                    time.sleep(0.3)  # 等待弹窗关闭动画
+                    print(f"已关闭弹窗: {selector}")
+                except:
+                    continue  # 未找到该弹窗，继续检查下一个
+        except Exception as e:
+            pass  # 关闭弹窗失败不影响主流程
+
     @allure.step("点击元素: {定位方式}={元素}")
     def click_element(self, **kwargs):
         """
-        点击元素
+        点击元素（全面优化版，支持智能降级）
         
         参数:
             定位方式: id/name/xpath/css 等
             元素: 元素标识
             等待时间: 显式等待时间（秒，可选）
+            点击策略: 标准点击/JS点击/ActionChains点击（可选，默认：智能降级）
         """
         kwargs.pop("关键字", None)
         
         定位方式 = kwargs.get("定位方式")
         元素 = kwargs.get("元素")
         等待时间 = kwargs.get("等待时间")
+        点击策略 = kwargs.get("点击策略", "智能降级")
         
+        driver = self._get_driver()
         element = self._find_element(定位方式, 元素, 等待时间)
-        element.click()
-        print(f"已点击元素: {定位方式}={元素}")
+        
+        # 预处理：关闭常见弹窗
+        self._close_common_popups()
+        
+        # 预处理：滚动元素至可视区域中心
+        try:
+            driver.execute_script(
+                "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center', inline: 'center'});", 
+                element
+            )
+            time.sleep(0.3)  # 等待滚动动画完成
+        except Exception as e:
+            print(f"滚动元素时出现警告: {e}")
+        
+        # 点击策略执行
+        click_success = False
+        error_msg = ""
+        
+        if 点击策略 == "JS点击":
+            # 策略1：强制使用 JavaScript 点击
+            try:
+                driver.execute_script("arguments[0].click();", element)
+                click_success = True
+                print(f"已点击元素(JS点击): {定位方式}={元素}")
+            except Exception as e:
+                error_msg = f"JS点击失败: {str(e)}"
+        
+        elif 点击策略 == "ActionChains点击":
+            # 策略2：强制使用 ActionChains 点击
+            try:
+                ActionChains(driver).move_to_element(element).click().perform()
+                click_success = True
+                print(f"已点击元素(ActionChains点击): {定位方式}={元素}")
+            except Exception as e:
+                error_msg = f"ActionChains点击失败: {str(e)}"
+        
+        elif 点击策略 == "标准点击":
+            # 策略3：强制使用标准点击
+            try:
+                element.click()
+                click_success = True
+                print(f"已点击元素(标准点击): {定位方式}={元素}")
+            except Exception as e:
+                error_msg = f"标准点击失败: {str(e)}"
+        
+        else:
+            # 默认策略：智能降级（标准点击 -> JS点击 -> ActionChains点击）
+            # 尝试1：标准点击
+            try:
+                element.click()
+                click_success = True
+                print(f"已点击元素(标准点击): {定位方式}={元素}")
+            except Exception as e1:
+                print(f"⚠ 标准点击失败: {str(e1)[:50]}...，尝试降级为JS点击")
+                
+                # 尝试2：JS点击
+                try:
+                    driver.execute_script("arguments[0].click();", element)
+                    click_success = True
+                    print(f"✓ 已点击元素(JS点击-降级策略): {定位方式}={元素}")
+                except Exception as e2:
+                    print(f"⚠ JS点击失败: {str(e2)[:50]}...，尝试降级为ActionChains点击")
+                    
+                    # 尝试3：ActionChains点击
+                    try:
+                        ActionChains(driver).move_to_element(element).click().perform()
+                        click_success = True
+                        print(f"✓ 已点击元素(ActionChains点击-降级策略): {定位方式}={元素}")
+                    except Exception as e3:
+                        error_msg = f"所有点击策略均失败 - 标准点击: {str(e1)[:30]}, JS点击: {str(e2)[:30]}, ActionChains点击: {str(e3)[:30]}"
+        
+        # 点击失败处理
+        if not click_success:
+            self._take_screenshot_on_error(f"点击元素失败_{定位方式}_{元素}")
+            raise Exception(f"点击元素失败: {定位方式}={元素}. {error_msg}")
 
     @allure.step("输入文本: {文本}")
     def input_text(self, **kwargs):
@@ -795,4 +896,464 @@ class Keywords:
             print(f"当前URL: {current_url}")
         
         return current_url
+
+    # ==================== AI 驱动操作 ====================
+
+    def _ai_click(self, bbox):
+        """
+        根据边界框坐标点击元素中心
+        
+        :param bbox: 边界框坐标 [xmin, ymin, xmax, ymax]
+        """
+        from selenium.webdriver.common.actions.action_builder import ActionBuilder
+        
+        # 计算中心点坐标
+        x_coordinate = (bbox[0] + bbox[2]) / 2
+        y_coordinate = (bbox[1] + bbox[3]) / 2
+        print(f"元素中心点坐标信息: {x_coordinate}, {y_coordinate}")
+        
+        driver = self._get_driver()
+        action_builder = ActionBuilder(driver)
+        action_builder.pointer_action.move_to_location(x_coordinate, y_coordinate).click()
+        action_builder.perform()
+
+    def _ai_input(self, bbox, text):
+        """
+        点击并在元素位置输入文本
+        
+        :param bbox: 边界框坐标 [xmin, ymin, xmax, ymax]
+        :param text: 要输入的文本
+        """
+        self._ai_click(bbox)
+        # 在当前焦点元素输入文本
+        driver = self._get_driver()
+        driver.switch_to.active_element.send_keys(text)
+
+    def _ai_extract_text(self, text):
+        """
+        将提取的文本保存到全局上下文
+        
+        :param text: 提取的文本内容
+        """
+        g_context().set_dict("ai_extracted_text", text)
+        print(f"已提取文本到全局变量 ai_extracted_text: {text}")
+
+    def _call_ai_vision(self, user_description, actions):
+        """
+        调用 Qwen-VL API 进行截图分析
+        
+        :param user_description: 用户的操作描述
+        :param actions: 支持的操作类型列表
+        :return: AI 返回的结果字典
+        """
+        import base64
+        import json
+        import os
+        import re
+        import uuid
+        from openai import OpenAI
+        from PIL import Image
+        from qwen_vl_utils import smart_resize
+
+        # 初始化 OpenAI 客户端（百炼API）
+        ai_client = OpenAI(
+            api_key="sk-aeb8d69039b14320b0fe58cb8285d8b1",
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        )
+
+        # 提示词模板
+        prompt = """
+## 目标
+- 识别屏幕截图和文本中与用户描述匹配的元素。
+
+## 输出格式
+```json
+{{
+  "bbox": [xmin, ymin, xmax, ymax],
+  "action": "用户的操作类型（{actions}）",
+  "text": "提取的文本内容或要输入的文本",
+  "errors"?: "如果你无法找到，就把你的原因写在这里"
+}}
+```
+
+## 工作流程
+1. 接受用户描述的文字以及提供的截图。请注意，文本可能包含非英文字符（例如中文），这表明程序可能是非英文的。
+2. 分析用户的文字内容，提取其中关于元素的描述信息。根据关于元素的描述信息，找到屏幕截图中目标元素。
+3. 返回元素在截图中的 bbox 具体位置信息。
+
+## 用户描述
+{user_text}
+"""
+
+        ai_prompt = prompt.format(
+            user_text=user_description,
+            actions=", ".join(actions)
+        )
+
+        # 调用 driver 进行界面截图
+        driver = self._get_driver()
+        image_base64 = driver.get_screenshot_as_base64()
+
+        # 保存临时截图文件
+        image_path = os.path.join(
+            os.path.dirname(__file__),
+            f"{str(uuid.uuid4()).replace('-', '')}.png"
+        )
+        with open(image_path, 'wb') as f:
+            f.write(base64.b64decode(image_base64))
+
+        # 获取图片尺寸
+        width, height = Image.open(image_path).size
+        print(f"截图尺寸：{width}, {height}")
+
+        # AI 模型的图片处理尺寸（通义千问VL模型标准配置）
+        min_pixels = 512 * 28 * 28  # 最小像素数：约400K
+        max_pixels = 2048 * 28 * 28  # 最大像素数：约1.6M
+        factor = 28  # 通义千问VL模型推荐的分块因子
+        
+        # 自适应调整：当截图超大时自动调整 factor，避免内存溢出
+        total_pixels = width * height
+        if total_pixels > 10_000_000:  # 超过1000万像素（约3840x2600）
+            factor = 14  # 使用更小的因子
+            print(f"⚠ 检测到超大截图({total_pixels}像素)，自动调整factor={factor}")
+        
+        input_height, input_width = smart_resize(
+            height, width,
+            factor=factor,
+            min_pixels=min_pixels,
+            max_pixels=max_pixels
+        )
+        print(f"输入尺寸：{input_height}, {input_width} (factor={factor})")
+
+        # 删除临时图片
+        os.remove(image_path)
+
+        print(f'AI提示词: {ai_prompt}')
+
+        # 调用 AI 模型
+        completion = ai_client.chat.completions.create(
+            model="qwen-vl-max-latest",
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "min_pixels": min_pixels,
+                        "max_pixels": max_pixels,
+                        "image_url": {"url": f"data:image/png;base64,{image_base64}"}
+                    },
+                    {
+                        "type": "text",
+                        "text": ai_prompt
+                    }
+                ]
+            }]
+        )
+
+        print("AI执行结果：", completion.model_dump_json())
+
+        # 解析 AI 返回的 JSON 内容
+        ai_response = json.loads(completion.model_dump_json())['choices'][0]['message']['content']
+        pattern = r'```json\n(.*?)```'
+        match = re.search(pattern, ai_response, re.DOTALL)
+        
+        if not match:
+            raise ValueError(f"AI 返回内容格式错误: {ai_response}")
+        
+        json_content = match.group(1)
+        result = json.loads(json_content)
+        print("AI识别结果：", result)
+
+        # Windows 平台坐标缩放
+        if os.name == 'nt':
+            bbox = result['bbox']
+            result['bbox'] = [
+                bbox[0] / input_width * width,
+                bbox[1] / input_height * height,
+                bbox[2] / input_width * width,
+                bbox[3] / input_height * height
+            ]
+            print(f"坐标缩放后：{result['bbox']}")
+
+        # 检查错误
+        if 'errors' in result and result['errors']:
+            raise AssertionError(f"AI 无法完成操作: {result['errors']}")
+
+        return result
+
+    @allure.step("AI操作: {操作描述}")
+    def ai_operation(self, **kwargs):
+        """
+        AI 驱动的主操作调度器
+        
+        参数:
+            操作描述: 自然语言描述的操作，如"点击登录按钮"、"在用户名输入框输入admin"
+        
+        示例:
+            - 操作描述: "点击红色的提交按钮"
+            - 操作描述: "在密码框输入123456"
+            - 操作描述: "提取页面标题文本"
+        """
+        kwargs.pop("关键字", None)
+        操作描述 = kwargs.get("操作描述")
+        
+        if not 操作描述:
+            raise ValueError("操作描述不能为空")
+
+        # 支持的操作类型
+        actions = ['点击', '输入', '文本提取', '滚动', '悬停', '拖拽']
+        
+        try:
+            # 调用 AI 视觉分析
+            result = self._call_ai_vision(操作描述, actions)
+            
+            # 根据操作类型执行相应操作
+            action = result.get('action')
+            bbox = result.get('bbox')
+            text = result.get('text', '')
+            
+            if action == '点击':
+                self._ai_click(bbox)
+                print(f"✓ AI操作成功: 点击元素")
+            elif action == '输入':
+                self._ai_input(bbox, text)
+                print(f"✓ AI操作成功: 输入文本 '{text}'")
+            elif action == '文本提取':
+                self._ai_extract_text(text)
+                print(f"✓ AI操作成功: 提取文本 '{text}'")
+            elif action == '滚动':
+                driver = self._get_driver()
+                x = (bbox[0] + bbox[2]) / 2
+                y = (bbox[1] + bbox[3]) / 2
+                driver.execute_script(f"window.scrollTo({x}, {y});")
+                print(f"✓ AI操作成功: 滚动到元素")
+            elif action == '悬停':
+                driver = self._get_driver()
+                from selenium.webdriver.common.actions.action_builder import ActionBuilder
+                x = (bbox[0] + bbox[2]) / 2
+                y = (bbox[1] + bbox[3]) / 2
+                action_builder = ActionBuilder(driver)
+                action_builder.pointer_action.move_to_location(x, y)
+                action_builder.perform()
+                print(f"✓ AI操作成功: 鼠标悬停")
+            elif action == '拖拽':
+                # 拖拽需要两个元素，这里简化处理
+                raise NotImplementedError("拖拽操作需要使用 ai_drag 方法")
+            else:
+                raise ValueError(f"不支持的操作类型: {action}")
+                
+        except Exception as e:
+            self._take_screenshot_on_error(f"AI操作失败_{操作描述}")
+            raise e
+
+    @allure.step("AI点击: {元素描述}")
+    def ai_click(self, **kwargs):
+        """
+        AI 驱动的点击操作
+        
+        参数:
+            元素描述: 元素的自然语言描述，如"红色的提交按钮"、"登录链接"
+        """
+        kwargs.pop("关键字", None)
+        元素描述 = kwargs.get("元素描述")
+        
+        if not 元素描述:
+            raise ValueError("元素描述不能为空")
+        
+        操作描述 = f"点击{元素描述}"
+        self.ai_operation(操作描述=操作描述)
+
+    @allure.step("AI输入: {文本}")
+    def ai_input(self, **kwargs):
+        """
+        AI 驱动的输入操作
+        
+        参数:
+            元素描述: 输入框的自然语言描述，如"用户名输入框"、"搜索框"
+            文本: 要输入的文本内容
+        """
+        kwargs.pop("关键字", None)
+        元素描述 = kwargs.get("元素描述")
+        文本 = kwargs.get("文本", "")
+        
+        if not 元素描述:
+            raise ValueError("元素描述不能为空")
+        
+        操作描述 = f"在{元素描述}输入{文本}"
+        
+        try:
+            actions = ['输入']
+            result = self._call_ai_vision(操作描述, actions)
+            self._ai_input(result['bbox'], 文本)
+            print(f"✓ AI输入成功: 在{元素描述}输入 '{文本}'")
+        except Exception as e:
+            self._take_screenshot_on_error(f"AI输入失败_{元素描述}")
+            raise e
+
+    @allure.step("AI提取文本: {文本描述}")
+    def ai_extract_text(self, **kwargs):
+        """
+        AI 驱动的文本提取
+        
+        参数:
+            文本描述: 要提取文本的描述，如"页面标题"、"错误提示信息"
+            变量名: 保存到的变量名（可选，默认保存到 ai_extracted_text）
+        """
+        kwargs.pop("关键字", None)
+        文本描述 = kwargs.get("文本描述")
+        变量名 = kwargs.get("变量名", "ai_extracted_text")
+        
+        if not 文本描述:
+            raise ValueError("文本描述不能为空")
+        
+        操作描述 = f"提取{文本描述}的文本内容"
+        
+        try:
+            actions = ['文本提取']
+            result = self._call_ai_vision(操作描述, actions)
+            text = result.get('text', '')
+            g_context().set_dict(变量名, text)
+            print(f"✓ AI文本提取成功: 已提取 '{text}' 并保存到变量 {变量名}")
+        except Exception as e:
+            self._take_screenshot_on_error(f"AI文本提取失败_{文本描述}")
+            raise e
+
+    @allure.step("AI滚动: {元素描述}")
+    def ai_scroll(self, **kwargs):
+        """
+        AI 驱动的滚动操作
+        
+        参数:
+            元素描述: 要滚动到的元素描述，如"页面底部"、"评论区"
+        """
+        kwargs.pop("关键字", None)
+        元素描述 = kwargs.get("元素描述")
+        
+        if not 元素描述:
+            raise ValueError("元素描述不能为空")
+        
+        操作描述 = f"滚动到{元素描述}"
+        
+        try:
+            actions = ['滚动']
+            result = self._call_ai_vision(操作描述, actions)
+            bbox = result['bbox']
+            
+            driver = self._get_driver()
+            x = (bbox[0] + bbox[2]) / 2
+            y = (bbox[1] + bbox[3]) / 2
+            driver.execute_script(f"window.scrollTo({x}, {y});")
+            print(f"✓ AI滚动成功: 滚动到{元素描述}")
+        except Exception as e:
+            self._take_screenshot_on_error(f"AI滚动失败_{元素描述}")
+            raise e
+
+    @allure.step("AI悬停: {元素描述}")
+    def ai_hover(self, **kwargs):
+        """
+        AI 驱动的鼠标悬停操作
+        
+        参数:
+            元素描述: 要悬停的元素描述，如"用户菜单"、"导航栏"
+        """
+        kwargs.pop("关键字", None)
+        元素描述 = kwargs.get("元素描述")
+        
+        if not 元素描述:
+            raise ValueError("元素描述不能为空")
+        
+        操作描述 = f"鼠标悬停在{元素描述}"
+        
+        try:
+            actions = ['悬停']
+            result = self._call_ai_vision(操作描述, actions)
+            bbox = result['bbox']
+            
+            driver = self._get_driver()
+            from selenium.webdriver.common.actions.action_builder import ActionBuilder
+            x = (bbox[0] + bbox[2]) / 2
+            y = (bbox[1] + bbox[3]) / 2
+            action_builder = ActionBuilder(driver)
+            action_builder.pointer_action.move_to_location(x, y)
+            action_builder.perform()
+            print(f"✓ AI悬停成功: 鼠标悬停在{元素描述}")
+        except Exception as e:
+            self._take_screenshot_on_error(f"AI悬停失败_{元素描述}")
+            raise e
+
+    @allure.step("AI拖拽: {源元素描述} -> {目标元素描述}")
+    def ai_drag(self, **kwargs):
+        """
+        AI 驱动的拖拽操作
+        
+        参数:
+            源元素描述: 要拖拽的元素描述，如"待办事项"
+            目标元素描述: 拖拽目标的描述，如"已完成区域"
+        """
+        kwargs.pop("关键字", None)
+        源元素描述 = kwargs.get("源元素描述")
+        目标元素描述 = kwargs.get("目标元素描述")
+        
+        if not 源元素描述 or not 目标元素描述:
+            raise ValueError("源元素描述和目标元素描述不能为空")
+        
+        try:
+            # 先找到源元素
+            操作描述1 = f"找到{源元素描述}"
+            actions = ['拖拽']
+            result1 = self._call_ai_vision(操作描述1, actions)
+            源bbox = result1['bbox']
+            源x = (源bbox[0] + 源bbox[2]) / 2
+            源y = (源bbox[1] + 源bbox[3]) / 2
+            
+            # 再找到目标元素
+            操作描述2 = f"找到{目标元素描述}"
+            result2 = self._call_ai_vision(操作描述2, actions)
+            目标bbox = result2['bbox']
+            目标x = (目标bbox[0] + 目标bbox[2]) / 2
+            目标y = (目标bbox[1] + 目标bbox[3]) / 2
+            
+            # 执行拖拽
+            driver = self._get_driver()
+            from selenium.webdriver.common.actions.action_builder import ActionBuilder
+            action_builder = ActionBuilder(driver)
+            action_builder.pointer_action.move_to_location(源x, 源y)
+            action_builder.pointer_action.pointer_down()
+            action_builder.pointer_action.move_to_location(目标x, 目标y)
+            action_builder.pointer_action.pointer_up()
+            action_builder.perform()
+            
+            print(f"✓ AI拖拽成功: {源元素描述} -> {目标元素描述}")
+        except Exception as e:
+            self._take_screenshot_on_error(f"AI拖拽失败_{源元素描述}_to_{目标元素描述}")
+            raise e
+
+    @allure.step("AI断言可见: {元素描述}")
+    def ai_assert_visible(self, **kwargs):
+        """
+        AI 驱动的可见性断言
+        
+        参数:
+            元素描述: 要断言可见的元素描述，如"成功提示消息"、"登录按钮"
+        """
+        kwargs.pop("关键字", None)
+        元素描述 = kwargs.get("元素描述")
+        
+        if not 元素描述:
+            raise ValueError("元素描述不能为空")
+        
+        操作描述 = f"找到{元素描述}"
+        
+        try:
+            actions = ['点击']  # 使用点击操作来定位元素
+            result = self._call_ai_vision(操作描述, actions)
+            
+            # 如果 AI 能找到元素，说明元素可见
+            if result.get('bbox'):
+                print(f"✓ AI断言成功: {元素描述} 可见")
+            else:
+                raise AssertionError(f"AI断言失败: {元素描述} 不可见")
+        except Exception as e:
+            self._take_screenshot_on_error(f"AI断言失败_{元素描述}")
+            raise AssertionError(f"AI断言失败: {元素描述} 不可见") from e
 
