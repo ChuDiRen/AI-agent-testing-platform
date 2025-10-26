@@ -27,6 +27,7 @@
 ### Web 测试特性
 
 - 🌐 基于 Playwright - 现代化 Web 自动化测试框架
+- 🤖 AI驱动操作 - 基于Qwen-VL视觉模型，使用自然语言描述定位和操作元素（新功能）
 - 🎯 多浏览器支持（Chromium、Firefox、WebKit）
 - ⚡ 内置自动等待 - 无需显式等待
 - 🎭 现代化定位方式（role、text、label、placeholder 等）
@@ -250,6 +251,45 @@ steps:
 | `click_element` | 点击元素 | 定位方式, 元素 |
 | `input_text` | 输入文本 | 定位方式, 元素, 文本 |
 | `assert_element_visible` | 断言元素可见 | 定位方式, 元素 |
+
+#### AI 驱动操作关键字 🤖 NEW
+
+| 关键字 | 说明 | 主要参数 |
+|--------|------|---------|
+| `ai_operation` | AI通用操作 | 操作描述 |
+| `ai_click` | AI点击元素 | 元素描述 |
+| `ai_input` | AI输入文本 | 元素描述, 文本 |
+| `ai_extract_text` | AI提取文本 | 文本描述, 变量名 |
+| `ai_scroll` | AI滚动到元素 | 元素描述 |
+| `ai_hover` | AI鼠标悬停 | 元素描述 |
+| `ai_drag` | AI拖拽元素 | 源元素描述, 目标元素描述 |
+| `ai_assert_visible` | AI断言可见 | 元素描述 |
+
+**AI操作特点**：
+
+- ✅ 使用自然语言描述元素，无需编写XPath或CSS选择器
+- ✅ 基于Qwen-VL视觉模型，智能识别页面元素
+- ✅ 适用于元素定位困难或动态变化的场景
+- ⚠️ 需要配置阿里云百炼API Key
+- 📖 与 web-engine 功能完全一致
+
+**快速示例**：
+
+```yaml
+- AI点击登录按钮:
+    关键字: ai_click
+    元素描述: 蓝色的登录按钮
+
+- AI输入用户名:
+    关键字: ai_input
+    元素描述: 用户名输入框
+    文本: admin
+
+- AI提取错误信息:
+    关键字: ai_extract_text
+    文本描述: 红色的错误提示信息
+    变量名: error_msg
+```
 
 ### 数据驱动测试
 

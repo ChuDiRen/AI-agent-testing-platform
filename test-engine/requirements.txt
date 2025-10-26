@@ -42,3 +42,9 @@ exceptiongroup>=1.2.0
 tomli>=2.0.1
 colorama>=0.4.6
 
+# ===== AI 功能支持 =====
+openai>=1.57.4  # 阿里云百炼 API 客户端
+pydantic>=2.10.6  # 数据验证
+Pillow>=10.2.0  # 图像处理
+qwen-vl-utils>=0.0.3  # 通义千问 VL 工具
+
