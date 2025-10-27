@@ -5,11 +5,12 @@
 ## 技术栈
 
 - **框架**: Vue 3
-- **UI组件库**: Element Plus
+- **UI组件库**: Element Plus + Element-Plus-X (AI 聊天组件)
 - **路由**: Vue Router
 - **状态管理**: Vuex
 - **HTTP客户端**: Axios
 - **构建工具**: Vite
+- **AI SDK**: LangGraph SDK, LangChain Core
 
 ## 项目结构
 
@@ -394,6 +395,74 @@ this.$router.push('/403')
 // 跳转到500页面
 this.$router.push('/500')
 ```
+
+## LangGraph 智能对话集成 🤖
+
+### 功能简介
+
+本项目已集成 LangGraph SDK，提供高级 AI 对话功能。使用 Element-Plus-X 组件库构建专业的聊天界面。
+
+### 核心特性
+
+- ✨ **流式对话** - 实时打字机效果，体验流畅
+- 📜 **对话历史** - 支持创建、切换、删除多个对话线程
+- 🔧 **工具调用展示** - 可视化 AI 工具调用过程
+- ⏸️ **中断处理** - 支持人机交互确认流程
+- 📄 **Artifact 展示** - 侧边栏展示生成的文档、代码等
+- 📱 **响应式设计** - PC 和移动端自适应
+
+### 快速开始
+
+1. **配置环境变量**
+
+在项目根目录创建 `.env` 文件：
+
+```bash
+VITE_LANGGRAPH_API_URL=http://localhost:2024
+VITE_LANGGRAPH_ASSISTANT_ID=agent
+VITE_LANGSMITH_API_KEY=your_api_key_here
+```
+
+详细配置说明请查看 [env.config.example.md](./env.config.example.md)
+
+2. **启动项目**
+
+```bash
+pnpm dev
+```
+
+3. **访问功能**
+
+点击左侧菜单 **AI 助手 > LangGraph 智能对话**
+
+### 项目结构
+
+```
+src/
+├── api/
+│   └── langgraph.js                 # LangGraph API 集成层
+├── composables/
+│   ├── useLangGraphStream.js        # 流式通信 Composable
+│   └── useLangGraphThread.js        # 线程管理 Composable
+└── views/aiassistant/langgraph/
+    ├── LangGraphChat.vue            # 主聊天界面
+    └── components/
+        ├── ToolCallDisplay.vue      # 工具调用展示
+        ├── InterruptHandler.vue     # 中断处理
+        └── ArtifactPanel.vue        # Artifact 侧边栏
+```
+
+### 使用的组件库
+
+- [Element-Plus-X](https://element-plus-x.com) - AI 聊天组件库
+  - `EditorSender` - 编辑输入框
+  - `Bubble` / `BubbleList` - 对话气泡
+  - `Typewriter` - 打字机效果
+  - `Thinking` - 思考中动画
+
+### 详细文档
+
+完整的使用说明和 API 文档请查看 [LANGGRAPH_INTEGRATION.md](./LANGGRAPH_INTEGRATION.md)
 
 ## 开发规范
 

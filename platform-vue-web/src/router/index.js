@@ -48,6 +48,7 @@ import AiChatInterface from '~/views/aiassistant/chat/AiChatInterface.vue'
 import AiModelList from '~/views/aiassistant/model/AiModelList.vue'
 import PromptTemplateList from '~/views/aiassistant/prompt/PromptTemplateList.vue'
 import TestCaseList from '~/views/aiassistant/testcase/TestCaseList.vue'
+import LangGraphChat from '~/views/aiassistant/langgraph/LangGraphChat.vue'
 
 const cookies = useCookies()
 const routes = [
@@ -211,6 +212,12 @@ const routes = [
             component: PromptTemplateList,
             meta: {
                 title: "提示词模板管理"
+            }
+        }, {
+            path: "/langgraph-chat",
+            component: LangGraphChat,
+            meta: {
+                title: "LangGraph 智能对话"
             }
         }
         ]

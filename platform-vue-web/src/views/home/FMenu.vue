@@ -127,7 +127,21 @@ onMounted(async ()=>{
   }
 })
 
-const fixedMenus = computed(()=> [{ name:'系统总览', icon:'Monitor', frontpath:'/Statistics' }])
+const fixedMenus = computed(()=> [
+  { name:'系统总览', icon:'Monitor', frontpath:'/Statistics' },
+  { 
+    name:'AI 助手', 
+    icon:'ChatDotRound', 
+    frontpath: '',
+    child: [
+      { name:'AI 对话助手', icon:'Comment', frontpath:'/ai-chat' },
+      { name:'LangGraph 智能对话', icon:'ChatLineRound', frontpath:'/langgraph-chat' },
+      { name:'测试用例管理', icon:'Document', frontpath:'/test-cases' },
+      { name:'AI模型管理', icon:'Setting', frontpath:'/ai-models' },
+      { name:'提示词模板', icon:'Edit', frontpath:'/ai-prompts' }
+    ]
+  }
+])
 const asideMenus = computed(()=> [...fixedMenus.value, ...transformMenuTree(store.state.menuTree)])
 
 // 根据当前路由计算激活的菜单项

@@ -9,6 +9,10 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import store from './store/index.js'
 import directives from './directives/permission.js'
 
+// 引入 Element-Plus-X 组件
+import ElementPlusX from 'vue-element-plus-x'
+import 'vue-element-plus-x/dist/style.css'
+
 // 引入自定义主题和样式
 import './styles/theme.css'
 import './styles/common-list.css'
@@ -20,6 +24,7 @@ app.use(router)
 app.use(ElementPlus, {
   locale: zhCn,
 })
+app.use(ElementPlusX)
 
 // 注册全局图标组件
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
