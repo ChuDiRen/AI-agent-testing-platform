@@ -25,3 +25,4 @@ BAIDU_SEARCH_INPUT: chat-textarea  # 搜索输入框 ID（textarea元素，原kw
 BAIDU_SEARCH_BUTTON: chat-submit-button  # 搜索按钮 ID（button元素，原su已废弃）
 BAIDU_RESULT_CONTAINER: content_left  # 搜索结果容器 ID（待验证）
 
+

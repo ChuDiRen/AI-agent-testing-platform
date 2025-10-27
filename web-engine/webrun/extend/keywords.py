@@ -44,30 +44,30 @@ class Keywords:
             raise RuntimeError("浏览器未启动，请先使用 open_browser 关键字打开浏览器")
         return driver
 
-    def _get_locator(self, 定位方式, 元素):
+    def _get_locator(self, locator_type, element):
         """
         获取元素定位器
         
-        :param 定位方式: 定位方式字符串
-        :param 元素: 元素标识
+        :param locator_type: 定位方式字符串
+        :param element: 元素标识
         :return: (By, locator) 元组
         """
-        by = self.LOCATOR_MAP.get(定位方式.lower())
+        by = self.LOCATOR_MAP.get(locator_type.lower())
         if by is None:
-            raise ValueError(f"不支持的定位方式: {定位方式}")
-        return by, 元素
+            raise ValueError(f"不支持的定位方式: {locator_type}")
+        return by, element
 
-    def _find_element(self, 定位方式, 元素, wait_time=None):
+    def _find_element(self, locator_type, element, wait_time=None):
         """
         查找元素
         
-        :param 定位方式: 定位方式
-        :param 元素: 元素标识
+        :param locator_type: 定位方式
+        :param element: 元素标识
         :param wait_time: 显式等待时间（秒），None 则使用隐式等待
         :return: WebElement
         """
         driver = self._get_driver()
-        by, locator = self._get_locator(定位方式, 元素)
+        by, locator = self._get_locator(locator_type, element)
         
         try:
             if wait_time:
@@ -79,8 +79,8 @@ class Keywords:
             return element
         except (TimeoutException, NoSuchElementException) as e:
             # 截图保存
-            self._take_screenshot_on_error(f"元素未找到_{定位方式}_{元素}")
-            raise NoSuchElementException(f"未找到元素: {定位方式}={元素}") from e
+            self._take_screenshot_on_error(f"元素未找到_{locator_type}_{element}")
+            raise NoSuchElementException(f"未找到元素: {locator_type}={element}") from e
 
     def _take_screenshot_on_error(self, name):
         """错误时截图"""
@@ -110,17 +110,15 @@ class Keywords:
         打开浏览器
         
         参数:
-            浏览器: chrome/firefox/edge (默认 chrome)
-            无头模式: true/false (默认 false)
-            隐式等待: 等待时间（秒，默认 10）
-            窗口大小: maximize/1920x1080/等 (默认 maximize)
+            browser: chrome/firefox/edge (默认 chrome)
+            headless: true/false (默认 false)
+            implicit_wait: 等待时间（秒，默认 10）
+            window_size: maximize/1920x1080/等 (默认 maximize)
         """
-        kwargs.pop("关键字", None)
-        
-        browser = kwargs.get("浏览器", "chrome")
-        headless = str(kwargs.get("无头模式", "false")).lower() in ["true", "1", "yes"]
-        implicit_wait = int(kwargs.get("隐式等待", 10))
-        window_size = kwargs.get("窗口大小", "maximize")
+        browser = kwargs.get("browser", "chrome")
+        headless = str(kwargs.get("headless", "false")).lower() in ["true", "1", "yes"]
+        implicit_wait = int(kwargs.get("implicit_wait", 10))
+        window_size = kwargs.get("window_size", "maximize")
         
         print(f"正在启动浏览器: {browser}, 无头模式: {headless}")
         
@@ -137,8 +135,6 @@ class Keywords:
     @allure.step("关闭浏览器")
     def close_browser(self, **kwargs):
         """关闭浏览器"""
-        kwargs.pop("关键字", None)
-        
         driver = g_context().get_dict("current_driver")
         if driver:
             driver.quit()
@@ -153,7 +149,6 @@ class Keywords:
         参数:
             url: 目标 URL
         """
-        kwargs.pop("关键字", None)
         url = kwargs.get("url")
         
         driver = self._get_driver()
@@ -163,7 +158,6 @@ class Keywords:
     @allure.step("刷新页面")
     def refresh_page(self, **kwargs):
         """刷新当前页面"""
-        kwargs.pop("关键字", None)
         driver = self._get_driver()
         driver.refresh()
         print("页面已刷新")
@@ -171,7 +165,6 @@ class Keywords:
     @allure.step("后退")
     def back(self, **kwargs):
         """浏览器后退"""
-        kwargs.pop("关键字", None)
         driver = self._get_driver()
         driver.back()
         print("已后退")
@@ -179,7 +172,6 @@ class Keywords:
     @allure.step("前进")
     def forward(self, **kwargs):
         """浏览器前进"""
-        kwargs.pop("关键字", None)
         driver = self._get_driver()
         driver.forward()
         print("已前进")
@@ -211,26 +203,24 @@ class Keywords:
         except Exception as e:
             pass  # 关闭弹窗失败不影响主流程
 
-    @allure.step("点击元素: {定位方式}={元素}")
+    @allure.step("点击元素: {locator_type}={element}")
     def click_element(self, **kwargs):
         """
         点击元素（全面优化版，支持智能降级）
         
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            等待时间: 显式等待时间（秒，可选）
-            点击策略: 标准点击/JS点击/ActionChains点击（可选，默认：智能降级）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            wait_time: 显式等待时间（秒，可选）
+            click_strategy: 标准点击/JS点击/ActionChains点击（可选，默认：智能降级）
         """
-        kwargs.pop("关键字", None)
-        
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        等待时间 = kwargs.get("等待时间")
-        点击策略 = kwargs.get("点击策略", "智能降级")
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        wait_time = kwargs.get("wait_time")
+        click_strategy = kwargs.get("click_strategy", "智能降级")
         
         driver = self._get_driver()
-        element = self._find_element(定位方式, 元素, 等待时间)
+        element_obj = self._find_element(locator_type, element, wait_time)
         
         # 预处理：关闭常见弹窗
         self._close_common_popups()
@@ -239,7 +229,7 @@ class Keywords:
         try:
             driver.execute_script(
                 "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center', inline: 'center'});", 
-                element
+                element_obj
             )
             time.sleep(0.3)  # 等待滚动动画完成
         except Exception as e:
@@ -249,30 +239,30 @@ class Keywords:
         click_success = False
         error_msg = ""
         
-        if 点击策略 == "JS点击":
+        if click_strategy == "JS点击":
             # 策略1：强制使用 JavaScript 点击
             try:
-                driver.execute_script("arguments[0].click();", element)
+                driver.execute_script("arguments[0].click();", element_obj)
                 click_success = True
-                print(f"已点击元素(JS点击): {定位方式}={元素}")
+                print(f"已点击元素(JS点击): {locator_type}={element}")
             except Exception as e:
                 error_msg = f"JS点击失败: {str(e)}"
         
-        elif 点击策略 == "ActionChains点击":
+        elif click_strategy == "ActionChains点击":
             # 策略2：强制使用 ActionChains 点击
             try:
-                ActionChains(driver).move_to_element(element).click().perform()
+                ActionChains(driver).move_to_element(element_obj).click().perform()
                 click_success = True
-                print(f"已点击元素(ActionChains点击): {定位方式}={元素}")
+                print(f"已点击元素(ActionChains点击): {locator_type}={element}")
             except Exception as e:
                 error_msg = f"ActionChains点击失败: {str(e)}"
         
-        elif 点击策略 == "标准点击":
+        elif click_strategy == "标准点击":
             # 策略3：强制使用标准点击
             try:
-                element.click()
+                element_obj.click()
                 click_success = True
-                print(f"已点击元素(标准点击): {定位方式}={元素}")
+                print(f"已点击元素(标准点击): {locator_type}={element}")
             except Exception as e:
                 error_msg = f"标准点击失败: {str(e)}"
         
@@ -280,60 +270,58 @@ class Keywords:
             # 默认策略：智能降级（标准点击 -> JS点击 -> ActionChains点击）
             # 尝试1：标准点击
             try:
-                element.click()
+                element_obj.click()
                 click_success = True
-                print(f"已点击元素(标准点击): {定位方式}={元素}")
+                print(f"已点击元素(标准点击): {locator_type}={element}")
             except Exception as e1:
                 print(f"⚠ 标准点击失败: {str(e1)[:50]}...，尝试降级为JS点击")
                 
                 # 尝试2：JS点击
                 try:
-                    driver.execute_script("arguments[0].click();", element)
+                    driver.execute_script("arguments[0].click();", element_obj)
                     click_success = True
-                    print(f"✓ 已点击元素(JS点击-降级策略): {定位方式}={元素}")
+                    print(f"✓ 已点击元素(JS点击-降级策略): {locator_type}={element}")
                 except Exception as e2:
                     print(f"⚠ JS点击失败: {str(e2)[:50]}...，尝试降级为ActionChains点击")
                     
                     # 尝试3：ActionChains点击
                     try:
-                        ActionChains(driver).move_to_element(element).click().perform()
+                        ActionChains(driver).move_to_element(element_obj).click().perform()
                         click_success = True
-                        print(f"✓ 已点击元素(ActionChains点击-降级策略): {定位方式}={元素}")
+                        print(f"✓ 已点击元素(ActionChains点击-降级策略): {locator_type}={element}")
                     except Exception as e3:
                         error_msg = f"所有点击策略均失败 - 标准点击: {str(e1)[:30]}, JS点击: {str(e2)[:30]}, ActionChains点击: {str(e3)[:30]}"
         
         # 点击失败处理
         if not click_success:
-            self._take_screenshot_on_error(f"点击元素失败_{定位方式}_{元素}")
-            raise Exception(f"点击元素失败: {定位方式}={元素}. {error_msg}")
+            self._take_screenshot_on_error(f"点击元素失败_{locator_type}_{element}")
+            raise Exception(f"点击元素失败: {locator_type}={element}. {error_msg}")
 
-    @allure.step("输入文本: {文本}")
+    @allure.step("输入文本: {text}")
     def input_text(self, **kwargs):
         """
         输入文本
         
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            文本: 要输入的文本
-            清空: true/false (是否先清空，默认 true)
-            等待时间: 显式等待时间（秒，可选）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            text: 要输入的文本
+            clear: true/false (是否先清空，默认 true)
+            wait_time: 显式等待时间（秒，可选）
         """
-        kwargs.pop("关键字", None)
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        text = kwargs.get("text", "")
+        clear = str(kwargs.get("clear", "true")).lower() in ["true", "1", "yes"]
+        wait_time = kwargs.get("wait_time")
         
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        文本 = kwargs.get("文本", "")
-        清空 = str(kwargs.get("清空", "true")).lower() in ["true", "1", "yes"]
-        等待时间 = kwargs.get("等待时间")
+        element_obj = self._find_element(locator_type, element, wait_time)
         
-        element = self._find_element(定位方式, 元素, 等待时间)
+        if clear:
+            element_obj.clear()
         
-        if 清空:
-            element.clear()
-        
-        element.send_keys(文本)
-        print(f"已输入文本: {文本}")
+        element_obj.send_keys(text)
+        print(f"已输入文本: {text}")
 
     @allure.step("清空文本")
     def clear_text(self, **kwargs):
@@ -341,19 +329,17 @@ class Keywords:
         清空文本
         
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            等待时间: 显式等待时间（秒，可选）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            wait_time: 显式等待时间（秒，可选）
         """
-        kwargs.pop("关键字", None)
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        wait_time = kwargs.get("wait_time")
         
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        等待时间 = kwargs.get("等待时间")
-        
-        element = self._find_element(定位方式, 元素, 等待时间)
-        element.clear()
-        print(f"已清空文本: {定位方式}={元素}")
+        element_obj = self._find_element(locator_type, element, wait_time)
+        element_obj.clear()
+        print(f"已清空文本: {locator_type}={element}")
 
     @allure.step("获取文本")
     def get_text(self, **kwargs):
@@ -361,24 +347,22 @@ class Keywords:
         获取元素文本并保存到变量
         
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            变量名: 保存到的变量名
-            等待时间: 显式等待时间（秒，可选）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            variable_name: 保存到的变量名
+            wait_time: 显式等待时间（秒，可选）
         """
-        kwargs.pop("关键字", None)
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        variable_name = kwargs.get("variable_name")
+        wait_time = kwargs.get("wait_time")
         
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        变量名 = kwargs.get("变量名")
-        等待时间 = kwargs.get("等待时间")
+        element_obj = self._find_element(locator_type, element, wait_time)
+        text = element_obj.text
         
-        element = self._find_element(定位方式, 元素, 等待时间)
-        text = element.text
-        
-        if 变量名:
-            g_context().set_dict(变量名, text)
-            print(f"已获取文本并保存到变量 {变量名}: {text}")
+        if variable_name:
+            g_context().set_dict(variable_name, text)
+            print(f"已获取文本并保存到变量 {variable_name}: {text}")
         else:
             print(f"已获取文本: {text}")
         
@@ -390,28 +374,26 @@ class Keywords:
         获取元素属性并保存到变量
         
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            属性名: 要获取的属性名
-            变量名: 保存到的变量名
-            等待时间: 显式等待时间（秒，可选）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            attribute_name: 要获取的属性名
+            variable_name: 保存到的变量名
+            wait_time: 显式等待时间（秒，可选）
         """
-        kwargs.pop("关键字", None)
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        attribute_name = kwargs.get("attribute_name")
+        variable_name = kwargs.get("variable_name")
+        wait_time = kwargs.get("wait_time")
         
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        属性名 = kwargs.get("属性名")
-        变量名 = kwargs.get("变量名")
-        等待时间 = kwargs.get("等待时间")
+        element_obj = self._find_element(locator_type, element, wait_time)
+        attr_value = element_obj.get_attribute(attribute_name)
         
-        element = self._find_element(定位方式, 元素, 等待时间)
-        attr_value = element.get_attribute(属性名)
-        
-        if 变量名:
-            g_context().set_dict(变量名, attr_value)
-            print(f"已获取属性 {属性名} 并保存到变量 {变量名}: {attr_value}")
+        if variable_name:
+            g_context().set_dict(variable_name, attr_value)
+            print(f"已获取属性 {attribute_name} 并保存到变量 {variable_name}: {attr_value}")
         else:
-            print(f"已获取属性 {属性名}: {attr_value}")
+            print(f"已获取属性 {attribute_name}: {attr_value}")
         
         return attr_value
 
@@ -421,33 +403,31 @@ class Keywords:
         选择下拉框选项
         
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            选择方式: value/text/index
-            选项值: 选项的值/文本/索引
-            等待时间: 显式等待时间（秒，可选）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            select_method: value/text/index
+            option_value: 选项的值/文本/索引
+            wait_time: 显式等待时间（秒，可选）
         """
-        kwargs.pop("关键字", None)
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        select_method = kwargs.get("select_method", "value")
+        option_value = kwargs.get("option_value")
+        wait_time = kwargs.get("wait_time")
         
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        选择方式 = kwargs.get("选择方式", "value")
-        选项值 = kwargs.get("选项值")
-        等待时间 = kwargs.get("等待时间")
+        element_obj = self._find_element(locator_type, element, wait_time)
+        select = Select(element_obj)
         
-        element = self._find_element(定位方式, 元素, 等待时间)
-        select = Select(element)
-        
-        if 选择方式 == "value":
-            select.select_by_value(选项值)
-        elif 选择方式 == "text":
-            select.select_by_visible_text(选项值)
-        elif 选择方式 == "index":
-            select.select_by_index(int(选项值))
+        if select_method == "value":
+            select.select_by_value(option_value)
+        elif select_method == "text":
+            select.select_by_visible_text(option_value)
+        elif select_method == "index":
+            select.select_by_index(int(option_value))
         else:
-            raise ValueError(f"不支持的选择方式: {选择方式}")
+            raise ValueError(f"不支持的选择方式: {select_method}")
         
-        print(f"已选择下拉框选项: {选择方式}={选项值}")
+        print(f"已选择下拉框选项: {select_method}={option_value}")
 
     # ==================== 等待操作 ====================
 
@@ -457,27 +437,25 @@ class Keywords:
         等待元素出现
 
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            超时时间: 超时时间（秒，默认 15）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            timeout: 超时时间（秒，默认 15）
         """
-        kwargs.pop("关键字", None)
-
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        超时时间 = int(kwargs.get("超时时间", 15))  # 默认超时时间增加到15秒
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        timeout = int(kwargs.get("timeout", 15))  # 默认超时时间增加到15秒
 
         driver = self._get_driver()
-        by, locator = self._get_locator(定位方式, 元素)
+        by, locator = self._get_locator(locator_type, element)
 
         try:
-            WebDriverWait(driver, 超时时间).until(
+            WebDriverWait(driver, timeout).until(
                 EC.presence_of_element_located((by, locator))
             )
-            print(f"元素已出现: {定位方式}={元素}")
+            print(f"元素已出现: {locator_type}={element}")
         except TimeoutException as e:
-            self._take_screenshot_on_error(f"等待元素超时_{定位方式}_{元素}")
-            raise TimeoutException(f"等待元素超时: {定位方式}={元素}") from e
+            self._take_screenshot_on_error(f"等待元素超时_{locator_type}_{element}")
+            raise TimeoutException(f"等待元素超时: {locator_type}={element}") from e
 
     @allure.step("等待元素可见")
     def wait_for_element_visible(self, **kwargs):
@@ -485,38 +463,36 @@ class Keywords:
         等待元素可见
 
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            超时时间: 超时时间（秒，默认 15）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            timeout: 超时时间（秒，默认 15）
         """
-        kwargs.pop("关键字", None)
-
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        超时时间 = int(kwargs.get("超时时间", 15))  # 默认超时时间增加到15秒
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        timeout = int(kwargs.get("timeout", 15))  # 默认超时时间增加到15秒
 
         driver = self._get_driver()
-        by, locator = self._get_locator(定位方式, 元素)
+        by, locator = self._get_locator(locator_type, element)
 
         try:
             # 使用更智能的等待策略：先等待元素存在，再等待可见
-            WebDriverWait(driver, 超时时间).until(
+            WebDriverWait(driver, timeout).until(
                 EC.presence_of_element_located((by, locator))
             )
-            WebDriverWait(driver, 超时时间).until(
+            WebDriverWait(driver, timeout).until(
                 EC.visibility_of_element_located((by, locator))
             )
-            print(f"元素已可见: {定位方式}={元素}")
+            print(f"元素已可见: {locator_type}={element}")
         except TimeoutException as e:
             # 提供更详细的错误信息
             try:
                 # 尝试查找元素是否存在但不可见
-                element = driver.find_element(by, locator)
-                error_msg = f"等待元素可见超时: {定位方式}={元素} (元素存在但不可见，display={element.value_of_css_property('display')})"
+                element_obj = driver.find_element(by, locator)
+                error_msg = f"等待元素可见超时: {locator_type}={element} (元素存在但不可见，display={element_obj.value_of_css_property('display')})"
             except:
-                error_msg = f"等待元素可见超时: {定位方式}={元素} (元素不存在)"
+                error_msg = f"等待元素可见超时: {locator_type}={element} (元素不存在)"
 
-            self._take_screenshot_on_error(f"等待元素可见超时_{定位方式}_{元素}")
+            self._take_screenshot_on_error(f"等待元素可见超时_{locator_type}_{element}")
             raise TimeoutException(error_msg) from e
 
     @allure.step("等待元素可点击")
@@ -525,40 +501,37 @@ class Keywords:
         等待元素可点击
 
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            超时时间: 超时时间（秒，默认 15）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            timeout: 超时时间（秒，默认 15）
         """
-        kwargs.pop("关键字", None)
-
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        超时时间 = int(kwargs.get("超时时间", 15))  # 默认超时时间增加到15秒
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        timeout = int(kwargs.get("timeout", 15))  # 默认超时时间增加到15秒
 
         driver = self._get_driver()
-        by, locator = self._get_locator(定位方式, 元素)
+        by, locator = self._get_locator(locator_type, element)
 
         try:
-            WebDriverWait(driver, 超时时间).until(
+            WebDriverWait(driver, timeout).until(
                 EC.element_to_be_clickable((by, locator))
             )
-            print(f"元素已可点击: {定位方式}={元素}")
+            print(f"元素已可点击: {locator_type}={element}")
         except TimeoutException as e:
-            self._take_screenshot_on_error(f"等待元素可点击超时_{定位方式}_{元素}")
-            raise TimeoutException(f"等待元素可点击超时: {定位方式}={元素}") from e
+            self._take_screenshot_on_error(f"等待元素可点击超时_{locator_type}_{element}")
+            raise TimeoutException(f"等待元素可点击超时: {locator_type}={element}") from e
 
-    @allure.step("等待: {时间}秒")
+    @allure.step("等待: {time}秒")
     def sleep(self, **kwargs):
         """
         强制等待
         
         参数:
-            时间: 等待时间（秒）
+            time: 等待时间（秒）
         """
-        kwargs.pop("关键字", None)
-        时间 = float(kwargs.get("时间", 1))
-        time.sleep(时间)
-        print(f"已等待 {时间} 秒")
+        sleep_time = float(kwargs.get("time", 1))
+        time.sleep(sleep_time)
+        print(f"已等待 {sleep_time} 秒")
 
     # ==================== 断言操作 ====================
 
@@ -568,28 +541,26 @@ class Keywords:
         断言元素可见
         
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            超时时间: 超时时间（秒，默认 10）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            timeout: 超时时间（秒，默认 10）
         """
-        kwargs.pop("关键字", None)
-        
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        超时时间 = int(kwargs.get("超时时间", 10))
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        timeout = int(kwargs.get("timeout", 10))
         
         driver = self._get_driver()
-        by, locator = self._get_locator(定位方式, 元素)
+        by, locator = self._get_locator(locator_type, element)
         
         try:
-            element = WebDriverWait(driver, 超时时间).until(
+            element_obj = WebDriverWait(driver, timeout).until(
                 EC.visibility_of_element_located((by, locator))
             )
-            assert element.is_displayed(), f"元素不可见: {定位方式}={元素}"
-            print(f"✓ 断言成功: 元素可见 {定位方式}={元素}")
+            assert element_obj.is_displayed(), f"元素不可见: {locator_type}={element}"
+            print(f"✓ 断言成功: 元素可见 {locator_type}={element}")
         except Exception as e:
-            self._take_screenshot_on_error(f"断言失败_元素不可见_{定位方式}_{元素}")
-            raise AssertionError(f"断言失败: 元素不可见 {定位方式}={元素}") from e
+            self._take_screenshot_on_error(f"断言失败_元素不可见_{locator_type}_{element}")
+            raise AssertionError(f"断言失败: 元素不可见 {locator_type}={element}") from e
 
     @allure.step("断言元素不可见")
     def assert_element_not_visible(self, **kwargs):
@@ -597,27 +568,25 @@ class Keywords:
         断言元素不可见
         
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            超时时间: 超时时间（秒，默认 10）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            timeout: 超时时间（秒，默认 10）
         """
-        kwargs.pop("关键字", None)
-        
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        超时时间 = int(kwargs.get("超时时间", 10))
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        timeout = int(kwargs.get("timeout", 10))
         
         driver = self._get_driver()
-        by, locator = self._get_locator(定位方式, 元素)
+        by, locator = self._get_locator(locator_type, element)
         
         try:
-            WebDriverWait(driver, 超时时间).until(
+            WebDriverWait(driver, timeout).until(
                 EC.invisibility_of_element_located((by, locator))
             )
-            print(f"✓ 断言成功: 元素不可见 {定位方式}={元素}")
+            print(f"✓ 断言成功: 元素不可见 {locator_type}={element}")
         except Exception as e:
-            self._take_screenshot_on_error(f"断言失败_元素可见_{定位方式}_{元素}")
-            raise AssertionError(f"断言失败: 元素可见 {定位方式}={元素}") from e
+            self._take_screenshot_on_error(f"断言失败_元素可见_{locator_type}_{element}")
+            raise AssertionError(f"断言失败: 元素可见 {locator_type}={element}") from e
 
     @allure.step("断言文本相等")
     def assert_text_equals(self, **kwargs):
@@ -625,26 +594,24 @@ class Keywords:
         断言元素文本相等
         
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            期望文本: 期望的文本
-            等待时间: 显式等待时间（秒，可选）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            expected_text: 期望的文本
+            wait_time: 显式等待时间（秒，可选）
         """
-        kwargs.pop("关键字", None)
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        expected_text = kwargs.get("expected_text", "")
+        wait_time = kwargs.get("wait_time")
         
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        期望文本 = kwargs.get("期望文本", "")
-        等待时间 = kwargs.get("等待时间")
-        
-        element = self._find_element(定位方式, 元素, 等待时间)
-        实际文本 = element.text
+        element_obj = self._find_element(locator_type, element, wait_time)
+        actual_text = element_obj.text
         
         try:
-            assert 实际文本 == 期望文本, f"文本不相等: 期望'{期望文本}', 实际'{实际文本}'"
-            print(f"✓ 断言成功: 文本相等 '{实际文本}'")
+            assert actual_text == expected_text, f"文本不相等: 期望'{expected_text}', 实际'{actual_text}'"
+            print(f"✓ 断言成功: 文本相等 '{actual_text}'")
         except AssertionError as e:
-            self._take_screenshot_on_error(f"断言失败_文本不相等_{定位方式}_{元素}")
+            self._take_screenshot_on_error(f"断言失败_文本不相等_{locator_type}_{element}")
             raise e
 
     @allure.step("断言文本包含")
@@ -653,26 +620,24 @@ class Keywords:
         断言元素文本包含指定内容
         
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            期望文本: 期望包含的文本
-            等待时间: 显式等待时间（秒，可选）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            expected_text: 期望包含的文本
+            wait_time: 显式等待时间（秒，可选）
         """
-        kwargs.pop("关键字", None)
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        expected_text = kwargs.get("expected_text", "")
+        wait_time = kwargs.get("wait_time")
         
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        期望文本 = kwargs.get("期望文本", "")
-        等待时间 = kwargs.get("等待时间")
-        
-        element = self._find_element(定位方式, 元素, 等待时间)
-        实际文本 = element.text
+        element_obj = self._find_element(locator_type, element, wait_time)
+        actual_text = element_obj.text
         
         try:
-            assert 期望文本 in 实际文本, f"文本不包含: 期望包含'{期望文本}', 实际'{实际文本}'"
-            print(f"✓ 断言成功: 文本包含 '{期望文本}'")
+            assert expected_text in actual_text, f"文本不包含: 期望包含'{expected_text}', 实际'{actual_text}'"
+            print(f"✓ 断言成功: 文本包含 '{expected_text}'")
         except AssertionError as e:
-            self._take_screenshot_on_error(f"断言失败_文本不包含_{定位方式}_{元素}")
+            self._take_screenshot_on_error(f"断言失败_文本不包含_{locator_type}_{element}")
             raise e
 
     @allure.step("断言标题相等")
@@ -681,17 +646,16 @@ class Keywords:
         断言页面标题相等
         
         参数:
-            期望标题: 期望的标题
+            expected_title: 期望的标题
         """
-        kwargs.pop("关键字", None)
-        期望标题 = kwargs.get("期望标题", "")
+        expected_title = kwargs.get("expected_title", "")
         
         driver = self._get_driver()
-        实际标题 = driver.title
+        actual_title = driver.title
         
         try:
-            assert 实际标题 == 期望标题, f"标题不相等: 期望'{期望标题}', 实际'{实际标题}'"
-            print(f"✓ 断言成功: 标题相等 '{实际标题}'")
+            assert actual_title == expected_title, f"标题不相等: 期望'{expected_title}', 实际'{actual_title}'"
+            print(f"✓ 断言成功: 标题相等 '{actual_title}'")
         except AssertionError as e:
             self._take_screenshot_on_error(f"断言失败_标题不相等")
             raise e
@@ -702,17 +666,16 @@ class Keywords:
         断言页面标题包含指定内容
         
         参数:
-            期望文本: 期望包含的文本
+            expected_text: 期望包含的文本
         """
-        kwargs.pop("关键字", None)
-        期望文本 = kwargs.get("期望文本", "")
+        expected_text = kwargs.get("expected_text", "")
         
         driver = self._get_driver()
-        实际标题 = driver.title
+        actual_title = driver.title
         
         try:
-            assert 期望文本 in 实际标题, f"标题不包含: 期望包含'{期望文本}', 实际'{实际标题}'"
-            print(f"✓ 断言成功: 标题包含 '{期望文本}'")
+            assert expected_text in actual_title, f"标题不包含: 期望包含'{expected_text}', 实际'{actual_title}'"
+            print(f"✓ 断言成功: 标题包含 '{expected_text}'")
         except AssertionError as e:
             self._take_screenshot_on_error(f"断言失败_标题不包含")
             raise e
@@ -725,24 +688,22 @@ class Keywords:
         切换到 iframe
         
         参数:
-            定位方式: id/name/xpath/css 等 (可选)
-            元素: 元素标识 (可选)
-            索引: frame 索引 (可选)
+            locator_type: id/name/xpath/css 等 (可选)
+            element: 元素标识 (可选)
+            index: frame 索引 (可选)
         """
-        kwargs.pop("关键字", None)
-        
         driver = self._get_driver()
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        索引 = kwargs.get("索引")
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        index = kwargs.get("index")
         
-        if 索引 is not None:
-            driver.switch_to.frame(int(索引))
-            print(f"已切换到 frame 索引: {索引}")
-        elif 定位方式 and 元素:
-            frame_element = self._find_element(定位方式, 元素)
+        if index is not None:
+            driver.switch_to.frame(int(index))
+            print(f"已切换到 frame 索引: {index}")
+        elif locator_type and element:
+            frame_element = self._find_element(locator_type, element)
             driver.switch_to.frame(frame_element)
-            print(f"已切换到 frame: {定位方式}={元素}")
+            print(f"已切换到 frame: {locator_type}={element}")
         else:
             driver.switch_to.default_content()
             print("已切换回主文档")
@@ -753,22 +714,20 @@ class Keywords:
         切换到窗口
         
         参数:
-            索引: 窗口索引 (从 0 开始)
-            句柄: 窗口句柄 (可选)
+            index: 窗口索引 (从 0 开始)
+            handle: 窗口句柄 (可选)
         """
-        kwargs.pop("关键字", None)
-        
         driver = self._get_driver()
-        索引 = kwargs.get("索引")
-        句柄 = kwargs.get("句柄")
+        index = kwargs.get("index")
+        handle = kwargs.get("handle")
         
-        if 句柄:
-            driver.switch_to.window(句柄)
-            print(f"已切换到窗口句柄: {句柄}")
-        elif 索引 is not None:
+        if handle:
+            driver.switch_to.window(handle)
+            print(f"已切换到窗口句柄: {handle}")
+        elif index is not None:
             handles = driver.window_handles
-            driver.switch_to.window(handles[int(索引)])
-            print(f"已切换到窗口索引: {索引}")
+            driver.switch_to.window(handles[int(index)])
+            print(f"已切换到窗口索引: {index}")
 
     @allure.step("执行JavaScript")
     def execute_script(self, **kwargs):
@@ -776,22 +735,20 @@ class Keywords:
         执行 JavaScript 代码
         
         参数:
-            脚本: JavaScript 代码
-            变量名: 保存返回值到变量 (可选)
+            script: JavaScript 代码
+            variable_name: 保存返回值到变量 (可选)
         """
-        kwargs.pop("关键字", None)
-        
-        脚本 = kwargs.get("脚本", "")
-        变量名 = kwargs.get("变量名")
+        script = kwargs.get("script", "")
+        variable_name = kwargs.get("variable_name")
         
         driver = self._get_driver()
-        result = driver.execute_script(脚本)
+        result = driver.execute_script(script)
         
-        if 变量名:
-            g_context().set_dict(变量名, result)
-            print(f"已执行脚本并保存结果到 {变量名}: {result}")
+        if variable_name:
+            g_context().set_dict(variable_name, result)
+            print(f"已执行脚本并保存结果到 {variable_name}: {result}")
         else:
-            print(f"已执行脚本: {脚本}")
+            print(f"已执行脚本: {script}")
         
         return result
 
@@ -801,11 +758,9 @@ class Keywords:
         截图
         
         参数:
-            文件名: 截图文件名 (可选，默认自动生成)
+            filename: 截图文件名 (可选，默认自动生成)
         """
-        kwargs.pop("关键字", None)
-        
-        文件名 = kwargs.get("文件名")
+        filename = kwargs.get("filename")
         driver = self._get_driver()
         
         # 获取项目根目录下的 reports/screenshots 目录
@@ -814,19 +769,19 @@ class Keywords:
         if not os.path.exists(screenshot_dir):
             os.makedirs(screenshot_dir)
         
-        if not 文件名:
+        if not filename:
             timestamp = time.strftime("%Y%m%d_%H%M%S")
-            文件名 = f"screenshot_{timestamp}.png"
+            filename = f"screenshot_{timestamp}.png"
         
-        if not 文件名.endswith(".png"):
-            文件名 += ".png"
+        if not filename.endswith(".png"):
+            filename += ".png"
         
-        filepath = os.path.join(screenshot_dir, 文件名)
+        filepath = os.path.join(screenshot_dir, filename)
         driver.save_screenshot(filepath)
         
         # 附加到 Allure 报告
         with open(filepath, "rb") as f:
-            allure.attach(f.read(), name=文件名, attachment_type=allure.attachment_type.PNG)
+            allure.attach(f.read(), name=filename, attachment_type=allure.attachment_type.PNG)
         
         print(f"已截图: {filepath}")
 
@@ -836,21 +791,19 @@ class Keywords:
         滚动到元素
         
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            等待时间: 显式等待时间（秒，可选）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            wait_time: 显式等待时间（秒，可选）
         """
-        kwargs.pop("关键字", None)
-        
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        等待时间 = kwargs.get("等待时间")
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        wait_time = kwargs.get("wait_time")
         
         driver = self._get_driver()
-        element = self._find_element(定位方式, 元素, 等待时间)
+        element_obj = self._find_element(locator_type, element, wait_time)
         
-        driver.execute_script("arguments[0].scrollIntoView();", element)
-        print(f"已滚动到元素: {定位方式}={元素}")
+        driver.execute_script("arguments[0].scrollIntoView();", element_obj)
+        print(f"已滚动到元素: {locator_type}={element}")
 
     @allure.step("鼠标悬停")
     def hover_element(self, **kwargs):
@@ -858,22 +811,20 @@ class Keywords:
         鼠标悬停到元素
         
         参数:
-            定位方式: id/name/xpath/css 等
-            元素: 元素标识
-            等待时间: 显式等待时间（秒，可选）
+            locator_type: id/name/xpath/css 等
+            element: 元素标识
+            wait_time: 显式等待时间（秒，可选）
         """
-        kwargs.pop("关键字", None)
-        
-        定位方式 = kwargs.get("定位方式")
-        元素 = kwargs.get("元素")
-        等待时间 = kwargs.get("等待时间")
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        wait_time = kwargs.get("wait_time")
         
         driver = self._get_driver()
-        element = self._find_element(定位方式, 元素, 等待时间)
+        element_obj = self._find_element(locator_type, element, wait_time)
         
         actions = ActionChains(driver)
-        actions.move_to_element(element).perform()
-        print(f"已鼠标悬停: {定位方式}={元素}")
+        actions.move_to_element(element_obj).perform()
+        print(f"已鼠标悬停: {locator_type}={element}")
 
     @allure.step("获取当前URL")
     def get_current_url(self, **kwargs):
@@ -881,17 +832,16 @@ class Keywords:
         获取当前 URL 并保存到变量
         
         参数:
-            变量名: 保存到的变量名 (可选)
+            variable_name: 保存到的变量名 (可选)
         """
-        kwargs.pop("关键字", None)
-        变量名 = kwargs.get("变量名")
+        variable_name = kwargs.get("variable_name")
         
         driver = self._get_driver()
         current_url = driver.current_url
         
-        if 变量名:
-            g_context().set_dict(变量名, current_url)
-            print(f"已获取当前URL并保存到 {变量名}: {current_url}")
+        if variable_name:
+            g_context().set_dict(variable_name, current_url)
+            print(f"已获取当前URL并保存到 {variable_name}: {current_url}")
         else:
             print(f"当前URL: {current_url}")
         
@@ -1081,23 +1031,22 @@ class Keywords:
 
         return result
 
-    @allure.step("AI操作: {操作描述}")
+    @allure.step("AI操作: {operation_desc}")
     def ai_operation(self, **kwargs):
         """
         AI 驱动的主操作调度器
         
         参数:
-            操作描述: 自然语言描述的操作，如"点击登录按钮"、"在用户名输入框输入admin"
+            operation_desc: 自然语言描述的操作，如"点击登录按钮"、"在用户名输入框输入admin"
         
         示例:
-            - 操作描述: "点击红色的提交按钮"
-            - 操作描述: "在密码框输入123456"
-            - 操作描述: "提取页面标题文本"
+            - operation_desc: "点击红色的提交按钮"
+            - operation_desc: "在密码框输入123456"
+            - operation_desc: "提取页面标题文本"
         """
-        kwargs.pop("关键字", None)
-        操作描述 = kwargs.get("操作描述")
+        operation_desc = kwargs.get("operation_desc")
         
-        if not 操作描述:
+        if not operation_desc:
             raise ValueError("操作描述不能为空")
 
         # 支持的操作类型
@@ -1105,7 +1054,7 @@ class Keywords:
         
         try:
             # 调用 AI 视觉分析
-            result = self._call_ai_vision(操作描述, actions)
+            result = self._call_ai_vision(operation_desc, actions)
             
             # 根据操作类型执行相应操作
             action = result.get('action')
@@ -1143,130 +1092,125 @@ class Keywords:
                 raise ValueError(f"不支持的操作类型: {action}")
                 
         except Exception as e:
-            self._take_screenshot_on_error(f"AI操作失败_{操作描述}")
+            self._take_screenshot_on_error(f"AI操作失败_{operation_desc}")
             raise e
 
-    @allure.step("AI点击: {元素描述}")
+    @allure.step("AI点击: {element_desc}")
     def ai_click(self, **kwargs):
         """
         AI 驱动的点击操作
         
         参数:
-            元素描述: 元素的自然语言描述，如"红色的提交按钮"、"登录链接"
+            element_desc: 元素的自然语言描述，如"红色的提交按钮"、"登录链接"
         """
-        kwargs.pop("关键字", None)
-        元素描述 = kwargs.get("元素描述")
+        element_desc = kwargs.get("element_desc")
         
-        if not 元素描述:
+        if not element_desc:
             raise ValueError("元素描述不能为空")
         
-        操作描述 = f"点击{元素描述}"
-        self.ai_operation(操作描述=操作描述)
+        operation_desc = f"点击{element_desc}"
+        self.ai_operation(operation_desc=operation_desc)
 
-    @allure.step("AI输入: {文本}")
+    @allure.step("AI输入: {text}")
     def ai_input(self, **kwargs):
         """
         AI 驱动的输入操作
         
         参数:
-            元素描述: 输入框的自然语言描述，如"用户名输入框"、"搜索框"
-            文本: 要输入的文本内容
+            element_desc: 输入框的自然语言描述，如"用户名输入框"、"搜索框"
+            text: 要输入的文本内容
         """
-        kwargs.pop("关键字", None)
-        元素描述 = kwargs.get("元素描述")
-        文本 = kwargs.get("文本", "")
+        element_desc = kwargs.get("element_desc")
+        text = kwargs.get("text", "")
         
-        if not 元素描述:
+        if not element_desc:
             raise ValueError("元素描述不能为空")
         
-        操作描述 = f"在{元素描述}输入{文本}"
+        operation_desc = f"在{element_desc}输入{text}"
         
         try:
             actions = ['输入']
-            result = self._call_ai_vision(操作描述, actions)
-            self._ai_input(result['bbox'], 文本)
-            print(f"✓ AI输入成功: 在{元素描述}输入 '{文本}'")
+            result = self._call_ai_vision(operation_desc, actions)
+            self._ai_input(result['bbox'], text)
+            print(f"✓ AI输入成功: 在{element_desc}输入 '{text}'")
         except Exception as e:
-            self._take_screenshot_on_error(f"AI输入失败_{元素描述}")
+            self._take_screenshot_on_error(f"AI输入失败_{element_desc}")
             raise e
 
-    @allure.step("AI提取文本: {文本描述}")
+    @allure.step("AI提取文本: {text_desc}")
     def ai_extract_text(self, **kwargs):
         """
         AI 驱动的文本提取
         
         参数:
-            文本描述: 要提取文本的描述，如"页面标题"、"错误提示信息"
-            变量名: 保存到的变量名（可选，默认保存到 ai_extracted_text）
+            text_desc: 要提取文本的描述，如"页面标题"、"错误提示信息"
+            variable_name: 保存到的变量名（可选，默认保存到 ai_extracted_text）
         """
-        kwargs.pop("关键字", None)
-        文本描述 = kwargs.get("文本描述")
-        变量名 = kwargs.get("变量名", "ai_extracted_text")
+        text_desc = kwargs.get("text_desc")
+        variable_name = kwargs.get("variable_name", "ai_extracted_text")
         
-        if not 文本描述:
+        if not text_desc:
             raise ValueError("文本描述不能为空")
         
-        操作描述 = f"提取{文本描述}的文本内容"
+        operation_desc = f"提取{text_desc}的文本内容"
         
         try:
             actions = ['文本提取']
-            result = self._call_ai_vision(操作描述, actions)
+            result = self._call_ai_vision(operation_desc, actions)
             text = result.get('text', '')
-            g_context().set_dict(变量名, text)
-            print(f"✓ AI文本提取成功: 已提取 '{text}' 并保存到变量 {变量名}")
+            g_context().set_dict(variable_name, text)
+            print(f"✓ AI文本提取成功: 已提取 '{text}' 并保存到变量 {variable_name}")
         except Exception as e:
-            self._take_screenshot_on_error(f"AI文本提取失败_{文本描述}")
+            self._take_screenshot_on_error(f"AI文本提取失败_{text_desc}")
             raise e
 
-    @allure.step("AI滚动: {元素描述}")
+    @allure.step("AI滚动: {element_desc}")
     def ai_scroll(self, **kwargs):
         """
         AI 驱动的滚动操作
         
         参数:
-            元素描述: 要滚动到的元素描述，如"页面底部"、"评论区"
+            element_desc: 要滚动到的元素描述，如"页面底部"、"评论区"
         """
-        kwargs.pop("关键字", None)
-        元素描述 = kwargs.get("元素描述")
+        element_desc = kwargs.get("element_desc")
         
-        if not 元素描述:
+        if not element_desc:
             raise ValueError("元素描述不能为空")
         
-        操作描述 = f"滚动到{元素描述}"
+        operation_desc = f"滚动到{element_desc}"
         
         try:
             actions = ['滚动']
-            result = self._call_ai_vision(操作描述, actions)
+            result = self._call_ai_vision(operation_desc, actions)
             bbox = result['bbox']
             
             driver = self._get_driver()
             x = (bbox[0] + bbox[2]) / 2
             y = (bbox[1] + bbox[3]) / 2
             driver.execute_script(f"window.scrollTo({x}, {y});")
-            print(f"✓ AI滚动成功: 滚动到{元素描述}")
+            print(f"✓ AI滚动成功: 滚动到{element_desc}")
         except Exception as e:
-            self._take_screenshot_on_error(f"AI滚动失败_{元素描述}")
+            self._take_screenshot_on_error(f"AI滚动失败_{element_desc}")
             raise e
 
-    @allure.step("AI悬停: {元素描述}")
+    @allure.step("AI悬停: {element_desc}")
     def ai_hover(self, **kwargs):
         """
         AI 驱动的鼠标悬停操作
         
         参数:
-            元素描述: 要悬停的元素描述，如"用户菜单"、"导航栏"
+            element_desc: 要悬停的元素描述，如"用户菜单"、"导航栏"
         """
-        kwargs.pop("关键字", None)
-        元素描述 = kwargs.get("元素描述")
+        element_desc = kwargs.get("element_desc")
         
-        if not 元素描述:
+        if not element_desc:
             raise ValueError("元素描述不能为空")
         
-        操作描述 = f"鼠标悬停在{元素描述}"
+        operation_desc = f"鼠标悬停在{element_desc}"
         
         try:
             actions = ['悬停']
-            result = self._call_ai_vision(操作描述, actions)
+            result = self._call_ai_vision(operation_desc, actions)
             bbox = result['bbox']
             
             driver = self._get_driver()
@@ -1276,84 +1220,82 @@ class Keywords:
             action_builder = ActionBuilder(driver)
             action_builder.pointer_action.move_to_location(x, y)
             action_builder.perform()
-            print(f"✓ AI悬停成功: 鼠标悬停在{元素描述}")
+            print(f"✓ AI悬停成功: 鼠标悬停在{element_desc}")
         except Exception as e:
-            self._take_screenshot_on_error(f"AI悬停失败_{元素描述}")
+            self._take_screenshot_on_error(f"AI悬停失败_{element_desc}")
             raise e
 
-    @allure.step("AI拖拽: {源元素描述} -> {目标元素描述}")
+    @allure.step("AI拖拽: {source_element_desc} -> {target_element_desc}")
     def ai_drag(self, **kwargs):
         """
         AI 驱动的拖拽操作
         
         参数:
-            源元素描述: 要拖拽的元素描述，如"待办事项"
-            目标元素描述: 拖拽目标的描述，如"已完成区域"
+            source_element_desc: 要拖拽的元素描述，如"待办事项"
+            target_element_desc: 拖拽目标的描述，如"已完成区域"
         """
-        kwargs.pop("关键字", None)
-        源元素描述 = kwargs.get("源元素描述")
-        目标元素描述 = kwargs.get("目标元素描述")
+        source_element_desc = kwargs.get("source_element_desc")
+        target_element_desc = kwargs.get("target_element_desc")
         
-        if not 源元素描述 or not 目标元素描述:
+        if not source_element_desc or not target_element_desc:
             raise ValueError("源元素描述和目标元素描述不能为空")
         
         try:
             # 先找到源元素
-            操作描述1 = f"找到{源元素描述}"
+            operation_desc1 = f"找到{source_element_desc}"
             actions = ['拖拽']
-            result1 = self._call_ai_vision(操作描述1, actions)
-            源bbox = result1['bbox']
-            源x = (源bbox[0] + 源bbox[2]) / 2
-            源y = (源bbox[1] + 源bbox[3]) / 2
+            result1 = self._call_ai_vision(operation_desc1, actions)
+            source_bbox = result1['bbox']
+            source_x = (source_bbox[0] + source_bbox[2]) / 2
+            source_y = (source_bbox[1] + source_bbox[3]) / 2
             
             # 再找到目标元素
-            操作描述2 = f"找到{目标元素描述}"
-            result2 = self._call_ai_vision(操作描述2, actions)
-            目标bbox = result2['bbox']
-            目标x = (目标bbox[0] + 目标bbox[2]) / 2
-            目标y = (目标bbox[1] + 目标bbox[3]) / 2
+            operation_desc2 = f"找到{target_element_desc}"
+            result2 = self._call_ai_vision(operation_desc2, actions)
+            target_bbox = result2['bbox']
+            target_x = (target_bbox[0] + target_bbox[2]) / 2
+            target_y = (target_bbox[1] + target_bbox[3]) / 2
             
             # 执行拖拽
             driver = self._get_driver()
             from selenium.webdriver.common.actions.action_builder import ActionBuilder
             action_builder = ActionBuilder(driver)
-            action_builder.pointer_action.move_to_location(源x, 源y)
+            action_builder.pointer_action.move_to_location(source_x, source_y)
             action_builder.pointer_action.pointer_down()
-            action_builder.pointer_action.move_to_location(目标x, 目标y)
+            action_builder.pointer_action.move_to_location(target_x, target_y)
             action_builder.pointer_action.pointer_up()
             action_builder.perform()
             
-            print(f"✓ AI拖拽成功: {源元素描述} -> {目标元素描述}")
+            print(f"✓ AI拖拽成功: {source_element_desc} -> {target_element_desc}")
         except Exception as e:
-            self._take_screenshot_on_error(f"AI拖拽失败_{源元素描述}_to_{目标元素描述}")
+            self._take_screenshot_on_error(f"AI拖拽失败_{source_element_desc}_to_{target_element_desc}")
             raise e
 
-    @allure.step("AI断言可见: {元素描述}")
+    @allure.step("AI断言可见: {element_desc}")
     def ai_assert_visible(self, **kwargs):
         """
         AI 驱动的可见性断言
         
         参数:
-            元素描述: 要断言可见的元素描述，如"成功提示消息"、"登录按钮"
+            element_desc: 要断言可见的元素描述，如"成功提示消息"、"登录按钮"
         """
-        kwargs.pop("关键字", None)
-        元素描述 = kwargs.get("元素描述")
+        element_desc = kwargs.get("element_desc")
         
-        if not 元素描述:
+        if not element_desc:
             raise ValueError("元素描述不能为空")
         
-        操作描述 = f"找到{元素描述}"
+        operation_desc = f"找到{element_desc}"
         
         try:
             actions = ['点击']  # 使用点击操作来定位元素
-            result = self._call_ai_vision(操作描述, actions)
+            result = self._call_ai_vision(operation_desc, actions)
             
             # 如果 AI 能找到元素，说明元素可见
             if result.get('bbox'):
-                print(f"✓ AI断言成功: {元素描述} 可见")
+                print(f"✓ AI断言成功: {element_desc} 可见")
             else:
-                raise AssertionError(f"AI断言失败: {元素描述} 不可见")
+                raise AssertionError(f"AI断言失败: {element_desc} 不可见")
         except Exception as e:
-            self._take_screenshot_on_error(f"AI断言失败_{元素描述}")
-            raise AssertionError(f"AI断言失败: {元素描述} 不可见") from e
+            self._take_screenshot_on_error(f"AI断言失败_{element_desc}")
+            raise AssertionError(f"AI断言失败: {element_desc} 不可见") from e
 

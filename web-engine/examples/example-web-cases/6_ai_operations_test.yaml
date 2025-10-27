@@ -5,12 +5,12 @@ pre_script:
 
 steps:
   # ========== 步骤1：初始化浏览器 ==========
-  - 打开浏览器:
+  - 打开browser:
       关键字: open_browser
-      浏览器: "{{BROWSER}}"
-      无头模式: "{{HEADLESS}}"
-      隐式等待: "{{IMPLICIT_WAIT}}"
-      窗口大小: "{{WINDOW_SIZE}}"
+      browser: "{{BROWSER}}"
+      headless: "{{HEADLESS}}"
+      implicit_wait: "{{IMPLICIT_WAIT}}"
+      window_size: "{{WINDOW_SIZE}}"
   
   # ========== 步骤2：访问百度首页 ==========
   - 导航到百度首页:
@@ -20,70 +20,71 @@ steps:
   # ========== 步骤3：使用AI点击搜索框 ==========
   - AI点击搜索框:
       关键字: ai_click
-      元素描述: 页面中间的搜索输入框
+      element_desc: 页面中间的搜索输入框
   
   # ========== 步骤4：使用AI输入搜索关键词 ==========
   - AI输入搜索关键词:
       关键字: ai_input
-      元素描述: 搜索输入框
-      文本: AI自动化测试
+      element_desc: 搜索输入框
+      text: AI自动化测试
   
   # ========== 步骤5：使用AI点击搜索按钮 ==========
   - AI点击搜索按钮:
       关键字: ai_click
-      元素描述: 蓝色的百度一下按钮
+      element_desc: 蓝色的百度一下按钮
   
   # ========== 步骤6：等待搜索结果加载 ==========
   - 等待结果:
       关键字: sleep
-      时间: 3
+      time: 3
   
   # ========== 步骤7：使用AI断言结果可见 ==========
   - AI断言搜索结果可见:
       关键字: ai_assert_visible
-      元素描述: 搜索结果列表
+      element_desc: 搜索结果列表
   
   # ========== 步骤8：使用AI提取页面标题 ==========
   - AI提取页面标题:
       关键字: ai_extract_text
-      文本描述: 页面顶部的标题
-      变量名: page_title
+      text_desc: 页面顶部的标题
+      variable_name: page_title
   
   # ========== 步骤9：截图保存证据 ==========
   - 截图保存AI操作结果:
       关键字: take_screenshot
-      文件名: ai_search_result
+      filename: ai_search_result
   
   # ========== 步骤10：使用AI滚动到页面底部 ==========
   - AI滚动到底部:
       关键字: ai_scroll
-      元素描述: 页面底部的分页导航
+      element_desc: 页面底部的分页导航
   
   # ========== 步骤11：等待一下 ==========
   - 等待观察:
       关键字: sleep
-      时间: 2
+      time: 2
   
   # ========== 步骤12：使用AI通用操作 ==========
   - AI通用操作示例:
       关键字: ai_operation
-      操作描述: 点击第一个搜索结果
+      operation_desc: 点击第一个搜索结果
   
   # ========== 步骤13：等待页面加载 ==========
   - 等待新页面:
       关键字: sleep
-      时间: 2
+      time: 2
   
   # ========== 步骤14：截图保存最终结果 ==========
   - 截图保存最终页面:
       关键字: take_screenshot
-      文件名: ai_final_result
+      filename: ai_final_result
   
   # ========== 步骤15：清理环境 ==========
-  - 关闭浏览器:
+  - 关闭browser:
       关键字: close_browser
 
 post_script:
   - 'print("=== AI驱动操作测试执行完成 ===")'
   - 'title = g_context().get_dict("page_title"); print(f"提取的页面标题: {title}")'
+
 

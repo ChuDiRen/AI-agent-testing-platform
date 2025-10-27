@@ -63,7 +63,7 @@ def web_keywords(driver):
     用法:
         def test_example(web_keywords, driver):
             web_keywords.navigate_to(url="https://example.com")
-            web_keywords.click_element(定位方式="id", 元素="btn")
+            web_keywords.click_element(locator_type="id", element="btn")
     """
     keywords = Keywords()
     yield keywords
@@ -103,4 +103,5 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "regression: 回归测试")
     config.addinivalue_line("markers", "ui: UI 测试")
     config.addinivalue_line("markers", "web: Web 测试")
+
 

@@ -124,7 +124,7 @@ execute_sql_update:
 ex_mysqlData:
   - 数据库    # 数据库的名字，在你context中维护的
   - SQL      # SQL语句
-  - 引用变量  # 列表格式
+  - reference_variables  # 列表格式
 
 # ================================
 # 工具类关键字

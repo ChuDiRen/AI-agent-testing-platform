@@ -274,3 +274,4 @@ class TestPageNavigation:
             new_title = page.title()
             assert new_title == original_title, "页面标题改变，刷新可能失败"
             allure.attach(new_title, "刷新后标题", allure.attachment_type.TEXT)
+

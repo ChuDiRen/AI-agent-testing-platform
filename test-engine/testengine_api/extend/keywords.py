@@ -391,7 +391,7 @@ class Keywords:
         con.close()
         print("数据库查询结果:", rs)
 
-        var_names = kwargs.get("引用变量",  [])
+        var_names = kwargs.get("reference_variables",  [])
         result = {}
 
         if not var_names:
@@ -494,5 +494,6 @@ class Keywords:
         print("-----------------------")
         print(g_context().show_dict())
         print("-----------------------")
+
 
 

@@ -1,9 +1,9 @@
 desc: 数据驱动搜索测试 - Playwright版本
 steps:
-  - 打开浏览器:
+  - 打开browser:
       关键字: open_browser
-      浏览器: "{{BROWSER}}"
-      无头模式: "{{HEADLESS}}"
+      browser: "{{BROWSER}}"
+      headless: "{{HEADLESS}}"
 
   - 导航到百度:
       关键字: navigate_to
@@ -11,33 +11,33 @@ steps:
 
   - 等待页面加载:
       关键字: wait_for_page_load
-      等待条件: load
+      wait_until: load
 
   - 输入搜索词:
       关键字: input_text
-      定位方式: role
-      元素: textbox
-      文本: "{{search_keyword}}"
+      locator_type: role
+      element: textbox
+      text: "{{search_keyword}}"
 
   - 点击搜索:
       关键字: click_element
-      定位方式: role
-      元素: button[name="百度一下"]
+      locator_type: role
+      element: button[name="百度一下"]
 
   - 等待结果:
       关键字: wait_for_page_load
-      等待条件: load
-      超时时间: 10000
+      wait_until: load
+      timeout: 10000
 
   - 断言包含关键词:
       关键字: assert_text_contains
-      期望文本: "{{expected_text}}"
+      期望text: "{{expected_text}}"
 
   - 截图:
       关键字: take_screenshot
-      文件名: "search_{{search_keyword}}"
+      filename: "search_{{search_keyword}}"
 
-  - 关闭浏览器:
+  - 关闭browser:
       关键字: close_browser
 
 # 数据驱动测试数据
@@ -53,4 +53,5 @@ ddts:
   - desc: 搜索Playwright
     search_keyword: Playwright
     expected_text: Playwright
+
 

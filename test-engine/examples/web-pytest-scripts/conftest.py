@@ -306,3 +306,4 @@ def pytest_runtest_makereport(item, call):
                 
             except Exception as e:
                 print(f"截图失败: {e}")
+

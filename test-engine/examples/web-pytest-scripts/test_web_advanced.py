@@ -402,3 +402,4 @@ class TestAdvancedLocators:
             search_input = page.locator("form").locator("#kw")
             expect(search_input).to_be_visible()
             allure.attach("链式定位成功", "定位结果", allure.attachment_type.TEXT)
+

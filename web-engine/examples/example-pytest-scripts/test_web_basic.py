@@ -14,30 +14,30 @@ def test_baidu_search(web_keywords, driver):
         web_keywords.navigate_to(url="https://www.baidu.com")
     
     with allure.step("断言页面标题"):
-        web_keywords.assert_title_contains(期望文本="百度")
+        web_keywords.assert_title_contains(期望text="百度")
     
     with allure.step("输入搜索关键词"):
-        web_keywords.input_text(定位方式="id", 元素="kw", 文本="Selenium WebDriver")
+        web_keywords.input_text(locator_type="id", element="kw", text="Selenium WebDriver")
     
     with allure.step("点击搜索按钮"):
-        web_keywords.click_element(定位方式="id", 元素="su")
+        web_keywords.click_element(locator_type="id", element="su")
     
     with allure.step("等待搜索结果加载"):
         web_keywords.wait_for_element_visible(
-            定位方式="id",
-            元素="content_left",
-            超时时间=10
+            locator_type="id",
+            element="content_left",
+            timeout=10
         )
     
     with allure.step("验证搜索结果包含关键词"):
         web_keywords.assert_text_contains(
-            定位方式="id",
-            元素="content_left",
-            期望文本="Selenium"
+            locator_type="id",
+            element="content_left",
+            期望text="Selenium"
         )
     
     with allure.step("截图保存"):
-        web_keywords.take_screenshot(文件名="baidu_search_result")
+        web_keywords.take_screenshot(filename="baidu_search_result")
 
 
 @allure.feature("表单操作")
@@ -51,29 +51,29 @@ def test_element_operations(web_keywords, driver):
     
     with allure.step("输入文本"):
         web_keywords.input_text(
-            定位方式="id",
-            元素="my-text-id",
-            文本="Test Input Text"
+            locator_type="id",
+            element="my-text-id",
+            text="Test Input Text"
         )
     
     with allure.step("输入密码"):
         web_keywords.input_text(
-            定位方式="name",
-            元素="my-password",
-            文本="secret123"
+            locator_type="name",
+            element="my-password",
+            text="secret123"
         )
     
     with allure.step("输入文本域"):
         web_keywords.input_text(
-            定位方式="name",
-            元素="my-textarea",
-            文本="This is a test textarea"
+            locator_type="name",
+            element="my-textarea",
+            text="This is a test textarea"
         )
     
     with allure.step("点击提交按钮"):
         web_keywords.click_element(
-            定位方式="xpath",
-            元素="//button[@type='submit']"
+            locator_type="xpath",
+            element="//button[@type='submit']"
         )
 
 
@@ -86,23 +86,23 @@ def test_wait_operations(web_keywords, driver):
     
     with allure.step("等待搜索框出现"):
         web_keywords.wait_for_element(
-            定位方式="id",
-            元素="kw",
-            超时时间=10
+            locator_type="id",
+            element="kw",
+            timeout=10
         )
     
     with allure.step("等待搜索框可见"):
         web_keywords.wait_for_element_visible(
-            定位方式="id",
-            元素="kw",
-            超时时间=10
+            locator_type="id",
+            element="kw",
+            timeout=10
         )
     
     with allure.step("等待搜索框可点击"):
         web_keywords.wait_for_element_clickable(
-            定位方式="id",
-            元素="kw",
-            超时时间=10
+            locator_type="id",
+            element="kw",
+            timeout=10
         )
 
 
@@ -114,8 +114,9 @@ def test_smoke_web(web_keywords, driver):
         web_keywords.navigate_to(url="https://www.baidu.com")
     
     with allure.step("验证页面标题"):
-        web_keywords.assert_title_contains(期望文本="百度")
+        web_keywords.assert_title_contains(期望text="百度")
     
     with allure.step("验证搜索框可见"):
-        web_keywords.assert_element_visible(定位方式="id", 元素="kw")
+        web_keywords.assert_element_visible(locator_type="id", element="kw")
+
 

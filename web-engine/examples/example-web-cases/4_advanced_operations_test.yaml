@@ -5,12 +5,12 @@ pre_script:
 
 steps:
   # ========== 步骤1：初始化浏览器 ==========
-  - 打开浏览器:
+  - 打开browser:
       关键字: open_browser
-      浏览器: "{{BROWSER}}"
-      无头模式: "{{HEADLESS}}"
-      隐式等待: "{{IMPLICIT_WAIT}}"
-      窗口大小: "{{WINDOW_SIZE}}"
+      browser: "{{BROWSER}}"
+      headless: "{{HEADLESS}}"
+      implicit_wait: "{{IMPLICIT_WAIT}}"
+      window_size: "{{WINDOW_SIZE}}"
   
   # ========== 步骤2：访问W3School测试页 ==========
   - 导航到W3School:
@@ -20,34 +20,34 @@ steps:
   # ========== 步骤3：等待页面完全加载 ==========
   - 等待页面加载:
       关键字: sleep
-      时间: 2
+      time: 2
   
   # ========== 步骤4：切换到iframe内部 ==========
   - 切换到iframe:
       关键字: switch_to_frame
-      定位方式: id
-      元素: iframeResult
+      locator_type: id
+      element: iframeResult
   
   # ========== 步骤5：在iframe内操作-输入名字 ==========
   - 输入名字:
       关键字: input_text
-      定位方式: name
-      元素: fname
-      文本: John
-      清空: true
+      locator_type: name
+      element: fname
+      text: John
+      clear: true
   
   # ========== 步骤6：在iframe内操作-输入姓氏 ==========
   - 输入姓氏:
       关键字: input_text
-      定位方式: name
-      元素: lname
-      文本: Doe
-      清空: true
+      locator_type: name
+      element: lname
+      text: Doe
+      clear: true
   
   # ========== 步骤7：截图iframe内容 ==========
   - 截图iframe内容:
       关键字: take_screenshot
-      文件名: iframe_form_filled
+      filename: iframe_form_filled
   
   # ========== 步骤8：切换回主文档 ==========
   - 切换回主文档:
@@ -57,7 +57,7 @@ steps:
   - 执行JavaScript获取标题:
       关键字: execute_script
       脚本: return document.title;
-      变量名: page_title
+      variable_name: page_title
   
   # ========== 步骤10：执行JavaScript滚动页面 ==========
   - 滚动到页面顶部:
@@ -67,13 +67,14 @@ steps:
   # ========== 步骤11：截图最终状态 ==========
   - 截图最终状态:
       关键字: take_screenshot
-      文件名: advanced_operations_final
+      filename: advanced_operations_final
   
   # ========== 步骤12：清理环境 ==========
-  - 关闭浏览器:
+  - 关闭browser:
       关键字: close_browser
 
 post_script:
   - 'print("=== 高级操作测试完成 ===")'
   - 'title = g_context().get_dict("page_title"); print(f"页面标题: {title}")'
+
 

@@ -18,17 +18,17 @@ def test_search_ddt(web_keywords, driver, search_word, expected_text):
     """数据驱动搜索测试"""
     with allure.step(f"搜索关键词: {search_word}"):
         web_keywords.navigate_to(url="https://www.baidu.com")
-        web_keywords.input_text(定位方式="id", 元素="kw", 文本=search_word)
-        web_keywords.click_element(定位方式="id", 元素="su")
+        web_keywords.input_text(locator_type="id", element="kw", text=search_word)
+        web_keywords.click_element(locator_type="id", element="su")
         web_keywords.wait_for_element_visible(
-            定位方式="id",
-            元素="content_left",
-            超时时间=10
+            locator_type="id",
+            element="content_left",
+            timeout=10
         )
         web_keywords.assert_text_contains(
-            定位方式="id",
-            元素="content_left",
-            期望文本=expected_text
+            locator_type="id",
+            element="content_left",
+            期望text=expected_text
         )
 
 
@@ -55,9 +55,9 @@ class TestWebForm:
         """测试文本输入"""
         with allure.step("输入文本"):
             self.kw.input_text(
-                定位方式="id",
-                元素="my-text-id",
-                文本="Hello World"
+                locator_type="id",
+                element="my-text-id",
+                text="Hello World"
             )
     
     @allure.story("下拉框选择")
@@ -65,10 +65,10 @@ class TestWebForm:
         """测试下拉框选择"""
         with allure.step("选择下拉框选项"):
             self.kw.select_dropdown(
-                定位方式="name",
-                元素="my-select",
-                选择方式="value",
-                选项值="2"
+                locator_type="name",
+                element="my-select",
+                select_method="value",
+                option_value="2"
             )
     
     @allure.story("表单提交")
@@ -76,22 +76,22 @@ class TestWebForm:
         """测试表单提交"""
         with allure.step("填写表单"):
             self.kw.input_text(
-                定位方式="id",
-                元素="my-text-id",
-                文本="Test User"
+                locator_type="id",
+                element="my-text-id",
+                text="Test User"
             )
         
         with allure.step("提交表单"):
             self.kw.click_element(
-                定位方式="xpath",
-                元素="//button[@type='submit']"
+                locator_type="xpath",
+                element="//button[@type='submit']"
             )
         
         with allure.step("等待提交成功"):
             self.kw.wait_for_element_visible(
-                定位方式="id",
-                元素="message",
-                超时时间=5
+                locator_type="id",
+                element="message",
+                timeout=5
             )
 
 
@@ -112,7 +112,7 @@ def open_baidu(web_keywords, driver):
 def test_with_custom_fixture(web_keywords, driver, open_baidu):
     """使用自定义 fixture 的测试"""
     with allure.step("验证页面已打开"):
-        web_keywords.assert_title_contains(期望文本="百度")
+        web_keywords.assert_title_contains(期望text="百度")
 
 
 # ==================== 浏览器操作 ====================
@@ -153,9 +153,9 @@ class TestBrowserOperations:
         
         with allure.step("获取文本"):
             text = self.kw.get_text(
-                定位方式="xpath",
-                元素="//h1",
-                变量名="page_title"
+                locator_type="xpath",
+                element="//h1",
+                variable_name="page_title"
             )
             print(f"获取到的文本: {text}")
 
@@ -171,7 +171,7 @@ def test_execute_javascript(web_keywords, driver):
     with allure.step("执行 JavaScript 获取标题"):
         web_keywords.execute_script(
             脚本="return document.title;",
-            变量名="page_title"
+            variable_name="page_title"
         )
     
     with allure.step("执行 JavaScript 滚动"):
@@ -193,10 +193,10 @@ def test_scroll_and_hover(web_keywords, driver):
         )
     
     with allure.step("等待1秒"):
-        web_keywords.sleep(时间=1)
+        web_keywords.sleep(time=1)
     
     with allure.step("鼠标悬停搜索框"):
-        web_keywords.hover_element(定位方式="id", 元素="kw")
+        web_keywords.hover_element(locator_type="id", element="kw")
 
 
 # ==================== 标记示例 ====================
@@ -206,7 +206,7 @@ def test_critical_page(web_keywords, driver):
     """关键页面测试"""
     with allure.step("验证关键页面可访问"):
         web_keywords.navigate_to(url="https://www.baidu.com")
-        web_keywords.assert_title_contains(期望文本="百度")
+        web_keywords.assert_title_contains(期望text="百度")
 
 
 @pytest.mark.regression
@@ -215,7 +215,7 @@ def test_regression_case(web_keywords, driver):
     """回归测试用例"""
     with allure.step("执行回归测试"):
         web_keywords.navigate_to(url="https://www.baidu.com")
-        web_keywords.assert_element_visible(定位方式="id", 元素="kw")
+        web_keywords.assert_element_visible(locator_type="id", element="kw")
 
 
 # ==================== 跳过测试 ====================
@@ -236,5 +236,6 @@ def test_conditional_skip(web_keywords, driver):
 def test_known_ui_issue(web_keywords, driver):
     """已知问题的测试"""
     web_keywords.navigate_to(url="https://www.example.com/broken-page")
-    web_keywords.assert_element_visible(定位方式="id", 元素="non-existent")
+    web_keywords.assert_element_visible(locator_type="id", element="non-existent")
+
 

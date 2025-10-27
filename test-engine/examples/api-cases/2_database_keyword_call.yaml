@@ -4,5 +4,6 @@ steps:
     关键字: ex_mysqlData
     数据库: mysql002
     SQL: select pen_name,tel_phone from author  LIMIT 3
-    引用变量: [pen_name,tel_phone]
+    reference_variables: [pen_name,tel_phone]
+
 
