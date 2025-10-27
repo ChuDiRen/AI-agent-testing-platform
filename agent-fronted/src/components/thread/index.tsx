@@ -150,6 +150,14 @@ export function Thread() {
   const { threads } = useThreads();
   const lastError = useRef<string | undefined>(undefined);
 
+  const setThreadId = (id: string | null) => {
+    _setThreadId(id);
+
+    // close artifact and reset artifact context
+    closeArtifact();
+    setArtifactContext({});
+  };
+
   // 监听当前 threadId 是否被删除
   useEffect(() => {
     if (threadId && threads.length > 0) {
@@ -160,14 +168,6 @@ export function Thread() {
       }
     }
   }, [threadId, threads, setThreadId]);
-
-  const setThreadId = (id: string | null) => {
-    _setThreadId(id);
-
-    // close artifact and reset artifact context
-    closeArtifact();
-    setArtifactContext({});
-  };
 
   useEffect(() => {
     if (!stream.error) {
