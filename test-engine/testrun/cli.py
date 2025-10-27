@@ -9,6 +9,7 @@ from typing import Optional
 
 import pytest
 import yaml
+from allure_combine import combine_allure
 
 
 def get_engine_type_from_args() -> Optional[str]:
@@ -133,7 +134,7 @@ def run_pytest_tests(
     print("\n=== 测试执行完成，正在生成Allure报告... ===")
     print(f"报告目录: {allure_report_dir}")
     os.system(f'allure generate -c -o "{allure_report_dir}" "{allure_results_dir}"')
-    
+    combine_allure(str(allure_report_dir))  # 转换为字符串类型
     return exit_code
 
 
@@ -190,7 +191,7 @@ def run_with_plugin(
     print("\n=== 测试执行完成，正在生成Allure报告... ===")
     print(f"报告目录: {allure_report_dir}")
     os.system(f'allure generate -c -o "{allure_report_dir}" "{allure_results_dir}"')
-    
+    combine_allure(str(allure_report_dir))  # 转换为字符串类型
     return exit_code
 
 

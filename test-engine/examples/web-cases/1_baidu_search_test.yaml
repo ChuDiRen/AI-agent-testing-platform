@@ -6,7 +6,7 @@ steps:
       关键字: open_browser
       browser: "{{BROWSER}}"
       headless: "{{HEADLESS}}"
-      隐式等待: "{{IMPLICIT_WAIT}}"
+      implicit_wait: "{{IMPLICIT_WAIT}}"
       window_size: "{{WINDOW_SIZE}}"
 
   - 导航到百度首页:
@@ -19,7 +19,7 @@ steps:
 
   - 断言页面标题包含百度:
       关键字: assert_title_contains
-      期望text: 百度
+      expected_text: 百度
 
   - 输入搜索关键词:
       关键字: input_text
@@ -43,7 +43,7 @@ steps:
 
   - 断言搜索结果包含关键词:
       关键字: assert_text_contains
-      期望text: Playwright
+      expected_text: Playwright
 
   - 获取当前URL:
       关键字: get_current_url

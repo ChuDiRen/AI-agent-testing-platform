@@ -20,7 +20,7 @@ steps:
   # ========== 步骤3：断言页面标题 ==========
   - 断言标题相等:
       关键字: assert_title_equals
-      期望标题: 百度一下，你就知道
+      expected_title: 百度一下，你就知道
   
   # ========== 步骤4：等待元素出现（DOM中存在） ==========
   - 等待搜索框出现:
@@ -92,7 +92,7 @@ steps:
       关键字: assert_text_contains
       locator_type: id
       element: "{{BAIDU_RESULT_CONTAINER}}"
-      期望text: 自动化
+      expected_text: 自动化
   
   # ========== 步骤15：截图保存证据 ==========
   - 截图验证结果:

@@ -36,7 +36,7 @@ steps:
 
   - 等待特定文本出现:
       关键字: wait_for_text
-      期望text: Example Domain
+      expected_text: Example Domain
       timeout: 10000
 
   - 滚动到标题:
@@ -55,7 +55,7 @@ steps:
 
   - 断言页面包含text:
       关键字: assert_text_contains
-      期望text: Example Domain
+      expected_text: Example Domain
   
   - 截图:
       关键字: take_screenshot

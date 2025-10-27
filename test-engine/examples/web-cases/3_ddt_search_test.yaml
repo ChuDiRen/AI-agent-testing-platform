@@ -31,7 +31,7 @@ steps:
 
   - 断言包含关键词:
       关键字: assert_text_contains
-      期望text: "{{expected_text}}"
+      expected_text: "{{expected_text}}"
 
   - 截图:
       关键字: take_screenshot

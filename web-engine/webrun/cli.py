@@ -2,6 +2,7 @@ import os
 import sys
 
 import pytest
+from allure_combine import combine_allure
 
 # 添加父目录到Python路径,使webrun可以被导入
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -76,6 +77,7 @@ def run():
     print("\n=== 测试执行完成，正在生成Allure报告... ===")
     print(f"报告目录: {allure_report_dir}")
     os.system(f'allure generate -c -o "{allure_report_dir}" "{allure_results_dir}"')
+    combine_allure(allure_report_dir)
 
 
 if __name__ == '__main__':

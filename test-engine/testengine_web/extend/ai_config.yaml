@@ -1,0 +1,56 @@
+# AI 视觉模型配置文件
+# 支持通过环境变量或配置文件切换不同的 AI 模型
+
+# 默认使用的 AI 模型提供商
+# 可选值: qwen-vl, deepseek-vl, custom
+AI_PROVIDER: qwen-vl
+
+# 通义千问 VL 配置（阿里云百炼）
+QWEN_VL:
+  API_KEY: sk-aeb8d69039b14320b0fe58cb8285d8b1  # 请替换为您的实际API密钥
+  BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+  MODEL: qwen-vl-max-latest  # 可选: qwen-vl-max-latest, qwen-vl-plus
+  MIN_PIXELS: 401408  # 最小像素数 (512 * 28 * 28)
+  MAX_PIXELS: 1605632  # 最大像素数 (2048 * 28 * 28)
+  FACTOR: 28  # 分块因子
+  RETRY_COUNT: 2  # 重试次数
+  TIMEOUT: 60  # 超时时间（秒）
+
+# DeepSeek VL 配置（备选，内容审核较宽松）
+DEEPSEEK_VL:
+  API_KEY: your-deepseek-api-key  # 请替换为您的DeepSeek API密钥
+  BASE_URL: https://api.deepseek.com/v1
+  MODEL: deepseek-vl-7b-chat
+  MIN_PIXELS: 262144
+  MAX_PIXELS: 1048576
+  FACTOR: 16
+  RETRY_COUNT: 2
+  TIMEOUT: 60
+
+# 自定义模型配置
+CUSTOM:
+  API_KEY: your-custom-api-key
+  BASE_URL: https://your-custom-endpoint.com/v1
+  MODEL: your-custom-model
+  MIN_PIXELS: 262144
+  MAX_PIXELS: 1048576
+  FACTOR: 16
+  RETRY_COUNT: 2
+  TIMEOUT: 60
+
+# AI 功能开关
+AI_ENABLED: true  # 是否启用 AI 功能
+AI_FALLBACK_TO_TRADITIONAL: true  # AI 失败时是否降级到传统定位方式
+
+# AI 提示词优化配置
+PROMPT_OPTIMIZATION:
+  USE_SAFE_WORDS: true  # 使用更安全的词汇避免内容审核
+  SIMPLIFY_PROMPT: false  # 简化提示词
+  LANGUAGE: zh-CN  # 提示词语言：zh-CN, en-US
+
+# 调试配置
+DEBUG:
+  SAVE_SCREENSHOTS: true  # 保存AI识别的截图
+  PRINT_AI_RESPONSE: false  # 打印AI原始响应
+  VERBOSE: false  # 详细日志模式
+

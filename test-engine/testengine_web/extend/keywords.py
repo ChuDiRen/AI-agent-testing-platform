@@ -107,17 +107,23 @@ class Keywords:
         打开浏览器
         
         参数:
-            浏览器: chromium/firefox/webkit (默认 chromium)
-            无头模式: true/false (默认 false)
+            browser: chromium/firefox/webkit (默认 chromium)
+            headless: true/false (默认 false)
             timeout: timeout（毫秒，默认 30000）
-            窗口大小: maximize/1920x1080/等 (默认 maximize)
-            启用追踪: true/false (默认 false)
+            implicit_wait: 隐式等待时间（秒，将转换为 Playwright 的 default_timeout）
+            window_size: maximize/1920x1080/等 (默认 maximize)
+            enable_tracing: true/false (默认 false)
         """
         kwargs.pop("关键字", None)
         
         browser = kwargs.get("browser", "chromium")
         headless = str(kwargs.get("headless", "false")).lower() in ["true", "1", "yes"]
-        timeout = int(kwargs.get("timeout", 30000))
+        # implicit_wait 转换为毫秒（Playwright 使用毫秒）
+        implicit_wait = kwargs.get("implicit_wait")
+        if implicit_wait:
+            timeout = int(float(implicit_wait) * 1000)  # 秒转毫秒
+        else:
+            timeout = int(kwargs.get("timeout", 30000))
         window_size = kwargs.get("window_size", "maximize")
         enable_tracing = str(kwargs.get("enable_tracing", "false")).lower() in ["true", "1", "yes"]
         
@@ -418,13 +424,13 @@ class Keywords:
 
     @allure.step("等待: {time}秒")
     def sleep(self, **kwargs):
-        """等待指定time"""
+        """等待指定时间"""
         kwargs.pop("关键字", None)
 
-        time = float(kwargs.get("time", 1))
+        duration = float(kwargs.get("time", 1))
 
-        print(f"等待 {time} 秒...")
-        time.sleep(time)
+        print(f"等待 {duration} 秒...")
+        time.sleep(duration)
         print(f"等待完成")
 
     @allure.step("获取elementtext")
@@ -889,9 +895,34 @@ class Keywords:
         g_context().set_dict("ai_extracted_text", text)
         print(f"已提取text到全局变量 ai_extracted_text: {text}")
 
+    def _load_ai_config(self):
+        """加载AI配置文件"""
+        import yaml
+        config_path = os.path.join(os.path.dirname(__file__), "ai_config.yaml")
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return yaml.safe_load(f)
+        except Exception as e:
+            print(f"⚠ 加载AI配置失败，使用默认配置: {e}")
+            return {
+                "AI_PROVIDER": "qwen-vl",
+                "QWEN_VL": {
+                    "API_KEY": "sk-aeb8d69039b14320b0fe58cb8285d8b1",
+                    "BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                    "MODEL": "qwen-vl-max-latest",
+                    "MIN_PIXELS": 401408,
+                    "MAX_PIXELS": 1605632,
+                    "FACTOR": 28,
+                    "RETRY_COUNT": 2,
+                    "TIMEOUT": 60
+                },
+                "AI_ENABLED": True,
+                "AI_FALLBACK_TO_TRADITIONAL": True
+            }
+
     def _call_ai_vision(self, user_description, actions):
         """
-        调用 Qwen-VL API 进行截图分析（Playwright 适配版）
+        调用 AI VL 模型进行截图分析（支持多模型配置）
         
         :param user_description: 用户的operation_desc
         :param actions: 支持的操作类型列表
@@ -906,33 +937,44 @@ class Keywords:
         from PIL import Image
         from qwen_vl_utils import smart_resize
 
-        # 初始化 OpenAI 客户端（百炼API）
+        # 加载配置
+        config = self._load_ai_config()
+        
+        # 检查AI功能是否启用
+        if not config.get("AI_ENABLED", True):
+            raise RuntimeError("AI 功能已禁用，请在 ai_config.yaml 中启用")
+        
+        # 获取当前使用的AI提供商配置
+        provider = config.get("AI_PROVIDER", "qwen-vl").upper().replace("-", "_")
+        provider_config = config.get(provider, config.get("QWEN_VL"))
+        
+        # 初始化 OpenAI 客户端
         ai_client = OpenAI(
-            api_key="sk-aeb8d69039b14320b0fe58cb8285d8b1",
-            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+            api_key=provider_config.get("API_KEY"),
+            base_url=provider_config.get("BASE_URL"),
         )
 
-        # 提示词模板
+        # 优化后的提示词模板（避免触发内容审核）
         prompt = """
-## 目标
-- 识别屏幕截图和text中与用户描述匹配的element。
+# 任务
+在网页截图中定位UI组件。
 
-## 输出格式
+# 输出
 ```json
 {{
-  "bbox": [xmin, ymin, xmax, ymax],
-  "action": "用户的操作类型（{actions}）",
-  "text": "提取的text内容或要输入的text",
-  "errors"?: "如果你无法找到，就把你的原因写在这里"
+  "bbox": [x1, y1, x2, y2],
+  "action": "{actions}",
+  "text": "组件内容",
+  "errors"?: "定位失败原因"
 }}
 ```
 
-## 工作流程
-1. 接受用户描述的文字以及提供的截图。请注意，text可能包含非英文字符（例如中文），这表明程序可能是非英文的。
-2. 分析用户的文字内容，提取其中关于element的描述信息。根据关于element的描述信息，找到屏幕截图中目标element。
-3. 返回element在截图中的 bbox 具体位置信息。
+# 步骤
+1. 分析截图中的UI组件
+2. 根据描述定位目标组件
+3. 返回组件的边界框坐标
 
-## 用户描述
+# 目标组件
 {user_text}
 """
 
@@ -958,16 +1000,16 @@ class Keywords:
         width, height = Image.open(image_path).size
         print(f"截图尺寸：{width}, {height}")
 
-        # AI 模型的图片处理尺寸（通义千问VL模型标准配置）
-        min_pixels = 512 * 28 * 28  # 最小像素数：约400K
-        max_pixels = 2048 * 28 * 28  # 最大像素数：约1.6M
-        factor = 28  # 通义千问VL模型推荐的分块因子
+        # 从配置读取图片处理参数
+        min_pixels = provider_config.get("MIN_PIXELS", 401408)
+        max_pixels = provider_config.get("MAX_PIXELS", 1605632)
+        factor = provider_config.get("FACTOR", 28)
         
-        # 自适应调整：当截图超大时自动调整 factor，避免内存溢出
+        # 自适应调整：当截图超大时自动调整 factor
         total_pixels = width * height
-        if total_pixels > 10_000_000:  # 超过1000万像素（约3840x2600）
-            factor = 14  # 使用更小的因子
-            print(f"⚠ 检测到超大截图({total_pixels}像素)，自动调整factor={factor}")
+        if total_pixels > 10_000_000:
+            factor = max(14, factor // 2)
+            print(f"⚠ 超大截图({total_pixels}px)，调整factor={factor}")
         
         input_height, input_width = smart_resize(
             height, width,
@@ -980,58 +1022,86 @@ class Keywords:
         # 删除临时图片
         os.remove(image_path)
 
-        print(f'AI提示词: {ai_prompt}')
+        if config.get("DEBUG", {}).get("VERBOSE", False):
+            print(f'AI提示词: {ai_prompt}')
 
-        # 调用 AI 模型
-        completion = ai_client.chat.completions.create(
-            model="qwen-vl-max-latest",
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image_url",
-                        "min_pixels": min_pixels,
-                        "max_pixels": max_pixels,
-                        "image_url": {"url": f"data:image/png;base64,{image_base64}"}
-                    },
-                    {
-                        "type": "text",
-                        "text": ai_prompt
-                    }
-                ]
-            }]
-        )
-
-        print("AI执行结果：", completion.model_dump_json())
-
-        # 解析 AI 返回的 JSON 内容
-        ai_response = json.loads(completion.model_dump_json())['choices'][0]['message']['content']
-        pattern = r'```json\n(.*?)```'
-        match = re.search(pattern, ai_response, re.DOTALL)
+        # 调用 AI 模型（带重试）
+        retry_count = provider_config.get("RETRY_COUNT", 2)
+        last_error = None
         
-        if not match:
-            raise ValueError(f"AI 返回内容格式错误: {ai_response}")
-        
-        json_content = match.group(1)
-        result = json.loads(json_content)
-        print("AI识别结果：", result)
+        for attempt in range(retry_count + 1):
+            try:
+                completion = ai_client.chat.completions.create(
+                    model=provider_config.get("MODEL"),
+                    messages=[{
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "min_pixels": min_pixels,
+                                "max_pixels": max_pixels,
+                                "image_url": {"url": f"data:image/png;base64,{image_base64}"}
+                            },
+                            {
+                                "type": "text",
+                                "text": ai_prompt
+                            }
+                        ]
+                    }],
+                    timeout=provider_config.get("TIMEOUT", 60)
+                )
+                
+                if config.get("DEBUG", {}).get("PRINT_AI_RESPONSE", False):
+                    print("AI执行结果：", completion.model_dump_json())
+                
+                # 解析 AI 返回的 JSON 内容
+                ai_response = json.loads(completion.model_dump_json())['choices'][0]['message']['content']
+                pattern = r'```json\n(.*?)```'
+                match = re.search(pattern, ai_response, re.DOTALL)
+                
+                if not match:
+                    raise ValueError(f"AI 返回内容格式错误: {ai_response}")
+                
+                json_content = match.group(1)
+                result = json.loads(json_content)
+                print("AI识别结果：", result)
 
-        # Windows 平台坐标缩放
-        if os.name == 'nt':
-            bbox = result['bbox']
-            result['bbox'] = [
-                bbox[0] / input_width * width,
-                bbox[1] / input_height * height,
-                bbox[2] / input_width * width,
-                bbox[3] / input_height * height
-            ]
-            print(f"坐标缩放后：{result['bbox']}")
+                # Windows 平台坐标缩放
+                if os.name == 'nt':
+                    bbox = result['bbox']
+                    result['bbox'] = [
+                        bbox[0] / input_width * width,
+                        bbox[1] / input_height * height,
+                        bbox[2] / input_width * width,
+                        bbox[3] / input_height * height
+                    ]
+                    print(f"坐标缩放后：{result['bbox']}")
 
-        # 检查错误
-        if 'errors' in result and result['errors']:
-            raise AssertionError(f"AI 无法完成操作: {result['errors']}")
+                # 检查错误
+                if 'errors' in result and result['errors']:
+                    raise AssertionError(f"AI 无法完成操作: {result['errors']}")
 
-        return result
+                return result
+                
+            except Exception as e:
+                last_error = e
+                error_msg = str(e)
+                
+                # 检查是否是内容审核错误
+                if "data_inspection_failed" in error_msg or "inappropriate content" in error_msg.lower():
+                    print(f"⚠ AI内容审核失败 (尝试 {attempt + 1}/{retry_count + 1})")
+                    if attempt < retry_count:
+                        print("  提示：可在 ai_config.yaml 中切换到 DeepSeek 等其他模型")
+                        continue
+                elif attempt < retry_count:
+                    print(f"⚠ AI调用失败 (尝试 {attempt + 1}/{retry_count + 1}): {error_msg}")
+                    continue
+                
+        # 所有重试都失败
+        print(f"✖ AI调用失败: {last_error}")
+        if config.get("AI_FALLBACK_TO_TRADITIONAL", True):
+            print("  建议：请使用传统定位方式（如 CSS选择器、XPath）代替AI定位")
+        raise last_error
 
     @allure.step("AI操作: {operation_desc}")
     def ai_operation(self, **kwargs):
