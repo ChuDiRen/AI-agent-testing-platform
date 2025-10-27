@@ -12,6 +12,7 @@ import { TooltipIconButton } from "../tooltip-icon-button";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/hooks/useI18n";
 
 function ContentCopyable({
   content,
@@ -20,6 +21,7 @@ function ContentCopyable({
   content: string;
   disabled: boolean;
 }) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
@@ -33,7 +35,7 @@ function ContentCopyable({
     <TooltipIconButton
       onClick={(e) => handleCopy(e)}
       variant="ghost"
-      tooltip="Copy content"
+      tooltip={copied ? t("common.copied") : t("message.copyContent")}
       disabled={disabled}
     >
       <AnimatePresence
@@ -163,12 +165,14 @@ export function CommandBar({
     !!setIsEditing &&
     !!handleSubmitEdit;
 
+  const { t } = useI18n();
+
   if (isHumanMessage && isEditing && !!setIsEditing && !!handleSubmitEdit) {
     return (
       <div className="flex items-center gap-2">
         <TooltipIconButton
           disabled={isLoading}
-          tooltip="Cancel edit"
+          tooltip={t("message.cancelEdit")}
           variant="ghost"
           onClick={() => {
             setIsEditing(false);
@@ -178,7 +182,7 @@ export function CommandBar({
         </TooltipIconButton>
         <TooltipIconButton
           disabled={isLoading}
-          tooltip="Submit"
+          tooltip={t("common.submit")}
           variant="secondary"
           onClick={handleSubmitEdit}
         >
@@ -197,7 +201,7 @@ export function CommandBar({
       {isAiMessage && !!handleRegenerate && (
         <TooltipIconButton
           disabled={isLoading}
-          tooltip="Refresh"
+          tooltip={t("message.regenerate")}
           variant="ghost"
           onClick={handleRegenerate}
         >
@@ -207,7 +211,7 @@ export function CommandBar({
       {showEdit && (
         <TooltipIconButton
           disabled={isLoading}
-          tooltip="Edit"
+          tooltip={t("common.edit")}
           variant="ghost"
           onClick={() => {
             setIsEditing?.(true);

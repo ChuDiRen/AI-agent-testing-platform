@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { ReactNode, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { useThreads } from "@/providers/Thread";
 import { cn } from "@/lib/utils";
 import { useStreamContext } from "@/providers/Stream";
 import { useState, FormEvent } from "react";
@@ -45,6 +46,7 @@ import {
   ArtifactTitle,
   useArtifactContext,
 } from "./artifact";
+import { useI18n } from "@/hooks/useI18n";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -72,6 +74,7 @@ function StickyToBottomContent(props: {
 }
 
 function ScrollToBottom(props: { className?: string }) {
+  const { t } = useI18n();
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();
 
   if (isAtBottom) return null;
@@ -82,12 +85,13 @@ function ScrollToBottom(props: { className?: string }) {
       onClick={() => scrollToBottom()}
     >
       <ArrowDown className="h-4 w-4" />
-      <span>Scroll to bottom</span>
+      <span>{t("message.scrollToBottom")}</span>
     </Button>
   );
 }
 
 function OpenGitHubRepo() {
+  const { t } = useI18n();
   return (
     <TooltipProvider>
       <Tooltip>
@@ -104,7 +108,7 @@ function OpenGitHubRepo() {
           </a>
         </TooltipTrigger>
         <TooltipContent side="left">
-          <p>Open GitHub repo</p>
+          <p>{t("github.openRepo")}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -112,6 +116,7 @@ function OpenGitHubRepo() {
 }
 
 export function Thread() {
+  const { t } = useI18n();
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
 
@@ -142,7 +147,19 @@ export function Thread() {
   const messages = stream.messages;
   const isLoading = stream.isLoading;
 
+  const { threads } = useThreads();
   const lastError = useRef<string | undefined>(undefined);
+
+  // 监听当前 threadId 是否被删除
+  useEffect(() => {
+    if (threadId && threads.length > 0) {
+      const exists = threads.some((t) => t.thread_id === threadId);
+      if (!exists) {
+        // 当前会话已被删除，跳转到新会话
+        setThreadId(null);
+      }
+    }
+  }, [threadId, threads, setThreadId]);
 
   const setThreadId = (id: string | null) => {
     _setThreadId(id);
@@ -164,12 +181,12 @@ export function Thread() {
         return;
       }
 
-      // Message is defined, and it has not been logged yet. Save it, and send the error
+      // 消息已定义且尚未记录。保存并发送错误
       lastError.current = message;
-      toast.error("An error occurred. Please try again.", {
+      toast.error(t("error.general"), {
         description: (
           <p>
-            <strong>Error:</strong> <code>{message}</code>
+            <strong>错误:</strong> <code>{message}</code>
           </p>
         ),
         richColors: true,
@@ -365,7 +382,7 @@ export function Thread() {
                     height={32}
                   />
                   <span className="text-xl font-semibold tracking-tight">
-                    Agent Chat
+                    {t("app.title")}
                   </span>
                 </motion.button>
               </div>
@@ -377,7 +394,7 @@ export function Thread() {
                 <TooltipIconButton
                   size="lg"
                   className="p-4"
-                  tooltip="New thread"
+                  tooltip={t("thread.newThread")}
                   variant="ghost"
                   onClick={() => setThreadId(null)}
                 >
@@ -438,7 +455,7 @@ export function Thread() {
                     <div className="flex items-center gap-3">
                       <LangGraphLogoSVG className="h-8 flex-shrink-0" />
                       <h1 className="text-2xl font-semibold tracking-tight">
-                        Agent Chat
+                        {t("app.title")}
                       </h1>
                     </div>
                   )}
@@ -479,7 +496,7 @@ export function Thread() {
                             form?.requestSubmit();
                           }
                         }}
-                        placeholder="Type your message..."
+                        placeholder={t("message.typeMessage")}
                         className="field-sizing-content resize-none border-none bg-transparent p-3.5 pb-0 shadow-none ring-0 outline-none focus:ring-0 focus:outline-none"
                       />
 
@@ -495,7 +512,7 @@ export function Thread() {
                               htmlFor="render-tool-calls"
                               className="text-sm text-gray-600"
                             >
-                              Hide Tool Calls
+                              {t("toolCall.hide")}
                             </Label>
                           </div>
                         </div>
@@ -505,7 +522,7 @@ export function Thread() {
                         >
                           <Plus className="size-5 text-gray-600" />
                           <span className="text-sm text-gray-600">
-                            Upload PDF or Image
+                            {t("upload.title")}
                           </span>
                         </Label>
                         <input
@@ -523,7 +540,7 @@ export function Thread() {
                             className="ml-auto"
                           >
                             <LoaderCircle className="h-4 w-4 animate-spin" />
-                            Cancel
+                            {t("common.cancel")}
                           </Button>
                         ) : (
                           <Button
@@ -534,7 +551,7 @@ export function Thread() {
                               (!input.trim() && contentBlocks.length === 0)
                             }
                           >
-                            Send
+                            {t("common.send")}
                           </Button>
                         )}
                       </div>

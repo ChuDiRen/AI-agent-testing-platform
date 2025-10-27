@@ -24,6 +24,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { getApiKey } from "@/lib/api-key";
 import { useThreads } from "./Thread";
 import { toast } from "sonner";
+import { useI18n } from "@/hooks/useI18n";
 
 export type StateType = { messages: Message[]; ui?: UIMessage[] };
 
@@ -101,14 +102,15 @@ const StreamSession = ({
     },
   });
 
+  const { t } = useI18n();
+
   useEffect(() => {
     checkGraphStatus(apiUrl, apiKey).then((ok) => {
       if (!ok) {
-        toast.error("Failed to connect to LangGraph server", {
+        toast.error(t("error.connectionFailed"), {
           description: () => (
             <p>
-              Please ensure your graph is running at <code>{apiUrl}</code> and
-              your API key is correctly set (if connecting to a deployed graph).
+              {t("error.connectionFailedDesc", { url: apiUrl })}
             </p>
           ),
           duration: 10000,
@@ -117,7 +119,7 @@ const StreamSession = ({
         });
       }
     });
-  }, [apiKey, apiUrl]);
+  }, [apiKey, apiUrl, t]);
 
   return (
     <StreamContext.Provider value={streamValue}>
@@ -133,7 +135,9 @@ const DEFAULT_ASSISTANT_ID = "agent";
 export const StreamProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  // Get environment variables
+  const { t } = useI18n();
+
+  // 获取环境变量
   const envApiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL;
   const envAssistantId: string | undefined =
     process.env.NEXT_PUBLIC_ASSISTANT_ID;
@@ -161,7 +165,7 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
   const finalApiUrl = apiUrl || envApiUrl;
   const finalAssistantId = assistantId || envAssistantId;
 
-  // Show the form if we: don't have an API URL, or don't have an assistant ID
+  // 如果没有 API URL 或 assistant ID，显示配置表单
   if (!finalApiUrl || !finalAssistantId) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center p-4">
@@ -170,12 +174,11 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
             <div className="flex flex-col items-start gap-2">
               <LangGraphLogoSVG className="h-7" />
               <h1 className="text-xl font-semibold tracking-tight">
-                Agent Chat
+                {t("app.title")}
               </h1>
             </div>
             <p className="text-muted-foreground">
-              Welcome to Agent Chat! Before you get started, you need to enter
-              the URL of the deployment and the assistant / graph ID.
+              {t("config.welcome")}
             </p>
           </div>
           <form
@@ -198,11 +201,11 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
           >
             <div className="flex flex-col gap-2">
               <Label htmlFor="apiUrl">
-                Deployment URL<span className="text-rose-500">*</span>
+                {t("config.deploymentUrl")}
+                <span className="text-rose-500">{t("config.required")}</span>
               </Label>
               <p className="text-muted-foreground text-sm">
-                This is the URL of your LangGraph deployment. Can be a local, or
-                production deployment.
+                {t("config.deploymentUrlDesc")}
               </p>
               <Input
                 id="apiUrl"
@@ -215,12 +218,11 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="assistantId">
-                Assistant / Graph ID<span className="text-rose-500">*</span>
+                {t("config.assistantId")}
+                <span className="text-rose-500">{t("config.required")}</span>
               </Label>
               <p className="text-muted-foreground text-sm">
-                This is the ID of the graph (can be the graph name), or
-                assistant to fetch threads from, and invoke when actions are
-                taken.
+                {t("config.assistantIdDesc")}
               </p>
               <Input
                 id="assistantId"
@@ -232,19 +234,16 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="apiKey">LangSmith API Key</Label>
+              <Label htmlFor="apiKey">{t("config.apiKey")}</Label>
               <p className="text-muted-foreground text-sm">
-                This is <strong>NOT</strong> required if using a local LangGraph
-                server. This value is stored in your browser's local storage and
-                is only used to authenticate requests sent to your LangGraph
-                server.
+                {t("config.apiKeyDesc")}
               </p>
               <PasswordInput
                 id="apiKey"
                 name="apiKey"
                 defaultValue={apiKey ?? ""}
                 className="bg-background"
-                placeholder="lsv2_pt_..."
+                placeholder={t("config.apiKeyPlaceholder")}
               />
             </div>
 
@@ -253,7 +252,7 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
                 type="submit"
                 size="lg"
               >
-                Continue
+                {t("common.continue")}
                 <ArrowRight className="size-5" />
               </Button>
             </div>

@@ -12,6 +12,7 @@ import { SyntaxHighlighter } from "@/components/thread/syntax-highlighter";
 
 import { TooltipIconButton } from "@/components/thread/tooltip-icon-button";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/hooks/useI18n";
 
 import "katex/dist/katex.min.css";
 
@@ -40,6 +41,7 @@ const useCopyToClipboard = ({
 };
 
 const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
+  const { t } = useI18n();
   const { isCopied, copyToClipboard } = useCopyToClipboard();
   const onCopy = () => {
     if (!code || isCopied) return;
@@ -50,7 +52,7 @@ const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
     <div className="flex items-center justify-between gap-4 rounded-t-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white">
       <span className="lowercase [&>span]:text-xs">{language}</span>
       <TooltipIconButton
-        tooltip="Copy"
+        tooltip={isCopied ? t("common.copied") : t("common.copy")}
         onClick={onCopy}
       >
         {!isCopied && <CopyIcon />}
