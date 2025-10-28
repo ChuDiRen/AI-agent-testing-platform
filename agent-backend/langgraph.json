@@ -2,7 +2,8 @@
   "$schema": "https://langgra.ph/schema.json",
   "dependencies": ["."],
   "graphs": {
-    "agent": "./examples/react_agent.py:graph"
+    "graph_api": "./examples/react_agent_graph_api.py:graph",
+    "functional_api":"./examples/react_agent_functional_api.py:agent"
   },
   "env": ".env"
 }

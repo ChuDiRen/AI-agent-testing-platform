@@ -4,15 +4,8 @@ from langchain.tools import tool
 from langchain.chat_models import init_chat_model
 import os
 
-# 初始化模型（使用ModelScope配置）
-model = init_chat_model(
-    "anthropic:ZhipuAI/GLM-4.5",  # 使用智谱AI GLM-4.5模型
-    temperature=0,
-    api_key=os.getenv("ANTHROPIC_AUTH_TOKEN", "ms-a08f6d40-522a-4b8d-9310-666777f1a5b8"),
-    base_url=os.getenv("ANTHROPIC_BASE_URL", "https://api-inference.modelscope.cn")
-)
-
-
+os.environ["DEEPSEEK_API_KEY"] = "sk-f79fae69b11a4fce88e04805bd6314b7"
+model = init_chat_model("deepseek:deepseek-chat")
 # 定义工具函数
 @tool
 def multiply(a: int, b: int) -> int:
@@ -140,18 +133,3 @@ agent_builder.add_edge("tool_node", "llm_call")
 
 # 编译智能体
 graph = agent_builder.compile()
-
-# 注意: 以下测试代码已注释，避免在模块加载时执行
-# langgraph 服务只需要 graph 对象，不需要在启动时调用模型
-# 如需测试，请在独立脚本中导入 graph 并调用
-
-# from IPython.display import Image, display
-# # 显示智能体图
-# display(Image(graph.get_graph(xray=True).draw_mermaid_png()))
-#
-# # 调用智能体
-# from langchain.messages import HumanMessage
-# messages = [HumanMessage(content="计算 3 加 4 的结果。")]
-# messages = graph.invoke({"messages": messages})
-# for m in messages["messages"]:
-#     m.pretty_print()
