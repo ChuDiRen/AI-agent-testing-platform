@@ -2,67 +2,10 @@ import { AIMessage, ToolMessage } from "@langchain/langgraph-sdk";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { QueryResultCard } from "@/components/ui/query-result-card";
 
 function isComplexValue(value: any): boolean {
   return Array.isArray(value) || (typeof value === "object" && value !== null);
-}
-
-export function ToolCalls({
-  toolCalls,
-}: {
-  toolCalls: AIMessage["tool_calls"];
-}) {
-  if (!toolCalls || toolCalls.length === 0) return null;
-
-  return (
-    <div className="mx-auto grid max-w-3xl grid-rows-[1fr_auto] gap-2">
-      {toolCalls.map((tc, idx) => {
-        const args = tc.args as Record<string, any>;
-        const hasArgs = Object.keys(args).length > 0;
-        return (
-          <div
-            key={idx}
-            className="overflow-hidden rounded-lg border border-gray-200"
-          >
-            <div className="border-b border-gray-200 bg-gray-50 px-4 py-2">
-              <h3 className="font-medium text-gray-900">
-                {tc.name}
-                {tc.id && (
-                  <code className="ml-2 rounded bg-gray-100 px-2 py-1 text-sm">
-                    {tc.id}
-                  </code>
-                )}
-              </h3>
-            </div>
-            {hasArgs ? (
-              <table className="min-w-full divide-y divide-gray-200">
-                <tbody className="divide-y divide-gray-200">
-                  {Object.entries(args).map(([key, value], argIdx) => (
-                    <tr key={argIdx}>
-                      <td className="px-4 py-2 text-sm font-medium whitespace-nowrap text-gray-900">
-                        {key}
-                      </td>
-                      <td className="px-4 py-2 text-sm text-gray-500">
-                        {isComplexValue(value) ? (
-                          <code className="rounded bg-gray-50 px-2 py-1 font-mono text-sm break-all">
-                            {JSON.stringify(value, null, 2)}
-                          </code>
-                        ) : (
-                          String(value)
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <code className="block p-3 text-sm">{"{}"}</code>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 export function ToolResult({ message }: { message: ToolMessage }) {
@@ -174,18 +117,147 @@ export function ToolResult({ message }: { message: ToolMessage }) {
             (isJsonContent &&
               Array.isArray(parsedContent) &&
               parsedContent.length > 5)) && (
-            <motion.button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="flex w-full cursor-pointer items-center justify-center border-t-[1px] border-gray-200 py-2 text-gray-500 transition-all duration-200 ease-in-out hover:bg-gray-50 hover:text-gray-600"
-              initial={{ scale: 1 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              {isExpanded ? <ChevronUp /> : <ChevronDown />}
-            </motion.button>
-          )}
+              <motion.button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="flex w-full cursor-pointer items-center justify-center border-t-[1px] border-gray-200 py-2 text-gray-500 transition-all duration-200 ease-in-out hover:bg-gray-50 hover:text-gray-600"
+                initial={{ scale: 1 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {isExpanded ? <ChevronUp /> : <ChevronDown />}
+              </motion.button>
+            )}
         </motion.div>
       </div>
+    </div>
+  );
+}
+
+// Combined Tool Call and Result Card
+export function ToolCallWithResult({
+  toolCall,
+  toolResult,
+}: {
+  toolCall: NonNullable<AIMessage["tool_calls"]>[number];
+  toolResult?: ToolMessage;
+}) {
+  const args = toolCall.args as Record<string, any>;
+
+  // Format query from tool call args
+  // If there's only one argument called 'query', display it directly without showing the parameter name
+  const argEntries = Object.entries(args);
+  const isSingleQueryArg = argEntries.length === 1 && argEntries[0][0] === 'query';
+  const hasNoArgs = argEntries.length === 0;
+
+  const queryContent = hasNoArgs ? (
+    // Display empty object for no arguments
+    <code className="text-sm text-gray-500">{"{}"}</code>
+  ) : isSingleQueryArg ? (
+    // Display query value directly without the parameter name
+    <div className="text-sm text-gray-900">
+      {isComplexValue(argEntries[0][1]) ? (
+        <code className="rounded bg-gray-100 px-2 py-1 font-mono text-xs whitespace-pre-wrap break-all">
+          {JSON.stringify(argEntries[0][1], null, 2)}
+        </code>
+      ) : (
+        <pre className="whitespace-pre-wrap break-all font-mono">{String(argEntries[0][1])}</pre>
+      )}
+    </div>
+  ) : (
+    // Display all arguments in table format
+    <table className="min-w-full">
+      <tbody className="divide-y divide-gray-200">
+        {argEntries.map(([key, value], argIdx) => (
+          <tr key={argIdx}>
+            <td className="py-1 pr-4 text-sm font-medium text-gray-700">
+              {key}
+            </td>
+            <td className="py-1 text-sm text-gray-900">
+              {isComplexValue(value) ? (
+                <code className="rounded bg-gray-100 px-2 py-1 font-mono text-xs">
+                  {JSON.stringify(value, null, 2)}
+                </code>
+              ) : (
+                <span className="break-all">{String(value)}</span>
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  // Format result content
+  let resultContent: any = null;
+  if (toolResult) {
+    let parsedContent: any;
+    let isJsonContent = false;
+
+    try {
+      if (typeof toolResult.content === "string") {
+        parsedContent = JSON.parse(toolResult.content);
+        isJsonContent = isComplexValue(parsedContent);
+      }
+    } catch {
+      parsedContent = toolResult.content;
+    }
+
+    if (isJsonContent) {
+      const items = Array.isArray(parsedContent)
+        ? parsedContent
+        : Object.entries(parsedContent);
+
+      resultContent = (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200">
+              {items.map((item, argIdx) => {
+                const [key, value] = Array.isArray(parsedContent)
+                  ? [argIdx, item]
+                  : [item[0], item[1]];
+                return (
+                  <tr key={argIdx}>
+                    <td className="px-2 py-2 text-sm font-medium whitespace-nowrap text-gray-900">
+                      {key}
+                    </td>
+                    <td className="px-2 py-2 text-sm text-gray-500">
+                      {isComplexValue(value) ? (
+                        <code className="rounded bg-gray-50 px-2 py-1 font-mono text-xs break-all">
+                          {JSON.stringify(value, null, 2)}
+                        </code>
+                      ) : (
+                        <span className="break-all">{String(value)}</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      );
+    } else {
+      const contentStr = String(toolResult.content);
+      resultContent = (
+        <code className="block text-sm whitespace-pre-wrap break-all">
+          {contentStr}
+        </code>
+      );
+    }
+  }
+
+  const queryTitle = toolCall.name;
+
+  return (
+    <div className="mx-auto max-w-3xl">
+      <QueryResultCard
+        query={queryContent}
+        result={resultContent || <span className="text-sm text-muted-foreground">No result available</span>}
+        queryTitle={queryTitle}
+        resultTitle="Tool Result"
+        defaultExpanded={false}
+        className="border-gray-200"
+      />
     </div>
   );
 }

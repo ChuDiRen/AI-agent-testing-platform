@@ -1,12 +1,12 @@
 import { parsePartialJson } from "@langchain/core/output_parsers";
 import { useStreamContext } from "@/providers/Stream";
-import { AIMessage, Checkpoint, Message } from "@langchain/langgraph-sdk";
+import { AIMessage, Checkpoint, Message, ToolMessage } from "@langchain/langgraph-sdk";
 import { getContentString } from "../utils";
 import { BranchSwitcher, CommandBar } from "./shared";
 import { MarkdownText } from "../markdown-text";
 import { LoadExternalComponent } from "@langchain/langgraph-sdk/react-ui";
 import { cn } from "@/lib/utils";
-import { ToolCalls, ToolResult } from "./tool-calls";
+import { ToolResult, ToolCallWithResult } from "./tool-calls";
 import { MessageContentComplex } from "@langchain/core/messages";
 import { Fragment } from "react/jsx-runtime";
 import { isAgentInboxInterruptSchema } from "@/lib/agent-inbox-interrupt";
@@ -85,8 +85,8 @@ function Interrupt({
           <ThreadView interrupt={interruptValue} />
         )}
       {interruptValue &&
-      !isAgentInboxInterruptSchema(interruptValue) &&
-      (isLastMessage || hasNoAIOrToolMessages) ? (
+        !isAgentInboxInterruptSchema(interruptValue) &&
+        (isLastMessage || hasNoAIOrToolMessages) ? (
         <GenericInterruptView interrupt={interruptValue} />
       ) : null}
     </>
@@ -136,8 +136,42 @@ export function AssistantMessage({
   const hasAnthropicToolCalls = !!anthropicStreamedToolCalls?.length;
   const isToolResult = message?.type === "tool";
 
-  if (isToolResult && hideToolCalls) {
-    return null;
+  // Find tool results for this AI message's tool calls
+  const toolResults: Record<string, ToolMessage> = {};
+  if (hasToolCalls && message.tool_calls) {
+    const currentMessageIndex = thread.messages.findIndex((m) => m.id === message.id);
+    // Look at the next few messages for tool results
+    for (let i = currentMessageIndex + 1; i < thread.messages.length && i < currentMessageIndex + 10; i++) {
+      const msg = thread.messages[i];
+      if (msg.type === "tool" && "tool_call_id" in msg && msg.tool_call_id) {
+        toolResults[msg.tool_call_id] = msg as ToolMessage;
+      }
+      // Stop if we hit another AI message
+      if (msg.type === "ai") break;
+    }
+  }
+
+  // Hide tool results if they are already shown in the merged card or if hideToolCalls is true
+  if (isToolResult) {
+    if (hideToolCalls) {
+      return null;
+    }
+    // Check if this tool result has already been displayed in a merged card
+    const toolCallId = "tool_call_id" in message ? message.tool_call_id : undefined;
+    if (toolCallId) {
+      // Find if there's an AI message before this one that has the corresponding tool call
+      const currentIndex = thread.messages.findIndex((m) => m.id === message.id);
+      for (let i = currentIndex - 1; i >= 0 && i >= currentIndex - 10; i--) {
+        const prevMsg = thread.messages[i];
+        if (prevMsg.type === "ai" && "tool_calls" in prevMsg && prevMsg.tool_calls) {
+          const hasMatchingToolCall = prevMsg.tool_calls.some((tc) => tc.id === toolCallId);
+          if (hasMatchingToolCall) {
+            // This tool result is already displayed in the merged card, don't show it again
+            return null;
+          }
+        }
+      }
+    }
   }
 
   return (
@@ -162,15 +196,28 @@ export function AssistantMessage({
 
             {!hideToolCalls && (
               <>
-                {(hasToolCalls && toolCallsHaveContents && (
-                  <ToolCalls toolCalls={message.tool_calls} />
-                )) ||
-                  (hasAnthropicToolCalls && (
-                    <ToolCalls toolCalls={anthropicStreamedToolCalls} />
-                  )) ||
-                  (hasToolCalls && (
-                    <ToolCalls toolCalls={message.tool_calls} />
-                  ))}
+                {hasToolCalls && message.tool_calls && message.tool_calls.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    {message.tool_calls.map((tc, idx) => (
+                      <ToolCallWithResult
+                        key={tc.id || idx}
+                        toolCall={tc}
+                        toolResult={tc.id ? toolResults[tc.id] : undefined}
+                      />
+                    ))}
+                  </div>
+                )}
+                {!hasToolCalls && hasAnthropicToolCalls && (
+                  <div className="flex flex-col gap-2">
+                    {anthropicStreamedToolCalls.map((tc, idx) => (
+                      <ToolCallWithResult
+                        key={tc.id || idx}
+                        toolCall={tc}
+                        toolResult={tc.id ? toolResults[tc.id] : undefined}
+                      />
+                    ))}
+                  </div>
+                )}
               </>
             )}
 

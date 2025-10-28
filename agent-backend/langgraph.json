@@ -3,7 +3,8 @@
   "dependencies": ["."],
   "graphs": {
     "graph_api": "./examples/react_agent_graph_api.py:graph",
-    "functional_api":"./examples/react_agent_functional_api.py:agent"
+    "functional_api":"./examples/react_agent_functional_api.py:agent",
+    "sql_agent":"./examples/sql_agent.py:agent"
   },
   "env": ".env"
 }
