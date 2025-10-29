@@ -188,38 +188,40 @@ export function AssistantMessage({
           </>
         ) : (
           <>
-            {contentString.length > 0 && (
-              <div className="py-1">
-                <MarkdownText>{contentString}</MarkdownText>
-              </div>
-            )}
+            <div className="mx-auto w-full max-w-2xl">
+              {contentString.length > 0 && (
+                <div className="py-1 mb-4">
+                  <MarkdownText>{contentString}</MarkdownText>
+                </div>
+              )}
 
-            {!hideToolCalls && (
-              <div className="mx-auto w-full max-w-2xl">
-                {hasToolCalls && message.tool_calls && message.tool_calls.length > 0 && (
-                  <div className="flex flex-col gap-4">
-                    {message.tool_calls.map((tc, idx) => (
-                      <ToolCallWithResult
-                        key={tc.id || idx}
-                        toolCall={tc}
-                        toolResult={tc.id ? toolResults[tc.id] : undefined}
-                      />
-                    ))}
-                  </div>
-                )}
-                {!hasToolCalls && hasAnthropicToolCalls && (
-                  <div className="flex flex-col gap-4">
-                    {anthropicStreamedToolCalls.map((tc, idx) => (
-                      <ToolCallWithResult
-                        key={tc.id || idx}
-                        toolCall={tc}
-                        toolResult={tc.id ? toolResults[tc.id] : undefined}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+              {!hideToolCalls && (
+                <>
+                  {hasToolCalls && message.tool_calls && message.tool_calls.length > 0 && (
+                    <div className="flex flex-col gap-4">
+                      {message.tool_calls.map((tc, idx) => (
+                        <ToolCallWithResult
+                          key={tc.id || idx}
+                          toolCall={tc}
+                          toolResult={tc.id ? toolResults[tc.id] : undefined}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {!hasToolCalls && hasAnthropicToolCalls && (
+                    <div className="flex flex-col gap-4">
+                      {anthropicStreamedToolCalls.map((tc, idx) => (
+                        <ToolCallWithResult
+                          key={tc.id || idx}
+                          toolCall={tc}
+                          toolResult={tc.id ? toolResults[tc.id] : undefined}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
 
             {message && (
               <CustomComponent

@@ -2,7 +2,7 @@ import { AIMessage, ToolMessage } from "@langchain/langgraph-sdk";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { QueryResultCard } from "@/components/ui/query-result-card";
+import { ToolCallDisplay } from "@/components/ui/tool-call-display";
 
 function isComplexValue(value: any): boolean {
   return Array.isArray(value) || (typeof value === "object" && value !== null);
@@ -133,7 +133,7 @@ export function ToolResult({ message }: { message: ToolMessage }) {
   );
 }
 
-// Combined Tool Call and Result Card
+// 优化的工具调用卡片 - 使用新的显示组件
 export function ToolCallWithResult({
   toolCall,
   toolResult,
@@ -143,118 +143,27 @@ export function ToolCallWithResult({
 }) {
   const args = toolCall.args as Record<string, any>;
 
-  // Format query from tool call args
-  // If there's only one argument called 'query', display it directly without showing the parameter name
-  const argEntries = Object.entries(args);
-  const isSingleQueryArg = argEntries.length === 1 && argEntries[0][0] === 'query';
-  const hasNoArgs = argEntries.length === 0;
+  // 解析结果内容
+  let resultData: any = undefined;
 
-  const queryContent = hasNoArgs ? (
-    // Display empty object for no arguments
-    <code className="text-sm text-gray-500">{"{}"}</code>
-  ) : isSingleQueryArg ? (
-    // Display query value directly without the parameter name
-    <div className="text-sm text-gray-900">
-      {isComplexValue(argEntries[0][1]) ? (
-        <code className="rounded bg-gray-100 px-2 py-1 font-mono text-xs whitespace-pre-wrap break-all">
-          {JSON.stringify(argEntries[0][1], null, 2)}
-        </code>
-      ) : (
-        <pre className="whitespace-pre-wrap break-all font-mono">{String(argEntries[0][1])}</pre>
-      )}
-    </div>
-  ) : (
-    // Display all arguments in table format
-    <table className="min-w-full">
-      <tbody className="divide-y divide-gray-200">
-        {argEntries.map(([key, value], argIdx) => (
-          <tr key={argIdx}>
-            <td className="py-1 pr-4 text-sm font-medium text-gray-700">
-              {key}
-            </td>
-            <td className="py-1 text-sm text-gray-900">
-              {isComplexValue(value) ? (
-                <code className="rounded bg-gray-100 px-2 py-1 font-mono text-xs">
-                  {JSON.stringify(value, null, 2)}
-                </code>
-              ) : (
-                <span className="break-all">{String(value)}</span>
-              )}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
-  // Format result content
-  let resultContent: any = null;
   if (toolResult) {
-    let parsedContent: any;
-    let isJsonContent = false;
-
     try {
       if (typeof toolResult.content === "string") {
-        parsedContent = JSON.parse(toolResult.content);
-        isJsonContent = isComplexValue(parsedContent);
+        resultData = JSON.parse(toolResult.content);
+      } else {
+        resultData = toolResult.content;
       }
     } catch {
-      parsedContent = toolResult.content;
-    }
-
-    if (isJsonContent) {
-      const items = Array.isArray(parsedContent)
-        ? parsedContent
-        : Object.entries(parsedContent);
-
-      resultContent = (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <tbody className="divide-y divide-gray-200">
-              {items.map((item, argIdx) => {
-                const [key, value] = Array.isArray(parsedContent)
-                  ? [argIdx, item]
-                  : [item[0], item[1]];
-                return (
-                  <tr key={argIdx}>
-                    <td className="px-2 py-2 text-sm font-medium whitespace-nowrap text-gray-900">
-                      {key}
-                    </td>
-                    <td className="px-2 py-2 text-sm text-gray-500">
-                      {isComplexValue(value) ? (
-                        <code className="rounded bg-gray-50 px-2 py-1 font-mono text-xs break-all">
-                          {JSON.stringify(value, null, 2)}
-                        </code>
-                      ) : (
-                        <span className="break-all">{String(value)}</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      );
-    } else {
-      const contentStr = String(toolResult.content);
-      resultContent = (
-        <code className="block text-sm whitespace-pre-wrap break-all">
-          {contentStr}
-        </code>
-      );
+      resultData = toolResult.content;
     }
   }
 
-  const queryTitle = toolCall.name;
-
   return (
-    <QueryResultCard
-      query={queryContent}
-      result={resultContent || <span className="text-sm text-muted-foreground">No result available</span>}
-      queryTitle={queryTitle}
-      resultTitle="Tool Result"
-      defaultExpanded={false}
+    <ToolCallDisplay
+      toolName={toolCall.name}
+      args={args}
+      result={resultData}
+      status={resultData ? "success" : "pending"}
       className="w-full"
     />
   );
