@@ -1,10 +1,10 @@
 {
   "$schema": "https://langgra.ph/schema.json",
-  "dependencies": ["."],
+  "dependencies": [
+    "."
+  ],
   "graphs": {
-    "graph_api": "./examples/react_agent_graph_api.py:graph",
-    "functional_api":"./examples/react_agent_functional_api.py:agent",
-    "sql_agent":"./examples/sql_agent.py:agent"
+    "sql_agent_new": "./examples/sql_agent_new.py:graph"
   },
   "env": ".env"
 }

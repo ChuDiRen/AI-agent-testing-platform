@@ -52,7 +52,7 @@ class ModelConfig(BaseModel):
 
 class DatabaseConfig(BaseModel):
     """数据库配置"""
-    url: str = "sqlite:///Chinook.db"
+    url: str = "sqlite:///Chinook.db"  # 默认值，实际使用时会被 from_env 覆盖
     sample_db_url: str = "https://storage.googleapis.com/benchmarks-artifacts/chinook/Chinook.db"
     max_results: int = Field(default=5, ge=1, le=100)
 
@@ -81,9 +81,12 @@ class SQLAgentConfig:
 
         os.environ["DEEPSEEK_API_KEY"] = api_key
 
+        # 使用绝对路径
+        db_path = Path(__file__).parent / "Chinook.db"
+        
         return cls(
             model=ModelConfig(name="deepseek-chat", api_key=api_key),
-            database=DatabaseConfig(url=os.getenv("DATABASE_URL", "sqlite:///Chinook.db")),
+            database=DatabaseConfig(url=os.getenv("DATABASE_URL", f"sqlite:///{db_path}")),
             agent=AgentConfig(
                 enable_human_review=os.getenv("ENABLE_HUMAN_REVIEW", "false").lower() == "true"
             )
@@ -96,7 +99,8 @@ _db_cache = {}  # 数据库连接缓存
 
 def download_database(url: str) -> Optional[Path]:
     """下载示例数据库"""
-    local_path = Path("Chinook.db")
+    # 使用绝对路径，统一存放在 examples 目录
+    local_path = Path(__file__).parent / "Chinook.db"
 
     if local_path.exists():
         return local_path
