@@ -1,13 +1,68 @@
-import { HumanResponseWithEdits, SubmitType } from "../types";
+import { HumanResponseWithEdits, SubmitType, InterruptPhaseInfo } from "../types";
 import { Textarea } from "@/components/ui/textarea";
 import React from "react";
 import { haveArgsChanged, prettifyText } from "../utils";
 import { Button } from "@/components/ui/button";
-import { Undo2 } from "lucide-react";
+import { Undo2, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { MarkdownText } from "../../markdown-text";
 import { ActionRequest, HumanInterrupt } from "@langchain/langgraph/prebuilt";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { UnifiedCard, CardContainer } from "@/components/ui/unified-card"; // 新增：统一卡片组件
+
+// 阶段状态显示组件 # UI反馈组件
+function PhaseStatusBadge({ phaseInfo }: { phaseInfo: InterruptPhaseInfo }) {
+  if (!phaseInfo.message) return null;
+
+  const getStatusIcon = () => {
+    switch (phaseInfo.state) {
+      case "interrupted":
+      case "responding":
+        return <AlertCircle className="h-4 w-4" />;
+      case "submitting":
+      case "processing":
+        return <Loader2 className="h-4 w-4 animate-spin" />;
+      case "resumed":
+      case "completed":
+        return <CheckCircle2 className="h-4 w-4" />;
+      case "error":
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return null;
+    }
+  };
+
+  const getStatusColor = () => {
+    switch (phaseInfo.state) {
+      case "interrupted":
+      case "responding":
+        return "bg-blue-50 text-blue-700 border-blue-200";
+      case "submitting":
+      case "processing":
+        return "bg-yellow-50 text-yellow-700 border-yellow-200";
+      case "resumed":
+      case "completed":
+        return "bg-green-50 text-green-700 border-green-200";
+      case "error":
+        return "bg-red-50 text-red-700 border-red-200";
+      default:
+        return "bg-gray-50 text-gray-700 border-gray-200";
+    }
+  };
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium",
+        getStatusColor()
+      )}
+    >
+      {getStatusIcon()}
+      <span>{phaseInfo.message}</span>
+    </div>
+  );
+}
 
 function ResetButton({ handleReset }: { handleReset: () => void }) {
   return (
@@ -24,26 +79,26 @@ function ResetButton({ handleReset }: { handleReset: () => void }) {
 
 function ArgsRenderer({ args }: { args: Record<string, any> }) {
   return (
-    <div className="flex w-full flex-col items-start gap-6">
+    <div className="flex w-full flex-col items-start gap-4">
       {Object.entries(args).map(([k, v]) => {
         let value = "";
         if (["string", "number"].includes(typeof v)) {
           value = v.toString();
         } else {
-          value = JSON.stringify(v, null);
+          value = JSON.stringify(v, null, 2);
         }
 
         return (
           <div
             key={`args-${k}`}
-            className="flex flex-col items-start gap-1"
+            className="flex flex-col items-start gap-2"
           >
-            <p className="text-sm leading-[18px] text-wrap text-gray-600">
+            <p className="text-sm font-medium text-gray-700">
               {prettifyText(k)}:
             </p>
-            <span className="w-full max-w-full rounded-xl bg-zinc-100 p-3 text-[13px] leading-[18px] text-black">
+            <div className="w-full rounded-lg bg-gray-50 p-3 border border-gray-200">
               <MarkdownText>{value}</MarkdownText>
-            </span>
+            </div>
           </div>
         );
       })}
@@ -62,6 +117,7 @@ interface InboxItemInputProps {
 
   streaming: boolean;
   streamFinished: boolean;
+  phaseInfo: InterruptPhaseInfo; // 新增：阶段信息
 
   setHumanResponse: React.Dispatch<
     React.SetStateAction<HumanResponseWithEdits[]>
@@ -107,44 +163,46 @@ function ResponseComponent({
   };
 
   return (
-    <div className="flex w-full flex-col items-start gap-4 rounded-xl border-[1px] border-gray-300 p-6">
-      <div className="flex w-full items-center justify-between">
-        <p className="text-base font-semibold text-black">
-          Respond to assistant
-        </p>
-        <ResetButton
-          handleReset={() => {
-            onResponseChange("", res);
-          }}
-        />
-      </div>
+    <UnifiedCard variant="bordered" size="md">
+      <div className="flex w-full flex-col items-start gap-4">
+        <div className="flex w-full items-center justify-between">
+          <p className="text-base font-semibold text-black">
+            Respond to assistant
+          </p>
+          <ResetButton
+            handleReset={() => {
+              onResponseChange("", res);
+            }}
+          />
+        </div>
 
-      {showArgsInResponse && (
-        <ArgsRenderer args={interruptValue.action_request.args} />
-      )}
+        {showArgsInResponse && (
+          <ArgsRenderer args={interruptValue.action_request.args} />
+        )}
 
-      <div className="flex w-full flex-col items-start gap-[6px]">
-        <p className="min-w-fit text-sm font-medium">Response</p>
-        <Textarea
-          disabled={streaming}
-          value={res.args}
-          onChange={(e) => onResponseChange(e.target.value, res)}
-          onKeyDown={handleKeyDown}
-          rows={4}
-          placeholder="Your response here..."
-        />
-      </div>
+        <div className="flex w-full flex-col items-start gap-2">
+          <p className="min-w-fit text-sm font-medium">Response</p>
+          <Textarea
+            disabled={streaming}
+            value={res.args}
+            onChange={(e) => onResponseChange(e.target.value, res)}
+            onKeyDown={handleKeyDown}
+            rows={4}
+            placeholder="Your response here..."
+          />
+        </div>
 
-      <div className="flex w-full items-center justify-end gap-2">
-        <Button
-          variant="brand"
-          disabled={streaming}
-          onClick={handleSubmit}
-        >
-          Send Response
-        </Button>
+        <div className="flex w-full items-center justify-end gap-2">
+          <Button
+            variant="brand"
+            disabled={streaming}
+            onClick={handleSubmit}
+          >
+            Send Response
+          </Button>
+        </div>
       </div>
-    </div>
+    </UnifiedCard>
   );
 }
 const Response = React.memo(ResponseComponent);
@@ -161,19 +219,21 @@ function AcceptComponent({
   ) => Promise<void>;
 }) {
   return (
-    <div className="flex w-full flex-col items-start gap-4 rounded-lg border-[1px] border-gray-300 p-6">
-      {actionRequestArgs && Object.keys(actionRequestArgs).length > 0 && (
-        <ArgsRenderer args={actionRequestArgs} />
-      )}
-      <Button
-        variant="brand"
-        disabled={streaming}
-        onClick={handleSubmit}
-        className="w-full"
-      >
-        Accept
-      </Button>
-    </div>
+    <UnifiedCard variant="bordered" size="md">
+      <div className="flex w-full flex-col items-start gap-4">
+        {actionRequestArgs && Object.keys(actionRequestArgs).length > 0 && (
+          <ArgsRenderer args={actionRequestArgs} />
+        )}
+        <Button
+          variant="brand"
+          disabled={streaming}
+          onClick={handleSubmit}
+          className="w-full"
+        >
+          Accept
+        </Button>
+      </div>
+    </UnifiedCard>
   );
 }
 
@@ -258,59 +318,61 @@ function EditAndOrAcceptComponent({
   };
 
   return (
-    <div className="flex w-full flex-col items-start gap-4 rounded-lg border-[1px] border-gray-300 p-6">
-      <div className="flex w-full items-center justify-between">
-        <p className="text-base font-semibold text-black">{header}</p>
-        <ResetButton handleReset={handleReset} />
-      </div>
+    <UnifiedCard variant="bordered" size="md">
+      <div className="flex w-full flex-col items-start gap-4">
+        <div className="flex w-full items-center justify-between">
+          <p className="text-base font-semibold text-black">{header}</p>
+          <ResetButton handleReset={handleReset} />
+        </div>
 
-      {Object.entries(editResponse.args.args).map(([k, v], idx) => {
-        const value = ["string", "number"].includes(typeof v)
-          ? v
-          : JSON.stringify(v, null);
-        // Calculate the default number of rows by the total length of the initial value divided by 30
-        // or 8, whichever is greater. Stored in a ref to prevent re-rendering.
-        if (
-          defaultRows.current[k as keyof typeof defaultRows.current] ===
-          undefined
-        ) {
-          defaultRows.current[k as keyof typeof defaultRows.current] = !v.length
-            ? 3
-            : Math.max(v.length / 30, 7);
-        }
-        const numRows =
-          defaultRows.current[k as keyof typeof defaultRows.current] || 8;
+        {Object.entries(editResponse.args.args).map(([k, v], idx) => {
+          const value = ["string", "number"].includes(typeof v)
+            ? v
+            : JSON.stringify(v, null);
+          // Calculate the default number of rows by the total length of the initial value divided by 30
+          // or 8, whichever is greater. Stored in a ref to prevent re-rendering.
+          if (
+            defaultRows.current[k as keyof typeof defaultRows.current] ===
+            undefined
+          ) {
+            defaultRows.current[k as keyof typeof defaultRows.current] = !v.length
+              ? 3
+              : Math.max(v.length / 30, 7);
+          }
+          const numRows =
+            defaultRows.current[k as keyof typeof defaultRows.current] || 8;
 
-        return (
-          <div
-            className="flex h-full w-full flex-col items-start gap-1 px-[1px]"
-            key={`allow-edit-args--${k}-${idx}`}
-          >
-            <div className="flex w-full flex-col items-start gap-[6px]">
-              <p className="min-w-fit text-sm font-medium">{prettifyText(k)}</p>
-              <Textarea
-                disabled={streaming}
-                className="h-full"
-                value={value}
-                onChange={(e) => onEditChange(e.target.value, editResponse, k)}
-                onKeyDown={handleKeyDown}
-                rows={numRows}
-              />
+          return (
+            <div
+              className="flex h-full w-full flex-col items-start gap-1"
+              key={`allow-edit-args--${k}-${idx}`}
+            >
+              <div className="flex w-full flex-col items-start gap-2">
+                <p className="min-w-fit text-sm font-medium">{prettifyText(k)}</p>
+                <Textarea
+                  disabled={streaming}
+                  className="h-full"
+                  value={value}
+                  onChange={(e) => onEditChange(e.target.value, editResponse, k)}
+                  onKeyDown={handleKeyDown}
+                  rows={numRows}
+                />
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
 
-      <div className="flex w-full items-center justify-end gap-2">
-        <Button
-          variant="brand"
-          disabled={streaming}
-          onClick={handleSubmit}
-        >
-          {buttonText}
-        </Button>
+        <div className="flex w-full items-center justify-end gap-2">
+          <Button
+            variant="brand"
+            disabled={streaming}
+            onClick={handleSubmit}
+          >
+            {buttonText}
+          </Button>
+        </div>
       </div>
-    </div>
+    </UnifiedCard>
   );
 }
 const EditAndOrAccept = React.memo(EditAndOrAcceptComponent);
@@ -325,6 +387,7 @@ export function InboxItemInput({
   hasEdited,
   hasAddedResponse,
   initialValues,
+  phaseInfo, // 新增：阶段信息
   setHumanResponse,
   setSelectedSubmitType,
   setHasEdited,
@@ -405,13 +468,13 @@ export function InboxItemInput({
           args:
             Array.isArray(change) && Array.isArray(key)
               ? {
-                  ...response.args.args,
-                  ...Object.fromEntries(key.map((k, i) => [k, change[i]])),
-                }
+                ...response.args.args,
+                ...Object.fromEntries(key.map((k, i) => [k, change[i]])),
+              }
               : {
-                  ...response.args.args,
-                  [key as string]: change as string,
-                },
+                ...response.args.args,
+                [key as string]: change as string,
+              },
         },
       };
       if (
@@ -491,42 +554,57 @@ export function InboxItemInput({
   };
 
   return (
-    <div className="flex w-full flex-col items-start justify-start gap-2">
+    <CardContainer maxWidth="2xl" spacing="normal">
+      {/* 阶段状态显示 # 顶部状态提示 */}
+      <PhaseStatusBadge phaseInfo={phaseInfo} />
+
       {showArgsOutsideActionCards && (
-        <ArgsRenderer args={interruptValue.action_request.args} />
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <ArgsRenderer args={interruptValue.action_request.args} />
+        </div>
       )}
 
-      <div className="flex w-full flex-col items-start gap-2">
-        <EditAndOrAccept
-          humanResponse={humanResponse}
-          streaming={streaming}
-          initialValues={initialValues}
-          interruptValue={interruptValue}
-          onEditChange={onEditChange}
-          handleSubmit={handleSubmit}
-        />
-        {supportsMultipleMethods ? (
-          <div className="mx-auto mt-3 flex items-center gap-3">
-            <Separator className="w-[full]" />
-            <p className="text-sm text-gray-500">Or</p>
-            <Separator className="w-full" />
-          </div>
-        ) : null}
-        <Response
-          humanResponse={humanResponse}
-          streaming={streaming}
-          showArgsInResponse={showArgsInResponse}
-          interruptValue={interruptValue}
-          onResponseChange={onResponseChange}
-          handleSubmit={handleSubmit}
-        />
-        {streaming && <p className="text-sm text-gray-600">Running...</p>}
-        {streamFinished && (
-          <p className="text-base font-medium text-green-600">
+      <EditAndOrAccept
+        humanResponse={humanResponse}
+        streaming={streaming || !phaseInfo.canSubmit} // 根据状态机禁用输入
+        initialValues={initialValues}
+        interruptValue={interruptValue}
+        onEditChange={onEditChange}
+        handleSubmit={handleSubmit}
+      />
+
+      {supportsMultipleMethods && (
+        <div className="flex items-center gap-3">
+          <Separator className="flex-1" />
+          <p className="text-sm font-medium text-gray-500">Or</p>
+          <Separator className="flex-1" />
+        </div>
+      )}
+
+      <Response
+        humanResponse={humanResponse}
+        streaming={streaming || !phaseInfo.canSubmit} // 根据状态机禁用输入
+        showArgsInResponse={showArgsInResponse}
+        interruptValue={interruptValue}
+        onResponseChange={onResponseChange}
+        handleSubmit={handleSubmit}
+      />
+
+      {streaming && (
+        <div className="flex items-center justify-center gap-2 rounded-lg bg-blue-50 p-3">
+          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+          <p className="text-sm font-medium text-blue-600">Running...</p>
+        </div>
+      )}
+
+      {streamFinished && (
+        <div className="flex items-center justify-center gap-2 rounded-lg bg-green-50 p-3">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <p className="text-sm font-medium text-green-600">
             Successfully finished Graph invocation.
           </p>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </CardContainer>
   );
 }

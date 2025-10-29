@@ -72,12 +72,15 @@ export function ThreadActionsView({
     handleSubmit,
     handleIgnore,
     handleResolve,
+    handleContinue, // 新增：继续处理函数
     setSelectedSubmitType,
     setHasAddedResponse,
     setHasEdited,
     humanResponse,
     setHumanResponse,
     initialHumanInterruptEditValue,
+    interruptState, // 新增：状态机状态
+    phaseInfo, // 新增：阶段信息
   } = useInterruptedActions({
     interrupt,
   });
@@ -103,14 +106,14 @@ export function ThreadActionsView({
   const ignoreAllowed = interrupt.config.allow_ignore;
 
   return (
-    <div className="flex min-h-full w-full flex-col gap-9">
-      {/* Header */}
-      <div className="flex w-full flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center justify-start gap-3">
-          <p className="text-2xl tracking-tighter text-pretty">{threadTitle}</p>
+    <div className="flex min-h-full w-full flex-col gap-6 md:gap-8 lg:gap-9">
+      {/* Header # 响应式标题栏 */}
+      <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{threadTitle}</h1>
           {threadId && <ThreadIdCopyable threadId={threadId} />}
         </div>
-        <div className="flex flex-row items-center justify-start gap-2">
+        <div className="flex flex-row items-center justify-start gap-2 sm:justify-end">
           {apiUrl && (
             <Button
               size="sm"
@@ -130,7 +133,8 @@ export function ThreadActionsView({
         </div>
       </div>
 
-      <div className="flex w-full flex-row items-center justify-start gap-2">
+      {/* Action Buttons # 响应式按钮组 */}
+      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
         <Button
           variant="outline"
           className="border-gray-500 bg-white font-normal text-gray-800"
@@ -151,7 +155,7 @@ export function ThreadActionsView({
         )}
       </div>
 
-      {/* Actions */}
+      {/* Actions # 主要内容区域 */}
       <InboxItemInput
         acceptAllowed={acceptAllowed}
         hasEdited={hasEdited}
@@ -163,11 +167,25 @@ export function ThreadActionsView({
         streaming={streaming}
         streamFinished={streamFinished}
         supportsMultipleMethods={supportsMultipleMethods}
+        phaseInfo={phaseInfo} // 新增：传入阶段信息
         setSelectedSubmitType={setSelectedSubmitType}
         setHasAddedResponse={setHasAddedResponse}
         setHasEdited={setHasEdited}
         handleSubmit={handleSubmit}
       />
+
+      {/* 继续按钮 # 在resumed状态显示 */}
+      {phaseInfo.showContinue && (
+        <div className="mx-auto w-full max-w-2xl">
+          <Button
+            onClick={handleContinue}
+            variant="brand"
+            className="w-full"
+          >
+            继续处理
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

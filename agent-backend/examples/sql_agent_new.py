@@ -10,22 +10,26 @@ from langchain_core.messages import AIMessage
 from langchain_community.utilities import SQLDatabase
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
+from langchain_core.runnables import RunnableConfig
+from langchain.tools import tool
+from langgraph.types import interrupt
+from langgraph.checkpoint.memory import InMemorySaver
 
 
 def setup_database(db_path: Path) -> None:
     """自动下载并设置Chinook数据库"""
     db_url = "https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite"
-    
+
     def get_tables():
         """验证数据库并返回表列表"""
         with suppress(Exception):
             with sqlite3.connect(db_path) as conn:
                 return conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-    
+
     # 检查现有数据库
     if get_tables():
         return
-    
+
     # 下载数据库
     try:
         urllib.request.urlretrieve(db_url, db_path)
@@ -53,7 +57,6 @@ get_schema_tool = next(tool for tool in tools if tool.name == "sql_db_schema")
 get_schema_node = ToolNode([get_schema_tool], name="get_schema")
 
 run_query_tool = next(tool for tool in tools if tool.name == "sql_db_query")
-run_query_node = ToolNode([run_query_tool], name="run_query")
 
 
 def list_tables(state: MessagesState):
@@ -144,13 +147,46 @@ def check_query(state: MessagesState):
     return {"messages": [response]}
 
 
-def should_continue(state: MessagesState) -> Literal[END, "check_query"]:
+@tool(
+    run_query_tool.name,
+    description=run_query_tool.description,
+    args_schema=run_query_tool.args_schema
+)
+def run_query_tool_with_interrupt(config: RunnableConfig, **tool_input):
+    request = {
+        "action": run_query_tool.name,
+        "args": tool_input,
+        "description": "Please review the tool call"
+    }
+    response = interrupt([request])
+    # approve the tool call
+    if response["type"] == "accept":
+        tool_response = run_query_tool.invoke(tool_input, config)
+    # update tool call args
+    elif response["type"] == "edit":
+        tool_input = response["args"]["args"]
+        tool_response = run_query_tool.invoke(tool_input, config)
+    # respond to the LLM with user feedback
+    elif response["type"] == "response":
+        user_feedback = response["args"]
+        tool_response = user_feedback
+    else:
+        raise ValueError(f"Unsupported interrupt response type: {response['type']}")
+
+    return tool_response
+
+
+# 使用带人机交互的工具节点 # 关键修改：启用人机交互
+run_query_node = ToolNode([run_query_tool_with_interrupt], name="run_query")
+
+
+def should_continue(state: MessagesState) -> Literal[END, "check_query"]:  # 修改：路由到check_query而不是直接run_query
     messages = state["messages"]
     last_message = messages[-1]
     if not last_message.tool_calls:
         return END
     else:
-        return "check_query"
+        return "check_query"  # 先进行程序化检查
 
 
 builder = StateGraph(MessagesState)
@@ -172,15 +208,92 @@ builder.add_conditional_edges(
 builder.add_edge("check_query", "run_query")
 builder.add_edge("run_query", "generate_query")
 
+# 条件性编译：部署环境不使用checkpointer，本地测试使用 # 关键修改：兼容LangGraph API部署
+
 graph = builder.compile()
 
+# 本地测试环境，需要checkpointer支持人机交互
+# checkpointer = InMemorySaver()
+# graph = builder.compile(checkpointer=checkpointer)
 
 if __name__ == "__main__":
-    """本地测试入口"""
-    question = "哪个音乐类型的平均曲目时长最长？"
-    
-    for step in graph.stream(
-        {"messages": [{"role": "user", "content": question}]},
-        stream_mode="values",
-    ):
-        step["messages"][-1].pretty_print()
+    """本地测试入口 - 支持人机交互"""
+    pass
+
+    # import json
+    # from langgraph.types import Command
+    #
+    # config = {"configurable": {"thread_id": "1"}}
+    # question = "哪个音乐类型的平均曲目时长最长？"
+    #
+    # print("=" * 80)
+    # print("SQL Agent 双重检查模式 - 人机交互演示")
+    # print("=" * 80)
+    # print(f"问题: {question}\n")
+    #
+    # # 第一阶段：运行到中断点
+    # interrupted = False
+    # for step in graph.stream(  # 使用graph而不是agent
+    #         {"messages": [{"role": "user", "content": question}]},
+    #         config,
+    #         stream_mode="values",
+    # ):
+    #     if "messages" in step:
+    #         step["messages"][-1].pretty_print()
+    #     elif "__interrupt__" in step:
+    #         action = step["__interrupt__"][0]
+    #         print("\n" + "=" * 80)
+    #         print("⚠️  需要人工审核 SQL 查询")
+    #         print("=" * 80)
+    #         for request in action.value:
+    #             print(json.dumps(request, indent=2, ensure_ascii=False))
+    #         interrupted = True
+    #         break
+    #
+    # # 第二阶段：人工决策
+    # if interrupted:
+    #     print("\n" + "=" * 80)
+    #     print("请选择操作:")
+    #     print("  1 - 接受查询 (accept)")
+    #     print("  2 - 编辑查询 (edit)")
+    #     print("  3 - 拒绝并反馈 (response)")
+    #     print("=" * 80)
+    #
+    #     choice = input("请输入选项 (1/2/3，直接回车默认接受): ").strip()
+    #
+    #     if choice == "2":
+    #         # 编辑模式
+    #         print("\n当前查询:")
+    #         print(action.value[0]["args"]["query"])
+    #         new_query = input("\n请输入修改后的查询: ").strip()
+    #         resume_value = {
+    #             "type": "edit",
+    #             "args": {"args": {"query": new_query}}
+    #         }
+    #     elif choice == "3":
+    #         # 拒绝模式
+    #         feedback = input("\n请输入反馈信息: ").strip()
+    #         resume_value = {
+    #             "type": "response",
+    #             "args": feedback
+    #         }
+    #     else:
+    #         # 默认接受
+    #         resume_value = {"type": "accept"}
+    #
+    #     print("\n" + "=" * 80)
+    #     print(f"执行决策: {resume_value['type']}")
+    #     print("=" * 80 + "\n")
+    #
+    #     # 继续执行
+    #     for step in graph.stream(  # 使用graph而不是agent
+    #         Command(resume=resume_value),
+    #         config,
+    #         stream_mode="values",
+    #     ):
+    #         if "messages" in step:
+    #             step["messages"][-1].pretty_print()
+    #
+    #     print("\n" + "=" * 80)
+    #     print("✅ 执行完成")
+    #     print("=" * 80)

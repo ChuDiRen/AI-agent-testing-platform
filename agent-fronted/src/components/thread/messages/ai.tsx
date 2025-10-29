@@ -195,9 +195,9 @@ export function AssistantMessage({
             )}
 
             {!hideToolCalls && (
-              <>
+              <div className="mx-auto w-full max-w-2xl">
                 {hasToolCalls && message.tool_calls && message.tool_calls.length > 0 && (
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-4">
                     {message.tool_calls.map((tc, idx) => (
                       <ToolCallWithResult
                         key={tc.id || idx}
@@ -208,7 +208,7 @@ export function AssistantMessage({
                   </div>
                 )}
                 {!hasToolCalls && hasAnthropicToolCalls && (
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-4">
                     {anthropicStreamedToolCalls.map((tc, idx) => (
                       <ToolCallWithResult
                         key={tc.id || idx}
@@ -218,7 +218,7 @@ export function AssistantMessage({
                     ))}
                   </div>
                 )}
-              </>
+              </div>
             )}
 
             {message && (

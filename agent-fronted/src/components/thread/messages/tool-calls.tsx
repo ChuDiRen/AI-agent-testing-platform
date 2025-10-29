@@ -249,15 +249,13 @@ export function ToolCallWithResult({
   const queryTitle = toolCall.name;
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <QueryResultCard
-        query={queryContent}
-        result={resultContent || <span className="text-sm text-muted-foreground">No result available</span>}
-        queryTitle={queryTitle}
-        resultTitle="Tool Result"
-        defaultExpanded={false}
-        className="border-gray-200"
-      />
-    </div>
+    <QueryResultCard
+      query={queryContent}
+      result={resultContent || <span className="text-sm text-muted-foreground">No result available</span>}
+      queryTitle={queryTitle}
+      resultTitle="Tool Result"
+      defaultExpanded={false}
+      className="w-full"
+    />
   );
 }
