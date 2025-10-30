@@ -137,10 +137,17 @@ export function ToolResult({ message }: { message: ToolMessage }) {
 export function ToolCallWithResult({
   toolCall,
   toolResult,
+  attemptNumber,
 }: {
   toolCall: NonNullable<AIMessage["tool_calls"]>[number];
   toolResult?: ToolMessage;
+  attemptNumber?: number;
 }) {
+  // 如果没有工具名称或参数，不渲染
+  if (!toolCall.name || !toolCall.args) {
+    return null;
+  }
+
   const args = toolCall.args as Record<string, any>;
 
   // 解析结果内容
@@ -163,7 +170,8 @@ export function ToolCallWithResult({
       toolName={toolCall.name}
       args={args}
       result={resultData}
-      status={resultData ? "success" : "pending"}
+      status={resultData ? "success" : "running"}
+      attemptNumber={attemptNumber}
       className="w-full"
     />
   );

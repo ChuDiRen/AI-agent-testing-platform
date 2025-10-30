@@ -136,9 +136,37 @@ export function AssistantMessage({
   const hasAnthropicToolCalls = !!anthropicStreamedToolCalls?.length;
   const isToolResult = message?.type === "tool";
 
+  // 合并并去重工具调用（基于ID）
+  const allToolCalls = (() => {
+    const calls: NonNullable<AIMessage["tool_calls"]> = [];
+    const seenIds = new Set<string>();
+
+    // 优先使用 message.tool_calls
+    if (hasToolCalls && message.tool_calls) {
+      for (const tc of message.tool_calls) {
+        if (tc.id && tc.name && tc.args) {
+          calls.push(tc);
+          seenIds.add(tc.id);
+        }
+      }
+    }
+
+    // 添加 Anthropic 工具调用（如果不重复）
+    if (hasAnthropicToolCalls && anthropicStreamedToolCalls) {
+      for (const tc of anthropicStreamedToolCalls) {
+        if (tc.id && tc.name && tc.args && !seenIds.has(tc.id)) {
+          calls.push(tc);
+          seenIds.add(tc.id);
+        }
+      }
+    }
+
+    return calls;
+  })();
+
   // Find tool results for this AI message's tool calls
   const toolResults: Record<string, ToolMessage> = {};
-  if (hasToolCalls && message.tool_calls) {
+  if (allToolCalls.length > 0 && message) {
     const currentMessageIndex = thread.messages.findIndex((m) => m.id === message.id);
     // Look at the next few messages for tool results
     for (let i = currentMessageIndex + 1; i < thread.messages.length && i < currentMessageIndex + 10; i++) {
@@ -150,6 +178,53 @@ export function AssistantMessage({
       if (msg.type === "ai") break;
     }
   }
+
+  // 统计每个工具调用的尝试次数
+  const toolCallAttempts = new Map<string, number>();
+  if (message) {
+    const currentMessageIndex = thread.messages.findIndex((m) => m.id === message.id);
+
+    // 遍历当前及之前的消息，统计相同工具的调用次数
+    for (let i = 0; i <= currentMessageIndex; i++) {
+      const msg = thread.messages[i];
+      if (msg.type === "ai" && "tool_calls" in msg && msg.tool_calls) {
+        for (const tc of msg.tool_calls) {
+          if (tc.name) {
+            const currentCount = toolCallAttempts.get(tc.name) || 0;
+            toolCallAttempts.set(tc.name, currentCount + 1);
+          }
+        }
+      }
+    }
+  }
+
+  // 检查后续消息中是否有相同工具名的调用
+  const toolNamesInLaterMessages = new Set<string>();
+  if (message) {
+    const currentMessageIndex = thread.messages.findIndex((m) => m.id === message.id);
+
+    // 只检查后续的消息（不包括当前消息）
+    for (let i = currentMessageIndex + 1; i < thread.messages.length; i++) {
+      const laterMsg = thread.messages[i];
+      if (laterMsg.type === "ai" && "tool_calls" in laterMsg && laterMsg.tool_calls) {
+        for (const tc of laterMsg.tool_calls) {
+          if (tc.name) {
+            toolNamesInLaterMessages.add(tc.name);
+          }
+        }
+      }
+    }
+  }
+
+  // 过滤：如果后续有相同工具名，就隐藏当前的
+  const filteredToolCalls = allToolCalls.filter((tc) => {
+    if (!tc.name) return true;
+
+    // 如果后续消息中有相同工具名，隐藏当前的
+    return !toolNamesInLaterMessages.has(tc.name);
+  });
+
+  const hasAnyToolCalls = filteredToolCalls.length > 0;
 
   // Hide tool results if they are already shown in the merged card or if hideToolCalls is true
   if (isToolResult) {
@@ -195,31 +270,20 @@ export function AssistantMessage({
                 </div>
               )}
 
-              {!hideToolCalls && (
-                <>
-                  {hasToolCalls && message.tool_calls && message.tool_calls.length > 0 && (
-                    <div className="flex flex-col gap-4">
-                      {message.tool_calls.map((tc, idx) => (
-                        <ToolCallWithResult
-                          key={tc.id || idx}
-                          toolCall={tc}
-                          toolResult={tc.id ? toolResults[tc.id] : undefined}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  {!hasToolCalls && hasAnthropicToolCalls && (
-                    <div className="flex flex-col gap-4">
-                      {anthropicStreamedToolCalls.map((tc, idx) => (
-                        <ToolCallWithResult
-                          key={tc.id || idx}
-                          toolCall={tc}
-                          toolResult={tc.id ? toolResults[tc.id] : undefined}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </>
+              {!hideToolCalls && hasAnyToolCalls && (
+                <div className="flex flex-col gap-4 w-full">
+                  {filteredToolCalls.map((tc, idx) => {
+                    const attemptNumber = tc.name ? toolCallAttempts.get(tc.name) : undefined;
+                    return (
+                      <ToolCallWithResult
+                        key={tc.id || idx}
+                        toolCall={tc}
+                        toolResult={tc.id ? toolResults[tc.id] : undefined}
+                        attemptNumber={attemptNumber}
+                      />
+                    );
+                  })}
+                </div>
               )}
             </div>
 

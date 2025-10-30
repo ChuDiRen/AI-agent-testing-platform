@@ -9,6 +9,7 @@ interface ToolCallDisplayProps {
   result?: any;
   error?: string;
   status?: "pending" | "running" | "success" | "error";
+  attemptNumber?: number;
   className?: string;
 }
 
@@ -18,9 +19,10 @@ export function ToolCallDisplay({
   result,
   error,
   status = "success",
+  attemptNumber,
   className,
 }: ToolCallDisplayProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
   // 复制到剪贴板
@@ -52,34 +54,49 @@ export function ToolCallDisplay({
   const resultJson = result ? formatJson(result) : null;
 
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn("w-full max-w-xl overflow-hidden", className)}>
       <div className={cn(
-        "w-full min-h-[140px] rounded-xl border-2 overflow-hidden shadow-md transition-all duration-200",
+        "w-full rounded-xl border-2 overflow-hidden shadow-md transition-all duration-200",
         config.border,
-        config.bg
+        config.bg,
+        !isExpanded && "h-[76px]"
       )}>
-        {/* Header */}
-        <div className={cn(
-          "flex items-center justify-between gap-4 px-6 py-4 border-b",
-          config.border
-        )}>
+        {/* Header - 始终显示 */}
+        <div
+          className={cn(
+            "flex items-center justify-between gap-4 px-6 cursor-pointer hover:bg-white/30 transition-colors h-[76px]",
+            isExpanded && "border-b",
+            isExpanded && config.border
+          )}
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <Zap className={cn("h-6 w-6 shrink-0", config.icon)} />
-            <div className="min-w-0 flex-1">
-              <h3 className="text-base font-semibold text-gray-900 truncate">
-                {toolName}
-              </h3>
-              <p className={cn("text-sm font-medium", config.icon)}>
-                {config.label}
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-base font-semibold text-gray-900 truncate">
+                  {toolName}
+                </h3>
+                {attemptNumber && attemptNumber > 1 && (
+                  <span className="text-xs font-normal text-gray-500 whitespace-nowrap shrink-0">
+                    (第{attemptNumber}次尝试)
+                  </span>
+                )}
+              </div>
+              <p className={cn("text-sm font-medium truncate", config.icon)}>
+                {attemptNumber && attemptNumber > 1 ? "优化重试中" : config.label}
               </p>
             </div>
           </div>
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
             className={cn(
               "shrink-0 rounded-lg p-2 transition-all duration-200",
               "hover:bg-white/50 active:scale-95"
             )}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(!isExpanded);
+            }}
           >
             <svg
               className={cn(
@@ -95,30 +112,7 @@ export function ToolCallDisplay({
           </button>
         </div>
 
-        {/* Args Section */}
-        <div className="bg-white/70 px-6 py-5 border-b-2 border-inherit">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <p className="text-sm font-semibold text-gray-800 uppercase tracking-wider">
-              参数
-            </p>
-            <button
-              onClick={() => copyToClipboard(argsJson, "args")}
-              className="p-2 rounded-lg hover:bg-white/80 transition-all duration-200 shrink-0 shadow-sm"
-              title="复制参数"
-            >
-              {copiedSection === "args" ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4 text-gray-600" />
-              )}
-            </button>
-          </div>
-          <pre className="text-sm bg-white rounded-lg p-5 border-2 border-gray-200 overflow-x-auto min-h-[60px] max-h-48 overflow-y-auto font-mono text-gray-900 w-full break-words whitespace-pre-wrap leading-6 shadow-inner">
-            {argsJson}
-          </pre>
-        </div>
-
-        {/* Result Section - Collapsible */}
+        {/* 详情区域 - 可折叠（包含参数和结果） */}
         <AnimatePresence>
           {isExpanded && (
             <motion.div
@@ -128,6 +122,30 @@ export function ToolCallDisplay({
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
+              {/* Args Section */}
+              <div className="bg-white/70 px-6 py-5 border-b-2 border-inherit">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <p className="text-sm font-semibold text-gray-800 uppercase tracking-wider">
+                    参数
+                  </p>
+                  <button
+                    onClick={() => copyToClipboard(argsJson, "args")}
+                    className="p-2 rounded-lg hover:bg-white/80 transition-all duration-200 shrink-0 shadow-sm"
+                    title="复制参数"
+                  >
+                    {copiedSection === "args" ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4 text-gray-600" />
+                    )}
+                  </button>
+                </div>
+                <pre className="text-sm bg-white rounded-lg p-5 border-2 border-gray-200 overflow-x-auto min-h-[60px] max-h-48 overflow-y-auto font-mono text-gray-900 w-full break-words whitespace-pre-wrap leading-6 shadow-inner">
+                  {argsJson}
+                </pre>
+              </div>
+
+              {/* Result Section */}
               {error ? (
                 <div className="bg-red-50/80 px-6 py-5 border-t-2 border-red-200">
                   <div className="flex items-start gap-4">
