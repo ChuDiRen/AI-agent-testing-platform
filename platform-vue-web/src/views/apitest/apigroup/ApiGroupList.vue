@@ -54,16 +54,17 @@
       </el-table>
 
       <!-- 分页 -->
-      <el-pagination
-        v-model:current-page="queryForm.page"
-        v-model:page-size="queryForm.pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleQuery"
-        @current-change="handleQuery"
-        class="pagination"
-      />
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="queryForm.page"
+          v-model:page-size="queryForm.pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleQuery"
+          @current-change="handleQuery"
+        />
+      </div>
     </el-card>
 
     <!-- 新增/编辑对话框 -->

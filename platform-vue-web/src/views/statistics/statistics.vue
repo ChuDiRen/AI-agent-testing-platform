@@ -91,11 +91,11 @@
                     <p>编写和执行测试用例</p>
                 </div>
 
-                <div class="nav-item" @click="navigateTo('/ai-chat')">
+                <div class="nav-item" @click="navigateTo('/langgraph-chat')">
                     <div class="nav-icon ai">
                         <el-icon><ChatDotRound /></el-icon>
                     </div>
-                    <h4>AI测试助手</h4>
+                    <h4>LangGraph 智能对话</h4>
                     <p>使用AI生成测试用例</p>
                 </div>
 

@@ -12,17 +12,17 @@
       </template>
 
       <!-- 搜索表单 -->
-      <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="search-form">
+      <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="search-form responsive-form">
     <el-form-item label="素材名称：">
-      <el-input v-model="searchForm.mate_name" placeholder="根据素材名称筛选" />
+      <el-input v-model="searchForm.mate_name" placeholder="根据素材名称筛选" class="search-input" />
     </el-form-item>
     <el-form-item label="所属项目：">
-      <el-select v-model="searchForm.project_id" placeholder="选择所属项目" clearable >
+      <el-select v-model="searchForm.project_id" placeholder="选择所属项目" clearable class="search-select">
       <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id"/>     
     </el-select>
     </el-form-item>
 
-      <el-form-item>
+      <el-form-item class="search-buttons">
         <el-button type="primary" @click="loadData()">查询</el-button>
         <el-button @click="resetSearch">重置</el-button>
       </el-form-item>
@@ -30,31 +30,31 @@
     <!-- END 搜索表单 -->
     <!-- 数据表格 -->
     <el-table :data="tableData" style="width: 100%" max-height="500">
-      <!-- 数据列 -->
-      <el-table-column prop="id" label="项目编号" show-overflow-tooltip />
-      <el-table-column prop="mate_name" label="素材名称" show-overflow-tooltip />
-      <el-table-column prop="object_url" label="素材路径" show-overflow-tooltip />
-      <el-table-column prop="file_type" label="素材类型" show-overflow-tooltip />
-      <el-table-column prop="create_time" label="上传时间" show-overflow-tooltip>
-        <template #default="scope">
-          {{ formatDateTime(scope.row.create_time) }}
-        </template>
-      </el-table-column>
+        <!-- 数据列 -->
+        <el-table-column prop="id" label="项目编号" min-width="100" show-overflow-tooltip />
+        <el-table-column prop="mate_name" label="素材名称" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="object_url" label="素材路径" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="file_type" label="素材类型" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="create_time" label="上传时间" min-width="160" show-overflow-tooltip>
+          <template #default="scope">
+            {{ formatDateTime(scope.row.create_time) }}
+          </template>
+        </el-table-column>
 
-      <!-- 操作 -->
-      <el-table-column fixed="right" label="操作">
-        <template #default="scope">
-          <el-button link type="primary" size="small" @click.prevent="onDownloadFile(scope.$index)">
-          下载
-          </el-button>
-          <el-button link type="primary" size="small" @click.prevent="copyMaterialUrl(scope.$index)" >
-          复制链接
-          </el-button>
-          <el-button link type="primary" size="small" @click.prevent="onDelete(scope.$index)">
-            删除
-          </el-button>
-        </template>
-      </el-table-column>
+        <!-- 操作 -->
+        <el-table-column fixed="right" label="操作" width="180" class-name="action-column">
+          <template #default="scope">
+            <el-button link type="primary" size="small" @click.prevent="onDownloadFile(scope.$index)">
+            下载
+            </el-button>
+            <el-button link type="primary" size="small" @click.prevent="copyMaterialUrl(scope.$index)" >
+            复制链接
+            </el-button>
+            <el-button link type="primary" size="small" @click.prevent="onDelete(scope.$index)">
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
     </el-table>
     
     <!-- 分页 -->
@@ -264,8 +264,115 @@ const copyMaterialUrl = (index) => {
 @import '@/styles/common-list.css';
 @import '@/styles/common-form.css';
 
-.el-select {  
+.page-container {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.page-card {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.search-form {
+  width: 100%;
+}
+
+.search-input,
+.search-select {
   width: 200px;
-}  
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.responsive-table {
+  min-width: 800px; /* 表格最小宽度，小于此宽度会出现滚动条 */
+}
+
+/* 平板适配 */
+@media (max-width: 1024px) {
+  .search-input,
+  .search-select {
+    width: 180px;
+  }
+  
+  .responsive-table {
+    min-width: 700px;
+  }
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .responsive-form {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .responsive-form :deep(.el-form-item) {
+    margin-right: 0;
+    margin-bottom: 12px;
+    width: 100%;
+  }
+  
+  .search-input,
+  .search-select {
+    width: 100%;
+  }
+  
+  .search-buttons {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .search-buttons :deep(.el-button) {
+    flex: 1;
+  }
+  
+  .table-wrapper {
+    overflow-x: auto;
+  }
+  
+  .responsive-table {
+    min-width: 600px;
+  }
+  
+  .action-column {
+    min-width: 150px;
+  }
+}
+
+/* 小屏幕手机适配 */
+@media (max-width: 480px) {
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .card-header h3 {
+    margin: 0;
+  }
+  
+  .card-header .el-button {
+    width: 100%;
+  }
+  
+  .responsive-table {
+    min-width: 500px;
+  }
+  
+  .pagination {
+    overflow-x: auto;
+  }
+  
+  .pagination :deep(.el-pagination) {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
 </style>
   

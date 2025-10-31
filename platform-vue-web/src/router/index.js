@@ -44,7 +44,6 @@ import ApiGroupForm from '~/views/apitest/apigroup/ApiGroupForm.vue'
 import ApiTestList from '~/views/apitest/apitest/ApiTestList.vue'
 
 // AI测试助手模块相关导入
-import AiChatInterface from '~/views/aiassistant/chat/AiChatInterface.vue'
 import AiModelList from '~/views/aiassistant/model/AiModelList.vue'
 import PromptTemplateList from '~/views/aiassistant/prompt/PromptTemplateList.vue'
 import TestCaseList from '~/views/aiassistant/testcase/TestCaseList.vue'
@@ -190,12 +189,6 @@ const routes = [
                 title: "测试历史记录"
             }
         }, {
-            path: "/ai-chat",
-            component: AiChatInterface,
-            meta: {
-                title: "AI测试助手"
-            }
-        }, {
             path: "/test-cases",
             component: TestCaseList,
             meta: {
@@ -247,9 +240,19 @@ const router = createRouter({
     routes
 })
 
+// 已删除的路由列表（仅删除旧的AI对话系统）
+const deletedRoutes = ['/ai-chat']
+
 //导航判断逻辑
 router.beforeEach((to, from, next) => {
     const token = cookies.get("l-token");
+    
+    // 如果访问已删除的路由，重定向到首页
+    if (deletedRoutes.includes(to.path)) {
+        next('/Statistics')
+        return
+    }
+    
     if (to.path === '/login') {
         // 如果要前往登录页面，无需检查 token，直接跳转
         next();

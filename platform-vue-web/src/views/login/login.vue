@@ -121,21 +121,33 @@ const onSubmit = () => { // 提交登录表单
               if (menuRes?.data?.code === 200) {
                 try {
                   const tree = menuRes.data.data || []
+                  console.log('登录时获取的用户菜单数据:', tree)
                   if (tree.length > 0) {
+                    console.log('设置用户菜单，菜单数量:', tree.length)
                     store.commit('setMenuTree', tree)
                   } else {
                     // 兜底：用户无绑定权限，展示全量菜单树
+                    console.log('用户菜单为空，获取全量菜单')
                     const allRes = await getMenuTree()
                     if (allRes?.data?.code === 200) {
-                      store.commit('setMenuTree', allRes.data.data || [])
+                      const allMenuData = allRes.data.data || []
+                      console.log('设置全量菜单，菜单数量:', allMenuData.length)
+                      store.commit('setMenuTree', allMenuData)
+                    } else {
+                      console.warn('获取全量菜单失败，响应码:', allRes?.data?.code)
                     }
                   }
-                } catch (e) {}
+                } catch (e) {
+                  console.error('处理菜单数据失败:', e)
+                }
+              } else {
+                console.warn('获取用户菜单失败，响应码:', menuRes?.data?.code)
               }
               // 确保菜单数据加载完成后再跳转
               router.replace("/Statistics")
             })
           } else {
+            console.warn('登录响应中没有用户ID')
             router.replace("/Statistics")
           }
 

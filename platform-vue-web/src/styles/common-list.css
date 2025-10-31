@@ -4,17 +4,28 @@
     background: var(--bg-secondary);
     min-height: calc(100vh - 64px - 40px);
     transition: all 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .page-card {
     background: var(--bg-card);
     border-radius: 16px;
     box-shadow: var(--shadow-md);
-    overflow: hidden;
+    overflow-x: auto; /* 支持横向滚动 */
+    overflow-y: visible;
     transition: all 0.3s ease;
     animation: fadeInUp 0.5s ease;
-    max-width: 1400px;
+    max-width: 100%; /* 使用100%而不是固定值 */
     margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* 卡片内容区域 */
+.page-card :deep(.el-card__body) {
+    padding: 0;
+    min-width: fit-content; /* 内容自适应 */
 }
 
 @keyframes fadeInUp {
@@ -29,7 +40,7 @@
     }
 }
 
-/* 卡片头部 */
+/* ===== 卡片头部全局响应式配置 ===== */
 .card-header {
     display: flex;
     justify-content: space-between;
@@ -37,6 +48,8 @@
     padding: 20px 24px;
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-primary);
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
 .card-header h3 {
@@ -44,12 +57,56 @@
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
+    flex: 1;
+    min-width: 150px;
 }
 
-/* 搜索表单 */
+.card-header .el-button {
+    flex-shrink: 0;
+}
+
+/* ===== 搜索表单全局响应式配置 ===== */
 .search-form {
-    padding: 16px 0;
+    padding: 16px 24px;
     margin: 0;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end; /* 确保按钮与输入框底部对齐 */
+    gap: 8px 12px; /* 垂直间距8px，水平间距12px */
+}
+
+/* 搜索表单项默认样式 */
+.search-form :deep(.el-form-item) {
+    margin-bottom: 0;
+    margin-right: 0;
+    flex: 0 0 auto;
+}
+
+/* 搜索表单输入框和下拉框 */
+.search-form :deep(.el-input),
+.search-form :deep(.el-select),
+.search-form :deep(.el-input__wrapper),
+.search-form :deep(.el-select__wrapper) {
+    width: 180px; /* 减小默认宽度，节省空间 */
+}
+
+/* 搜索表单按钮组 */
+.search-form :deep(.el-form-item:last-child) {
+    display: inline-flex;
+    gap: 8px;
+}
+
+.search-form :deep(.el-button) {
+    min-width: 70px; /* 减小按钮最小宽度 */
+}
+
+/* 确保标签和输入框正确对齐 */
+.search-form :deep(.el-form-item__label) {
+    height: auto;
+    line-height: 32px;
+    white-space: nowrap; /* 标签不换行 */
 }
 
 /* 表格样式增强 */
@@ -105,16 +162,30 @@
     transform: translateY(0);
 }
 
-/* 分页样式 */
-.pagination {
+/* ===== 分页组件全局响应式配置 ===== */
+.pagination,
+.page-card :deep(.el-pagination) {
     display: flex;
     justify-content: center;
     padding: 20px;
     margin-top: 20px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
+/* 分页容器样式 */
+.pagination {
+    display: flex;
+    justify-content: center;
+}
+
+/* 分页组件样式 */
 :deep(.el-pagination) {
     font-weight: 500;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
 }
 
 :deep(.el-pagination button),
@@ -134,4 +205,397 @@
 :deep(.el-pager li.is-active) {
     background: var(--primary-gradient);
     color: white;
+}
+
+/* 表格响应式 - 全局自动应用 */
+/* 表格不设置固定最小宽度，让内容自然撑开 */
+:deep(.el-table) {
+    width: 100%;
+    table-layout: auto; /* 自动调整列宽 */
+}
+
+/* 卡片内容区域自动支持横向滚动 */
+.page-card :deep(.el-card__body) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 页面卡片也支持横向滚动 */
+.page-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 表格容器（如果页面使用了此类） */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+}
+
+/* 表格列自动宽度优化 */
+:deep(.el-table__body-wrapper) {
+    overflow-x: auto;
+}
+
+/* 表格单元格文本溢出处理 */
+:deep(.el-table .cell) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 操作列特殊处理 - 允许换行 */
+:deep(.el-table__fixed-right) .cell {
+    white-space: normal !important;
+    overflow: visible !important;
+}
+
+:deep(.el-table__body-wrapper) .el-table__row .cell {
+    white-space: normal;
+}
+
+/* 操作列按钮组优化 */
+:deep(.el-table .el-button + .el-button) {
+    margin-left: 6px;
+}
+
+:deep(.el-table .el-button.is-link) {
+    padding: 4px 6px;
+    font-size: 13px;
+}
+
+/* 响应式布局 */
+/* ===== 笔记本电脑适配 (1366px以下) ===== */
+@media (max-width: 1366px) {
+    .page-container {
+        padding: 0;
+    }
+    
+    .page-card {
+        max-width: 100%;
+        border-radius: 12px;
+    }
+    
+    /* 搜索表单适配 */
+    .search-form {
+        padding: 14px 16px;
+        gap: 8px 10px;
+    }
+    
+    .search-form :deep(.el-input),
+    .search-form :deep(.el-select) {
+        width: 160px;
+    }
+    
+    .search-form :deep(.el-button) {
+        min-width: 65px;
+        padding: 8px 12px;
+    }
+    
+    /* 卡片头部适配 */
+    .card-header {
+        padding: 14px 16px;
+    }
+    
+    .card-header h3 {
+        font-size: 16px;
+    }
+    
+    /* 表格字体适配 */
+    :deep(.el-table) {
+        font-size: 13px;
+    }
+    
+    :deep(.el-table th),
+    :deep(.el-table td) {
+        padding: 10px 6px;
+    }
+    
+    /* 操作列按钮适配 */
+    :deep(.el-table .el-button.is-link) {
+        padding: 3px 4px;
+        font-size: 12px;
+        margin-left: 4px;
+    }
+    
+    :deep(.el-table .el-button + .el-button) {
+        margin-left: 4px;
+    }
+    
+    /* 分页适配 */
+    .pagination,
+    .page-card :deep(.el-pagination) {
+        padding: 16px 12px;
+    }
+}
+
+/* ===== 平板适配 (1024px以下) ===== */
+@media (max-width: 1024px) {
+    .page-card {
+        max-width: 100%;
+        margin: 0;
+        border-radius: 12px;
+    }
+    
+    .card-header {
+        padding: 16px 20px;
+    }
+    
+    .card-header h3 {
+        font-size: 17px;
+    }
+    
+    /* 搜索表单适配 */
+    .search-form {
+        padding: 12px 20px;
+        gap: 10px;
+    }
+    
+    .search-form :deep(.el-input),
+    .search-form :deep(.el-select) {
+        width: 160px;
+    }
+    
+    /* 表格适配 */
+    :deep(.el-table) {
+        font-size: 12px;
+    }
+    
+    :deep(.el-table th),
+    :deep(.el-table td) {
+        padding: 8px 6px;
+    }
+}
+
+/* ===== 移动端适配 (768px以下) ===== */
+@media (max-width: 768px) {
+    .page-container {
+        padding: 0;
+    }
+    
+    .page-card {
+        border-radius: 0;
+        box-shadow: none;
+    }
+    
+    /* 卡片头部 - 保持水平布局，但允许换行 */
+    .card-header {
+        padding: 12px 16px;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    
+    .card-header h3 {
+        font-size: 16px;
+        margin: 0;
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    .card-header .el-button {
+        flex-shrink: 0;
+    }
+    
+    /* 搜索表单 - 自动换行 */
+    .search-form {
+        padding: 12px 16px;
+        gap: 8px;
+    }
+    
+    .search-form :deep(.el-form-item) {
+        margin-bottom: 8px;
+        flex: 1 1 auto;
+        min-width: 150px;
+    }
+    
+    .search-form :deep(.el-input),
+    .search-form :deep(.el-select) {
+        width: 100%;
+        min-width: 150px;
+    }
+    
+    /* 按钮组独占一行 */
+    .search-form :deep(.el-form-item:last-child) {
+        flex-basis: 100%;
+        width: 100%;
+        order: 999;
+    }
+    
+    .search-form :deep(.el-form-item:last-child .el-button) {
+        flex: 1;
+        min-width: 70px;
+    }
+    
+    /* 表格区域 */
+    .table-wrapper,
+    .page-card :deep(.el-card__body) {
+        overflow-x: auto;
+        padding: 0 16px;
+    }
+    
+    .table-wrapper {
+        margin-bottom: 16px;
+    }
+    
+    :deep(.el-table),
+    .table-wrapper :deep(.el-table) {
+        min-width: 600px;
+    }
+    
+    /* 操作列按钮更紧凑 */
+    :deep(.el-table .el-button.is-link) {
+        padding: 2px 3px;
+        font-size: 11px;
+    }
+    
+    :deep(.el-table .el-button + .el-button) {
+        margin-left: 3px;
+    }
+    
+    /* 分页组件 */
+    .pagination,
+    .page-card :deep(.el-pagination) {
+        padding: 16px 12px;
+        overflow-x: auto;
+    }
+    
+    :deep(.el-pagination) {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+    }
+    
+    :deep(.el-pagination > *) {
+        margin: 0 !important;
+    }
+}
+
+/* ===== 小屏手机适配 (480px以下) ===== */
+@media (max-width: 480px) {
+    /* 卡片头部 - 垂直布局 */
+    .card-header {
+        padding: 10px 12px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .card-header h3 {
+        font-size: 14px;
+        margin-bottom: 0;
+        text-align: center;
+    }
+    
+    .card-header .el-button {
+        width: 100%;
+        margin-left: 0;
+    }
+    
+    /* 搜索表单 - 完全垂直布局 */
+    .search-form {
+        padding: 10px 12px;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .search-form :deep(.el-form-item) {
+        width: 100%;
+        margin-bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-form :deep(.el-form-item__label) {
+        margin-bottom: 6px;
+        width: 100% !important;
+        text-align: left;
+    }
+    
+    .search-form :deep(.el-form-item__content) {
+        width: 100%;
+        margin-left: 0 !important;
+    }
+    
+    .search-form :deep(.el-input),
+    .search-form :deep(.el-select) {
+        width: 100% !important;
+    }
+    
+    /* 按钮组水平排列 */
+    .search-form :deep(.el-form-item:last-child) {
+        flex-direction: row;
+        gap: 8px;
+    }
+    
+    .search-form :deep(.el-form-item:last-child .el-button) {
+        flex: 1;
+    }
+    
+    /* 表格区域 */
+    .table-wrapper,
+    .page-card :deep(.el-card__body) {
+        padding: 0 8px;
+    }
+    
+    :deep(.el-table),
+    .table-wrapper :deep(.el-table) {
+        min-width: 500px;
+        font-size: 11px;
+    }
+    
+    :deep(.el-table th),
+    :deep(.el-table td),
+    .table-wrapper :deep(.el-table th),
+    .table-wrapper :deep(.el-table td) {
+        padding: 6px 3px;
+        font-size: 11px;
+    }
+    
+    /* 操作列按钮极度紧凑 */
+    :deep(.el-table .el-button.is-link) {
+        padding: 2px;
+        font-size: 10px;
+        display: inline-block;
+        min-width: auto;
+    }
+    
+    :deep(.el-table .el-button + .el-button) {
+        margin-left: 2px;
+    }
+    
+    /* 分页组件 */
+    .pagination,
+    .page-card :deep(.el-pagination) {
+        padding: 12px 8px;
+    }
+    
+    :deep(.el-pagination) {
+        font-size: 12px;
+        gap: 4px;
+    }
+    
+    /* 小屏幕隐藏部分分页控件 */
+    :deep(.el-pagination .el-pagination__sizes),
+    :deep(.el-pagination .el-pagination__jump) {
+        display: none;
+    }
+    
+    :deep(.el-pagination__total),
+    :deep(.el-pager li) {
+        font-size: 11px;
+        min-width: 28px;
+        height: 28px;
+        line-height: 28px;
+    }
+    
+    :deep(.el-pagination button) {
+        min-width: 28px;
+        height: 28px;
+        line-height: 28px;
+        padding: 0 4px;
+    }
 }

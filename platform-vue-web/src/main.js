@@ -11,7 +11,8 @@ import directives from './directives/permission.js'
 
 // 引入 Element-Plus-X 组件
 import ElementPlusX from 'vue-element-plus-x'
-import 'vue-element-plus-x/dist/style.css'
+// 注意：CSS 样式通过 Vite 插件在 vite.config.js 中注入，避免 exports 限制问题
+// import 'vue-element-plus-x/dist/index.css'
 
 // 引入自定义主题和样式
 import './styles/theme.css'

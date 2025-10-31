@@ -57,10 +57,9 @@ platform-vue-web/
 │       │   ├── keyword/     # 关键字管理
 │       │   └── apiMate/     # 素材管理
 │       └── aiassistant/     # AI测试助手模块 ⭐新增
-│           ├── chat/        # AI对话功能
-│           │   ├── index.vue
-│           │   ├── AiChatInterface.vue  # ChatGPT风格对话界面
-│           │   └── aiConversation.js    # 对话API服务
+│           ├── langgraph/   # LangGraph智能对话功能
+│           │   ├── LangGraphChat.vue  # LangGraph对话界面
+│           │   └── components/        # 对话组件
 │           ├── model/       # AI模型管理
 │           │   ├── index.vue
 │           │   ├── AiModelList.vue
@@ -107,28 +106,27 @@ npm run build
 
 ## AI测试助手功能 ⭐新增
 
-### 1. AI对话界面 (AiChatInterface.vue)
+### 1. LangGraph 智能对话 (LangGraphChat.vue)
 
-完整的ChatGPT风格对话界面，支持实时流式输出和测试用例生成。
+基于 LangGraph SDK 的高级 AI 对话助手，支持工具调用、流式输出、中断处理等功能。
 
 **核心特性**：
-- ✅ ChatGPT风格的聊天界面
-- ✅ 实时流式输出（Server-Sent Events）
-- ✅ 多轮对话，自动上下文管理
-- ✅ 支持文件上传（TXT/Word/PDF需求文档）
-- ✅ 可配置AI模型和提示词模板
-- ✅ 测试用例实时解析和展示
-- ✅ 测试用例在线编辑和保存
-- ✅ 对话历史管理（保存/恢复/删除）
+- ✅ LangGraph SDK 集成
+- ✅ 实时流式输出
+- ✅ 多线程对话管理
+- ✅ 工具调用支持
+- ✅ 中断处理
+- ✅ 对话历史管理
+- ✅ 消息流式渲染
 
 **使用示例**：
 ```vue
 <template>
-  <AiChatInterface />
+  <LangGraphChat />
 </template>
 
 <script setup>
-import AiChatInterface from '~/views/aiassistant/chat/AiChatInterface.vue'
+import LangGraphChat from '~/views/aiassistant/langgraph/LangGraphChat.vue'
 </script>
 ```
 

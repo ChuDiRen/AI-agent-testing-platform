@@ -50,8 +50,11 @@ const router = useRouter()
 const route = useRoute()
 const store = useStore()
 
-//是否折叠
-const isCollapse = computed(()=>!(store.state.asideWidth== '250px'))
+//是否折叠 - 只有64px和0px才是折叠状态
+const isCollapse = computed(()=> {
+  const width = store.state.asideWidth
+  return width === '64px' || width === '0px'
+})
 
 //02 添加事件
 const handleSelect =(e)=>{
@@ -71,6 +74,11 @@ function getIconName(iconName) {
   return iconName
 }
 
+// 已删除的路由列表（仅删除旧的AI对话系统）
+const deletedRoutes = [
+  '/ai-chat'
+]
+
 // 根据菜单类型和component字段生成前端路由路径
 function getRoutePath(node) {
   // 如果是目录类型(M)且没有component，返回空字符串（不跳转）
@@ -81,7 +89,12 @@ function getRoutePath(node) {
   // 如果有component字段，使用component作为路由路径
   if (node.component) {
     // 如果component不是以/开头，添加/前缀
-    return node.component.startsWith('/') ? node.component : `/${node.component}`
+    const path = node.component.startsWith('/') ? node.component : `/${node.component}`
+    // 过滤已删除的路由
+    if (deletedRoutes.includes(path)) {
+      return '' // 返回空字符串，这样菜单项会被过滤掉
+    }
+    return path
   }
   
   // 其他情况返回空字符串
@@ -90,59 +103,154 @@ function getRoutePath(node) {
 
 // 将后端的菜单树转换为前端侧边栏结构
 function transformMenuTree(tree){
-  if(!Array.isArray(tree)) return []
-  return tree
-    .filter(node => node.menu_type !== 'F') // 只要菜单和目录类型，过滤按钮(F)
-    .filter(node => node.visible === '0' && node.status === '0') // 过滤隐藏和停用的菜单
+  if(!Array.isArray(tree)) {
+    console.warn('transformMenuTree: 输入不是数组', tree)
+    return []
+  }
+  
+  console.log('transformMenuTree 输入:', tree)
+  
+  const processed = tree
+    .filter(node => {
+      const isNotButton = node.menu_type !== 'F'
+      if (!isNotButton) {
+        console.log('过滤掉按钮类型菜单:', node.menu_name)
+      }
+      return isNotButton
+    }) // 只要菜单和目录类型，过滤按钮(F)
+    .filter(node => {
+      const isVisible = node.visible === '0' && node.status === '0'
+      if (!isVisible) {
+        console.log('过滤掉隐藏或停用的菜单:', node.menu_name, { visible: node.visible, status: node.status })
+      }
+      return isVisible
+    }) // 过滤隐藏和停用的菜单
     .sort((a,b) => (a.order_num||0) - (b.order_num||0))
-    .map(node => ({
-      name: node.menu_name,
-      icon: getIconName(node.icon), // 直接使用后端返回的图标名称
-      frontpath: getRoutePath(node), // 使用动态路径生成函数
-      child: transformMenuTree(node.children||[])
-    }))
-    .filter(n => n.frontpath || (n.child && n.child.length > 0)) // 保留有路径或有子菜单的项
+    .map(node => {
+      const routePath = getRoutePath(node)
+      const transformed = {
+        name: node.menu_name,
+        icon: getIconName(node.icon), // 直接使用后端返回的图标名称
+        frontpath: routePath, // 使用动态路径生成函数
+        child: transformMenuTree(node.children||[])
+      }
+      console.log('转换菜单项:', node.menu_name, '->', transformed)
+      return transformed
+    })
+    .filter(n => {
+      const hasPathOrChildren = n.frontpath || (n.child && n.child.length > 0)
+      if (!hasPathOrChildren) {
+        console.log('过滤掉没有路径且没有子菜单的项:', n.name)
+      }
+      return hasPathOrChildren
+    }) // 保留有路径或有子菜单的项
+  
+  console.log('处理后未去重的菜单:', processed)
+  
+  // 去重：根据菜单名称和路径组合去重，保留第一个
+  const seen = new Set()
+  const deduplicated = processed.filter(item => {
+    // 使用名称+路径作为唯一标识，如果路径为空则只使用名称
+    const key = item.frontpath ? `${item.name}::${item.frontpath}` : item.name
+    if (seen.has(key)) {
+      console.log('去重：过滤掉重复菜单:', item.name, key)
+      return false // 已存在，过滤掉重复项
+    }
+    seen.add(key)
+    return true
+  })
+  
+  console.log('最终转换后的菜单:', deduplicated)
+  return deduplicated
 }
 
 // 兜底：刷新后如无菜单，尝试根据cookie中的用户ID拉取
 onMounted(async ()=>{
-  if(!store.state.menuTree || store.state.menuTree.length === 0){
-    const uid = cookies.get('l-user-id')
-    if(uid){
-      try{
-        const res = await getUserMenus(uid)
-        if(res?.data?.code === 200){
-          const tree = res.data.data || []
-          if(tree.length > 0){
-            store.commit('setMenuTree', tree)
-          }else{
-            const allRes = await getMenuTree()
-            if(allRes?.data?.code === 200){
-              store.commit('setMenuTree', allRes.data.data || [])
-            }
-          }
-        }
-      }catch(e){}
-    }
-  }
+  await loadMenuData()
 })
 
-const fixedMenus = computed(()=> [
-  { name:'系统总览', icon:'Monitor', frontpath:'/Statistics' },
-  { 
-    name:'AI 助手', 
-    icon:'ChatDotRound', 
-    frontpath: '',
-    child: [
-      { name:'AI 对话助手', icon:'Comment', frontpath:'/ai-chat' },
-      { name:'LangGraph 智能对话', icon:'ChatLineRound', frontpath:'/langgraph-chat' },
-      { name:'测试用例管理', icon:'Document', frontpath:'/test-cases' },
-      { name:'AI模型管理', icon:'Setting', frontpath:'/ai-models' },
-      { name:'提示词模板', icon:'Edit', frontpath:'/ai-prompts' }
-    ]
+// 加载菜单数据的统一函数
+async function loadMenuData() {
+  // 如果已有菜单数据，不重复加载
+  if(store.state.menuTree && store.state.menuTree.length > 0){
+    console.log('菜单数据已存在，跳过加载', store.state.menuTree)
+    return
   }
-])
-const asideMenus = computed(()=> [...fixedMenus.value, ...transformMenuTree(store.state.menuTree)])
+  
+  console.log('开始加载菜单数据...')
+  const uid = cookies.get('l-user-id')
+  console.log('用户ID:', uid)
+  
+  if(!uid){
+    // 如果没有用户ID，尝试获取全量菜单
+    console.log('没有用户ID，获取全量菜单')
+    try{
+      const allRes = await getMenuTree()
+      console.log('全量菜单响应:', allRes?.data)
+      if(allRes?.data?.code === 200){
+        const menuData = allRes.data.data || []
+        console.log('设置全量菜单数据:', menuData)
+        store.commit('setMenuTree', menuData)
+      }else{
+        console.warn('获取全量菜单失败，响应码:', allRes?.data?.code)
+      }
+    }catch(e){
+      console.error('加载菜单失败:', e)
+    }
+    return
+  }
+  
+  try{
+    // 优先获取用户菜单
+    console.log('获取用户菜单，用户ID:', uid)
+    const res = await getUserMenus(uid)
+    console.log('用户菜单响应:', res?.data)
+    if(res?.data?.code === 200){
+      const tree = res.data.data || []
+      console.log('用户菜单数据:', tree)
+      if(tree.length > 0){
+        console.log('设置用户菜单数据，菜单数量:', tree.length)
+        store.commit('setMenuTree', tree)
+        return
+      }else{
+        console.log('用户菜单为空，获取全量菜单')
+      }
+    }else{
+      console.warn('获取用户菜单失败，响应码:', res?.data?.code)
+    }
+    
+    // 用户菜单为空，获取全量菜单作为兜底
+    const allRes = await getMenuTree()
+    console.log('全量菜单响应:', allRes?.data)
+    if(allRes?.data?.code === 200){
+      const menuData = allRes.data.data || []
+      console.log('设置全量菜单数据，菜单数量:', menuData.length)
+      store.commit('setMenuTree', menuData)
+    }else{
+      console.warn('获取全量菜单失败，响应码:', allRes?.data?.code)
+    }
+  }catch(e){
+    console.error('加载菜单失败:', e)
+    // 加载失败时，尝试获取全量菜单
+    try{
+      const allRes = await getMenuTree()
+      if(allRes?.data?.code === 200){
+        store.commit('setMenuTree', allRes.data.data || [])
+      }
+    }catch(err){
+      console.error('加载全量菜单也失败:', err)
+    }
+  }
+}
+
+// 菜单完全由后端生成，不包含任何静态菜单
+const asideMenus = computed(()=> {
+  const menuTree = store.state.menuTree || []
+  console.log('当前菜单树数据:', menuTree)
+  const transformed = transformMenuTree(menuTree)
+  console.log('转换后的菜单:', transformed)
+  return transformed
+})
 
 // 根据当前路由计算激活的菜单项
 const currentActive = computed(() => {

@@ -20,7 +20,8 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["菜单管理"])
 def build_tree(menus: List[Menu], parent_id: int = 0) -> List[Dict]: # 构建菜单树（参考RuoYi-Vue-Plus）
     tree = []
     for menu in menus:
-        if menu.parent_id == parent_id:
+        # 避免无限递归：菜单的 parent_id 必须等于指定的 parent_id，且菜单 id 不能等于 parent_id
+        if menu.parent_id == parent_id and menu.id != parent_id:
             node = {
                 "id": menu.id,
                 "parent_id": menu.parent_id,

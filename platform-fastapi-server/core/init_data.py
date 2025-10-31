@@ -82,6 +82,12 @@ def create_initial_menus():
         with Session(engine) as session:
             initial_menus = [
                 # ================================
+                # 系统总览（首页）
+                # ================================
+                # 0. 系统总览（菜单 C）
+                {"id": 0, "parent_id": 0, "menu_name": "系统总览", "path": "/statistics", "component": "Statistics", "query": None, "perms": "system:statistics:view", "icon": "DataLine", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 0, "remark": "系统总览首页"},
+                
+                # ================================
                 # 系统管理模块
                 # ================================
                 # 1. 系统管理（目录 M）
@@ -192,8 +198,8 @@ def create_initial_menus():
                 {"id": 3023, "parent_id": 302, "menu_name": "模板修改", "path": None, "component": None, "query": None, "perms": "ai:prompt:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 3024, "parent_id": 302, "menu_name": "模板删除", "path": None, "component": None, "query": None, "perms": "ai:prompt:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
-                # 3.3 AI测试助手（菜单 C）
-                {"id": 303, "parent_id": 300, "menu_name": "AI助手", "path": "/ai-config/ai-chat", "component": "ai-chat", "query": None, "perms": "ai:chat:list", "icon": "ChatDotRound", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "AI测试助手"},
+                # 3.3 LangGraph 智能对话（菜单 C）
+                {"id": 303, "parent_id": 300, "menu_name": "LangGraph 智能对话", "path": "/ai-config/langgraph-chat", "component": "langgraph-chat", "query": None, "perms": "ai:langgraph:list", "icon": "ChatLineRound", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "LangGraph 智能对话"},
 
                 # 3.4 测试用例管理（菜单 C）
                 {"id": 304, "parent_id": 300, "menu_name": "测试用例", "path": "/ai-config/testcase", "component": "test-cases", "query": None, "perms": "ai:testcase:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": "测试用例管理"},
