@@ -52,8 +52,6 @@ db = SQLDatabase.from_uri(f"sqlite:///{db_path}")
 
 toolkit = SQLDatabaseToolkit(db=db, llm=llm)
 tools = toolkit.get_tools()
-for tool in tools:
-    print(f"{tool.name}: {tool.description}\n")
 
 get_schema_tool = next(tool for tool in tools if tool.name == "sql_db_schema")
 get_schema_node = ToolNode([get_schema_tool], name="get_schema")

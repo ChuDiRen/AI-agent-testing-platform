@@ -10,6 +10,7 @@ from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langchain.chat_models import init_chat_model
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_community.utilities import SQLDatabase
+from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
@@ -50,9 +51,19 @@ db = SQLDatabase.from_uri(f"sqlite:///{db_path}")
 
 toolkit = SQLDatabaseToolkit(db=db, llm=model)
 tools = toolkit.get_tools()
-for tool in tools:
-    print(f"{tool.name}: {tool.description}\n")
-
+chart_tools = asyncio.run(
+    MultiServerMCPClient(
+        {
+            "mcp-server-chart": {
+                "command": "npx",
+                "args": ["-y", "@antv/mcp-server-chart"],
+                "transport": "stdio",
+            }
+        }
+    ).get_tools()
+)
+# 合并 SQL 工具和图表工具
+tools = tools + chart_tools
 system_prompt = """
 你是一个专门用于与SQL数据库交互的智能代理。
 给定一个输入问题，创建一个语法正确的{dialect}查询来运行，
@@ -70,6 +81,7 @@ system_prompt = """
 首先，你应该始终查看数据库中的表，以了解可以查询什么。不要跳过此步骤。
 
 然后，你应该查询最相关表的架构。
+根据生成的数据特点，你一定要使用图表工具来可视化数据。
 """.format(
     dialect=db.dialect,
     top_k=5,
@@ -96,7 +108,7 @@ agent_new = create_agent(
 async def run_old():
     question = "哪个音乐类型的曲目平均时长最长？"
 
-    for step in agent_old.stream(
+    async for step in agent_old.astream(
             {"messages": [{"role": "user", "content": question}]},
             stream_mode="values",
     ):
@@ -110,7 +122,7 @@ async def run_new():
 
     # 第一次执行，直到遇到中断
     interrupted = False
-    for step in agent_new.stream(
+    async for step in agent_new.astream(
             {"messages": [{"role": "user", "content": question}]},
             config,
             stream_mode="values",
@@ -136,7 +148,7 @@ async def run_new():
         interrupted = False  # 重置中断标志
 
         # 恢复执行
-        for step in agent_new.stream(
+        async for step in agent_new.astream(
                 Command(resume={"decisions": [{"type": "approve"}]}),
                 config,
                 stream_mode="values",
@@ -157,5 +169,5 @@ async def run_new():
 
 
 if __name__ == '__main__':
-    # asyncio.run(run_old())
-    asyncio.run(run_new())
+    asyncio.run(run_old())
+    # asyncio.run(run_new())
