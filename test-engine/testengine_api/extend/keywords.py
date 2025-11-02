@@ -17,6 +17,45 @@ logger = logging.getLogger(__name__) # 配置日志
 class Keywords:
     request = None
 
+    def _clean_url(self, url):
+        """
+        清理 URL，去除前后空格
+        """
+        if url and isinstance(url, str):
+            return url.strip()
+        return url
+    
+    def _encode_headers(self, headers):
+        """
+        处理 headers 中的值，确保所有值都是字符串类型
+        注意：HTTP headers 中不建议使用中文，建议将中文数据放在请求体中
+        """
+        if not headers:
+            return headers
+        
+        encoded_headers = {}
+        for key, value in headers.items():
+            # 将所有值转为字符串（处理整数、浮点数等类型）
+            if not isinstance(value, str):
+                value = str(value)
+            
+            # 去除前后空格
+            value = value.strip()
+            
+            # 尝试编码为 ASCII（HTTP header 标准）
+            try:
+                # 测试是否可以用 ASCII 编码
+                value.encode('ascii')
+                encoded_headers[key] = value
+            except UnicodeEncodeError:
+                # 如果包含中文等非 ASCII 字符，使用 URL 编码
+                import urllib.parse
+                encoded_value = urllib.parse.quote(value, safe='')
+                encoded_headers[key] = encoded_value
+                logger.warning(f"Header '{key}' 包含非ASCII字符，已URL编码: {value} -> {encoded_value}")
+        
+        return encoded_headers
+
     @allure.step(">>>>>>参数数据：")
     async def send_request(self, **kwargs): # 改为异步方法
         kwargs.pop("关键字", None) # 剔除不需要的字段
@@ -257,9 +296,9 @@ class Keywords:
     async def request_post_form_urlencoded(self, **kwargs): # 改为异步方法
         """发送Post请求"""
         request_data = {
-            "url": kwargs.get("URL", None),
+            "url": self._clean_url(kwargs.get("URL", None)),
             "params": kwargs.get("PARAMS", None),
-            "headers": kwargs.get("HEADERS", None),
+            "headers": self._encode_headers(kwargs.get("HEADERS", None)),
             "data": kwargs.get("DATA", None),
         }
 
@@ -274,9 +313,9 @@ class Keywords:
     async def request_post_row_json(self, **kwargs): # 改为异步方法
         """发送Post请求"""
         request_data = {
-            "url": kwargs.get("URL", None),
+            "url": self._clean_url(kwargs.get("URL", None)),
             "params": kwargs.get("PARAMS", None),
-            "headers": kwargs.get("HEADERS", None),
+            "headers": self._encode_headers(kwargs.get("HEADERS", None)),
             "json": kwargs.get("DATA", None),
         }
 
@@ -291,9 +330,9 @@ class Keywords:
     async def request_post_form_data(self, **kwargs): # 改为异步方法
         """发送Post请求"""
         request_data = {
-            "url": kwargs.get("URL", None),
+            "url": self._clean_url(kwargs.get("URL", None)),
             "params": kwargs.get("PARAMS", None),
-            "headers": kwargs.get("HEADERS", None),
+            "headers": self._encode_headers(kwargs.get("HEADERS", None)),
             "files": kwargs.get("FILES", None),
             "data": kwargs.get("DATA", None),
         }
@@ -309,9 +348,9 @@ class Keywords:
     async def request_get(self, **kwargs): # 改为异步方法
         """发送GET请求"""
         request_data = {
-            "url": kwargs.get("URL", None),
+            "url": self._clean_url(kwargs.get("URL", None)),
             "params": kwargs.get("PARAMS", None),
-            "headers": kwargs.get("HEADERS", None),
+            "headers": self._encode_headers(kwargs.get("HEADERS", None)),
         }
 
         client = await AsyncClientManager.get_client()
@@ -359,14 +398,30 @@ class Keywords:
         提取json数据
         EXVALUE：提取josn的表达式
         INDEX: 非必填，默认为0
-        VARNAME：存储的变量名
+        VARNAME：存储的变量名（必填）
         """
+        # 检查必填参数
+        if "VARNAME" not in kwargs or not kwargs["VARNAME"]:
+            raise ValueError(
+                "❌ ex_jsonData 缺少必填参数 VARNAME！\n"
+                "   请检查 Excel 测试用例中的参数设置：\n"
+                "   - 参数_1: EXVALUE (JsonPath表达式)\n"
+                "   - 参数_2: INDEX (索引，默认0)\n"
+                "   - 参数_3: VARNAME (变量名，必填)\n"
+                f"   当前参数: {kwargs}"
+            )
+        
         # 获取JsonPath的值
         EXPRESSION = kwargs.get("EXVALUE", None)
-        # 获取对应的下标，非必填，默认为0字符串
-        INDEX = str(kwargs.get("INDEX", "0"))
-        #  判断INDEX 是不是数字 ，如果是则变成整形，如果不是则为0
-        INDEX = int(INDEX) if INDEX.isdigit() else 0
+        # 获取对应的下标，非必填，默认为0
+        INDEX = kwargs.get("INDEX", None)
+        # 如果 INDEX 为 None 或空字符串，使用默认值 0
+        if INDEX is None or INDEX == '':
+            INDEX = 0
+        else:
+            # 转为字符串后判断是否为数字
+            INDEX_str = str(INDEX)
+            INDEX = int(INDEX_str) if INDEX_str.isdigit() else 0
 
         # 获取响应数据
         try:
@@ -378,6 +433,7 @@ class Keywords:
         ex_data = jsonpath.jsonpath(response, EXPRESSION)[INDEX]  # 通过JsonPath进行提取
         g_context().set_dict(kwargs["VARNAME"], ex_data)  # 根据变量名设置成全局变量
         print("-----------------------")
+        print(f"✅ 已保存变量: {kwargs['VARNAME']} = {ex_data}")
         print(g_context().show_dict())
         print("-----------------------")
 
@@ -406,12 +462,12 @@ class Keywords:
         """
         数据库: 数据库的名称
         SQL：查询的SQL
-        引用变量：数据库要存储的变量名，列表格式,默认[]
+        reference_variables：数据库要存储的变量名，支持字符串或列表格式
 
-        如果 引用变量 为空，则默认使用数据库字段名生成变量。
-        如果 引用变量  有数据，则检查其长度是否与每条记录中的字段数量一致，若一致则生成对应格式的数据；否则抛出错误提示。
+        如果 reference_variables 为空，则默认使用数据库字段名生成变量。
+        如果 reference_variables 有数据，则检查其长度是否与每条记录中的字段数量一致，若一致则生成对应格式的数据；否则抛出错误提示。
 
-        存储到全局变量：{“变量名_下标”:数据}
+        存储到全局变量：{"变量名_下标":数据}
         """
         import pymysql
         from pymysql import cursors
@@ -429,6 +485,16 @@ class Keywords:
         print("数据库查询结果:", rs)
 
         var_names = kwargs.get("reference_variables",  [])
+        
+        # 处理 reference_variables 的不同格式
+        if var_names:
+            # 如果是字符串，转换为列表
+            if isinstance(var_names, str):
+                var_names = [var_names.strip()]
+            # 如果是其他可迭代对象，转换为列表
+            elif not isinstance(var_names, list):
+                var_names = list(var_names)
+        
         result = {}
 
         if not var_names:
@@ -440,8 +506,10 @@ class Keywords:
             # var_names 有数据，验证字段数量一致性
             field_length = len(rs[0]) if rs else 0
             if len(var_names) != field_length:
-                print("❌ var_names 的长度与每条记录的字段数不一致，请检查输入！")
-                raise ValueError("❌ var_names 的长度与每条记录的字段数不一致，请检查输入！")
+                print(f"❌ var_names 的长度({len(var_names)})与每条记录的字段数({field_length})不一致！")
+                print(f"   var_names: {var_names}")
+                print(f"   查询字段: {list(rs[0].keys()) if rs else []}")
+                raise ValueError(f"❌ var_names 的长度与每条记录的字段数不一致，请检查输入！")
 
             for idx, item in enumerate(rs, start=1):
                 for col_idx, key in enumerate(item):
@@ -484,6 +552,84 @@ class Keywords:
                 raise AssertionError(message)
             else:
                 raise AssertionError(f"{kwargs['VALUE']} {kwargs['OP_STR']} {kwargs['EXPECTED']} 失败")
+
+    @allure.step(">>>>>>JSON断言：")
+    def assert_json_comparators(self, **kwargs):
+        """
+        JSON 断言比较 - 从响应中提取 JSON 数据并与期望值比较
+        
+        参数:
+        JSON_PATH: JSONPath 表达式（如 '$..msg'）
+        EXPECTED: 期望的值
+        OP_STR: 操作符（如 '==', '!=', '>', '<', '>=', '<=', 'in', 'not in'）
+        """
+        import jsonpath
+        
+        # 获取参数
+        json_path = kwargs.get("JSON_PATH", None)
+        expected = kwargs.get("EXPECTED", None)
+        op_str = kwargs.get("OP_STR", "==")
+        
+        if not json_path:
+            raise ValueError("❌ assert_json_comparators 缺少必填参数 JSON_PATH")
+        
+        # 获取响应数据
+        try:
+            response = g_context().get_dict("current_response")
+            response_json = response.json()
+        except Exception as e:
+            print(f"JSON解析失败，响应内容: {response.text[:500]}")
+            raise ValueError(f"响应不是有效的JSON格式: {str(e)}")
+        
+        # 使用 JSONPath 提取数据
+        try:
+            result = jsonpath.jsonpath(response_json, json_path)
+            if not result:
+                raise ValueError(f"JSONPath '{json_path}' 未找到匹配的数据")
+            
+            # 取第一个匹配的值
+            actual_value = result[0]
+        except Exception as e:
+            print(f"JSONPath 提取失败: {str(e)}")
+            print(f"响应数据: {response_json}")
+            raise
+        
+        # 处理期望值（可能包含引号）
+        if isinstance(expected, str):
+            # 如果期望值是带引号的字符串（如 '"200"'），尝试解析
+            if expected.startswith('"') and expected.endswith('"'):
+                expected = expected[1:-1]  # 去除外层引号
+        
+        # 定义操作符字典
+        operators = {
+            '>': lambda a, b: a > b,
+            '<': lambda a, b: a < b,
+            '==': lambda a, b: a == b,
+            '>=': lambda a, b: a >= b,
+            '<=': lambda a, b: a <= b,
+            '!=': lambda a, b: a != b,
+            'in': lambda a, b: a in b,
+            'not in': lambda a, b: a not in b
+        }
+        
+        # 获取操作符函数
+        op_func = operators.get(op_str)
+        if not op_func:
+            raise ValueError(f"不支持的操作符: {op_str}")
+        
+        # 执行比较
+        try:
+            result_bool = op_func(actual_value, expected)
+            assert result_bool, f"JSON断言失败: {json_path} => {actual_value} {op_str} {expected}"
+            print(f"✅ JSON断言成功: {json_path} => {actual_value} {op_str} {expected}")
+            return True
+        except AssertionError as e:
+            print(f"❌ JSON断言失败: {str(e)}")
+            print(f"   JSONPath: {json_path}")
+            print(f"   实际值: {actual_value} (类型: {type(actual_value).__name__})")
+            print(f"   期望值: {expected} (类型: {type(expected).__name__})")
+            print(f"   操作符: {op_str}")
+            raise
 
     def get_md5_from_bytes(self,data):
         """

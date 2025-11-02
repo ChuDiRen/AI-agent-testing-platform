@@ -1,10 +1,10 @@
 # Core Dependencies
-pytest>=8.0.0
+pytest>=8.0.0,<9.0.0
 pytest-asyncio>=0.23.0
 pytest-html>=3.2.0
 pytest-xdist>=3.3.1
 allure-pytest>=2.13.2
-allure-combine>=2.5.1
+allure-combine
 
 # HTTP Client
 httpx>=0.24.1
@@ -13,6 +13,7 @@ requests>=2.31.0
 # Data Processing
 jsonpath>=0.82
 pyyaml>=6.0
+pyyaml-include>=1.3
 openpyxl>=3.1.2
 deepdiff>=6.3.0
 

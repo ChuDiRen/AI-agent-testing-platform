@@ -6,7 +6,7 @@ from typing import List, Dict, Any
 import pandas as pd
 import yaml
 
-from ..core.globalContext import g_context  # 相对导入: apirun内部模块
+from ..core.globalContext import g_context  # 相对导入: webrun内部模块
 
 
 # 获取以context开头 .xlsx结尾的内容，并放入到公共参数中去!
@@ -55,21 +55,13 @@ def load_context_from_excel(folder_path: str, excel_files: List[str] = None) -> 
             return False
 
         # 初始化一个空字典来存储结果
-        data = {
-            "_database": {}
-        }
+        data = {}
 
         # 遍历DataFrame的每一行
         for index, row in df.iterrows():
             if row['类型'] == '变量':
                 # 如果Type是"变量"，则将Description作为键，Value作为值添加到result字典中
                 data[row['变量描述']] = row['变量值']
-            elif '数据库' in row['类型']:
-                # 如果Type包含"数据库"，则解析Value列中的JSON字符串
-                db_name = row['变量描述']  # 提取数据库名
-                db_config = json.loads(row['变量值'])  # 将JSON字符串转换为字典
-                # 将数据库配置添加到result字典的_database键下
-                data['_database'][db_name] = db_config
         
         # 将结果字典转换为JSON字符串（如果需要的话）
         if data:
@@ -168,20 +160,14 @@ def load_excel_files(config_path: str) -> List[Dict[str, Any]]:
             # 使用列表推导式提取参数
             parameter = []
             for key, value in row.items():
-                if "参数_" in key:  # 移除 value is not None 判断，保留所有参数位置
-                    if value is None or (isinstance(value, str) and value.strip() == ''):
-                        # 空值保留为 None，让关键字方法自行处理默认值
-                        parameter.append(None)
-                    else:
-                        try:
-                            # 先转为字符串并去除前后空格
-                            value_str = str(value).strip()
-                            # 尝试将字符串转换为Python对象
-                            value = ast.literal_eval(value_str)
-                        except (ValueError, SyntaxError):
-                            # 如果转换失败，保持原字符串（已去除空格）
-                            value = str(value).strip() if isinstance(value, str) else value
-                        parameter.append(value)
+                if "参数_" in key and value is not None:
+                    try:
+                        # 尝试将字符串转换为Python对象
+                        value = ast.literal_eval(str(value))
+                    except (ValueError, SyntaxError):
+                        # 如果转换失败，保持原字符串
+                        pass
+                    parameter.append(value)
 
             # 获取关键字的参数列表（处理两种格式：列表和逗号分隔字符串）
             keyword_params = keywords_info.get(row['关键字'], [])
@@ -228,3 +214,4 @@ def excel_case_parser(config_path: str) -> Dict[str, List]:
         "case_infos": case_infos,
         "case_names": case_names
     }
+

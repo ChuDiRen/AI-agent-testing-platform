@@ -1,13 +1,13 @@
 # test_DS_02.py
 # !/usr/bin/env python
 # -*- coding: utf-8 -*-
-import pytest
 import allure
-from conftest import keyWords, process_request_data
-
+import pytest
 from testengine_api.core.globalContext import g_context
 from testengine_api.extend.keywords import Keywords
 from testengine_api.utils.VarRender import refresh
+
+from conftest import keyWords, process_request_data
 
 
 @allure.title("DS_02 提交订单-【线下支付】验证能正确的下单个商品 (不添加购物车，直接购买提交订单)")

@@ -6,11 +6,11 @@
 @IDE ：PyCharm
 
 """
-import pytest
 import allure
-from conftest import keyWords, process_request_data
-
+import pytest
 from testengine_api.core.globalContext import g_context
+
+from conftest import keyWords, process_request_data
 
 
 @allure.title("DS_02 登录成功测试用例")

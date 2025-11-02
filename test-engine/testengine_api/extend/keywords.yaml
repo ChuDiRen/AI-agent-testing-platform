@@ -108,6 +108,11 @@ assert_text_comparators:
   - EXPECTED # 期望结果
   - OP_STR   # 操作符的字符串表示（如 '>', '<', '==' 等）
 
+assert_json_comparators:
+  - JSON_PATH  # JSONPath 表达式（如 '$..msg'）
+  - EXPECTED   # 期望的值
+  - OP_STR     # 操作符（如 '==', '!=', '>', '<', 'in' 等）
+
 # ================================
 # 数据库操作类关键字
 # ================================
