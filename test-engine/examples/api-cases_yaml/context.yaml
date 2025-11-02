@@ -1,0 +1,8 @@
+URL: http://shop-xo.hctestedu.com
+_database:
+  mysql001:
+    host: shop-xo.hctestedu.com
+    port: 3306
+    user: api_test
+    password: Aa9999!
+    db: shopxo_hctested
