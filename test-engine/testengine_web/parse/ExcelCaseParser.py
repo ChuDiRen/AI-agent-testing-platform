@@ -128,6 +128,14 @@ def load_excel_files(config_path: str) -> List[Dict[str, Any]]:
         data = data.where(data.notnull(), None)  # 将非空数据保留，空数据用None替换
         data = data.to_dict(orient='records')
 
+        # 清理 NaN 值：将字符串 'nan' 转换为 None
+        for row in data:
+            for key, value in row.items():
+                if isinstance(value, float) and pd.isna(value):
+                    row[key] = None
+                elif isinstance(value, str) and value.lower() == 'nan':
+                    row[key] = None
+
         # 初始化当前正在构建的测试用例
         current_test_case = None
 
@@ -157,17 +165,26 @@ def load_excel_files(config_path: str) -> List[Dict[str, Any]]:
                 }
             }
             
-            # 使用列表推导式提取参数
-            parameter = []
+            # 提取参数并按编号排序
+            parameter_dict = {}
             for key, value in row.items():
-                if "参数_" in key and value is not None:
+                if "参数_" in key:
+                    # 提取参数编号
                     try:
-                        # 尝试将字符串转换为Python对象
-                        value = ast.literal_eval(str(value))
-                    except (ValueError, SyntaxError):
-                        # 如果转换失败，保持原字符串
+                        param_num = int(key.split("_")[1])
+                        if value is not None:
+                            try:
+                                # 尝试将字符串转换为Python对象
+                                value = ast.literal_eval(str(value))
+                            except (ValueError, SyntaxError):
+                                # 如果转换失败，保持原字符串
+                                pass
+                        parameter_dict[param_num] = value
+                    except (ValueError, IndexError):
                         pass
-                    parameter.append(value)
+
+            # 按参数编号排序并转换为列表
+            parameter = [parameter_dict[i] for i in sorted(parameter_dict.keys())]
 
             # 获取关键字的参数列表（处理两种格式：列表和逗号分隔字符串）
             keyword_params = keywords_info.get(row['关键字'], [])

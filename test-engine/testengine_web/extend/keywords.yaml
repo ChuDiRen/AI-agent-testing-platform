@@ -1,0 +1,184 @@
+# Web 自动化测试关键字参数配置
+# 用来维护关键字对应的参数列表
+
+# ================================
+# 浏览器操作类关键字
+# ================================
+open_browser:
+  - browser         # chromium/firefox/webkit (默认 chromium)
+  - headless        # true/false (默认 false)
+  - implicit_wait   # 等待时间（秒，可选）
+  - window_size     # maximize/1920x1080/等 (可选)
+  - url             # 初始 URL (可选)
+
+close_browser: []  # 无参数
+
+navigate_to:
+  - url  # 目标 URL
+
+refresh_page: []  # 无参数
+
+go_back: []  # 浏览器后退
+
+go_forward: []  # 浏览器前进
+
+# ================================
+# 元素操作类关键字
+# ================================
+click_element:
+  - locator_type  # id/name/xpath/css/role/text 等
+  - element       # 元素标识
+  - timeout       # 超时时间（毫秒，可选）
+
+input_text:
+  - locator_type  # id/name/xpath/css/role 等
+  - element       # 元素标识
+  - text          # 输入的文本
+  - timeout       # 超时时间（毫秒，可选）
+  - wait_visible  # 是否等待可见 (可选)
+
+get_element_text:
+  - locator_type  # id/name/xpath/css/role 等
+  - element       # 元素标识
+  - variable_name # 存储变量名
+  - timeout       # 超时时间（毫秒，可选）
+
+hover_element:
+  - locator_type  # id/name/xpath/css/role 等
+  - element       # 元素标识
+  - timeout       # 超时时间（毫秒，可选）
+
+scroll_to_element:
+  - locator_type  # id/name/xpath/css/role 等
+  - element       # 元素标识
+
+double_click_element:
+  - locator_type  # id/name/xpath/css/role 等
+  - element       # 元素标识
+
+right_click_element:
+  - locator_type  # id/name/xpath/css/role 等
+  - element       # 元素标识
+
+# ================================
+# 等待类关键字
+# ================================
+wait_for_page_load:
+  - wait_until    # load/domcontentloaded/networkidle
+  - timeout       # 超时时间（毫秒，可选）
+
+wait_for_element_visible:
+  - locator_type  # id/name/xpath/css/role 等
+  - element       # 元素标识
+  - timeout       # 超时时间（毫秒，可选）
+
+wait_for_element_clickable:
+  - locator_type  # id/name/xpath/css/role 等
+  - element       # 元素标识
+  - timeout       # 超时时间（毫秒，可选）
+
+wait_for_element_invisible:
+  - locator_type  # id/name/xpath/css/role 等
+  - element       # 元素标识
+  - timeout       # 超时时间（毫秒，可选）
+
+wait_for_text:
+  - expected_text # 期望的文本
+  - timeout       # 超时时间（毫秒，可选）
+
+sleep:
+  - time          # 等待时间（秒）
+
+# ================================
+# 断言类关键字
+# ================================
+assert_title_equals:
+  - expected_title  # 期望的页面标题
+
+assert_title_contains:
+  - expected_text   # 期望包含的文本
+
+assert_text_contains:
+  - expected_text   # 期望包含的文本
+
+assert_element_visible:
+  - locator_type    # id/name/xpath/css/role 等
+  - element         # 元素标识
+
+assert_element_invisible:
+  - locator_type    # id/name/xpath/css/role 等
+  - element         # 元素标识
+
+assert_element_exists:
+  - locator_type    # id/name/xpath/css/role 等
+  - element         # 元素标识
+
+# ================================
+# 获取信息类关键字
+# ================================
+get_current_url:
+  - variable_name   # 存储变量名
+
+get_page_title:
+  - variable_name   # 存储变量名
+
+get_element_attribute:
+  - locator_type    # id/name/xpath/css/role 等
+  - element         # 元素标识
+  - attribute_name  # 属性名
+  - variable_name   # 存储变量名
+
+# ================================
+# 截图和日志类关键字
+# ================================
+take_screenshot:
+  - filename        # 文件名（可选）
+
+execute_script:
+  - script          # JavaScript 代码
+  - variable_name   # 存储变量名（可选）
+
+# ================================
+# 其他关键字
+# ================================
+select_option:
+  - locator_type    # id/name/xpath/css/role 等
+  - element         # 元素标识
+  - option_value    # 选项值
+
+select_option_by_text:
+  - locator_type    # id/name/xpath/css/role 等
+  - element         # 元素标识
+  - option_text     # 选项文本
+
+upload_file:
+  - locator_type    # id/name/xpath/css/role 等
+  - element         # 元素标识
+  - file_path       # 文件路径
+
+switch_to_frame:
+  - locator_type    # id/name/xpath/css/role 等
+  - element         # 元素标识
+
+switch_to_default_content: []  # 无参数
+
+accept_alert: []  # 接受警告框
+
+dismiss_alert: []  # 拒绝警告框
+
+get_alert_text:
+  - variable_name   # 存储变量名
+
+# ================================
+# AI 驱动操作类关键字
+# ================================
+ai_click:
+  - element_desc    # 元素描述
+
+ai_input:
+  - element_desc    # 元素描述
+  - text            # 输入的文本
+
+ai_operation:
+  - operation_desc  # 操作描述
+
