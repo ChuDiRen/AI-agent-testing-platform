@@ -34,6 +34,8 @@ python-dotenv>=1.0.0
 
 # AI Integration (Optional)
 openai>=0.27.8
+torch>=2.0.0
+qwen-vl-utils>=0.0.14
 
 # Development Tools
 ipython>=8.14.0

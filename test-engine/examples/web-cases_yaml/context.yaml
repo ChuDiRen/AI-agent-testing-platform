@@ -37,3 +37,12 @@ _database:
     password: 
     db: 
 
+# 测试用例通用变量配置
+BROWSER: "chromium"  # 浏览器类型: chromium, firefox, webkit
+HEADLESS: "true"  # 是否无头模式: true, false
+IMPLICIT_WAIT: ""  # 隐式等待时间（秒），为空表示不设置
+WINDOW_SIZE: ""  # 浏览器窗口大小，如 "1920x1080"，为空表示默认
+
+# 测试环境URL配置
+BASE_URL: "https://www.baidu.com"  # 基础URL 
+

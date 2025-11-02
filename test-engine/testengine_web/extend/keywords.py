@@ -105,17 +105,18 @@ class Keywords:
     def open_browser(self, **kwargs):
         """
         打开浏览器
-        
+
         参数:
             browser: chromium/firefox/webkit (默认 chromium)
             headless: true/false (默认 false)
-            timeout: timeout（毫秒，默认 30000）
+            timeout: timeout（毫秒，默认 60000）
             implicit_wait: 隐式等待时间（秒，将转换为 Playwright 的 default_timeout）
             window_size: maximize/1920x1080/等 (默认 maximize)
             enable_tracing: true/false (默认 false)
+            url: 可选，打开浏览器后立即导航到该URL
         """
         kwargs.pop("关键字", None)
-        
+
         browser = kwargs.get("browser", "chromium")
         headless = str(kwargs.get("headless", "false")).lower() in ["true", "1", "yes"]
         # implicit_wait 转换为毫秒（Playwright 使用毫秒）
@@ -123,12 +124,13 @@ class Keywords:
         if implicit_wait:
             timeout = int(float(implicit_wait) * 1000)  # 秒转毫秒
         else:
-            timeout = int(kwargs.get("timeout", 30000))
+            timeout = int(kwargs.get("timeout", 60000))  # 默认60秒
         window_size = kwargs.get("window_size", "maximize")
         enable_tracing = str(kwargs.get("enable_tracing", "false")).lower() in ["true", "1", "yes"]
-        
+        url = kwargs.get("url")  # 可选的URL参数
+
         print(f"正在启动浏览器: {browser}, 无头模式: {headless}")
-        
+
         # 创建页面
         page = PlaywrightManager.create_page(
             browser=browser,
@@ -136,15 +138,24 @@ class Keywords:
             timeout=timeout,
             window_size=window_size
         )
-        
+
         # 启用追踪（如果需要）
         if enable_tracing:
             PlaywrightManager.enable_tracing()
-        
+
         # 保存到全局上下文
         g_context().set_dict("current_page", page)
         g_context().set_dict("current_browser", browser)
-        
+
+        # 如果提供了URL，立即导航
+        if url:
+            try:
+                page.goto(url, wait_until="load", timeout=timeout)
+                print(f"已导航到: {url}")
+            except Exception as e:
+                print(f"导航到 {url} 失败: {e}")
+                raise
+
         print(f"浏览器启动成功: {browser}")
 
     @allure.step("关闭浏览器")
@@ -228,64 +239,89 @@ class Keywords:
     def input_text(self, **kwargs):
         """
         输入text到element
-        
+
         参数:
             locator_type: id/name/xpath/css/role/text/label 等
             element: element标识
             text: 要输入的text
             clear: true/false (默认 true)
-            timeout: timeout（毫秒，可选）
+            timeout: timeout（毫秒，默认10000）
+            wait_visible: 是否等待元素可见 (默认 true)
         """
         kwargs.pop("关键字", None)
-        
+
         locator_type = kwargs.get("locator_type")
         element = kwargs.get("element")
         text = kwargs.get("text", "")
         clear = str(kwargs.get("clear", "true")).lower() in ["true", "1", "yes"]
-        timeout = kwargs.get("timeout")
+        timeout = int(kwargs.get("timeout", 10000))  # 默认10秒
+        wait_visible = str(kwargs.get("wait_visible", "true")).lower() in ["true", "1", "yes"]
         force_action = str(kwargs.get("force_action", "false")).lower() in ["true", "1", "yes"]
 
         locator = self._get_locator(locator_type, element)
 
         try:
+            # 先等待元素可见（如果需要）
+            if wait_visible:
+                try:
+                    locator.wait_for(state="visible", timeout=timeout)
+                except PlaywrightTimeoutError:
+                    print(f"警告: 元素 {locator_type}={element} 不可见，尝试强制操作")
+                    if not force_action:
+                        force_action = True
+
             # 如果element隐藏，先尝试点击使其可见
             if force_action:
                 try:
-                    locator.click(force=True, timeout=1000)
+                    locator.click(force=True, timeout=2000)
                 except:
                     pass
 
+            # 执行输入操作
             if clear:
-                if timeout:
-                    locator.fill(text, timeout=int(timeout), force=force_action)
-                else:
-                    locator.fill(text, force=force_action)
+                locator.fill(text, timeout=timeout, force=force_action)
             else:
-                if timeout:
-                    locator.type(text, timeout=int(timeout))
-                else:
-                    locator.type(text)
+                locator.type(text, timeout=timeout)
             print(f"已输入text: {text} 到 {locator_type}={element}")
         except PlaywrightTimeoutError as e:
             self._take_screenshot_on_error(f"输入text超时_{locator_type}_{element}")
-            raise PlaywrightTimeoutError(f"输入text超时: {locator_type}={element}") from e
+            raise PlaywrightTimeoutError(f"输入text超时: {locator_type}={element}, 请检查元素是否存在或页面是否加载完成") from e
+        except Exception as e:
+            self._take_screenshot_on_error(f"输入text失败_{locator_type}_{element}")
+            raise Exception(f"输入text失败: {locator_type}={element}, 错误: {str(e)}") from e
 
     @allure.step("等待页面加载完成")
     def wait_for_page_load(self, **kwargs):
-        """等待页面加载完成"""
+        """
+        等待页面加载完成
+
+        参数:
+            wait_until: load/domcontentloaded/networkidle (默认 load)
+            timeout: 超时时间（毫秒，默认60000）
+        """
         kwargs.pop("关键字", None)
-        
+
         wait_until = kwargs.get("wait_until", "load")  # load/domcontentloaded/networkidle
-        timeout = kwargs.get("timeout", 30000)
-        
+        timeout = int(kwargs.get("timeout", 60000))  # 默认60秒
+
         page = self._get_page()
-        
+
         try:
-            page.wait_for_load_state(wait_until, timeout=int(timeout))
+            # 先等待 domcontentloaded，然后根据需要等待 load 或 networkidle
+            if wait_until == "networkidle":
+                page.wait_for_load_state("domcontentloaded", timeout=timeout)
+                page.wait_for_load_state("networkidle", timeout=timeout)
+            elif wait_until == "domcontentloaded":
+                page.wait_for_load_state("domcontentloaded", timeout=timeout)
+            else:  # load
+                page.wait_for_load_state("load", timeout=timeout)
+
             print(f"页面加载完成: {wait_until}")
+            # 额外等待100ms确保DOM完全稳定
+            time.sleep(0.1)
         except PlaywrightTimeoutError as e:
-            self._take_screenshot_on_error("等待页面加载超时")
-            raise PlaywrightTimeoutError(f"等待页面加载超时: {wait_until}") from e
+            self._take_screenshot_on_error(f"等待页面加载超时_{wait_until}")
+            raise PlaywrightTimeoutError(f"等待页面加载超时: {wait_until}，请检查网络连接或页面是否正常") from e
 
     @allure.step("断言页面标题: {expected_title}")
     def assert_title(self, **kwargs):
@@ -933,9 +969,37 @@ class Keywords:
         import os
         import re
         import uuid
-        from openai import OpenAI
-        from PIL import Image
-        from qwen_vl_utils import smart_resize
+        
+        # 延迟导入并添加详细错误处理
+        try:
+            from openai import OpenAI
+        except ImportError as e:
+            raise RuntimeError(
+                "AI 功能需要 openai 包，请运行: pip install openai\n"
+                f"详细错误: {e}"
+            )
+        except TypeError as e:
+            # 处理 importlib_metadata 的问题
+            raise RuntimeError(
+                "导入 openai 包时遇到环境问题，可能是 Python 环境配置错误。\n"
+                "建议解决方案：\n"
+                "1. 重新安装 openai: pip uninstall openai && pip install openai\n"
+                "2. 更新 importlib-metadata: pip install --upgrade importlib-metadata\n"
+                "3. 检查虚拟环境是否正常\n"
+                f"详细错误: {e}"
+            )
+        except Exception as e:
+            raise RuntimeError(f"导入 openai 包失败: {e}")
+        
+        try:
+            from PIL import Image
+        except ImportError:
+            raise RuntimeError("AI 功能需要 Pillow 包，请运行: pip install Pillow")
+        
+        try:
+            from qwen_vl_utils import smart_resize
+        except ImportError:
+            raise RuntimeError("AI 功能需要 qwen-vl-utils 包，请运行: pip install qwen-vl-utils")
 
         # 加载配置
         config = self._load_ai_config()
@@ -1369,6 +1433,69 @@ class Keywords:
         except Exception as e:
             self._take_screenshot_on_error(f"AI断言失败_{element_desc}")
             raise AssertionError(f"AI断言失败: {element_desc} 不可见") from e
+
+    # ============ 旧关键字兼容方法 - 向后兼容 ============
+    
+    def input_context(self, **kwargs):
+        """
+        旧版关键字兼容: input_context -> input_text
+        
+        旧参数映射:
+            定位方式 -> locator_type
+            目标对象 -> element
+            数据内容 -> text
+        """
+        kwargs.pop("关键字", None)
+        locator_type = kwargs.get("定位方式", kwargs.get("locator_type"))
+        element = kwargs.get("目标对象", kwargs.get("element"))
+        text = kwargs.get("数据内容", kwargs.get("text"))
+        
+        # 调用新的 input_text 方法
+        return self.input_text(locator_type=locator_type, element=element, text=text)
+    
+    def option_click(self, **kwargs):
+        """
+        旧版关键字兼容: option_click -> click_element
+        
+        旧参数映射:
+            定位方式 -> locator_type
+            目标对象 -> element
+        """
+        kwargs.pop("关键字", None)
+        locator_type = kwargs.get("定位方式", kwargs.get("locator_type"))
+        element = kwargs.get("目标对象", kwargs.get("element"))
+        
+        # 调用新的 click_element 方法
+        return self.click_element(locator_type=locator_type, element=element)
+    
+    def wait_sleep(self, **kwargs):
+        """
+        旧版关键字兼容: wait_sleep -> sleep
+        
+        旧参数映射:
+            数据内容 -> time
+        """
+        kwargs.pop("关键字", None)
+        time_value = kwargs.get("数据内容", kwargs.get("time"))
+        
+        if time_value:
+            time_value = float(time_value)
+        
+        # 调用新的 sleep 方法
+        return self.sleep(time=time_value)
+    
+    def assert_browser_title(self, **kwargs):
+        """
+        旧版关键字兼容: assert_browser_title -> assert_title_equals
+        
+        旧参数映射:
+            数据内容 -> expected_title
+        """
+        kwargs.pop("关键字", None)
+        expected_title = kwargs.get("数据内容", kwargs.get("expected_title"))
+        
+        # 调用新的 assert_title_equals 方法
+        return self.assert_title_equals(expected_title=expected_title)
 
 
 

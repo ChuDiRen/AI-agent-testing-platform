@@ -15,23 +15,23 @@ class PlaywrightManager:
     _page = None
 
     @staticmethod
-    def create_page(browser="chromium", headless=False, timeout=30000, window_size="maximize", **kwargs):
+    def create_page(browser="chromium", headless=False, timeout=60000, window_size="maximize", **kwargs):
         """
         创建 Playwright 页面实例
-        
+
         :param browser: 浏览器类型 (chromium/firefox/webkit)
         :param headless: 是否无头模式
-        :param timeout: 默认超时时间（毫秒）
+        :param timeout: 默认超时时间（毫秒，默认60秒）
         :param window_size: 窗口大小 (maximize/1920x1080/等)
         :param kwargs: 其他浏览器选项
         :return: Page 实例
         """
         browser = browser.lower()
-        
+
         # 启动 Playwright
         if PlaywrightManager._playwright is None:
             PlaywrightManager._playwright = sync_playwright().start()
-        
+
         # 创建浏览器实例
         if browser == "chromium" or browser == "chrome":
             PlaywrightManager._browser = PlaywrightManager._playwright.chromium.launch(
@@ -50,19 +50,19 @@ class PlaywrightManager:
             )
         else:
             raise ValueError(f"不支持的浏览器类型: {browser}，支持的类型: chromium, firefox, webkit")
-        
+
         # 创建浏览器上下文
         context_options = {}
-        
+
         # 设置窗口大小
         if window_size != "maximize":
             if "x" in window_size:
                 width, height = map(int, window_size.split("x"))
                 context_options["viewport"] = {"width": width, "height": height}
-        
+
         PlaywrightManager._context = PlaywrightManager._browser.new_context(**context_options)
-        
-        # 设置默认超时
+
+        # 设置默认超时（60秒，适应网络延迟）
         PlaywrightManager._context.set_default_timeout(timeout)
         PlaywrightManager._context.set_default_navigation_timeout(timeout)
         

@@ -12,19 +12,36 @@ steps:
   
   - 等待页面加载:
       关键字: wait_for_page_load
-      wait_until: load
-  
+      wait_until: networkidle
+      timeout: 30000
+
+  - 等待用户名输入框可见:
+      关键字: wait_for_element_visible
+      locator_type: id
+      element: txtUName
+      timeout: 15000
+
   - 输入用户名:
       关键字: input_text
       locator_type: id
       element: txtUName
       text: '{{username}}'
+      timeout: 10000
+      wait_visible: true
   
+  - 等待密码输入框可见:
+      关键字: wait_for_element_visible
+      locator_type: id
+      element: txtPassword
+      timeout: 10000
+
   - 输入密码:
       关键字: input_text
       locator_type: id
       element: txtPassword
       text: '{{password}}'
+      timeout: 10000
+      wait_visible: true
   
   - 等待输入完成:
       关键字: sleep

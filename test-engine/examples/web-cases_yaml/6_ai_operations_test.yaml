@@ -1,5 +1,8 @@
 desc: AI 驱动操作测试 - 演示如何使用 AI 功能进行自然语言元素操作
 
+pre_script:
+  - 'print("开始执行 AI 驱动测试...")'
+
 steps:
   - 打开browser:
       关键字: open_browser
@@ -49,5 +52,8 @@ steps:
   
   - 关闭browser:
       关键字: close_browser
+
+post_script:
+  - 'print("AI 驱动测试完成")'
 
 

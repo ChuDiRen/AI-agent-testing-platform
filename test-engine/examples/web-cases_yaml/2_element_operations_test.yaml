@@ -1,4 +1,8 @@
 desc: 元素操作测试用例 - Playwright版本
+
+pre_script:
+  - 'print("开始执行元素操作测试...")'
+
 steps:
   - 打开browser:
       关键字: open_browser

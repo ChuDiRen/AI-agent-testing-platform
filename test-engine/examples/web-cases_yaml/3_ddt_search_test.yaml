@@ -1,4 +1,8 @@
 desc: 数据驱动搜索测试 - Playwright版本
+
+pre_script:
+  - 'print("开始执行数据驱动搜索测试...")'
+
 steps:
   - 打开browser:
       关键字: open_browser
@@ -39,6 +43,9 @@ steps:
 
   - 关闭browser:
       关键字: close_browser
+
+post_script:
+  - 'print("数据驱动搜索测试完成")'
 
 # 数据驱动测试数据
 ddts:
