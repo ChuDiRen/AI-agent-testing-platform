@@ -6,17 +6,20 @@
 @IDE ：PyCharm
 """
 import pytest
-from unittest.mock import Mock
+import pytest_asyncio
 
-from apirun.core.globalContext import g_context
-from apirun.extend.KeyWords import KeyWords
-from apirun.utils.VarRender import refresh
+from testengine_api.core.globalContext import g_context
+from testengine_api.extend.keywords import Keywords
+from testengine_api.utils.VarRender import refresh
 
 # 共用常量
 BASE_URL = "https://petstore.swagger.io/v2"
 
 # 共用工具类实例
-keyWords = KeyWords()
+keyWords = Keywords()
+
+# 配置pytest-asyncio
+pytest_plugins = ('pytest_asyncio',)
 
 
 # 获取API基础URL的函数
@@ -30,18 +33,35 @@ def base_url():
     return get_base_url()
 
 
-# Fixture: 用于模拟API响应
+# Fixture: 用于模拟API响应（使用pytest-mock）
 @pytest.fixture
 def mock_response():
-    response = Mock()
-    response.status_code = 200
-    response.json.return_value = {}
-    return response
+    """创建一个简单的mock响应对象"""
+    class MockResponse:
+        def __init__(self):
+            self.status_code = 200
+            self._json_data = {}
+        
+        def json(self):
+            return self._json_data
+    
+    return MockResponse()
+
+
+# Fixture: API客户端 (异步)
+@pytest_asyncio.fixture
+async def api_client():
+    """提供httpx异步客户端"""
+    import httpx
+    async with httpx.AsyncClient() as client:
+        yield client
+
+
 
 
 # Fixture: 创建一个新宠物并返回其ID
-@pytest.fixture
-def pet_id():
+@pytest_asyncio.fixture
+async def pet_id():
     url = f"{BASE_URL}/pet"
     payload = {
         "id": 1,
@@ -61,7 +81,7 @@ def pet_id():
         ],
         "status": "available"
     }
-    response = keyWords.request_post_row(url=url, json=payload)
+    response = await keyWords.request_post_row(url=url, json=payload)
     assert response.status_code == 200
     return response.json()['id']
 
@@ -77,4 +97,4 @@ def process_request_data(request_data):
     Returns:
         处理后的请求数据
     """
-    return eval(refresh(request_data, g_context.show_dict()))
+    return eval(refresh(request_data, g_context().show_dict()))

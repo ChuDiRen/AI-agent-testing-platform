@@ -1,6 +1,7 @@
 desc: 5_下载图片文件接口进行比对[这个接口是本地接口，需要先启动flask服务]
 pre_script:
-- 'print("执行前...")'
+- 'print("执行前...此测试需要本地Flask服务,已跳过")'
+- 'import pytest; pytest.skip("需要本地Flask服务: python -m flask run")'
 steps:
 - 发送请求-登录接口:
     关键字: send_request

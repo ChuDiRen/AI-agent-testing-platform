@@ -1,19 +1,39 @@
-# Web 测试全局配置文件 - Playwright 版本
+_browser:
+  grid_url: ""
+  driver_path: ""
+  auto_download: true  # 是否自动下载浏览器驱动，默认为true
+  capability:
+    browserName: chrome
+    # 谷歌浏览器专用配置（按需配置）
+    # goog:chromeOptions: 
+      # args:
+      # 设置是否为 无头 隐藏模式（按需配置）
+      # - "--headless"
+      # 设置浏览器数据保存位置（按需配置）
+      # - "--user-data-dir=d:\\tttt"
+    # 火狐浏览器专用配置（按需配置）
+    # moz:firefoxOptions: 
+      # args:
+      # 设置是否为 无头 隐藏模式（按需配置）
+      # - "--headless"
+    
 
-# 基础URL
-BASE_URL: https://www.baidu.com
-
-# 浏览器配置（Playwright）
-BROWSER: chromium
-HEADLESS: false
-IMPLICIT_WAIT: 10
-WINDOW_SIZE: maximize
-
-# 测试账号配置（示例）
-TEST_USERNAME: testuser
-TEST_PASSWORD: testpass123
-
-# 超时配置
-DEFAULT_TIMEOUT: 10
-
+_database:
+  mysql001:
+    host: 192.168.1.111
+    port: 3306
+    user: root
+    password: root
+    db: novel_plus
+  mysql002:
+    host: 
+    port: 
+    user: 
+    password: 
+    db: 
+  redis:
+    host: 
+    port: 
+    password: 
+    db: 
 

@@ -1,13 +1,12 @@
-desc: 4_上传图片并且修改头像.yaml
+desc: 4_上传图片并且修改头像.yaml(需要外部服务,跳过)
 pre_script:
-- 'print("执行前...")'
+- 'print("执行前...此测试需要文件上传服务,已跳过")'
+- 'import pytest; pytest.skip("需要外部文件上传服务")'
 steps:
 - 发送请求-登录接口:
     关键字: send_request
     method: POST
     url: "{{DSWURL}}/user/login"
-#    headers: ~
-#    params: {}
     data:
       username: 15096268001
       password: 123456
@@ -20,16 +19,8 @@ steps:
     关键字: send_request
     method: POST
     url: "{{DSWURL}}/file/picUpload"
-#    headers: ~
-#    params: {}
     files:
-      - file: ..\examples\api-cases\P1.png  # 本地地址直接给文件名即可
-#      - file: http://192.168.1.106:9000/apitest/需求-4.png # URL 则先要下载本地，再进行上传
-- 通过JSONPATH提取数据-图片路径:
-     关键字: ex_jsonData
-     EXVALUE: $..data
-     INDEX: 0
-     VARNAME: msg_pic_path
+      - file: examples/api-cases_yaml/P1.png
 - 通过JSONPATH提取数据-图片路径:
      关键字: ex_jsonData
      EXVALUE: $..data

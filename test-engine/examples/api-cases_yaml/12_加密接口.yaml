@@ -1,0 +1,29 @@
+desc: 加密接口(需要外部服务,跳过)
+storyName: 加密项目
+featureName: 登录模块
+remark: 登录模块备注
+pre_script:
+- 'print("此测试需要加密接口服务,已跳过")'
+- 'import pytest; pytest.skip("需要加密接口服务: http://127.0.0.1:8080/login_safe")'
+steps:
+  - 进行数据加密 - 用户名:
+      关键字: encrypt_aes
+      data: "{{username}}"
+      VARNAME: aes_username
+  - 进行数据加密 - 密码:
+      关键字: encrypt_aes
+      data: "{{password}}"
+      VARNAME: aes_password
+  - 发送Post请求:
+      关键字: request_post_form_urlencoded
+      URL: http://127.0.0.1:8080/login_safe
+      DATA:
+        password: "{{aes_username}}"
+        username: "{{aes_password}}"
+ddts:
+  - username: tony
+    password: '123456'
+    desc: "正确的用户名和密码"
+  - username: hami
+    password: '1234567'
+    desc: "错误的用户名和密码"

@@ -23,7 +23,7 @@ steps:
 #    headers: ~
 #    params: {}
     files:
-      - file: ..\examples\example-api-cases\P1.png  # 本地地址直接给文件名即可
+      - file: ..\examples\example-api-cases_yaml\P1.png  # 本地地址直接给文件名即可
 #      - file: http://192.168.1.106:9000/apitest/需求-4.png # URL 则先要下载本地，再进行上传
 - 通过JSONPATH提取数据-图片路径:
      关键字: ex_jsonData

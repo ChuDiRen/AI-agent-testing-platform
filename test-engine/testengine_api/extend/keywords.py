@@ -322,6 +322,38 @@ class Keywords:
         print("-----------------------")
 
     @allure.step(">>>>>>参数数据：")
+    async def request_get_row(self, **kwargs):
+        """发送GET请求 - 异步版本"""
+        client = await AsyncClientManager.get_client()
+        response = await client.get(**kwargs)
+        g_context().set_dict("current_response", response)
+        return response
+
+    @allure.step(">>>>>>参数数据：")
+    async def request_post_row(self, **kwargs):
+        """发送POST请求 - 异步版本"""
+        client = await AsyncClientManager.get_client()
+        response = await client.post(**kwargs)
+        g_context().set_dict("current_response", response)
+        return response
+
+    @allure.step(">>>>>>参数数据：")
+    async def request_put_row(self, **kwargs):
+        """发送PUT请求 - 异步版本"""
+        client = await AsyncClientManager.get_client()
+        response = await client.put(**kwargs)
+        g_context().set_dict("current_response", response)
+        return response
+
+    @allure.step(">>>>>>参数数据：")
+    async def request_delete_row(self, **kwargs):
+        """发送DELETE请求 - 异步版本"""
+        client = await AsyncClientManager.get_client()
+        response = await client.delete(**kwargs)
+        g_context().set_dict("current_response", response)
+        return response
+
+    @allure.step(">>>>>>参数数据：")
     def ex_jsonData(self, **kwargs):
         """
         提取json数据
@@ -337,7 +369,12 @@ class Keywords:
         INDEX = int(INDEX) if INDEX.isdigit() else 0
 
         # 获取响应数据
-        response = g_context().get_dict("current_response").json()
+        try:
+            response = g_context().get_dict("current_response").json()
+        except Exception as e:
+            print(f"JSON解析失败，响应内容: {g_context().get_dict('current_response').text[:500]}")
+            raise ValueError(f"响应不是有效的JSON格式: {str(e)}")
+        
         ex_data = jsonpath.jsonpath(response, EXPRESSION)[INDEX]  # 通过JsonPath进行提取
         g_context().set_dict(kwargs["VARNAME"], ex_data)  # 根据变量名设置成全局变量
         print("-----------------------")
@@ -495,5 +532,133 @@ class Keywords:
         print(g_context().show_dict())
         print("-----------------------")
 
+    @allure.step(">>>>>>参数数据：")
+    def generate_name_new(self, **kwargs):
+        """
+        生成随机用户名
+        VARNAME：存储的变量名
+        """
+        import random
+        import string
+        import time
+        
+        # 生成随机用户名：user + 时间戳 + 随机字符
+        timestamp = str(int(time.time()))[-6:]  # 取时间戳后6位
+        random_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+        username = f"user{timestamp}{random_str}"
+        
+        g_context().set_dict(kwargs["VARNAME"], username)
+        print(f"生成的用户名: {username}")
+        print("-----------------------")
+        print(g_context().show_dict())
+        print("-----------------------")
+
+    @allure.step(">>>>>>参数数据：")
+    def assert_json_DeepDiff(self, **kwargs):
+        """
+        JSON深度对比断言
+        json1: 第一个JSON对象
+        json2: 第二个JSON对象
+        过滤字段: 需要过滤的字段（可选）- 格式可以是 {city} 或 ['city'] 或 'city'
+        忽略顺序: 是否忽略列表顺序（可选，默认False）
+        """
+        try:
+            from deepdiff import DeepDiff
+        except ImportError:
+            print("警告: deepdiff库未安装，将使用简单对比")
+            # 简单对比
+            json1 = kwargs.get("json1")
+            json2 = kwargs.get("json2")
+            if json1 != json2:
+                raise AssertionError(f"JSON对比失败:\n期望: {json2}\n实际: {json1}")
+            return
+
+        json1 = kwargs.get("json1")
+        json2 = kwargs.get("json2")
+        exclude_paths = kwargs.get("过滤字段", None)
+        ignore_order = kwargs.get("忽略顺序", False)
+        
+        print(f"调试信息 - exclude_paths类型: {type(exclude_paths)}, 值: {exclude_paths}")
+        
+        # 处理过滤字段 - 支持多种格式
+        exclude_list = []
+        if exclude_paths:
+            # 情况1: 如果是set类型 {city}
+            if isinstance(exclude_paths, set):
+                for field in exclude_paths:
+                    field = str(field).strip()
+                    exclude_list.append(f"root['{field}']")
+            # 情况2: 如果是list类型 ['city']
+            elif isinstance(exclude_paths, list):
+                for field in exclude_paths:
+                    field = str(field).strip()
+                    exclude_list.append(f"root['{field}']")
+            # 情况3: 如果是字符串 "city" 或 "{city}"
+            elif isinstance(exclude_paths, str):
+                # 去除花括号和空格
+                exclude_str = exclude_paths.strip('{}').strip()
+                if exclude_str:
+                    # 支持逗号分隔的多个字段
+                    for field in exclude_str.split(','):
+                        field = field.strip()
+                        if field:
+                            exclude_list.append(f"root['{field}']")
+        
+        print(f"调试信息 - 最终的exclude_list: {exclude_list}")
+        
+        # 进行深度对比
+        diff_params = {
+            'ignore_order': ignore_order,
+        }
+        if exclude_list:
+            diff_params['exclude_paths'] = exclude_list
+            
+        print(f"调试信息 - DeepDiff参数: {diff_params}")
+        diff = DeepDiff(json1, json2, **diff_params)
+        
+        if diff:
+            print(f"❌ JSON对比发现差异: {diff}")
+            raise AssertionError(f"JSON对比失败: {diff}")
+        else:
+            print("✅ JSON对比一致")
+
+    @allure.step(">>>>>>参数数据：")
+    def encrypt_aes(self, **kwargs):
+        """
+        AES加密
+        data: 要加密的数据
+        VARNAME: 存储加密结果的变量名
+        key: AES密钥（可选，默认使用固定密钥）
+        mode: 加密模式（可选，默认CBC）
+        """
+        try:
+            from Crypto.Cipher import AES
+            from Crypto.Util.Padding import pad
+            import base64
+        except ImportError:
+            raise ImportError("请安装 pycryptodome 库: pip install pycryptodome")
+        
+        data = kwargs.get("data", "")
+        var_name = kwargs.get("VARNAME")
+        # 默认密钥（16字节）
+        key = kwargs.get("key", "1234567890123456").encode('utf-8')
+        if len(key) not in [16, 24, 32]:
+            key = (key + b'0' * 16)[:16]  # 填充到16字节
+        
+        # 创建AES加密器
+        cipher = AES.new(key, AES.MODE_ECB)
+        
+        # 对数据进行填充并加密
+        padded_data = pad(data.encode('utf-8'), AES.block_size)
+        encrypted = cipher.encrypt(padded_data)
+        
+        # Base64编码
+        encrypted_base64 = base64.b64encode(encrypted).decode('utf-8')
+        
+        g_context().set_dict(var_name, encrypted_base64)
+        print(f"AES加密结果: {encrypted_base64}")
+        print("-----------------------")
+        print(g_context().show_dict())
+        print("-----------------------")
 
 

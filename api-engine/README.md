@@ -109,21 +109,21 @@ pip install -r requirements.txt
 
 ```bash
 cd apirun
-python cli.py --type=yaml --cases=../examples/example-api-cases
+python cli.py --type=yaml --cases=../examples/example-api-cases_yaml
 ```
 
 **模块方式运行**:
 
 ```bash
 cd api-engine
-python -m apirun.cli --type=yaml --cases=examples/example-api-cases
+python -m apirun.cli --type=yaml --cases=examples/example-api-cases_yaml
 ```
 
 **使用 pytest 直接运行**:
 
 ```bash
 cd apirun
-pytest core/ApiTestRunner.py --type=yaml --cases=../examples/example-api-cases
+pytest core/ApiTestRunner.py --type=yaml --cases=../examples/example-api-cases_yaml
 ```
 
 #### 方式二：运行 Pytest 脚本
@@ -380,14 +380,14 @@ class MyKeyword:
 
 ```bash
 cd apirun
-python cli.py --type=yaml --cases=../examples/example-api-cases
+python cli.py --type=yaml --cases=../examples/example-api-cases_yaml
 ```
 
 或使用模块方式:
 
 ```bash
 cd api-engine
-python -m apirun.cli --type=yaml --cases=examples/example-api-cases
+python -m apirun.cli --type=yaml --cases=examples/example-api-cases_yaml
 ```
 
 ### 3. 如何在 YAML 和 Pytest 之间选择？

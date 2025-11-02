@@ -1,0 +1,32 @@
+desc: 加入购物车成功-JSON格式
+featureName: 购物车模块
+storyName: 订单模块
+remark: 加入购物车模块备注
+steps:
+- 发送Post请求:
+    关键字: request_post_row_json
+    URL: "{{URL}}"
+    PARAMS:
+      s: api/cart/save
+      application: app
+      token: "{{msg_token}}"
+    DATA:
+      goods_id: "2"
+      spec:
+        - type: 套餐
+          value: 套餐二
+        - type: 颜色
+          value: 银色
+        - type: 容量
+          value: 64G
+      stock: 2
+- 通过JSONPATH提取数据-MSG:
+     关键字: ex_jsonData
+     EXVALUE: $..msg
+     INDEX: 0
+     VARNAME: msg_success
+- 断言-文本断言-等于:
+    关键字: assert_text_comparators
+    VALUE: "{{msg_success}}"
+    EXPECTED: 加入成功
+    OP_STR: ==

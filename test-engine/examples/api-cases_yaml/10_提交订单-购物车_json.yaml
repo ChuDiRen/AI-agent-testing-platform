@@ -1,0 +1,28 @@
+desc: 提交订单-购物车
+featureName: 提交订单模块
+storyName: 订单模块
+remark: 提交订单模块备注
+steps:
+- 发送Post请求:
+    关键字: request_post_row_json
+    URL: "{{URL}}"
+    PARAMS:
+      s: /api/buy/add
+      application: app
+      token: "{{msg_token}}"
+    DATA:
+      buy_type: "cart"
+      address_id: "{{add_id}}"
+      ids: "{{card_id_2}}"
+      payment_id: 4
+      user_note: 通过购物车进行下单
+- 通过JSONPATH提取数据-MSG:
+     关键字: ex_jsonData
+     EXVALUE: $..msg
+     INDEX: 0
+     VARNAME: msg_success
+- 断言-文本断言-等于:
+    关键字: assert_text_comparators
+    VALUE: "{{msg_success}}"
+    EXPECTED: 提交成功
+    OP_STR: ==

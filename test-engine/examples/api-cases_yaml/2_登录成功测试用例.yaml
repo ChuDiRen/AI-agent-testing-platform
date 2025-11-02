@@ -1,0 +1,36 @@
+desc: T2-登录用例
+featureName: 登录模块
+storyName: 用户模块
+remark: 登录模块备注
+steps:
+  - 发送Post请求:
+      关键字: request_post_form_urlencoded
+      URL: "{{URL}}"
+      PARAMS:
+        s: /api/user/login
+        application: app
+      DATA:
+        accounts: "{{username}}"
+        pwd: "{{password}}"
+        type: username
+  - 通过JSONPATH提取数据-MSG:
+      关键字: ex_jsonData
+      EXVALUE: $..msg
+      INDEX: 0
+      VARNAME: msg_success
+  - 通过JSONPATH提取数据-TOKEN:
+       关键字: ex_jsonData
+       EXVALUE: $..token
+       INDEX: 0
+       VARNAME: msg_token
+  - 断言-文本断言-等于:
+      关键字: assert_text_comparators
+      VALUE: "{{msg_success}}"
+      EXPECTED: "{{expected}}"
+      OP_STR: ==
+ddts:
+  - username: hami
+    password: '123456'
+    expected: '登录成功'
+    desc: "正确的用户名和密码"
+

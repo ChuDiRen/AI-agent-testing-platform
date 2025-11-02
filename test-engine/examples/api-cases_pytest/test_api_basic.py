@@ -4,7 +4,7 @@ API 基础测试示例
 """
 import allure
 import pytest
-import requests
+import httpx
 
 
 @allure.feature("用户管理")
@@ -15,7 +15,8 @@ class TestUserLogin:
     @allure.title("测试用户名密码登录成功")
     @allure.severity(allure.severity_level.BLOCKER)
     @pytest.mark.smoke
-    def test_login_success(self, base_url: str):
+    @pytest.mark.asyncio
+    async def test_login_success(self, base_url: str, api_client):
         """
         测试用例：用户名密码登录成功
         
@@ -34,7 +35,7 @@ class TestUserLogin:
             allure.attach(str(login_data), "请求数据", allure.attachment_type.JSON)
         
         with allure.step("发送登录请求"):
-            response = requests.post(login_url, json=login_data)
+            response = await api_client.post(login_url, json=login_data)
             allure.attach(response.text, "响应数据", allure.attachment_type.JSON)
         
         with allure.step("验证响应状态码"):
@@ -48,7 +49,8 @@ class TestUserLogin:
     
     @allure.title("测试用户名密码登录失败-密码错误")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_login_wrong_password(self, base_url: str):
+    @pytest.mark.asyncio
+    async def test_login_wrong_password(self, base_url: str, api_client):
         """
         测试用例：密码错误登录失败
         """
@@ -61,7 +63,7 @@ class TestUserLogin:
             }
         
         with allure.step("发送登录请求"):
-            response = requests.post(login_url, json=login_data)
+            response = await api_client.post(login_url, json=login_data)
         
         with allure.step("验证登录失败"):
             assert response.status_code == 200
@@ -71,7 +73,8 @@ class TestUserLogin:
     @allure.title("测试参数缺失登录失败")
     @allure.severity(allure.severity_level.NORMAL)
     @pytest.mark.parametrize("missing_field", ["accounts", "pwd", "type"])
-    def test_login_missing_params(self, base_url: str, missing_field: str):
+    @pytest.mark.asyncio
+    async def test_login_missing_params(self, base_url: str, missing_field: str, api_client):
         """
         测试用例：参数缺失登录失败
         使用参数化测试多个场景
@@ -88,7 +91,7 @@ class TestUserLogin:
             allure.attach(str(login_data), "请求数据", allure.attachment_type.JSON)
         
         with allure.step("发送登录请求"):
-            response = requests.post(login_url, json=login_data)
+            response = await api_client.post(login_url, json=login_data)
             allure.attach(response.text, "响应数据", allure.attachment_type.JSON)
         
         with allure.step("验证登录失败"):
@@ -104,13 +107,14 @@ class TestProductQuery:
     
     @allure.title("测试商品列表查询")
     @allure.severity(allure.severity_level.NORMAL)
-    def test_get_product_list(self, api_client):
+    @pytest.mark.asyncio
+    async def test_get_product_list(self, api_client):
         """
         测试用例：查询商品列表
         使用 api_client fixture
         """
         with allure.step("查询商品列表"):
-            response = api_client.get("/index.php?s=/api/goods/index")
+            response = await api_client.get("/index.php?s=/api/goods/index")
             allure.attach(response.text, "响应数据", allure.attachment_type.JSON)
         
         with allure.step("验证响应"):
@@ -121,7 +125,8 @@ class TestProductQuery:
     
     @allure.title("测试商品详情查询")
     @allure.severity(allure.severity_level.NORMAL)
-    def test_get_product_detail(self, api_client):
+    @pytest.mark.asyncio
+    async def test_get_product_detail(self, api_client):
         """
         测试用例：查询商品详情
         """
@@ -130,7 +135,7 @@ class TestProductQuery:
             allure.attach(str(goods_id), "商品ID", allure.attachment_type.TEXT)
         
         with allure.step("查询商品详情"):
-            response = api_client.get(
+            response = await api_client.get(
                 "/index.php?s=/api/goods/detail",
                 params={"id": goods_id}
             )
@@ -158,12 +163,14 @@ class TestDataDriven:
         ("", "123456", False),
         ("hami", "", False),
     ])
-    def test_login_with_multiple_users(
+    @pytest.mark.asyncio
+    async def test_login_with_multiple_users(
         self, 
         base_url: str, 
         username: str, 
         password: str, 
-        expected: bool
+        expected: bool,
+        api_client
     ):
         """
         数据驱动测试：测试多个用户登录场景
@@ -180,7 +187,7 @@ class TestDataDriven:
                 "type": "username"
             }
             
-            response = requests.post(login_url, json=login_data)
+            response = await api_client.post(login_url, json=login_data)
             result = response.json()
             
             allure.attach(str(login_data), "请求数据", allure.attachment_type.JSON)

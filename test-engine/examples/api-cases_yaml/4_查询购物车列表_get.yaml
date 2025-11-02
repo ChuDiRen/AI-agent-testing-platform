@@ -1,0 +1,32 @@
+desc: 查询购物车列表数据
+featureName: 购物车模块
+storyName: 订单模块
+remark: 查看购物车模块备注
+steps:
+- 发送Post请求:
+    关键字: request_get
+    URL: "{{URL}}"
+    PARAMS:
+      s: api/cart/index
+      application: app
+      token: "{{msg_token}}"
+- 通过JSONPATH提取数据-MSG:
+     关键字: ex_jsonData
+     EXVALUE: $..msg
+     INDEX: 0
+     VARNAME: msg_success
+- 断言-文本断言-等于:
+    关键字: assert_text_comparators
+    VALUE: "{{msg_success}}"
+    EXPECTED: success
+    OP_STR: ==
+- 通过JSONPATH提取数据-购物车ID，用来删除:
+     关键字: ex_jsonData
+     EXVALUE: $..id
+     INDEX: 0
+     VARNAME: card_id_1
+- 通过JSONPATH提取数据--购物车ID，用来提交订单:
+     关键字: ex_jsonData
+     EXVALUE: $..id
+     INDEX: 1
+     VARNAME: card_id_2

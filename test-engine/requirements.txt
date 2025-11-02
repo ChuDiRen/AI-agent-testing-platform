@@ -1,50 +1,43 @@
-# Test Engine 依赖包
-# 合并 API Engine 和 Web Engine 的依赖
+# Core Dependencies
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-html>=3.2.0
+pytest-xdist>=3.3.1
+allure-pytest>=2.13.2
+allure-combine>=2.5.1
 
-# ===== 测试框架核心 =====
-pytest>=8.1.1
-pytest-html>=4.1.1
-pytest-metadata>=3.1.1
-pytest-asyncio>=0.23.0  # 异步测试支持
+# HTTP Client
+httpx>=0.24.1
+requests>=2.31.0
 
-# ===== Allure 报告 =====
-allure-pytest>=2.13.5
-allure-python-commons>=2.13.5
+# Data Processing
+jsonpath>=0.82
+pyyaml>=6.0
+openpyxl>=3.1.2
+deepdiff>=6.3.0
 
-# ===== YAML 解析 =====
-PyYAML>=6.0.1
-pyyaml-include>=1.3.1
+# Database
+pymysql>=1.1.0
+pymongo>=4.4.0
 
-# ===== 模板引擎 =====
-Jinja2>=3.1.3
+# Encryption
+pycryptodome>=3.18.0
 
-# ===== API 测试相关 =====
-httpx>=0.27.0  # 异步 HTTP 客户端,替代 requests
-jsonpath>=0.82.2
+# Web Testing (Playwright)
+playwright>=1.35.0
+Pillow>=10.0.0
 
-# ===== Web 测试相关 =====
-playwright
+# Utilities
+loguru>=0.7.0
+python-dotenv>=1.0.0
 
-# ===== 数据库支持 =====
-PyMySQL>=1.1.0
-SQLAlchemy>=2.0.29
+# AI Integration (Optional)
+openai>=0.27.8
 
-# ===== 其他工具 =====
-pluggy>=1.4.0
-attrs>=23.2.0
-certifi>=2024.2.2
-charset-normalizer>=3.3.2
-idna>=3.7
-urllib3>=2.2.1
-packaging>=24.0
-iniconfig>=2.0.0
-exceptiongroup>=1.2.0
-tomli>=2.0.1
-colorama>=0.4.6
+# Development Tools
+ipython>=8.14.0
+black>=23.7.0
+flake8>=6.0.0
 
-# ===== AI 功能支持 =====
-openai>=1.57.4  # 阿里云百炼 API 客户端
-pydantic>=2.10.6  # 数据验证
-Pillow>=10.2.0  # 图像处理
-qwen-vl-utils>=0.0.3  # 通义千问 VL 工具
-
+# Additional
+faker>=18.13.0

@@ -2,8 +2,8 @@ desc: 接口关联-登录测试用例以及加入购物车
 steps:
 - 数据库数据提取:
     关键字: ex_mysqlData
-    数据库: mysql002
-    SQL: select pen_name,tel_phone from author  LIMIT 3
-    reference_variables: [pen_name,tel_phone]
+    数据库: mysql001
+    SQL: select username,mobile from sxo_user LIMIT 3
+    reference_variables: [username,mobile]
 
 

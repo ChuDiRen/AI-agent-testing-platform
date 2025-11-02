@@ -1,0 +1,29 @@
+desc: 添加地址接口
+featureName: 地址模块
+storyName: 地址模块
+remark: 添加地址模块备注
+steps:
+- 发送Post请求:
+    关键字: request_post_row_json
+    URL: "{{URL}}"
+    PARAMS:
+      s: api/useraddress/save
+      application: app
+      token: "{{msg_token}}"
+    DATA:
+      name: 李文静
+      tel: 15096964646
+      province: 18
+      city: 27
+      county: 2916
+      address: 2栋403室
+- 通过JSONPATH提取数据-MSG:
+     关键字: ex_jsonData
+     EXVALUE: $..msg
+     INDEX: 0
+     VARNAME: msg_success
+- 断言-文本断言-等于:
+    关键字: assert_text_comparators
+    VALUE: "{{msg_success}}"
+    EXPECTED: 新增成功
+    OP_STR: ==

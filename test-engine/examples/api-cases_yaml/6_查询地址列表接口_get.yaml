@@ -1,0 +1,27 @@
+desc: 查询地址列表
+featureName: 地址模块
+storyName: 地址模块
+remark: 地址列表模块备注
+steps:
+- 发送Post请求:
+    关键字: request_get
+    URL: "{{URL}}"
+    PARAMS:
+      s: api/useraddress/index
+      application: app
+      token: "{{msg_token}}"
+- 通过JSONPATH提取数据-MSG:
+     关键字: ex_jsonData
+     EXVALUE: $..msg
+     INDEX: 0
+     VARNAME: msg_success
+- 断言-文本断言-等于:
+    关键字: assert_text_comparators
+    VALUE: "{{msg_success}}"
+    EXPECTED: success
+    OP_STR: ==
+- 通过JSONPATH提取数据-add_id:
+     关键字: ex_jsonData
+     EXVALUE: $..id
+     INDEX: 0
+     VARNAME: add_id

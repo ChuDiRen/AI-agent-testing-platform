@@ -115,21 +115,21 @@ pip install -e .
 
 ```bash
 cd webrun
-python cli.py --type=yaml --cases=../examples/example-web-cases --browser=chrome --headless=false
+python cli.py --type=yaml --cases=../examples/example-web-cases_yaml --browser=chrome --headless=false
 ```
 
 **模块方式运行**:
 
 ```bash
 cd web-engine
-python -m webrun.cli --type=yaml --cases=examples/example-web-cases --browser=chrome --headless=false
+python -m webrun.cli --type=yaml --cases=examples/example-web-cases_yaml --browser=chrome --headless=false
 ```
 
 **使用 pytest 直接运行**:
 
 ```bash
 cd webrun
-pytest core/WebTestRunner.py --type=yaml --cases=../examples/example-web-cases --browser=chrome --headless=false
+pytest core/WebTestRunner.py --type=yaml --cases=../examples/example-web-cases_yaml --browser=chrome --headless=false
 ```
 
 #### 方式二：运行 Excel 用例
@@ -611,14 +611,14 @@ python -m webrun.cli --type=excel --cases=examples/example-excel-cases
 
 ```bash
 cd webrun
-python cli.py --type=yaml --cases=../examples/example-web-cases
+python cli.py --type=yaml --cases=../examples/example-web-cases_yaml
 ```
 
 或使用模块方式:
 
 ```bash
 cd web-engine
-python -m webrun.cli --type=yaml --cases=examples/example-web-cases
+python -m webrun.cli --type=yaml --cases=examples/example-web-cases_yaml
 ```
 
 ### 4. Pytest 脚本可以使用 g_context 吗？

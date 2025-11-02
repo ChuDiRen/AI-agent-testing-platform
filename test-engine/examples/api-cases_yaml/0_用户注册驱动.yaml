@@ -1,0 +1,31 @@
+desc: 用户注册用例
+featureName: 注册模块
+storyName: 用户模块
+remark: 注册模块备注
+steps:
+  - 生成注册的用户名:
+      关键字: generate_name_new
+      VARNAME: username
+  - 发送Post请求:
+      关键字: request_post_form_urlencoded
+      URL: "{{URL}}"
+      PARAMS:
+        s: api/user/reg
+      DATA:
+        accounts: "{{username}}"
+        pwd: "{{password}}"
+        type: username
+  - 通过JSONPATH提取数据-MSG:
+      关键字: ex_jsonData
+      EXVALUE: $..msg
+      INDEX: 0
+      VARNAME: msg_success
+  - 断言-文本断言-等于:
+      关键字: assert_text_comparators
+      VALUE: "{{msg_success}}"
+      EXPECTED: "{{expected}}"
+      OP_STR: ==
+ddts:
+  - password: '123456'
+    expected: '注册成功'
+    desc: "生成用户名能生成成功"

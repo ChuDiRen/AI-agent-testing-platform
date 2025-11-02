@@ -208,7 +208,7 @@ def run_api_engine() -> int:
         
         # 获取用例类型和用例目录
         case_type = get_case_type_from_args()
-        cases_dir = get_cases_dir_from_args() or "examples/api-cases"
+        cases_dir = get_cases_dir_from_args() or "examples/api-cases_yaml"
         
         # 根据用例类型选择运行方式
         if case_type == 'pytest':
@@ -240,7 +240,7 @@ def run_web_engine() -> int:
         
         # 获取用例类型和用例目录
         case_type = get_case_type_from_args()
-        cases_dir = get_cases_dir_from_args() or "examples/web-cases"
+        cases_dir = get_cases_dir_from_args() or "examples/web-cases_yaml"
         
         # 根据用例类型选择运行方式
         if case_type == 'pytest':
@@ -286,8 +286,8 @@ def run() -> None:
         print("  1. 命令行参数: --engine-type=api 或 --engine-type=web")
         print("  2. 在 context.yaml 中配置: ENGINE_TYPE: api 或 ENGINE_TYPE: web")
         print("\n示例:")
-        print("  testrun --engine-type=api --type=yaml --cases=examples/api-cases")
-        print("  testrun --engine-type=web --type=yaml --cases=examples/web-cases --browser=chrome")
+        print("  testrun --engine-type=api --type=yaml --cases=examples/api-cases_yaml")
+        print("  testrun --engine-type=web --type=yaml --cases=examples/web-cases_yaml --browser=chrome")
         sys.exit(1)
 
     print(f"测试引擎类型: {engine_type.upper()}")
