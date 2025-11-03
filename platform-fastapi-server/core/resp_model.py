@@ -2,8 +2,8 @@
 from typing import Any, Optional, List, Dict
 from datetime import datetime
 from pydantic import BaseModel
-from core.time_utils import TimeFormatter
-from core.logger import Logger
+from .time_utils import TimeFormatter
+from .logger import Logger
 
 class respModel:
     

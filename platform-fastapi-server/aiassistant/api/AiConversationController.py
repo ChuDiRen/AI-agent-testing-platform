@@ -6,13 +6,13 @@ import json
 import logging
 from typing import AsyncGenerator
 
-from aiassistant.model.AiConversation import AiConversation
-from aiassistant.model.AiMessage import AiMessage
-from aiassistant.model.AiModel import AiModel
-from aiassistant.schemas.ai_conversation_schema import (
+from ..model.AiConversation import AiConversation
+from ..model.AiMessage import AiMessage
+from ..model.AiModel import AiModel
+from ..schemas.ai_conversation_schema import (
     AiConversationCreate, AiConversationResponse, AiConversationListResponse
 )
-from aiassistant.schemas.ai_message_schema import MessageStreamRequest, AiMessageResponse
+from ..schemas.ai_message_schema import MessageStreamRequest, AiMessageResponse
 from core.database import get_session
 from core.AiStreamService import AiStreamService
 from core.ConversationService import ConversationService

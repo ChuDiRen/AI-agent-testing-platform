@@ -4,10 +4,10 @@ from core.resp_model import respModel
 from core.logger import get_logger
 
 logger = get_logger(__name__)
-from sysmanage.model.menu import Menu
-from sysmanage.model.user_role import UserRole
-from sysmanage.model.role_menu import RoleMenu
-from sysmanage.schemas.menu_schema import MenuQuery, MenuCreate, MenuUpdate, MenuTree
+from ..model.menu import Menu
+from ..model.user_role import UserRole
+from ..model.role_menu import RoleMenu
+from ..schemas.menu_schema import MenuQuery, MenuCreate, MenuUpdate, MenuTree
 from core.database import get_session
 from core.time_utils import TimeFormatter
 from datetime import datetime
@@ -17,11 +17,54 @@ module_name = "menu"
 module_model = Menu
 module_route = APIRouter(prefix=f"/{module_name}", tags=["菜单管理"])
 
-def build_tree(menus: List[Menu], parent_id: int = 0) -> List[Dict]: # 构建菜单树（参考RuoYi-Vue-Plus）
+def build_tree(menus: List[Menu], parent_id: int = 0, visited: set = None) -> List[Dict]: # 构建菜单树（参考RuoYi-Vue-Plus）
+    """
+    构建菜单树结构
+    :param menus: 菜单列表
+    :param parent_id: 父菜单ID
+    :param visited: 已访问的菜单ID集合，用于防止循环引用导致的无限递归
+    :return: 菜单树列表
+    """
+    if visited is None:
+        visited = set()
+    
     tree = []
     for menu in menus:
-        # 避免无限递归：菜单的 parent_id 必须等于指定的 parent_id，且菜单 id 不能等于 parent_id
-        if menu.parent_id == parent_id and menu.id != parent_id:
+        # 只处理parent_id等于指定parent_id的菜单
+        if menu.parent_id == parent_id:
+            # 防止循环引用：如果菜单id已经在访问路径中，跳过（除了id=0的特殊情况）
+            if menu.id in visited and menu.id != 0:
+                logger.warning(f"检测到循环引用，跳过菜单: id={menu.id}, parent_id={menu.parent_id}, name={menu.menu_name}")
+                continue
+            
+            # 对于id=0且parent_id=0的特殊菜单，不递归查找子节点（避免无限递归）
+            if menu.id == 0 and menu.parent_id == 0:
+                node = {
+                    "id": menu.id,
+                    "parent_id": menu.parent_id,
+                    "menu_name": menu.menu_name,
+                    "path": menu.path,
+                    "component": menu.component,
+                    "query": menu.query,
+                    "perms": menu.perms,
+                    "icon": menu.icon,
+                    "menu_type": menu.menu_type,
+                    "visible": menu.visible,
+                    "status": menu.status,
+                    "is_cache": menu.is_cache,
+                    "is_frame": menu.is_frame,
+                    "order_num": menu.order_num,
+                    "remark": menu.remark,
+                    "create_time": menu.create_time.strftime("%Y-%m-%d %H:%M:%S") if menu.create_time else None,
+                    "children": []  # id=0的菜单没有子节点，避免无限递归
+                }
+                tree.append(node)
+                continue
+            
+            # 创建新的visited集合副本，加入当前菜单id
+            new_visited = visited.copy()
+            new_visited.add(menu.id)
+            
             node = {
                 "id": menu.id,
                 "parent_id": menu.parent_id,
@@ -39,9 +82,10 @@ def build_tree(menus: List[Menu], parent_id: int = 0) -> List[Dict]: # 构建菜
                 "order_num": menu.order_num,
                 "remark": menu.remark,
                 "create_time": menu.create_time.strftime("%Y-%m-%d %H:%M:%S") if menu.create_time else None,
-                "children": build_tree(menus, menu.id)
+                "children": build_tree(menus, menu.id, new_visited)  # 递归构建子树
             }
             tree.append(node)
+    
     return sorted(tree, key=lambda x: x["order_num"])
 
 @module_route.get("/tree") # 获取菜单树

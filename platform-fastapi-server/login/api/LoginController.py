@@ -4,7 +4,7 @@ from sysmanage.model.user import User
 from core.JwtUtil import JwtUtils
 from core.resp_model import respModel
 from core.database import get_session
-from login.schemas.login_schema import LoginRequest
+from ..schemas.login_schema import LoginRequest
 
 module_route = APIRouter(tags=["登录"])
 

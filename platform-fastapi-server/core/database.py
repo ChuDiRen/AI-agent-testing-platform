@@ -30,7 +30,7 @@ def init_db(): # 初始化数据库表
 
 def init_data(): # 初始化数据库数据
     try:
-        from core.init_data import init_all_data
+        from .init_data import init_all_data
         init_all_data()
     except Exception as e:
         logger.error(f"数据初始化失败: {e}")

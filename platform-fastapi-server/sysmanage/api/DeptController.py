@@ -4,8 +4,8 @@ from core.resp_model import respModel
 from core.logger import get_logger
 
 logger = get_logger(__name__)
-from sysmanage.model.dept import Dept
-from sysmanage.schemas.dept_schema import DeptQuery, DeptCreate, DeptUpdate, DeptTree
+from ..model.dept import Dept
+from ..schemas.dept_schema import DeptQuery, DeptCreate, DeptUpdate, DeptTree
 from core.database import get_session
 from core.time_utils import TimeFormatter
 from datetime import datetime
@@ -103,7 +103,7 @@ def delete(id: int, session: Session = Depends(get_session)):
             return respModel.error_resp("存在子部门，无法删除")
         
         # 检查是否有关联用户
-        from sysmanage.model.user import User
+        from ..model.user import User
         statement = select(User).where(User.dept_id == id)
         users = session.exec(statement).all()
         if users:

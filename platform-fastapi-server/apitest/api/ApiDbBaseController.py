@@ -4,8 +4,8 @@ from core.resp_model import respModel
 from core.logger import get_logger
 
 logger = get_logger(__name__)
-from apitest.model.ApiDbBaseModel import ApiDbBase
-from apitest.schemas.api_database_schema import ApiDbBaseQuery, ApiDbBaseCreate, ApiDbBaseUpdate
+from ..model.ApiDbBaseModel import ApiDbBase
+from ..schemas.api_database_schema import ApiDbBaseQuery, ApiDbBaseCreate, ApiDbBaseUpdate
 from core.database import get_session
 from core.time_utils import TimeFormatter
 from datetime import datetime

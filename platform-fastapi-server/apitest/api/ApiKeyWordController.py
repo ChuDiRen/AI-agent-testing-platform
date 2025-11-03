@@ -5,8 +5,8 @@ from core.resp_model import respModel
 from core.logger import get_logger
 
 logger = get_logger(__name__)
-from apitest.model.ApiKeyWordModel import ApiKeyWord
-from apitest.schemas.api_keyword_schema import ApiKeyWordQuery, ApiKeyWordCreate, ApiKeyWordUpdate, KeywordFileRequest
+from ..model.ApiKeyWordModel import ApiKeyWord
+from ..schemas.api_keyword_schema import ApiKeyWordQuery, ApiKeyWordCreate, ApiKeyWordUpdate, KeywordFileRequest
 from core.database import get_session
 from core.time_utils import TimeFormatter
 from config.dev_settings import settings

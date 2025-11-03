@@ -3,9 +3,9 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlmodel import Session
 from typing import Generator
-from core.database import get_session
-from core.JwtUtil import JwtUtils
-from core.MinioUtils import MinioUtils
+from .database import get_session
+from .JwtUtil import JwtUtils
+from .MinioUtils import MinioUtils
 from config.dev_settings import settings
 
 security = HTTPBearer()

@@ -53,42 +53,128 @@
       </div>
     </el-card>
 
-    <!-- 弹窗 - 增加功能:数据库配置 -->
-    <el-dialog v-model="DbBaseManageDialogFormVisible" style="width: 1100px">
-      <el-form-item>
-        <!-- 数据库数据信息显示 -->
-        <el-table :data="DbBaseManageList" style="width: 100%" max-height="300">
-          <el-table-column prop="name" label="连接名" style="width: 10%" />
-          <el-table-column prop="ref_name" label="引用变量" style="width: 20%" :show-overflow-tooltip="true" />
-          <el-table-column prop="db_info" label="数据库连接信息" style="width: 40%" :show-overflow-tooltip="true" />
-          <el-table-column prop="is_enabled" label="是否启用" style="width: 10%" :show-overflow-tooltip="true">
+    <!-- 弹窗 - 数据库配置 -->
+    <el-dialog 
+      v-model="DbBaseManageDialogFormVisible" 
+      title="数据库配置管理" 
+      width="90%" 
+      :close-on-click-modal="false"
+      class="db-config-dialog"
+    >
+      <!-- 已配置的数据库列表 -->
+      <div class="db-list-section">
+        <h4 class="section-title">已配置数据库</h4>
+        <el-table 
+          :data="DbBaseManageList" 
+          style="width: 100%" 
+          max-height="350"
+          :empty-text="'暂无数据库配置，请在下方添加'"
+        >
+          <el-table-column prop="name" label="连接名" width="120" />
+          <el-table-column prop="ref_name" label="引用变量" width="140" :show-overflow-tooltip="true" />
+          <el-table-column prop="db_info" label="数据库连接信息" min-width="300" :show-overflow-tooltip="true" />
+          <el-table-column prop="db_type" label="数据库类型" width="120" align="center" />
+          <el-table-column prop="is_enabled" label="状态" width="100" align="center">
             <template #default="scope">
-              {{ scope.row.is_enabled === "0" ? '否' : scope.row.is_enabled === "1" ? '是' : '-' }}
+              <el-tag :type="scope.row.is_enabled === '1' ? 'success' : 'info'" size="small">
+                {{ scope.row.is_enabled === "1" ? '已启用' : '已禁用' }}
+              </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="db_type" label="数据库类型" style="width: 10%" :show-overflow-tooltip="true" />
-          <el-table-column label="操作" style="width: 5%" :show-overflow-tooltip="true">
+          <el-table-column label="操作" width="180" align="center" fixed="right">
             <template #default="scope">
-              <el-button link type="primary" size="small" @click.prevent="upDataDbinfo(scope.$index)">修改是否启动</el-button>
-              <el-button link type="primary" size="small" @click.prevent="onDeleteDb(scope.$index)">删除</el-button>
+              <el-button 
+                link 
+                :type="scope.row.is_enabled === '1' ? 'warning' : 'success'" 
+                size="small" 
+                @click.prevent="upDataDbinfo(scope.$index)"
+              >
+                {{ scope.row.is_enabled === '1' ? '禁用' : '启用' }}
+              </el-button>
+              <el-button link type="danger" size="small" @click.prevent="onDeleteDb(scope.$index)">
+                删除
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
+      </div>
 
-        <!-- 数据库添加数据信息 -->
-        <div class="input-group" style="width: 100%">
-          <el-input v-model="ruleForm.name" placeholder="连接名" style="width: 15%" />
-          <el-input v-model="ruleForm.ref_name" placeholder="引用变量" style="width: 15%" />
-          <el-input v-model="ruleForm.db_info" placeholder="数据库连接信息，如：{host: 主机IP/服务器, port: 端口号, username: 用户名, password: 密码, database: 数据库名}" style="width: 30%" />
-          <el-select v-model="ruleForm.is_enabled" placeholder="是否启用" style="width: 20%">
-            <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          <el-select v-model="ruleForm.db_type" placeholder="数据库类型" style="width: 10%">
-            <el-option v-for="item in optionsDbType" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          <el-button style="width: 10%" type="primary" @click="onAddDbinfo">添加</el-button>
-        </div>
-      </el-form-item>
+      <!-- 添加新数据库配置 -->
+      <div class="db-form-section">
+        <h4 class="section-title">添加数据库配置</h4>
+        <el-form :model="ruleForm" label-width="120px" label-position="right">
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="连接名" required>
+                <el-input 
+                  v-model="ruleForm.name" 
+                  placeholder="请输入连接名称，如：测试库" 
+                  clearable
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="引用变量" required>
+                <el-input 
+                  v-model="ruleForm.ref_name" 
+                  placeholder="请输入引用变量，如：test_db" 
+                  clearable
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="数据库类型" required>
+                <el-select 
+                  v-model="ruleForm.db_type" 
+                  placeholder="请选择数据库类型" 
+                  style="width: 100%"
+                  clearable
+                >
+                  <el-option v-for="item in optionsDbType" :key="item.value" :label="item.label" :value="item.value" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="是否启用" required>
+                <el-select 
+                  v-model="ruleForm.is_enabled" 
+                  placeholder="请选择是否启用" 
+                  style="width: 100%"
+                  clearable
+                >
+                  <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-form-item label="数据库连接信息" required>
+            <el-input 
+              v-model="ruleForm.db_info" 
+              type="textarea"
+              :rows="3"
+              placeholder='请输入数据库连接信息（JSON格式），例如：&#10;{&#10;  "host": "127.0.0.1",&#10;  "port": 3306,&#10;  "username": "root",&#10;  "password": "password",&#10;  "database": "test_db"&#10;}' 
+              clearable
+            />
+          </el-form-item>
+
+          <el-form-item>
+            <el-button type="primary" @click="onAddDbinfo" :icon="Plus">
+              添加配置
+            </el-button>
+            <el-button @click="resetForm">
+              重置
+            </el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <template #footer>
+        <el-button @click="DbBaseManageDialogFormVisible = false">关闭</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -100,6 +186,7 @@ import { queryByPage, deleteData } from "./apiProject.js"; // 不同页面不同
 import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { Plus } from '@element-plus/icons-vue';
 
 const router = useRouter(); 
 
@@ -270,21 +357,44 @@ const optionsDbType = [
 
 // 11-6  添加-数据库数据
 const onAddDbinfo = (index: number) => {
-     // 添加数据的时候，设置项目对应的值
-      ruleForm.project_id = currentProjectId.value
+  // 验证必填字段
+  if (!ruleForm.name || !ruleForm.ref_name || !ruleForm.db_info || !ruleForm.db_type) {
+    ElMessage.warning('请填写所有必填字段');
+    return;
+  }
 
-      insertData(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
-          if (res.data.code == 200) {
-            loadDbBaseManage(currentProjectId.value);
+  // 验证 JSON 格式
+  try {
+    JSON.parse(ruleForm.db_info);
+  } catch (e) {
+    ElMessage.error('数据库连接信息格式错误，请输入有效的 JSON 格式');
+    return;
+  }
 
-            // 设置字段都为空：
-            ruleForm.name = ""
-            ruleForm.ref_name = ""
-            ruleForm.db_info = ""
-            ruleForm.is_enabled = "1"
-            ruleForm.db_type = ""
-          }
-        });
+  // 添加数据的时候，设置项目对应的值
+  ruleForm.project_id = currentProjectId.value;
+
+  insertData(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
+    if (res.data.code == 200) {
+      ElMessage.success('数据库配置添加成功');
+      loadDbBaseManage(currentProjectId.value);
+      resetForm(); // 重置表单
+    } else {
+      ElMessage.error(res.data.msg || '添加失败');
+    }
+  }).catch((error: any) => {
+    console.error('添加失败:', error);
+    ElMessage.error('添加失败，请稍后重试');
+  });
+};
+
+// 重置表单
+const resetForm = () => {
+  ruleForm.name = "";
+  ruleForm.ref_name = "";
+  ruleForm.db_info = "";
+  ruleForm.is_enabled = "1";
+  ruleForm.db_type = "";
 };
 
 // 11-7 修改-数据库数据
@@ -301,28 +411,54 @@ const UpDataruleForm =reactive({
 
 // 修改的方法
 const upDataDbinfo = (index: number) => {
-     // 添加数据的时候，设置项目对应的值
-      // ruleForm.project_id = currentProjectId.value
+  const dbItem = DbBaseManageList.value[index];
+  const newStatus = dbItem.is_enabled === '1' ? '0' : '1';
+  const action = newStatus === '1' ? '启用' : '禁用';
 
-      UpDataruleForm.id = DbBaseManageList.value[index].id
-      UpDataruleForm.project_id = DbBaseManageList.value[index].project_id
-      UpDataruleForm.name = DbBaseManageList.value[index].name
-      UpDataruleForm.ref_name = DbBaseManageList.value[index].ref_name
-      UpDataruleForm.db_info = DbBaseManageList.value[index].db_info
-      UpDataruleForm.db_type = DbBaseManageList.value[index].db_type
-      UpDataruleForm.is_enabled = DbBaseManageList.value[index].is_enabled === '1' ? '0' : '1';
-        
-        updateData(UpDataruleForm).then((res: { data: { code: number; msg: string; }; }) => {
-          if (res.data.code == 200) {
-            loadDbBaseManage(currentProjectId.value)
-          }
-        });
+  UpDataruleForm.id = dbItem.id;
+  UpDataruleForm.project_id = dbItem.project_id;
+  UpDataruleForm.name = dbItem.name;
+  UpDataruleForm.ref_name = dbItem.ref_name;
+  UpDataruleForm.db_info = dbItem.db_info;
+  UpDataruleForm.db_type = dbItem.db_type;
+  UpDataruleForm.is_enabled = newStatus;
+    
+  updateData(UpDataruleForm).then((res: { data: { code: number; msg: string; }; }) => {
+    if (res.data.code == 200) {
+      ElMessage.success(`${action}成功`);
+      loadDbBaseManage(currentProjectId.value);
+    } else {
+      ElMessage.error(res.data.msg || `${action}失败`);
+    }
+  }).catch((error: any) => {
+    console.error(`${action}失败:`, error);
+    ElMessage.error(`${action}失败，请稍后重试`);
+  });
 };
 
 // 11-8 删除数据库
 const onDeleteDb = (index: number) => {
-    deleteDbData(DbBaseManageList.value[index]["id"]).then((res: {}) => {
-    loadDbBaseManage(currentProjectId.value)
+  const dbItem = DbBaseManageList.value[index];
+  ElMessageBox.confirm(
+    `确定要删除数据库配置"${dbItem.name}"吗？`,
+    '删除确认',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+    deleteDbData(dbItem.id).then((res: { data: { code: number; msg: string } }) => {
+      if (res.data?.code == 200 || res) {
+        ElMessage.success('删除成功');
+        loadDbBaseManage(currentProjectId.value);
+      }
+    }).catch((error: any) => {
+      console.error('删除失败:', error);
+      ElMessage.error('删除失败，请稍后重试');
+    });
+  }).catch(() => {
+    ElMessage.info('已取消删除');
   });
 };
 
@@ -333,7 +469,58 @@ const onDeleteDb = (index: number) => {
 @import '@/styles/common-list.css';
 @import '@/styles/common-form.css';
 
-.input-group {  
-  margin-top: 16px;
+/* 数据库配置对话框样式 */
+.db-config-dialog :deep(.el-dialog__body) {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* 列表区域 */
+.db-list-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #f5f7fa;
+  border-radius: 8px;
+}
+
+/* 表单区域 */
+.db-form-section {
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+}
+
+/* 区块标题 */
+.section-title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  border-left: 4px solid #409eff;
+  padding-left: 12px;
+}
+
+/* 优化表单项间距 */
+.db-form-section :deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
+/* 优化按钮样式 */
+.db-form-section :deep(.el-button) {
+  min-width: 100px;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .db-config-dialog {
+    width: 95% !important;
+  }
+  
+  .db-list-section,
+  .db-form-section {
+    padding: 12px;
+  }
 }
 </style>

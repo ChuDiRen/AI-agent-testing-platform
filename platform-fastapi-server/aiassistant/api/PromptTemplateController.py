@@ -3,8 +3,8 @@ from sqlmodel import select, Session, func
 from datetime import datetime
 import logging
 
-from aiassistant.model.PromptTemplate import PromptTemplate
-from aiassistant.schemas.prompt_template_schema import PromptTemplateQuery, PromptTemplateCreate, PromptTemplateUpdate
+from ..model.PromptTemplate import PromptTemplate
+from ..schemas.prompt_template_schema import PromptTemplateQuery, PromptTemplateCreate, PromptTemplateUpdate
 from core.database import get_session
 from core.resp_model import respModel
 

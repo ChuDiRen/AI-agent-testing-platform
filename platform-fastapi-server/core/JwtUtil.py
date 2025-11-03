@@ -2,7 +2,7 @@ from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from config.dev_settings import settings
 from typing import Optional, Dict
-from core.logger import get_logger
+from .logger import get_logger
 
 logger = get_logger(__name__)
 

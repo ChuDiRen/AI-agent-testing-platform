@@ -2,7 +2,7 @@
 """数据库初始化数据脚本"""
 
 from sqlmodel import Session, select
-from core.database import engine
+from .database import engine
 from sysmanage.model.user import User
 from sysmanage.model.role import Role
 from sysmanage.model.menu import Menu
@@ -85,7 +85,7 @@ def create_initial_menus():
                 # 系统总览（首页）
                 # ================================
                 # 0. 系统总览（菜单 C）
-                {"id": 0, "parent_id": 0, "menu_name": "系统总览", "path": "/statistics", "component": "Statistics", "query": None, "perms": "system:statistics:view", "icon": "DataLine", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 0, "remark": "系统总览首页"},
+                {"id": 0, "parent_id": 0, "menu_name": "系统总览", "path": "/Statistics", "component": "Statistics", "query": None, "perms": "system:statistics:view", "icon": "DataLine", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 0, "remark": "系统总览首页"},
                 
                 # ================================
                 # 系统管理模块
@@ -310,6 +310,8 @@ def create_initial_role_menus():
 
             # 管理员（角色ID=2）拥有系统管理和API测试权限
             admin_menu_ids = [
+                # 系统总览
+                0,
                 # 系统管理
                 1, 100, 101, 1001, 1002, 1003, 1004, 1005, 1011, 1012, 1013, 1014,
                 # API测试模块
@@ -340,6 +342,8 @@ def create_initial_role_menus():
 
             # 普通用户（角色ID=3）只有API测试查看权限
             user_menu_ids = [
+                # 系统总览
+                0,
                 # API测试模块
                 200,
                 # 项目查询
@@ -1042,7 +1046,7 @@ def init_all_data():
         if check_data_exists():
             logger.info("数据库中已有数据，跳过RBAC初始化")
             # 但仍然尝试初始化AI数据（如果未初始化）
-            from core.init_ai_data import init_all_ai_data
+            from .init_ai_data import init_all_ai_data
             with Session(engine) as session:
                 init_all_ai_data(session)
             return
@@ -1057,7 +1061,7 @@ def init_all_data():
         
         # 初始化AI数据
         logger.info("开始初始化AI数据...")
-        from core.init_ai_data import init_all_ai_data
+        from .init_ai_data import init_all_ai_data
         with Session(engine) as session:
             init_all_ai_data(session)
         

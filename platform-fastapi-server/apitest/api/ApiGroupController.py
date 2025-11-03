@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 from core.resp_model import respModel
-from apitest.model.ApiInfoGroupModel import ApiInfoGroup
-from apitest.schemas.api_group_schema import ApiGroupQuery, ApiGroupCreate, ApiGroupUpdate
+from ..model.ApiInfoGroupModel import ApiInfoGroup
+from ..schemas.api_group_schema import ApiGroupQuery, ApiGroupCreate, ApiGroupUpdate
 from core.database import get_session
 from core.time_utils import TimeFormatter
 from datetime import datetime
@@ -137,7 +137,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
             return respModel.error_resp("存在子分组，无法删除")
         
         # 检查是否有关联的接口
-        from apitest.model.ApiInfoModel import ApiInfo
+        from ..model.ApiInfoModel import ApiInfo
         # 这里暂时不检查接口关联，后续可以添加group_id字段到ApiInfo表
         
         session.delete(obj)

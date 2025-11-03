@@ -13,41 +13,41 @@
 
       <!-- 搜索表单 -->
       <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="search-form">
-      <el-form-item label="项目：">
-        <el-select v-model="searchForm.project_id" placeholder="选择项目" clearable style="width: 200px">
-          <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id"/>     
-        </el-select>
-      </el-form-item>
-      
-      <el-form-item label="接口名称：">
-        <el-input v-model="searchForm.api_name" placeholder="根据接口名称筛选" style="width: 200px"/>
-      </el-form-item>
-      
-      <el-form-item label="请求方法：">
-        <el-select v-model="searchForm.request_method" placeholder="选择请求方法" clearable style="width: 150px">
-          <el-option v-for="method in methodList" :key="method" :label="method" :value="method"/>     
-        </el-select>
-      </el-form-item>
-      
-      <el-form-item label="接口分组：">
-        <el-select v-model="searchForm.group_id" placeholder="选择分组" clearable style="width: 200px">
-          <el-option label="未分组" :value="0"/>
-          <el-option v-for="group in groupList" :key="group.id" :label="group.group_name" :value="group.id"/>     
-        </el-select>
-      </el-form-item>
-      
-      <el-form-item>
-        <el-button type="primary" @click="loadData()">查询</el-button>
-        <el-button @click="resetSearch">重置</el-button>
-      </el-form-item>
-    </el-form>
-    <!-- END 搜索表单 -->
+        <el-form-item label="项目">
+          <el-select v-model="searchForm.project_id" placeholder="选择项目" clearable style="width: 180px">
+            <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id"/>     
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="接口名称">
+          <el-input v-model="searchForm.api_name" placeholder="根据接口名称筛选" clearable style="width: 180px"/>
+        </el-form-item>
+        
+        <el-form-item label="请求方法">
+          <el-select v-model="searchForm.request_method" placeholder="选择请求方法" clearable style="width: 180px">
+            <el-option v-for="method in methodList" :key="method" :label="method" :value="method"/>     
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="接口分组">
+          <el-select v-model="searchForm.group_id" placeholder="选择分组" clearable style="width: 180px">
+            <el-option label="未分组" :value="0"/>
+            <el-option v-for="group in groupList" :key="group.id" :label="group.group_name" :value="group.id"/>     
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item>
+          <el-button type="primary" @click="loadData()">查询</el-button>
+          <el-button @click="resetSearch">重置</el-button>
+        </el-form-item>
+      </el-form>
+      <!-- END 搜索表单 -->
 
     <!-- 数据表格 -->
-    <el-table :data="tableData" style="width: 100%" max-height="500">
-      <el-table-column prop="id" label="接口编号" width="80" show-overflow-tooltip />
+    <el-table :data="tableData" style="width: 100%" max-height="600">
+      <el-table-column prop="id" label="接口编号" width="100" />
       <el-table-column prop="api_name" label="接口名称" width="200" show-overflow-tooltip />
-      <el-table-column prop="request_method" label="请求方法" width="100">
+      <el-table-column prop="request_method" label="请求方法" width="120">
         <template #default="scope">
           <el-tag :type="getMethodTagType(scope.row.request_method)">
             {{ scope.row.request_method }}
@@ -55,12 +55,12 @@
         </template>
       </el-table-column>
       <el-table-column prop="request_url" label="请求地址" min-width="300" show-overflow-tooltip />
-      <el-table-column prop="project_id" label="所属项目" width="120">
+      <el-table-column prop="project_id" label="所属项目" width="150">
         <template #default="scope">
           {{ getProjectName(scope.row.project_id) }}
         </template>
       </el-table-column>
-      <el-table-column prop="create_time" label="创建时间" width="180" show-overflow-tooltip>
+      <el-table-column prop="create_time" label="创建时间" width="180">
         <template #default="scope">
           {{ formatDateTime(scope.row.create_time) }}
         </template>
@@ -158,8 +158,8 @@ const loadData = () => {
 
   queryByPage(searchData).then((res) => {
     if (res.data.code === 200) {
-      tableData.value = res.data.data;
-      total.value = res.data.total;
+      tableData.value = res.data.data || [];
+      total.value = res.data.total || 0;
     } else {
       ElMessage.error(res.data.msg || '查询失败');
     }
@@ -296,11 +296,13 @@ onMounted(() => {
 </script>
 
 <style scoped>
-@import '@/styles/common-list.css';
-@import '@/styles/common-form.css';
+@import '~/styles/common-list.css';
+@import '~/styles/common-form.css';
 
-/* 方法标签样式 */
-.el-tag {
-  font-weight: 600;
+/* 优化搜索表单间距 */
+.search-form {
+  :deep(.el-form-item) {
+    margin-right: 24px;
+  }
 }
 </style>

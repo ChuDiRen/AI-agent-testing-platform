@@ -40,7 +40,9 @@ export default defineConfig({
   css: {
     preprocessorOptions: {
       scss: {
-        api: 'modern-compiler' // 使用新的 Sass API
+        // 使用 sass-embedded 的现代 API
+        silenceDeprecations: ['legacy-js-api'],
+        quietDeps: true
       }
     }
   },

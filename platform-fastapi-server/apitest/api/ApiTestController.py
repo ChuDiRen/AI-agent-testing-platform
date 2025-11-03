@@ -4,9 +4,9 @@ from core.resp_model import respModel
 from core.logger import get_logger
 
 logger = get_logger(__name__)
-from apitest.model.ApiTestHistoryModel import ApiTestHistory
-from apitest.model.ApiInfoModel import ApiInfo
-from apitest.schemas.api_test_schema import ApiTestHistoryQuery, ApiTestExecuteRequest, ApiTestResult
+from ..model.ApiTestHistoryModel import ApiTestHistory
+from ..model.ApiInfoModel import ApiInfo
+from ..schemas.api_test_schema import ApiTestHistoryQuery, ApiTestExecuteRequest, ApiTestResult
 from core.database import get_session
 from core.time_utils import TimeFormatter
 from datetime import datetime

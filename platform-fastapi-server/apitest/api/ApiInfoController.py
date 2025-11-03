@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 from core.resp_model import respModel
-from apitest.model.ApiInfoModel import ApiInfo
-from apitest.schemas.api_info_schema import ApiInfoQuery, ApiInfoCreate, ApiInfoUpdate
+from ..model.ApiInfoModel import ApiInfo
+from ..schemas.api_info_schema import ApiInfoQuery, ApiInfoCreate, ApiInfoUpdate
 from core.database import get_session
 from core.time_utils import TimeFormatter
 from datetime import datetime

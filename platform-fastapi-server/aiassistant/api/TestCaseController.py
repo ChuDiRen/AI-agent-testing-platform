@@ -5,8 +5,8 @@ import logging
 import json
 import yaml
 
-from aiassistant.model.TestCaseModel import TestCase
-from aiassistant.schemas.test_case_schema import TestCaseQuery, TestCaseCreate, TestCaseUpdate, BatchInsertRequest
+from ..model.TestCaseModel import TestCase
+from ..schemas.test_case_schema import TestCaseQuery, TestCaseCreate, TestCaseUpdate, BatchInsertRequest
 from core.database import get_session
 from core.resp_model import respModel
 

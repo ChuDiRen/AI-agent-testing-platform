@@ -4,9 +4,9 @@ from core.resp_model import respModel
 from core.logger import get_logger
 
 logger = get_logger(__name__)
-from sysmanage.model.user import User
-from sysmanage.model.user_role import UserRole
-from sysmanage.schemas.user_schema import UserQuery, UserCreate, UserUpdate, UserRoleAssign, UserStatusUpdate
+from ..model.user import User
+from ..model.user_role import UserRole
+from ..schemas.user_schema import UserQuery, UserCreate, UserUpdate, UserRoleAssign, UserStatusUpdate
 from core.database import get_session
 from core.time_utils import TimeFormatter
 from datetime import datetime

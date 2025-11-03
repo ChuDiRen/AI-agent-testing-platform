@@ -2,7 +2,7 @@ import os
 from datetime import timedelta
 from minio import Minio
 from minio.error import S3Error
-from core.logger import get_logger
+from .logger import get_logger
 
 logger = get_logger(__name__)
 

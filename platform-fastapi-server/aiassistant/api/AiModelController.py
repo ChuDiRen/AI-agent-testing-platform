@@ -4,8 +4,8 @@ from datetime import datetime
 import logging
 import httpx
 
-from aiassistant.model.AiModel import AiModel
-from aiassistant.schemas.ai_model_schema import AiModelQuery, AiModelCreate, AiModelUpdate
+from ..model.AiModel import AiModel
+from ..schemas.ai_model_schema import AiModelQuery, AiModelCreate, AiModelUpdate
 from core.database import get_session
 from core.resp_model import respModel
 

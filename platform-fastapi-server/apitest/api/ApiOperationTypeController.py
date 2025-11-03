@@ -4,8 +4,8 @@ from core.resp_model import respModel
 from core.logger import get_logger
 
 logger = get_logger(__name__)
-from apitest.model.ApiOperationTypeModel import OperationType
-from apitest.schemas.operation_type_schema import OperationTypeQuery, OperationTypeCreate, OperationTypeUpdate
+from ..model.ApiOperationTypeModel import OperationType
+from ..schemas.operation_type_schema import OperationTypeQuery, OperationTypeCreate, OperationTypeUpdate
 from core.database import get_session
 from core.time_utils import TimeFormatter
 from datetime import datetime
