@@ -81,27 +81,27 @@ class MinioUtils:
 # 测试当前工具类
 # 注意：MinIO 通常有两个端口：
 # 9000：用于 S3 API 操作（上传、下载、创建 bucket 等）
-# 9002：MinIO 控制台（管理界面）
+# 9001：MinIO 控制台（管理界面）
 def MinioUtils_upload():
-    endpoint='192.168.1.106:9000'
-    access_key='minioadmin'
-    secret_key='minioadmin'
+    endpoint='192.168.163.128:9000'
+    access_key='admin'
+    secret_key='12345678'
     secure=False
 
     file_path = os.path.join(os.path.dirname(__file__), "示例文件.txt")
     test_MinioUtils = MinioUtils(endpoint,access_key,secret_key,secure)
-    test_MinioUtils.upload_file("apitest",'示例文件.txt',file_path)
+    test_MinioUtils.upload_file("aitest",'示例文件.txt',file_path)
 
     # 也可以用文件对象进行上传。
 def MinioUtils_download():
-    endpoint='192.168.1.106:9000'
-    access_key='minioadmin'
-    secret_key='minioadmin'
+    endpoint='192.168.163.128:9000'
+    access_key='admin'
+    secret_key='12345678'
     secure=False
 
     file_path = os.path.join(os.path.dirname(__file__), "示例文件_back.txt")
     test_MinioUtils = MinioUtils(endpoint,access_key,secret_key,secure)
-    test_MinioUtils.download_file("apitest",'示例文件.txt',file_path)
+    test_MinioUtils.download_file("aitest",'示例文件.txt',file_path)
 
 
 # MinioUtils_upload()

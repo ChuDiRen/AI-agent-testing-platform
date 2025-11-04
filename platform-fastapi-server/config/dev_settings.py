@@ -23,10 +23,11 @@ class Settings(BaseSettings): # 开发环境配置
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     
     # MINIO平台的配置信息
-    MINIO_CLIENT_URL: str = "http://192.168.1.106:9000"
-    MINIO_ENDPOINT: str = "192.168.1.106:9000"
-    MINIO_ACCESS_KEY: str = "minioadmin"
-    MINIO_SECRET_KEY: str = "minioadmin"
+    # 注意：9000是API端口（SDK连接），9001是控制台端口（浏览器访问）
+    MINIO_CLIENT_URL: str = "http://192.168.163.128:9000"
+    MINIO_ENDPOINT: str = "192.168.163.128:9000"
+    MINIO_ACCESS_KEY: str = "admin"
+    MINIO_SECRET_KEY: str = "12345678"
     MINIO_SECURE: bool = False
     
     # 关键字文件目录
