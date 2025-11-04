@@ -2,17 +2,17 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 from core.resp_model import respModel
 from core.logger import get_logger
-
-logger = get_logger(__name__)
 from ..model.ApiDbBaseModel import ApiDbBase
 from ..schemas.api_database_schema import ApiDbBaseQuery, ApiDbBaseCreate, ApiDbBaseUpdate
 from core.database import get_session
 from core.time_utils import TimeFormatter
 from datetime import datetime
 
+
 module_name = "ApiDbBase" # 模块名称
 module_model = ApiDbBase
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API数据库配置管理"])
+logger = get_logger(__name__)
 
 @module_route.post("/queryByPage") # 分页查询API数据库配置
 def queryByPage(query: ApiDbBaseQuery, session: Session = Depends(get_session)):

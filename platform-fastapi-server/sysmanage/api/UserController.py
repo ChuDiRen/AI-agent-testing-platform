@@ -2,8 +2,6 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 from core.resp_model import respModel
 from core.logger import get_logger
-
-logger = get_logger(__name__)
 from ..model.user import User
 from ..model.user_role import UserRole
 from ..schemas.user_schema import UserQuery, UserCreate, UserUpdate, UserRoleAssign, UserStatusUpdate
@@ -14,6 +12,7 @@ from datetime import datetime
 module_name = "user" # 模块名称
 module_model = User
 module_route = APIRouter(prefix=f"/{module_name}", tags=["用户管理"])
+logger = get_logger(__name__)
 
 @module_route.post("/queryByPage") # 分页查询用户
 def queryByPage(query: UserQuery, session: Session = Depends(get_session)):

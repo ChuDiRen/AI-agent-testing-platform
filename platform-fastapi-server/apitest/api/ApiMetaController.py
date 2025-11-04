@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 from core.resp_model import respModel
 from core.logger import get_logger
 
-logger = get_logger(__name__)
+
 from ..model.ApiMetaModel import ApiMeta
 from ..schemas.api_meta_schema import ApiMetaQuery, ApiMetaUpdate
 from core.database import get_session
@@ -16,6 +16,7 @@ from datetime import datetime
 module_name = "ApiMeta" # 模块名称
 module_model = ApiMeta
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API元数据管理"])
+logger = get_logger(__name__)
 
 @module_route.get("/queryAll") # 查询所有元数据
 def queryAll(session: Session = Depends(get_session)):

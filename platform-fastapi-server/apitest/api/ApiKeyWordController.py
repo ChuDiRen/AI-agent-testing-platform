@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 from core.resp_model import respModel
 from core.logger import get_logger
 
-logger = get_logger(__name__)
+
 from ..model.ApiKeyWordModel import ApiKeyWord
 from ..schemas.api_keyword_schema import ApiKeyWordQuery, ApiKeyWordCreate, ApiKeyWordUpdate, KeywordFileRequest
 from core.database import get_session
@@ -15,6 +15,7 @@ from datetime import datetime
 module_name = "ApiKeyWord" # 模块名称
 module_model = ApiKeyWord
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API关键字管理"])
+logger = get_logger(__name__)
 
 @module_route.get("/queryAll") # 查询所有关键字
 def queryAll(session: Session = Depends(get_session)):

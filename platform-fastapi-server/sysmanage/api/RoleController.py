@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 from core.resp_model import respModel
 from core.logger import get_logger
 
-logger = get_logger(__name__)
+
 from ..model.role import Role
 from ..model.role_menu import RoleMenu
 from ..schemas.role_schema import RoleQuery, RoleCreate, RoleUpdate, RoleMenuAssign
@@ -15,6 +15,7 @@ from typing import List
 module_name = "role"
 module_model = Role
 module_route = APIRouter(prefix=f"/{module_name}", tags=["角色管理"])
+logger = get_logger(__name__)
 
 @module_route.post("/queryByPage") # 分页查询角色
 def queryByPage(query: RoleQuery, session: Session = Depends(get_session)):

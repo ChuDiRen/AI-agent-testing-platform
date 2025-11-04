@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 from core.resp_model import respModel
 from core.logger import get_logger
 
-logger = get_logger(__name__)
+
 from ..model.ApiOperationTypeModel import OperationType
 from ..schemas.operation_type_schema import OperationTypeQuery, OperationTypeCreate, OperationTypeUpdate
 from core.database import get_session
@@ -13,6 +13,7 @@ from datetime import datetime
 module_name = "OperationType" # 模块名称
 module_model = OperationType
 module_route = APIRouter(prefix=f"/{module_name}", tags=["操作类型管理"])
+logger = get_logger(__name__)
 
 @module_route.get("/queryAll") # 查询所有操作类型
 def queryAll(session: Session = Depends(get_session)):

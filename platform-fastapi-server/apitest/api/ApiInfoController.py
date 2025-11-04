@@ -8,11 +8,12 @@ from core.time_utils import TimeFormatter
 from datetime import datetime
 from core.logger import get_logger
 
-logger = get_logger(__name__)
+
 
 module_name = "ApiInfo" # 模块名称
 module_model = ApiInfo
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API接口信息管理"])
+logger = get_logger(__name__)
 
 @module_route.post("/queryByPage") # 分页查询API接口信息
 def queryByPage(query: ApiInfoQuery, session: Session = Depends(get_session)):
