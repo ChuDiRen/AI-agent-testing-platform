@@ -113,6 +113,12 @@ application.include_router(ApiGroupController.module_route)
 from apitest.api import ApiTestController
 application.include_router(ApiTestController.module_route)
 
+from apitest.api import ApiCaseController
+application.include_router(ApiCaseController.module_route)
+
+from apitest.api import ApiTestPlanController
+application.include_router(ApiTestPlanController.module_route)
+
 # 注册AI测试助手模块路由
 from aiassistant.api import AiConversationController, AiModelController, PromptTemplateController, TestCaseController
 application.include_router(AiConversationController.router)  # AI对话流式接口

@@ -43,6 +43,10 @@ import ApiGroupForm from '~/views/apitest/apigroup/ApiGroupForm.vue'
 // 测试历史相关导入
 import ApiTestList from '~/views/apitest/apitest/ApiTestList.vue'
 
+// 用例管理相关导入
+import ApiCaseList from '~/views/apitest/apicase/ApiCaseList.vue'
+import ApiCaseForm from '~/views/apitest/apicase/ApiCaseForm.vue'
+
 // AI测试助手模块相关导入
 import AiModelList from '~/views/aiassistant/model/AiModelList.vue'
 import PromptTemplateList from '~/views/aiassistant/prompt/PromptTemplateList.vue'
@@ -189,6 +193,30 @@ const routes = [
                 title: "测试历史记录"
             }
         }, {
+            path: "/ApiCaseList",
+            component: ApiCaseList,
+            meta: {
+                title: "用例管理"
+            }
+        },     {
+        path: "/ApiCaseForm",
+        component: ApiCaseForm,
+        meta: {
+            title: "用例表单"
+        }
+    }, {
+        path: "/ApiTestPlanList",
+        component: () => import("~/views/apitest/testplan/ApiTestPlanList.vue"),
+        meta: {
+            title: "测试计划"
+        }
+    }, {
+        path: "/ApiTestPlanForm",
+        component: () => import("~/views/apitest/testplan/ApiTestPlanForm.vue"),
+        meta: {
+            title: "测试计划表单"
+        }
+    }, {
             path: "/test-cases",
             component: TestCaseList,
             meta: {

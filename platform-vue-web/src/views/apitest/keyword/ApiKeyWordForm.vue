@@ -31,9 +31,16 @@
         <el-tabs class="demo-tabs" v-model="tabActiveName" style="width: 1120px">
         <!-- 第一个Tab，维护对应的代码提 -->
         <el-tab-pane label="代码体" name="代码体">
-          <!-- 1-1 多行文本框 -->
-          <el-input v-model="ruleForm.keyword_value" :rows="15" type="textarea" placeholder="请输入对应的代码体，可生成对应的关键字"/>
-          <el-button  @click="code_example">生成示例代码</el-button>
+          <!-- 1-1 代码编辑器 -->
+          <CodeEditor 
+            v-model="ruleForm.keyword_value" 
+            mode="python" 
+            height="450px"
+            placeholder="请输入对应的代码体，可生成对应的关键字"
+          />
+          <div style="margin-top: 10px;">
+            <el-button type="primary" @click="code_example">生成示例代码</el-button>
+          </div>
           <!-- 1-2 代码示例按钮 -->
         </el-tab-pane>
          <!-- END -- 第一个Tab，维护对应的代码提 -->
@@ -74,12 +81,13 @@
     </el-form>
   </template>
   
-  <script lang="ts" setup>
-  import { ref, reactive } from "vue";
-  import { queryById, insertData, updateData } from './apiKeyWord.js'; // 不同页面不同的接口
-  import type { FormInstance, FormRules } from 'element-plus';
-  import { useRouter } from "vue-router";
-  import { ElMessage } from 'element-plus';
+<script lang="ts" setup>
+import { ref, reactive } from "vue";
+import { queryById, insertData, updateData } from './apiKeyWord.js'; // 不同页面不同的接口
+import type { FormInstance, FormRules } from 'element-plus';
+import { useRouter } from "vue-router";
+import { ElMessage } from 'element-plus';
+import CodeEditor from '@/components/CodeEditor.vue';
   
   const router = useRouter();
   

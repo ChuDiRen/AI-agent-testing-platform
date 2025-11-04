@@ -284,3 +284,62 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         session.rollback()
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
+@module_route.get("/queryByPlanId")
+def queryByPlanId(plan_id: int = Query(...), session: Session = Depends(get_session)):
+    """根据测试计划ID查询历史记录"""
+    try:
+        statement = select(module_model).where(module_model.plan_id == plan_id).order_by(module_model.create_time.desc())
+        datas = session.exec(statement).all()
+        
+        result_list = []
+        for data in datas:
+            item = {
+                "id": data.id,
+                "plan_id": data.plan_id,
+                "case_info_id": data.case_info_id,
+                "execution_uuid": data.execution_uuid,
+                "test_name": data.test_name,
+                "test_status": data.test_status,
+                "response_time": data.response_time,
+                "status_code": data.status_code,
+                "error_message": data.error_message,
+                "create_time": TimeFormatter.format_datetime(data.create_time),
+                "finish_time": TimeFormatter.format_datetime(data.finish_time)
+            }
+            result_list.append(item)
+        
+        return respModel.ok_resp(obj=result_list, msg="查询成功")
+    except Exception as e:
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
+@module_route.get("/queryByExecutionUuid")
+def queryByExecutionUuid(execution_uuid: str = Query(...), session: Session = Depends(get_session)):
+    """根据批量执行UUID查询历史记录"""
+    try:
+        statement = select(module_model).where(module_model.execution_uuid == execution_uuid).order_by(module_model.create_time)
+        datas = session.exec(statement).all()
+        
+        result_list = []
+        for data in datas:
+            item = {
+                "id": data.id,
+                "plan_id": data.plan_id,
+                "case_info_id": data.case_info_id,
+                "execution_uuid": data.execution_uuid,
+                "test_name": data.test_name,
+                "test_status": data.test_status,
+                "response_time": data.response_time,
+                "status_code": data.status_code,
+                "error_message": data.error_message,
+                "allure_report_path": data.allure_report_path,
+                "create_time": TimeFormatter.format_datetime(data.create_time),
+                "finish_time": TimeFormatter.format_datetime(data.finish_time)
+            }
+            result_list.append(item)
+        
+        return respModel.ok_resp(obj=result_list, msg="查询成功")
+    except Exception as e:
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")

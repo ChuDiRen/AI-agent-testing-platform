@@ -136,3 +136,55 @@ def keywordFile(request: KeywordFileRequest):
     except Exception as e:
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"添加失败:{e}")
+
+@module_route.get("/queryByOperationType") # 根据操作类型ID查询关键字列表
+def queryByOperationType(operation_type_id: int = Query(...), session: Session = Depends(get_session)):
+    """根据操作类型ID查询关键字列表"""
+    try:
+        statement = select(module_model).where(module_model.operation_type_id == operation_type_id)
+        datas = session.exec(statement).all()
+        result = [
+            {
+                "id": data.id,
+                "name": data.name,
+                "keyword_fun_name": data.keyword_fun_name,
+                "keyword_desc": data.keyword_desc,
+                "operation_type_id": data.operation_type_id,
+                "is_enabled": data.is_enabled
+            } for data in datas
+        ]
+        return respModel.ok_resp(obj=result, msg="查询成功")
+    except Exception as e:
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
+@module_route.get("/getKeywordFields") # 获取关键字的字段描述
+def getKeywordFields(keyword_id: int = Query(...), session: Session = Depends(get_session)):
+    """获取关键字的字段描述（解析keyword_desc）"""
+    try:
+        import json
+        
+        # 查询关键字
+        keyword = session.get(module_model, keyword_id)
+        if not keyword:
+            return respModel.error_resp("关键字不存在")
+        
+        # 解析keyword_desc
+        try:
+            if keyword.keyword_desc:
+                # 尝试解析为JSON
+                fields = json.loads(keyword.keyword_desc)
+                if isinstance(fields, list):
+                    return respModel.ok_resp(obj=fields, msg="查询成功")
+                else:
+                    # 如果不是列表，转换为列表格式
+                    return respModel.ok_resp(obj=[fields], msg="查询成功")
+            else:
+                return respModel.ok_resp(obj=[], msg="该关键字没有字段描述")
+        except json.JSONDecodeError:
+            # 如果不是JSON格式，返回空列表
+            logger.warning(f"关键字 {keyword_id} 的 keyword_desc 不是有效的JSON格式")
+            return respModel.ok_resp(obj=[], msg="字段描述格式错误")
+    except Exception as e:
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")

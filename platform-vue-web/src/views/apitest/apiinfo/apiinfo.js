@@ -36,3 +36,8 @@ export function getByProject(projectId) {
 export function getMethods() {
     return axios.get(`/${module_name}/getMethods`)
 }
+
+// 查询所有接口信息
+export function queryAll() {
+    return axios.get(`/${module_name}/queryAll`)
+}

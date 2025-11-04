@@ -28,3 +28,8 @@ export function deleteData(id) {
 export function queryAllProject() {
     return axios.get(`/${module_name}/queryAll`)
 }
+
+// 别名导出，用于其他组件
+export function queryAll() {
+    return axios.get(`/${module_name}/queryAll`)
+}

@@ -43,13 +43,6 @@ const handleResize = () => {
 
 onMounted(() => {
   window.addEventListener('resize', handleResize)
-  
-  // 调试信息
-  console.log('🏠 Home组件加载:', {
-    windowWidth: windowWidth.value,
-    asideWidth: store.state.asideWidth,
-    isMobile: isMobile.value
-  })
 })
 
 onUnmounted(() => {

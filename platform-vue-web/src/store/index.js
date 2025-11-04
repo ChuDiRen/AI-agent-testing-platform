@@ -10,36 +10,29 @@ const store = createStore({
             const width = window.innerWidth
             const savedWidth = localStorage.getItem('asideWidth')
             
-            console.log('🔧 初始化侧边栏宽度:', { width, savedWidth })
-            
             // 移动端始终返回 0px
             if (width <= 768) {
-                console.log('📱 移动端模式: 0px')
                 return "0px"
             }
             
             // 清理无效的 0px 状态（非移动端不应该是 0px）
             if (savedWidth === "0px") {
-                console.log('🧹 清理无效的 0px 状态')
                 localStorage.removeItem('asideWidth')
             }
             
             // 非移动端：验证保存的宽度是否合理
             if (savedWidth === "64px") {
-                console.log('📐 恢复折叠状态: 64px')
                 return "64px"
             }
             
             if (savedWidth === "200px" || savedWidth === "250px") {
                 // 根据屏幕尺寸调整展开宽度
                 const expandedWidth = width <= 1366 ? "200px" : "250px"
-                console.log('📐 恢复展开状态:', expandedWidth)
                 return expandedWidth
             }
             
             // 没有有效的保存宽度，使用默认展开状态
             const defaultWidth = width <= 1366 ? "200px" : "250px"
-            console.log('📐 使用默认展开状态:', defaultWidth)
             return defaultWidth
         }
         

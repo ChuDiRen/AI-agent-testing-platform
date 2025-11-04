@@ -27,3 +27,6 @@ export function deleteData(id){
 }
 
 // 拓展其他方法
+export function queryAll() {
+    return axios.get(`/${module_name}/queryAll`)
+}
