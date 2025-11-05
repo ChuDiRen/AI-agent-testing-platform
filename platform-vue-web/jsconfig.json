@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src/agent-react",
+    "paths": {
+      "@/*": ["./*"],
+      "~/*": ["../*"]
+    },
+    "jsx": "react",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["vite/client", "node"]
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
+

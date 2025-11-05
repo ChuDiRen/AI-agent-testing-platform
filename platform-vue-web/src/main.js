@@ -19,6 +19,9 @@ import './styles/theme.css'
 import './styles/common-list.css'
 import './styles/common-form.css'
 
+// 引入 Agent React 组件的全局样式
+import './agent-react/globals.css'
+
 const app = createApp(App)
 app.use(store)
 app.use(router)

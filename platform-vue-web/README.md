@@ -4,13 +4,19 @@
 
 ## 技术栈
 
-- **框架**: Vue 3
-- **UI组件库**: Element Plus + Element-Plus-X (AI 聊天组件)
+- **框架**: Vue 3 + React 18（混合使用）
+- **UI组件库**: 
+  - Element Plus（Vue 组件）
+  - Element-Plus-X（AI 聊天组件）
+  - Radix UI（React 组件）
 - **路由**: Vue Router
 - **状态管理**: Vuex
 - **HTTP客户端**: Axios
 - **构建工具**: Vite
 - **AI SDK**: LangGraph SDK, LangChain Core
+- **互操作**: veaury（Vue + React 混合）
+
+> **注意**: 本项目集成了 agent-fronted 的 React 组件（位于 `src/agent-react/`），使用 veaury 库实现 Vue 和 React 的无缝互操作。
 
 ## 项目结构
 
@@ -24,12 +30,18 @@ platform-vue-web/
 │   │   └── index.js
 │   ├── store/               # Vuex状态管理
 │   │   └── index.js
-│   ├── directives/          # 自定义指令 🆕
+│   ├── agent-react/         # Agent React 组件（从 agent-fronted 集成）🆕
+│   │   ├── components/      # React UI 组件
+│   │   ├── providers/       # React Context Providers
+│   │   ├── hooks/           # React Hooks
+│   │   ├── lib/             # 工具函数
+│   │   └── AgentChatApp.jsx # React 主应用
+│   ├── directives/          # 自定义指令
 │   │   └── permission.js    # 权限指令（v-permission, v-role）
-│   ├── components/          # 公共组件
-│   │   ├── JsonEditor.vue   # JSON编辑器组件 🆕
-│   │   └── YamlViewer.vue   # YAML查看器组件 🆕
-│   └── views/               # 页面组件
+│   ├── components/          # 公共组件（Vue）
+│   │   ├── JsonEditor.vue   # JSON编辑器组件
+│   │   └── YamlViewer.vue   # YAML查看器组件
+│   └── views/               # 页面组件（Vue）
 │       ├── 403.vue          # 403 无权限访问页面 🆕
 │       ├── 404.vue          # 404 页面不存在
 │       ├── 500.vue          # 500 服务器错误页面 🆕
@@ -106,9 +118,29 @@ npm run build
 
 ## AI测试助手功能 ⭐新增
 
-### 1. LangGraph 智能对话 (LangGraphChat.vue)
+### 1. AI Agent 智能对话 (AgentChatIntegrated.vue) 🆕
 
-基于 LangGraph SDK 的高级 AI 对话助手，支持工具调用、流式输出、中断处理等功能。
+基于 agent-fronted 的完整 LangGraph Agent 对话界面，使用 React 组件通过 veaury 集成到 Vue 中。
+
+**核心特性**：
+- ✅ 完整的 LangGraph Agent 功能
+- ✅ 流式对话
+- ✅ 工具调用展示
+- ✅ 中断处理
+- ✅ Artifact 显示
+- ✅ 多线程对话管理
+- ✅ 文件上传支持
+- ✅ Markdown 和代码高亮
+- ✅ 数学公式渲染
+- ✅ 国际化（中英文）
+
+**路由**: `/agent-chat`
+
+**技术实现**: 使用 veaury 将 React 组件包装为 Vue 组件
+
+### 2. LangGraph 智能对话 (LangGraphChat.vue)
+
+基于 LangGraph SDK 的简化版 AI 对话助手。
 
 **核心特性**：
 - ✅ LangGraph SDK 集成
@@ -117,20 +149,10 @@ npm run build
 - ✅ 工具调用支持
 - ✅ 中断处理
 - ✅ 对话历史管理
-- ✅ 消息流式渲染
 
-**使用示例**：
-```vue
-<template>
-  <LangGraphChat />
-</template>
+**路由**: `/langgraph-chat`
 
-<script setup>
-import LangGraphChat from '~/views/aiassistant/langgraph/LangGraphChat.vue'
-</script>
-```
-
-### 2. AI模型管理 (AiModelList.vue)
+### 3. AI模型管理 (AiModelList.vue)
 
 管理和配置多个AI模型（DeepSeek、通义千问等）。
 
@@ -140,7 +162,7 @@ import LangGraphChat from '~/views/aiassistant/langgraph/LangGraphChat.vue'
 - 测试模型连接
 - 支持自定义API地址和密钥
 
-### 3. 提示词模板管理 (PromptTemplateList.vue)
+### 4. 提示词模板管理 (PromptTemplateList.vue)
 
 管理不同场景的AI提示词模板。
 
@@ -150,7 +172,7 @@ import LangGraphChat from '~/views/aiassistant/langgraph/LangGraphChat.vue'
 - 激活/停用模板
 - 模板内容在线编辑
 
-### 4. 测试用例管理 (TestCaseList.vue)
+### 5. 测试用例管理 (TestCaseList.vue)
 
 管理AI生成的测试用例。
 

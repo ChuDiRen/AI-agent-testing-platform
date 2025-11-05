@@ -52,6 +52,7 @@ import AiModelList from '~/views/aiassistant/model/AiModelList.vue'
 import PromptTemplateList from '~/views/aiassistant/prompt/PromptTemplateList.vue'
 import TestCaseList from '~/views/aiassistant/testcase/TestCaseList.vue'
 import LangGraphChat from '~/views/aiassistant/langgraph/LangGraphChat.vue'
+import AgentChatIntegrated from '~/views/aiassistant/agentchat/AgentChatIntegrated.vue'
 
 const cookies = useCookies()
 const routes = [
@@ -239,6 +240,12 @@ const routes = [
             component: LangGraphChat,
             meta: {
                 title: "LangGraph 智能对话"
+            }
+        }, {
+            path: "/agent-chat",
+            component: AgentChatIntegrated,
+            meta: {
+                title: "AI Agent 智能对话"
             }
         }
         ]
