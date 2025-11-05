@@ -25,6 +25,7 @@ import { getApiKey } from "@/lib/api-key";
 import { useThreads } from "./Thread";
 import { toast } from "sonner";
 import { useI18n } from "@/hooks/useI18n";
+import { getApiUrl, getAssistantId } from "@/lib/config";
 
 export type StateType = { messages: Message[]; ui?: UIMessage[] };
 
@@ -137,17 +138,16 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const { t } = useI18n();
 
-  // 获取环境变量
-  const envApiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL;
-  const envAssistantId: string | undefined =
-    process.env.NEXT_PUBLIC_ASSISTANT_ID;
+  // 从配置中获取默认值
+  const configApiUrl = getApiUrl();
+  const configAssistantId = getAssistantId();
 
-  // Use URL params with env var fallbacks
+  // Use URL params with config fallbacks
   const [apiUrl, setApiUrl] = useQueryState("apiUrl", {
-    defaultValue: envApiUrl || "",
+    defaultValue: configApiUrl || "",
   });
   const [assistantId, setAssistantId] = useQueryState("assistantId", {
-    defaultValue: envAssistantId || "",
+    defaultValue: configAssistantId || "",
   });
 
   // For API key, use localStorage with env var fallback
@@ -161,9 +161,9 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
     _setApiKey(key);
   };
 
-  // Determine final values to use, prioritizing URL params then env vars
-  const finalApiUrl = apiUrl || envApiUrl;
-  const finalAssistantId = assistantId || envAssistantId;
+  // Determine final values to use, prioritizing URL params then config
+  const finalApiUrl = apiUrl || configApiUrl;
+  const finalAssistantId = assistantId || configAssistantId;
 
   // 如果没有 API URL 或 assistant ID，显示配置表单
   if (!finalApiUrl || !finalAssistantId) {

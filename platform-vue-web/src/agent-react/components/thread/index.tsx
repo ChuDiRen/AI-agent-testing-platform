@@ -31,7 +31,8 @@ import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
-import { GitHubSVG } from "../icons/github";
+// GitHub 图标已移除
+// import { GitHubSVG } from "../icons/github";
 import {
   Tooltip,
   TooltipContent,
@@ -90,30 +91,31 @@ function ScrollToBottom(props: { className?: string }) {
   );
 }
 
-function OpenGitHubRepo() {
-  const { t } = useI18n();
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <a
-            href="https://github.com/langchain-ai/agent-chat-ui"
-            target="_blank"
-            className="flex items-center justify-center"
-          >
-            <GitHubSVG
-              width="24"
-              height="24"
-            />
-          </a>
-        </TooltipTrigger>
-        <TooltipContent side="left">
-          <p>{t("github.openRepo")}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
+// GitHub 链接组件已移除
+// function OpenGitHubRepo() {
+//   const { t } = useI18n();
+//   return (
+//     <TooltipProvider>
+//       <Tooltip>
+//         <TooltipTrigger asChild>
+//           <a
+//             href="https://github.com/langchain-ai/agent-chat-ui"
+//             target="_blank"
+//             className="flex items-center justify-center"
+//           >
+//             <GitHubSVG
+//               width="24"
+//               height="24"
+//             />
+//           </a>
+//         </TooltipTrigger>
+//         <TooltipContent side="left">
+//           <p>{t("github.openRepo")}</p>
+//         </TooltipContent>
+//       </Tooltip>
+//     </TooltipProvider>
+//   );
+// }
 
 export function Thread() {
   const { t } = useI18n();
@@ -342,9 +344,7 @@ export function Thread() {
                   </Button>
                 )}
               </div>
-              <div className="absolute top-2 right-4 flex items-center">
-                <OpenGitHubRepo />
-              </div>
+              {/* GitHub 图标已移除 */}
             </div>
           )}
           {chatStarted && (
@@ -388,9 +388,7 @@ export function Thread() {
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="flex items-center">
-                  <OpenGitHubRepo />
-                </div>
+                {/* GitHub 图标已移除 */}
                 <TooltipIconButton
                   size="lg"
                   className="p-4"

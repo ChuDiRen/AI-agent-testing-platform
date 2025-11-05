@@ -51,7 +51,6 @@ import ApiCaseForm from '~/views/apitest/apicase/ApiCaseForm.vue'
 import AiModelList from '~/views/aiassistant/model/AiModelList.vue'
 import PromptTemplateList from '~/views/aiassistant/prompt/PromptTemplateList.vue'
 import TestCaseList from '~/views/aiassistant/testcase/TestCaseList.vue'
-import LangGraphChat from '~/views/aiassistant/langgraph/LangGraphChat.vue'
 import AgentChatIntegrated from '~/views/aiassistant/agentchat/AgentChatIntegrated.vue'
 
 const cookies = useCookies()
@@ -236,16 +235,10 @@ const routes = [
                 title: "提示词模板管理"
             }
         }, {
-            path: "/langgraph-chat",
-            component: LangGraphChat,
-            meta: {
-                title: "LangGraph 智能对话"
-            }
-        }, {
             path: "/agent-chat",
             component: AgentChatIntegrated,
             meta: {
-                title: "AI Agent 智能对话"
+                title: "智能体聊天"
             }
         }
         ]
@@ -275,8 +268,8 @@ const router = createRouter({
     routes
 })
 
-// 已删除的路由列表（仅删除旧的AI对话系统）
-const deletedRoutes = ['/ai-chat']
+// 已删除的路由列表
+const deletedRoutes = ['/ai-chat', '/langgraph-chat']
 
 //导航判断逻辑
 router.beforeEach((to, from, next) => {

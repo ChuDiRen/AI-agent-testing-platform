@@ -1,0 +1,44 @@
+# 智能体聊天环境变量示例文件
+# 
+# 使用方法：
+# 1. 将此文件复制为 .env.development（开发环境）
+# 2. 根据实际情况修改配置值
+# 3. 重启开发服务器
+
+# ============================================
+# AI Agent 配置
+# ============================================
+
+# LangGraph 部署 URL
+VITE_AGENT_API_URL=http://localhost:2024
+
+# 智能体/图谱 ID
+VITE_AGENT_ASSISTANT_ID=agent
+
+# LangSmith API 密钥（可选，本地开发可留空）
+VITE_AGENT_LANGSMITH_API_KEY=
+
+# ============================================
+# 复制命令（在 platform-vue-web 目录执行）
+# ============================================
+
+# Windows PowerShell:
+# Copy-Item env-example.txt .env.development
+
+# Linux / macOS:
+# cp env-example.txt .env.development
+
+# ============================================
+# 不同环境的配置示例
+# ============================================
+
+# 开发环境 (.env.development)
+# VITE_AGENT_API_URL=http://localhost:2024
+# VITE_AGENT_ASSISTANT_ID=agent
+# VITE_AGENT_LANGSMITH_API_KEY=
+
+# 生产环境 (.env.production)
+# VITE_AGENT_API_URL=https://your-production-server.com
+# VITE_AGENT_ASSISTANT_ID=production-agent
+# VITE_AGENT_LANGSMITH_API_KEY=lsv2_pt_xxxxxxxxxxxxx
+

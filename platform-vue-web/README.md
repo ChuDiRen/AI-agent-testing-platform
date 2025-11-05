@@ -118,7 +118,7 @@ npm run build
 
 ## AI测试助手功能 ⭐新增
 
-### 1. AI Agent 智能对话 (AgentChatIntegrated.vue) 🆕
+### 1. 智能体聊天 (AgentChatIntegrated.vue) 🆕
 
 基于 agent-fronted 的完整 LangGraph Agent 对话界面，使用 React 组件通过 veaury 集成到 Vue 中。
 
@@ -438,12 +438,12 @@ this.$router.push('/500')
 在项目根目录创建 `.env` 文件：
 
 ```bash
-VITE_LANGGRAPH_API_URL=http://localhost:2024
-VITE_LANGGRAPH_ASSISTANT_ID=agent
-VITE_LANGSMITH_API_KEY=your_api_key_here
+VITE_AGENT_API_URL=http://localhost:2024
+VITE_AGENT_ASSISTANT_ID=agent
+VITE_AGENT_LANGSMITH_API_KEY=your_api_key_here
 ```
 
-详细配置说明请查看 [env.config.example.md](./env.config.example.md)
+详细配置说明请查看 [配置示例文件](./env-example.txt)
 
 2. **启动项目**
 
@@ -453,7 +453,7 @@ pnpm dev
 
 3. **访问功能**
 
-点击左侧菜单 **AI 助手 > LangGraph 智能对话**
+点击左侧菜单 **AI配置 > 智能体聊天**
 
 ### 项目结构
 

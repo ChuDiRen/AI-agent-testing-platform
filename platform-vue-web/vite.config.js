@@ -23,13 +23,13 @@ const fixVueElementPlusXCss = () => {
 // 智能解析 agent-react 目录下的 @ 别名
 const resolveAgentReactAlias = () => {
   const extensions = ['.tsx', '.ts', '.jsx', '.js', '.vue']
-  
+
   const tryResolve = (basePath) => {
     // 如果路径已经有扩展名且文件存在
     if (path.extname(basePath) && fs.existsSync(basePath)) {
       return basePath
     }
-    
+
     // 尝试不同的扩展名
     for (const ext of extensions) {
       const fullPath = basePath + ext
@@ -37,7 +37,7 @@ const resolveAgentReactAlias = () => {
         return fullPath
       }
     }
-    
+
     // 尝试 index 文件
     for (const ext of extensions) {
       const indexPath = path.join(basePath, 'index' + ext)
@@ -45,10 +45,10 @@ const resolveAgentReactAlias = () => {
         return indexPath
       }
     }
-    
+
     return null
   }
-  
+
   return {
     name: 'resolve-agent-react-alias',
     enforce: 'pre',
@@ -56,16 +56,16 @@ const resolveAgentReactAlias = () => {
       if (!importer || !source.startsWith('@/')) {
         return null
       }
-      
+
       const normalizedImporter = importer.replace(/\\/g, '/')
       const resolved = source.replace('@/', '')
-      
+
       // 如果导入来自 agent-react 目录，解析到 src/agent-react
       if (normalizedImporter.includes('/agent-react/')) {
         const basePath = path.resolve(__dirname, 'src/agent-react', resolved)
         return tryResolve(basePath)
       }
-      
+
       // 否则解析到 src 根目录（Vue 组件使用）
       const basePath = path.resolve(__dirname, 'src', resolved)
       return tryResolve(basePath)
@@ -74,12 +74,12 @@ const resolveAgentReactAlias = () => {
 }
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   define: {
     __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'true',
-    // 为 React 组件提供 process.env 支持（设置为空对象，让组件使用默认值）
-    'process.env.NEXT_PUBLIC_API_URL': JSON.stringify(''),
-    'process.env.NEXT_PUBLIC_ASSISTANT_ID': JSON.stringify(''),
+    // 为 React 组件提供 process.env 支持（从环境变量读取，支持 .env 文件配置）
+    'process.env.NEXT_PUBLIC_API_URL': JSON.stringify(process.env.VITE_AGENT_API_URL || ''),
+    'process.env.NEXT_PUBLIC_ASSISTANT_ID': JSON.stringify(process.env.VITE_AGENT_ASSISTANT_ID || ''),
   },
   resolve: {
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
@@ -122,4 +122,4 @@ export default defineConfig({
     WindiCSS(),
     fixVueElementPlusXCss()
   ],
-})
+}))
