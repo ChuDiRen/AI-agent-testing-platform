@@ -217,12 +217,15 @@ def create_initial_menus():
                 # 3.3 LangGraph 智能对话（菜单 C）
                 {"id": 303, "parent_id": 300, "menu_name": "LangGraph 智能对话", "path": "/ai-config/langgraph-chat", "component": "langgraph-chat", "query": None, "perms": "ai:langgraph:list", "icon": "ChatLineRound", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "LangGraph 智能对话"},
 
-                # 3.4 测试用例管理（菜单 C）
-                {"id": 304, "parent_id": 300, "menu_name": "测试用例", "path": "/ai-config/testcase", "component": "test-cases", "query": None, "perms": "ai:testcase:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": "测试用例管理"},
-                {"id": 3041, "parent_id": 304, "menu_name": "用例查询", "path": None, "component": None, "query": None, "perms": "ai:testcase:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
-                {"id": 3042, "parent_id": 304, "menu_name": "用例新增", "path": None, "component": None, "query": None, "perms": "ai:testcase:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
-                {"id": 3043, "parent_id": 304, "menu_name": "用例修改", "path": None, "component": None, "query": None, "perms": "ai:testcase:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
-                {"id": 3044, "parent_id": 304, "menu_name": "用例删除", "path": None, "component": None, "query": None, "perms": "ai:testcase:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
+                # 3.4 AI Agent 智能对话（菜单 C）
+                {"id": 304, "parent_id": 300, "menu_name": "AI Agent 智能对话", "path": "/ai-config/agent-chat", "component": "agent-chat", "query": None, "perms": "ai:agent:list", "icon": "ChatDotRound", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": "AI Agent 智能对话"},
+                
+                # 3.5 测试用例管理（菜单 C）
+                {"id": 305, "parent_id": 300, "menu_name": "测试用例", "path": "/ai-config/testcase", "component": "test-cases", "query": None, "perms": "ai:testcase:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": "测试用例管理"},
+                {"id": 3051, "parent_id": 305, "menu_name": "用例查询", "path": None, "component": None, "query": None, "perms": "ai:testcase:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
+                {"id": 3052, "parent_id": 305, "menu_name": "用例新增", "path": None, "component": None, "query": None, "perms": "ai:testcase:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
+                {"id": 3053, "parent_id": 305, "menu_name": "用例修改", "path": None, "component": None, "query": None, "perms": "ai:testcase:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
+                {"id": 3054, "parent_id": 305, "menu_name": "用例删除", "path": None, "component": None, "query": None, "perms": "ai:testcase:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
             ]
 
             for menu_data in api_menus:

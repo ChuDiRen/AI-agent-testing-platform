@@ -261,8 +261,8 @@ const copyMaterialUrl = (index) => {
 </script>
   
 <style scoped>
-@import '@/styles/common-list.css';
-@import '@/styles/common-form.css';
+@import '~/styles/common-list.css';
+@import '~/styles/common-form.css';
 
 .page-container {
   width: 100%;

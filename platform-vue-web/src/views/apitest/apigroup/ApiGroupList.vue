@@ -336,8 +336,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-@import '@/styles/common-list.css';
-@import '@/styles/common-form.css';
+@import '~/styles/common-list.css';
+@import '~/styles/common-form.css';
 
 /* 页面特定样式可以在这里添加 */
 </style>

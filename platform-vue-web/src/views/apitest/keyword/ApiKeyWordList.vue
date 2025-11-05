@@ -231,8 +231,8 @@ getOperationTypeList();
 
 
 <style scoped>
-@import '@/styles/common-list.css';
-@import '@/styles/common-form.css';
+@import '~/styles/common-list.css';
+@import '~/styles/common-form.css';
 
 .el-select {  
   width: 200px;

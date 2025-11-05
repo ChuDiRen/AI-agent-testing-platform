@@ -288,7 +288,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-@import '@/styles/common-form.css';
+@import '~/styles/common-form.css';
 
 .steps-section {
   padding: 20px;

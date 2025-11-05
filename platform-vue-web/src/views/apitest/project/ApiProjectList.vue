@@ -466,8 +466,8 @@ const onDeleteDb = (index: number) => {
 </script>
   
 <style scoped>
-@import '@/styles/common-list.css';
-@import '@/styles/common-form.css';
+@import '~/styles/common-list.css';
+@import '~/styles/common-form.css';
 
 /* 数据库配置对话框样式 */
 .db-config-dialog :deep(.el-dialog__body) {

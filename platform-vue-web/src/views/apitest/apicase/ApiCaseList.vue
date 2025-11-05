@@ -234,6 +234,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-@import '@/styles/common-list.css';
+@import '~/styles/common-list.css';
 </style>
 

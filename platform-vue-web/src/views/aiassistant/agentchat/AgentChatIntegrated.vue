@@ -1,28 +1,24 @@
 <template>
-  <div class="agent-chat-integrated">
-    <!-- 使用 veaury 将 React 组件渲染在 Vue 中 -->
-    <AgentChatReactComponent />
+  <div class="agent-chat-page">
+    <AgentChatAppVue />
   </div>
 </template>
 
 <script setup>
 import { applyReactInVue } from 'veaury'
-import AgentChatApp from '@/agent-react/AgentChatApp.jsx'
+import AgentChatApp from '~/agent-react/AgentChatApp'
+// 导入兼容版本的样式（支持 Tailwind CSS v3）
+import './agent-chat-styles.css'
 
-// 将 React 组件转换为 Vue 组件
-const AgentChatReactComponent = applyReactInVue(AgentChatApp)
+// 使用 veaury 将 React 组件转换为 Vue 组件
+const AgentChatAppVue = applyReactInVue(AgentChatApp)
 </script>
 
 <style scoped>
-.agent-chat-integrated {
+.agent-chat-page {
   width: 100%;
-  height: calc(100vh - 60px);
+  height: calc(100vh - 64px);
   overflow: hidden;
-}
-
-/* 确保 React 组件的样式正常显示 */
-.agent-chat-integrated :deep(*) {
-  box-sizing: border-box;
+  background: var(--background, #f5f7fa);
 }
 </style>
-

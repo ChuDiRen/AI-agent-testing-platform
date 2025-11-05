@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import fs from 'fs'
 import WindiCSS from 'vite-plugin-windicss'
 
 // 修复 vue-element-plus-x CSS 导入的插件
@@ -19,22 +20,55 @@ const fixVueElementPlusXCss = () => {
   }
 }
 
-// 解析 agent-react 目录下的 @ 别名
+// 智能解析 agent-react 目录下的 @ 别名
 const resolveAgentReactAlias = () => {
+  const extensions = ['.tsx', '.ts', '.jsx', '.js', '.vue']
+  
+  const tryResolve = (basePath) => {
+    // 如果路径已经有扩展名且文件存在
+    if (path.extname(basePath) && fs.existsSync(basePath)) {
+      return basePath
+    }
+    
+    // 尝试不同的扩展名
+    for (const ext of extensions) {
+      const fullPath = basePath + ext
+      if (fs.existsSync(fullPath)) {
+        return fullPath
+      }
+    }
+    
+    // 尝试 index 文件
+    for (const ext of extensions) {
+      const indexPath = path.join(basePath, 'index' + ext)
+      if (fs.existsSync(indexPath)) {
+        return indexPath
+      }
+    }
+    
+    return null
+  }
+  
   return {
     name: 'resolve-agent-react-alias',
     enforce: 'pre',
     resolveId(source, importer) {
-      // 处理所有从 agent-react 目录发起的 @/ 导入
-      if (importer) {
-        const normalizedImporter = importer.replace(/\\/g, '/')
-        if (normalizedImporter.includes('/agent-react/') && source.startsWith('@/')) {
-          const resolved = source.replace('@/', '')
-          const fullPath = path.resolve(__dirname, 'src/agent-react', resolved)
-          return fullPath
-        }
+      if (!importer || !source.startsWith('@/')) {
+        return null
       }
-      return null
+      
+      const normalizedImporter = importer.replace(/\\/g, '/')
+      const resolved = source.replace('@/', '')
+      
+      // 如果导入来自 agent-react 目录，解析到 src/agent-react
+      if (normalizedImporter.includes('/agent-react/')) {
+        const basePath = path.resolve(__dirname, 'src/agent-react', resolved)
+        return tryResolve(basePath)
+      }
+      
+      // 否则解析到 src 根目录（Vue 组件使用）
+      const basePath = path.resolve(__dirname, 'src', resolved)
+      return tryResolve(basePath)
     }
   }
 }
@@ -42,18 +76,21 @@ const resolveAgentReactAlias = () => {
 // https://vitejs.dev/config/
 export default defineConfig({
   define: {
-    __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'true'
+    __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'true',
+    // 为 React 组件提供 process.env 支持（设置为空对象，让组件使用默认值）
+    'process.env.NEXT_PUBLIC_API_URL': JSON.stringify(''),
+    'process.env.NEXT_PUBLIC_ASSISTANT_ID': JSON.stringify(''),
   },
   resolve: {
-    alias: [
-      // agent-react 专用别名（优先级更高）
-      { find: /^@\/(.*)/, replacement: path.resolve(__dirname, 'src/agent-react/$1') },
-      // Vue 组件使用的别名
-      { find: '~', replacement: path.resolve(__dirname, 'src') },
+    extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
+    alias: {
+      // ~ 别名指向 src（Vue 组件和 CSS 导入使用）
+      '~': path.resolve(__dirname, 'src'),
+      // @ 别名完全由 resolveAgentReactAlias 插件智能处理
       // 修复 vue-element-plus-x CSS 导入问题
-      { find: 'vue-element-plus-x/dist/style.css', replacement: path.resolve(__dirname, 'node_modules/vue-element-plus-x/dist/index.css') },
-      { find: 'vue-element-plus-x/dist/index.css', replacement: path.resolve(__dirname, 'node_modules/vue-element-plus-x/dist/index.css') }
-    ]
+      'vue-element-plus-x/dist/style.css': path.resolve(__dirname, 'node_modules/vue-element-plus-x/dist/index.css'),
+      'vue-element-plus-x/dist/index.css': path.resolve(__dirname, 'node_modules/vue-element-plus-x/dist/index.css')
+    }
   },
   optimizeDeps: {
     include: ['vue-element-plus-x', 'vue-demi', 'react', 'react-dom', 'veaury'],
@@ -79,7 +116,7 @@ export default defineConfig({
     }
   },
   plugins: [
-    resolveAgentReactAlias(), // 必须放在最前面
+    resolveAgentReactAlias(), // 必须在最前面，处理 agent-react 内部的 @/ 别名
     vue(),
     react(), // 支持 React 组件
     WindiCSS(),
