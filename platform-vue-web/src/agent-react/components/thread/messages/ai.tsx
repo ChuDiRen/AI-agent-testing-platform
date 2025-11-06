@@ -179,13 +179,23 @@ export function AssistantMessage({
     }
   }
 
-  // 统计每个工具调用的尝试次数
+  // 统计每个工具调用的尝试次数（仅统计当前回合，从最近的人类消息开始）
   const toolCallAttempts = new Map<string, number>();
   if (message) {
     const currentMessageIndex = thread.messages.findIndex((m) => m.id === message.id);
 
-    // 遍历当前及之前的消息，统计相同工具的调用次数
-    for (let i = 0; i <= currentMessageIndex; i++) {
+    // 找到当前消息之前最近的人类消息索引
+    let lastHumanMessageIndex = -1;
+    for (let i = currentMessageIndex - 1; i >= 0; i--) {
+      if (thread.messages[i].type === "human") {
+        lastHumanMessageIndex = i;
+        break;
+      }
+    }
+
+    // 只统计从最近的人类消息到当前消息之间的工具调用（当前回合内）
+    const startIndex = lastHumanMessageIndex >= 0 ? lastHumanMessageIndex : 0;
+    for (let i = startIndex; i <= currentMessageIndex; i++) {
       const msg = thread.messages[i];
       if (msg.type === "ai" && "tool_calls" in msg && msg.tool_calls) {
         for (const tc of msg.tool_calls) {
@@ -198,13 +208,22 @@ export function AssistantMessage({
     }
   }
 
-  // 检查后续消息中是否有相同工具名的调用
+  // 检查后续消息中是否有相同工具名的调用（仅当前回合，到下一个人类消息为止）
   const toolNamesInLaterMessages = new Set<string>();
   if (message) {
     const currentMessageIndex = thread.messages.findIndex((m) => m.id === message.id);
 
-    // 只检查后续的消息（不包括当前消息）
+    // 找到当前消息之后下一个人类消息的索引
+    let nextHumanMessageIndex = thread.messages.length;
     for (let i = currentMessageIndex + 1; i < thread.messages.length; i++) {
+      if (thread.messages[i].type === "human") {
+        nextHumanMessageIndex = i;
+        break;
+      }
+    }
+
+    // 只检查当前回合内的后续消息（从当前消息到下一个人类消息之间）
+    for (let i = currentMessageIndex + 1; i < nextHumanMessageIndex; i++) {
       const laterMsg = thread.messages[i];
       if (laterMsg.type === "ai" && "tool_calls" in laterMsg && laterMsg.tool_calls) {
         for (const tc of laterMsg.tool_calls) {

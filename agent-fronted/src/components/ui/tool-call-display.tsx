@@ -84,7 +84,7 @@ export function ToolCallDisplay({
                 )}
               </div>
               <p className={cn("text-sm font-medium truncate", config.icon)}>
-                {attemptNumber && attemptNumber > 1 ? "优化重试中" : config.label}
+                {attemptNumber && attemptNumber > 1 && (status === "pending" || status === "running") ? "优化重试中" : config.label}
               </p>
             </div>
           </div>
