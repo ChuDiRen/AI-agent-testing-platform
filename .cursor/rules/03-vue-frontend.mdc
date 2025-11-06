@@ -14,6 +14,22 @@ description: Vue3前端开发规范和最佳实践
 - **Element Plus 2.6.3** - UI组件库
 - **Axios 1.4.0** - HTTP客户端
 - **Vite 4.3.9** - 构建工具
+- **WindiCSS 3.5.6** - CSS工具类框架
+- **Element Plus X 1.3.7** - Element Plus扩展组件
+
+### React集成依赖
+项目支持 Vue + React 混合开发：
+- **React 18.3.1** - React核心库
+- **Veaury 2.3.3** - Vue与React组件互操作
+- **Radix UI** - React UI组件库（用于Agent对话界面）
+- **TailwindCSS 3.4.15** - CSS框架
+- **Framer Motion 12.4.9** - React动画库
+
+### AI相关依赖
+- **@langchain/core** - LangChain核心库
+- **@langchain/langgraph** - LangGraph流程图
+- **React Markdown** - Markdown渲染
+- **React Syntax Highlighter** - 代码高亮
 
 参考配置: [platform-vue-web/package.json](mdc:platform-vue-web/package.json)
 
@@ -21,18 +37,36 @@ description: Vue3前端开发规范和最佳实践
 
 ```
 src/
-├── assets/          # 静态资源
-├── components/      # 公共组件
-├── composables/     # 组合式函数
-├── directives/      # 自定义指令
-├── router/          # 路由配置
-├── store/           # Vuex状态管理
-├── styles/          # 全局样式
-├── utils/           # 工具函数
-├── views/           # 页面组件
-├── axios.js         # Axios配置
-├── main.js          # 应用入口
-└── style.css        # 全局样式
+├── agent-react/        # Agent React组件（AI对话界面）
+│   ├── components/     # React组件
+│   ├── hooks/          # React Hooks
+│   └── globals.css     # React全局样式
+├── react-components/   # React公共组件
+├── assets/             # 静态资源
+├── components/         # Vue公共组件
+├── composables/        # 组合式函数
+├── directives/         # 自定义指令（权限控制等）
+├── router/             # 路由配置
+├── store/              # Vuex状态管理
+├── styles/             # 全局样式
+│   ├── theme.css       # 主题样式
+│   ├── common-list.css # 列表通用样式
+│   └── common-form.css # 表单通用样式
+├── utils/              # 工具函数
+├── views/              # 页面组件
+│   ├── apitest/        # API测试模块
+│   ├── sysmanage/      # 系统管理模块
+│   └── aiassistant/    # AI助手模块
+├── axios.js            # Axios配置（统一API调用）
+├── main.js             # 应用入口
+├── App.vue             # 根组件
+└── style.css           # 全局样式
+
+配置文件：
+├── vite.config.js      # Vite构建配置
+├── tailwind.config.js  # TailwindCSS配置
+├── jsconfig.json       # JavaScript配置（路径别名）
+└── package.json        # 依赖管理
 ```
 
 ## 组件开发规范
@@ -124,13 +158,14 @@ export default {
 
 项目使用自定义的 axios 实例，配置了：
 - **baseURL**: `/api` - 统一的API前缀
-- **请求拦截器**: 自动显示 Loading 加载提示
-- **响应拦截器**: 统一处理错误状态码（403/404/500）
+- **请求拦截器**: 自动显示全局 Loading 加载提示（支持多请求计数）
+- **响应拦截器**: 统一处理业务错误码和HTTP错误状态码
 - **错误处理**: 自动显示错误消息并跳转错误页面
 
 ```javascript
 // platform-vue-web/src/axios.js (核心配置)
 import axios from "axios"
+import { ref } from "vue"
 import { ElLoading, ElMessage } from 'element-plus'
 import router from './router/index.js'
 
@@ -138,23 +173,52 @@ const service = axios.create({
     baseURL: "/api"  // 所有请求的统一前缀
 })
 
+const nums = ref(0)  // 请求计数器
+const loading = ref(null)  // Loading实例
+
+// 打开Loading
+function open() {
+    if (nums.value <= 0) {
+        loading.value = ElLoading.service({
+            lock: true,
+            text: '加载中',
+            background: 'rgba(0, 0, 0, 0.05)',
+        })
+    }
+    nums.value++  // 请求数+1
+}
+
+// 关闭Loading
+function close() {
+    nums.value--  // 请求数-1
+    if (nums.value <= 0) {
+        nums.value = 0
+        loading.value.close()
+    }
+}
+
 // 请求拦截器 - 显示 Loading
 service.interceptors.request.use(config => {
-    // 显示加载动画
+    open()  // 打开Loading
     return config
 }, error => {
+    close()  // 关闭Loading
     ElMessage.error('网络异常，请稍后再试')
     return Promise.reject(error)
 })
 
 // 响应拦截器 - 统一错误处理
 service.interceptors.response.use(response => {
+    close()  // 关闭Loading
+    // 检查业务状态码
     if (response.data.code != 200) {
-        ElMessage.error(response.data.msg)
+        ElMessage.error(response.data.msg + ',状态码:' + response.data.code)
     }
     return response
 }, error => {
-    // 根据状态码处理
+    close()  // 关闭Loading
+    
+    // 根据HTTP状态码处理
     if (error.response) {
         switch (error.response.status) {
             case 403:
@@ -168,13 +232,26 @@ service.interceptors.response.use(response => {
             case 404:
                 ElMessage.error('请求的资源不存在')
                 break
+            default:
+                ElMessage.error('网络异常，请稍后再试')
         }
+    } else {
+        ElMessage.error('网络异常，请稍后再试')
     }
+    
     return Promise.reject(error)
 })
 
 export default service
 ```
+
+### Axios配置要点
+1. **全局Loading管理**: 使用计数器支持多个并发请求的Loading显示
+2. **双重错误处理**: 
+   - 业务错误: 检查 `response.data.code`
+   - HTTP错误: 检查 `error.response.status`
+3. **自动路由跳转**: 403和500错误自动跳转到对应错误页面
+4. **统一错误提示**: 使用 Element Plus 的 Message 组件显示错误
 
 ### API 模块化（标准模式）
 项目采用模块化的 API 封装，每个业务模块对应一个 API 文件。
@@ -494,6 +571,59 @@ const handleConfirm = () => {
 </script>
 ```
 
+## 应用入口配置
+
+### main.js 配置
+参考 [platform-vue-web/src/main.js](mdc:platform-vue-web/src/main.js)
+
+```javascript
+import { createApp } from 'vue'
+import ElementPlus from 'element-plus'
+import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
+import 'element-plus/dist/index.css'
+import App from './App.vue'
+import 'virtual:windi.css'  // WindiCSS
+import router from './router/index.js'
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import store from './store/index.js'
+import directives from './directives/permission.js'
+import ElementPlusX from 'vue-element-plus-x'
+
+// 引入自定义主题和样式
+import './styles/theme.css'
+import './styles/common-list.css'
+import './styles/common-form.css'
+import './agent-react/globals.css'  // Agent React全局样式
+
+const app = createApp(App)
+
+// 注册插件
+app.use(store)           // Vuex状态管理
+app.use(router)          // Vue Router
+app.use(ElementPlus, {   // Element Plus（中文）
+  locale: zhCn,
+})
+app.use(ElementPlusX)    // Element Plus扩展组件
+
+// 注册全局图标组件
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  app.component(key, component)
+}
+
+// 注册全局权限指令
+app.directive('permission', directives.permission)
+app.directive('role', directives.role)
+
+app.mount('#app')
+```
+
+### 应用入口配置要点
+1. **Element Plus中文化**: 导入 `zh-cn` 语言包
+2. **WindiCSS**: 引入 `virtual:windi.css`
+3. **全局图标注册**: 注册所有 Element Plus 图标
+4. **自定义指令**: 注册权限控制指令
+5. **混合样式**: 同时支持 Vue 和 React 样式
+
 ## 样式规范
 
 ### 1. Scoped 样式
@@ -512,7 +642,26 @@ const handleConfirm = () => {
 ### 2. 全局样式
 参考 [platform-vue-web/src/styles](mdc:platform-vue-web/src/styles)
 
-### 3. 深度选择器
+项目包含多套样式文件：
+- `theme.css` - 主题样式（颜色、字体等）
+- `common-list.css` - 列表页通用样式
+- `common-form.css` - 表单页通用样式
+- `style.css` - 其他全局样式
+
+### 3. WindiCSS 工具类
+项目使用 WindiCSS，可以直接在模板中使用工具类：
+```vue
+<template>
+  <div class="flex items-center justify-between p-4 bg-white rounded-lg">
+    <span class="text-lg font-bold">标题</span>
+    <button class="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600">
+      按钮
+    </button>
+  </div>
+</template>
+```
+
+### 4. 深度选择器
 ```vue
 <style scoped>
 /* 修改子组件样式 */
@@ -520,6 +669,17 @@ const handleConfirm = () => {
   margin-right: 10px;
 }
 </style>
+```
+
+### 5. TailwindCSS（用于React组件）
+React组件使用 TailwindCSS：
+```jsx
+<div className="flex flex-col gap-4 p-4 bg-white rounded-lg shadow">
+  <h2 className="text-xl font-semibold">React Component</h2>
+  <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+    Button
+  </button>
+</div>
 ```
 
 ## Composables (组合式函数)
@@ -627,8 +787,85 @@ console.log('用户信息:', user.value)
 console.table(projects.value)
 ```
 
+## Vue + React 混合开发
+
+### Veaury 集成
+项目使用 Veaury 实现 Vue 和 React 组件的互操作。
+
+#### 在Vue中使用React组件
+```vue
+<script setup>
+import { applyReactInVue } from 'veaury'
+import ReactComponent from '@/react-components/ReactComponent'
+
+// 将React组件转换为Vue组件
+const ReactInVue = applyReactInVue(ReactComponent)
+</script>
+
+<template>
+  <ReactInVue :prop1="value1" @event1="handleEvent" />
+</template>
+```
+
+#### 在React中使用Vue组件
+```jsx
+import { applyVueInReact } from 'veaury'
+import VueComponent from '@/components/VueComponent.vue'
+
+// 将Vue组件转换为React组件
+const VueInReact = applyVueInReact(VueComponent)
+
+export default function ReactApp() {
+  return <VueInReact prop1={value1} onEvent1={handleEvent} />
+}
+```
+
+### Agent对话界面（React）
+项目的AI对话界面使用React开发，位于 `src/agent-react/` 目录：
+- 使用 Radix UI 组件库
+- 使用 TailwindCSS 样式
+- 支持流式对话显示
+- Markdown和代码高亮
+
+### 混合开发注意事项
+1. **样式隔离**: Vue组件使用 scoped 样式，React组件使用 TailwindCSS
+2. **状态管理**: Vue使用Vuex，React组件可通过props传递状态
+3. **事件通信**: 使用Veaury提供的事件转换机制
+4. **路由集成**: 主路由使用Vue Router，React组件作为页面组件嵌入
+
+## 自定义指令
+
+### 权限指令
+参考 [platform-vue-web/src/directives/permission.js](mdc:platform-vue-web/src/directives/permission.js)
+
+```vue
+<template>
+  <!-- 按钮级权限控制 -->
+  <el-button v-permission="['admin']">管理员按钮</el-button>
+  
+  <!-- 角色级权限控制 -->
+  <el-button v-role="['admin', 'editor']">编辑按钮</el-button>
+</template>
+```
+
 ## 常见问题
 
 1. **跨域问题**: 在 [vite.config.js](mdc:platform-vue-web/vite.config.js) 配置代理
 2. **Token失效**: 在 axios 拦截器中处理
 3. **路由守卫**: 检查权限和登录状态
+4. **Vue和React样式冲突**: 使用不同的CSS方案隔离（Vue用scoped，React用TailwindCSS）
+5. **WindiCSS和TailwindCSS共存**: 通过配置确保两者不冲突
+
+## 开发建议
+
+1. **组件选择**: 
+   - 简单业务逻辑用Vue（表单、列表等）
+   - 复杂交互用React（AI对话、可视化等）
+2. **性能优化**: 
+   - 路由懒加载
+   - 组件按需加载
+   - 合理使用计算属性和watch
+3. **代码规范**: 
+   - Vue组件使用 Composition API
+   - React组件使用 Hooks
+   - 统一代码格式化配置

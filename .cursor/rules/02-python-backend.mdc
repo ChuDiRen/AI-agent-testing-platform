@@ -7,56 +7,175 @@ description: Python后端开发规范和最佳实践
 
 ## FastAPI 项目结构规范
 
-### 模块组织
-项目采用分层架构，每个业务模块包含：
-- `api/` - 控制器层 (Controller)，处理HTTP请求
-- `model/` - 数据模型层 (Model)，SQLModel定义
-- `schemas/` - 数据传输对象 (DTO/Schema)，请求响应模型
+### 应用入口和配置
+- **app.py** - FastAPI应用主入口，包含路由注册、中间件配置
+- **run.py** - 应用启动脚本，配置uvicorn服务器
+- **requirements.txt** - Python依赖包管理
+- **config/** - 环境配置管理（dev/test/prod）
+
+### 核心模块组织
+项目采用分层架构，主要业务模块：
+- `apitest/` - API测试相关功能
+- `aiassistant/` - AI助手相关功能
+- `login/` - 用户认证相关功能
+- `sysmanage/` - 系统管理相关功能
+- `core/` - 核心工具和公共模块
+
+### 单个业务模块结构
+每个业务模块包含：
+- `api/` - 控制器层 (Controller)，处理HTTP请求，命名为 `xxxController.py`
+- `model/` - 数据模型层 (Model)，SQLModel定义，命名为 `xxxModel.py`
+- `schemas/` - 数据传输对象 (DTO/Schema)，请求响应模型，命名为 `xxx_schema.py`
 
 ### 示例模块结构
 ```
 apitest/
 ├── api/
-│   ├── ApiProjectController.py
-│   └── ApiInfoController.py
+│   ├── ApiProjectContoller.py
+│   ├── ApiInfoController.py
+│   └── ApiTestController.py
 ├── model/
 │   ├── ApiProjectModel.py
-│   └── ApiInfoModel.py
+│   ├── ApiInfoModel.py
+│   └── ApiTestHistoryModel.py
 └── schemas/
     ├── api_project_schema.py
-    └── api_info_schema.py
+    ├── api_info_schema.py
+    └── api_test_schema.py
+
+aiassistant/
+├── api/
+│   ├── AiModelController.py
+│   ├── AiConversationController.py
+│   └── PromptTemplateController.py
+├── model/
+│   ├── AiModel.py
+│   ├── AiConversation.py
+│   └── PromptTemplate.py
+└── schemas/
+    ├── ai_model_schema.py
+    └── prompt_template_schema.py
+
+core/
+├── database.py           # 数据库连接和会话管理
+├── resp_model.py         # 统一响应模型
+├── logger.py             # 日志管理
+├── middleware.py         # 中间件（追踪ID、CORS等）
+├── JwtUtil.py           # JWT工具
+├── MinioUtils.py        # 文件存储工具
+├── time_utils.py        # 时间工具
+├── dependencies.py      # 依赖注入
+├── AiStreamService.py   # AI流式响应服务
+└── init_data.py         # 数据初始化
 ```
 
 ## 编码规范
 
 ### 1. 控制器层 (Controller)
+
+#### 标准控制器模板
+项目使用统一的模块化控制器模式：
 ```python
-from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session
-from core.database import get_db
+from fastapi import APIRouter, Depends, Query
+from sqlmodel import Session, select
+from core.resp_model import respModel
+from ..model.ApiProjectModel import ApiProject
+from ..schemas.api_project_schema import ApiProjectQuery, ApiProjectCreate, ApiProjectUpdate
+from core.database import get_session
+from datetime import datetime
+from core.logger import get_logger
 
-router = APIRouter(prefix="/api/v1/projects", tags=["项目管理"])
+# 模块配置
+module_name = "ApiProject"  # 模块名称，对应前端API调用
+module_model = ApiProject     # 数据模型
+module_route = APIRouter(prefix=f"/{module_name}", tags=["API项目管理"])
+logger = get_logger(__name__)
 
-@router.post("/", response_model=ProjectResponse)
-async def create_project(
-    project: ProjectCreate,
-    db: Session = Depends(get_db)
-):
-    """
-    创建新项目
-    
-    Args:
-        project: 项目创建数据
-        db: 数据库会话
-        
-    Returns:
-        ProjectResponse: 创建的项目信息
-    """
-    # 实现逻辑
-    pass
+@module_route.post("/queryByPage")  # 分页查询
+def queryByPage(query: ApiProjectQuery, session: Session = Depends(get_session)):
+    try:
+        offset = (query.page - 1) * query.pageSize
+        statement = select(module_model).limit(query.pageSize).offset(offset)
+        datas = session.exec(statement).all()
+        count_statement = select(module_model)
+        total = len(session.exec(count_statement).all())
+        return respModel.ok_resp_list(lst=datas, total=total)
+    except Exception as e:
+        logger.error(f"查询失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误:{e}")
+
+@module_route.get("/queryById")  # 根据ID查询
+def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+    try:
+        statement = select(module_model).where(module_model.id == id)
+        data = session.exec(statement).first()
+        if data:
+            return respModel.ok_resp(obj=data)
+        else:
+            return respModel.ok_resp(msg="查询成功,但是没有数据")
+    except Exception as e:
+        logger.error(f"查询失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误:{e}")
+
+@module_route.post("/insert")  # 新增
+def insert(project: ApiProjectCreate, session: Session = Depends(get_session)):
+    try:
+        data = module_model(**project.model_dump(), create_time=datetime.now())
+        session.add(data)
+        session.commit()
+        session.refresh(data)
+        return respModel.ok_resp(msg="添加成功", dic_t={"id": data.id})
+    except Exception as e:
+        session.rollback()
+        return respModel.error_resp(msg=f"添加失败:{e}")
+
+@module_route.put("/update")  # 更新
+def update(project: ApiProjectUpdate, session: Session = Depends(get_session)):
+    try:
+        statement = select(module_model).where(module_model.id == project.id)
+        db_project = session.exec(statement).first()
+        if db_project:
+            update_data = project.model_dump(exclude_unset=True, exclude={'id'})
+            for key, value in update_data.items():
+                setattr(db_project, key, value)
+            session.commit()
+            return respModel.ok_resp(msg="修改成功")
+        else:
+            return respModel.error_resp(msg="数据不存在")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"更新失败: {e}", exc_info=True)
+        return respModel.error_resp(msg=f"修改失败:{e}")
+
+@module_route.delete("/delete")  # 删除
+def delete(id: int = Query(...), session: Session = Depends(get_session)):
+    try:
+        statement = select(module_model).where(module_model.id == id)
+        data = session.exec(statement).first()
+        if data:
+            session.delete(data)
+            session.commit()
+            return respModel.ok_resp(msg="删除成功")
+        else:
+            return respModel.error_resp(msg="数据不存在")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"删除失败: {e}", exc_info=True)
+        return respModel.error_resp(msg=f"删除失败:{e}")
 ```
 
+#### 控制器开发要点
+1. **模块命名**: `module_name` 必须与前端 API 调用的模块名一致
+2. **路由前缀**: 使用 `/{module_name}` 作为路由前缀
+3. **标准接口**: `/queryByPage`, `/queryById`, `/insert`, `/update`, `/delete`
+4. **响应模型**: 统一使用 `respModel` 返回数据
+5. **依赖注入**: 使用 `get_session()` 获取数据库会话
+6. **异常处理**: 使用 try-except 捕获异常，rollback 事务
+7. **日志记录**: 使用 logger 记录关键操作和错误
+
 ### 2. 数据模型层 (Model)
+
+#### 标准模型定义
 ```python
 from sqlmodel import SQLModel, Field
 from typing import Optional
@@ -64,14 +183,48 @@ from datetime import datetime
 
 class ApiProject(SQLModel, table=True):
     """API项目模型"""
-    __tablename__ = "api_project"
+    __tablename__ = "t_api_project"  # 表名统一使用 t_ 前缀
     
     id: Optional[int] = Field(default=None, primary_key=True)
-    project_name: str = Field(max_length=100, index=True)
+    project_name: str = Field(max_length=255, description='项目名称')
+    project_desc: str = Field(max_length=255, description='项目描述')
+    create_time: Optional[datetime] = Field(default=None, description='创建时间')
+
+class AiModel(SQLModel, table=True):
+    """AI模型配置表"""
+    __tablename__ = "ai_model"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    model_name: str = Field(max_length=100, index=True)  # 模型名称
+    model_code: str = Field(max_length=50, unique=True)  # 模型代码
+    provider: str = Field(max_length=50)  # 提供商
+    api_url: str = Field(max_length=500)  # API地址
+    api_key: Optional[str] = Field(default=None, max_length=500)  # API密钥
+    is_enabled: bool = Field(default=True)  # 是否启用
     description: Optional[str] = Field(default=None, max_length=500)
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    create_time: datetime = Field(default_factory=datetime.now)
+    modify_time: datetime = Field(default_factory=datetime.now)
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "model_name": "DeepSeek-Chat",
+                "model_code": "deepseek-chat",
+                "provider": "DeepSeek",
+                "api_url": "https://api.deepseek.com/v1/chat/completions",
+                "api_key": "sk-xxxxx",
+                "is_enabled": True
+            }
+        }
 ```
+
+#### 模型开发要点
+1. **表名命名**: 使用 `__tablename__` 指定表名，推荐使用 `t_` 前缀
+2. **字段定义**: 使用 `Field()` 定义字段属性（长度、描述、索引等）
+3. **主键字段**: `id` 字段使用 `Optional[int]` 并设置 `primary_key=True`
+4. **时间字段**: 使用 `datetime` 类型，创建时自动赋值使用 `default_factory=datetime.now`
+5. **文档注释**: 类和字段都应有清晰的描述
+6. **示例配置**: 复杂模型可使用 `Config.json_schema_extra` 提供示例
 
 ### 3. Schema层 (DTO)
 ```python
@@ -95,78 +248,261 @@ class ProjectResponse(BaseModel):
         from_attributes = True
 ```
 
+## 中间件和应用启动
+
+### 应用启动配置 (app.py)
+```python
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from core.middleware import TraceIDMiddleware, CORSHeaderMiddleware
+from core.database import init_db, init_data
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期管理"""
+    # 启动时执行
+    init_db()      # 初始化数据库表
+    init_data()    # 初始化数据
+    yield
+    # 关闭时执行清理工作
+
+# 创建FastAPI应用
+application = FastAPI(
+    title="AI Agent Testing Platform API",
+    description="API接口测试平台后端服务",
+    version="2.0.0",
+    lifespan=lifespan
+)
+
+# 配置中间件
+application.add_middleware(TraceIDMiddleware)      # 请求追踪
+application.add_middleware(CORSHeaderMiddleware)   # CORS头部
+application.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 生产环境应配置具体域名
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 注册路由
+from apitest.api import ApiProjectContoller
+application.include_router(ApiProjectContoller.module_route)
+
+from aiassistant.api import AiModelController
+application.include_router(AiModelController.module_route)
+```
+
+### 服务启动脚本 (run.py)
+```python
+import uvicorn
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "app:application",
+        host="0.0.0.0",
+        port=5000,
+        reload=True,        # 开发环境启用热重载
+        log_level="info"
+    )
+```
+
+### 中间件说明
+1. **TraceIDMiddleware**: 为每个请求生成唯一追踪ID，用于日志追踪
+2. **CORSHeaderMiddleware**: 处理跨域响应头
+3. **CORSMiddleware**: FastAPI的CORS中间件，处理跨域请求
+
 ## 依赖注入规范
 
-### 数据库依赖
-使用 [core/database.py](mdc:platform-fastapi-server/core/database.py) 中的 `get_db()`
+### 数据库会话依赖
+```python
+from fastapi import Depends
+from sqlmodel import Session
+from core.database import get_session
+
+@module_route.post("/insert")
+def insert(data: CreateSchema, session: Session = Depends(get_session)):
+    # session 自动注入和管理
+    pass
+```
 
 ### JWT认证依赖
 使用 [core/dependencies.py](mdc:platform-fastapi-server/core/dependencies.py) 中的依赖函数
-
-## 错误处理规范
-
-### 统一响应模型
-使用 [core/resp_model.py](mdc:platform-fastapi-server/core/resp_model.py) 中定义的响应格式：
 ```python
-from core.resp_model import success_response, error_response
+from core.dependencies import get_current_user
 
-# 成功响应
-return success_response(data=result, message="操作成功")
-
-# 错误响应
-raise HTTPException(
-    status_code=400,
-    detail=error_response(message="参数错误")
-)
+@module_route.get("/profile")
+def get_profile(current_user = Depends(get_current_user)):
+    # 自动验证JWT并获取当前用户
+    return current_user
 ```
 
-### 常见HTTP状态码
-- 200: 成功
-- 201: 创建成功
+## 统一响应模型规范
+
+### respModel 响应模型
+项目使用 [core/resp_model.py](mdc:platform-fastapi-server/core/resp_model.py) 中定义的统一响应格式：
+
+```python
+from core.resp_model import respModel
+
+# 1. 单条数据响应 - ok_resp
+return respModel.ok_resp(obj=data, msg="操作成功")
+# 返回格式: {"code": 200, "msg": "操作成功", "data": {...}, "trace_id": "xxx"}
+
+# 2. 列表数据响应 - ok_resp_list
+return respModel.ok_resp_list(lst=data_list, total=100, msg="查询成功")
+# 返回格式: {"code": 200, "msg": "查询成功", "total": 100, "data": [...], "trace_id": "xxx"}
+
+# 3. 自定义列表响应 - ok_resp_listdata
+return respModel.ok_resp_listdata(lst=custom_list, total=50)
+
+# 4. 简单数据响应 - ok_resp_simple
+return respModel.ok_resp_simple(lst=data, msg="成功")
+
+# 5. 简单列表响应 - ok_resp_simple_list
+return respModel.ok_resp_simple_list(lst=data_list, total=10)
+
+# 6. 文本响应 - ok_resp_text
+return respModel.ok_resp_text(msg="操作成功", data="result text")
+
+# 7. 树形数据响应 - ok_resp_tree
+return respModel.ok_resp_tree(treeData=tree_data, msg="查询成功")
+
+# 8. 错误响应 - error_resp
+return respModel.error_resp(msg="操作失败")
+# 返回格式: {"code": -1, "msg": "操作失败", "trace_id": "xxx"}
+```
+
+### 响应格式说明
+所有响应都包含以下字段：
+- **code**: 状态码（200-成功，-1或其他-失败）
+- **msg**: 消息提示
+- **data**: 返回数据（对象或数组）
+- **total**: 总数（分页查询时）
+- **trace_id**: 请求追踪ID（用于日志追踪）
+
+### 标准HTTP状态码
+- 200: 成功（业务层通过 code 字段区分成功/失败）
 - 400: 请求参数错误
 - 401: 未授权
 - 403: 禁止访问
 - 404: 资源不存在
 - 500: 服务器内部错误
 
+### 错误处理规范
+```python
+@module_route.post("/insert")
+def insert(data: CreateSchema, session: Session = Depends(get_session)):
+    try:
+        # 业务逻辑
+        new_data = module_model(**data.model_dump())
+        session.add(new_data)
+        session.commit()
+        session.refresh(new_data)
+        return respModel.ok_resp(obj=new_data, msg="添加成功")
+    except Exception as e:
+        session.rollback()  # 回滚事务
+        logger.error(f"添加失败: {e}", exc_info=True)  # 记录错误日志
+        return respModel.error_resp(msg=f"添加失败:{e}")
+```
+
 ## 数据库操作规范
+
+### 数据库配置
+参考 [core/database.py](mdc:platform-fastapi-server/core/database.py)
+
+```python
+from sqlmodel import create_engine, Session, SQLModel
+from config.dev_settings import settings
+
+# 创建数据库引擎
+engine = create_engine(
+    settings.SQLALCHEMY_DATABASE_URI,
+    echo=settings.SQLALCHEMY_ECHO,
+    pool_pre_ping=True,  # 连接池健康检查
+    pool_recycle=3600    # 连接回收时间（1小时）
+)
+
+def get_session():
+    """获取数据库会话（依赖注入）"""
+    with Session(engine) as session:
+        yield session
+
+def init_db():
+    """初始化数据库表"""
+    SQLModel.metadata.create_all(engine)
+```
+
+### 依赖注入规范
+```python
+from fastapi import Depends
+from sqlmodel import Session
+from core.database import get_session
+
+@module_route.post("/insert")
+def insert(data: CreateSchema, session: Session = Depends(get_session)):
+    # session 会自动注入，并在请求结束后自动关闭
+    pass
+```
 
 ### CRUD操作模板
 ```python
-from sqlmodel import select
+from sqlmodel import select, func
 
-# Create
-def create_project(db: Session, project: ProjectCreate):
-    db_project = ApiProject(**project.dict())
-    db.add(db_project)
-    db.commit()
-    db.refresh(db_project)
-    return db_project
+# Create - 创建记录
+statement = module_model(**data.model_dump(), create_time=datetime.now())
+session.add(statement)
+session.commit()
+session.refresh(statement)
 
-# Read
-def get_project(db: Session, project_id: int):
-    statement = select(ApiProject).where(ApiProject.id == project_id)
-    return db.exec(statement).first()
+# Read - 单条查询
+statement = select(module_model).where(module_model.id == id)
+data = session.exec(statement).first()
 
-# Update
-def update_project(db: Session, project_id: int, project: ProjectUpdate):
-    db_project = get_project(db, project_id)
-    if not db_project:
-        return None
-    for key, value in project.dict(exclude_unset=True).items():
-        setattr(db_project, key, value)
-    db.commit()
-    db.refresh(db_project)
-    return db_project
+# Read - 分页查询
+offset = (page - 1) * pageSize
+statement = select(module_model).limit(pageSize).offset(offset)
+datas = session.exec(statement).all()
 
-# Delete
-def delete_project(db: Session, project_id: int):
-    db_project = get_project(db, project_id)
-    if db_project:
-        db.delete(db_project)
-        db.commit()
-        return True
-    return False
+# Read - 统计总数
+count_statement = select(func.count(module_model.id))
+total = session.exec(count_statement).one()
+
+# Update - 更新记录
+statement = select(module_model).where(module_model.id == id)
+db_data = session.exec(statement).first()
+if db_data:
+    update_data = data.model_dump(exclude_unset=True, exclude={'id'})
+    for key, value in update_data.items():
+        setattr(db_data, key, value)
+    session.commit()
+
+# Delete - 删除记录
+statement = select(module_model).where(module_model.id == id)
+data = session.exec(statement).first()
+if data:
+    session.delete(data)
+    session.commit()
+
+# 复杂查询 - 条件过滤
+statement = select(module_model)
+if filter_field:
+    statement = statement.where(module_model.field == filter_field)
+statement = statement.order_by(module_model.create_time.desc())
+datas = session.exec(statement).all()
+```
+
+### 事务处理
+```python
+try:
+    # 执行数据库操作
+    session.add(data)
+    session.commit()
+except Exception as e:
+    session.rollback()  # 回滚事务
+    logger.error(f"操作失败: {e}", exc_info=True)
+    raise
 ```
 
 ## 配置管理
@@ -186,14 +522,78 @@ SECRET_KEY = settings.SECRET_KEY
 
 ## 核心工具类
 
-### JWT工具
-使用 [core/JwtUtil.py](mdc:platform-fastapi-server/core/JwtUtil.py) 进行token生成和验证
+### 1. 日志工具 (core/logger.py)
+```python
+from core.logger import get_logger, Logger
 
-### MinIO工具
-使用 [core/MinioUtils.py](mdc:platform-fastapi-server/core/MinioUtils.py) 进行文件上传下载
+logger = get_logger(__name__)
 
-### 时间工具
-使用 [core/time_utils.py](mdc:platform-fastapi-server/core/time_utils.py) 进行时间格式化
+# 日志记录
+logger.info("信息日志")
+logger.warning("警告日志")
+logger.error("错误日志", exc_info=True)  # 包含异常堆栈
+
+# 获取追踪ID
+trace_id = Logger.get_trace_id()
+```
+
+### 2. JWT工具 (core/JwtUtil.py)
+```python
+from core.JwtUtil import JwtUtil
+
+# 生成token
+token = JwtUtil.create_access_token(data={"user_id": user.id})
+
+# 验证token
+payload = JwtUtil.verify_token(token)
+```
+
+### 3. MinIO文件存储工具 (core/MinioUtils.py)
+```python
+from core.MinioUtils import MinioUtils
+
+# 上传文件
+file_url = MinioUtils.upload_file(file, bucket_name="testcases")
+
+# 下载文件
+file_data = MinioUtils.download_file(file_path, bucket_name="testcases")
+
+# 删除文件
+MinioUtils.delete_file(file_path, bucket_name="testcases")
+```
+
+### 4. 时间工具 (core/time_utils.py)
+```python
+from core.time_utils import TimeFormatter
+
+# 格式化时间
+formatted_time = TimeFormatter.format_datetime(datetime.now())
+```
+
+### 5. AI流式服务 (core/AiStreamService.py)
+```python
+from core.AiStreamService import AiStreamService
+
+# 流式调用AI模型
+async for chunk in AiStreamService.stream_chat(model, messages):
+    yield chunk
+```
+
+### 6. 文件服务 (core/FileService.py)
+```python
+from core.FileService import FileService
+
+# 读取文档内容（支持 TXT/Word/PDF）
+content = FileService.read_document(file_path)
+```
+
+### 7. 提示词服务 (core/PromptService.py)
+```python
+from core.PromptService import PromptService
+
+# 渲染提示词模板
+prompt = PromptService.render_template(template, variables)
+```
 
 ## 文档注释规范
 
