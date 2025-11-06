@@ -11,7 +11,7 @@ from langchain.chat_models import init_chat_model
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_community.utilities import SQLDatabase
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.types import Command
 
 
@@ -51,6 +51,8 @@ db = SQLDatabase.from_uri(f"sqlite:///{db_path}")
 
 toolkit = SQLDatabaseToolkit(db=db, llm=model)
 tools = toolkit.get_tools()
+
+# 加载 MCP 图表工具
 chart_tools = asyncio.run(
     MultiServerMCPClient(
         {
@@ -64,6 +66,7 @@ chart_tools = asyncio.run(
 )
 # 合并 SQL 工具和图表工具
 tools = tools + chart_tools
+
 system_prompt = """
 你是一个专门用于与SQL数据库交互的智能代理。
 给定一个输入问题，创建一个语法正确的{dialect}查询来运行，
@@ -86,11 +89,17 @@ system_prompt = """
     dialect=db.dialect,
     top_k=5,
 )
-agent_old = create_agent(
-    model,
-    tools,
-    system_prompt=system_prompt,
-)
+
+DB_URI = "postgresql://postgres:postgres@localhost:5442/postgres?sslmode=disable"
+with PostgresSaver.from_conn_string(DB_URI) as checkpointer:
+    checkpointer.setup()
+    agent_old = create_agent(
+        model,
+        tools,
+        system_prompt=system_prompt,
+        checkpointer=checkpointer,
+    )
+
 agent_new = create_agent(
     model,
     tools,
@@ -101,7 +110,7 @@ agent_new = create_agent(
             description_prefix="Tool execution pending approval",
         ),
     ],
-    checkpointer=InMemorySaver(),
+    # SQLite 持久化由 LangGraph API 通过 LANGGRAPH_SQLITE_URI 环境变量自动处理
 )
 
 

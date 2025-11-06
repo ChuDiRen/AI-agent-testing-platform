@@ -9,6 +9,7 @@ import remarkMath from "remark-math";
 import { FC, memo, useState } from "react";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { SyntaxHighlighter } from "@/components/thread/syntax-highlighter";
+import { MarkdownImage } from "@/components/thread/markdown-image";
 
 import { TooltipIconButton } from "@/components/thread/tooltip-icon-button";
 import { cn } from "@/lib/utils";
@@ -193,6 +194,21 @@ const defaultComponents: any = {
     <sup
       className={cn("[&>a]:text-xs [&>a]:no-underline", className)}
       {...props}
+    />
+  ),
+  img: ({ 
+    className, 
+    alt, 
+    src,
+  }: { 
+    className?: string; 
+    alt?: string;
+    src?: string;
+  }) => (
+    <MarkdownImage 
+      src={src}
+      alt={alt}
+      className={className}
     />
   ),
   pre: ({ className, ...props }: { className?: string }) => (

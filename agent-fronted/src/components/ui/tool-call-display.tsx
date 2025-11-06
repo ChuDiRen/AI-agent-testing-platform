@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Copy, Check, Zap, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { MarkdownImage } from "@/components/thread/markdown-image";
 
 interface ToolCallDisplayProps {
   toolName: string;
@@ -40,6 +41,39 @@ export function ToolCallDisplay({
       return String(obj);
     }
   };
+
+  // 检测是否是图片URL
+  const isImageUrl = (str: string): boolean => {
+    if (typeof str !== 'string') return false;
+    // 检测URL格式并且包含图片相关路径
+    const imageUrlPattern = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i;
+    const imagePathPattern = /^https?:\/\/.+\/(img|image|images|afts\/img|picture|pic)\//i;
+    return imageUrlPattern.test(str) || imagePathPattern.test(str);
+  };
+
+  // 检测结果是否包含图片URL
+  const getImageUrlFromResult = (): string | null => {
+    if (!result) return null;
+    
+    // 如果result是字符串且是图片URL
+    if (typeof result === 'string' && isImageUrl(result)) {
+      return result;
+    }
+    
+    // 如果result是对象，查找可能的图片URL字段
+    if (typeof result === 'object' && result !== null) {
+      const possibleKeys = ['image', 'imageUrl', 'image_url', 'url', 'src', 'chart', 'chartUrl', 'chart_url'];
+      for (const key of possibleKeys) {
+        if (result[key] && typeof result[key] === 'string' && isImageUrl(result[key])) {
+          return result[key];
+        }
+      }
+    }
+    
+    return null;
+  };
+
+  const imageUrl = getImageUrlFromResult();
 
   // 状态样式映射
   const statusConfig = {
@@ -176,9 +210,17 @@ export function ToolCallDisplay({
                       )}
                     </button>
                   </div>
-                  <pre className="text-sm bg-white rounded-lg p-5 border-2 border-green-200 overflow-x-auto min-h-[80px] max-h-80 overflow-y-auto font-mono text-gray-900 w-full break-words whitespace-pre-wrap leading-6 shadow-inner scrollbar-thin scrollbar-thumb-green-300 scrollbar-track-green-100">
-                    {resultJson}
-                  </pre>
+                  
+                  {/* 如果结果包含图片URL，只显示图片 */}
+                  {imageUrl ? (
+                    <div className="bg-white rounded-lg p-4 border-2 border-green-200">
+                      <MarkdownImage src={imageUrl} alt="生成的图表" />
+                    </div>
+                  ) : (
+                    <pre className="text-sm bg-white rounded-lg p-5 border-2 border-green-200 overflow-x-auto min-h-[80px] max-h-80 overflow-y-auto font-mono text-gray-900 w-full break-words whitespace-pre-wrap leading-6 shadow-inner scrollbar-thin scrollbar-thumb-green-300 scrollbar-track-green-100">
+                      {resultJson}
+                    </pre>
+                  )}
                 </div>
               ) : (
                 <div className="bg-gray-50/80 px-6 py-8 border-t-2 border-gray-200">

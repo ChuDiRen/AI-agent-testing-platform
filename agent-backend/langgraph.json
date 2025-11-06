@@ -4,7 +4,8 @@
     "."
   ],
   "graphs": {
-    "sql_agent_graph": "./examples/sql_agent_graph.py:agent_old"
+    "sql_agent_graph": "./examples/sql_agent_graph.py:agent_old",
+    "sql_agent": "./examples/sql_agent.py:agent_old"
   },
   "env": ".env"
 }

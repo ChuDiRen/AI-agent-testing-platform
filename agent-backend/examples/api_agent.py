@@ -9,6 +9,7 @@ OpenAPI 规范: https://petstore.swagger.io/v2/swagger.json
 import asyncio
 import json
 import os
+from pathlib import Path
 from typing import Optional, Dict, Any, List
 
 import requests
@@ -16,7 +17,6 @@ from langchain.agents import create_agent
 from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langchain.chat_models import init_chat_model
 from langchain_core.tools import tool
-from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
 
@@ -352,15 +352,15 @@ system_prompt = """
 当前 API: Pet Store API (https://petstore.swagger.io/)
 这是一个宠物商店管理 API，可以管理宠物、订单和用户信息。
 
-请根据用户的自然语言请求，智能地调用相应的 API 并返回结果。
+请根据用户的自然语言请求,智能地调用相应的 API 并返回结果。
 """
-
 
 # 创建 Agent（无人工审核）
 agent_auto = create_agent(
     model,
     tools,
     system_prompt=system_prompt,
+    # SQLite 持久化由 LangGraph API 通过 LANGGRAPH_SQLITE_URI 环境变量自动处理
 )
 
 
@@ -375,7 +375,7 @@ agent_hitl = create_agent(
             description_prefix="API 调用等待审核",
         ),
     ],
-    checkpointer=InMemorySaver(),
+    # SQLite 持久化由 LangGraph API 通过 LANGGRAPH_SQLITE_URI 环境变量自动处理
 )
 
 

@@ -217,9 +217,6 @@ def run_query_tool_with_interrupt(config: RunnableConfig, **tool_input):
     return tool_response
 
 
-from langgraph.checkpoint.memory import InMemorySaver
-
-
 def should_continue(state: MessagesState) -> Literal[END, "run_query"]:
     messages = state["messages"]
     last_message = messages[-1]
@@ -249,8 +246,9 @@ builder.add_conditional_edges(
 )
 builder.add_edge("run_query", "generate_query")
 
-checkpointer = InMemorySaver()
-agent_new = builder.compile(checkpointer=checkpointer)
+# 编译 agent
+# SQLite 持久化由 LangGraph API 通过 LANGGRAPH_SQLITE_URI 环境变量自动处理
+agent_new = builder.compile()
 
 
 async def run_old():
