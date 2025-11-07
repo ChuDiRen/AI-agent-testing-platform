@@ -133,52 +133,10 @@ class TestCaseGeneratorV3:
         }
 
 
-async def main():
-    """测试主函数"""
-    # 创建生成器
-    generator = TestCaseGeneratorV3()
-    
-    # 测试需求
-    requirement = """
-    用户登录接口
-    - 接口路径: POST /api/v1/auth/login
-    - 请求参数:
-      - username: 用户名 (必填,字符串,3-20字符)
-      - password: 密码 (必填,字符串,6-20字符)
-      - remember_me: 记住我 (可选,布尔值,默认false)
-    - 成功响应: 200, {token: string, user_info: {id, username, email}}
-    - 失败响应: 
-      - 400: 参数错误
-      - 401: 用户名或密码错误
-      - 403: 账号被禁用
-    """
-    
-    print("="*80)
-    print("🚀 测试用例生成器 V3 - 多智能体协作版本")
-    print("="*80)
-    
-    # 生成测试用例
-    final_state = await generator.generate(
-        requirement=requirement,
-        test_type="API",
-        max_iterations=2,
-    )
-    
-    # 输出结果
-    result = generator.get_result(final_state)
-    
-    print("\n" + "="*80)
-    print("📊 生成结果")
-    print("="*80)
-    print(f"\n## 需求分析\n{result['analysis']}")
-    print(f"\n## 测试点设计\n{result['test_points']}")
-    print(f"\n## 测试用例\n{result['testcases']}")
-    print(f"\n## 评审意见\n{result['review']}")
-    print(f"\n迭代次数: {result['iteration']}")
-    print(f"完成状态: {'✅ 完成' if result['completed'] else '❌ 未完成'}")
-
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+# 创建全局生成器实例 (供外部导入使用)
+generator = TestCaseGeneratorV3(
+    enable_middleware=True,  # 启用 middlewareV1
+    enable_human_review=False,  # 默认关闭人工审核
+    enable_persistence=True,  # 启用持久化
+)
 

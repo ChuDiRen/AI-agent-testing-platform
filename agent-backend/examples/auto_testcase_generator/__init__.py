@@ -9,26 +9,29 @@
 - 持久化存储: 保存生成历史到数据库
 
 使用示例:
-    from auto_testcase_generator import TestCaseGeneratorV3
+    from auto_testcase_generator import generator
     import asyncio
 
-    # 创建生成器
-    generator = TestCaseGeneratorV3(
+    # 使用全局生成器实例
+    result = await generator.generate("需求描述...", test_type="API")
+
+    # 或创建自定义生成器
+    from auto_testcase_generator import TestCaseGeneratorV3
+    custom_generator = TestCaseGeneratorV3(
         enable_middleware=True,
-        enable_human_review=False,
+        enable_human_review=True,
         enable_persistence=True,
     )
-
-    # 生成测试用例
-    result = await generator.generate("需求描述...", test_type="API")
+    result = await custom_generator.generate("需求描述...", test_type="API")
 """
 
-from .generator_v3 import TestCaseGeneratorV3
+from .generator import generator, TestCaseGeneratorV3
 from .models import TestCaseState
 from .config import Config
 
 __all__ = [
-    'TestCaseGeneratorV3',
+    'generator',  # 全局实例
+    'TestCaseGeneratorV3',  # 类
     'TestCaseState',
     'Config',
 ]

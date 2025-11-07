@@ -1,15 +1,16 @@
-# 自动测试用例生成器
+# 自动测试用例生成器 V3
 
-核心逻辑参考: 
-- [AutoGenTestCase](https://github.com/13429837441/AutoGenTestCase) - 双模型协作
-- [LangGraph 并行执行](https://docs.langchain.com/oss/python/langgraph/workflows-agents) - 并行生成
+基于 LangGraph 1.0 + 多智能体协作 + middlewareV1 上下文工程
 
-## 特性
+## 核心特性
 
-- ✅ 双模型协作: Reader(分析) + Writer(生成) + Reviewer(审查)
-- ✅ Python高级语法: Type Hints、Dataclass、Cached Property、LRU Cache
-- ✅ 并行执行: 参考LangGraph模式，多接口同时生成（asyncio.gather）
-- ✅ 三种输入: 文本、Swagger、文档(TXT/Word/PDF)
+- ✅ **4个专家智能体**: Analyzer(需求分析) + TestPointDesigner(测试点设计) + Writer(用例编写) + Reviewer(用例评审)
+- ✅ **Supervisor协调者**: 自动调度智能体执行顺序,支持迭代优化
+- ✅ **middlewareV1集成**: 消息过滤、状态同步、动态提示词注入
+- ✅ **人工审核点**: 可选在关键步骤暂停等待人工确认
+- ✅ **持久化存储**: 自动保存生成历史到SQLite数据库
+- ✅ **LangGraph 1.0**: 使用最新 `create_agent` API
+- ✅ **Python高级语法**: Type Hints、Dataclass、Async/Await
 
 ## 安装
 
@@ -60,80 +61,125 @@ async def main():
 asyncio.run(main())
 ```
 
-## 架构
+## 架构设计
 
-### 单个用例生成流程
+### 多智能体协作流程
 
 ```
-需求输入
-   ↓
-Reader (deepseek-chat) - 快速分析需求
-   ↓
-Writer (deepseek-reasoner) - 深度思考生成
-   ↓
-Reviewer (deepseek-chat) - 快速审查
-   ↓
-判断是否需要改进 → 是: 返回Writer / 否: 完成
+                    ┌──────────────────┐
+                    │   Supervisor     │  ← 协调者
+                    │  (调度执行顺序)   │
+                    └────────┬─────────┘
+                             │
+        ┌────────────────────┼────────────────────┬──────────────┐
+        ↓                    ↓                    ↓              ↓
+   ┌─────────┐        ┌──────────┐        ┌─────────┐    ┌──────────┐
+   │Analyzer │        │TestPoint │        │ Writer  │    │Reviewer  │
+   │ 需求分析 │───────▶│Designer  │───────▶│用例编写 │───▶│用例评审  │
+   └─────────┘        │测试点设计│        └─────────┘    └──────────┘
+                      └──────────┘              │              │
+                                                │              │
+                                                └──────┬───────┘
+                                                       │
+                                                  评审通过?
+                                                   │    │
+                                                  是    否
+                                                   │    │
+                                                  完成  ↓
+                                                     重新生成
 ```
 
-### 批量并行生成（Swagger）
+### middlewareV1 上下文工程
 
-参考 [LangGraph Parallelization](https://docs.langchain.com/oss/python/langgraph/workflows-agents#parallelization) 原理，使用 `asyncio.gather` 实现：
+每个智能体都应用了不同的消息过滤策略:
 
-```python
-# 类似LangGraph中从START并行启动多个节点
-tasks = [generate(endpoint1), generate(endpoint2), generate(endpoint3)]
+| 智能体 | 保留消息 | 说明 |
+|--------|---------|------|
+| Analyzer | H=1, A=0 | 只保留最新的需求输入 |
+| TestPointDesigner | H=2, A=1 | 保留需求+分析结果 |
+| Writer | H=2, A=2 | 保留测试点+历史用例 |
+| Reviewer | H=3, A=3 | 保留完整上下文 |
 
-# 所有任务并行执行
-results = await asyncio.gather(*tasks)
-```
-
-对应的LangGraph概念：
-```
-                    START
-                      ↓
-        ┌─────────────┼─────────────┐
-        ↓             ↓             ↓
-    endpoint1     endpoint2     endpoint3  (并行生成)
-        ↓             ↓             ↓
-        └─────────────┼─────────────┘
-                      ↓
-                 聚合结果
-```
-
-## Python高级特性
-
-- `@dataclass(frozen=True)` - 不可变配置类
-- `@cached_property` - 缓存属性（懒加载模型）
-- `@lru_cache` - LRU缓存（Swagger解析）
-- `@contextmanager` - 上下文管理器（数据库连接）
-- Type Hints - 完整类型注解
-- Async/Await - 异步编程
-- List Comprehension - 列表推导式
-- Generator Expression - 生成器表达式
+**中间件功能:**
+- 🔹 **MessageFilter**: 过滤消息历史,减少token消耗
+- 🔹 **StateSync**: 自动同步AI输出到状态
+- 🔹 **DynamicPrompt**: 动态注入上下文到系统提示词
+- 🔹 **HumanInTheLoop**: 人工审核中间件
 
 ## 文件结构
 
 ```
 auto_testcase_generator/
-├── __init__.py       # 模块导出
-├── run.py            # 运行脚本（演示）
-├── config.py         # 配置管理（cached_property）
-├── models.py         # 数据模型（Dataclass）
-├── parsers.py        # 解析器（lru_cache）
-├── database.py       # 数据库（contextmanager）
-├── generator.py      # 核心生成器（AsyncIO）
-└── prompts/          # 提示词模板
+├── __init__.py              # 模块导出
+├── run.py                   # 演示脚本
+├── config.py                # 配置管理
+├── models.py                # 数据模型 (TestCaseState)
+├── database.py              # SQLite持久化
+├── generator.py             # 核心生成器 (V3版本)
+├── supervisor.py            # Supervisor协调者
+├── agents/                  # 4个专家智能体
+│   ├── analyzer_agent.py           # 需求分析智能体
+│   ├── test_point_designer_agent.py # 测试点设计智能体
+│   ├── writer_agent.py             # 用例编写智能体
+│   └── reviewer_agent.py           # 用例评审智能体
+├── middleware/              # middlewareV1实现
+│   ├── config.py                   # 过滤配置
+│   ├── message_filter.py           # 消息过滤
+│   ├── state_sync.py               # 状态同步
+│   ├── context_manager.py          # 上下文管理器
+│   └── adapters.py                 # 中间件适配器
+└── prompts/                 # 提示词模板
     ├── TESTCASE_READER_SYSTEM_MESSAGE.txt
-    ├── TESTCASE_WRITER_SYSTEM_MESSAGE.txt
+    ├── TESTCASE_TEST_POINT_DESIGNER_SYSTEM_MESSAGE.txt
+    ├── TESTCASE_WRITER_SYSTEM_MESSAGE_ORIGINAL.txt
     └── TESTCASE_REVIEWER_SYSTEM_MESSAGE.txt
 ```
 
-## 配置
+## 配置选项
 
-在 `config.py` 中设置或通过环境变量:
+### 环境变量
 
 ```bash
 export DEEPSEEK_API_KEY=sk-your-key
+```
+
+### 生成器配置
+
+```python
+from auto_testcase_generator import TestCaseGeneratorV3
+
+generator = TestCaseGeneratorV3(
+    enable_middleware=True,      # 启用 middlewareV1 (推荐)
+    enable_human_review=False,   # 启用人工审核 (可选)
+    enable_persistence=True,     # 启用持久化存储 (推荐)
+)
+```
+
+## 数据库
+
+生成历史自动保存到 `testcases.db` (SQLite):
+
+```sql
+CREATE TABLE test_cases (
+    id INTEGER PRIMARY KEY,
+    thread_id TEXT,
+    requirement TEXT,
+    test_type TEXT,
+    analysis TEXT,
+    testcases TEXT,
+    review TEXT,
+    iteration INTEGER,
+    created_at TIMESTAMP
+);
+```
+
+查询历史记录:
+
+```python
+from auto_testcase_generator.database import TestCaseDB
+from pathlib import Path
+
+db = TestCaseDB(Path("testcases.db"))
+recent = db.list_recent(limit=10)  # 最近10条记录
 ```
 
