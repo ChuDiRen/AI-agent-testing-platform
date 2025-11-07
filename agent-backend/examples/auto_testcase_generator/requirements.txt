@@ -1,0 +1,10 @@
+langchain>=1.0.0
+langchain-openai>=0.1.0
+langgraph>=1.0.0
+langgraph-checkpoint>=3.0.0
+langgraph-checkpoint-sqlite>=3.0.0
+requests>=2.31.0
+python-docx>=0.8.0
+pypdf>=6.0.0
+pydantic>=2.0.0
+

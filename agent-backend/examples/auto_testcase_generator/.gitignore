@@ -1,0 +1,8 @@
+*.db
+__pycache__/
+*.pyc
+.env
+*.log
+checkpoints.db
+demo_checkpoints.db
+
