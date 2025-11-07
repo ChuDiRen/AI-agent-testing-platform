@@ -178,11 +178,16 @@ builder.add_conditional_edges(
 builder.add_edge("check_query", "run_query")
 builder.add_edge("run_query", "generate_query")
 
+# 编译 agent（无持久化，用于简单测试）
 agent_old = builder.compile()
 
+# 导入依赖
 from langchain_core.runnables import RunnableConfig
 from langchain.tools import tool
 from langgraph.types import interrupt, Command
+
+# 配置 SQLite Checkpointer 用于持久化对话状态
+checkpoint_db_path = Path(__file__).parent / "checkpoints.db"
 
 
 @tool(
@@ -246,10 +251,6 @@ builder.add_conditional_edges(
 )
 builder.add_edge("run_query", "generate_query")
 
-# 编译 agent
-# SQLite 持久化由 LangGraph API 通过 LANGGRAPH_SQLITE_URI 环境变量自动处理
-agent_new = builder.compile()
-
 
 async def run_old():
     from IPython.display import Image, display
@@ -265,62 +266,69 @@ async def run_old():
 
 
 async def run_new():
+    """运行带持久化和人工审核的 Agent"""
+    from langgraph.checkpoint.sqlite import SqliteSaver
+    
     question = "哪个音乐类型的曲目平均时长最长？"
-
     config = {"configurable": {"thread_id": "1"}}
 
-    # 第一次执行，直到遇到中断
-    interrupted = False
-    for step in agent_new.stream(
-            {"messages": [{"role": "user", "content": question}]},
-            config,
-            stream_mode="values",
-    ):
-        if "messages" in step:
-            step["messages"][-1].pretty_print()
-        elif "__interrupt__" in step:
-            print("检测到中断:")
-            interrupt = step["__interrupt__"][0]
-            # interrupt.value 本身就是请求列表
-            for request in interrupt.value:
-                print(f"  - {request['description']}")
-                print(f"  - 工具: {request['action']}")
-                print(f"  - 参数: {request['args']}")
-            interrupted = True
-            break
-        else:
-            pass
-
-    # 循环处理所有中断，每次中断都等待3秒后自动恢复
-    while interrupted:
-        print("\n等待3秒后自动恢复执行...")
-        await asyncio.sleep(3)
-        print("恢复执行中...\n")
-
-        interrupted = False  # 重置中断标志
-
-        # 恢复执行
+    # 使用 SqliteSaver 作为 checkpointer（同步版本）
+    with SqliteSaver.from_conn_string(str(checkpoint_db_path)) as checkpointer:
+        # 编译 agent（带 SQLite 持久化）
+        agent_new = builder.compile(checkpointer=checkpointer)
+        
+        # 第一次执行，直到遇到中断
+        interrupted = False
         for step in agent_new.stream(
-                Command(resume=[{"type": "accept"}]),
+                {"messages": [{"role": "user", "content": question}]},
                 config,
                 stream_mode="values",
         ):
             if "messages" in step:
                 step["messages"][-1].pretty_print()
             elif "__interrupt__" in step:
-                print("再次检测到中断:")
+                print("检测到中断:")
                 interrupt = step["__interrupt__"][0]
                 # interrupt.value 本身就是请求列表
                 for request in interrupt.value:
                     print(f"  - {request['description']}")
                     print(f"  - 工具: {request['action']}")
                     print(f"  - 参数: {request['args']}")
-                interrupted = True  # 设置中断标志，继续循环
+                interrupted = True
                 break
             else:
                 pass
 
-    print("\n✅ 所有任务执行完成！")
+        # 循环处理所有中断，每次中断都等待3秒后自动恢复
+        while interrupted:
+            print("\n等待3秒后自动恢复执行...")
+            await asyncio.sleep(3)
+            print("恢复执行中...\n")
+
+            interrupted = False  # 重置中断标志
+
+            # 恢复执行
+            for step in agent_new.stream(
+                    Command(resume=[{"type": "accept"}]),
+                    config,
+                    stream_mode="values",
+            ):
+                if "messages" in step:
+                    step["messages"][-1].pretty_print()
+                elif "__interrupt__" in step:
+                    print("再次检测到中断:")
+                    interrupt = step["__interrupt__"][0]
+                    # interrupt.value 本身就是请求列表
+                    for request in interrupt.value:
+                        print(f"  - {request['description']}")
+                        print(f"  - 工具: {request['action']}")
+                        print(f"  - 参数: {request['args']}")
+                    interrupted = True  # 设置中断标志，继续循环
+                    break
+                else:
+                    pass
+
+        print("\n✅ 所有任务执行完成！")
 
 
 if __name__ == '__main__':

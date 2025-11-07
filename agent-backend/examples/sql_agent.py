@@ -11,7 +11,6 @@ from langchain.chat_models import init_chat_model
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_community.utilities import SQLDatabase
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.types import Command
 
 
@@ -67,6 +66,12 @@ chart_tools = asyncio.run(
 # 合并 SQL 工具和图表工具
 tools = tools + chart_tools
 
+# 配置 SQLite Checkpointer 用于持久化对话状态
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+# 使用 SQLite 数据库存储 checkpoint（对话状态、中断等）
+checkpoint_db_path = Path(__file__).parent / "checkpoints.db"
+
 system_prompt = """
 你是一个专门用于与SQL数据库交互的智能代理。
 给定一个输入问题，创建一个语法正确的{dialect}查询来运行，
@@ -90,27 +95,11 @@ system_prompt = """
     top_k=5,
 )
 
-DB_URI = "postgresql://postgres:postgres@localhost:5442/postgres?sslmode=disable"
-with PostgresSaver.from_conn_string(DB_URI) as checkpointer:
-    checkpointer.setup()
-    agent_old = create_agent(
-        model,
-        tools,
-        system_prompt=system_prompt,
-        checkpointer=checkpointer,
-    )
-
-agent_new = create_agent(
+# 创建 Agent（无持久化，用于简单测试）
+agent_old = create_agent(
     model,
     tools,
     system_prompt=system_prompt,
-    middleware=[
-        HumanInTheLoopMiddleware(
-            interrupt_on={"sql_db_query": True},
-            description_prefix="Tool execution pending approval",
-        ),
-    ],
-    # SQLite 持久化由 LangGraph API 通过 LANGGRAPH_SQLITE_URI 环境变量自动处理
 )
 
 
@@ -125,58 +114,75 @@ async def run_old():
 
 
 async def run_new():
+    """运行带持久化和人工审核的 Agent"""
     question = "哪个音乐类型的曲目平均时长最长？"
 
     config = {"configurable": {"thread_id": "1"}}
 
-    # 第一次执行，直到遇到中断
-    interrupted = False
-    async for step in agent_new.astream(
-            {"messages": [{"role": "user", "content": question}]},
-            config,
-            stream_mode="values",
-    ):
-        if "messages" in step:
-            step["messages"][-1].pretty_print()
-        elif "__interrupt__" in step:
-            print("检测到中断:")
-            interrupt = step["__interrupt__"][0]
-            for request in interrupt.value["action_requests"]:
-                print(f"  - {request['description']}")
-            interrupted = True
-            break
-        else:
-            pass
+    # 使用 AsyncSqliteSaver 作为 checkpointer
+    async with AsyncSqliteSaver.from_conn_string(str(checkpoint_db_path)) as checkpointer:
+        # 创建 Agent（带 SQLite 持久化和人工审核中断）
+        agent_new = create_agent(
+            model,
+            tools,
+            system_prompt=system_prompt,
+            checkpointer=checkpointer,  # 启用 SQLite 持久化
+            middleware=[
+                HumanInTheLoopMiddleware(
+                    interrupt_on={"sql_db_query": True},
+                    description_prefix="Tool execution pending approval",
+                ),
+            ],
+        )
 
-    # 循环处理所有中断，每次中断都等待3秒后自动恢复
-    while interrupted:
-        print("\n等待3秒后自动恢复执行...")
-        await asyncio.sleep(3)
-        print("恢复执行中...\n")
-
-        interrupted = False  # 重置中断标志
-
-        # 恢复执行
+        # 第一次执行，直到遇到中断
+        interrupted = False
         async for step in agent_new.astream(
-                Command(resume={"decisions": [{"type": "approve"}]}),
+                {"messages": [{"role": "user", "content": question}]},
                 config,
                 stream_mode="values",
         ):
             if "messages" in step:
                 step["messages"][-1].pretty_print()
             elif "__interrupt__" in step:
-                print("再次检测到中断:")
+                print("检测到中断:")
                 interrupt = step["__interrupt__"][0]
                 for request in interrupt.value["action_requests"]:
                     print(f"  - {request['description']}")
-                interrupted = True  # 设置中断标志，继续循环
+                interrupted = True
                 break
             else:
                 pass
 
-    print("\n✅ 所有任务执行完成！")
+        # 循环处理所有中断，每次中断都等待3秒后自动恢复
+        while interrupted:
+            print("\n等待3秒后自动恢复执行...")
+            await asyncio.sleep(3)
+            print("恢复执行中...\n")
+
+            interrupted = False  # 重置中断标志
+
+            # 恢复执行
+            async for step in agent_new.astream(
+                    Command(resume={"decisions": [{"type": "approve"}]}),
+                    config,
+                    stream_mode="values",
+            ):
+                if "messages" in step:
+                    step["messages"][-1].pretty_print()
+                elif "__interrupt__" in step:
+                    print("再次检测到中断:")
+                    interrupt = step["__interrupt__"][0]
+                    for request in interrupt.value["action_requests"]:
+                        print(f"  - {request['description']}")
+                    interrupted = True  # 设置中断标志，继续循环
+                    break
+                else:
+                    pass
+
+        print("\n✅ 所有任务执行完成！")
 
 
 if __name__ == '__main__':
-    asyncio.run(run_old())
+    asyncio.run(run_new())
     # asyncio.run(run_new())
