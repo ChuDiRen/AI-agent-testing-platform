@@ -2,16 +2,13 @@ import asyncio
 import os
 import sqlite3
 import urllib.request
-from contextlib import suppress
 from pathlib import Path
 
 from langchain.agents import create_agent
-from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langchain.chat_models import init_chat_model
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_community.utilities import SQLDatabase
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from langgraph.types import Command
 
 
 def setup_database(db_path: Path) -> None:
@@ -20,9 +17,8 @@ def setup_database(db_path: Path) -> None:
 
     def get_tables():
         """验证数据库并返回表列表"""
-        with suppress(Exception):
-            with sqlite3.connect(db_path) as conn:
-                return conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        with sqlite3.connect(db_path) as conn:
+            return conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
 
     # 检查现有数据库
     if get_tables():
@@ -78,22 +74,20 @@ system_prompt = """
 _chart_tools_cache = None
 _agent_cache = None
 
-def _get_chart_tools():
-    """获取MCP图表工具(带缓存)"""
+async def _get_chart_tools():
+    """获取MCP图表工具(带缓存, 异步安全)"""
     global _chart_tools_cache
     if _chart_tools_cache is None:
         try:
-            chart_tools = asyncio.run(
-                MultiServerMCPClient(
-                    {
-                        "mcp-server-chart": {
-                            "command": "npx",
-                            "args": ["-y", "@antv/mcp-server-chart"],
-                            "transport": "stdio",
-                        }
+            chart_tools = await MultiServerMCPClient(
+                {
+                    "mcp-server-chart": {
+                        "command": "npx",
+                        "args": ["-y", "@antv/mcp-server-chart"],
+                        "transport": "stdio",
                     }
-                ).get_tools()
-            )
+                }
+            ).get_tools()
             _chart_tools_cache = chart_tools
             print(f"[成功] 加载了 {len(chart_tools)} 个图表工具")
         except Exception as e:
@@ -101,11 +95,11 @@ def _get_chart_tools():
             _chart_tools_cache = []
     return _chart_tools_cache
 
-def _get_agent():
-    """获取完整agent(带缓存,首次调用时加载MCP工具)"""
+async def _get_agent():
+    """获取完整agent(带缓存, 首次调用时加载MCP工具)"""
     global _agent_cache
     if _agent_cache is None:
-        all_tools = tools + _get_chart_tools()
+        all_tools = tools + await _get_chart_tools()
         _agent_cache = create_agent(
             model,
             all_tools,
@@ -114,90 +108,24 @@ def _get_agent():
     return _agent_cache
 
 # 导出graph工厂函数(LangGraph API会调用此函数获取graph)
-def agent_old():
-    """Agent工厂函数,返回包含图表工具的agent"""
-    return _get_agent()
+async def agent_old():
+    """Agent工厂函数, 返回包含图表工具的agent"""
+    return await _get_agent()
 
 
 async def run_old():
     """运行SQL Agent"""
     question = "哪个音乐类型的曲目平均时长最长？"
 
-    async for step in agent_old().astream(
+    agent = await agent_old()
+    async for step in agent.astream(
         {"messages": [{"role": "user", "content": question}]},
         stream_mode="values",
     ):
         step["messages"][-1].pretty_print()
 
-
-async def run_new():
-    """运行带持久化和人工审核的 Agent"""
-    question = "哪个音乐类型的曲目平均时长最长？"
-
-    config = {"configurable": {"thread_id": "1"}}
-
-    # 创建带中间件的agent
-    all_tools = tools + _get_chart_tools()
-    agent_new = create_agent(
-        model,
-        all_tools,
-        system_prompt=system_prompt,
-        middleware=[
-            HumanInTheLoopMiddleware(
-                interrupt_on={"sql_db_query": True},
-                description_prefix="Tool execution pending approval",
-            ),
-        ],
-    )
-
-    # 第一次执行，直到遇到中断
-    interrupted = False
-    async for step in agent_new.astream(
-            {"messages": [{"role": "user", "content": question}]},
-            config,
-            stream_mode="values",
-    ):
-        if "messages" in step:
-            step["messages"][-1].pretty_print()
-        elif "__interrupt__" in step:
-            print("检测到中断:")
-            interrupt = step["__interrupt__"][0]
-            for request in interrupt.value["action_requests"]:
-                print(f"  - {request['description']}")
-            interrupted = True
-            break
-        else:
-            pass
-
-    # 循环处理所有中断，每次中断都等待3秒后自动恢复
-    while interrupted:
-        print("\n等待3秒后自动恢复执行...")
-        await asyncio.sleep(3)
-        print("恢复执行中...\n")
-
-        interrupted = False  # 重置中断标志
-
-        # 恢复执行
-        async for step in agent_new.astream(
-                Command(resume={"decisions": [{"type": "approve"}]}),
-                config,
-                stream_mode="values",
-        ):
-            if "messages" in step:
-                step["messages"][-1].pretty_print()
-            elif "__interrupt__" in step:
-                print("再次检测到中断:")
-                interrupt = step["__interrupt__"][0]
-                for request in interrupt.value["action_requests"]:
-                    print(f"  - {request['description']}")
-                interrupted = True  # 设置中断标志，继续循环
-                break
-            else:
-                pass
-
-    print("\n✅ 所有任务执行完成！")
+ 
 
 
 if __name__ == '__main__':
-    asyncio.run(run_new())
-    # asyncio.run(run_new())
+    asyncio.run(run_old())
