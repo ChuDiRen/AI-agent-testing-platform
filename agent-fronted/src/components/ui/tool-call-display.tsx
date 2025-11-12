@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Copy, Check, Zap, AlertCircle } from "lucide-react";
+import { Copy, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { MarkdownImage } from "@/components/thread/markdown-image";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 interface ToolCallDisplayProps {
   toolName: string;
@@ -23,17 +25,15 @@ export function ToolCallDisplay({
   attemptNumber,
   className,
 }: ToolCallDisplayProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false); // 默认折叠
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
-  // 复制到剪贴板
-  const copyToClipboard = (text: string, section: string) => {
+  const copyToClipboard = (text: string, section: string) => { // 复制到剪贴板
     navigator.clipboard.writeText(text);
     setCopiedSection(section);
     setTimeout(() => setCopiedSection(null), 2000);
   };
 
-  // 格式化JSON
   const formatJson = (obj: any): string => {
     try {
       return JSON.stringify(obj, null, 2);
@@ -42,25 +42,27 @@ export function ToolCallDisplay({
     }
   };
 
-  // 检测是否是图片URL
-  const isImageUrl = (str: string): boolean => {
+  const detectLanguage = (obj: any): string => {
+    // 检测是否为SQL查询
+    if (typeof obj === "object" && obj !== null && "query" in obj) {
+      const query = obj.query;
+      if (typeof query === "string" && /^\s*(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)/i.test(query)) {
+        return "sql";
+      }
+    }
+    return "json";
+  };
+
+  const isImageUrl = (str: string): boolean => { // 检测是否是图片URL
     if (typeof str !== 'string') return false;
-    // 检测URL格式并且包含图片相关路径
     const imageUrlPattern = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i;
     const imagePathPattern = /^https?:\/\/.+\/(img|image|images|afts\/img|picture|pic)\//i;
     return imageUrlPattern.test(str) || imagePathPattern.test(str);
   };
 
-  // 检测结果是否包含图片URL
-  const getImageUrlFromResult = (): string | null => {
+  const getImageUrlFromResult = (): string | null => { // 检测结果是否包含图片URL
     if (!result) return null;
-    
-    // 如果result是字符串且是图片URL
-    if (typeof result === 'string' && isImageUrl(result)) {
-      return result;
-    }
-    
-    // 如果result是对象，查找可能的图片URL字段
+    if (typeof result === 'string' && isImageUrl(result)) return result;
     if (typeof result === 'object' && result !== null) {
       const possibleKeys = ['image', 'imageUrl', 'image_url', 'url', 'src', 'chart', 'chartUrl', 'chart_url'];
       for (const key of possibleKeys) {
@@ -69,164 +71,161 @@ export function ToolCallDisplay({
         }
       }
     }
-    
     return null;
   };
 
   const imageUrl = getImageUrlFromResult();
-
-  // 状态样式映射
-  const statusConfig = {
-    pending: { bg: "bg-yellow-50", border: "border-yellow-200", icon: "text-yellow-600", label: "待处理" },
-    running: { bg: "bg-blue-50", border: "border-blue-200", icon: "text-blue-600", label: "运行中" },
-    success: { bg: "bg-green-50", border: "border-green-200", icon: "text-green-600", label: "成功" },
-    error: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-600", label: "错误" },
-  };
-
-  const config = statusConfig[status];
   const argsJson = formatJson(args);
   const resultJson = result ? formatJson(result) : null;
+  const argsLanguage = detectLanguage(args);
+  const resultLanguage = result ? detectLanguage(result) : "json";
+
+  // 自定义样式,使用浅色主题
+  const customStyle = {
+    margin: 0,
+    padding: "12px",
+    background: "#f9fafb",
+    fontSize: "12px",
+    lineHeight: "1.6",
+    borderRadius: "6px",
+    border: "1px solid #e5e7eb",
+  };
 
   return (
-    <div className={cn("w-full max-w-xl overflow-hidden", className)}>
+    <div className={cn("w-full", className)}>
       <div className={cn(
-        "w-full rounded-xl border-2 overflow-hidden shadow-md transition-all duration-200",
-        config.border,
-        config.bg,
-        !isExpanded && "h-[76px]"
+        "w-full rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md",
+        !isExpanded && "h-[52px]" // 折叠时固定高度
       )}>
-        {/* Header - 始终显示 */}
+        {/* Header */}
         <div
           className={cn(
-            "flex items-center justify-between gap-4 px-6 cursor-pointer hover:bg-white/30 transition-colors h-[76px]",
-            isExpanded && "border-b",
-            isExpanded && config.border
+            "flex items-center justify-between px-4 h-[52px] cursor-pointer select-none", // 固定header高度
+            "hover:bg-gray-50 transition-colors duration-200",
+            isExpanded && "border-b border-gray-200 bg-gray-50"
           )}
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <Zap className={cn("h-6 w-6 shrink-0", config.icon)} />
-            <div className="min-w-0 flex-1 overflow-hidden">
-              <div className="flex items-baseline gap-2">
-                <h3 className="text-base font-semibold text-gray-900 truncate">
-                  {toolName}
-                </h3>
-                {attemptNumber && attemptNumber > 1 && (
-                  <span className="text-xs font-normal text-gray-500 whitespace-nowrap shrink-0">
-                    (第{attemptNumber}次尝试)
-                  </span>
-                )}
-              </div>
-              <p className={cn("text-sm font-medium truncate", config.icon)}>
-                {attemptNumber && attemptNumber > 1 && (status === "pending" || status === "running") ? "优化重试中" : config.label}
-              </p>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-sm font-medium text-gray-700 truncate">
+                {toolName}
+              </span>
+              {attemptNumber && attemptNumber > 1 && (
+                <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">
+                  (尝试 {attemptNumber})
+                </span>
+              )}
             </div>
           </div>
           <button
             className={cn(
-              "shrink-0 rounded-lg p-2 transition-all duration-200",
-              "hover:bg-white/50 active:scale-95"
+              "shrink-0 p-1 rounded transition-transform duration-300",
+              isExpanded && "rotate-180"
             )}
             onClick={(e) => {
               e.stopPropagation();
               setIsExpanded(!isExpanded);
             }}
           >
-            <svg
-              className={cn(
-                "h-5 w-5 transition-transform duration-300",
-                isExpanded && "rotate-180"
-              )}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-            </svg>
+            <ChevronDown className="h-4 w-4 text-gray-500" />
           </button>
         </div>
 
-        {/* 详情区域 - 可折叠（包含参数和结果） */}
-        <AnimatePresence>
+        {/* Content */}
+        <AnimatePresence initial={false}>
           {isExpanded && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
               className="overflow-hidden"
             >
-              {/* Args Section */}
-              <div className="bg-white/70 px-6 py-5 border-b-2 border-inherit">
-                <div className="flex items-center justify-between gap-3 mb-4">
-                  <p className="text-sm font-semibold text-gray-800 uppercase tracking-wider">
-                    参数
-                  </p>
-                  <button
-                    onClick={() => copyToClipboard(argsJson, "args")}
-                    className="p-2 rounded-lg hover:bg-white/80 transition-all duration-200 shrink-0 shadow-sm"
-                    title="复制参数"
-                  >
-                    {copiedSection === "args" ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Copy className="h-4 w-4 text-gray-600" />
-                    )}
-                  </button>
-                </div>
-                <pre className="text-sm bg-white rounded-lg p-5 border-2 border-gray-200 overflow-x-auto min-h-[60px] max-h-48 overflow-y-auto font-mono text-gray-900 w-full break-words whitespace-pre-wrap leading-6 shadow-inner">
-                  {argsJson}
-                </pre>
-              </div>
-
-              {/* Result Section */}
-              {error ? (
-                <div className="bg-red-50/80 px-6 py-5 border-t-2 border-red-200">
-                  <div className="flex items-start gap-4">
-                    <AlertCircle className="h-6 w-6 text-red-600 shrink-0 mt-1" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-base font-semibold text-red-900 mb-4">错误</p>
-                      <pre className="text-sm bg-white rounded-lg p-5 border-2 border-red-200 overflow-x-auto min-h-[60px] max-h-64 overflow-y-auto font-mono text-red-900 w-full break-words whitespace-pre-wrap leading-6 shadow-inner scrollbar-thin scrollbar-thumb-red-300 scrollbar-track-red-100">
-                        {error}
-                      </pre>
-                    </div>
-                  </div>
-                </div>
-              ) : resultJson ? (
-                <div className="bg-green-50/80 px-6 py-5 border-t-2 border-green-200">
-                  <div className="flex items-center justify-between gap-3 mb-4">
-                    <p className="text-sm font-semibold text-green-800 uppercase tracking-wider">
-                      结果
-                    </p>
+              <div className="px-4 py-3 space-y-3">
+                {/* Args */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-gray-600 uppercase">参数</span>
                     <button
-                      onClick={() => copyToClipboard(resultJson, "result")}
-                      className="p-2 rounded-lg hover:bg-white/80 transition-all duration-200 shrink-0 shadow-sm"
-                      title="复制结果"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyToClipboard(argsJson, "args");
+                      }}
+                      className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+                      title="复制参数"
                     >
-                      {copiedSection === "result" ? (
-                        <Check className="h-4 w-4 text-green-700" />
+                      {copiedSection === "args" ? (
+                        <Check className="h-3.5 w-3.5 text-green-600" />
                       ) : (
-                        <Copy className="h-4 w-4 text-green-700" />
+                        <Copy className="h-3.5 w-3.5 text-gray-500" />
                       )}
                     </button>
                   </div>
-                  
-                  {/* 如果结果包含图片URL，只显示图片 */}
-                  {imageUrl ? (
-                    <div className="bg-white rounded-lg p-4 border-2 border-green-200">
-                      <MarkdownImage src={imageUrl} alt="生成的图表" />
+                  <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                    <SyntaxHighlighter
+                      language={argsLanguage}
+                      style={vscDarkPlus}
+                      customStyle={customStyle}
+                      showLineNumbers={false}
+                      wrapLines={true}
+                      wrapLongLines={true}
+                    >
+                      {argsJson}
+                    </SyntaxHighlighter>
+                  </div>
+                </div>
+
+                {/* Result */}
+                {error ? (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-semibold text-red-600 uppercase">错误</span>
                     </div>
-                  ) : (
-                    <pre className="text-sm bg-white rounded-lg p-5 border-2 border-green-200 overflow-x-auto min-h-[80px] max-h-80 overflow-y-auto font-mono text-gray-900 w-full break-words whitespace-pre-wrap leading-6 shadow-inner scrollbar-thin scrollbar-thumb-green-300 scrollbar-track-green-100">
-                      {resultJson}
+                    <pre className="text-xs bg-red-50 rounded border border-red-200 p-3 overflow-x-auto max-h-60 overflow-y-auto font-mono text-red-800 whitespace-pre-wrap break-words scrollbar-thin scrollbar-thumb-red-300 scrollbar-track-transparent">
+                      {error}
                     </pre>
-                  )}
-                </div>
-              ) : (
-                <div className="bg-gray-50/80 px-6 py-8 border-t-2 border-gray-200">
-                  <p className="text-sm text-gray-600 text-center font-medium">无结果</p>
-                </div>
-              )}
+                  </div>
+                ) : result ? (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-gray-600 uppercase">结果</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyToClipboard(resultJson!, "result");
+                        }}
+                        className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+                        title="复制结果"
+                      >
+                        {copiedSection === "result" ? (
+                          <Check className="h-3.5 w-3.5 text-green-600" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5 text-gray-500" />
+                        )}
+                      </button>
+                    </div>
+                    {imageUrl ? (
+                      <div className="bg-gray-50 rounded border border-gray-200 p-3">
+                        <MarkdownImage src={imageUrl} alt="生成的图表" />
+                      </div>
+                    ) : (
+                      <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                        <SyntaxHighlighter
+                          language={resultLanguage}
+                          style={vscDarkPlus}
+                          customStyle={customStyle}
+                          showLineNumbers={false}
+                          wrapLines={true}
+                          wrapLongLines={true}
+                        >
+                          {resultJson!}
+                        </SyntaxHighlighter>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

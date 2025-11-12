@@ -358,7 +358,7 @@ system_prompt = """
 请根据用户的自然语言请求,智能地调用相应的 API 并返回结果。
 """
 
-# 创建 Agent（无人工审核，无持久化）
+# 创建 Agent (LangGraph API 自动处理持久化)
 agent_auto = create_agent(
     model,
     tools,
@@ -380,72 +380,67 @@ async def run_auto(question: str):
 
 
 async def run_hitl(question: str):
-    """运行人工审核模式（带 SQLite 持久化）"""
-    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-    
+    """运行人工审核模式 (LangGraph API 自动处理持久化)"""
     print(f"\n{'='*60}")
     print(f"👤 人工审核模式 - 问题: {question}")
     print(f"{'='*60}\n")
     
     config = {"configurable": {"thread_id": "1"}}
     
-    # 使用 AsyncSqliteSaver 作为 checkpointer
-    async with AsyncSqliteSaver.from_conn_string(str(checkpoint_db_path)) as checkpointer:
-        # 创建 Agent（带人工审核和 SQLite 持久化）
-        agent_hitl = create_agent(
-            model,
-            tools,
-            system_prompt=system_prompt,
-            checkpointer=checkpointer,  # 启用 SQLite 持久化
-            middleware=[
-                HumanInTheLoopMiddleware(
-                    interrupt_on={"api_execute": True},  # 在执行 API 调用前暂停
-                    description_prefix="API 调用等待审核",
-                ),
-            ],
-        )
+    # 创建 Agent (LangGraph API 自动处理持久化)
+    agent_hitl = create_agent(
+        model,
+        tools,
+        system_prompt=system_prompt,
+        middleware=[
+            HumanInTheLoopMiddleware(
+                interrupt_on={"api_execute": True},  # 在执行 API 调用前暂停
+                description_prefix="API 调用等待审核",
+            ),
+        ],
+    )
+    
+    # 第一次执行，直到遇到中断
+    interrupted = False
+    for step in agent_hitl.stream(
+        {"messages": [{"role": "user", "content": question}]},
+        config,
+        stream_mode="values",
+    ):
+        if "messages" in step:
+            step["messages"][-1].pretty_print()
+        elif "__interrupt__" in step:
+            print("\n⏸️  检测到中断（API 调用需要审核）:")
+            interrupt = step["__interrupt__"][0]
+            for request in interrupt.value["action_requests"]:
+                print(f"  📋 {request['description']}")
+            interrupted = True
+            break
+    
+    # 循环处理所有中断
+    while interrupted:
+        print("\n⏳ 等待 3 秒后自动批准并继续...")
+        await asyncio.sleep(3)
+        print("▶️  继续执行...\n")
         
-        # 第一次执行，直到遇到中断
         interrupted = False
+        
         for step in agent_hitl.stream(
-            {"messages": [{"role": "user", "content": question}]},
+            Command(resume={"decisions": [{"type": "approve"}]}),
             config,
             stream_mode="values",
         ):
             if "messages" in step:
                 step["messages"][-1].pretty_print()
             elif "__interrupt__" in step:
-                print("\n⏸️  检测到中断（API 调用需要审核）:")
+                print("\n⏸️  再次检测到中断:")
                 interrupt = step["__interrupt__"][0]
                 for request in interrupt.value["action_requests"]:
                     print(f"  📋 {request['description']}")
                 interrupted = True
                 break
-        
-        # 循环处理所有中断
-        while interrupted:
-            print("\n⏳ 等待 3 秒后自动批准并继续...")
-            await asyncio.sleep(3)
-            print("▶️  继续执行...\n")
-            
-            interrupted = False
-            
-            for step in agent_hitl.stream(
-                Command(resume={"decisions": [{"type": "approve"}]}),
-                config,
-                stream_mode="values",
-            ):
-                if "messages" in step:
-                    step["messages"][-1].pretty_print()
-                elif "__interrupt__" in step:
-                    print("\n⏸️  再次检测到中断:")
-                    interrupt = step["__interrupt__"][0]
-                    for request in interrupt.value["action_requests"]:
-                        print(f"  📋 {request['description']}")
-                    interrupted = True
-                    break
-        
-        print("\n✅ 所有任务执行完成！")
+    
+    print("\n✅ 所有任务执行完成！")
 
 
 async def demo():

@@ -26,8 +26,7 @@ def setup_database(db_path: Path) -> None:
             with sqlite3.connect(db_path) as conn:
                 return conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
 
-    # 检查现有数据库
-    if get_tables():
+    if get_tables(): # 检查现有数据库
         return
 
     # 下载数据库
@@ -39,16 +38,13 @@ def setup_database(db_path: Path) -> None:
         raise SystemExit(f"数据库下载失败: {e}\n手动下载: {db_url}")
 
 
-# 初始化
-os.environ["DEEPSEEK_API_KEY"] = "sk-f79fae69b11a4fce88e04805bd6314b7"
+os.environ["DEEPSEEK_API_KEY"] = "sk-f79fae69b11a4fce88e04805bd6314b7" # 初始化
 llm = init_chat_model("deepseek:deepseek-chat")
 
-# 设置数据库
-db_path = Path(__file__).parent / "Chinook.db"
+db_path = Path(__file__).parent / "Chinook.db" # 设置数据库
 setup_database(db_path)
 
-# 连接数据库
-db = SQLDatabase.from_uri(f"sqlite:///{db_path}")
+db = SQLDatabase.from_uri(f"sqlite:///{db_path}") # 连接数据库
 
 toolkit = SQLDatabaseToolkit(db=db, llm=llm)
 tools = toolkit.get_tools()
@@ -60,14 +56,8 @@ run_query_tool = next(tool for tool in tools if tool.name == "sql_db_query")
 run_query_node = ToolNode([run_query_tool], name="run_query")
 
 
-# 示例：创建一个预定义的工具调用
-def list_tables(state: MessagesState):
-    tool_call = {
-        "name": "sql_db_list_tables",
-        "args": {},
-        "id": "abc123",
-        "type": "tool_call",
-    }
+def list_tables(state: MessagesState): # 示例：创建一个预定义的工具调用
+    tool_call = {"name": "sql_db_list_tables", "args": {}, "id": "abc123", "type": "tool_call"}
     tool_call_message = AIMessage(content="", tool_calls=[tool_call])
 
     list_tables_tool = next(tool for tool in tools if tool.name == "sql_db_list_tables")
@@ -77,13 +67,9 @@ def list_tables(state: MessagesState):
     return {"messages": [tool_call_message, tool_message, response]}
 
 
-# 示例：强制模型创建工具调用
-def call_get_schema(state: MessagesState):
-    # 注意：LangChain强制所有模型接受 `tool_choice="any"`
-    # 以及 `tool_choice=<工具名称字符串>`。
+def call_get_schema(state: MessagesState): # 示例：强制模型创建工具调用
     llm_with_tools = llm.bind_tools([get_schema_tool], tool_choice="any")
     response = llm_with_tools.invoke(state["messages"])
-
     return {"messages": [response]}
 
 
@@ -97,21 +83,13 @@ generate_query_system_prompt = """
 永远不要查询特定表的所有列，只查询问题中相关的列。
 
 不要对数据库执行任何DML语句（INSERT、UPDATE、DELETE、DROP等）。
-""".format(
-    dialect=db.dialect,
-    top_k=5,
-)
+""".format(dialect=db.dialect, top_k=5)
 
 
 def generate_query(state: MessagesState):
-    system_message = {
-        "role": "system",
-        "content": generate_query_system_prompt,
-    }
-    # 我们在这里不强制工具调用，以允许模型在获得解决方案时自然响应。
+    system_message = {"role": "system", "content": generate_query_system_prompt}
     llm_with_tools = llm.bind_tools([run_query_tool])
     response = llm_with_tools.invoke([system_message] + state["messages"])
-
     return {"messages": [response]}
 
 
@@ -135,18 +113,12 @@ check_query_system_prompt = """
 
 
 def check_query(state: MessagesState):
-    system_message = {
-        "role": "system",
-        "content": check_query_system_prompt,
-    }
-
-    # 生成一个人工用户消息来检查
+    system_message = {"role": "system", "content": check_query_system_prompt}
     tool_call = state["messages"][-1].tool_calls[0]
     user_message = {"role": "user", "content": tool_call["args"]["query"]}
     llm_with_tools = llm.bind_tools([run_query_tool], tool_choice="any")
     response = llm_with_tools.invoke([system_message, user_message])
     response.id = state["messages"][-1].id
-
     return {"messages": [response]}
 
 
@@ -171,49 +143,31 @@ builder.add_edge(START, "list_tables")
 builder.add_edge("list_tables", "call_get_schema")
 builder.add_edge("call_get_schema", "get_schema")
 builder.add_edge("get_schema", "generate_query")
-builder.add_conditional_edges(
-    "generate_query",
-    should_continue,
-)
+builder.add_conditional_edges("generate_query", should_continue)
 builder.add_edge("check_query", "run_query")
 builder.add_edge("run_query", "generate_query")
 
-# 编译 agent（无持久化，用于简单测试）
-agent_old = builder.compile()
+agent_old = builder.compile() # 编译 agent (LangGraph API 自动处理持久化)
 
-# 导入依赖
-from langchain_core.runnables import RunnableConfig
+from langchain_core.runnables import RunnableConfig # 导入依赖
 from langchain.tools import tool
 from langgraph.types import interrupt, Command
 
-# 配置 SQLite Checkpointer 用于持久化对话状态
-checkpoint_db_path = Path(__file__).parent / "checkpoints.db"
+checkpoint_db_path = Path(__file__).parent / "checkpoints.db" # 配置 SQLite Checkpointer 用于持久化对话状态
 
 
-@tool(
-    run_query_tool.name,
-    description=run_query_tool.description,
-    args_schema=run_query_tool.args_schema
-)
+@tool(run_query_tool.name, description=run_query_tool.description, args_schema=run_query_tool.args_schema)
 def run_query_tool_with_interrupt(config: RunnableConfig, **tool_input):
-    request = {
-        "action": run_query_tool.name,
-        "args": tool_input,
-        "description": "Please review the tool call"
-    }
+    request = {"action": run_query_tool.name, "args": tool_input, "description": "Please review the tool call"}
     response = interrupt([request])
-    # interrupt() 返回的是列表，取第一个元素
-    decision = response[0] if isinstance(response, list) else response
+    decision = response[0] if isinstance(response, list) else response # interrupt() 返回的是列表，取第一个元素
     
-    # approve the tool call
-    if decision["type"] == "accept":
+    if decision["type"] == "accept": # approve the tool call
         tool_response = run_query_tool.invoke(tool_input, config)
-    # update tool call args
-    elif decision["type"] == "edit":
+    elif decision["type"] == "edit": # update tool call args
         tool_input = decision["args"]["args"]
         tool_response = run_query_tool.invoke(tool_input, config)
-    # respond to the LLM with user feedback
-    elif decision["type"] == "response":
+    elif decision["type"] == "response": # respond to the LLM with user feedback
         user_feedback = decision["args"]
         tool_response = user_feedback
     else:
@@ -231,8 +185,7 @@ def should_continue(state: MessagesState) -> Literal[END, "run_query"]:
         return "run_query"
 
 
-# 创建带中断功能的工具节点
-run_query_node_with_interrupt = ToolNode([run_query_tool_with_interrupt], name="run_query")
+run_query_node_with_interrupt = ToolNode([run_query_tool_with_interrupt], name="run_query") # 创建带中断功能的工具节点
 
 builder = StateGraph(MessagesState)
 builder.add_node(list_tables)
@@ -245,51 +198,55 @@ builder.add_edge(START, "list_tables")
 builder.add_edge("list_tables", "call_get_schema")
 builder.add_edge("call_get_schema", "get_schema")
 builder.add_edge("get_schema", "generate_query")
-builder.add_conditional_edges(
-    "generate_query",
-    should_continue,
-)
+builder.add_conditional_edges("generate_query", should_continue)
 builder.add_edge("run_query", "generate_query")
 
 
 async def run_old():
     from IPython.display import Image, display
-
     display(Image(agent_old.get_graph().draw_mermaid_png()))
     question = "哪个音乐类型的曲目平均时长最长？"
 
-    for step in agent_old.stream(
-            {"messages": [{"role": "user", "content": question}]},
-            stream_mode="values",
-    ):
+    for step in agent_old.stream({"messages": [{"role": "user", "content": question}]}, stream_mode="values"):
         step["messages"][-1].pretty_print()
 
 
 async def run_new():
     """运行带持久化和人工审核的 Agent"""
-    from langgraph.checkpoint.sqlite import SqliteSaver
-    
     question = "哪个音乐类型的曲目平均时长最长？"
     config = {"configurable": {"thread_id": "1"}}
 
-    # 使用 SqliteSaver 作为 checkpointer（同步版本）
-    with SqliteSaver.from_conn_string(str(checkpoint_db_path)) as checkpointer:
-        # 编译 agent（带 SQLite 持久化）
-        agent_new = builder.compile(checkpointer=checkpointer)
-        
-        # 第一次执行，直到遇到中断
+    agent_new = builder.compile() # 编译 agent (LangGraph API 自动处理持久化)
+    
+    interrupted = False # 第一次执行，直到遇到中断
+    for step in agent_new.stream({"messages": [{"role": "user", "content": question}]}, config, stream_mode="values"):
+        if "messages" in step:
+            step["messages"][-1].pretty_print()
+        elif "__interrupt__" in step:
+            print("检测到中断:")
+            interrupt = step["__interrupt__"][0]
+            for request in interrupt.value:
+                print(f"  - {request['description']}")
+                print(f"  - 工具: {request['action']}")
+                print(f"  - 参数: {request['args']}")
+            interrupted = True
+            break
+        else:
+            pass
+
+    while interrupted: # 循环处理所有中断，每次中断都等待3秒后自动恢复
+        print("\n等待3秒后自动恢复执行...")
+        await asyncio.sleep(3)
+        print("恢复执行中...\n")
+
         interrupted = False
-        for step in agent_new.stream(
-                {"messages": [{"role": "user", "content": question}]},
-                config,
-                stream_mode="values",
-        ):
+
+        for step in agent_new.stream(Command(resume=[{"type": "accept"}]), config, stream_mode="values"):
             if "messages" in step:
                 step["messages"][-1].pretty_print()
             elif "__interrupt__" in step:
-                print("检测到中断:")
+                print("再次检测到中断:")
                 interrupt = step["__interrupt__"][0]
-                # interrupt.value 本身就是请求列表
                 for request in interrupt.value:
                     print(f"  - {request['description']}")
                     print(f"  - 工具: {request['action']}")
@@ -299,36 +256,7 @@ async def run_new():
             else:
                 pass
 
-        # 循环处理所有中断，每次中断都等待3秒后自动恢复
-        while interrupted:
-            print("\n等待3秒后自动恢复执行...")
-            await asyncio.sleep(3)
-            print("恢复执行中...\n")
-
-            interrupted = False  # 重置中断标志
-
-            # 恢复执行
-            for step in agent_new.stream(
-                    Command(resume=[{"type": "accept"}]),
-                    config,
-                    stream_mode="values",
-            ):
-                if "messages" in step:
-                    step["messages"][-1].pretty_print()
-                elif "__interrupt__" in step:
-                    print("再次检测到中断:")
-                    interrupt = step["__interrupt__"][0]
-                    # interrupt.value 本身就是请求列表
-                    for request in interrupt.value:
-                        print(f"  - {request['description']}")
-                        print(f"  - 工具: {request['action']}")
-                        print(f"  - 参数: {request['args']}")
-                    interrupted = True  # 设置中断标志，继续循环
-                    break
-                else:
-                    pass
-
-        print("\n✅ 所有任务执行完成！")
+    print("\n✅ 所有任务执行完成!")
 
 
 if __name__ == '__main__':

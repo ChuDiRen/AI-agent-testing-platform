@@ -105,21 +105,7 @@ def create_conversation_graph(checkpointer=None, store=None):
     return graph
 
 
-# 导出图供langgraph使用
-# 默认创建不带checkpointer的图，checkpointer通过langgraph.json配置注入
-try:
-    from sqlite_checkpointer import SqliteCheckpointer
-    from sqlite_store import SqliteStore
-    # 获取当前文件所在目录
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.join(current_dir, "data", "langgraph.db")
-    # 如果能导入SqliteCheckpointer和SqliteStore，则创建带checkpointer和store的图
-    # SqliteCheckpointer会自动初始化store_items表（用于长期记忆）
-    _checkpointer = SqliteCheckpointer(db_path=db_path)
-    _store = SqliteStore(db_path=db_path)
-    graph = create_conversation_graph(checkpointer=_checkpointer, store=_store)
-except (ImportError, Exception) as e:
-    # 否则创建不带checkpointer的图
-    graph = create_conversation_graph()
+# 导出图供langgraph使用 (LangGraph API 自动处理持久化)
+graph = create_conversation_graph()
 
 

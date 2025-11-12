@@ -13,12 +13,6 @@ from langchain_community.utilities import SQLDatabase
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.types import Command
 
-# 导入 SQLite 存储组件
-import sys
-
-sys.path.insert(0, str(Path(__file__).parent))
-from sqlite_storage import SqliteCheckpointer, SqliteStore
-
 
 def setup_database(db_path: Path) -> None:
     """自动下载并设置Chinook数据库"""
@@ -57,21 +51,6 @@ db = SQLDatabase.from_uri(f"sqlite:///{db_path}")
 toolkit = SQLDatabaseToolkit(db=db, llm=model)
 tools = toolkit.get_tools()
 
-# 加载 MCP 图表工具
-chart_tools = asyncio.run(
-    MultiServerMCPClient(
-        {
-            "mcp-server-chart": {
-                "command": "npx",
-                "args": ["-y", "@antv/mcp-server-chart"],
-                "transport": "stdio",
-            }
-        }
-    ).get_tools()
-)
-# 合并 SQL 工具和图表工具
-tools = tools + chart_tools
-
 system_prompt = """
 你是一个专门用于与SQL数据库交互的智能代理。
 给定一个输入问题，创建一个语法正确的{dialect}查询来运行，
@@ -94,24 +73,59 @@ system_prompt = """
     dialect=db.dialect,
     top_k=5,
 )
-_checkpointer = SqliteCheckpointer(db_path=db_path)
-_store = SqliteStore(db_path=db_path)
-# 创建 Agent（无持久化，用于简单测试）
-agent_old = create_agent(
-    model,
-    tools,
-    system_prompt=system_prompt,
-    checkpointer=_checkpointer,
-    store=_store,
-)
+
+# 延迟加载MCP图表工具(避免模块加载时阻塞)
+_chart_tools_cache = None
+_agent_cache = None
+
+def _get_chart_tools():
+    """获取MCP图表工具(带缓存)"""
+    global _chart_tools_cache
+    if _chart_tools_cache is None:
+        try:
+            chart_tools = asyncio.run(
+                MultiServerMCPClient(
+                    {
+                        "mcp-server-chart": {
+                            "command": "npx",
+                            "args": ["-y", "@antv/mcp-server-chart"],
+                            "transport": "stdio",
+                        }
+                    }
+                ).get_tools()
+            )
+            _chart_tools_cache = chart_tools
+            print(f"[成功] 加载了 {len(chart_tools)} 个图表工具")
+        except Exception as e:
+            print(f"[警告] MCP图表工具加载失败,仅使用SQL工具: {e}")
+            _chart_tools_cache = []
+    return _chart_tools_cache
+
+def _get_agent():
+    """获取完整agent(带缓存,首次调用时加载MCP工具)"""
+    global _agent_cache
+    if _agent_cache is None:
+        all_tools = tools + _get_chart_tools()
+        _agent_cache = create_agent(
+            model,
+            all_tools,
+            system_prompt=system_prompt,
+        )
+    return _agent_cache
+
+# 导出graph工厂函数(LangGraph API会调用此函数获取graph)
+def agent_old():
+    """Agent工厂函数,返回包含图表工具的agent"""
+    return _get_agent()
 
 
 async def run_old():
+    """运行SQL Agent"""
     question = "哪个音乐类型的曲目平均时长最长？"
 
-    async for step in agent_old.astream(
-            {"messages": [{"role": "user", "content": question}]},
-            stream_mode="values",
+    async for step in agent_old().astream(
+        {"messages": [{"role": "user", "content": question}]},
+        stream_mode="values",
     ):
         step["messages"][-1].pretty_print()
 
@@ -122,17 +136,12 @@ async def run_new():
 
     config = {"configurable": {"thread_id": "1"}}
 
-    # 初始化 SQLite checkpointer 和 store
-    checkpointer = SqliteCheckpointer(db_path=db_path)
-    store = SqliteStore(db_path=db_path)
-
-    # 创建 Agent（带 SQLite 持久化和人工审核中断）
+    # 创建带中间件的agent
+    all_tools = tools + _get_chart_tools()
     agent_new = create_agent(
         model,
-        tools,
+        all_tools,
         system_prompt=system_prompt,
-        checkpointer=checkpointer,  # 启用 SQLite 持久化
-        store=store,  # 启用 SQLite store
         middleware=[
             HumanInTheLoopMiddleware(
                 interrupt_on={"sql_db_query": True},

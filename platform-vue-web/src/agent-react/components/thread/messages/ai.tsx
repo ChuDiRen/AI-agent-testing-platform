@@ -269,8 +269,8 @@ export function AssistantMessage({
   }
 
   return (
-    <div className="group mr-auto flex items-start gap-2">
-      <div className="flex flex-col gap-2">
+    <div className="group w-full flex items-start gap-2">
+      <div className="flex flex-col gap-2 w-full">
         {isToolResult ? (
           <>
             <ToolResult message={message} />
@@ -282,29 +282,29 @@ export function AssistantMessage({
           </>
         ) : (
           <>
-            <div className="mx-auto w-full max-w-2xl">
-              {contentString.length > 0 && (
-                <div className="py-1 mb-4">
+            {contentString.length > 0 && (
+              <div className="w-full flex justify-start">
+                <div className="max-w-2xl py-1 mb-4">
                   <MarkdownText>{contentString}</MarkdownText>
                 </div>
-              )}
+              </div>
+            )}
 
-              {!hideToolCalls && hasAnyToolCalls && (
-                <div className="flex flex-col gap-4 w-full">
-                  {filteredToolCalls.map((tc, idx) => {
-                    const attemptNumber = tc.name ? toolCallAttempts.get(tc.name) : undefined;
-                    return (
-                      <ToolCallWithResult
-                        key={tc.id || idx}
-                        toolCall={tc}
-                        toolResult={tc.id ? toolResults[tc.id] : undefined}
-                        attemptNumber={attemptNumber}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            {!hideToolCalls && hasAnyToolCalls && (
+              <div className="flex flex-col gap-4 w-full">
+                {filteredToolCalls.map((tc, idx) => {
+                  const attemptNumber = tc.name ? toolCallAttempts.get(tc.name) : undefined;
+                  return (
+                    <ToolCallWithResult
+                      key={tc.id || idx}
+                      toolCall={tc}
+                      toolResult={tc.id ? toolResults[tc.id] : undefined}
+                      attemptNumber={attemptNumber}
+                    />
+                  );
+                })}
+              </div>
+            )}
 
             {message && (
               <CustomComponent

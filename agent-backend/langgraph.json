@@ -7,7 +7,7 @@
     "sql_agent": "./examples/sql_agent.py:agent_old",
     "sql_agent_graph": "./examples/sql_agent_graph.py:agent_old",
     "api_agent": "./examples/api_agent.py:agent_auto",
-    "conversation_agent": "./examples/sqlite_storage/conversation_agent.py:graph"
+    "conversation_agent": "./sqlite_storage/conversation_agent.py:graph"
   },
   "env": ".env"
 }

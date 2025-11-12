@@ -19,13 +19,14 @@ def run_langgraph_server(root: Path, port: int = 2024):
     pythonpath_parts = filter(None, [str(src), env.get("PYTHONPATH")])
     env["PYTHONPATH"] = os.pathsep.join(pythonpath_parts)
     
-    # 启动 LangGraph 开发服务器
+    # 启动 LangGraph 开发服务器(允许CORS跨域)
     return subprocess.run(
         [
             "langgraph", "dev",
             "--allow-blocking",
             "--port", str(port),
-            "--server-log-level", "INFO"
+            "--server-log-level", "INFO",
+            "--host", "0.0.0.0"  # 允许外部访问
         ],
         env=env,
         cwd=root,
