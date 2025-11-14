@@ -5,6 +5,7 @@ import urllib.request
 from pathlib import Path
 
 from langchain.agents import create_agent
+from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langchain.chat_models import init_chat_model
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_community.utilities import SQLDatabase
@@ -73,6 +74,7 @@ system_prompt = """
 # 延迟加载MCP图表工具(避免模块加载时阻塞)
 _chart_tools_cache = None
 _agent_cache = None
+_agent_hitl_cache = None
 
 async def _get_chart_tools():
     """获取MCP图表工具(带缓存, 异步安全)"""
@@ -112,6 +114,27 @@ async def agent_old():
     """Agent工厂函数, 返回包含图表工具的agent"""
     return await _get_agent()
 
+
+async def _get_agent_hitl():
+    global _agent_hitl_cache
+    if _agent_hitl_cache is None:
+        all_tools = tools + await _get_chart_tools()
+        _agent_hitl_cache = create_agent(
+            model,
+            all_tools,
+            system_prompt=system_prompt,
+            middleware=[
+                HumanInTheLoopMiddleware(
+                    interrupt_on={"sql_db_query": True},
+                    description_prefix="SQL 调用等待审核",
+                )
+            ],
+        )
+    return _agent_hitl_cache
+
+
+async def agent_hitl():
+    return await _get_agent_hitl()
 
 async def run_old():
     """运行SQL Agent"""

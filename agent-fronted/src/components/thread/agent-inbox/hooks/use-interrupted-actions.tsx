@@ -101,6 +101,7 @@ interface UseInterruptedActionsValue {
   // Actions
   handleSubmit: (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent> | KeyboardEvent,
+    submitType?: SubmitType,
   ) => Promise<void>;
   handleIgnore: (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
@@ -123,6 +124,7 @@ interface UseInterruptedActionsValue {
   // 新增：状态机相关 # 状态机状态
   interruptState: InterruptState;
   phaseInfo: InterruptPhaseInfo;
+  selectedSubmitType?: SubmitType;
 
   // State setters
   setSelectedSubmitType: Dispatch<SetStateAction<SubmitType | undefined>>;
@@ -178,11 +180,34 @@ export default function useInterruptedActions({
 
   const resumeRun = (response: HumanResponse[]): boolean => {
     try {
+      // Always map to decisions for consistency
+      const decisions = response.map((r) => {
+        switch (r.type) {
+          case "accept":
+            return { type: "approve" };
+          case "ignore":
+            return { type: "reject", message: (r as any).args ?? "" };
+          case "response":
+            return { type: "respond", args: (r as any).args };
+          case "edit":
+            const p: any = (r as any).args || {};
+            return {
+              type: "edit",
+              edited_action: {
+                name: p.name ?? p.action,
+                args: p.args ?? {},
+              },
+            };
+          default:
+            return { type: r.type as string, args: (r as any).args };
+        }
+      });
+
       thread.submit(
         {},
         {
           command: {
-            resume: response,
+            resume: { decisions },
           },
         },
       );
@@ -195,6 +220,7 @@ export default function useInterruptedActions({
 
   const handleSubmit = async (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent> | KeyboardEvent,
+    submitType?: SubmitType,
   ) => {
     e.preventDefault();
     if (!humanResponse) {
@@ -218,36 +244,34 @@ export default function useInterruptedActions({
       setStreamFinished(false);
 
       try {
-        const humanResponseInput: HumanResponse[] = humanResponse.flatMap(
-          (r) => {
-            if (r.type === "edit") {
-              if (r.acceptAllowed && !r.editsMade) {
-                return {
-                  type: "accept",
-                  args: r.args,
-                };
-              } else {
-                return {
-                  type: "edit",
-                  args: r.args,
-                };
-              }
-            }
+        const desiredType = submitType ?? selectedSubmitType;
+        let input: HumanResponse | undefined;
+        if (desiredType === "accept") {
+          input = { type: "accept" } as any;
+        } else if (desiredType === "edit") {
+          const r = humanResponse.find((x) => x.type === "edit");
+          if (r && r.args && typeof r.args === "object") {
+            const payload: any = r.args || {};
+            input = {
+              type: "edit",
+              args: {
+                action: payload?.action,
+                args: payload?.args ?? {},
+              },
+            } as any;
+          }
+        } else if (desiredType === "response") {
+          const r = humanResponse.find((x) => x.type === "response");
+          if (r && r.args) {
+            input = { type: "response", args: (r as any).args } as any;
+          }
+        } else if (desiredType === "ignore") {
+          const r = humanResponse.find((x) => x.type === "ignore");
+          if (r) {
+            input = { type: "ignore", args: (r as any).args } as any;
+          }
+        }
 
-            if (r.type === "response" && !r.args) {
-              // If response was allowed but no response was given, do not include in the response
-              return [];
-            }
-            return {
-              type: r.type,
-              args: r.args,
-            };
-          },
-        );
-
-        const input = humanResponseInput.find(
-          (r) => r.type === selectedSubmitType,
-        );
         if (!input) {
           toast.error("Error", {
             description: "No response found.",
@@ -411,10 +435,8 @@ export default function useInterruptedActions({
     });
   }, []);
 
-  const supportsMultipleMethods =
-    humanResponse.filter(
-      (r) => r.type === "edit" || r.type === "accept" || r.type === "response",
-    ).length > 1;
+  // 仅展示“接受/编辑/拒绝”，不展示多路径选择分割
+  const supportsMultipleMethods = false;
 
   return {
     handleSubmit,
@@ -431,6 +453,7 @@ export default function useInterruptedActions({
     acceptAllowed,
     interruptState, // 新增：状态机状态
     phaseInfo, // 新增：阶段信息
+    selectedSubmitType,
     setSelectedSubmitType,
     setHumanResponse,
     setHasAddedResponse,

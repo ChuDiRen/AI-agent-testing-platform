@@ -92,14 +92,44 @@ export function createDefaultHumanResponse(
   hasAccept: boolean;
 } {
   const responses: HumanResponseWithEdits[] = [];
-  if (interrupt.config.allow_edit) {
-    if (interrupt.config.allow_accept) {
-      Object.entries(interrupt.action_request.args).forEach(([k, v]) => {
+
+  // Only support modern middleware shape
+  const anyInt: any = interrupt as any;
+  const firstActionRaw =
+    Array.isArray(anyInt.action_requests) && anyInt.action_requests.length > 0
+      ? anyInt.action_requests[0]
+      : undefined;
+  const firstAction = firstActionRaw
+    ? {
+      action: firstActionRaw.name ?? firstActionRaw.action,
+      args: firstActionRaw.args ?? {},
+    }
+    : undefined;
+
+  const decisions: string[] = Array.isArray(anyInt.review_configs)
+    ? (anyInt.review_configs[0]?.allowed_decisions ?? [])
+    : [];
+
+  const cfg = {
+    allow_accept: decisions.includes("approve") || decisions.includes("accept"),
+    allow_edit: decisions.includes("edit"),
+    allow_ignore: decisions.includes("reject") || decisions.includes("ignore"),
+    allow_respond: decisions.includes("respond") || decisions.includes("response"),
+  };
+
+  // Populate editable initial values when edit+accept are allowed
+  if (cfg.allow_edit && firstAction?.args) {
+    if (cfg.allow_accept) {
+      Object.entries(firstAction.args).forEach(([k, v]) => {
         let stringValue = "";
         if (typeof v === "string") {
           stringValue = v;
         } else {
-          stringValue = JSON.stringify(v, null);
+          try {
+            stringValue = JSON.stringify(v, null);
+          } catch {
+            stringValue = String(v);
+          }
         }
 
         if (
@@ -124,64 +154,30 @@ export function createDefaultHumanResponse(
           );
         }
       });
-      responses.push({
-        type: "edit",
-        args: interrupt.action_request,
-        acceptAllowed: true,
-        editsMade: false,
-      });
+      responses.push({ type: "edit", args: { ...firstAction }, acceptAllowed: true, editsMade: false });
     } else {
-      responses.push({
-        type: "edit",
-        args: interrupt.action_request,
-        acceptAllowed: false,
-      });
+      responses.push({ type: "edit", args: { ...firstAction }, acceptAllowed: false });
     }
   }
-  if (interrupt.config.allow_respond) {
-    responses.push({
-      type: "response",
-      args: "",
-    });
+
+  if (cfg.allow_ignore) {
+    responses.push({ type: "ignore", args: "" });
   }
 
-  if (interrupt.config.allow_ignore) {
-    responses.push({
-      type: "ignore",
-      args: null,
-    });
-  }
-
-  // Set the submit type.
-  // Priority: accept > response  > edit
-  const acceptAllowedConfig = interrupt.config.allow_accept;
-  const ignoreAllowedConfig = interrupt.config.allow_ignore;
-
-  const hasResponse = responses.find((r) => r.type === "response");
-  const hasAccept =
-    responses.find((r) => r.acceptAllowed) || acceptAllowedConfig;
+  // Determine default submit type by priority
+  const hasAccept = responses.find((r) => r.acceptAllowed) || cfg.allow_accept;
   const hasEdit = responses.find((r) => r.type === "edit");
 
   let defaultSubmitType: SubmitType | undefined;
-  if (hasAccept) {
-    defaultSubmitType = "accept";
-  } else if (hasResponse) {
-    defaultSubmitType = "response";
-  } else if (hasEdit) {
-    defaultSubmitType = "edit";
-  }
+  if (hasAccept) defaultSubmitType = "accept";
+  else if (hasEdit) defaultSubmitType = "edit";
 
-  if (acceptAllowedConfig && !responses.find((r) => r.type === "accept")) {
-    responses.push({
-      type: "accept",
-      args: null,
-    });
+  // Ensure presence of explicit accept/ignore options if allowed
+  if (cfg.allow_accept && !responses.find((r) => r.type === "accept")) {
+    responses.push({ type: "accept", args: null });
   }
-  if (ignoreAllowedConfig && !responses.find((r) => r.type === "ignore")) {
-    responses.push({
-      type: "ignore",
-      args: null,
-    });
+  if (cfg.allow_ignore && !responses.find((r) => r.type === "ignore")) {
+    responses.push({ type: "ignore", args: null });
   }
 
   return { responses, defaultSubmitType, hasAccept: !!hasAccept };
