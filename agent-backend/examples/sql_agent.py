@@ -1,8 +1,12 @@
 import asyncio
 import os
 import sqlite3
+import sys
 import urllib.request
 from pathlib import Path
+
+# 添加父目录到Python路径,以便导入sqlite_storage模块
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from langchain.agents import create_agent
 from langchain.agents.middleware import HumanInTheLoopMiddleware
@@ -112,14 +116,18 @@ async def _get_chart_tools():
     return _chart_tools_cache
 
 async def _get_agent():
-    """获取完整agent(带缓存, 首次调用时加载MCP工具)"""
+    """获取完整agent(带缓存, 首次调用时加载MCP工具, 支持数据持久化)"""
     global _agent_cache
     if _agent_cache is None:
         all_tools = tools + await _get_chart_tools()
+        # 注意：生产模式下不传 checkpointer，让 LangGraph runtime 自动注入
+        # 直接运行脚本时使用本地 checkpointer
+        checkpointer = None if os.getenv("LANGGRAPH_RUNTIME_EDITION") == "community" else get_checkpointer()
         _agent_cache = create_agent(
             model,
             all_tools,
             system_prompt=system_prompt,
+            checkpointer=checkpointer,
         )
     return _agent_cache
 
@@ -133,6 +141,8 @@ async def _get_agent_hitl():
     global _agent_hitl_cache
     if _agent_hitl_cache is None:
         all_tools = tools + await _get_chart_tools()
+        # 注意：生产模式下不传 checkpointer，让 LangGraph runtime 自动注入
+        checkpointer = None if os.getenv("LANGGRAPH_RUNTIME_EDITION") == "community" else get_checkpointer()
         _agent_hitl_cache = create_agent(
             model,
             all_tools,
@@ -149,8 +159,7 @@ async def _get_agent_hitl():
                     # 注意：reject决策会导致Agent返回错误消息并停止执行
                 )
             ],
-            # 使用SQLite持久化checkpointer
-            checkpointer=get_checkpointer(),
+            checkpointer=checkpointer,
         )
     return _agent_hitl_cache
 
@@ -159,12 +168,22 @@ async def agent_hitl():
     return await _get_agent_hitl()
 
 async def run_old():
-    """运行SQL Agent"""
+    """运行SQL Agent (带数据持久化)"""
     question = "哪个音乐类型的曲目平均时长最长？"
 
+    # 使用带checkpointer的agent_old
     agent = await agent_old()
+    
+    # 配置thread_id以启用数据持久化
+    config = {
+        "configurable": {
+            "thread_id": "sql_agent_thread_1"
+        }
+    }
+    
     async for step in agent.astream(
         {"messages": [{"role": "user", "content": question}]},
+        config=config,  # 传入config参数
         stream_mode="values",
     ):
         step["messages"][-1].pretty_print()

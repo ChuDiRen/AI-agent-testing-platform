@@ -14,20 +14,24 @@ pip install -r requirements.txt
 
 `.env` 文件已配置：
 ```bash
-LANGGRAPH_SQLITE_URI=sqlite:///checkpoints.db
+DATABASE_URI=sqlite:///sqlite_storage/data/langgraph_server.db
 DEEPSEEK_API_KEY=your-api-key
+REDIS_URI=fake
+LANGGRAPH_RUNTIME_EDITION=community
 ```
 
 ### 3. 运行方式
 
-#### 方式 1: 开发调试（内存持久化）
+#### 方式 1: 生产模式（SQLite 持久化）⭐ 推荐
 
 ```bash
-langgraph dev
+python agent-backend_run.py
 ```
 
 - 访问：http://localhost:2024
-- 特点：快速启动，重启后数据丢失
+- 特点：**数据完全持久化到 SQLite**，支持所有 LangGraph API
+- 数据库：`sqlite_storage/data/langgraph_server.db`
+- 详细说明：[README_PRODUCTION_SQLITE.md](README_PRODUCTION_SQLITE.md)
 
 #### 方式 2: 运行具体示例
 
@@ -132,16 +136,23 @@ asyncio.run(main())
 
 | 运行方式 | 持久化 | 数据库文件 |
 |---------|--------|-----------|
-| `langgraph dev` | 内存 | 无（重启丢失） |
-| `python examples/xxx.py` | SQLite | `examples/checkpoints.db` |
+| `python agent-backend_run.py` ⭐ | **SQLite 完全持久化** | `sqlite_storage/data/langgraph_server.db` |
+| `python examples/xxx.py` | SQLite | `sqlite_storage/data/hitl_checkpoints.db` |
 | `auto_testcase_generator` | SQLite + Store | `checkpoints.db` + InMemoryStore |
+
+**重要变更**：
+- ✅ 现在推荐使用 `python agent-backend_run.py` 启动服务器（生产模式 + SQLite 持久化）
+- ❌ 不再推荐 `langgraph dev`（内存模式，数据不持久化）
+
+详细配置说明：[README_PRODUCTION_SQLITE.md](README_PRODUCTION_SQLITE.md)
 
 ---
 
 ## ✅ 推荐用法
 
-- **快速测试 UI**：`langgraph dev`
+- **API 服务器（持久化）**：`python agent-backend_run.py` ⭐
 - **测试用例生成**：使用 Python API 调用 `generator.generate()`
+- **直接运行示例**：`python examples/sql_agent.py`
 
 ---
 

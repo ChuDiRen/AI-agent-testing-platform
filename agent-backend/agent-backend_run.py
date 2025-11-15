@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 LangGraph API 服务器启动脚本
-支持 SQLite 持久化存储
+支持 SQLite 持久化存储（生产模式）
 """
 
 import os
@@ -11,22 +11,47 @@ from pathlib import Path
 
 
 def run_langgraph_server(root: Path, port: int = 2024):
-    """运行 LangGraph 服务器"""
-    src = root / "src"
+    """运行 LangGraph 服务器（生产模式 + SQLite 持久化）"""
+    
+    # 准备 SQLite 数据库路径
+    db_dir = root / "sqlite_storage" / "data"
+    db_dir.mkdir(parents=True, exist_ok=True)
+    db_path = db_dir / "langgraph_server.db"
     
     # 构建环境变量
     env = os.environ.copy()
-    pythonpath_parts = filter(None, [str(src), env.get("PYTHONPATH")])
+    
+    # 关键：配置 SQLite 数据库 URI（生产模式）
+    env["DATABASE_URI"] = f"sqlite:///{db_path}"
+    
+    # Redis URI（使用 fake 模式，不需要真实 Redis）
+    env["REDIS_URI"] = "fake"
+    
+    # 设置为生产运行时版本（支持持久化）
+    env["LANGGRAPH_RUNTIME_EDITION"] = "community"
+    
+    # 允许阻塞 IO
+    env["LANGGRAPH_ALLOW_BLOCKING"] = "true"
+    
+    # 允许私有网络访问
+    env["ALLOW_PRIVATE_NETWORK"] = "true"
+    
+    # 设置 PYTHONPATH
+    pythonpath_parts = filter(None, [str(root), env.get("PYTHONPATH")])
     env["PYTHONPATH"] = os.pathsep.join(pythonpath_parts)
     
-    # 启动 LangGraph 开发服务器(允许CORS跨域)
+    print(f"[配置] 数据库路径: {db_path}")
+    print(f"[配置] 运行模式: community (SQLite 持久化)")
+    
+    # 使用 uvicorn 直接启动生产模式服务器
     return subprocess.run(
         [
-            "langgraph", "dev",
-            "--allow-blocking",
+            sys.executable,
+            "-m", "uvicorn",
+            "langgraph_api.server:app",
+            "--host", "0.0.0.0",
             "--port", str(port),
-            "--server-log-level", "INFO",
-            "--host", "0.0.0.0"  # 允许外部访问
+            "--log-level", "info"
         ],
         env=env,
         cwd=root,

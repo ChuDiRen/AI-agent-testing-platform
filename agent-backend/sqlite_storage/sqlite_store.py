@@ -458,9 +458,17 @@ def create_store() -> SqliteStore:
     """
     工厂函数：创建SQLite store实例
     
-    这个函数会袾langgraph.yaml配置文件调用
+    这个函数会被langgraph.json配置文件调用
     
     Returns:
         SqliteStore实例
     """
-    return SqliteStore(db_path="./data/langgraph.db")
+    from pathlib import Path
+    
+    # 使用绝对路径,确保在任何工作目录下都能正确找到数据库文件
+    db_dir = Path(__file__).parent / "data"
+    db_dir.mkdir(parents=True, exist_ok=True)
+    db_path = db_dir / "langgraph_server.db"
+    
+    print(f"[Store] 使用数据库: {db_path}")
+    return SqliteStore(db_path=str(db_path))
