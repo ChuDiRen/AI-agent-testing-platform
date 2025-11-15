@@ -10,6 +10,7 @@ from langchain.chat_models import init_chat_model
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_community.utilities import SQLDatabase
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from sqlite_storage.sqlite_checkpointer import SqliteCheckpointer
 
 
 def setup_database(db_path: Path) -> None:
@@ -75,6 +76,19 @@ system_prompt = """
 _chart_tools_cache = None
 _agent_cache = None
 _agent_hitl_cache = None
+_checkpointer = None
+
+def get_checkpointer():
+    """获取checkpointer(单例模式)"""
+    global _checkpointer
+    if _checkpointer is None:
+        # 使用本地的SqliteCheckpointer实现
+        checkpoint_dir = Path(__file__).parent.parent / "sqlite_storage" / "data"
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        checkpoint_db = checkpoint_dir / "hitl_checkpoints.db"
+        _checkpointer = SqliteCheckpointer(db_path=str(checkpoint_db))
+        print(f"[成功] 使用SQLite checkpointer: {checkpoint_db}")
+    return _checkpointer
 
 async def _get_chart_tools():
     """获取MCP图表工具(带缓存, 异步安全)"""
@@ -127,8 +141,16 @@ async def _get_agent_hitl():
                 HumanInTheLoopMiddleware(
                     interrupt_on={"sql_db_query": True},
                     description_prefix="SQL 调用等待审核",
+                    # 支持多种决策类型：approve/edit/respond/reject
+                    # approve: 直接执行工具调用
+                    # edit: 编辑工具参数后执行
+                    # respond: 发送自定义响应
+                    # reject: 拒绝工具调用，中止执行
+                    # 注意：reject决策会导致Agent返回错误消息并停止执行
                 )
             ],
+            # 使用SQLite持久化checkpointer
+            checkpointer=get_checkpointer(),
         )
     return _agent_hitl_cache
 

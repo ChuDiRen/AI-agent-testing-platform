@@ -181,15 +181,21 @@ export default function useInterruptedActions({
   const resumeRun = (response: HumanResponse[]): boolean => {
     try {
       // Always map to decisions for consistency
+      // 根据LangChain官方文档格式：https://docs.langchain.com/oss/python/langchain/human-in-the-loop
       const decisions = response.map((r) => {
         switch (r.type) {
           case "accept":
+            // approve: 直接批准工具调用
             return { type: "approve" };
           case "ignore":
-            return { type: "reject", message: (r as any).args ?? "" };
+            // reject: 拒绝工具调用，中止执行
+            // 必须包含message字段来说明拒绝原因
+            return { type: "reject", message: "用户已拒绝此操作" };
           case "response":
+            // respond: 发送自定义响应
             return { type: "respond", args: (r as any).args };
           case "edit":
+            // edit: 编辑工具参数后执行
             const p: any = (r as any).args || {};
             return {
               type: "edit",
@@ -239,7 +245,7 @@ export default function useInterruptedActions({
     initialHumanInterruptEditValue.current = {};
 
     if (
-      humanResponse.some((r) => ["response", "edit", "accept"].includes(r.type))
+      humanResponse.some((r) => ["response", "edit", "accept", "ignore"].includes(r.type))
     ) {
       setStreamFinished(false);
 
@@ -304,6 +310,7 @@ export default function useInterruptedActions({
 
         // 状态转换：processing -> resumed # 执行已恢复
         setInterruptState("resumed");
+        setStreaming(false);
 
         if (!errorOccurred) {
           setStreamFinished(true);
@@ -332,28 +339,35 @@ export default function useInterruptedActions({
         setInterruptState("error"); // 状态转换：-> error
         setStreaming(false);
         setStreamFinished(false);
-      }
-
-      if (!errorOccurred) {
-        setStreaming(false);
-        // 不立即设置为false，等待后续处理完成
-        // setStreamFinished(false);
+      } finally {
+        setLoading(false);
       }
     } else {
       setLoading(true);
       setInterruptState("processing"); // 状态转换：submitting -> processing
 
-      resumeRun(humanResponse);
+      try {
+        resumeRun(humanResponse);
 
-      toast("Success", {
-        description: "Response submitted successfully.",
-        duration: 5000,
-      });
+        toast("Success", {
+          description: "Response submitted successfully.",
+          duration: 5000,
+        });
 
-      setInterruptState("resumed"); // 状态转换：processing -> resumed
+        setInterruptState("resumed"); // 状态转换：processing -> resumed
+      } catch (e: any) {
+        console.error("Error in handleSubmit", e);
+        setInterruptState("error");
+        toast.error("Error", {
+          description: "Failed to process response.",
+          richColors: true,
+          closeButton: true,
+          duration: 5000,
+        });
+      } finally {
+        setLoading(false);
+      }
     }
-
-    setLoading(false);
   };
 
   const handleIgnore = async (

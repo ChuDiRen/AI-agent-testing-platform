@@ -1,12 +1,10 @@
-import { Button } from "@/components/ui/button";
-import { InboxItemInput } from "./inbox-item-input";
+import { ReviewInfoCard, ReviewInfo } from "./review-info-card";
+import { SqlQueryViewer } from "./sql-query-viewer";
 import useInterruptedActions from "../hooks/use-interrupted-actions";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { useQueryState } from "nuqs";
-import { constructOpenInStudioURL } from "../utils";
 import { HumanInterrupt } from "@langchain/langgraph/prebuilt";
-import { UnifiedCard } from "@/components/ui/unified-card";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, Loader2, ThumbsUp, XCircle, Edit2 } from "lucide-react";
 
 interface ThreadActionsViewProps {
   interrupt: HumanInterrupt;
@@ -15,121 +13,226 @@ interface ThreadActionsViewProps {
   showDescription: boolean;
 }
 
-// 移除状态/说明切换与线程ID展示，简化为仅标题
-
 export function ThreadActionsView({
   interrupt,
   handleShowSidePanel,
   showDescription,
   showState,
 }: ThreadActionsViewProps) {
-  // 不展示线程ID
+  const [showEditPanel, setShowEditPanel] = useState(false);
+  const [editedQuery, setEditedQuery] = useState("");
+  
   const {
-    acceptAllowed,
-    hasEdited,
-    hasAddedResponse,
     streaming,
-    supportsMultipleMethods,
     streamFinished,
     loading,
     handleSubmit,
-    handleIgnore,
-    handleResolve,
-    handleContinue, // 新增：继续处理函数
     setSelectedSubmitType,
-    setHasAddedResponse,
-    setHasEdited,
     humanResponse,
     setHumanResponse,
-    initialHumanInterruptEditValue,
-    interruptState, // 新增：状态机状态
-    phaseInfo, // 新增：阶段信息
-    selectedSubmitType,
+    interruptState,
+    phaseInfo,
   } = useInterruptedActions({
     interrupt,
   });
-  const [apiUrl] = useQueryState("apiUrl");
 
-  const handleOpenInStudio = () => { };
-
-  // Title fallback: support legacy action_request and modern action_requests
-  const anyIntForTitle: any = interrupt as any;
-  const firstActionForTitle = (Array.isArray(anyIntForTitle.action_requests) && anyIntForTitle.action_requests.length > 0
-    ? anyIntForTitle.action_requests[0]
-    : undefined);
-  const threadTitle = firstActionForTitle?.action || firstActionForTitle?.name || "Unknown";
-  const actionsDisabled = loading || streaming;
-  // Normalize ignoreAllowed from legacy config or modern review_configs
+  // 提取操作信息
   const anyInt: any = interrupt as any;
+  const firstAction = Array.isArray(anyInt.action_requests) && anyInt.action_requests.length > 0
+    ? anyInt.action_requests[0]
+    : undefined;
+  
+  const actionName = firstAction?.action || firstAction?.name || "Unknown";
+  const actionArgs = firstAction?.args || {};
   const decisions: string[] = Array.isArray(anyInt.review_configs)
     ? (anyInt.review_configs[0]?.allowed_decisions ?? [])
     : [];
-  const ignoreAllowed = decisions.includes("reject") || decisions.includes("ignore");
 
-  const cardHeader = (
-    <div className="flex w-full flex-col gap-2">
-      <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{threadTitle}</h1>
-    </div>
-  );
+  const cfg = {
+    allow_accept: decisions.includes("approve") || decisions.includes("accept"),
+    allow_edit: decisions.includes("edit"),
+    allow_ignore: decisions.includes("reject") || decisions.includes("ignore"),
+    allow_respond: decisions.includes("respond") || decisions.includes("response"),
+  };
+
+  // 构建审核信息卡片数据
+  const reviewInfo: ReviewInfo = {
+    title: "人机协同审核",
+    description: interrupt.description || "等待您的审核...",
+    severity: "info",
+    details: {
+      "操作": actionName,
+      "状态": phaseInfo.message || "处理中",
+    },
+  };
+
+  // 处理批准
+  const handleApprove = async () => {
+    setSelectedSubmitType("accept");
+    try {
+      await handleSubmit(new MouseEvent("click") as any);
+    } catch (error) {
+      console.error("批准操作失败:", error);
+    }
+  };
+
+  // 处理编辑
+  const handleEdit = () => {
+    setEditedQuery(sqlQuery);
+    setShowEditPanel(true);
+    setSelectedSubmitType("edit");
+  };
+
+  // 提交编辑
+  const handleSubmitEdit = async () => {
+    setSelectedSubmitType("edit");
+    // 更新humanResponse中的edit决策
+    setHumanResponse((prev) => {
+      return prev.map((p) => {
+        if (p.type === "edit" && typeof p.args === "object" && p.args) {
+          return {
+            ...p,
+            args: {
+              ...p.args,
+              args: {
+                ...p.args.args,
+                query: editedQuery,
+              },
+            },
+          };
+        }
+        return p;
+      });
+    });
+    try {
+      await handleSubmit(new MouseEvent("click") as any);
+      setShowEditPanel(false);
+    } catch (error) {
+      console.error("提交编辑失败:", error);
+    }
+  };
+
+  // 处理拒绝
+  const handleReject = async () => {
+    setSelectedSubmitType("ignore");
+    try {
+      await handleSubmit(new MouseEvent("click") as any);
+    } catch (error) {
+      console.error("拒绝操作失败:", error);
+    }
+  };
+
+  // SQL查询信息
+  const sqlQuery = actionArgs.query || "";
 
   return (
-    <UnifiedCard variant="default" size="md" className="w-full" header={cardHeader}>
-      <div className="flex w-full flex-col gap-4">
-        {/* Action Buttons # 响应式按钮组 */}
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-          <Button
-            variant={selectedSubmitType === "ignore" ? "outline" : "brand"}
-            className="font-normal"
-            onClick={() => setSelectedSubmitType(acceptAllowed ? "accept" : "edit")}
-            disabled={actionsDisabled}
-          >
-            同意
-          </Button>
-          {ignoreAllowed && (
+    <div className="w-full space-y-4">
+      {/* 审核信息卡片 */}
+      <ReviewInfoCard info={reviewInfo} />
+
+      {/* SQL查询查看器 */}
+      {sqlQuery && !showEditPanel && (
+        <SqlQueryViewer
+          query={sqlQuery}
+          title="SQL 查询"
+          editable={false}
+        />
+      )}
+
+      {/* 编辑面板 */}
+      {showEditPanel && sqlQuery && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-4">
+          <div className="flex items-center gap-2">
+            <Edit2 className="w-5 h-5 text-blue-600" />
+            <h3 className="font-semibold text-blue-900">编辑模式</h3>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">SQL 查询</label>
+            <textarea
+              value={editedQuery}
+              onChange={(e) => setEditedQuery(e.target.value)}
+              disabled={streaming}
+              className="w-full h-48 p-3 font-mono text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              spellCheck="false"
+            />
+          </div>
+
+          <div className="flex gap-2 justify-end">
             <Button
-              variant={selectedSubmitType === "ignore" ? "destructive" : "outline"}
-              className="border-gray-500 bg-white font-normal text-gray-800"
-              onClick={() => setSelectedSubmitType("ignore")}
-              disabled={actionsDisabled}
+              variant="outline"
+              onClick={() => {
+                setShowEditPanel(false);
+                setEditedQuery("");
+              }}
+              disabled={streaming}
             >
-              拒绝
+              取消
+            </Button>
+            <Button
+              onClick={handleSubmitEdit}
+              disabled={streaming}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              提交修改
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* 决策按钮组 */}
+      {!showEditPanel && (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-3">
+          {cfg.allow_accept && (
+            <Button
+              onClick={handleApprove}
+              disabled={loading || streaming}
+              className="bg-green-600 hover:bg-green-700 text-white gap-2"
+            >
+              <ThumbsUp className="w-4 h-4" />
+              <span className="hidden sm:inline">批准</span>
+            </Button>
+          )}
+          
+          {cfg.allow_edit && (
+            <Button
+              onClick={handleEdit}
+              disabled={loading || streaming}
+              className="bg-amber-500 hover:bg-amber-600 text-white gap-2"
+            >
+              <Edit2 className="w-4 h-4" />
+              <span className="hidden sm:inline">编辑</span>
+            </Button>
+          )}
+          
+          {cfg.allow_ignore && (
+            <Button
+              onClick={handleReject}
+              disabled={loading || streaming}
+              variant="destructive"
+              className="gap-2"
+            >
+              <XCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">拒绝</span>
             </Button>
           )}
         </div>
+      )}
 
-        {/* Actions # 主要内容区域 */}
-        <InboxItemInput
-          acceptAllowed={acceptAllowed}
-          hasEdited={hasEdited}
-          hasAddedResponse={hasAddedResponse}
-          interruptValue={interrupt}
-          humanResponse={humanResponse}
-          initialValues={initialHumanInterruptEditValue.current}
-          setHumanResponse={setHumanResponse}
-          streaming={streaming}
-          streamFinished={streamFinished}
-          supportsMultipleMethods={supportsMultipleMethods}
-          phaseInfo={phaseInfo} // 新增：传入阶段信息
-          selectedSubmitType={selectedSubmitType}
-          setSelectedSubmitType={setSelectedSubmitType}
-          setHasAddedResponse={setHasAddedResponse}
-          setHasEdited={setHasEdited}
-          handleSubmit={handleSubmit}
-        />
+      {/* 执行状态 */}
+      {streaming && (
+        <div className="flex items-center justify-center gap-2 rounded-lg bg-yellow-50 p-3 border border-yellow-200">
+          <Loader2 className="h-4 w-4 animate-spin text-yellow-600" />
+          <p className="text-sm font-medium text-yellow-700">执行中...</p>
+        </div>
+      )}
 
-        {/* 继续按钮 # 在resumed状态显示 */}
-        {phaseInfo.showContinue && (
-          <div className="mx-auto w-full max-w-2xl">
-            <Button
-              onClick={handleContinue}
-              variant="brand"
-              className="w-full"
-            >
-              继续处理
-            </Button>
-          </div>
-        )}
-      </div>
-    </UnifiedCard>
+      {streamFinished && (
+        <div className="flex items-center justify-center gap-2 rounded-lg bg-green-50 p-3 border border-green-200">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <p className="text-sm font-medium text-green-600">执行完成</p>
+        </div>
+      )}
+    </div>
   );
 }
