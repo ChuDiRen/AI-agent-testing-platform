@@ -21,7 +21,7 @@ export function ThreadActionsView({
 }: ThreadActionsViewProps) {
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [editedQuery, setEditedQuery] = useState("");
-  
+
   const {
     streaming,
     streamFinished,
@@ -30,6 +30,7 @@ export function ThreadActionsView({
     setSelectedSubmitType,
     humanResponse,
     setHumanResponse,
+    humanResponseRef,
     interruptState,
     phaseInfo,
   } = useInterruptedActions({
@@ -41,7 +42,7 @@ export function ThreadActionsView({
   const firstAction = Array.isArray(anyInt.action_requests) && anyInt.action_requests.length > 0
     ? anyInt.action_requests[0]
     : undefined;
-  
+
   const actionName = firstAction?.action || firstAction?.name || "Unknown";
   const actionArgs = firstAction?.args || {};
   const decisions: string[] = Array.isArray(anyInt.review_configs)
@@ -68,9 +69,8 @@ export function ThreadActionsView({
 
   // 处理批准
   const handleApprove = async () => {
-    setSelectedSubmitType("accept");
     try {
-      await handleSubmit(new MouseEvent("click") as any);
+      await handleSubmit(new MouseEvent("click") as any, "accept");
     } catch (error) {
       console.error("批准操作失败:", error);
     }
@@ -85,27 +85,31 @@ export function ThreadActionsView({
 
   // 提交编辑
   const handleSubmitEdit = async () => {
-    setSelectedSubmitType("edit");
-    // 更新humanResponse中的edit决策
-    setHumanResponse((prev) => {
-      return prev.map((p) => {
-        if (p.type === "edit" && typeof p.args === "object" && p.args) {
-          return {
-            ...p,
+    // 先构建更新后的数据
+    const updated = humanResponse.map((p) => {
+      if (p.type === "edit" && typeof p.args === "object" && p.args) {
+        return {
+          ...p,
+          args: {
+            ...p.args,
             args: {
-              ...p.args,
-              args: {
-                ...p.args.args,
-                query: editedQuery,
-              },
+              ...p.args.args,
+              query: editedQuery,
             },
-          };
-        }
-        return p;
-      });
+          },
+        };
+      }
+      return p;
     });
+
+    // 立即更新 ref（不依赖 setState 的回调）
+    humanResponseRef.current = updated;
+
+    // 更新 state
+    setHumanResponse(updated);
+
     try {
-      await handleSubmit(new MouseEvent("click") as any);
+      await handleSubmit(new MouseEvent("click") as any, "edit");
       setShowEditPanel(false);
     } catch (error) {
       console.error("提交编辑失败:", error);
@@ -114,9 +118,8 @@ export function ThreadActionsView({
 
   // 处理拒绝
   const handleReject = async () => {
-    setSelectedSubmitType("ignore");
     try {
-      await handleSubmit(new MouseEvent("click") as any);
+      await handleSubmit(new MouseEvent("click") as any, "ignore");
     } catch (error) {
       console.error("拒绝操作失败:", error);
     }
@@ -193,7 +196,7 @@ export function ThreadActionsView({
               <span className="hidden sm:inline">批准</span>
             </Button>
           )}
-          
+
           {cfg.allow_edit && (
             <Button
               onClick={handleEdit}
@@ -204,7 +207,7 @@ export function ThreadActionsView({
               <span className="hidden sm:inline">编辑</span>
             </Button>
           )}
-          
+
           {cfg.allow_ignore && (
             <Button
               onClick={handleReject}

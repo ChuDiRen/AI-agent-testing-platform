@@ -1,13 +1,13 @@
 # MONKEY PATCH: Patch Starlette to fix an error in the library
 # ruff: noqa: E402
-import langgraph_api.patch  # noqa: F401,I001
-import sys
-import os
-
 # WARNING: Keep the import above before other code runs as it
 # patches an error in the Starlette library.
 import logging
+import os
+import sys
 import typing
+
+import langgraph_api.patch  # noqa: F401,I001
 
 if not (
     (disable_truststore := os.getenv("DISABLE_TRUSTSTORE"))

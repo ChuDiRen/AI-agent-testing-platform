@@ -1,4 +1,5 @@
 import structlog
+from langgraph_api.config import LANGGRAPH_AUTH, LANGGRAPH_AUTH_TYPE
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import (
     AuthenticationError,
@@ -7,8 +8,6 @@ from starlette.middleware.authentication import (
 from starlette.requests import HTTPConnection
 from starlette.responses import JSONResponse
 from starlette.types import Receive, Scope, Send
-
-from langgraph_api.config import LANGGRAPH_AUTH, LANGGRAPH_AUTH_TYPE
 
 logger = structlog.stdlib.get_logger(__name__)
 

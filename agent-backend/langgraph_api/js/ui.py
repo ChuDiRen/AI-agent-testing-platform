@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 
 import structlog
-
 from langgraph_api.config import UI_USE_BUNDLER
 
 logger = structlog.stdlib.get_logger(__name__)

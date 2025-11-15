@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Literal
 
 from langchain.chat_models import init_chat_model
-
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_community.utilities import SQLDatabase
 from langchain_core.messages import AIMessage

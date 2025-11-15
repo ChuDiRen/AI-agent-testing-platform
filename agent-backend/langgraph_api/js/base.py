@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from langchain_core.runnables import Runnable
-
 from langgraph_api.schema import Config
 
 _DC_KWARGS = {"kw_only": True, "slots": True, "frozen": True}

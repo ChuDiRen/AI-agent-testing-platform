@@ -3,14 +3,13 @@ import os
 from typing import cast
 
 import structlog
+from langgraph_api import config
+from langgraph_api.logging import OTLPFormatter
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.util.types import Attributes
-
-from langgraph_api import config
-from langgraph_api.logging import OTLPFormatter
 
 logger = structlog.stdlib.get_logger(__name__)
 

@@ -25,9 +25,9 @@
     result = await custom_generator.generate("需求描述...", test_type="API")
 """
 
+from .config import Config
 from .generator import generator, TestCaseGeneratorV3
 from .models import TestCaseState
-from .config import Config
 
 __all__ = [
     'generator',  # 全局实例

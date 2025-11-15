@@ -1,12 +1,12 @@
 /// <reference types="./global.d.ts" />
 
-import type { Hono } from "hono";
-import { serve } from "@hono/node-server";
+import type {Hono} from "hono";
+import {serve} from "@hono/node-server";
 import * as path from "node:path";
 import * as url from "node:url";
-import { createLogger, format, transports } from "winston";
-import { gracefulExit } from "exit-hook";
-import { z } from "zod/v3";
+import {createLogger, format, transports} from "winston";
+import {gracefulExit} from "exit-hook";
+import {z} from "zod/v3";
 
 const logger = createLogger({
   level: "debug",

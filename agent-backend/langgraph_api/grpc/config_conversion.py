@@ -7,7 +7,6 @@ from typing import Any, cast
 
 import orjson
 from langchain_core.runnables.config import RunnableConfig
-
 from langgraph_api.grpc.generated import engine_common_pb2
 
 CONFIG_KEY_SEND = "__pregel_send"

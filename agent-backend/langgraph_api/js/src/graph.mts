@@ -1,8 +1,8 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
-import type { CompiledGraph, Graph } from "@langchain/langgraph";
-import type { JSONSchema7 } from "json-schema";
+import type {CompiledGraph, Graph} from "@langchain/langgraph";
+import type {JSONSchema7} from "json-schema";
 
 export interface GraphSchema {
   state: JSONSchema7 | undefined;

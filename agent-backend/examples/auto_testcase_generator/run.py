@@ -1,8 +1,8 @@
 """运行脚本 - 快速测试用例生成"""
 import asyncio
+import io
 import sys
 from pathlib import Path
-import io
 
 # 设置输出编码为 UTF-8（Windows 兼容）
 if sys.platform == "win32":

@@ -4,7 +4,6 @@ import typing
 from functools import lru_cache
 
 import orjson
-
 from langgraph_api.config import (
     HTTP_CONFIG,
     LANGGRAPH_AUTH,

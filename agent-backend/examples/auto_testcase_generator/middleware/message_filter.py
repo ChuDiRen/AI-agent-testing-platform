@@ -1,5 +1,6 @@
 """消息过滤器 - 智能消息过滤算法"""
 from typing import List
+
 from langchain_core.messages import BaseMessage
 
 from .config import FilterConfig

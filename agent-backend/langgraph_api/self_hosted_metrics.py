@@ -1,6 +1,12 @@
 import os
 
 import structlog
+from langgraph_api import asyncio as lg_asyncio
+from langgraph_api import config, metadata
+from langgraph_api.http_metrics_utils import HTTP_LATENCY_BUCKETS
+from langgraph_runtime.database import connect, pool_stats
+from langgraph_runtime.metrics import get_metrics
+from langgraph_runtime.ops import Runs
 from opentelemetry import metrics
 from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
     OTLPMetricExporter,
@@ -9,13 +15,6 @@ from opentelemetry.metrics import CallbackOptions, Observation
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
-
-from langgraph_api import asyncio as lg_asyncio
-from langgraph_api import config, metadata
-from langgraph_api.http_metrics_utils import HTTP_LATENCY_BUCKETS
-from langgraph_runtime.database import connect, pool_stats
-from langgraph_runtime.metrics import get_metrics
-from langgraph_runtime.ops import Runs
 
 logger = structlog.stdlib.get_logger(__name__)
 

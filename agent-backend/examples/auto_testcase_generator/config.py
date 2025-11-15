@@ -1,8 +1,8 @@
 """配置管理"""
 import os
-from pathlib import Path
 from dataclasses import dataclass
 from functools import cached_property
+from pathlib import Path
 
 
 @dataclass(frozen=True)

@@ -4,7 +4,6 @@ import asyncio
 from typing import cast
 
 import structlog
-
 from langgraph_api.config import THREAD_TTL
 from langgraph_runtime.database import connect
 

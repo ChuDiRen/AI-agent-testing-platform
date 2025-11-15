@@ -1,11 +1,13 @@
 """用例评审智能体 - 评审测试用例质量"""
 from pathlib import Path
 from typing import Dict, Any
+
 from langchain.agents import create_agent
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, AIMessage
-from ..middleware.config import TestCaseAgentFilterConfig
+
 from ..middleware.adapters import MessageFilterMiddleware, StateSyncMiddleware
+from ..middleware.config import TestCaseAgentFilterConfig
 from ..models import TestCaseState
 
 

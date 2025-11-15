@@ -101,6 +101,7 @@ interface UseInterruptedActionsValue {
   // Actions
   handleSubmit: (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent> | KeyboardEvent,
+    submitType?: SubmitType,
   ) => Promise<void>;
   handleIgnore: (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
@@ -119,10 +120,12 @@ interface UseInterruptedActionsValue {
   hasAddedResponse: boolean;
   acceptAllowed: boolean;
   humanResponse: HumanResponseWithEdits[];
+  humanResponseRef: MutableRefObject<HumanResponseWithEdits[]>;
 
   // 新增：状态机相关 # 状态机状态
   interruptState: InterruptState;
   phaseInfo: InterruptPhaseInfo;
+  selectedSubmitType?: SubmitType;
 
   // State setters
   setSelectedSubmitType: Dispatch<SetStateAction<SubmitType | undefined>>;
@@ -141,6 +144,7 @@ export default function useInterruptedActions({
   const [humanResponse, setHumanResponse] = useState<HumanResponseWithEdits[]>(
     [],
   );
+  const humanResponseRef = useRef<HumanResponseWithEdits[]>([]);
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [streamFinished, setStreamFinished] = useState(false);
@@ -163,6 +167,7 @@ export default function useInterruptedActions({
         createDefaultHumanResponse(interrupt, initialHumanInterruptEditValue);
       setSelectedSubmitType(defaultSubmitType);
       setHumanResponse(responses);
+      humanResponseRef.current = responses; // 同步更新 ref
       setAcceptAllowed(hasAccept);
 
       // 重置状态机为interrupted # 新的中断到来
@@ -178,11 +183,40 @@ export default function useInterruptedActions({
 
   const resumeRun = (response: HumanResponse[]): boolean => {
     try {
+      // Always map to decisions for consistency
+      // 根据LangChain官方文档格式：https://docs.langchain.com/oss/python/langchain/human-in-the-loop
+      const decisions = response.map((r) => {
+        switch (r.type) {
+          case "accept":
+            // approve: 直接批准工具调用
+            return { type: "approve" };
+          case "ignore":
+            // reject: 拒绝工具调用，中止执行
+            return { type: "reject" };
+          case "response":
+            // respond: 发送自定义响应
+            return { type: "respond", args: (r as any).args };
+          case "edit": {
+            // edit: 编辑工具参数后执行
+            const p: any = (r as any).args || {};
+            return {
+              type: "edit",
+              edited_action: {
+                name: p.name ?? p.action,
+                args: p.args ?? {},
+              },
+            };
+          }
+          default:
+            return { type: r.type as string, args: (r as any).args };
+        }
+      });
+
       thread.submit(
         {},
         {
           command: {
-            resume: response,
+            resume: { decisions },
           },
         },
       );
@@ -195,6 +229,7 @@ export default function useInterruptedActions({
 
   const handleSubmit = async (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent> | KeyboardEvent,
+    submitType?: SubmitType,
   ) => {
     e.preventDefault();
     if (!humanResponse) {
@@ -218,36 +253,37 @@ export default function useInterruptedActions({
       setStreamFinished(false);
 
       try {
-        const humanResponseInput: HumanResponse[] = humanResponse.flatMap(
-          (r) => {
-            if (r.type === "edit") {
-              if (r.acceptAllowed && !r.editsMade) {
-                return {
-                  type: "accept",
-                  args: r.args,
-                };
-              } else {
-                return {
-                  type: "edit",
-                  args: r.args,
-                };
-              }
-            }
+        const desiredType = submitType ?? selectedSubmitType;
+        let input: HumanResponse | undefined;
 
-            if (r.type === "response" && !r.args) {
-              // If response was allowed but no response was given, do not include in the response
-              return [];
-            }
-            return {
-              type: r.type,
+        // 使用 ref 获取最新的 humanResponse
+        const currentHumanResponse = humanResponseRef.current.length > 0
+          ? humanResponseRef.current
+          : humanResponse;
+
+        // 根据 desiredType 直接创建 input，不依赖 humanResponse
+        if (desiredType === "accept") {
+          input = { type: "accept" } as any;
+        } else if (desiredType === "ignore") {
+          // 拒绝操作：直接创建，不需要额外参数
+          input = { type: "ignore" } as any;
+        } else if (desiredType === "edit") {
+          // 编辑操作：使用 ref 获取最新的 humanResponse
+          const r = currentHumanResponse.find((x) => x.type === "edit");
+          if (r && r.args && typeof r.args === "object") {
+            input = {
+              type: "edit",
               args: r.args,
-            };
-          },
-        );
+            } as any;
+          }
+        } else if (desiredType === "response") {
+          // 自定义响应：需要从 humanResponse 中获取响应内容
+          const r = currentHumanResponse.find((x) => x.type === "response");
+          if (r && r.args) {
+            input = { type: "response", args: (r as any).args } as any;
+          }
+        }
 
-        const input = humanResponseInput.find(
-          (r) => r.type === selectedSubmitType,
-        );
         if (!input) {
           toast.error("Error", {
             description: "No response found.",
@@ -280,6 +316,7 @@ export default function useInterruptedActions({
 
         // 状态转换：processing -> resumed # 执行已恢复
         setInterruptState("resumed");
+        setStreaming(false);
 
         if (!errorOccurred) {
           setStreamFinished(true);
@@ -422,6 +459,7 @@ export default function useInterruptedActions({
     handleResolve,
     handleContinue, // 新增：继续处理函数
     humanResponse,
+    humanResponseRef, // 导出 ref
     streaming,
     streamFinished,
     loading,
@@ -431,6 +469,7 @@ export default function useInterruptedActions({
     acceptAllowed,
     interruptState, // 新增：状态机状态
     phaseInfo, // 新增：阶段信息
+    selectedSubmitType,
     setSelectedSubmitType,
     setHumanResponse,
     setHasAddedResponse,

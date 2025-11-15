@@ -1,9 +1,9 @@
 """数据库管理"""
 import sqlite3
+from contextlib import contextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
-from datetime import datetime
-from contextlib import contextmanager
 
 from .models import TestCaseRecord
 

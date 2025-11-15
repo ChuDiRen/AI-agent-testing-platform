@@ -25,6 +25,7 @@ import { getApiKey } from "@/lib/api-key";
 import { useThreads } from "./Thread";
 import { toast } from "sonner";
 import { useI18n } from "@/hooks/useI18n";
+import { SettingsDialog } from "@/components/settings-dialog";
 
 export type StateType = { messages: Message[]; ui?: UIMessage[] };
 
@@ -132,6 +133,23 @@ const StreamSession = ({
 const DEFAULT_API_URL = "http://localhost:2024";
 const DEFAULT_ASSISTANT_ID = "agent";
 
+// Context for settings
+type SettingsContextType = {
+  showSettings: boolean;
+  openSettings: () => void;
+  closeSettings: () => void;
+};
+
+const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+
+export const useSettings = () => {
+  const context = useContext(SettingsContext);
+  if (!context) {
+    throw new Error("useSettings must be used within StreamProvider");
+  }
+  return context;
+};
+
 export const StreamProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
@@ -161,12 +179,15 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
     _setApiKey(key);
   };
 
+  // 控制设置表单的显示
+  const [showSettings, setShowSettings] = useState(false);
+
   // Determine final values to use, prioritizing URL params then env vars
   const finalApiUrl = apiUrl || envApiUrl;
   const finalAssistantId = assistantId || envAssistantId;
 
-  // 如果没有 API URL 或 assistant ID，显示配置表单
-  if (!finalApiUrl || !finalAssistantId) {
+  // 只在初次没有配置时显示配置表单
+  if ((!finalApiUrl || !finalAssistantId) && !showSettings) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center p-4">
         <div className="animate-in fade-in-0 zoom-in-95 bg-background flex max-w-3xl flex-col rounded-lg border shadow-lg">
@@ -194,6 +215,7 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
               setApiUrl(apiUrl);
               setApiKey(apiKey);
               setAssistantId(assistantId);
+              setShowSettings(false);
 
               form.reset();
             }}
@@ -262,14 +284,37 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
     );
   }
 
+  const settingsValue: SettingsContextType = {
+    showSettings,
+    openSettings: () => setShowSettings(true),
+    closeSettings: () => setShowSettings(false),
+  };
+
+  const handleSaveSettings = (newApiUrl: string, newAssistantId: string, newApiKey: string) => {
+    setApiUrl(newApiUrl);
+    setAssistantId(newAssistantId);
+    setApiKey(newApiKey);
+    setShowSettings(false);
+  };
+
   return (
-    <StreamSession
-      apiKey={apiKey}
-      apiUrl={apiUrl}
-      assistantId={assistantId}
-    >
-      {children}
-    </StreamSession>
+    <SettingsContext.Provider value={settingsValue}>
+      <StreamSession
+        apiKey={apiKey}
+        apiUrl={apiUrl}
+        assistantId={assistantId}
+      >
+        {children}
+        <SettingsDialog
+          open={showSettings}
+          onOpenChange={setShowSettings}
+          currentApiUrl={apiUrl}
+          currentAssistantId={assistantId}
+          currentApiKey={apiKey}
+          onSave={handleSaveSettings}
+        />
+      </StreamSession>
+    </SettingsContext.Provider>
   );
 };
 

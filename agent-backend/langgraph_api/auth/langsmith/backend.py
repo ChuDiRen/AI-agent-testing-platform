@@ -1,5 +1,11 @@
 from typing import NotRequired
 
+from langgraph_api.auth.langsmith.client import auth_client
+from langgraph_api.auth.studio_user import StudioUser
+from langgraph_api.config import (
+    LANGSMITH_AUTH_VERIFY_TENANT_ID,
+    LANGSMITH_TENANT_ID,
+)
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
@@ -8,13 +14,6 @@ from starlette.authentication import (
 )
 from starlette.requests import HTTPConnection
 from typing_extensions import TypedDict
-
-from langgraph_api.auth.langsmith.client import auth_client
-from langgraph_api.auth.studio_user import StudioUser
-from langgraph_api.config import (
-    LANGSMITH_AUTH_VERIFY_TENANT_ID,
-    LANGSMITH_TENANT_ID,
-)
 
 
 class AuthDict(TypedDict):

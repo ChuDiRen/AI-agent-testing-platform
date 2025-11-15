@@ -7,10 +7,6 @@ from typing import Any, NamedTuple, cast
 from uuid import UUID
 
 import structlog
-from starlette.authentication import BaseUser
-from starlette.exceptions import HTTPException
-from typing_extensions import TypedDict
-
 from langgraph_api.graph import GRAPHS, get_assistant_id
 from langgraph_api.schema import (
     All,
@@ -28,6 +24,9 @@ from langgraph_api.utils import AsyncConnectionProto, get_auth_ctx
 from langgraph_api.utils.headers import get_configurable_headers
 from langgraph_api.utils.uuids import uuid7
 from langgraph_runtime.ops import Runs
+from starlette.authentication import BaseUser
+from starlette.exceptions import HTTPException
+from typing_extensions import TypedDict
 
 logger = structlog.stdlib.get_logger(__name__)
 

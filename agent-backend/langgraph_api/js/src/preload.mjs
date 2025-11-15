@@ -1,6 +1,6 @@
-import { register } from "node:module";
-import { pathToFileURL } from "node:url";
-import { join } from "node:path";
+import {register} from "node:module";
+import {pathToFileURL} from "node:url";
+import {join} from "node:path";
 
 // we only care about the payload, which contains the server definition
 const graphs = JSON.parse(process.env.LANGSERVE_GRAPHS || "{}");

@@ -7,13 +7,12 @@ from datetime import datetime
 from typing import Any, Protocol, TypeAlias, TypeVar, cast
 
 import structlog
+from langgraph_api.auth.custom import SimpleUser
+from langgraph_api.utils.uuids import uuid7
 from langgraph_sdk import Auth
 from starlette.authentication import AuthCredentials, BaseUser
 from starlette.exceptions import HTTPException
 from starlette.schemas import BaseSchemaGenerator
-
-from langgraph_api.auth.custom import SimpleUser
-from langgraph_api.utils.uuids import uuid7
 
 logger = structlog.stdlib.get_logger(__name__)
 

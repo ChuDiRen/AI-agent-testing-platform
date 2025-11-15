@@ -10,7 +10,7 @@ import asyncio
 import json
 import os
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 
 import requests
 from langchain.agents import create_agent

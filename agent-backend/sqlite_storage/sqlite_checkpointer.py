@@ -11,7 +11,6 @@ from contextlib import contextmanager, asynccontextmanager
 from typing import Any, Iterator, Optional, Sequence
 
 import aiosqlite
-
 from langgraph.checkpoint.base import (
     BaseCheckpointSaver,
     Checkpoint,

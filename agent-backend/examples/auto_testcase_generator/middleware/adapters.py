@@ -1,6 +1,6 @@
 """中间件适配器 - 将 middlewareV1 函数式API封装为 LangGraph 中间件类"""
-from typing import Dict, Any, List, Optional
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from typing import Dict, Any, Optional
+
 from .config import FilterConfig
 from .context_manager import ContextManagerFactory
 

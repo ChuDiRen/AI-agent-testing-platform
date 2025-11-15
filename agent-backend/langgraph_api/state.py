@@ -3,7 +3,6 @@ from __future__ import annotations
 import typing
 
 from langgraph.types import Interrupt, StateSnapshot
-
 from langgraph_api.feature_flags import USE_NEW_INTERRUPTS
 from langgraph_api.js.base import RemoteInterrupt
 from langgraph_api.schema import Checkpoint, DeprecatedInterrupt, ThreadState

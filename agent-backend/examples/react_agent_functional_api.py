@@ -1,8 +1,9 @@
 # 步骤1: 定义工具和模型
 
-from langchain.tools import tool
-from langchain.chat_models import init_chat_model
 import os
+
+from langchain.chat_models import init_chat_model
+from langchain.tools import tool
 
 os.environ["DEEPSEEK_API_KEY"] = "sk-f79fae69b11a4fce88e04805bd6314b7"
 model = init_chat_model("deepseek:deepseek-chat")

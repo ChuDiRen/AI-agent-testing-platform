@@ -100,5 +100,10 @@ export const en: Translations = {
   github: {
     openRepo: "Open GitHub repo",
   },
+
+  // Settings
+  settings: {
+    title: "Settings",
+  },
 };
 

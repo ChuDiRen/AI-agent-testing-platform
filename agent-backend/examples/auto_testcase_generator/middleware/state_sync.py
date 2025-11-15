@@ -1,5 +1,6 @@
 """状态同步器 - 状态管理和更新"""
 from typing import Dict, Any, List, Optional
+
 from langchain_core.messages import BaseMessage
 
 from .utils import extract_latest_ai_message, extract_latest_tool_message

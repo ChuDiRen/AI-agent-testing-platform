@@ -98,6 +98,11 @@ export const zhCN = {
   github: {
     openRepo: "打开 GitHub 仓库",
   },
+
+  // 设置
+  settings: {
+    title: "设置",
+  },
 };
 
 export type Translations = typeof zhCN;

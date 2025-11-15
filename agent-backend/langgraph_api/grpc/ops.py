@@ -16,9 +16,6 @@ from google.protobuf.json_format import MessageToDict
 from google.protobuf.struct_pb2 import Struct  # type: ignore[import]
 from grpc import StatusCode
 from grpc.aio import AioRpcError
-from langgraph_sdk.schema import Config
-from starlette.exceptions import HTTPException
-
 from langgraph_api.grpc import config_conversion
 from langgraph_api.schema import (
     Assistant,
@@ -31,6 +28,8 @@ from langgraph_api.schema import (
     ThreadStatus,
 )
 from langgraph_api.serde import json_dumpb, json_loads
+from langgraph_sdk.schema import Config
+from starlette.exceptions import HTTPException
 
 from .client import get_shared_client
 from .generated import core_api_pb2 as pb

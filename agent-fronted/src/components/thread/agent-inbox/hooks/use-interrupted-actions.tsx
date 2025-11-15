@@ -120,6 +120,7 @@ interface UseInterruptedActionsValue {
   hasAddedResponse: boolean;
   acceptAllowed: boolean;
   humanResponse: HumanResponseWithEdits[];
+  humanResponseRef: MutableRefObject<HumanResponseWithEdits[]>;
 
   // 新增：状态机相关 # 状态机状态
   interruptState: InterruptState;
@@ -143,6 +144,7 @@ export default function useInterruptedActions({
   const [humanResponse, setHumanResponse] = useState<HumanResponseWithEdits[]>(
     [],
   );
+  const humanResponseRef = useRef<HumanResponseWithEdits[]>([]);
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [streamFinished, setStreamFinished] = useState(false);
@@ -165,6 +167,7 @@ export default function useInterruptedActions({
         createDefaultHumanResponse(interrupt, initialHumanInterruptEditValue);
       setSelectedSubmitType(defaultSubmitType);
       setHumanResponse(responses);
+      humanResponseRef.current = responses; // 同步更新 ref
       setAcceptAllowed(hasAccept);
 
       // 重置状态机为interrupted # 新的中断到来
@@ -189,12 +192,11 @@ export default function useInterruptedActions({
             return { type: "approve" };
           case "ignore":
             // reject: 拒绝工具调用，中止执行
-            // 必须包含message字段来说明拒绝原因
-            return { type: "reject", message: "用户已拒绝此操作" };
+            return { type: "reject" };
           case "response":
             // respond: 发送自定义响应
             return { type: "respond", args: (r as any).args };
-          case "edit":
+          case "edit": {
             // edit: 编辑工具参数后执行
             const p: any = (r as any).args || {};
             return {
@@ -204,6 +206,7 @@ export default function useInterruptedActions({
                 args: p.args ?? {},
               },
             };
+          }
           default:
             return { type: r.type as string, args: (r as any).args };
         }
@@ -252,29 +255,32 @@ export default function useInterruptedActions({
       try {
         const desiredType = submitType ?? selectedSubmitType;
         let input: HumanResponse | undefined;
+
+        // 使用 ref 获取最新的 humanResponse
+        const currentHumanResponse = humanResponseRef.current.length > 0
+          ? humanResponseRef.current
+          : humanResponse;
+
+        // 根据 desiredType 直接创建 input，不依赖 humanResponse
         if (desiredType === "accept") {
           input = { type: "accept" } as any;
+        } else if (desiredType === "ignore") {
+          // 拒绝操作：直接创建，不需要额外参数
+          input = { type: "ignore" } as any;
         } else if (desiredType === "edit") {
-          const r = humanResponse.find((x) => x.type === "edit");
+          // 编辑操作：使用 ref 获取最新的 humanResponse
+          const r = currentHumanResponse.find((x) => x.type === "edit");
           if (r && r.args && typeof r.args === "object") {
-            const payload: any = r.args || {};
             input = {
               type: "edit",
-              args: {
-                action: payload?.action,
-                args: payload?.args ?? {},
-              },
+              args: r.args,
             } as any;
           }
         } else if (desiredType === "response") {
-          const r = humanResponse.find((x) => x.type === "response");
+          // 自定义响应：需要从 humanResponse 中获取响应内容
+          const r = currentHumanResponse.find((x) => x.type === "response");
           if (r && r.args) {
             input = { type: "response", args: (r as any).args } as any;
-          }
-        } else if (desiredType === "ignore") {
-          const r = humanResponse.find((x) => x.type === "ignore");
-          if (r) {
-            input = { type: "ignore", args: (r as any).args } as any;
           }
         }
 
@@ -458,6 +464,7 @@ export default function useInterruptedActions({
     handleResolve,
     handleContinue, // 新增：继续处理函数
     humanResponse,
+    humanResponseRef, // 导出 ref
     streaming,
     streamFinished,
     loading,

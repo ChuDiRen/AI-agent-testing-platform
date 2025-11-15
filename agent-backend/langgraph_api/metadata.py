@@ -5,10 +5,9 @@ from datetime import UTC, datetime
 from typing import Any
 
 import langgraph.version
+import langgraph_api.config as config
 import orjson
 import structlog
-
-import langgraph_api.config as config
 from langgraph_api.auth.custom import get_auth_instance
 from langgraph_api.config import (
     LANGGRAPH_CLOUD_LICENSE_KEY,

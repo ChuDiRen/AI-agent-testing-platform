@@ -2,10 +2,12 @@
 基于 LangGraph 1.0 + create_agent + middlewareV1
 """
 from typing import Optional
+
 from langchain_openai import ChatOpenAI
+
+from .config import Config
 from .models import TestCaseState
 from .supervisor import TestCaseSupervisor
-from .config import Config
 
 
 class TestCaseGeneratorV3:

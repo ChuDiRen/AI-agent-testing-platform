@@ -1,11 +1,9 @@
 """上下文管理器工厂 - 创建标准化的中间件钩子"""
 from typing import Dict, Any, Optional, Callable
-from langchain_core.messages import BaseMessage
 
 from .config import FilterConfig
 from .message_filter import MessageFilter
 from .state_sync import StateSynchronizer, StateUpdateBuilder, StateInitializer
-
 
 CustomLogicFunc = Callable[[Dict[str, Any], Any], Optional[Dict[str, Any]]]  # 自定义逻辑函数类型
 

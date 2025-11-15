@@ -4,12 +4,11 @@ from typing import Any
 
 import httpx
 from httpx._types import HeaderTypes, QueryParamTypes, RequestData
+from langgraph_api.config import LANGSMITH_AUTH_ENDPOINT
 from tenacity import retry
 from tenacity.retry import retry_if_exception
 from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_exponential_jitter
-
-from langgraph_api.config import LANGSMITH_AUTH_ENDPOINT
 
 _client: "JsonHttpClient"
 

@@ -3,7 +3,7 @@ import { ReactNode, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useThreads } from "@/providers/Thread";
 import { cn } from "@/lib/utils";
-import { useStreamContext } from "@/providers/Stream";
+import { useStreamContext, useSettings } from "@/providers/Stream";
 import { useState, FormEvent } from "react";
 import { Button } from "../ui/button";
 import { Checkpoint, Message } from "@langchain/langgraph-sdk";
@@ -23,6 +23,7 @@ import {
   SquarePen,
   XIcon,
   Plus,
+  Settings,
 } from "lucide-react";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -31,7 +32,6 @@ import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
-import { GitHubSVG } from "../icons/github";
 import {
   Tooltip,
   TooltipContent,
@@ -90,33 +90,10 @@ function ScrollToBottom(props: { className?: string }) {
   );
 }
 
-function OpenGitHubRepo() {
-  const { t } = useI18n();
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <a
-            href="https://github.com/langchain-ai/agent-chat-ui"
-            target="_blank"
-            className="flex items-center justify-center"
-          >
-            <GitHubSVG
-              width="24"
-              height="24"
-            />
-          </a>
-        </TooltipTrigger>
-        <TooltipContent side="left">
-          <p>{t("github.openRepo")}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
 
 export function Thread() {
   const { t } = useI18n();
+  const { openSettings } = useSettings();
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
 
@@ -342,8 +319,16 @@ export function Thread() {
                   </Button>
                 )}
               </div>
-              <div className="absolute top-2 right-4 flex items-center">
-                <OpenGitHubRepo />
+              <div className="absolute top-2 right-4 flex items-center gap-4">
+                <TooltipIconButton
+                  size="lg"
+                  className="p-4"
+                  tooltip={t("settings.title")}
+                  variant="ghost"
+                  onClick={openSettings}
+                >
+                  <Settings className="size-5" />
+                </TooltipIconButton>
               </div>
             </div>
           )}
@@ -388,9 +373,15 @@ export function Thread() {
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="flex items-center">
-                  <OpenGitHubRepo />
-                </div>
+                <TooltipIconButton
+                  size="lg"
+                  className="p-4"
+                  tooltip={t("settings.title")}
+                  variant="ghost"
+                  onClick={openSettings}
+                >
+                  <Settings className="size-5" />
+                </TooltipIconButton>
                 <TooltipIconButton
                   size="lg"
                   className="p-4"

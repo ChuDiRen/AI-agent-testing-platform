@@ -4,9 +4,8 @@ from typing import Any, Literal, NotRequired, Optional, TypeAlias
 from uuid import UUID
 
 from langchain_core.runnables.config import RunnableConfig
-from typing_extensions import TypedDict
-
 from langgraph_api.serde import Fragment
+from typing_extensions import TypedDict
 
 MetadataInput = dict[str, Any] | None
 MetadataValue = dict[str, Any]

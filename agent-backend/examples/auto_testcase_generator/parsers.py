@@ -1,7 +1,8 @@
 """解析器工具"""
+from functools import lru_cache
 from pathlib import Path
 from typing import List, Tuple
-from functools import lru_cache
+
 import requests
 
 from .models import ApiEndpoint, BusinessScenario

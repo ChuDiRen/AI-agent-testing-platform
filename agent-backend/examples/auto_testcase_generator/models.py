@@ -1,8 +1,10 @@
 """数据模型"""
 from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Literal, List, Dict, Any, Optional
 from datetime import datetime
+from typing import Literal, List, Dict, Any, Optional
+
 from langchain_core.messages import BaseMessage
 
 

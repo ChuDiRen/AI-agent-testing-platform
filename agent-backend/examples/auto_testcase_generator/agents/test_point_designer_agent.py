@@ -1,11 +1,13 @@
 """测试点设计智能体 - 设计全面的测试点"""
 from pathlib import Path
 from typing import Dict, Any
+
 from langchain.agents import create_agent
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, AIMessage
+
+from ..middleware.adapters import MessageFilterMiddleware, StateSyncMiddleware
 from ..middleware.config import TestCaseAgentFilterConfig
-from ..middleware.adapters import MessageFilterMiddleware, StateSyncMiddleware, DynamicPromptMiddleware
 from ..models import TestCaseState
 
 

@@ -1,4 +1,4 @@
-import { overrideFetchImplementation } from "langsmith";
+import {overrideFetchImplementation} from "langsmith";
 
 const RUNS_RE = /^https:\/\/api\.smith\.langchain\.com\/.*runs(\/|$)/i;
 
