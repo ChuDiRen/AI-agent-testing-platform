@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 LangGraph API 服务器启动脚本
-支持 SQLite 持久化存储（生产模式）
+支持 SQLite 持久化存储（通过 langgraph.json 配置）
 """
 
 import os
@@ -14,23 +14,26 @@ def run_langgraph_server(root: Path, port: int = 2024):
     """运行 LangGraph 服务器（社区版本地模式 + SQLite 持久化）"""
     
     # 准备 SQLite 数据库路径
-    db_dir = root / "sqlite_storage" / "data"
+    db_dir = root / "data"
     db_dir.mkdir(parents=True, exist_ok=True)
     
     print(f"[配置] 数据库目录: {db_dir}")
+    print(f"[配置] 数据库文件: {db_dir / 'agent_checkpoints.db'}")
     print(f"[配置] 运行模式: 社区版本地开发模式 (SQLite 持久化)")
-    print(f"[配置] 配置文件: langgraph.json")
+    print(f"[配置] 配置文件: langgraph.json (已配置 checkpointer 和 store)")
     print(f"[配置] 环境变量: .env\n")
     
     # 使用 langgraph dev 命令启动服务器（社区版，无需 Docker）
     # 自动读取 langgraph.json 和 .env 配置
+    # --allow-blocking: 允许阻塞调用（用于 MCP 工具加载）
     return subprocess.run(
         [
             "langgraph",
             "dev",
             "--port", str(port),
             "--host", "0.0.0.0",
-            "--no-browser"
+            "--no-browser",
+            "--allow-blocking"
         ],
         cwd=root,
         check=False

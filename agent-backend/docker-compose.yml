@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  langgraph-api:
+    build:
+      context: .
+      dockerfile: langgraph.Dockerfile
+    ports:
+      - "2024:8000"
+    environment:
+      # SQLite 持久化配置
+      - LANGGRAPH_SQLITE_URI=/data/agent_checkpoints.db
+      - LANGGRAPH_STORE_URI=sqlite:////data/agent_checkpoints.db
+
+      # API Keys
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+
+      # LangGraph 配置
+      - LANGCHAIN_TRACING_V2=false
+      - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY:-}
+
+    volumes:
+      # 挂载数据目录（持久化）
+      - ./data:/data
+      # 挂载代码目录（开发时热重载）
+      - ./examples:/deps/__outer_agent-backend/src/examples
+      - ./langgraph.json:/deps/__outer_agent-backend/src/langgraph.json
+    command:
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--config"
+      - "/deps/__outer_agent-backend/src/langgraph.json"
