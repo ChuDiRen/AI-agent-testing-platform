@@ -6,17 +6,12 @@ import urllib.request
 import uuid
 from pathlib import Path
 
-# 添加父目录到Python路径,以便导入sqlite_storage模块
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from langchain.agents import create_agent
 from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langchain.chat_models import init_chat_model
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_community.utilities import SQLDatabase
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from sqlite_storage.sqlite_checkpointer import SqliteCheckpointer, create_checkpointer
-from sqlite_storage.sqlite_store import create_store
 
 
 def setup_database(db_path: Path) -> None:
@@ -82,20 +77,6 @@ system_prompt = """
 _chart_tools_cache = None
 _agent_cache = None
 _agent_hitl_cache = None
-_checkpointer = create_checkpointer()
-_store = create_store()
-
-def get_checkpointer():
-    """获取checkpointer(单例模式)"""
-    global _checkpointer
-    if _checkpointer is None:
-        # 使用本地的SqliteCheckpointer实现
-        checkpoint_dir = Path(__file__).parent.parent / "sqlite_storage" / "data"
-        checkpoint_dir.mkdir(parents=True, exist_ok=True)
-        checkpoint_db = checkpoint_dir / "hitl_checkpoints.db"
-        _checkpointer = SqliteCheckpointer(db_path=str(checkpoint_db))
-        print(f"[成功] 使用SQLite checkpointer: {checkpoint_db}")
-    return _checkpointer
 
 async def _get_chart_tools():
     """获取MCP图表工具(带缓存, 异步安全)"""
@@ -119,18 +100,17 @@ async def _get_chart_tools():
     return _chart_tools_cache
 
 async def _get_agent():
-    """获取完整agent(带缓存, 首次调用时加载MCP工具, 支持数据持久化)"""
+    """获取完整agent(带缓存, 首次调用时加载MCP工具)
+    
+    注意：checkpointer 和 store 由 langgraph.json 配置，LangGraph 服务器自动注入
+    """
     global _agent_cache
     if _agent_cache is None:
         all_tools = tools + await _get_chart_tools()
-        # 注意：生产模式下不传 checkpointer，让 LangGraph runtime 自动注入
-        # 直接运行脚本时使用本地 checkpointer
         _agent_cache = create_agent(
             model,
             all_tools,
             system_prompt=system_prompt,
-            checkpointer=_checkpointer,  # checkpointer 会自动保存到 store_items
-            store=_store,
         )
     return _agent_cache
 
@@ -141,10 +121,13 @@ async def agent_old():
 
 
 async def _get_agent_hitl():
+    """获取带人工审核的agent
+    
+    注意：checkpointer 和 store 由 langgraph.json 配置，LangGraph 服务器自动注入
+    """
     global _agent_hitl_cache
     if _agent_hitl_cache is None:
         all_tools = tools + await _get_chart_tools()
-        # 注意：生产模式下不传 checkpointer，让 LangGraph runtime 自动注入
         _agent_hitl_cache = create_agent(
             model,
             all_tools,
@@ -153,46 +136,11 @@ async def _get_agent_hitl():
                 HumanInTheLoopMiddleware(
                     interrupt_on={"sql_db_query": True},
                     description_prefix="SQL 调用等待审核",
-                    # 支持多种决策类型：approve/edit/respond/reject
-                    # approve: 直接执行工具调用
-                    # edit: 编辑工具参数后执行
-                    # respond: 发送自定义响应
-                    # reject: 拒绝工具调用，中止执行
-                    # 注意：reject决策会导致Agent返回错误消息并停止执行
                 )
             ],
-            checkpointer=_checkpointer,
-            store=_store,
         )
     return _agent_hitl_cache
 
 
 async def agent_hitl():
     return await _get_agent_hitl()
-
-async def run_old():
-    """运行SQL Agent (带数据持久化)"""
-    question = "哪个音乐类型的曲目平均时长最长？"
-
-    # 使用带checkpointer的agent_old
-    agent = await agent_old()
-    
-    # 配置thread_id以启用数据持久化
-    config = {
-        "configurable": {
-            "thread_id": "sql_agent_thread_1",  # 使用固定thread_id便于查看历史记录
-        }
-    }
-    
-    async for step in agent.astream(
-        {"messages": [{"role": "user", "content": question}]},
-        config=config,  # 传入config参数
-        stream_mode="values",
-    ):
-        step["messages"][-1].pretty_print()
-
- 
-
-
-if __name__ == '__main__':
-    asyncio.run(run_old())

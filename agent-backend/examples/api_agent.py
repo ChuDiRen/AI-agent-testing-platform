@@ -9,11 +9,10 @@ OpenAPI 规范: https://petstore.swagger.io/v2/swagger.json
 import asyncio
 import json
 import os
+import sqlite3
 import sys
 from pathlib import Path
 from typing import Optional, Dict, Any
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import requests
 from langchain.agents import create_agent
@@ -21,8 +20,6 @@ from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langchain.chat_models import init_chat_model
 from langchain_core.tools import tool
 from langgraph.types import Command
-from sqlite_storage.sqlite_checkpointer import create_checkpointer
-from sqlite_storage.sqlite_store import create_store
 
 
 class APIClient:
@@ -332,11 +329,7 @@ tools = [
 os.environ["DEEPSEEK_API_KEY"] = "sk-f79fae69b11a4fce88e04805bd6314b7"
 model = init_chat_model("deepseek:deepseek-chat")
 
-# 配置 SQLite Checkpointer 用于持久化对话状态
-checkpoint_db_path = Path(__file__).parent / "checkpoints.db"
-
-_checkpointer = create_checkpointer()
-_store = create_store()
+# 注意：checkpointer 和 store 由 langgraph.json 配置，LangGraph 服务器自动注入
 
 
 # 系统提示词
@@ -366,115 +359,24 @@ system_prompt = """
 请根据用户的自然语言请求,智能地调用相应的 API 并返回结果。
 """
 
-# 创建 Agent (LangGraph API 自动处理持久化)
-agent_auto = create_agent(
-    model,
-    tools,
-    system_prompt=system_prompt,
-    checkpointer=_checkpointer,
-    store=_store,
-)
+# Agent 缓存（延迟初始化）
+_agent_auto = None
 
-
-async def run_auto(question: str):
-    """运行自动模式（无人工审核）"""
-    print(f"\n{'='*60}")
-    print(f"🤖 自动模式 - 问题: {question}")
-    print(f"{'='*60}\n")
-
-    config = {"configurable": {"thread_id": "api_agent_auto_thread_1"}}
-
-    for step in agent_auto.stream(
-        {"messages": [{"role": "user", "content": question}]},
-        config,
-        stream_mode="values",
-    ):
-        step["messages"][-1].pretty_print()
-
-
-async def run_hitl(question: str):
-    """运行人工审核模式 (LangGraph API 自动处理持久化)"""
-    print(f"\n{'='*60}")
-    print(f"👤 人工审核模式 - 问题: {question}")
-    print(f"{'='*60}\n")
+async def get_agent_auto():
+    """获取自动模式agent
     
-    config = {"configurable": {"thread_id": "1"}}
-    
-    # 创建 Agent (LangGraph API 自动处理持久化)
-    agent_hitl = create_agent(
-        model,
-        tools,
-        system_prompt=system_prompt,
-        middleware=[
-            HumanInTheLoopMiddleware(
-                interrupt_on={"api_execute": True},  # 在执行 API 调用前暂停
-                description_prefix="API 调用等待审核",
-            ),
-        ],
-        checkpointer=_checkpointer,
-        store=_store,
-    )
-    
-    # 第一次执行，直到遇到中断
-    interrupted = False
-    for step in agent_hitl.stream(
-        {"messages": [{"role": "user", "content": question}]},
-        config,
-        stream_mode="values",
-    ):
-        if "messages" in step:
-            step["messages"][-1].pretty_print()
-        elif "__interrupt__" in step:
-            print("\n⏸️  检测到中断（API 调用需要审核）:")
-            interrupt = step["__interrupt__"][0]
-            for request in interrupt.value["action_requests"]:
-                print(f"  📋 {request['description']}")
-            interrupted = True
-            break
-    
-    # 循环处理所有中断
-    while interrupted:
-        print("\n⏳ 等待 3 秒后自动批准并继续...")
-        await asyncio.sleep(3)
-        print("▶️  继续执行...\n")
-        
-        interrupted = False
-        
-        for step in agent_hitl.stream(
-            Command(resume={"decisions": [{"type": "approve"}]}),
-            config,
-            stream_mode="values",
-        ):
-            if "messages" in step:
-                step["messages"][-1].pretty_print()
-            elif "__interrupt__" in step:
-                print("\n⏸️  再次检测到中断:")
-                interrupt = step["__interrupt__"][0]
-                for request in interrupt.value["action_requests"]:
-                    print(f"  📋 {request['description']}")
-                interrupted = True
-                break
-    
-    print("\n✅ 所有任务执行完成！")
+    注意：checkpointer 和 store 由 langgraph.json 配置，LangGraph 服务器自动注入
+    """
+    global _agent_auto
+    if _agent_auto is None:
+        _agent_auto = create_agent(
+            model,
+            tools,
+            system_prompt=system_prompt,
+        )
+    return _agent_auto
 
-
-async def demo():
-    """演示各种场景"""
-    
-    # 示例 1: 查询宠物信息
-    # await run_auto("帮我查询 ID 为 1 的宠物信息")
-    
-    #示例 2: 查询可购买的宠物
-    await run_auto("有哪些状态为 available 的宠物？")
-    
-    # 示例 3: 使用人工审核模式
-    # await run_hitl("查询宠物商店的库存信息")
-
-
-if __name__ == "__main__":
-    # 运行演示
-    asyncio.run(demo())
-    
-    # 或者手动测试
-    # asyncio.run(run_auto("你的问题"))
-    # asyncio.run(run_hitl("你的问题"))
+# 导出给 langgraph.json 使用
+async def agent_auto():
+    """Agent工厂函数，返回API agent"""
+    return await get_agent_auto()
