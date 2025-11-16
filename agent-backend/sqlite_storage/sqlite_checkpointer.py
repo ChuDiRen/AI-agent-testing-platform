@@ -408,6 +408,9 @@ class SqliteCheckpointer(BaseCheckpointSaver):
             # 保存完整的对话消息内容
             self.save_conversation_messages(cursor, thread_id, checkpoint_id, checkpoint)
             
+            # 自动保存对话数据到 store_items (长期记忆)
+            self._save_to_store(cursor, thread_id, checkpoint_id, checkpoint)
+            
             conn.commit()
         
         return {
@@ -559,6 +562,114 @@ class SqliteCheckpointer(BaseCheckpointSaver):
                 (thread_id, checkpoint_id, message_type, role, content, metadata_json)
             )
 
+    def _save_to_store(self, cursor, thread_id: str, checkpoint_id: str, checkpoint: Checkpoint):
+        """
+        同步版本: 自动保存对话数据到 store_items 表 (长期记忆)
+        
+        Args:
+            cursor: 数据库游标
+            thread_id: 线程ID
+            checkpoint_id: checkpoint ID
+            checkpoint: checkpoint数据
+        """
+        try:
+            from datetime import datetime
+            
+            # 从checkpoint中提取消息
+            channel_values = checkpoint.get("channel_values", {})
+            messages = channel_values.get("messages", [])
+            
+            if not messages or len(messages) < 2:
+                return
+            
+            # 提取最后一轮对话
+            user_message = None
+            ai_message = None
+            tool_calls = []
+            tool_messages = []
+            
+            # 从后往前遍历,找到最近的一轮对话
+            for i in range(len(messages) - 1, -1, -1):
+                msg = messages[i]
+                msg_type = msg.__class__.__name__
+                
+                if 'AI' in msg_type and ai_message is None:
+                    ai_message = msg
+                    # 提取工具调用
+                    if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                        tool_calls = msg.tool_calls
+                
+                elif 'Human' in msg_type and user_message is None:
+                    user_message = msg
+                    # 找到了完整的一轮对话,停止
+                    if ai_message is not None:
+                        break
+                
+                elif 'Tool' in msg_type:
+                    tool_messages.insert(0, msg)
+            
+            # 如果没有找到完整对话,不保存
+            if not user_message or not ai_message:
+                return
+            
+            # 检查是否已经保存过这条对话 (避免重复保存)
+            namespace = f"conversations/{thread_id}"
+            key = f"conv_{checkpoint_id}"
+            
+            cursor.execute(
+                "SELECT COUNT(*) as count FROM store_items WHERE namespace = ? AND key = ?",
+                (namespace, key)
+            )
+            row = cursor.fetchone()
+            if row["count"] > 0:
+                return  # 已经保存过,跳过
+            
+            # 构建存储数据
+            timestamp = datetime.now().isoformat()
+            conversation_data = {
+                "timestamp": timestamp,
+                "user_message": user_message.content if hasattr(user_message, 'content') else str(user_message),
+                "ai_message": ai_message.content if hasattr(ai_message, 'content') else str(ai_message),
+                "tool_calls": [
+                    {
+                        "name": tc.get("name", ""),
+                        "args": tc.get("args", {}),
+                        "id": tc.get("id", "")
+                    }
+                    for tc in tool_calls
+                ] if tool_calls else [],
+                "tool_results": [
+                    {
+                        "tool_call_id": tm.tool_call_id if hasattr(tm, 'tool_call_id') else "",
+                        "content": tm.content if hasattr(tm, 'content') else str(tm)
+                    }
+                    for tm in tool_messages
+                ] if tool_messages else [],
+                "metadata": {
+                    "thread_id": thread_id,
+                    "checkpoint_id": checkpoint_id,
+                    "message_count": len(messages),
+                    "has_tool_calls": len(tool_calls) > 0
+                }
+            }
+            
+            # 保存到 store_items 表
+            value_json = json.dumps(conversation_data, ensure_ascii=False)
+            
+            cursor.execute(
+                """
+                INSERT INTO store_items (namespace, key, value, updated_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                """,
+                (namespace, key, value_json)
+            )
+            
+            print(f"[AutoStore] 自动保存对话到 store_items: namespace={namespace}, key={key}")
+            
+        except Exception as e:
+            # 不要因为存储失败而影响 checkpoint 保存
+            print(f"[AutoStore] 自动保存到 store_items 失败: {e}")
+    
     def put_writes(
         self,
         config: dict,
@@ -842,6 +953,9 @@ class SqliteCheckpointer(BaseCheckpointSaver):
             # 保存完整的对话消息内容
             await self._asave_conversation_messages(cursor, thread_id, checkpoint_id, checkpoint)
             
+            # 自动保存对话数据到 store_items (长期记忆)
+            await self._auto_save_to_store(cursor, thread_id, checkpoint_id, checkpoint)
+            
             await conn.commit()
         
         return {
@@ -851,6 +965,114 @@ class SqliteCheckpointer(BaseCheckpointSaver):
                 "checkpoint_id": checkpoint_id,
             }
         }
+    
+    async def _auto_save_to_store(self, cursor, thread_id: str, checkpoint_id: str, checkpoint: Checkpoint):
+        """
+        自动保存对话数据到 store_items 表 (长期记忆)
+        
+        Args:
+            cursor: 异步数据库游标
+            thread_id: 线程ID
+            checkpoint_id: checkpoint ID
+            checkpoint: checkpoint数据
+        """
+        try:
+            from datetime import datetime
+            
+            # 从checkpoint中提取消息
+            channel_values = checkpoint.get("channel_values", {})
+            messages = channel_values.get("messages", [])
+            
+            if not messages or len(messages) < 2:
+                return
+            
+            # 提取最后一轮对话
+            user_message = None
+            ai_message = None
+            tool_calls = []
+            tool_messages = []
+            
+            # 从后往前遍历,找到最近的一轮对话
+            for i in range(len(messages) - 1, -1, -1):
+                msg = messages[i]
+                msg_type = msg.__class__.__name__
+                
+                if 'AI' in msg_type and ai_message is None:
+                    ai_message = msg
+                    # 提取工具调用
+                    if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                        tool_calls = msg.tool_calls
+                
+                elif 'Human' in msg_type and user_message is None:
+                    user_message = msg
+                    # 找到了完整的一轮对话,停止
+                    if ai_message is not None:
+                        break
+                
+                elif 'Tool' in msg_type:
+                    tool_messages.insert(0, msg)
+            
+            # 如果没有找到完整对话,不保存
+            if not user_message or not ai_message:
+                return
+            
+            # 检查是否已经保存过这条对话 (避免重复保存)
+            namespace = f"conversations/{thread_id}"
+            key = f"conv_{checkpoint_id}"
+            
+            await cursor.execute(
+                "SELECT COUNT(*) as count FROM store_items WHERE namespace = ? AND key = ?",
+                (namespace, key)
+            )
+            row = await cursor.fetchone()
+            if row["count"] > 0:
+                return  # 已经保存过,跳过
+            
+            # 构建存储数据
+            timestamp = datetime.now().isoformat()
+            conversation_data = {
+                "timestamp": timestamp,
+                "user_message": user_message.content if hasattr(user_message, 'content') else str(user_message),
+                "ai_message": ai_message.content if hasattr(ai_message, 'content') else str(ai_message),
+                "tool_calls": [
+                    {
+                        "name": tc.get("name", ""),
+                        "args": tc.get("args", {}),
+                        "id": tc.get("id", "")
+                    }
+                    for tc in tool_calls
+                ] if tool_calls else [],
+                "tool_results": [
+                    {
+                        "tool_call_id": tm.tool_call_id if hasattr(tm, 'tool_call_id') else "",
+                        "content": tm.content if hasattr(tm, 'content') else str(tm)
+                    }
+                    for tm in tool_messages
+                ] if tool_messages else [],
+                "metadata": {
+                    "thread_id": thread_id,
+                    "checkpoint_id": checkpoint_id,
+                    "message_count": len(messages),
+                    "has_tool_calls": len(tool_calls) > 0
+                }
+            }
+            
+            # 保存到 store_items 表
+            value_json = json.dumps(conversation_data, ensure_ascii=False)
+            
+            await cursor.execute(
+                """
+                INSERT INTO store_items (namespace, key, value, updated_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                """,
+                (namespace, key, value_json)
+            )
+            
+            print(f"[AutoStore] 自动保存对话到 store_items: namespace={namespace}, key={key}")
+            
+        except Exception as e:
+            # 不要因为存储失败而影响 checkpoint 保存
+            print(f"[AutoStore] 自动保存到 store_items 失败: {e}")
     
     async def aput_writes(
         self,

@@ -3,6 +3,7 @@ import os
 import sqlite3
 import sys
 import urllib.request
+import uuid
 from pathlib import Path
 
 # 添加父目录到Python路径,以便导入sqlite_storage模块
@@ -128,7 +129,7 @@ async def _get_agent():
             model,
             all_tools,
             system_prompt=system_prompt,
-            checkpointer=_checkpointer,
+            checkpointer=_checkpointer,  # checkpointer 会自动保存到 store_items
             store=_store,
         )
     return _agent_cache
@@ -179,7 +180,7 @@ async def run_old():
     # 配置thread_id以启用数据持久化
     config = {
         "configurable": {
-            "thread_id": "sql_agent_thread_1"
+            "thread_id": "sql_agent_thread_1",  # 使用固定thread_id便于查看历史记录
         }
     }
     
