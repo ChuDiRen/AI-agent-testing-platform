@@ -788,7 +788,7 @@ class SqliteCheckpointer(BaseCheckpointSaver):
                     parent_config=parent_config,
                 )
     
-    async def a_put(
+    async def aput(
         self,
         config: dict,
         checkpoint: Checkpoint,
@@ -852,7 +852,7 @@ class SqliteCheckpointer(BaseCheckpointSaver):
             }
         }
     
-    async def a_put_writes(
+    async def aput_writes(
         self,
         config: dict,
         writes: Sequence[tuple[str, Any]],
@@ -897,31 +897,19 @@ class SqliteCheckpointer(BaseCheckpointSaver):
             
             await conn.commit()
     
-    # LangGraph 兼容性别名 (LangGraph调用的是aput/aput_writes而不是a_put/a_put_writes)
-    async def aput(self, config: dict, checkpoint: Checkpoint, metadata: CheckpointMetadata, new_versions: dict) -> dict:
-        """aput方法别名,用于LangGraph兼容性"""
-        return await self.a_put(config, checkpoint, metadata, new_versions)
-    
-    async def aput_writes(self, config: dict, writes: Sequence[tuple[str, Any]], task_id: str) -> None:
-        """aput_writes方法别名,用于LangGraph兼容性"""
-        return await self.a_put_writes(config, writes, task_id)
+    # 异步方法已按照 LangGraph 标准命名为 aput/aput_writes
 
 
 def create_checkpointer() -> SqliteCheckpointer:
     """
-    工厂函数：创建SQLite checkpointer实例
-    
-    这个函数会被langgraph.json配置文件调用
-    
-    Returns:
-        SqliteCheckpointer实例
+    工厂函数：创建 SQLite checkpointer 实例。
+    与 SqliteStore 使用相同的数据库位置：sqlite_storage/data/langgraph_server.db
     """
     from pathlib import Path
-    
-    # 使用绝对路径,确保在任何工作目录下都能正确找到数据库文件
+
     db_dir = Path(__file__).parent / "data"
     db_dir.mkdir(parents=True, exist_ok=True)
     db_path = db_dir / "langgraph_server.db"
-    
+
     print(f"[Checkpointer] 使用数据库: {db_path}")
     return SqliteCheckpointer(db_path=str(db_path))

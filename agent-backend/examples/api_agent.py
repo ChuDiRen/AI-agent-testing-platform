@@ -9,8 +9,11 @@ OpenAPI 规范: https://petstore.swagger.io/v2/swagger.json
 import asyncio
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Optional, Dict, Any
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import requests
 from langchain.agents import create_agent
@@ -18,6 +21,8 @@ from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langchain.chat_models import init_chat_model
 from langchain_core.tools import tool
 from langgraph.types import Command
+from sqlite_storage.sqlite_checkpointer import create_checkpointer
+from sqlite_storage.sqlite_store import create_store
 
 
 class APIClient:
@@ -330,6 +335,9 @@ model = init_chat_model("deepseek:deepseek-chat")
 # 配置 SQLite Checkpointer 用于持久化对话状态
 checkpoint_db_path = Path(__file__).parent / "checkpoints.db"
 
+_checkpointer = create_checkpointer()
+_store = create_store()
+
 
 # 系统提示词
 system_prompt = """
@@ -363,6 +371,8 @@ agent_auto = create_agent(
     model,
     tools,
     system_prompt=system_prompt,
+    checkpointer=_checkpointer,
+    store=_store,
 )
 
 
@@ -371,9 +381,12 @@ async def run_auto(question: str):
     print(f"\n{'='*60}")
     print(f"🤖 自动模式 - 问题: {question}")
     print(f"{'='*60}\n")
-    
+
+    config = {"configurable": {"thread_id": "api_agent_auto_thread_1"}}
+
     for step in agent_auto.stream(
         {"messages": [{"role": "user", "content": question}]},
+        config,
         stream_mode="values",
     ):
         step["messages"][-1].pretty_print()
@@ -398,6 +411,8 @@ async def run_hitl(question: str):
                 description_prefix="API 调用等待审核",
             ),
         ],
+        checkpointer=_checkpointer,
+        store=_store,
     )
     
     # 第一次执行，直到遇到中断

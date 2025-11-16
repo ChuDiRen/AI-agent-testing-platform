@@ -12,6 +12,8 @@ from langchain_core.messages import AnyMessage, SystemMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
+from sqlite_storage.sqlite_checkpointer import create_checkpointer
+from sqlite_storage.sqlite_store import create_store
 
 # 配置模型
 os.environ["DEEPSEEK_API_KEY"] = "sk-f79fae69b11a4fce88e04805bd6314b7"
@@ -106,6 +108,8 @@ def create_conversation_graph(checkpointer=None, store=None):
 
 
 # 导出图供langgraph使用 (LangGraph API 自动处理持久化)
-graph = create_conversation_graph()
+_checkpointer = create_checkpointer()
+_store = create_store()
+graph = create_conversation_graph(checkpointer=_checkpointer, store=_store)
 
 

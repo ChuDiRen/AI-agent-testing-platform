@@ -14,7 +14,8 @@ from langchain.chat_models import init_chat_model
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_community.utilities import SQLDatabase
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from sqlite_storage.sqlite_checkpointer import SqliteCheckpointer
+from sqlite_storage.sqlite_checkpointer import SqliteCheckpointer, create_checkpointer
+from sqlite_storage.sqlite_store import create_store
 
 
 def setup_database(db_path: Path) -> None:
@@ -80,7 +81,8 @@ system_prompt = """
 _chart_tools_cache = None
 _agent_cache = None
 _agent_hitl_cache = None
-_checkpointer = None
+_checkpointer = create_checkpointer()
+_store = create_store()
 
 def get_checkpointer():
     """获取checkpointer(单例模式)"""
@@ -122,12 +124,12 @@ async def _get_agent():
         all_tools = tools + await _get_chart_tools()
         # 注意：生产模式下不传 checkpointer，让 LangGraph runtime 自动注入
         # 直接运行脚本时使用本地 checkpointer
-        checkpointer = None if os.getenv("LANGGRAPH_RUNTIME_EDITION") == "community" else get_checkpointer()
         _agent_cache = create_agent(
             model,
             all_tools,
             system_prompt=system_prompt,
-            checkpointer=checkpointer,
+            checkpointer=_checkpointer,
+            store=_store,
         )
     return _agent_cache
 
@@ -142,7 +144,6 @@ async def _get_agent_hitl():
     if _agent_hitl_cache is None:
         all_tools = tools + await _get_chart_tools()
         # 注意：生产模式下不传 checkpointer，让 LangGraph runtime 自动注入
-        checkpointer = None if os.getenv("LANGGRAPH_RUNTIME_EDITION") == "community" else get_checkpointer()
         _agent_hitl_cache = create_agent(
             model,
             all_tools,
@@ -159,7 +160,8 @@ async def _get_agent_hitl():
                     # 注意：reject决策会导致Agent返回错误消息并停止执行
                 )
             ],
-            checkpointer=checkpointer,
+            checkpointer=_checkpointer,
+            store=_store,
         )
     return _agent_hitl_cache
 
