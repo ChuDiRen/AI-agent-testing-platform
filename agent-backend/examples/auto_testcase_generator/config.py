@@ -1,8 +1,8 @@
 """配置管理"""
 import os
+from pathlib import Path
 from dataclasses import dataclass
 from functools import cached_property
-from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -29,12 +29,7 @@ class Config:
     
     @cached_property
     def writer_prompt(self) -> str:
-        """用例生成提示词（使用简化版，避免提示词过长导致超时）"""
-        # 优先使用简化版提示词
-        simple_prompt_file = self.prompts_dir / "TESTCASE_WRITER_SYSTEM_MESSAGE_SIMPLE.txt"
-        if simple_prompt_file.exists():
-            return simple_prompt_file.read_text(encoding='utf-8')
-        # 降级使用完整版
+        """用例生成提示词"""
         return (self.prompts_dir / "TESTCASE_WRITER_SYSTEM_MESSAGE.txt").read_text(encoding='utf-8')
     
     @cached_property
