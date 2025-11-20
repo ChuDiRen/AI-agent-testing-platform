@@ -1,21 +1,21 @@
 """配置管理"""
 import os
-from pathlib import Path
 from dataclasses import dataclass
 from functools import cached_property
+from pathlib import Path
 
 
 @dataclass(frozen=True)
 class Config:
     """应用配置（参考 sql_agent.py 实现）"""
     # API Key - 优先从环境变量读取，否则使用默认值
-    api_key: str = os.getenv("DEEPSEEK_API_KEY", "sk-f79fae69b11a4fce88e04805bd6314b7")
+    api_key: str = os.getenv("SILICONFLOW_API_KEY", "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem")
     
     # 模型配置 - 格式：provider:model_name
-    # 全部使用快速模型（deepseek-chat），避免 reasoner 思考模型响应慢
-    reader_model: str = "deepseek:deepseek-chat"
-    writer_model: str = "deepseek:deepseek-chat"  # 改为快速模型
-    reviewer_model: str = "deepseek:deepseek-chat"  # 显式定义审查模型
+    # 使用 SiliconFlow 的 Qwen2.5-72B-Instruct 模型（速度快3-5倍,质量仍然优秀）
+    reader_model: str = "siliconflow:Qwen/Qwen2.5-72B-Instruct"
+    writer_model: str = "siliconflow:Qwen/Qwen2.5-72B-Instruct"
+    reviewer_model: str = "siliconflow:Qwen/Qwen2.5-72B-Instruct"
     
     # 数据库和提示词路径
     checkpoint_db: Path = Path(__file__).parent / "checkpoints.db"

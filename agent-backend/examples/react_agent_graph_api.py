@@ -1,12 +1,15 @@
 # 步骤1: 定义工具和模型
 
 import os
+import sys
 
-from langchain.chat_models import init_chat_model
+# 添加父目录到路径，以便导入自定义工具
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import init_chat_model  # 使用自定义的init_chat_model（支持硅基流动）
 from langchain.tools import tool
 
-os.environ["DEEPSEEK_API_KEY"] = "sk-f79fae69b11a4fce88e04805bd6314b7"
-model = init_chat_model("deepseek:deepseek-chat")
+os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem"
+model = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
 # 定义工具函数
 @tool
 def multiply(a: int, b: int) -> int:

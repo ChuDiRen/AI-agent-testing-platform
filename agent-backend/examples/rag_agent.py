@@ -3,7 +3,10 @@ RAG智能代理示例（检索增强生成）
 这个文件展示了如何创建一个基于RAG的智能代理，它可以从网页内容中检索信息来回答用户问题
 """
 import os
-from langchain.chat_models import init_chat_model  # 导入聊天模型初始化函数
+import sys
+# 添加父目录到路径，以便导入自定义工具
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import init_chat_model  # 导入自定义的聊天模型初始化函数（支持硅基流动）
 from langchain_core.embeddings import DeterministicFakeEmbedding  # 导入嵌入模型（用于向量化文本）
 from langchain_core.vectorstores import InMemoryVectorStore  # 导入内存向量存储
 import bs4  # 导入BeautifulSoup4，用于解析HTML
@@ -13,9 +16,9 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter  # 导入文
 from langchain.agents import create_agent  # 导入创建代理的函数
 
 # 设置 DeepSeek API 密钥（这是一个大语言模型服务）
-os.environ["DEEPSEEK_API_KEY"] = "sk-f79fae69b11a4fce88e04805bd6314b7"
+os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem"
 # 初始化 DeepSeek 聊天模型，这个模型将被所有代理使用
-model = init_chat_model("deepseek:deepseek-chat")
+model = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
 
 
 # ============ 向量存储初始化 ============

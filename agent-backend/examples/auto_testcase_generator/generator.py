@@ -5,6 +5,7 @@ from typing import Optional
 
 from langchain_openai import ChatOpenAI
 
+from .agents.writer_agent import WriterProgressHook
 from .config import Config
 from .models import TestCaseState
 from .supervisor import TestCaseSupervisor
@@ -47,18 +48,23 @@ class TestCaseGeneratorV3:
                 provider, model_name = model_str.split(":", 1)
                 if provider == "deepseek":
                     return model_name, "https://api.deepseek.com"
+                elif provider == "siliconflow":
+                    return model_name, "https://api.siliconflow.cn/v1"
             return model_str, None
 
         reader_model_name, reader_base_url = parse_model(self.config.reader_model)
         writer_model_name, writer_base_url = parse_model(self.config.writer_model)
         reviewer_model_name, reviewer_base_url = parse_model(self.config.reviewer_model)
 
-        # 初始化3个模型
+        # 初始化3个模型 - 优化超时配置(解决高负载时的超时问题)
         self.reader_model = ChatOpenAI(
             model=reader_model_name,
             temperature=0.3,
             api_key=self.config.api_key,
             base_url=reader_base_url,
+            timeout=120.0,  # Reader: 2分钟(防止高负载超时)
+            max_retries=3,  # 重试3次
+            request_timeout=120.0,
         )
 
         self.writer_model = ChatOpenAI(
@@ -66,6 +72,9 @@ class TestCaseGeneratorV3:
             temperature=0.7,
             api_key=self.config.api_key,
             base_url=writer_base_url,
+            timeout=240.0,  # Writer: 4分钟(生成大量内容需要更长时间)
+            max_retries=3,
+            request_timeout=240.0,
         )
 
         self.reviewer_model = ChatOpenAI(
@@ -73,6 +82,9 @@ class TestCaseGeneratorV3:
             temperature=0.3,
             api_key=self.config.api_key,
             base_url=reviewer_base_url,
+            timeout=120.0,  # Reviewer: 2分钟
+            max_retries=3,
+            request_timeout=120.0,
         )
         
         # 创建 Supervisor
@@ -91,6 +103,7 @@ class TestCaseGeneratorV3:
         requirement: str,
         test_type: str = "API",
         max_iterations: int = 2,
+        writer_status_hook: Optional[WriterProgressHook] = None,
     ) -> TestCaseState:
         """生成测试用例
         
@@ -110,7 +123,7 @@ class TestCaseGeneratorV3:
         )
         
         # 运行 Supervisor
-        final_state = await self.supervisor.run(state)
+        final_state = await self.supervisor.run(state, writer_status_hook=writer_status_hook)
         
         return final_state
     

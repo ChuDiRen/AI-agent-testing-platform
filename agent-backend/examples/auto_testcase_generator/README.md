@@ -140,7 +140,7 @@ auto_testcase_generator/
 ### 环境变量
 
 ```bash
-export DEEPSEEK_API_KEY=sk-your-key
+export SILICONFLOW_API_KEY=sk-your-key
 ```
 
 ### 生成器配置

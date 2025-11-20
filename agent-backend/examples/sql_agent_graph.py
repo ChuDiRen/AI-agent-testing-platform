@@ -1,12 +1,14 @@
 import asyncio
 import os
 import sqlite3
+import sys
 import urllib.request
 from contextlib import suppress
 from pathlib import Path
 from typing import Literal
 
-from langchain.chat_models import init_chat_model
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import init_chat_model  # 使用自定义的init_chat_model（支持硅基流动）
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_community.utilities import SQLDatabase
 from langchain_core.messages import AIMessage
@@ -37,8 +39,8 @@ def setup_database(db_path: Path) -> None:
         raise SystemExit(f"数据库下载失败: {e}\n手动下载: {db_url}")
 
 
-os.environ["DEEPSEEK_API_KEY"] = "sk-f79fae69b11a4fce88e04805bd6314b7" # 初始化
-llm = init_chat_model("deepseek:deepseek-chat")
+os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem" # 初始化
+llm = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
 
 db_path = Path(__file__).parent / "Chinook.db" # 设置数据库
 setup_database(db_path)

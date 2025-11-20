@@ -6,20 +6,18 @@ Text2API Agent - 将自然语言转换为API调用
 OpenAPI 规范: https://petstore.swagger.io/v2/swagger.json
 """
 
-import asyncio
 import json
 import os
-import sqlite3
 import sys
-from pathlib import Path
 from typing import Optional, Dict, Any
 
 import requests
 from langchain.agents import create_agent
-from langchain.agents.middleware import HumanInTheLoopMiddleware
-from langchain.chat_models import init_chat_model
+
+# 添加父目录到路径，以便导入自定义工具
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import init_chat_model  # 使用自定义的init_chat_model（支持硅基流动）
 from langchain_core.tools import tool
-from langgraph.types import Command
 
 
 class APIClient:
@@ -326,8 +324,8 @@ tools = [
 
 
 # 初始化 LLM
-os.environ["DEEPSEEK_API_KEY"] = "sk-f79fae69b11a4fce88e04805bd6314b7"
-model = init_chat_model("deepseek:deepseek-chat")
+os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem"
+model = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
 
 # 注意：checkpointer 和 store 由 langgraph.json 配置，LangGraph 服务器自动注入
 

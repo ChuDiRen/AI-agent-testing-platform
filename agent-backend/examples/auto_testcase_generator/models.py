@@ -67,6 +67,13 @@ class TestCaseState:
     testcases: str = ""  # 生成的测试用例 (Writer输出)
     review: str = ""  # 审查反馈 (Reviewer输出)
 
+    # Writer 流式生成状态
+    writer_chunks: List[str] = field(default_factory=list)
+    writer_total_chunks: int = 0
+    writer_current_chunk: int = 0
+    writer_progress: float = 0.0  # 0.0-1.0
+    writer_last_chunk: str = ""
+
     # 迭代控制
     iteration: int = 0
     max_iterations: int = 2

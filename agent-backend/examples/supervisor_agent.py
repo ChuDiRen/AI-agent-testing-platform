@@ -2,9 +2,10 @@
 监督者智能代理示例
 这个文件展示了如何创建一个监督者代理，它可以协调多个子代理（日历代理和邮件代理）来完成复杂任务
 """
-from ast import main
 import os
-from langchain.chat_models import init_chat_model  # 导入聊天模型初始化函数
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import init_chat_model  # 使用自定义的init_chat_model（支持硅基流动）
 from langchain_core.tools import tool  # 导入工具装饰器，用于创建代理可以使用的工具
 from langchain.agents import create_agent  # 导入创建代理的函数
 from langchain.agents.middleware import HumanInTheLoopMiddleware  # 导入人机交互中间件
@@ -12,9 +13,9 @@ from langgraph.checkpoint.memory import InMemorySaver  # 导入内存检查点�
 from langgraph.types import Command  # 导入命令类型，用于恢复中断的执行
 
 # 设置 DeepSeek API 密钥（这是一个大语言模型服务）
-os.environ["DEEPSEEK_API_KEY"] = "sk-f79fae69b11a4fce88e04805bd6314b7"
+os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem"
 # 初始化 DeepSeek 聊天模型，这个模型将被所有代理使用
-model = init_chat_model("deepseek:deepseek-chat")
+model = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
 
 
 # ============ 基础工具函数 ============

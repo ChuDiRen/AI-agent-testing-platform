@@ -12,9 +12,14 @@ Agentic RAG 系统（基于 LangGraph 的智能检索增强生成）
 """
 
 import os
+import sys
 from typing import Literal
+
 from pydantic import BaseModel, Field
-from langchain.chat_models import init_chat_model
+
+# 添加父目录到路径，以便导入自定义工具
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import init_chat_model  # 使用自定义的init_chat_model（支持硅基流动）
 from langchain_core.embeddings import DeterministicFakeEmbedding
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_community.document_loaders import WebBaseLoader
@@ -22,16 +27,16 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_classic.tools.retriever import create_retriever_tool
 from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.prebuilt import ToolNode, tools_condition
-from langchain_core.messages import HumanMessage, convert_to_messages
+from langchain_core.messages import HumanMessage
 
 # ============ 环境配置 ============
 
 # 设置 DeepSeek API 密钥
-os.environ["DEEPSEEK_API_KEY"] = "sk-f79fae69b11a4fce88e04805bd6314b7"
+os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem"
 
 # 初始化 DeepSeek 聊天模型
-response_model = init_chat_model("deepseek:deepseek-chat", temperature=0)
-grader_model = init_chat_model("deepseek:deepseek-chat", temperature=0)
+response_model = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp", temperature=0)
+grader_model = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp", temperature=0)
 
 
 # ============ 第一步：预处理文档 ============
