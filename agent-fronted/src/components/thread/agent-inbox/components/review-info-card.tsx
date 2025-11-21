@@ -27,7 +27,7 @@ export function ReviewInfoCard({ info, className }: ReviewInfoCardProps) {
       case "success":
         return <CheckCircle className="w-5 h-5 text-green-600" />;
       default:
-        return <Info className="w-5 h-5 text-blue-600" />;
+        return <AlertCircle className="w-5 h-5 text-orange-500" />;
     }
   };
 
@@ -40,7 +40,7 @@ export function ReviewInfoCard({ info, className }: ReviewInfoCardProps) {
       case "success":
         return "bg-green-50 border-green-200";
       default:
-        return "bg-blue-50 border-blue-200";
+        return "bg-white border-gray-200";
     }
   };
 
@@ -53,14 +53,14 @@ export function ReviewInfoCard({ info, className }: ReviewInfoCardProps) {
       case "success":
         return "from-green-100 to-green-50";
       default:
-        return "from-blue-100 to-blue-50";
+        return "from-gray-50 to-white";
     }
   };
 
   return (
     <div
       className={cn(
-        "w-full rounded-lg border-2 overflow-hidden",
+        "w-full rounded-lg border shadow-sm overflow-hidden",
         getBackgroundColor(),
         className
       )}
@@ -70,7 +70,7 @@ export function ReviewInfoCard({ info, className }: ReviewInfoCardProps) {
         <div className="flex items-start gap-3">
           {getIcon()}
           <div className="flex-1">
-            <h3 className="font-semibold text-gray-900">{info.title}</h3>
+            <h3 className="font-semibold text-gray-900">{info.title} <span className="text-orange-500">●</span></h3>
             <p className="text-sm text-gray-700 mt-1">{info.description}</p>
           </div>
         </div>

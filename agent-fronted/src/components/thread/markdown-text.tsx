@@ -50,7 +50,7 @@ const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
   };
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-t-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white">
+    <div className="flex items-center justify-between gap-4 rounded-t-lg bg-gray-100 border border-b-0 border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700">
       <span className="lowercase [&>span]:text-xs">{language}</span>
       <TooltipIconButton
         tooltip={isCopied ? t("common.copied") : t("common.copy")}
@@ -196,16 +196,16 @@ const defaultComponents: any = {
       {...props}
     />
   ),
-  img: ({ 
-    className, 
-    alt, 
+  img: ({
+    className,
+    alt,
     src,
-  }: { 
-    className?: string; 
+  }: {
+    className?: string;
     alt?: string;
     src?: string;
   }) => (
-    <MarkdownImage 
+    <MarkdownImage
       src={src}
       alt={alt}
       className={className}
@@ -214,7 +214,7 @@ const defaultComponents: any = {
   pre: ({ className, ...props }: { className?: string }) => (
     <pre
       className={cn(
-        "max-w-4xl overflow-x-auto rounded-lg bg-black text-white",
+        "max-w-4xl overflow-x-auto rounded-lg bg-gray-50 text-gray-900 border border-gray-200",
         className,
       )}
       {...props}
@@ -261,7 +261,21 @@ const defaultComponents: any = {
   },
 };
 
-const MarkdownTextImpl: FC<{ children: string }> = ({ children }) => {
+export function MarkdownText({ children }: { children: string }) {
+  // 清理代码块标记：移除用于包裹普通文本的代码块
+  const cleanContent = (text: string): string => {
+    // 移除单独一行的代码块标记（通常用于包裹普通文本）
+    // 匹配: ```\n文本内容\n``` 或 ```语言\n文本内容\n```
+    let cleaned = text.replace(/^```\w*\n([\s\S]*?)\n```$/gm, '$1');
+
+    // 移除行内的代码块标记（如果整段文本被包裹）
+    if (cleaned.startsWith('```') && cleaned.endsWith('```')) {
+      cleaned = cleaned.replace(/^```\w*\n?/, '').replace(/\n?```$/, '');
+    }
+
+    return cleaned.trim();
+  };
+
   return (
     <div className="markdown-content">
       <ReactMarkdown
@@ -269,10 +283,8 @@ const MarkdownTextImpl: FC<{ children: string }> = ({ children }) => {
         rehypePlugins={[rehypeKatex]}
         components={defaultComponents}
       >
-        {children}
+        {cleanContent(children)}
       </ReactMarkdown>
     </div>
   );
 };
-
-export const MarkdownText = memo(MarkdownTextImpl);

@@ -66,7 +66,7 @@ class TestCaseSupervisor:
         # 初始化数据库 (如果启用持久化)
         if enable_persistence:
             from pathlib import Path
-            self.db = TestCaseDB(Path(db_path) if db_path else Path(__file__).parent / "testcases.db")
+            self.db = TestCaseDB(Path(db_path) if db_path else Path(__file__).parent.parent.parent / "data" / "testcases.db")
         else:
             self.db = None
         self.writer_status_hook = writer_status_hook

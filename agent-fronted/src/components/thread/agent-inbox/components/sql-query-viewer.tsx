@@ -44,11 +44,11 @@ export function SqlQueryViewer({
   };
 
   return (
-    <div className="w-full rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
+    <div className="w-full rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
       {/* 头部 */}
-      <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b border-gray-200">
+      <div className="flex items-center justify-between bg-gray-50 px-4 py-3 border-b border-gray-200">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+          <div className="w-2 h-2 rounded-full bg-gray-400"></div>
           <h3 className="font-semibold text-gray-700">{title}</h3>
         </div>
         <div className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export function SqlQueryViewer({
       </div>
 
       {/* 内容区域 */}
-      <div className="p-4">
+      <div className="p-4 bg-white">
         {isEditing ? (
           <div className="space-y-3">
             <textarea

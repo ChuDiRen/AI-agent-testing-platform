@@ -29,16 +29,16 @@ export function HITLReviewPanel({
   const firstAction = Array.isArray(anyInt.action_requests) && anyInt.action_requests.length > 0
     ? anyInt.action_requests[0]
     : undefined;
-  
+
   const actionName = firstAction?.action || firstAction?.name || "Unknown";
   const actionArgs = firstAction?.args || {};
   const description = interrupt.description || "等待您的审核...";
-  
+
   // 获取允许的决策
   const decisions: string[] = Array.isArray(anyInt.review_configs)
     ? (anyInt.review_configs[0]?.allowed_decisions ?? [])
     : [];
-  
+
   const allowApprove = decisions.includes("approve") || decisions.includes("accept");
   const allowEdit = decisions.includes("edit");
   const allowReject = decisions.includes("reject") || decisions.includes("ignore");
@@ -47,11 +47,11 @@ export function HITLReviewPanel({
   return (
     <div className="w-full space-y-4">
       {/* 头部：操作信息 */}
-      <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4">
+      <div className="rounded-lg bg-white border border-gray-200 shadow-sm p-4">
         <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <h3 className="font-semibold text-gray-900">人机协同审核</h3>
+            <h3 className="font-semibold text-gray-900">人机协同审核 <span className="text-orange-500">●</span></h3>
             <p className="text-sm text-gray-700 mt-1">
               <span className="font-medium">操作：</span>{actionName}
             </p>
@@ -94,7 +94,7 @@ export function HITLReviewPanel({
             <span className="hidden sm:inline">批准</span>
           </Button>
         )}
-        
+
         {allowEdit && (
           <Button
             onClick={onEdit}
@@ -106,7 +106,7 @@ export function HITLReviewPanel({
             <span className="hidden sm:inline">编辑</span>
           </Button>
         )}
-        
+
         {allowRespond && (
           <Button
             onClick={onRespond}
@@ -117,7 +117,7 @@ export function HITLReviewPanel({
             <span className="hidden sm:inline">自定义</span>
           </Button>
         )}
-        
+
         {allowReject && (
           <Button
             onClick={onReject}
@@ -132,7 +132,7 @@ export function HITLReviewPanel({
       </div>
 
       {/* 决策说明 */}
-      <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+      <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-sm text-gray-700">
         <p className="font-medium mb-1">💡 决策说明</p>
         <ul className="space-y-1 text-xs">
           {allowApprove && <li>• <strong>批准</strong>：直接执行此操作</li>}

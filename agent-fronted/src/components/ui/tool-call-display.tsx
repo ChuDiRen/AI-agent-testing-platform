@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { MarkdownImage } from "@/components/thread/markdown-image";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 interface ToolCallDisplayProps {
   toolName: string;
@@ -25,7 +25,7 @@ export function ToolCallDisplay({
   attemptNumber,
   className,
 }: ToolCallDisplayProps) {
-  const [isExpanded, setIsExpanded] = useState(false); // 默认折叠
+  const [isExpanded, setIsExpanded] = useState(true); // 默认展开
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, section: string) => { // 复制到剪贴板
@@ -55,9 +55,13 @@ export function ToolCallDisplay({
 
   const isImageUrl = (str: string): boolean => { // 检测是否是图片URL
     if (typeof str !== 'string') return false;
+    // 匹配以图片扩展名结尾的 URL
     const imageUrlPattern = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i;
+    // 匹配包含图片路径的 URL（如 /img/, /afts/img/）
     const imagePathPattern = /^https?:\/\/.+\/(img|image|images|afts\/img|picture|pic)\//i;
-    return imageUrlPattern.test(str) || imagePathPattern.test(str);
+    // 匹配阿里云等 CDN 的图片 URL（包含 /img/ 或 /original）
+    const cdnImagePattern = /^https?:\/\/(mdn\.alipayobjects\.com|.*cdn.*)\/.*(\/img\/|\/image\/|\/original)/i;
+    return imageUrlPattern.test(str) || imagePathPattern.test(str) || cdnImagePattern.test(str);
   };
 
   const getImageUrlFromResult = (): string | null => { // 检测结果是否包含图片URL
@@ -92,7 +96,7 @@ export function ToolCallDisplay({
   };
 
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn("w-full max-w-none", className)}>
       <div className={cn(
         "w-full rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md",
         !isExpanded && "h-[52px]" // 折叠时固定高度
@@ -144,37 +148,41 @@ export function ToolCallDisplay({
             >
               <div className="px-4 py-3 space-y-3">
                 {/* Args */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-gray-600 uppercase">参数</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        copyToClipboard(argsJson, "args");
-                      }}
-                      className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-                      title="复制参数"
-                    >
-                      {copiedSection === "args" ? (
-                        <Check className="h-3.5 w-3.5 text-green-600" />
-                      ) : (
-                        <Copy className="h-3.5 w-3.5 text-gray-500" />
-                      )}
-                    </button>
+                {args && Object.keys(args).length > 0 ? (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-gray-600 uppercase">参数</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyToClipboard(argsJson, "args");
+                        }}
+                        className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+                        title="复制参数"
+                      >
+                        {copiedSection === "args" ? (
+                          <Check className="h-3.5 w-3.5 text-green-600" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5 text-gray-500" />
+                        )}
+                      </button>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                      <SyntaxHighlighter
+                        language={argsLanguage}
+                        style={oneLight}
+                        customStyle={customStyle}
+                        showLineNumbers={false}
+                        wrapLines={true}
+                        wrapLongLines={true}
+                      >
+                        {argsJson}
+                      </SyntaxHighlighter>
+                    </div>
                   </div>
-                  <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                    <SyntaxHighlighter
-                      language={argsLanguage}
-                      style={vscDarkPlus}
-                      customStyle={customStyle}
-                      showLineNumbers={false}
-                      wrapLines={true}
-                      wrapLongLines={true}
-                    >
-                      {argsJson}
-                    </SyntaxHighlighter>
-                  </div>
-                </div>
+                ) : (
+                  <div className="text-sm text-gray-500">此工具无需参数</div>
+                )}
 
                 {/* Result */}
                 {error ? (
@@ -213,7 +221,7 @@ export function ToolCallDisplay({
                       <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
                         <SyntaxHighlighter
                           language={resultLanguage}
-                          style={vscDarkPlus}
+                          style={oneLight}
                           customStyle={customStyle}
                           showLineNumbers={false}
                           wrapLines={true}

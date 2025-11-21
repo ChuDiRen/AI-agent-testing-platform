@@ -14,6 +14,8 @@ import { ThreadView } from "../agent-inbox";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { GenericInterruptView } from "./generic-interrupt";
 import { useArtifact } from "../artifact";
+import { useState } from "react";
+import { ChevronDown, Wrench } from "lucide-react";
 
 function CustomComponent({
   message,
@@ -90,6 +92,195 @@ function Interrupt({
         <GenericInterruptView interrupt={interruptValue} />
       ) : null}
     </>
+  );
+}
+
+interface ToolCallsSummaryProps {
+  toolCalls: NonNullable<AIMessage["tool_calls"]>;
+  toolResults: Record<string, ToolMessage>;
+  toolCallAttempts: Map<string, number>;
+}
+
+function ToolCallsSummary({
+  toolCalls,
+  toolResults,
+  toolCallAttempts,
+}: ToolCallsSummaryProps) {
+  const [isExpanded, setIsExpanded] = useState(false); // 默认折叠,用户可点击展开查看详情
+
+  if (toolCalls.length === 0) return null;
+
+  // 统计工具类型
+  const toolStats = toolCalls.reduce((acc, tc) => {
+    if (tc.name) {
+      acc[tc.name] = (acc[tc.name] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  const toolCount = toolCalls.length;
+
+  return (
+    <div className="w-full mb-4">
+      {/* 执行摘要卡片 */}
+      <div
+        className={cn(
+          "rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden"
+        )}
+      >
+        <div
+          className={cn(
+            "flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors",
+            isExpanded && "border-b border-gray-200 bg-gray-50"
+          )}
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-200">
+              <Wrench className="h-3 w-3 text-gray-600" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-medium text-gray-700">
+                执行了 {toolCount} 个工具调用
+              </span>
+              {!isExpanded && (
+                <span className="text-[10px] text-gray-500 truncate max-w-md">
+                  {Object.keys(toolStats).slice(0, 3).join(", ")}{Object.keys(toolStats).length > 3 ? "..." : ""}
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            className={cn(
+              "p-1 rounded transition-transform duration-300",
+              isExpanded && "rotate-180"
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(!isExpanded);
+            }}
+          >
+            <ChevronDown className="h-3 w-3 text-gray-500" />
+          </button>
+        </div>
+
+        {/* 工具调用详情 */}
+        {isExpanded && (
+          <div className="px-4 py-3 space-y-4 bg-white">
+            {toolCalls.map((tc, idx) => {
+              const attemptNumber = tc.name ? toolCallAttempts.get(tc.name) : undefined;
+              const args = tc.args as Record<string, any>;
+              const toolResult = tc.id ? toolResults[tc.id] : undefined;
+
+              // 解析结果
+              let resultData: any = undefined;
+              if (toolResult) {
+                try {
+                  if (typeof toolResult.content === "string") {
+                    resultData = JSON.parse(toolResult.content);
+                  } else {
+                    resultData = toolResult.content;
+                  }
+                } catch {
+                  resultData = toolResult.content;
+                }
+              }
+
+              // 检测是否是图片 URL
+              const isImageUrl = (str: string): boolean => {
+                if (typeof str !== 'string') return false;
+                const imageUrlPattern = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i;
+                const imagePathPattern = /^https?:\/\/.+\/(img|image|images|afts\/img|picture|pic)\//i;
+                const cdnImagePattern = /^https?:\/\/(mdn\.alipayobjects\.com|.*cdn.*)\/.*(\/img\/|\/image\/|\/original)/i;
+                return imageUrlPattern.test(str) || imagePathPattern.test(str) || cdnImagePattern.test(str);
+              };
+
+              // 获取图片 URL
+              const getImageUrl = (data: any): string | null => {
+                if (typeof data === 'string' && isImageUrl(data)) return data;
+                if (typeof data === 'object' && data !== null) {
+                  const possibleKeys = ['image', 'imageUrl', 'image_url', 'url', 'src', 'chart', 'chartUrl', 'chart_url'];
+                  for (const key of possibleKeys) {
+                    if (data[key] && typeof data[key] === 'string' && isImageUrl(data[key])) {
+                      return data[key];
+                    }
+                  }
+                }
+                return null;
+              };
+
+              // 清理 markdown 代码块标记
+              const cleanResult = (data: any): string => {
+                let text = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+                // 移除 markdown 代码块标记 ```sql 或 ``` 
+                text = text.replace(/^```\w*\n?/gm, '').replace(/\n?```$/gm, '');
+                return text.trim();
+              };
+
+              const imageUrl = getImageUrl(resultData);
+
+              return (
+                <div key={tc.id || idx} className="space-y-3">
+                  {/* 工具名称 */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-800">{tc.name}</span>
+                    {attemptNumber && attemptNumber > 1 && (
+                      <span className="text-xs text-gray-500">(尝试 {attemptNumber})</span>
+                    )}
+                  </div>
+
+                  {/* 参数 */}
+                  <div>
+                    <div className="text-xs font-semibold text-gray-600 uppercase mb-1">参数</div>
+                    <pre className="text-xs bg-gray-50 rounded border border-gray-200 p-2 overflow-x-auto">
+                      {JSON.stringify(args || {}, null, 2)}
+                    </pre>
+                  </div>
+
+                  {/* 结果 */}
+                  {resultData && (
+                    <div>
+                      <div className="text-xs font-semibold text-gray-600 uppercase mb-1">结果</div>
+                      {imageUrl ? (
+                        <div className="bg-gray-50 rounded border border-gray-200 p-3 space-y-2">
+                          <img
+                            src={imageUrl}
+                            alt="生成的图表"
+                            className="max-w-full h-auto"
+                            crossOrigin="anonymous"
+                            onError={(e) => {
+                              // 图片加载失败时隐藏图片，显示链接
+                              e.currentTarget.style.display = 'none';
+                              const link = e.currentTarget.nextElementSibling;
+                              if (link) link.classList.remove('hidden');
+                            }}
+                          />
+                          <a
+                            href={imageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hidden text-sm text-blue-600 hover:underline break-all"
+                          >
+                            点击查看图表：{imageUrl}
+                          </a>
+                        </div>
+                      ) : (
+                        <pre className="text-xs bg-gray-50 rounded border border-gray-200 p-2 overflow-x-auto max-h-60 overflow-y-auto">
+                          {cleanResult(resultData)}
+                        </pre>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 分隔线 */}
+                  {idx < toolCalls.length - 1 && <div className="border-t border-gray-100" />}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -208,40 +399,8 @@ export function AssistantMessage({
     }
   }
 
-  // 检查后续消息中是否有相同工具名的调用（仅当前回合，到下一个人类消息为止）
-  const toolNamesInLaterMessages = new Set<string>();
-  if (message) {
-    const currentMessageIndex = thread.messages.findIndex((m) => m.id === message.id);
-
-    // 找到当前消息之后下一个人类消息的索引
-    let nextHumanMessageIndex = thread.messages.length;
-    for (let i = currentMessageIndex + 1; i < thread.messages.length; i++) {
-      if (thread.messages[i].type === "human") {
-        nextHumanMessageIndex = i;
-        break;
-      }
-    }
-
-    // 只检查当前回合内的后续消息（从当前消息到下一个人类消息之间）
-    for (let i = currentMessageIndex + 1; i < nextHumanMessageIndex; i++) {
-      const laterMsg = thread.messages[i];
-      if (laterMsg.type === "ai" && "tool_calls" in laterMsg && laterMsg.tool_calls) {
-        for (const tc of laterMsg.tool_calls) {
-          if (tc.name) {
-            toolNamesInLaterMessages.add(tc.name);
-          }
-        }
-      }
-    }
-  }
-
-  // 过滤：如果后续有相同工具名，就隐藏当前的
-  const filteredToolCalls = allToolCalls.filter((tc) => {
-    if (!tc.name) return true;
-
-    // 如果后续消息中有相同工具名，隐藏当前的
-    return !toolNamesInLaterMessages.has(tc.name);
-  });
+  // 不再过滤工具调用，显示所有工具调用
+  const filteredToolCalls = allToolCalls;
 
   const hasAnyToolCalls = filteredToolCalls.length > 0;
 
@@ -291,19 +450,11 @@ export function AssistantMessage({
             )}
 
             {!hideToolCalls && hasAnyToolCalls && (
-              <div className="flex flex-col gap-4 w-full">
-                {filteredToolCalls.map((tc, idx) => {
-                  const attemptNumber = tc.name ? toolCallAttempts.get(tc.name) : undefined;
-                  return (
-                    <ToolCallWithResult
-                      key={tc.id || idx}
-                      toolCall={tc}
-                      toolResult={tc.id ? toolResults[tc.id] : undefined}
-                      attemptNumber={attemptNumber}
-                    />
-                  );
-                })}
-              </div>
+              <ToolCallsSummary
+                toolCalls={filteredToolCalls}
+                toolResults={toolResults}
+                toolCallAttempts={toolCallAttempts}
+              />
             )}
 
             {message && (

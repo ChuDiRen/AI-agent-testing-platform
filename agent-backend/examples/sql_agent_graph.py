@@ -18,7 +18,7 @@ from langgraph.prebuilt import ToolNode
 
 
 def setup_database(db_path: Path) -> None:
-    """自动下载并设置Chinook数据库"""
+    """自动下载并设置 Chinook数据库"""
     db_url = "https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite"
 
     def get_tables():
@@ -30,6 +30,9 @@ def setup_database(db_path: Path) -> None:
     if get_tables(): # 检查现有数据库
         return
 
+    # 确保 data 目录存在
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    
     # 下载数据库
     try:
         urllib.request.urlretrieve(db_url, db_path)
@@ -42,7 +45,7 @@ def setup_database(db_path: Path) -> None:
 os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem" # 初始化
 llm = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
 
-db_path = Path(__file__).parent / "Chinook.db" # 设置数据库
+db_path = Path(__file__).parent.parent / "data" / "Chinook.db" # 设置数据库
 setup_database(db_path)
 
 db = SQLDatabase.from_uri(f"sqlite:///{db_path}") # 连接数据库
@@ -59,7 +62,7 @@ run_query_node = ToolNode([run_query_tool], name="run_query")
 
 def list_tables(state: MessagesState): # 示例：创建一个预定义的工具调用
     tool_call = {"name": "sql_db_list_tables", "args": {}, "id": "abc123", "type": "tool_call"}
-    tool_call_message = AIMessage(content="", tool_calls=[tool_call])
+    tool_call_message = AIMessage(content="步骤1: 查询数据库中的所有表", tool_calls=[tool_call])
 
     list_tables_tool = next(tool for tool in tools if tool.name == "sql_db_list_tables")
     tool_message = list_tables_tool.invoke(tool_call)
@@ -71,6 +74,9 @@ def list_tables(state: MessagesState): # 示例：创建一个预定义的工具
 def call_get_schema(state: MessagesState): # 示例：强制模型创建工具调用
     llm_with_tools = llm.bind_tools([get_schema_tool], tool_choice="any")
     response = llm_with_tools.invoke(state["messages"])
+    # 为响应添加描述性文本
+    if response.content == "":
+        response.content = "步骤2: 获取相关表的结构信息"
     return {"messages": [response]}
 
 
@@ -84,6 +90,13 @@ generate_query_system_prompt = """
 永远不要查询特定表的所有列，只查询问题中相关的列。
 
 不要对数据库执行任何DML语句（INSERT、UPDATE、DELETE、DROP等）。
+
+**【严格】输出格式要求**：
+- 禁止使用 ``` 包裹普通文本
+- 只在展示 SQL 代码时使用代码块
+- 避免"现在我..."等过程描述
+- 直接、简洁、专业
+- **生成图表后，必须在回答中使用 ![图表](URL) 展示图表**
 """.format(dialect=db.dialect, top_k=5)
 
 
@@ -91,6 +104,9 @@ def generate_query(state: MessagesState):
     system_message = {"role": "system", "content": generate_query_system_prompt}
     llm_with_tools = llm.bind_tools([run_query_tool])
     response = llm_with_tools.invoke([system_message] + state["messages"])
+    # 为响应添加描述性文本(如果没有内容)
+    if response.content == "" and response.tool_calls:
+        response.content = "步骤3: 生成并准备执行 SQL 查询"
     return {"messages": [response]}
 
 
@@ -154,7 +170,7 @@ from langchain_core.runnables import RunnableConfig # 导入依赖
 from langchain.tools import tool
 from langgraph.types import interrupt, Command
 
-checkpoint_db_path = Path(__file__).parent / "checkpoints.db" # 配置 SQLite Checkpointer 用于持久化对话状态
+checkpoint_db_path = Path(__file__).parent.parent / "data" / "checkpoints.db" # 配置 SQLite Checkpointer 用于持久化对话状态
 
 
 @tool(run_query_tool.name, description=run_query_tool.description, args_schema=run_query_tool.args_schema)

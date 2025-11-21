@@ -18,8 +18,8 @@ class Config:
     reviewer_model: str = "siliconflow:Qwen/Qwen2.5-72B-Instruct"
     
     # 数据库和提示词路径
-    checkpoint_db: Path = Path(__file__).parent / "checkpoints.db"
-    testcases_db: Path = Path(__file__).parent / "testcases.db"
+    checkpoint_db: Path = Path(__file__).parent.parent.parent / "data" / "checkpoints.db"
+    testcases_db: Path = Path(__file__).parent.parent.parent / "data" / "testcases.db"
     prompts_dir: Path = Path(__file__).parent / "prompts"
     
     @cached_property

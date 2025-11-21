@@ -13,6 +13,8 @@ class TestCaseDB:
     
     def __init__(self, db_path: Path):
         self.db_path = db_path
+        # 确保 data 目录存在
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
     
     def _init_db(self):

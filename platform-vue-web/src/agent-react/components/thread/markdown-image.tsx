@@ -10,10 +10,10 @@ interface MarkdownImageProps {
   className?: string;
 }
 
-export const MarkdownImage: FC<MarkdownImageProps> = ({ 
-  src, 
-  alt = "图片", 
-  className 
+export const MarkdownImage: FC<MarkdownImageProps> = ({
+  src,
+  alt = "图片",
+  className
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -45,32 +45,32 @@ export const MarkdownImage: FC<MarkdownImageProps> = ({
 
   return (
     <>
-      <div className={cn("my-4 relative inline-block max-w-full", className)}>
+      <span className={cn("my-4 relative inline-block max-w-full", className)}>
         {isLoading && !hasError && (
-          <div className="flex items-center justify-center min-h-[200px] bg-muted rounded-lg border">
-            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+          <span className="flex items-center justify-center min-h-[200px] bg-muted rounded-lg border inline-flex">
+            <span className="flex flex-col items-center gap-2 text-muted-foreground">
               <ImageIcon className="h-8 w-8 animate-pulse" />
               <span className="text-sm">加载中...</span>
-            </div>
-          </div>
+            </span>
+          </span>
         )}
-        
+
         {hasError && (
-          <div className="flex items-center justify-center min-h-[200px] bg-muted rounded-lg border">
-            <div className="flex flex-col items-center gap-2 text-muted-foreground max-w-md px-4">
+          <span className="flex items-center justify-center min-h-[200px] bg-muted rounded-lg border inline-flex">
+            <span className="flex flex-col items-center gap-2 text-muted-foreground max-w-md px-4">
               <ImageIcon className="h-8 w-8" />
               <span className="text-sm">图片加载失败</span>
               {alt && <span className="text-xs text-muted-foreground/70">{alt}</span>}
-              <a 
-                href={src} 
-                target="_blank" 
+              <a
+                href={src}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-blue-500 hover:underline truncate max-w-full"
               >
                 点击查看原图
               </a>
-            </div>
-          </div>
+            </span>
+          </span>
         )}
 
         <img
@@ -81,15 +81,15 @@ export const MarkdownImage: FC<MarkdownImageProps> = ({
           onClick={handleImageClick}
           className={cn(
             "max-w-full rounded-lg border shadow-sm transition-opacity",
-            isLoading || hasError ? "hidden" : "block",
+            isLoading || hasError ? "hidden" : "inline-block",
             !hasError && "cursor-pointer hover:opacity-90 hover:shadow-md"
           )}
         />
-      </div>
+      </span>
 
       {/* 图片预览弹窗 */}
       {isPreviewOpen && !hasError && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
           onClick={handleClosePreview}
         >

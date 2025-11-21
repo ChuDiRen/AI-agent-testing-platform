@@ -1,7 +1,7 @@
 import { PrismAsyncLight as SyntaxHighlighterPrism } from "react-syntax-highlighter";
 import tsx from "react-syntax-highlighter/dist/esm/languages/prism/tsx";
 import python from "react-syntax-highlighter/dist/esm/languages/prism/python";
-import { coldarkDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import { oneLight } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { FC } from "react";
 
 // Register languages you want to support
@@ -25,7 +25,7 @@ export const SyntaxHighlighter: FC<SyntaxHighlighterProps> = ({
   return (
     <SyntaxHighlighterPrism
       language={language}
-      style={coldarkDark}
+      style={oneLight}
       customStyle={{
         margin: 0,
         width: "100%",

@@ -31,6 +31,9 @@ def setup_database(db_path: Path) -> None:
     if get_tables():
         return
 
+    # 确保 data 目录存在
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    
     # 下载数据库
     try:
         urllib.request.urlretrieve(db_url, db_path)
@@ -45,7 +48,7 @@ os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianax
 model = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
 
 # 设置数据库
-db_path = Path(__file__).parent / "Chinook.db"
+db_path = Path(__file__).parent.parent / "data" / "Chinook.db"
 setup_database(db_path)
 
 # 连接数据库
@@ -68,10 +71,65 @@ system_prompt = """
 
 不要对数据库执行任何DML语句（INSERT、UPDATE、DELETE、DROP等）。
 
-首先，你应该始终查看数据库中的表，以了解可以查询什么。不要跳过此步骤。
+**【重要】必须严格按顺序执行以下5个步骤，一步都不能跳过**：
 
-然后，你应该查询最相关表的架构。
-根据生成的数据特点，你一定要使用图表工具来可视化数据。
+**【关键】每次调用工具前，必须先输出一句简短的步骤说明，格式如下**：
+- 步骤1: 查询数据库表列表
+- 步骤2: 获取表结构信息
+- 步骤3: 执行 SQL 前的检查
+- 步骤4: 执行 SQL 查询
+- 步骤5: 生成数据可视化图表
+
+步骤1（必须执行）：调用 sql_db_list_tables 工具，查看数据库中的所有表
+- 这是第一步，必须先执行
+- 即使你认为知道有哪些表，也必须执行此步骤
+- **在调用工具前，先输出**: "步骤1: 查询数据库表列表"
+
+步骤2（必须执行）：调用 sql_db_schema 工具，查询相关表的结构
+- 必须在步骤1之后执行
+- 即使你认为知道表结构，也必须执行此步骤
+- **在调用工具前，先输出**: "步骤2: 获取表结构信息"
+
+步骤3（必须执行）：调用 sql_db_query_checker 工具，检查 SQL 查询的正确性
+- 必须在步骤2之后执行
+- 用于验证 SQL 语法和逻辑错误
+- **在调用工具前，先输出**: "步骤3: 执行 SQL 前的检查"
+
+步骤4（必须执行）：调用 sql_db_query 工具，执行 SQL 查询
+- 必须在步骤3之后执行
+- 执行经过检查的 SQL 查询
+- **在调用工具前，先输出**: "步骤4: 执行 SQL 查询"
+
+步骤5（必须执行）：使用图表工具可视化数据
+- 必须在步骤4之后执行
+- 使用 generate_column_chart、generate_bar_chart 等工具
+- 这是最后一步，必须执行
+- **在调用工具前，先输出**: "步骤5: 生成数据可视化图表"
+- **重要**：生成图表后，必须在最终回答中包含图表链接，格式为：![图表](图表URL)
+
+【警告】如果跳过任何步骤或未输出步骤说明，将被视为任务失败。必须完整执行所有5个步骤。
+
+【图表展示要求】：
+- 生成图表后，必须在回答中使用 Markdown 图片语法展示图表
+- 格式：![图表描述](图表URL)
+- 示例：![各音乐类型平均时长](https://mdn.alipayobjects.com/.../original)
+
+**【严格】输出格式要求**：
+
+1. 禁止使用代码块标记包裹普通文本
+   ❌ 错误示例：```现在我用柱状图来可视化这个结果```
+   ✅ 正确示例：现在我用柱状图来可视化这个结果
+
+2. 只在展示代码时使用代码块
+   ✅ 正确：展示 SQL 查询时使用 ```sql ... ```
+   ❌ 错误：描述性文字使用 ``` ... ```
+
+3. 输出风格
+   - 必须输出简短的步骤说明（如"步骤1: 查询数据库表列表"）
+   - 避免冗长的过程描述（如"现在我正在分析..."、"接下来我将要..."）
+   - 简洁、直接、专业
+
+【重要】普通文本绝对不能用 ``` 包裹！
 """.format(
     dialect=db.dialect,
     top_k=5,
@@ -85,44 +143,34 @@ _checkpointer_cache = None  # SQLite短期记忆缓存
 _store_cache = None  # 长期记忆存储缓存
 
 # 统一的记忆数据库路径
-MEMORY_DB_PATH = Path(__file__).parent / "agent_memory.db"
+MEMORY_DB_PATH = Path(__file__).parent.parent / "data" / "agent_memory.db"
 
 def _get_checkpointer():
     """获取SQLite短期记忆(带缓存)"""
     global _checkpointer_cache
     if _checkpointer_cache is None:
-        _checkpointer_cache = SqliteSaver.from_conn_string(str(MEMORY_DB_PATH))
+        # 确保 data 目录存在
+        MEMORY_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         
-        # 检查表是否已存在,不存在才初始化
-        with sqlite3.connect(MEMORY_DB_PATH) as conn:
-            cursor = conn.cursor()
-            tables = cursor.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'checkpoints%'"
-            ).fetchall()
-            if not tables:
-                _checkpointer_cache.setup()  # 自动创建表
-                print(f"[成功] SQLite短期记忆表已创建: {MEMORY_DB_PATH}")
-            else:
-                print(f"[成功] SQLite短期记忆表已存在,跳过初始化: {MEMORY_DB_PATH}")
+        # 创建 SQLite 连接并初始化 SqliteSaver
+        conn = sqlite3.connect(str(MEMORY_DB_PATH), check_same_thread=False)
+        _checkpointer_cache = SqliteSaver(conn)
+        _checkpointer_cache.setup()  # 初始化表结构
+        print(f"[成功] SQLite短期记忆已初始化: {MEMORY_DB_PATH}")
     return _checkpointer_cache
 
 def _get_store():
     """获取SQLite长期记忆存储(带缓存)"""
     global _store_cache
     if _store_cache is None:
-        _store_cache = SqliteStore.from_conn_string(str(MEMORY_DB_PATH))
+        # 确保 data 目录存在
+        MEMORY_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         
-        # 检查表是否已存在,不存在才初始化
-        with sqlite3.connect(MEMORY_DB_PATH) as conn:
-            cursor = conn.cursor()
-            tables = cursor.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'store%'"
-            ).fetchall()
-            if not tables:
-                _store_cache.setup()  # 自动创建表
-                print(f"[成功] SQLite长期记忆表已创建: {MEMORY_DB_PATH}")
-            else:
-                print(f"[成功] SQLite长期记忆表已存在,跳过初始化: {MEMORY_DB_PATH}")
+        # 创建 SQLite 连接并初始化 SqliteStore
+        conn = sqlite3.connect(str(MEMORY_DB_PATH), check_same_thread=False)
+        _store_cache = SqliteStore(conn)
+        _store_cache.setup()  # 初始化表结构
+        print(f"[成功] SQLite长期记忆存储已初始化: {MEMORY_DB_PATH}")
     return _store_cache
 
 async def _get_chart_tools():

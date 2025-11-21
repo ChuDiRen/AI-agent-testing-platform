@@ -190,7 +190,8 @@ export function ThreadActionsView({
             <Button
               onClick={handleApprove}
               disabled={loading || streaming}
-              className="bg-green-600 hover:bg-green-700 text-white gap-2"
+              variant="outline"
+              className="gap-2"
             >
               <ThumbsUp className="w-4 h-4" />
               <span className="hidden sm:inline">批准</span>
@@ -201,7 +202,8 @@ export function ThreadActionsView({
             <Button
               onClick={handleEdit}
               disabled={loading || streaming}
-              className="bg-amber-500 hover:bg-amber-600 text-white gap-2"
+              variant="outline"
+              className="gap-2"
             >
               <Edit2 className="w-4 h-4" />
               <span className="hidden sm:inline">编辑</span>
@@ -212,7 +214,7 @@ export function ThreadActionsView({
             <Button
               onClick={handleReject}
               disabled={loading || streaming}
-              variant="destructive"
+              variant="outline"
               className="gap-2"
             >
               <XCircle className="w-4 h-4" />
