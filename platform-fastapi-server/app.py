@@ -126,6 +126,11 @@ application.include_router(AiModelController.module_route)  # AI模型管理
 application.include_router(PromptTemplateController.module_route)  # 提示词模板管理
 application.include_router(TestCaseController.module_route)  # 测试用例管理
 
+# 注册代码生成器模块路由
+from generator.api import generator_route, gen_table_route
+application.include_router(generator_route)  # 代码生成器
+application.include_router(gen_table_route)  # 表配置管理
+
 # 移除旧的 on_event 装饰器，已使用 lifespan 替代
 
 @application.get("/", tags=["根路径"]) # 根路径接口

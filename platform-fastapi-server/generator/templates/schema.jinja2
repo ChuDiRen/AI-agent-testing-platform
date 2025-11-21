@@ -1,0 +1,57 @@
+# -*- coding: utf-8 -*-
+"""{{ table_comment or class_name }}Schema定义"""
+from pydantic import BaseModel, Field
+from typing import Optional, List
+from datetime import datetime
+
+
+class {{ class_name }}Query(BaseModel):
+    """{{ table_comment or class_name }}查询参数"""
+    page: int = Field(default=1, ge=1, description="页码")
+    pageSize: int = Field(default=10, ge=1, le=100, description="每页数量")
+{%- for column in columns %}
+    {%- if column.is_query == "1" %}
+    {%- if column.query_type == 'LIKE' %}
+    {{ column.python_field }}: Optional[str] = Field(default=None, description="{{ column.column_comment or column.column_name }}")  # 模糊查询
+    {%- elif column.query_type == 'BETWEEN' %}
+    {{ column.python_field }}_start: Optional[{{ column.python_type }}] = Field(default=None, description="{{ column.column_comment or column.column_name }}(开始)")  # 范围查询
+    {{ column.python_field }}_end: Optional[{{ column.python_type }}] = Field(default=None, description="{{ column.column_comment or column.column_name }}(结束)")
+    {%- else %}
+    {{ column.python_field }}: Optional[{{ column.python_type }}] = Field(default=None, description="{{ column.column_comment or column.column_name }}")  # 精确查询
+    {%- endif %}
+    {%- endif %}
+{%- endfor %}
+
+
+class {{ class_name }}Create(BaseModel):
+    """{{ table_comment or class_name }}创建请求"""
+{%- for column in columns %}
+    {%- if column.is_insert == "1" and column.is_pk != "1" and column.python_field not in ['create_time', 'modify_time', 'update_time'] %}
+    {%- if column.is_required == "1" %}
+    {{ column.python_field }}: {{ column.python_type }} = Field(description="{{ column.column_comment or column.column_name }}")
+    {%- else %}
+    {{ column.python_field }}: Optional[{{ column.python_type }}] = Field(default=None, description="{{ column.column_comment or column.column_name }}")
+    {%- endif %}
+    {%- endif %}
+{%- endfor %}
+{%- if has_relations %}
+    {%- for rel in relationships %}
+    {{ rel.field_name[:-1] }}_ids: Optional[List[int]] = Field(default=None, description="关联{{ rel.target_model }}ID列表")
+    {%- endfor %}
+{%- endif %}
+
+
+class {{ class_name }}Update(BaseModel):
+    """{{ table_comment or class_name }}更新请求"""
+{%- for column in columns %}
+    {%- if column.is_pk == "1" %}
+    {{ column.python_field }}: {{ column.python_type }} = Field(description="{{ column.column_comment or column.column_name }}")
+    {%- elif column.is_edit == "1" and column.python_field not in ['create_time', 'modify_time', 'update_time'] %}
+    {{ column.python_field }}: Optional[{{ column.python_type }}] = Field(default=None, description="{{ column.column_comment or column.column_name }}")
+    {%- endif %}
+{%- endfor %}
+{%- if has_relations %}
+    {%- for rel in relationships %}
+    {{ rel.field_name[:-1] }}_ids: Optional[List[int]] = Field(default=None, description="关联{{ rel.target_model }}ID列表")
+    {%- endfor %}
+{%- endif %}

@@ -1,0 +1,271 @@
+# -*- coding: utf-8 -*-
+"""{{ table_comment or class_name }}控制器"""
+from fastapi import APIRouter, Depends, Query
+from sqlmodel import Session, select, func
+{%- if has_relations %}
+from sqlalchemy.orm import selectinload
+{%- endif %}
+from core.database import get_session
+from core.resp_model import respModel
+from core.logger import get_logger
+from core.dependencies import check_permission
+from {{ module_name }}.model.{{ class_name }}Model import {{ class_name }}
+from {{ module_name }}.schemas.{{ class_name }}Schema import (
+    {{ class_name }}Query,
+    {{ class_name }}Create,
+    {{ class_name }}Update
+)
+{%- if has_relations %}
+{%- for rel in relationships %}
+from {{ module_name }}.model.{{ rel.target_model }}Model import {{ rel.target_model }}
+{%- endfor %}
+{%- endif %}
+from typing import List
+from datetime import datetime
+
+module_name = "{{ business_name }}"
+module_model = {{ class_name }}
+logger = get_logger(__name__)
+module_route = APIRouter(prefix=f"/{module_name}", tags=["{{ table_comment or function_name }}"])
+
+
+@module_route.post("/queryByPage", dependencies=[Depends(check_permission(f"{module_name}:list"))])
+def queryByPage(query: {{ class_name }}Query, session: Session = Depends(get_session)):
+    """分页查询{{ table_comment or function_name }}"""
+    try:
+        {%- if tpl_category == 'tree' %}
+        statement = select(module_model)
+        
+        # 构建查询条件
+        {%- for column in columns %}
+        {%- if column.is_query == "1" %}
+        if query.{{ column.python_field }}:
+            statement = statement.where(module_model.{{ column.python_field }} == query.{{ column.python_field }})
+        {%- endif %}
+        {%- endfor %}
+        
+        results = session.exec(statement).all()
+        
+        # 构建树形结构
+        def build_tree(items, parent_id=None):
+            tree = []
+            for item in items:
+                # 将SQLModel对象转换为字典
+                item_dict = item.model_dump()
+                if item_dict.get('{{ tree_parent_code }}') == parent_id:
+                    children = build_tree(items, item_dict.get('{{ tree_code }}'))
+                    if children:
+                        item_dict['children'] = children
+                    tree.append(item_dict)
+            return tree
+            
+        tree_data = build_tree(results, None if not results else 0) # 假设根节点parent_id为0或None
+        return respModel.ok_resp(obj=tree_data, msg="查询成功")
+        
+        {%- else %}
+        offset = (query.page - 1) * query.pageSize
+        statement = select(module_model)
+        {%- if has_relations %}
+        # 开启关联查询
+        statement = statement.options(
+            {%- for rel in relationships %}
+            selectinload(module_model.{{ rel.field_name }}){% if not loop.last %},{% endif %}
+            {%- endfor %}
+        )
+        {%- endif %}
+        
+        # 构建查询条件
+        {%- for column in columns %}
+        {%- if column.is_query == "1" %}
+        {%- if column.query_type == 'LIKE' %}
+        if query.{{ column.python_field }}:
+            statement = statement.where(module_model.{{ column.python_field }}.like(f"%{query.{{ column.python_field }}}%"))
+        {%- elif column.query_type == 'BETWEEN' %}
+        if query.{{ column.python_field }}_start:
+            statement = statement.where(module_model.{{ column.python_field }} >= query.{{ column.python_field }}_start)
+        if query.{{ column.python_field }}_end:
+            statement = statement.where(module_model.{{ column.python_field }} <= query.{{ column.python_field }}_end)
+        {%- else %}
+        if query.{{ column.python_field }} is not None:
+            statement = statement.where(module_model.{{ column.python_field }} == query.{{ column.python_field }})
+        {%- endif %}
+        {%- endif %}
+        {%- endfor %}
+        
+        statement = statement.limit(query.pageSize).offset(offset)
+        results = session.exec(statement).all()
+        
+        # 统计总数
+        count_statement = select(module_model)
+        {%- for column in columns %}
+        {%- if column.is_query == "1" %}
+        {%- if column.query_type == 'LIKE' %}
+        if query.{{ column.python_field }}:
+            count_statement = count_statement.where(module_model.{{ column.python_field }}.like(f"%{query.{{ column.python_field }}}%"))
+        {%- elif column.query_type == 'BETWEEN' %}
+        if query.{{ column.python_field }}_start:
+            count_statement = count_statement.where(module_model.{{ column.python_field }} >= query.{{ column.python_field }}_start)
+        if query.{{ column.python_field }}_end:
+            count_statement = count_statement.where(module_model.{{ column.python_field }} <= query.{{ column.python_field }}_end)
+        {%- else %}
+        if query.{{ column.python_field }} is not None:
+            count_statement = count_statement.where(module_model.{{ column.python_field }} == query.{{ column.python_field }})
+        {%- endif %}
+        {%- endif %}
+        {%- endfor %}
+        
+        total = len(session.exec(count_statement).all())
+        
+        return respModel.ok_resp_list(lst=results, total=total)
+        {%- endif %}
+    except Exception as e:
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
+
+@module_route.get("/queryById", dependencies=[Depends(check_permission(f"{module_name}:query"))])
+def queryById(id: int = Query(..., description="主键ID"), session: Session = Depends(get_session)):
+    """根据ID查询{{ table_comment or function_name }}"""
+    try:
+        statement = select(module_model).where(module_model.id == id)
+        {%- if has_relations %}
+        # 开启关联查询
+        statement = statement.options(
+            {%- for rel in relationships %}
+            selectinload(module_model.{{ rel.field_name }}){% if not loop.last %},{% endif %}
+            {%- endfor %}
+        )
+        {%- endif %}
+        result = session.exec(statement).first()
+        if result:
+            return respModel.ok_resp(obj=result)
+        else:
+            return respModel.ok_resp(msg="查询成功,但是没有数据")
+    except Exception as e:
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
+
+@module_route.post("/insert", dependencies=[Depends(check_permission(f"{module_name}:add"))])
+def insert(create_data: {{ class_name }}Create, session: Session = Depends(get_session)):
+    """新增{{ table_comment or function_name }}"""
+    try:
+        # 创建数据对象
+        {%- if has_relations %}
+        data_dict = create_data.model_dump(exclude={
+            {%- for rel in relationships %}
+            '{{ rel.field_name[:-1] }}_ids'{% if not loop.last %}, {% endif %}
+            {%- endfor %}
+        })
+        new_record = module_model(**data_dict)
+        
+        # 处理关联关系
+        {%- for rel in relationships %}
+        if create_data.{{ rel.field_name[:-1] }}_ids:
+            items = session.exec(select({{ rel.target_model }}).where({{ rel.target_model }}.id.in_(create_data.{{ rel.field_name[:-1] }}_ids))).all()
+            new_record.{{ rel.field_name }} = items
+        {%- endfor %}
+        {%- else %}
+        new_record = module_model(**create_data.model_dump())
+        {%- endif %}
+        
+        session.add(new_record)
+        session.commit()
+        session.refresh(new_record)
+        return respModel.ok_resp(msg="添加成功", dic_t={"id": new_record.id})
+    except Exception as e:
+        session.rollback()
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(msg=f"添加失败:{e}")
+
+
+@module_route.put("/update", dependencies=[Depends(check_permission(f"{module_name}:edit"))])
+def update(update_data: {{ class_name }}Update, session: Session = Depends(get_session)):
+    """更新{{ table_comment or function_name }}"""
+    try:
+        # 获取现有记录
+        {%- set pk_field = columns | selectattr('is_pk', 'equalto', '1') | list | first %}
+        {%- if pk_field %}
+        statement = select(module_model).where(module_model.{{ pk_field.python_field }} == update_data.{{ pk_field.python_field }})
+        {%- if has_relations %}
+        # 开启关联查询以便更新
+        statement = statement.options(
+            {%- for rel in relationships %}
+            selectinload(module_model.{{ rel.field_name }}){% if not loop.last %},{% endif %}
+            {%- endfor %}
+        )
+        {%- endif %}
+        record = session.exec(statement).first()
+        {%- endif %}
+        
+        if record:
+            {%- if has_relations %}
+            update_dict = update_data.model_dump(exclude_unset=True, exclude={
+                'id',
+                {%- for rel in relationships %}
+                '{{ rel.field_name[:-1] }}_ids'{% if not loop.last %}, {% endif %}
+                {%- endfor %}
+            })
+            {%- else %}
+            update_dict = update_data.model_dump(exclude_unset=True, exclude={'id'})
+            {%- endif %}
+            
+            for key, value in update_dict.items():
+                setattr(record, key, value)
+            
+            {%- if has_relations %}
+            # 更新关联关系
+            {%- for rel in relationships %}
+            if update_data.{{ rel.field_name[:-1] }}_ids is not None:
+                items = session.exec(select({{ rel.target_model }}).where({{ rel.target_model }}.id.in_(update_data.{{ rel.field_name[:-1] }}_ids))).all()
+                record.{{ rel.field_name }} = items
+            {%- endfor %}
+            {%- endif %}
+        
+            session.commit()
+            return respModel.ok_resp(msg="修改成功")
+        else:
+            return respModel.error_resp(msg="数据不存在")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
+
+
+@module_route.delete("/delete", dependencies=[Depends(check_permission(f"{module_name}:remove"))])
+def delete(id: int = Query(..., description="主键ID"), session: Session = Depends(get_session)):
+    """删除{{ table_comment or function_name }}"""
+    try:
+        statement = select(module_model).where(module_model.id == id)
+        record = session.exec(statement).first()
+        if record:
+            session.delete(record)
+            session.commit()
+            return respModel.ok_resp(msg="删除成功")
+        else:
+            return respModel.error_resp(msg="数据不存在")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(msg=f"服务器错误,删除失败：{e}")
+
+
+@module_route.delete("/batchDelete", dependencies=[Depends(check_permission(f"{module_name}:remove"))])
+def batchDelete(ids: List[int] = Query(..., description="主键ID列表"), session: Session = Depends(get_session)):
+    """批量删除{{ table_comment or function_name }}"""
+    try:
+        {%- set pk_field = columns | selectattr('is_pk', 'equalto', '1') | list | first %}
+        {%- if pk_field %}
+        statement = select(module_model).where(module_model.{{ pk_field.python_field }}.in_(ids))
+        {%- endif %}
+        records = session.exec(statement).all()
+        
+        for record in records:
+            session.delete(record)
+        
+        session.commit()
+        return respModel.ok_resp_text(msg=f"成功删除{len(records)}条记录")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"批量删除失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")

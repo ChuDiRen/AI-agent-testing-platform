@@ -1,0 +1,33 @@
+# -*- coding: utf-8 -*-
+"""{{ table_comment or class_name }}数据模型"""
+from sqlmodel import SQLModel, Field{% if has_relations %}, Relationship{% endif %}
+from typing import Optional{% if has_relations %}, List, TYPE_CHECKING{% endif %}
+from datetime import datetime
+
+{%- if has_relations %}
+if TYPE_CHECKING:
+    {%- for rel in relationships %}
+    from .{{ rel.target_model }}Model import {{ rel.target_model }}
+    from .{{ rel.link_model }}Model import {{ rel.link_model }}
+    {%- endfor %}
+{%- endif %}
+
+class {{ class_name }}(SQLModel, table=True):
+    """{{ table_comment or class_name }}表模型"""
+    __tablename__ = "{{ table_name }}"
+{%- for column in columns %}
+    {%- if column.is_pk == "1" %}
+    {{ column.python_field }}: Optional[{{ column.python_type }}] = Field(default=None, primary_key=True{% if column.column_comment %}, description="{{ column.column_comment }}"{% endif %})  # {{ column.column_comment or column.column_name }}
+    {%- elif column.is_required == "1" %}
+    {{ column.python_field }}: {{ column.python_type }} = Field(description="{{ column.column_comment or column.column_name }}")  # {{ column.column_comment or column.column_name }}
+    {%- else %}
+    {{ column.python_field }}: Optional[{{ column.python_type }}] = Field(default=None{% if column.column_comment %}, description="{{ column.column_comment }}"{% endif %})  # {{ column.column_comment or column.column_name }}
+    {%- endif %}
+{%- endfor %}
+
+{%- if has_relations %}
+    # 关联关系
+    {%- for rel in relationships %}
+    {{ rel.field_name }}: List["{{ rel.target_model }}"] = Relationship(back_populates="{{ rel.back_populates }}", link_model={{ rel.link_model }})
+    {%- endfor %}
+{%- endif %}

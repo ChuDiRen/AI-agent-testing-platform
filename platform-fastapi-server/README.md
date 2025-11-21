@@ -48,6 +48,29 @@ platform-fastapi-server/
 │       ├── RoleController.py
 │       ├── MenuController.py
 │       └── DeptController.py
+├── generator/            # ⭐ 代码生成器模块 (新增)
+│   ├── model/           # 数据模型
+│   │   ├── GenTable.py           # 表配置模型
+│   │   ├── GenTableColumn.py     # 字段配置模型
+│   │   └── GenHistory.py         # 生成历史模型
+│   ├── api/             # API控制器
+│   │   ├── GeneratorController.py   # 代码生成控制器
+│   │   └── GenTableController.py    # 表配置管理控制器
+│   ├── service/         # 业务服务
+│   │   ├── DbMetaService.py         # 数据库元数据解析
+│   │   ├── ASTCodeGenerator.py      # 基于AST的代码生成器
+│   │   └── TemplateManager.py       # 模板管理器
+│   ├── templates/       # 代码模板
+│   │   ├── model.jinja2             # Model层模板
+│   │   ├── schema.jinja2            # Schema层模板
+│   │   ├── controller.jinja2        # Controller层模板
+│   │   └── README.jinja2            # README模板
+│   ├── tests/           # 测试文件
+│   │   ├── init_test_database.py    # 数据库初始化
+│   │   └── test_final_validation.py # 完整功能验证
+│   ├── GENERATOR_GUIDE.md           # 使用指南
+│   ├── QUICK_TEST.md                # 快速测试指南
+│   └── TEST_VALIDATION_REPORT.md    # 测试验证报告
 ├── apitest/              # API测试模块
 │   ├── model/            # 数据模型
 │   │   ├── ApiProjectModel.py
@@ -473,6 +496,182 @@ uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
 - 10个主流AI模型配置（需配置API Key）
 - 4个提示词模板（开箱即用）
 - AI功能菜单权限
+
+详见: [QUICK_START_AI_TESTCASE.md](QUICK_START_AI_TESTCASE.md)
+
+## 代码生成器 ⭐新增
+
+### 10. 代码生成器模块
+
+基于AST的智能代码生成器,支持数据库表反向工程,快速生成高质量CRUD代码。
+
+#### 10.1 核心特性
+
+**✅ 智能分析**:
+- 数据库表结构自动解析(MySQL/SQLite)
+- 字段类型智能映射(数据库类型→Python类型)
+- 外键关联关系识别
+- 主键、索引、注释自动提取
+
+**✅ 高质量代码生成**:
+- 基于AST生成规范的Python代码
+- SQLModel数据模型(完整字段定义)
+- Pydantic Schema(查询/创建/更新模型)
+- FastAPI控制器(完整CRUD接口)
+- 代码格式化与类型注解
+
+**✅ 灵活配置**:
+- 自定义类名、模块名、业务名
+- 字段级别配置(是否查询、是否编辑等)
+- 查询方式配置(等于/模糊/范围)
+- 生成路径自定义
+
+**✅ 多种生成方式**:
+- 代码预览(实时查看生成效果)
+- ZIP压缩包下载(包含README)
+- 批量生成(一键生成多表)
+- 生成历史追溯
+
+#### 10.2 表配置管理
+
+- `GET /GenTable/dbTables` - 获取数据库表列表(可导入的表)
+- `POST /GenTable/importTables` - 批量导入表配置
+- `POST /GenTable/queryByPage` - 分页查询表配置
+- `GET /GenTable/queryById` - 根据ID查询表配置(含字段)
+- `PUT /GenTable/update` - 更新表配置
+- `DELETE /GenTable/delete` - 删除表配置
+
+#### 10.3 代码生成
+
+- `POST /Generator/preview` - 预览生成代码
+- `POST /Generator/download` - 下载生成代码(ZIP)
+- `POST /Generator/batchDownload` - 批量下载代码
+- `GET /Generator/history` - 获取生成历史记录
+
+#### 10.4 使用流程
+
+1. **导入表配置**:
+   ```bash
+   # 获取数据库表列表
+   GET /GenTable/dbTables
+   
+   # 批量导入表
+   POST /GenTable/importTables
+   {
+     "table_names": ["t_user", "t_role"]
+   }
+   ```
+
+2. **配置表信息**(可选):
+   ```bash
+   # 修改类名、模块名等配置
+   PUT /GenTable/update
+   {
+     "id": 1,
+     "class_name": "User",
+     "module_name": "sysmanage",
+     "business_name": "user",
+     "function_name": "用户管理"
+   }
+   ```
+
+3. **预览代码**:
+   ```bash
+   POST /Generator/preview
+   {
+     "table_id": 1
+   }
+   ```
+
+4. **下载代码**:
+   ```bash
+   POST /Generator/download
+   {
+     "table_id": 1,
+     "gen_type": "1"
+   }
+   ```
+
+5. **集成到项目**:
+   - 解压下载的ZIP文件
+   - 复制文件到对应模块目录
+   - 在`app.py`中注册路由
+   - 重启应用即可使用
+
+#### 10.5 生成的代码结构
+
+```
+{module_name}/
+├── model/
+│   └── {ClassName}.py          # SQLModel数据模型
+├── schemas/
+│   └── {business_name}_schema.py  # Pydantic Schema
+└── api/
+    └── {ClassName}Controller.py   # FastAPI控制器
+```
+
+#### 10.6 代码示例
+
+**生成的Model**:
+```python
+from sqlmodel import SQLModel, Field
+from typing import Optional
+from datetime import datetime
+
+class User(SQLModel, table=True):
+    __tablename__ = "t_user"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    username: str = Field(max_length=64)
+    password: str = Field(max_length=128)
+    email: Optional[str] = Field(default=None, max_length=100)
+    create_time: Optional[datetime] = Field(default_factory=datetime.now)
+```
+
+**生成的Controller**:
+```python
+@module_route.post("/queryByPage")
+def queryByPage(query: UserQuery, session: Session = Depends(get_session)):
+    # 完整的分页查询实现
+    ...
+
+@module_route.get("/queryById")
+def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+    # 根据ID查询实现
+    ...
+```
+
+#### 10.7 权限控制
+
+代码生成器模块已集成RBAC权限控制:
+
+- `generator:table:list` - 查看表配置列表
+- `generator:table:query` - 查询表配置详情
+- `generator:table:import` - 导入表配置
+- `generator:table:edit` - 修改表配置
+- `generator:table:delete` - 删除表配置
+- `generator:code:generate` - 生成代码
+- `generator:code:preview` - 预览代码
+- `generator:code:download` - 下载代码
+- `generator:code:batch` - 批量生成
+- `generator:history:list` - 查看生成历史
+- `generator:history:query` - 查询历史详情
+
+**默认权限分配**:
+- 超级管理员:所有权限
+- 管理员:所有代码生成器权限
+- 普通用户:无权限(需单独授权)
+
+#### 10.8 技术亮点
+
+- ✅ 基于AST确保代码质量和规范性
+- ✅ 智能类型映射(支持datetime/int/float/str等)
+- ✅ 驼峰命名自动转换
+- ✅ 完整的字段注释和文档
+- ✅ 支持复杂查询条件(模糊查询/范围查询)
+- ✅ 代码生成历史记录
+- ✅ 批量生成提升效率
+- ✅ ZIP压缩包包含README使用说明
 
 详见: [QUICK_START_AI_TESTCASE.md](QUICK_START_AI_TESTCASE.md)
 
