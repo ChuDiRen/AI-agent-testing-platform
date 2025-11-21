@@ -7,10 +7,12 @@ from pathlib import Path
 
 from langchain.agents import create_agent
 from langchain.agents.middleware import HumanInTheLoopMiddleware
+from langgraph.checkpoint.sqlite import SqliteSaver  # SQLite短期记忆
+from langgraph.store.sqlite import SqliteStore  # SQLite长期记忆
 
-# 添加父目录到路径，以便导入自定义工具
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import init_chat_model  # 使用自定义的init_chat_model（支持硅基流动）
+# 添加当前目录到路径,以便导入自定义工具
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from utils import init_chat_model  # 使用自定义的init_chat_model(支持硅基流动)
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_community.utilities import SQLDatabase
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -79,6 +81,49 @@ system_prompt = """
 _chart_tools_cache = None
 _agent_cache = None
 _agent_hitl_cache = None
+_checkpointer_cache = None  # SQLite短期记忆缓存
+_store_cache = None  # 长期记忆存储缓存
+
+# 统一的记忆数据库路径
+MEMORY_DB_PATH = Path(__file__).parent / "agent_memory.db"
+
+def _get_checkpointer():
+    """获取SQLite短期记忆(带缓存)"""
+    global _checkpointer_cache
+    if _checkpointer_cache is None:
+        _checkpointer_cache = SqliteSaver.from_conn_string(str(MEMORY_DB_PATH))
+        
+        # 检查表是否已存在,不存在才初始化
+        with sqlite3.connect(MEMORY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            tables = cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'checkpoints%'"
+            ).fetchall()
+            if not tables:
+                _checkpointer_cache.setup()  # 自动创建表
+                print(f"[成功] SQLite短期记忆表已创建: {MEMORY_DB_PATH}")
+            else:
+                print(f"[成功] SQLite短期记忆表已存在,跳过初始化: {MEMORY_DB_PATH}")
+    return _checkpointer_cache
+
+def _get_store():
+    """获取SQLite长期记忆存储(带缓存)"""
+    global _store_cache
+    if _store_cache is None:
+        _store_cache = SqliteStore.from_conn_string(str(MEMORY_DB_PATH))
+        
+        # 检查表是否已存在,不存在才初始化
+        with sqlite3.connect(MEMORY_DB_PATH) as conn:
+            cursor = conn.cursor()
+            tables = cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'store%'"
+            ).fetchall()
+            if not tables:
+                _store_cache.setup()  # 自动创建表
+                print(f"[成功] SQLite长期记忆表已创建: {MEMORY_DB_PATH}")
+            else:
+                print(f"[成功] SQLite长期记忆表已存在,跳过初始化: {MEMORY_DB_PATH}")
+    return _store_cache
 
 async def _get_chart_tools():
     """获取MCP图表工具(带缓存, 异步安全)"""
@@ -104,7 +149,7 @@ async def _get_chart_tools():
 async def _get_agent():
     """获取完整agent(带缓存, 首次调用时加载MCP工具)
     
-    注意：checkpointer 和 store 由 langgraph.json 配置，LangGraph 服务器自动注入
+    配置短期记忆(checkpointer)和长期记忆(store)
     """
     global _agent_cache
     if _agent_cache is None:
@@ -113,6 +158,8 @@ async def _get_agent():
             model,
             all_tools,
             system_prompt=system_prompt,
+            checkpointer=_get_checkpointer(),  # SQLite短期记忆
+            store=_get_store(),  # 长期记忆存储
         )
     return _agent_cache
 
@@ -125,7 +172,7 @@ async def agent_old():
 async def _get_agent_hitl():
     """获取带人工审核的agent
     
-    注意：checkpointer 和 store 由 langgraph.json 配置，LangGraph 服务器自动注入
+    配置短期记忆(checkpointer)和长期记忆(store)
     """
     global _agent_hitl_cache
     if _agent_hitl_cache is None:
@@ -134,6 +181,8 @@ async def _get_agent_hitl():
             model,
             all_tools,
             system_prompt=system_prompt,
+            checkpointer=_get_checkpointer(),  # SQLite短期记忆
+            store=_get_store(),  # 长期记忆存储
             middleware=[
                 HumanInTheLoopMiddleware(
                     interrupt_on={"sql_db_query": True},
