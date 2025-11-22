@@ -1,17 +1,37 @@
 """依赖注入函数"""
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request, Cookie
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlmodel import Session
-from typing import Generator
+from typing import Generator, Optional
 from .database import get_session
 from .JwtUtil import JwtUtils
 from .MinioUtils import MinioUtils
 from config.dev_settings import settings
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict: # JWT认证依赖
-    token = credentials.credentials
+def get_current_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    l_token: Optional[str] = Cookie(None, alias="l-token")
+) -> dict: # JWT认证依赖
+    token = None
+    
+    # 1. 尝试从 Authorization Header 获取
+    if credentials:
+        token = credentials.credentials
+    
+    # 2. 尝试从 Cookie 获取
+    if not token and l_token:
+        token = l_token
+        
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="未提供认证凭证",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     payload = JwtUtils.verify_token(token)
     if payload is None:
         raise HTTPException(

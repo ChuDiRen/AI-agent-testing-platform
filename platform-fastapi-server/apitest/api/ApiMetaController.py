@@ -7,6 +7,7 @@ from core.logger import get_logger
 from ..model.ApiMetaModel import ApiMeta
 from ..schemas.api_meta_schema import ApiMetaQuery, ApiMetaUpdate
 from core.database import get_session
+from core.dependencies import check_permission
 from core.dependencies import get_minio_client
 from core.MinioUtils import MinioUtils
 from core.time_utils import TimeFormatter
@@ -18,7 +19,7 @@ module_model = ApiMeta
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API元数据管理"])
 logger = get_logger(__name__)
 
-@module_route.get("/queryAll") # 查询所有元数据
+@module_route.get("/queryAll", dependencies=[Depends(check_permission("apitest:meta:query"))]) # 查询所有元数据
 def queryAll(session: Session = Depends(get_session)):
     statement = select(module_model)
     datas = session.exec(statement).all()
@@ -71,7 +72,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/insert") # 上传文件并新增元数据
+@module_route.post("/insert", dependencies=[Depends(check_permission("apitest:meta:add"))]) # 上传文件并新增元数据
 async def insert(
     file: UploadFile = File(...),
     project_id: int = Form(0),
@@ -103,7 +104,7 @@ async def insert(
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"文件上传失败:{e}")
 
-@module_route.put("/update") # 更新元数据
+@module_route.put("/update", dependencies=[Depends(check_permission("apitest:meta:edit"))]) # 更新元数据
 def update(meta: ApiMetaUpdate, session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == meta.id)
@@ -121,7 +122,7 @@ def update(meta: ApiMetaUpdate, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
-@module_route.delete("/delete") # 删除元数据
+@module_route.delete("/delete", dependencies=[Depends(check_permission("apitest:meta:delete"))]) # 删除元数据
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
@@ -137,7 +138,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"服务器错误,删除失败：{e}")
 
-@module_route.get("/downloadFile") # 获取文件下载地址
+@module_route.get("/downloadFile", dependencies=[Depends(check_permission("apitest:meta:download"))]) # 获取文件下载地址
 def downloadFile(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)

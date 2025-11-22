@@ -8,6 +8,7 @@ from core.logger import get_logger
 from ..model.ApiKeyWordModel import ApiKeyWord
 from ..schemas.api_keyword_schema import ApiKeyWordQuery, ApiKeyWordCreate, ApiKeyWordUpdate, KeywordFileRequest
 from core.database import get_session
+from core.dependencies import check_permission
 from core.time_utils import TimeFormatter
 from config.dev_settings import settings
 from datetime import datetime
@@ -17,7 +18,7 @@ module_model = ApiKeyWord
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API关键字管理"])
 logger = get_logger(__name__)
 
-@module_route.get("/queryAll") # 查询所有关键字
+@module_route.get("/queryAll", dependencies=[Depends(check_permission("apitest:keyword:query"))]) # 查询所有关键字
 def queryAll(session: Session = Depends(get_session)):
     statement = select(module_model)
     datas = session.exec(statement).all()
@@ -65,7 +66,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/insert") # 新增关键字
+@module_route.post("/insert", dependencies=[Depends(check_permission("apitest:keyword:add"))]) # 新增关键字
 def insert(keyword: ApiKeyWordCreate, session: Session = Depends(get_session)):
     try:
         # 检查关键字方法名是否重复
@@ -83,7 +84,7 @@ def insert(keyword: ApiKeyWordCreate, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"添加失败:{e}")
 
-@module_route.put("/update") # 更新关键字
+@module_route.put("/update", dependencies=[Depends(check_permission("apitest:keyword:edit"))]) # 更新关键字
 def update(keyword: ApiKeyWordUpdate, session: Session = Depends(get_session)):
     try:
         # 检查关键字方法名是否与其他记录重复
@@ -107,7 +108,7 @@ def update(keyword: ApiKeyWordUpdate, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
-@module_route.delete("/delete") # 删除关键字
+@module_route.delete("/delete", dependencies=[Depends(check_permission("apitest:keyword:delete"))]) # 删除关键字
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
@@ -123,7 +124,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"服务器错误,删除失败：{e}")
 
-@module_route.post("/keywordFile") # 生成关键字文件
+@module_route.post("/keywordFile", dependencies=[Depends(check_permission("apitest:keyword:generate"))]) # 生成关键字文件
 def keywordFile(request: KeywordFileRequest):
     try:
         file_name = request.keyword_fun_name

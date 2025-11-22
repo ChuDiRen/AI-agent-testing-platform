@@ -4,6 +4,7 @@ from core.resp_model import respModel
 from ..model.ApiInfoModel import ApiInfo
 from ..schemas.api_info_schema import ApiInfoQuery, ApiInfoCreate, ApiInfoUpdate
 from core.database import get_session
+from core.dependencies import check_permission
 from core.time_utils import TimeFormatter
 from datetime import datetime
 from core.logger import get_logger
@@ -15,7 +16,7 @@ module_model = ApiInfo
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API接口信息管理"])
 logger = get_logger(__name__)
 
-@module_route.post("/queryByPage") # 分页查询API接口信息
+@module_route.post("/queryByPage", dependencies=[Depends(check_permission("apitest:api:query"))]) # 分页查询API接口信息
 def queryByPage(query: ApiInfoQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
@@ -60,7 +61,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/insert") # 新增API接口信息
+@module_route.post("/insert", dependencies=[Depends(check_permission("apitest:api:add"))]) # 新增API接口信息
 def insert(api_info: ApiInfoCreate, session: Session = Depends(get_session)):
     try:
         data = module_model(**api_info.model_dump(), create_time=datetime.now())
@@ -72,7 +73,7 @@ def insert(api_info: ApiInfoCreate, session: Session = Depends(get_session)):
         session.rollback()
         return respModel.error_resp(msg=f"添加失败:{e}")
 
-@module_route.put("/update") # 更新API接口信息
+@module_route.put("/update", dependencies=[Depends(check_permission("apitest:api:edit"))]) # 更新API接口信息
 def update(api_info: ApiInfoUpdate, session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, api_info.id)
@@ -93,7 +94,7 @@ def update(api_info: ApiInfoUpdate, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.delete("/delete") # 删除API接口信息
+@module_route.delete("/delete", dependencies=[Depends(check_permission("apitest:api:delete"))]) # 删除API接口信息
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, id)

@@ -3,8 +3,9 @@ from sqlmodel import Session, select
 from core.resp_model import respModel
 from core.logger import get_logger
 from ..model.ApiDbBaseModel import ApiDbBase
-from ..schemas.api_database_schema import ApiDbBaseQuery, ApiDbBaseCreate, ApiDbBaseUpdate
+from ..schemas.api_dbbase_schema import ApiDbBaseQuery, ApiDbBaseCreate, ApiDbBaseUpdate
 from core.database import get_session
+from core.dependencies import check_permission
 from core.time_utils import TimeFormatter
 from datetime import datetime
 
@@ -14,7 +15,7 @@ module_model = ApiDbBase
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API数据库配置管理"])
 logger = get_logger(__name__)
 
-@module_route.post("/queryByPage") # 分页查询API数据库配置
+@module_route.post("/queryByPage", dependencies=[Depends(check_permission("apitest:database:query"))]) # 分页查询API数据库配置
 def queryByPage(query: ApiDbBaseQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
@@ -51,7 +52,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/insert") # 新增API数据库配置
+@module_route.post("/insert", dependencies=[Depends(check_permission("apitest:database:add"))]) # 新增API数据库配置
 def insert(db_config: ApiDbBaseCreate, session: Session = Depends(get_session)):
     try:
         # 检查引用名称是否重复
@@ -69,7 +70,7 @@ def insert(db_config: ApiDbBaseCreate, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"添加失败:{e}")
 
-@module_route.put("/update") # 更新API数据库配置
+@module_route.put("/update", dependencies=[Depends(check_permission("apitest:database:edit"))]) # 更新API数据库配置
 def update(db_config: ApiDbBaseUpdate, session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == db_config.id)
@@ -87,7 +88,7 @@ def update(db_config: ApiDbBaseUpdate, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
-@module_route.delete("/delete") # 删除API数据库配置
+@module_route.delete("/delete", dependencies=[Depends(check_permission("apitest:database:delete"))]) # 删除API数据库配置
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)

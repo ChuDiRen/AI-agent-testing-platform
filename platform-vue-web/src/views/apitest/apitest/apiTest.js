@@ -3,23 +3,6 @@ import axios from '~/axios'
 // 模块名 - 和后台对应
 const module_name = "ApiTest"
 
-// ==================== 标准 CRUD 接口 ====================
-
-// 分页查询测试历史
-export function queryByPage(data) {
-    return axios.post(`/${module_name}/queryByPage`, data)
-}
-
-// 根据ID查询测试历史
-export function queryById(id) {
-    return axios.get(`/${module_name}/queryById?id=${id}`)
-}
-
-// 删除测试历史
-export function deleteData(id) {
-    return axios.delete(`/${module_name}/delete?id=${id}`)
-}
-
 // ==================== 测试执行相关接口 ====================
 
 /**
@@ -48,8 +31,6 @@ export function getTestStatus(testId) {
         params: { test_id: testId }
     })
 }
-
-// ==================== 高级功能 ====================
 
 /**
  * 轮询查询测试状态
@@ -231,4 +212,3 @@ export async function checkEngineAvailable() {
         return false
     }
 }
-

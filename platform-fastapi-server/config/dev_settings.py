@@ -33,6 +33,24 @@ class Settings(BaseSettings): # 开发环境配置
     # 关键字文件目录
     KEY_WORDS_DIR: str = "./keywords"
     
+    # RabbitMQ配置
+    RABBITMQ_HOST: str = "localhost"
+    RABBITMQ_PORT: int = 5672
+    RABBITMQ_USER: str = "guest"
+    RABBITMQ_PASSWORD: str = "guest"
+    
+    # WebSocket配置
+    WEBSOCKET_PING_INTERVAL: int = 30  # WebSocket心跳间隔（秒）
+    WEBSOCKET_PING_TIMEOUT: int = 10   # WebSocket超时时间（秒）
+    
+    # API测试配置
+    APITEST_EXECUTION_TIMEOUT: int = 300  # 测试执行超时时间（秒）
+    APITEST_MAX_CONCURRENT_TESTS: int = 10  # 最大并发测试数
+    
+    # 消息推送配置
+    ROBOT_RETRY_COUNT: int = 3  # 消息推送重试次数
+    ROBOT_TIMEOUT: int = 10  # 消息推送超时时间（秒）
+    
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str: # 根据DB_TYPE自动生成数据库连接URI
         if self.DB_TYPE.lower() == "mysql":

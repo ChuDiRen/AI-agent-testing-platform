@@ -32,6 +32,24 @@ class Settings(BaseSettings): # 生产环境配置
     # 关键字文件目录
     KEY_WORDS_DIR: str = "./keywords"
     
+    # RabbitMQ配置
+    RABBITMQ_HOST: str = "rabbitmq.example.com"
+    RABBITMQ_PORT: int = 5672
+    RABBITMQ_USER: str = "production-user"
+    RABBITMQ_PASSWORD: str = "production-password"
+    
+    # WebSocket配置
+    WEBSOCKET_PING_INTERVAL: int = 30
+    WEBSOCKET_PING_TIMEOUT: int = 10
+    
+    # API测试配置
+    APITEST_EXECUTION_TIMEOUT: int = 600  # 生产环境更长的超时时间
+    APITEST_MAX_CONCURRENT_TESTS: int = 20  # 生产环境支持更多并发
+    
+    # 消息推送配置
+    ROBOT_RETRY_COUNT: int = 3
+    ROBOT_TIMEOUT: int = 15
+    
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str: # 根据DB_TYPE自动生成数据库连接URI
         if self.DB_TYPE.lower() == "mysql":

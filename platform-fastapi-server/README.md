@@ -411,6 +411,53 @@ uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
 - `PUT /OperationType/update` - 更新操作类型
 - `DELETE /OperationType/delete` - 删除操作类型
 
+### 9. API测试完整模块 🆕
+
+#### 9.1 API接口管理
+- `POST /ApiInfo/queryByPage` - 分页查询接口
+- `GET /ApiInfo/queryById` - 根据ID查询接口
+- `POST /ApiInfo/insert` - 新增接口
+- `PUT /ApiInfo/update` - 更新接口
+- `DELETE /ApiInfo/delete` - 删除接口
+- `POST /ApiInfo/execute` - 执行单个接口测试
+
+#### 9.2 API用例管理
+- `POST /ApiInfoCase/queryByPage` - 分页查询用例
+- `GET /ApiInfoCase/queryById` - 根据ID查询用例
+- `POST /ApiInfoCase/insert` - 新增用例(含步骤)
+- `PUT /ApiInfoCase/update` - 更新用例(含步骤)
+- `DELETE /ApiInfoCase/delete` - 删除用例
+- `POST /ApiInfoCase/execute` - 执行测试用例
+- `POST /ApiInfoCase/generateYaml` - 生成YAML测试文件
+
+#### 9.3 API测试集合管理
+- `POST /ApiCollectionInfo/queryByPage` - 分页查询测试集合
+- `GET /ApiCollectionInfo/queryById` - 根据ID查询集合
+- `POST /ApiCollectionInfo/insert` - 新增测试集合
+- `PUT /ApiCollectionInfo/update` - 更新测试集合
+- `DELETE /ApiCollectionInfo/delete` - 删除测试集合
+- `POST /ApiCollectionInfo/addCase` - 添加用例到集合
+- `POST /ApiCollectionInfo/batchAddCases` - 批量添加用例
+- `DELETE /ApiCollectionInfo/removeCase` - 从集合移除用例
+- `POST /ApiCollectionInfo/executePlan` - 执行测试集合
+
+#### 9.4 API测试历史
+- `POST /ApiHistory/queryByPage` - 分页查询测试历史
+- `GET /ApiHistory/queryById` - 根据ID查询历史详情
+- `DELETE /ApiHistory/delete` - 删除测试历史
+
+#### 9.5 API测试报告查看器 🆕
+- `GET /ApiReportViewer/view` - 查看Allure测试报告(公开访问)
+- `GET /ApiReportViewer/download` - 下载测试报告压缩包(公开访问)
+- `GET /ApiReportViewer/list` - 列出所有可用报告(公开访问)
+
+**报告查看器特性**:
+- ✅ 支持多种访问方式(history_id/execution_uuid/report_path)
+- ✅ 路径遍历安全防护
+- ✅ 美化的404/500错误页面
+- ✅ 一键下载报告压缩包
+- ✅ 无需登录即可查看报告
+
 ### 9. AI测试助手 🆕🔥
 
 #### 9.1 AI模型管理
@@ -675,9 +722,48 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
 
 详见: [QUICK_START_AI_TESTCASE.md](QUICK_START_AI_TESTCASE.md)
 
-## 数据库迁移
+## 数据库初始化 🆕
+
+### 方式1: 自动初始化(推荐)
 
 首次启动时，应用会自动创建所有数据表。
+
+### 方式2: 使用CLI工具
+
+```bash
+# 初始化数据库(创建表+初始数据)
+python scripts/init_database.py init
+
+# 仅创建表结构
+python scripts/init_database.py create-tables
+
+# 仅初始化数据
+python scripts/init_database.py init-data
+
+# 重置数据库(危险操作)
+python scripts/init_database.py reset
+
+# 备份数据库
+python scripts/init_database.py backup
+
+# 恢复数据库
+python scripts/init_database.py restore backup_20231122.db
+
+# 查看数据库信息
+python scripts/init_database.py info
+```
+
+### 方式3: 使用SQL脚本
+
+```bash
+# SQLite
+sqlite3 data/ai_agent.db < scripts/migrations/001_init_sqlite.sql
+
+# MySQL
+mysql -u root -p platfrom_back < scripts/migrations/001_init_mysql.sql
+```
+
+详见: [scripts/README.md](scripts/README.md)
 
 ## 环境变量
 
@@ -709,6 +795,34 @@ MINIO_ACCESS_KEY=admin
 MINIO_SECRET_KEY=12345678
 MINIO_SECURE=False
 ```
+
+## 测试 🆕
+
+### 单元测试
+
+```bash
+# 运行所有测试
+pytest tests/ -v
+
+# 运行特定测试文件
+pytest tests/test_api_project_controller.py -v
+
+# 生成覆盖率报告
+pytest tests/ --cov=. --cov-report=html --cov-report=term
+
+# 使用测试脚本
+python run_tests.py
+python run_tests.py --coverage
+```
+
+**测试覆盖**:
+- ✅ 13个控制器单元测试(77个测试用例)
+- ✅ WebSocket集成测试(10个测试)
+- ✅ RabbitMQ集成测试(20个测试)
+- ✅ 总计107个测试用例
+- ✅ 核心业务80%+覆盖率
+
+详见: [tests/README.md](tests/README.md)
 
 ## 技术特性
 

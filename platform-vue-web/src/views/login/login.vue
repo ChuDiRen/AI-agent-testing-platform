@@ -110,6 +110,10 @@ const onSubmit = () => { // 提交登录表单
           if(res?.data?.data?.id){
             cookie.set('l-user-id', res.data.data.id)
           }
+          // 保存用户名到localStorage，用于权限检查
+          if(res?.data?.data?.username){
+            localStorage.setItem('username', res.data.data.username)
+          }
           // 保存用户信息到全局状态
           try {
             store.commit('setUserInfo', res.data.data)

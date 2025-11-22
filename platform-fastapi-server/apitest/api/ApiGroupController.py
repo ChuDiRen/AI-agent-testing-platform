@@ -4,6 +4,7 @@ from core.resp_model import respModel
 from ..model.ApiInfoGroupModel import ApiInfoGroup
 from ..schemas.api_group_schema import ApiGroupQuery, ApiGroupCreate, ApiGroupUpdate
 from core.database import get_session
+from core.dependencies import check_permission
 from core.time_utils import TimeFormatter
 from datetime import datetime
 from core.logger import get_logger
@@ -13,7 +14,7 @@ module_model = ApiInfoGroup
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API接口分组管理"])
 logger = get_logger(__name__)
 
-@module_route.post("/queryByPage")
+@module_route.post("/queryByPage", dependencies=[Depends(check_permission("apitest:group:query"))])
 def queryByPage(query: ApiGroupQuery, session: Session = Depends(get_session)):
     """分页查询接口分组"""
     try:
@@ -79,7 +80,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"根据ID查询分组失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/insert")
+@module_route.post("/insert", dependencies=[Depends(check_permission("apitest:group:add"))])
 def insert(request: ApiGroupCreate, session: Session = Depends(get_session)):
     """新增分组"""
     try:
@@ -93,7 +94,7 @@ def insert(request: ApiGroupCreate, session: Session = Depends(get_session)):
         logger.error(f"新增分组失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.put("/update")
+@module_route.put("/update", dependencies=[Depends(check_permission("apitest:group:edit"))])
 def update(request: ApiGroupUpdate, session: Session = Depends(get_session)):
     """更新分组"""
     try:
@@ -113,7 +114,7 @@ def update(request: ApiGroupUpdate, session: Session = Depends(get_session)):
         logger.error(f"更新分组失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.delete("/delete")
+@module_route.delete("/delete", dependencies=[Depends(check_permission("apitest:group:delete"))])
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除分组"""
     try:

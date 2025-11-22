@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时执行
+    consumer_threads = []
     try:
         logger.info("=" * 60)
         logger.info("AI Agent Testing Platform 启动中...")
@@ -27,10 +28,41 @@ async def lifespan(app: FastAPI):
         # 初始化数据
         init_data()
 
+        # 启动RabbitMQ消费者（后台线程）
+        try:
+            from core.TestExecutionConsumer import test_execution_consumer
+            from core.MessagePushConsumer import message_push_consumer
+            import threading
+            
+            # 启动测试执行消费者
+            test_thread = threading.Thread(
+                target=test_execution_consumer.start,
+                daemon=True,
+                name="TestExecutionConsumer"
+            )
+            test_thread.start()
+            consumer_threads.append(test_thread)
+            logger.info("✓ 测试执行消费者已启动")
+            
+            # 启动消息推送消费者
+            msg_thread = threading.Thread(
+                target=message_push_consumer.start,
+                daemon=True,
+                name="MessagePushConsumer"
+            )
+            msg_thread.start()
+            consumer_threads.append(msg_thread)
+            logger.info("✓ 消息推送消费者已启动")
+            
+        except Exception as e:
+            logger.warning(f"⚠ RabbitMQ消费者启动失败（需要RabbitMQ服务运行）: {e}")
+            logger.info("提示: 启动RabbitMQ服务: docker-compose up -d rabbitmq")
+
         logger.info("=" * 60)
         logger.info("🚀 应用启动完成！")
         logger.info("📖 API文档: http://localhost:8000/docs")
         logger.info("🔗 ReDoc文档: http://localhost:8000/redoc")
+        logger.info("🔌 WebSocket: ws://localhost:8000/ws/test-execution/{execution_id}")
         logger.info("=" * 60)
 
     except Exception as e:
@@ -46,6 +78,8 @@ async def lifespan(app: FastAPI):
     finally:
         # 关闭时执行清理工作
         logger.info("=" * 60)
+        logger.info("正在关闭RabbitMQ消费者...")
+        # 守护线程会自动随主进程退出
         logger.info("👋 应用已安全关闭")
         logger.info("=" * 60)
 
@@ -89,8 +123,9 @@ application.include_router(MenuController.module_route)
 from sysmanage.api import DeptController
 application.include_router(DeptController.module_route)
 
-from apitest.api import ApiProjectContoller
-application.include_router(ApiProjectContoller.module_route)
+# API测试模块路由
+from apitest.api import ApiProjectController
+application.include_router(ApiProjectController.module_route)
 
 from apitest.api import ApiDbBaseController
 application.include_router(ApiDbBaseController.module_route)
@@ -107,17 +142,33 @@ application.include_router(ApiMetaController.module_route)
 from apitest.api import ApiInfoController
 application.include_router(ApiInfoController.module_route)
 
+from apitest.api import ApiInfoCaseController
+application.include_router(ApiInfoCaseController.module_route)
+
+from apitest.api import ApiInfoCaseStepController
+application.include_router(ApiInfoCaseStepController.module_route)
+
+from apitest.api import ApiCollectionInfoController
+application.include_router(ApiCollectionInfoController.module_route)
+
+from apitest.api import ApiCollectionDetailController
+application.include_router(ApiCollectionDetailController.module_route)
+
+from apitest.api import ApiHistoryController
+application.include_router(ApiHistoryController.module_route)
+
 from apitest.api import ApiGroupController
 application.include_router(ApiGroupController.module_route)
 
-from apitest.api import ApiTestController
-application.include_router(ApiTestController.module_route)
+from apitest.api import ApiReportViewerController
+application.include_router(ApiReportViewerController.module_route)
 
-from apitest.api import ApiCaseController
-application.include_router(ApiCaseController.module_route)
+# 消息管理模块路由
+from msgmanage.api import RobotConfigController
+application.include_router(RobotConfigController.module_route)
 
-from apitest.api import ApiTestPlanController
-application.include_router(ApiTestPlanController.module_route)
+from msgmanage.api import RobotMsgConfigController
+application.include_router(RobotMsgConfigController.module_route)
 
 # 注册AI测试助手模块路由
 from aiassistant.api import AiConversationController, AiModelController, PromptTemplateController, TestCaseController
@@ -131,6 +182,24 @@ from generator.api import generator_route, gen_table_route
 application.include_router(generator_route)  # 代码生成器
 application.include_router(gen_table_route)  # 表配置管理
 
+# WebSocket路由 - 测试执行实时进度推送
+from fastapi import WebSocket, WebSocketDisconnect
+from core.WebSocketManager import manager as ws_manager
+
+@application.websocket("/ws/test-execution/{execution_id}")
+async def websocket_test_execution(websocket: WebSocket, execution_id: str):
+    """WebSocket端点：测试执行实时进度"""
+    await ws_manager.connect(execution_id, websocket)
+    try:
+        while True:
+            # 保持连接，接收客户端心跳
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        ws_manager.disconnect(execution_id, websocket)
+        logger.info(f"WebSocket disconnected: {execution_id}")
+
 # 移除旧的 on_event 装饰器，已使用 lifespan 替代
 
 @application.get("/", tags=["根路径"]) # 根路径接口
@@ -138,6 +207,6 @@ def root():
     return {
         "message": "AI Agent Testing Platform API",
         "version": "2.0.0",
-        "docs": "/docs"
+        "docs": "/docs",
+        "websocket": "/ws/test-execution/{execution_id}"
     }
-

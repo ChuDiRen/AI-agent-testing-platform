@@ -105,6 +105,8 @@ const StreamSession = ({
 
   const { t } = useI18n();
 
+  // 暂时禁用连接检查，避免控制台报错
+  /*
   useEffect(() => {
     checkGraphStatus(apiUrl, apiKey).then((ok) => {
       if (!ok) {
@@ -121,6 +123,7 @@ const StreamSession = ({
       }
     });
   }, [apiKey, apiUrl, t]);
+  */
 
   return (
     <StreamContext.Provider value={streamValue}>

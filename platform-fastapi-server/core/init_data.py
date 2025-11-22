@@ -153,31 +153,6 @@ def create_initial_menus():
                 {"id": 2014, "parent_id": 201, "menu_name": "接口删除", "path": None, "component": None, "query": None, "perms": "apitest:apiinfo:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
                 # 2.3 接口分组管理（菜单 C）
-                
-                # ================================
-                # 代码生成器模块 ⭐新增
-                # ================================
-                # 3. 代码生成器（目录 M）
-                {\"id\": 300, \"parent_id\": 0, \"menu_name\": \"代码生成器\", \"path\": \"/generator\", \"component\": None, \"query\": None, \"perms\": None, \"icon\": \"Edit\", \"menu_type\": \"M\", \"visible\": \"0\", \"status\": \"0\", \"is_cache\": \"0\", \"is_frame\": \"1\", \"order_num\": 3, \"remark\": \"代码生成器模块\"},
-
-                # 3.1 表配置管理（菜单 C）
-                {\"id\": 3000, \"parent_id\": 300, \"menu_name\": \"表配置\", \"path\": \"/generator/table\", \"component\": \"GenTableList\", \"query\": None, \"perms\": \"generator:table:list\", \"icon\": \"Tickets\", \"menu_type\": \"C\", \"visible\": \"0\", \"status\": \"0\", \"is_cache\": \"0\", \"is_frame\": \"1\", \"order_num\": 1, \"remark\": \"表配置管理\"},
-                {\"id\": 3001, \"parent_id\": 3000, \"menu_name\": \"表配置查询\", \"path\": None, \"component\": None, \"query\": None, \"perms\": \"generator:table:query\", \"icon\": None, \"menu_type\": \"F\", \"visible\": \"0\", \"status\": \"0\", \"is_cache\": \"0\", \"is_frame\": \"1\", \"order_num\": 1, \"remark\": None},
-                {\"id\": 3002, \"parent_id\": 3000, \"menu_name\": \"导入表\", \"path\": None, \"component\": None, \"query\": None, \"perms\": \"generator:table:import\", \"icon\": None, \"menu_type\": \"F\", \"visible\": \"0\", \"status\": \"0\", \"is_cache\": \"0\", \"is_frame\": \"1\", \"order_num\": 2, \"remark\": None},
-                {\"id\": 3003, \"parent_id\": 3000, \"menu_name\": \"表配置修改\", \"path\": None, \"component\": None, \"query\": None, \"perms\": \"generator:table:edit\", \"icon\": None, \"menu_type\": \"F\", \"visible\": \"0\", \"status\": \"0\", \"is_cache\": \"0\", \"is_frame\": \"1\", \"order_num\": 3, \"remark\": None},
-                {\"id\": 3004, \"parent_id\": 3000, \"menu_name\": \"表配置删除\", \"path\": None, \"component\": None, \"query\": None, \"perms\": \"generator:table:delete\", \"icon\": None, \"menu_type\": \"F\", \"visible\": \"0\", \"status\": \"0\", \"is_cache\": \"0\", \"is_frame\": \"1\", \"order_num\": 4, \"remark\": None},
-
-                # 3.2 代码生成（菜单 C）
-                {\"id\": 3100, \"parent_id\": 300, \"menu_name\": \"代码生成\", \"path\": \"/generator/code\", \"component\": \"GeneratorCode\", \"query\": None, \"perms\": \"generator:code:generate\", \"icon\": \"Cpu\", \"menu_type\": \"C\", \"visible\": \"0\", \"status\": \"0\", \"is_cache\": \"0\", \"is_frame\": \"1\", \"order_num\": 2, \"remark\": \"代码生成\"},
-                {\"id\": 3101, \"parent_id\": 3100, \"menu_name\": \"预览代码\", \"path\": None, \"component\": None, \"query\": None, \"perms\": \"generator:code:preview\", \"icon\": None, \"menu_type\": \"F\", \"visible\": \"0\", \"status\": \"0\", \"is_cache\": \"0\", \"is_frame\": \"1\", \"order_num\": 1, \"remark\": None},
-                {\"id\": 3102, \"parent_id\": 3100, \"menu_name\": \"下载代码\", \"path\": None, \"component\": None, \"query\": None, \"perms\": \"generator:code:download\", \"icon\": None, \"menu_type\": \"F\", \"visible\": \"0\", \"status\": \"0\", \"is_cache\": \"0\", \"is_frame\": \"1\", \"order_num\": 2, \"remark\": None},
-                {\"id\": 3103, \"parent_id\": 3100, \"menu_name\": \"批量生成\", \"path\": None, \"component\": None, \"query\": None, \"perms\": \"generator:code:batch\", \"icon\": None, \"menu_type\": \"F\", \"visible\": \"0\", \"status\": \"0\", \"is_cache\": \"0\", \"is_frame\": \"1\", \"order_num\": 3, \"remark\": None},
-
-                # 3.3 生成历史（菜单 C）
-                {\"id\": 3200, \"parent_id\": 300, \"menu_name\": \"生成历史\", \"path\": \"/generator/history\", \"component\": \"GenHistory\", \"query\": None, \"perms\": \"generator:history:list\", \"icon\": \"DocumentCopy\", \"menu_type\": \"C\", \"visible\": \"0\", \"status\": \"0\", \"is_cache\": \"0\", \"is_frame\": \"1\", \"order_num\": 3, \"remark\": \"生成历史记录\"},
-                {\"id\": 3201, \"parent_id\": 3200, \"menu_name\": \"历史查询\", \"path\": None, \"component\": None, \"query\": None, \"perms\": \"generator:history:query\", \"icon\": None, \"menu_type\": \"F\", \"visible\": \"0\", \"status\": \"0\", \"is_cache\": \"0\", \"is_frame\": \"1\", \"order_num\": 1, \"remark\": None},
-                
-                # 2.3 接口分组管理（菜单 C）
                 {"id": 202, "parent_id": 200, "menu_name": "接口分组", "path": "/apitest/apigroup", "component": "ApiGroupList", "query": None, "perms": "apitest:apigroup:list", "icon": "DocumentCopy", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "接口分组管理"},
                 {"id": 2021, "parent_id": 202, "menu_name": "分组查询", "path": None, "component": None, "query": None, "perms": "apitest:apigroup:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 2022, "parent_id": 202, "menu_name": "分组新增", "path": None, "component": None, "query": None, "perms": "apitest:apigroup:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
@@ -256,18 +231,42 @@ def create_initial_menus():
                 {"id": 400, "parent_id": 0, "menu_name": "代码生成", "path": "/generator", "component": None, "query": None, "perms": None, "icon": "Document", "menu_type": "M", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": "代码生成器模块"},
 
                 # 4.1 表配置管理（菜单 C）
-                {"id": 401, "parent_id": 400, "menu_name": "表配置", "path": "/generator/table", "component": "generator-table", "query": None, "perms": "generator:table:list", "icon": "Grid", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "代码生成器表配置管理"},
+                {"id": 401, "parent_id": 400, "menu_name": "表配置", "path": "/generator/table", "component": "GenTableList", "query": None, "perms": "generator:table:list", "icon": "Grid", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "代码生成器表配置管理"},
                 {"id": 4011, "parent_id": 401, "menu_name": "表配置查询", "path": None, "component": None, "query": None, "perms": "generator:table:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 4012, "parent_id": 401, "menu_name": "导入表", "path": None, "component": None, "query": None, "perms": "generator:table:import", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 4013, "parent_id": 401, "menu_name": "表配置修改", "path": None, "component": None, "query": None, "perms": "generator:table:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 4014, "parent_id": 401, "menu_name": "表配置删除", "path": None, "component": None, "query": None, "perms": "generator:table:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
                 # 4.2 代码生成（菜单 C）
-                {"id": 402, "parent_id": 400, "menu_name": "代码生成", "path": "/generator/code", "component": "generator-code", "query": None, "perms": "generator:code:list", "icon": "EditPen", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": "代码生成器"},
+                {"id": 402, "parent_id": 400, "menu_name": "代码生成", "path": "/generator/code", "component": "GeneratorCode", "query": None, "perms": "generator:code:list", "icon": "EditPen", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": "代码生成器"},
                 {"id": 4021, "parent_id": 402, "menu_name": "代码预览", "path": None, "component": None, "query": None, "perms": "generator:code:preview", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 4022, "parent_id": 402, "menu_name": "代码下载", "path": None, "component": None, "query": None, "perms": "generator:code:download", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 4023, "parent_id": 402, "menu_name": "批量下载", "path": None, "component": None, "query": None, "perms": "generator:code:batchDownload", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
-                {"id": 4024, "parent_id": 402, "menu_name": "生成历史", "path": None, "component": None, "query": None, "perms": "generator:code:history", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
+                
+                # 4.3 生成历史（菜单 C）
+                {"id": 403, "parent_id": 400, "menu_name": "生成历史", "path": "/generator/history", "component": "GenHistory", "query": None, "perms": "generator:history:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "生成历史记录"},
+                {"id": 4031, "parent_id": 403, "menu_name": "历史查询", "path": None, "component": None, "query": None, "perms": "generator:history:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
+                {"id": 4032, "parent_id": 403, "menu_name": "历史删除", "path": None, "component": None, "query": None, "perms": "generator:history:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
+
+                # ================================
+                # 消息管理模块
+                # ================================
+                # 5. 消息管理（目录 M）
+                {"id": 500, "parent_id": 0, "menu_name": "消息管理", "path": "/msgmanage", "component": None, "query": None, "perms": None, "icon": "Message", "menu_type": "M", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": "消息管理模块"},
+
+                # 5.1 机器人配置（菜单 C）
+                {"id": 501, "parent_id": 500, "menu_name": "机器人配置", "path": "/RobotConfigList", "component": "RobotConfigList", "query": None, "perms": "msgmanage:robot:list", "icon": "Cpu", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "机器人配置"},
+                {"id": 5011, "parent_id": 501, "menu_name": "机器人查询", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
+                {"id": 5012, "parent_id": 501, "menu_name": "机器人新增", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
+                {"id": 5013, "parent_id": 501, "menu_name": "机器人修改", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
+                {"id": 5014, "parent_id": 501, "menu_name": "机器人删除", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
+
+                # 5.2 消息模板管理（菜单 C）
+                {"id": 502, "parent_id": 500, "menu_name": "消息模板", "path": "/RobotMsgConfigList", "component": "RobotMsgConfigList", "query": None, "perms": "msgmanage:template:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": "消息模板管理"},
+                {"id": 5021, "parent_id": 502, "menu_name": "模板查询", "path": None, "component": None, "query": None, "perms": "msgmanage:template:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
+                {"id": 5022, "parent_id": 502, "menu_name": "模板新增", "path": None, "component": None, "query": None, "perms": "msgmanage:template:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
+                {"id": 5023, "parent_id": 502, "menu_name": "模板修改", "path": None, "component": None, "query": None, "perms": "msgmanage:template:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
+                {"id": 5024, "parent_id": 502, "menu_name": "模板删除", "path": None, "component": None, "query": None, "perms": "msgmanage:template:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
             ]
 
             for menu_data in api_menus:

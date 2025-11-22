@@ -5,8 +5,9 @@ from core.logger import get_logger
 
 
 from ..model.ApiOperationTypeModel import OperationType
-from ..schemas.operation_type_schema import OperationTypeQuery, OperationTypeCreate, OperationTypeUpdate
+from ..schemas.api_operation_type_schema import OperationTypeQuery, OperationTypeCreate, OperationTypeUpdate
 from core.database import get_session
+from core.dependencies import check_permission
 from core.time_utils import TimeFormatter
 from datetime import datetime
 
@@ -15,7 +16,7 @@ module_model = OperationType
 module_route = APIRouter(prefix=f"/{module_name}", tags=["操作类型管理"])
 logger = get_logger(__name__)
 
-@module_route.get("/queryAll") # 查询所有操作类型
+@module_route.get("/queryAll", dependencies=[Depends(check_permission("apitest:operationtype:query"))]) # 查询所有操作类型
 def queryAll(session: Session = Depends(get_session)):
     statement = select(module_model)
     datas = session.exec(statement).all()
@@ -53,7 +54,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/insert") # 新增操作类型
+@module_route.post("/insert", dependencies=[Depends(check_permission("apitest:operationtype:add"))]) # 新增操作类型
 def insert(op_type: OperationTypeCreate, session: Session = Depends(get_session)):
     try:
         data = module_model(**op_type.model_dump(), create_time=datetime.now())
@@ -66,7 +67,7 @@ def insert(op_type: OperationTypeCreate, session: Session = Depends(get_session)
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"添加失败:{e}")
 
-@module_route.put("/update") # 更新操作类型
+@module_route.put("/update", dependencies=[Depends(check_permission("apitest:operationtype:edit"))]) # 更新操作类型
 def update(op_type: OperationTypeUpdate, session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == op_type.id)
@@ -84,7 +85,7 @@ def update(op_type: OperationTypeUpdate, session: Session = Depends(get_session)
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
-@module_route.delete("/delete") # 删除操作类型
+@module_route.delete("/delete", dependencies=[Depends(check_permission("apitest:operationtype:delete"))]) # 删除操作类型
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
