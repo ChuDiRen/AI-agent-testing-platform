@@ -41,3 +41,8 @@ export function getMethods() {
 export function queryAll() {
     return axios.get(`/${module_name}/queryAll`)
 }
+
+// 导入Swagger
+export function importSwagger(data) {
+    return axios.post(`/${module_name}/importSwagger`, data)
+}

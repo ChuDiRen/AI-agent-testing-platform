@@ -1,7 +1,6 @@
 """
 ApiMetaController 单元测试
 """
-import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 

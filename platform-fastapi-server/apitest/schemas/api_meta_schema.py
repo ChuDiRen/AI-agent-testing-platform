@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field
 from typing import Optional
+
+from pydantic import BaseModel, Field
+
 
 class ApiMetaQuery(BaseModel): # API元数据查询请求
     page: int = Field(default=1, ge=1, description="页码")

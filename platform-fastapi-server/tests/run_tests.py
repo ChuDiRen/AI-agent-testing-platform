@@ -3,8 +3,8 @@
 测试运行脚本
 提供便捷的测试执行命令
 """
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent

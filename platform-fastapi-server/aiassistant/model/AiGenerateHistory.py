@@ -1,7 +1,8 @@
-from sqlmodel import SQLModel, Field
-from sqlalchemy import Text
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from sqlalchemy import Text
+from sqlmodel import SQLModel, Field
 
 
 class AiGenerateHistory(SQLModel, table=True):

@@ -1,12 +1,12 @@
 """依赖注入函数"""
+from typing import Optional
+
+from config.dev_settings import settings
 from fastapi import Depends, HTTPException, status, Request, Cookie
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlmodel import Session
-from typing import Generator, Optional
-from .database import get_session
+
 from .JwtUtil import JwtUtils
 from .MinioUtils import MinioUtils
-from config.dev_settings import settings
 
 security = HTTPBearer(auto_error=False)
 

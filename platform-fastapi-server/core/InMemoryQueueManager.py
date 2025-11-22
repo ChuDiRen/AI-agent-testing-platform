@@ -2,13 +2,11 @@
 内存级别的消息队列管理器
 用于替代RabbitMQ，适用于开发环境和单机部署
 """
-import asyncio
-import json
-from typing import Callable, Optional, Dict, Any
-from queue import Queue, Empty
-from threading import Thread, Event
 import logging
 from datetime import datetime
+from queue import Queue, Empty
+from threading import Thread, Event
+from typing import Callable, Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 

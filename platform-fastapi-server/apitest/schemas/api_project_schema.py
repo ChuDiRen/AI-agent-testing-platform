@@ -1,5 +1,7 @@
-from pydantic import BaseModel
 from typing import Optional
+
+from pydantic import BaseModel
+
 
 class ApiProjectQuery(BaseModel): # API项目查询请求
     page: int = 1

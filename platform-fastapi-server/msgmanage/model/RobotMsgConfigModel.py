@@ -1,9 +1,10 @@
 """
 机器人消息模板配置数据模型
 """
-from sqlmodel import SQLModel, Field
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from sqlmodel import SQLModel, Field
 
 
 class RobotMsgConfig(SQLModel, table=True):

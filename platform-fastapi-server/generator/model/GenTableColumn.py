@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """代码生成器-表字段配置模型"""
-from sqlmodel import SQLModel, Field
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from sqlmodel import SQLModel, Field
+
 
 class GenTableColumn(SQLModel, table=True): # 代码生成器表字段配置
     __tablename__ = "gen_table_column"

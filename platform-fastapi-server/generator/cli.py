@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 """代码生成器命令行工具"""
+import os
+from typing import List
+
 import typer
-from typing import Optional, List
-from sqlmodel import Session
 from core.database import engine
-from generator.service.DbMetaService import DbMetaService
-from generator.service.ASTCodeGenerator import ASTCodeGenerator
+from core.logger import get_logger
 from generator.model.GenTable import GenTable
 from generator.model.GenTableColumn import GenTableColumn
-from core.logger import get_logger
-import os
+from generator.service.ASTCodeGenerator import ASTCodeGenerator
+from generator.service.DbMetaService import DbMetaService
+from sqlmodel import Session
 
 logger = get_logger(__name__)
 app = typer.Typer(help="代码生成器CLI工具 - 快速生成CRUD代码")

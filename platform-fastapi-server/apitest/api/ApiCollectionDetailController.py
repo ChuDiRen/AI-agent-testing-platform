@@ -1,18 +1,19 @@
 """
 API测试集合详情Controller
 """
-from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session, select
-from core.resp_model import respModel
-from ..model.ApiCollectionDetailModel import ApiCollectionDetail
-from ..schemas.api_collection_schema import ApiCollectionDetailCreate, ApiCollectionDetailUpdate, ApiCollectionDetailResponse
+import json
+from datetime import datetime
+from typing import List
+
 from core.database import get_session
 from core.dependencies import check_permission
 from core.logger import get_logger
-from datetime import datetime
-from typing import List
-import json
+from core.resp_model import respModel
+from fastapi import APIRouter, Depends, Query
+from sqlmodel import Session, select
 
+from ..model.ApiCollectionDetailModel import ApiCollectionDetail
+from ..schemas.api_collection_schema import ApiCollectionDetailCreate, ApiCollectionDetailUpdate
 
 module_name = "ApiCollectionDetail"
 module_model = ApiCollectionDetail
@@ -20,7 +21,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["API测试集合详情�
 logger = get_logger(__name__)
 
 
-@module_route.get("/queryByCollectionId", dependencies=[Depends(check_permission("apitest:collectiondetail:query"))])
+@module_route.get("/queryByCollectionId", summary="根据集合ID查询关联用例", dependencies=[Depends(check_permission("apitest:collectiondetail:query"))])
 def queryByCollectionId(collection_info_id: int = Query(...), session: Session = Depends(get_session)):
     """根据集合ID查询所有关联用例"""
     try:
@@ -34,7 +35,7 @@ def queryByCollectionId(collection_info_id: int = Query(...), session: Session =
         return respModel.error_resp(f"服务器错误: {e}")
 
 
-@module_route.post("/insert", dependencies=[Depends(check_permission("apitest:collectiondetail:add"))])
+@module_route.post("/insert", summary="新增集合详情", dependencies=[Depends(check_permission("apitest:collectiondetail:add"))])
 def insert(detail: ApiCollectionDetailCreate, session: Session = Depends(get_session)):
     """新增集合详情"""
     try:
@@ -54,7 +55,7 @@ def insert(detail: ApiCollectionDetailCreate, session: Session = Depends(get_ses
         return respModel.error_resp(msg=f"添加失败: {e}")
 
 
-@module_route.put("/update", dependencies=[Depends(check_permission("apitest:collectiondetail:edit"))])
+@module_route.put("/update", summary="更新集合详情", dependencies=[Depends(check_permission("apitest:collectiondetail:edit"))])
 def update(detail: ApiCollectionDetailUpdate, session: Session = Depends(get_session)):
     """更新集合详情"""
     try:
@@ -78,7 +79,7 @@ def update(detail: ApiCollectionDetailUpdate, session: Session = Depends(get_ses
         return respModel.error_resp(msg=f"修改失败: {e}")
 
 
-@module_route.delete("/delete", dependencies=[Depends(check_permission("apitest:collectiondetail:delete"))])
+@module_route.delete("/delete", summary="删除集合详情", dependencies=[Depends(check_permission("apitest:collectiondetail:delete"))])
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除集合详情"""
     try:
@@ -96,7 +97,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"删除失败: {e}")
 
 
-@module_route.post("/batchAdd")
+@module_route.post("/batchAdd", summary="批量添加用例到集合", dependencies=[Depends(check_permission("apitest:collectiondetail:edit"))])
 def batchAdd(collection_info_id: int, case_ids: List[int], session: Session = Depends(get_session)):
     """批量添加用例到集合"""
     try:
@@ -123,7 +124,7 @@ def batchAdd(collection_info_id: int, case_ids: List[int], session: Session = De
         return respModel.error_resp(msg=f"添加失败: {e}")
 
 
-@module_route.post("/batchUpdateOrder")
+@module_route.post("/batchUpdateOrder", summary="批量更新集合执行顺序", dependencies=[Depends(check_permission("apitest:collectiondetail:edit"))])
 def batchUpdateOrder(details: List[dict], session: Session = Depends(get_session)):
     """批量更新执行顺序"""
     try:

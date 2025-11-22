@@ -1,27 +1,29 @@
+import json
+import logging
+from datetime import datetime
+from typing import AsyncGenerator
+
+from core.AiStreamService import AiStreamService
+from core.ConversationService import ConversationService
+from core.PromptService import PromptService
+from core.StreamTestCaseParser import StreamTestCaseParser
+from core.database import get_session
+from core.resp_model import respModel
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import select, Session
 from sse_starlette.sse import EventSourceResponse
-from datetime import datetime
-import json
-import logging
-from typing import AsyncGenerator
+
 from ..model.AiConversation import AiConversation
 from ..model.AiMessage import AiMessage
 from ..model.AiModel import AiModel
 from ..schemas.ai_conversation_schema import AiConversationCreate, AiConversationResponse, AiConversationListResponse
 from ..schemas.ai_message_schema import MessageStreamRequest, AiMessageResponse
-from core.database import get_session
-from core.AiStreamService import AiStreamService
-from core.ConversationService import ConversationService
-from core.PromptService import PromptService
-from core.StreamTestCaseParser import StreamTestCaseParser
-from core.resp_model import respModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/AiConversation", tags=["AI对话"])
 
 
-@router.post("/create", response_model=AiConversationResponse)
+@router.post("/create", response_model=AiConversationResponse, summary="创建AI对话会话")
 async def create_conversation(req: AiConversationCreate, session: Session = Depends(get_session), current_user = Depends(None)):
     """创建新对话会话"""
     try:
@@ -42,7 +44,7 @@ async def create_conversation(req: AiConversationCreate, session: Session = Depe
         return respModel.error_resp("创建对话失败")
 
 
-@router.get("/list", response_model=AiConversationListResponse)
+@router.get("/list", response_model=AiConversationListResponse, summary="获取用户对话列表")
 async def list_conversations(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), session: Session = Depends(get_session), current_user = Depends(None)):
     """获取用户的对话列表"""
     try:
@@ -57,7 +59,7 @@ async def list_conversations(page: int = Query(1, ge=1), page_size: int = Query(
         return respModel.error_resp("获取对话列表失败")
 
 
-@router.get("/{conversation_id}/messages")
+@router.get("/{conversation_id}/messages", summary="获取对话的所有消息")
 async def get_messages(conversation_id: int, session: Session = Depends(get_session)):
     """获取对话的所有消息"""
     try:
@@ -68,7 +70,7 @@ async def get_messages(conversation_id: int, session: Session = Depends(get_sess
         return respModel.error_resp("获取消息失败")
 
 
-@router.post("/chat")
+@router.post("/chat", summary="AI流式对话接口(SSE)")
 async def chat_stream(req: MessageStreamRequest, session: Session = Depends(get_session), current_user = Depends(None)):
     """流式对话接口（核心）- 使用SSE推送实时生成的内容"""
     async def _event_generator() -> AsyncGenerator[str, None]:
@@ -116,7 +118,7 @@ async def chat_stream(req: MessageStreamRequest, session: Session = Depends(get_
     return EventSourceResponse(_event_generator(), media_type="text/event-stream")
 
 
-@router.delete("/{conversation_id}")
+@router.delete("/{conversation_id}", summary="删除对话会话")
 async def delete_conversation(conversation_id: int, session: Session = Depends(get_session), current_user = Depends(None)):
     """删除对话"""
     try:
@@ -134,7 +136,7 @@ async def delete_conversation(conversation_id: int, session: Session = Depends(g
         return respModel.error_resp("删除对话失败")
 
 
-@router.put("/{conversation_id}/title")
+@router.put("/{conversation_id}/title", summary="更新对话标题")
 async def update_title(conversation_id: int, title: str = Query(..., max_length=200), session: Session = Depends(get_session), current_user = Depends(None)):
     """更新对话标题"""
     try:

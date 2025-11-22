@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """FastAPI应用入口"""
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from core.database import init_db, init_data
 from core.logger import setup_logging, get_logger
 from core.middleware import TraceIDMiddleware, CORSHeaderMiddleware
-import asyncio
-from contextlib import asynccontextmanager
 
 # 配置日志系统
 setup_logging()
@@ -65,9 +67,9 @@ async def lifespan(app: FastAPI):
 
         logger.info("=" * 60)
         logger.info("🚀 应用启动完成！")
-        logger.info("📖 API文档: http://localhost:8000/docs")
-        logger.info("🔗 ReDoc文档: http://localhost:8000/redoc")
-        logger.info("🔌 WebSocket: ws://localhost:8000/ws/test-execution/{execution_id}")
+        logger.info("📖 API文档: http://localhost:5000/docs")
+        logger.info("🔗 ReDoc文档: http://localhost:5000/redoc")
+        logger.info("🔌 WebSocket: ws://localhost:5000/ws/test-execution/{execution_id}")
         logger.info("=" * 60)
 
     except Exception as e:
@@ -162,9 +164,6 @@ application.include_router(ApiCollectionDetailController.module_route)
 from apitest.api import ApiHistoryController
 application.include_router(ApiHistoryController.module_route)
 
-from apitest.api import ApiGroupController
-application.include_router(ApiGroupController.module_route)
-
 from apitest.api import ApiReportViewerController
 application.include_router(ApiReportViewerController.module_route)
 
@@ -206,12 +205,3 @@ async def websocket_test_execution(websocket: WebSocket, execution_id: str):
         logger.info(f"WebSocket disconnected: {execution_id}")
 
 # 移除旧的 on_event 装饰器，已使用 lifespan 替代
-
-@application.get("/", tags=["根路径"]) # 根路径接口
-def root():
-    return {
-        "message": "AI Agent Testing Platform API",
-        "version": "2.0.0",
-        "docs": "/docs",
-        "websocket": "/ws/test-execution/{execution_id}"
-    }

@@ -1,6 +1,8 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from sqlmodel import SQLModel, Field
+
 
 class Dept(SQLModel, table=True): # 部门模型
     __tablename__ = "t_dept"

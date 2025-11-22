@@ -403,29 +403,59 @@ const loadData = (id) => {
 // 解析参数
 const parseParams = () => {
   try {
-    // 解析URL参数
+    // 解析URL参数 - 支持两种格式
     if (ruleForm.request_params) {
       const params = JSON.parse(ruleForm.request_params);
-      urlParams.value = Object.entries(params).map(([key, value]) => ({ key, value, description: '' }));
+      if (Array.isArray(params)) {
+        // 新格式: [{name, type, required, description, default}]
+        urlParams.value = params.map(p => ({ 
+          key: p.name, 
+          value: String(p.default || ''), 
+          description: p.description || `${p.type}${p.required ? ' (必填)' : ''}` 
+        }));
+      } else {
+        // 旧格式: {key: value}
+        urlParams.value = Object.entries(params).map(([key, value]) => ({ key, value: String(value), description: '' }));
+      }
     }
     
-    // 解析Header
+    // 解析Header - 支持两种格式
     if (ruleForm.request_headers) {
       const headers = JSON.parse(ruleForm.request_headers);
-      headerParams.value = Object.entries(headers).map(([key, value]) => ({ key, value, description: '' }));
+      if (Array.isArray(headers)) {
+        // 新格式: [{name, type, required, description, default}]
+        headerParams.value = headers.map(h => ({ 
+          key: h.name, 
+          value: String(h.default || ''), 
+          description: h.description || `${h.type}${h.required ? ' (必填)' : ''}` 
+        }));
+      } else {
+        // 旧格式: {key: value}
+        headerParams.value = Object.entries(headers).map(([key, value]) => ({ key, value: String(value), description: '' }));
+      }
     }
     
-    // 解析form-data
+    // 解析form-data - 支持两种格式
     if (ruleForm.request_form_datas) {
       const formDatas = JSON.parse(ruleForm.request_form_datas);
-      formDataParams.value = Object.entries(formDatas).map(([key, value]) => ({ key, value, description: '' }));
+      if (Array.isArray(formDatas)) {
+        // 新格式: [{name, type, required, description, default}]
+        formDataParams.value = formDatas.map(f => ({ 
+          key: f.name, 
+          value: String(f.default || ''), 
+          description: f.description || `${f.type}${f.required ? ' (必填)' : ''}` 
+        }));
+      } else {
+        // 旧格式: {key: value}
+        formDataParams.value = Object.entries(formDatas).map(([key, value]) => ({ key, value: String(value), description: '' }));
+      }
       if (formDataParams.value.length > 0) bodyType.value = 'form-data';
     }
     
     // 解析www-form
     if (ruleForm.request_www_form_datas) {
       const wwwForms = JSON.parse(ruleForm.request_www_form_datas);
-      wwwFormParams.value = Object.entries(wwwForms).map(([key, value]) => ({ key, value, description: '' }));
+      wwwFormParams.value = Object.entries(wwwForms).map(([key, value]) => ({ key, value: String(value), description: '' }));
       if (wwwFormParams.value.length > 0) bodyType.value = 'x-www-form-urlencoded';
     }
     

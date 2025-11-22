@@ -1,21 +1,22 @@
 """
 机器人配置Controller
 """
-from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session, select
-from core.resp_model import respModel
-from ..model.RobotConfigModel import RobotConfig
-from ..schemas.robot_config_schema import (
-    RobotConfigQuery, RobotConfigCreate, RobotConfigUpdate,
-    RobotConfigResponse, RobotTestRequest, RobotTestResponse
-)
+import time
+from datetime import datetime
+
+import httpx
 from core.database import get_session
 from core.dependencies import check_permission
 from core.logger import get_logger
-from datetime import datetime
-import httpx
-import time
+from core.resp_model import respModel
+from fastapi import APIRouter, Depends, Query
+from sqlmodel import Session, select
 
+from ..model.RobotConfigModel import RobotConfig
+from ..schemas.robot_config_schema import (
+    RobotConfigQuery, RobotConfigCreate, RobotConfigUpdate,
+    RobotTestRequest
+)
 
 module_name = "RobotConfig"
 module_model = RobotConfig
@@ -23,7 +24,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["机器人配置管理"
 logger = get_logger(__name__)
 
 
-@module_route.post("/queryByPage", dependencies=[Depends(check_permission("msgmanage:robot:query"))])
+@module_route.post("/queryByPage", summary="分页查询机器人配置", dependencies=[Depends(check_permission("msgmanage:robot:query"))])
 def queryByPage(query: RobotConfigQuery, session: Session = Depends(get_session)):
     """分页查询机器人配置"""
     try:
@@ -56,7 +57,7 @@ def queryByPage(query: RobotConfigQuery, session: Session = Depends(get_session)
         return respModel.error_resp(f"服务器错误: {e}")
 
 
-@module_route.get("/queryById")
+@module_route.get("/queryById", summary="根据ID查询机器人配置", dependencies=[Depends(check_permission("msgmanage:robot:query"))])
 def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询机器人配置"""
     try:
@@ -71,7 +72,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误: {e}")
 
 
-@module_route.get("/queryAll")
+@module_route.get("/queryAll", summary="查询所有启用的机器人配置", dependencies=[Depends(check_permission("msgmanage:robot:query"))])
 def queryAll(session: Session = Depends(get_session)):
     """查询所有启用的机器人配置"""
     try:
@@ -83,7 +84,7 @@ def queryAll(session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误: {e}")
 
 
-@module_route.post("/insert", dependencies=[Depends(check_permission("msgmanage:robot:add"))])
+@module_route.post("/insert", summary="新增机器人配置", dependencies=[Depends(check_permission("msgmanage:robot:add"))])
 def insert(robot: RobotConfigCreate, session: Session = Depends(get_session)):
     """新增机器人配置"""
     try:
@@ -98,7 +99,7 @@ def insert(robot: RobotConfigCreate, session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"添加失败: {e}")
 
 
-@module_route.put("/update", dependencies=[Depends(check_permission("msgmanage:robot:edit"))])
+@module_route.put("/update", summary="更新机器人配置", dependencies=[Depends(check_permission("msgmanage:robot:edit"))])
 def update(robot: RobotConfigUpdate, session: Session = Depends(get_session)):
     """更新机器人配置"""
     try:
@@ -120,7 +121,7 @@ def update(robot: RobotConfigUpdate, session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"修改失败: {e}")
 
 
-@module_route.delete("/delete", dependencies=[Depends(check_permission("msgmanage:robot:delete"))])
+@module_route.delete("/delete", summary="删除机器人配置", dependencies=[Depends(check_permission("msgmanage:robot:delete"))])
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除机器人配置"""
     try:
@@ -138,7 +139,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"删除失败: {e}")
 
 
-@module_route.post("/testConnection", dependencies=[Depends(check_permission("msgmanage:robot:test"))])
+@module_route.post("/testConnection", summary="测试机器人连接", dependencies=[Depends(check_permission("msgmanage:robot:test"))])
 async def testConnection(request: RobotTestRequest, session: Session = Depends(get_session)):
     """测试机器人连接"""
     try:

@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """代码生成器请求Schema"""
-from pydantic import BaseModel, Field
 from typing import List, Optional
+
+from pydantic import BaseModel, Field
+
 
 class GenerateRequest(BaseModel): # 生成代码请求
     table_id: int = Field(description='表配置ID')

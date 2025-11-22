@@ -1,5 +1,7 @@
-from sqlmodel import SQLModel, Field
 from typing import Optional
+
+from sqlmodel import SQLModel, Field
+
 
 class RoleMenu(SQLModel, table=True): # 角色-菜单关联表
     __tablename__ = "t_role_menu"

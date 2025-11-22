@@ -1,9 +1,9 @@
 """
 机器人配置Schema
 """
-from pydantic import BaseModel, Field, HttpUrl
 from typing import Optional
-from datetime import datetime
+
+from pydantic import BaseModel, Field
 
 
 # ==================== 机器人配置查询相关 ====================

@@ -1,6 +1,8 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from sqlmodel import SQLModel, Field
+
 
 class ApiInfoCaseStep(SQLModel, table=True):
     """API用例步骤表"""

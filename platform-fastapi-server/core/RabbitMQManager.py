@@ -2,10 +2,11 @@
 RabbitMQ消息队列管理器
 用于异步任务处理（测试执行、消息推送）
 """
-import pika
 import json
-from typing import Callable, Optional
 import logging
+from typing import Callable, Optional
+
+import pika
 
 logger = logging.getLogger(__name__)
 

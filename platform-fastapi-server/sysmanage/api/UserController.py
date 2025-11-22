@@ -1,20 +1,22 @@
+from datetime import datetime
+
+from core.database import get_session
+from core.logger import get_logger
+from core.resp_model import respModel
+from core.time_utils import TimeFormatter
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
-from core.resp_model import respModel
-from core.logger import get_logger
+
 from ..model.user import User
 from ..model.user_role import UserRole
 from ..schemas.user_schema import UserQuery, UserCreate, UserUpdate, UserRoleAssign, UserStatusUpdate
-from core.database import get_session
-from core.time_utils import TimeFormatter
-from datetime import datetime
 
 module_name = "user" # 模块名称
 module_model = User
 module_route = APIRouter(prefix=f"/{module_name}", tags=["用户管理"])
 logger = get_logger(__name__)
 
-@module_route.post("/queryByPage") # 分页查询用户
+@module_route.post("/queryByPage", summary="分页查询用户") # 分页查询用户
 def queryByPage(query: UserQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
@@ -50,7 +52,7 @@ def queryByPage(query: UserQuery, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.get("/queryById") # 根据ID查询用户
+@module_route.get("/queryById", summary="根据ID查询用户") # 根据ID查询用户
 def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
@@ -63,7 +65,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/insert") # 新增用户
+@module_route.post("/insert", summary="新增用户") # 新增用户
 def insert(user: UserCreate, session: Session = Depends(get_session)):
     try:
         data = module_model(**user.model_dump(), create_time=datetime.now())
@@ -75,7 +77,7 @@ def insert(user: UserCreate, session: Session = Depends(get_session)):
         session.rollback()
         return respModel.error_resp(msg=f"添加失败:{e}")
 
-@module_route.put("/update") # 更新用户
+@module_route.put("/update", summary="更新用户") # 更新用户
 def update(user: UserUpdate, session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == user.id)
@@ -93,7 +95,7 @@ def update(user: UserUpdate, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
-@module_route.delete("/delete") # 删除用户
+@module_route.delete("/delete", summary="删除用户") # 删除用户
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
@@ -115,7 +117,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"服务器错误,删除失败：{e}")
 
-@module_route.post("/assignRoles") # 为用户分配角色
+@module_route.post("/assignRoles", summary="为用户分配角色") # 为用户分配角色
 def assignRoles(request: UserRoleAssign, session: Session = Depends(get_session)):
     try:
         # 检查用户是否存在
@@ -141,7 +143,7 @@ def assignRoles(request: UserRoleAssign, session: Session = Depends(get_session)
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.get("/roles/{user_id}") # 获取用户的角色
+@module_route.get("/roles/{user_id}", summary="获取用户的角色") # 获取用户的角色
 def getRoles(user_id: int, session: Session = Depends(get_session)):
     try:
         statement = select(UserRole).where(UserRole.user_id == user_id)
@@ -152,7 +154,7 @@ def getRoles(user_id: int, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.put("/updateStatus") # 更新用户状态（锁定/启用）
+@module_route.put("/updateStatus", summary="更新用户状态（锁定/启用）") # 更新用户状态（锁定/启用）
 def updateStatus(request: UserStatusUpdate, session: Session = Depends(get_session)):
     try:
         user = session.get(User, request.id)

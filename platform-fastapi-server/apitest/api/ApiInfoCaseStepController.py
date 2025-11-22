@@ -1,18 +1,19 @@
 """
 API用例步骤Controller
 """
-from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session, select
-from core.resp_model import respModel
-from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
-from ..schemas.api_info_case_schema import ApiInfoCaseStepCreate, ApiInfoCaseStepUpdate, ApiInfoCaseStepResponse
+import json
+from datetime import datetime
+from typing import List
+
 from core.database import get_session
 from core.dependencies import check_permission
 from core.logger import get_logger
-from datetime import datetime
-from typing import List
-import json
+from core.resp_model import respModel
+from fastapi import APIRouter, Depends, Query
+from sqlmodel import Session, select
 
+from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
+from ..schemas.api_info_case_schema import ApiInfoCaseStepCreate, ApiInfoCaseStepUpdate
 
 module_name = "ApiInfoCaseStep"
 module_model = ApiInfoCaseStep
@@ -20,7 +21,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["API用例步骤管理"
 logger = get_logger(__name__)
 
 
-@module_route.get("/queryByCaseId", dependencies=[Depends(check_permission("apitest:step:query"))])
+@module_route.get("/queryByCaseId", summary="根据用例ID查询步骤", dependencies=[Depends(check_permission("apitest:step:query"))])
 def queryByCaseId(case_info_id: int = Query(...), session: Session = Depends(get_session)):
     """根据用例ID查询所有步骤"""
     try:
@@ -32,7 +33,7 @@ def queryByCaseId(case_info_id: int = Query(...), session: Session = Depends(get
         return respModel.error_resp(f"服务器错误: {e}")
 
 
-@module_route.post("/insert", dependencies=[Depends(check_permission("apitest:step:add"))])
+@module_route.post("/insert", summary="新增用例步骤", dependencies=[Depends(check_permission("apitest:step:add"))])
 def insert(step: ApiInfoCaseStepCreate, session: Session = Depends(get_session)):
     """新增用例步骤"""
     try:
@@ -52,7 +53,7 @@ def insert(step: ApiInfoCaseStepCreate, session: Session = Depends(get_session))
         return respModel.error_resp(msg=f"添加失败: {e}")
 
 
-@module_route.put("/update", dependencies=[Depends(check_permission("apitest:step:edit"))])
+@module_route.put("/update", summary="更新用例步骤", dependencies=[Depends(check_permission("apitest:step:edit"))])
 def update(step: ApiInfoCaseStepUpdate, session: Session = Depends(get_session)):
     """更新用例步骤"""
     try:
@@ -76,7 +77,7 @@ def update(step: ApiInfoCaseStepUpdate, session: Session = Depends(get_session))
         return respModel.error_resp(msg=f"修改失败: {e}")
 
 
-@module_route.delete("/delete", dependencies=[Depends(check_permission("apitest:step:delete"))])
+@module_route.delete("/delete", summary="删除用例步骤", dependencies=[Depends(check_permission("apitest:step:delete"))])
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除用例步骤"""
     try:
@@ -94,7 +95,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"删除失败: {e}")
 
 
-@module_route.post("/batchUpdateOrder")
+@module_route.post("/batchUpdateOrder", summary="批量更新步骤顺序", dependencies=[Depends(check_permission("apitest:step:edit"))])
 def batchUpdateOrder(steps: List[dict], session: Session = Depends(get_session)):
     """批量更新步骤顺序"""
     try:

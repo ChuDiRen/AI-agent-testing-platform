@@ -1,6 +1,8 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from sqlmodel import SQLModel, Field
+
 
 class ApiHistory(SQLModel, table=True): # API测试历史记录表
     __tablename__ = "t_api_history"

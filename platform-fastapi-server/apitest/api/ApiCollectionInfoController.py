@@ -1,28 +1,29 @@
-from fastapi import APIRouter, Depends, Query, BackgroundTasks
-from sqlmodel import Session, select
-from core.resp_model import respModel
-from core.logger import get_logger
+import json
+import subprocess
+import uuid
+from datetime import datetime
+from pathlib import Path
+
+import yaml
 from core.database import get_session
 from core.dependencies import check_permission
+from core.logger import get_logger
+from core.resp_model import respModel
 from core.time_utils import TimeFormatter
-from ..model.ApiCollectionInfoModel import ApiCollectionInfo
+from fastapi import APIRouter, Depends, Query, BackgroundTasks
+from sqlmodel import Session, select
+
 from ..model.ApiCollectionDetailModel import ApiCollectionDetail
+from ..model.ApiCollectionInfoModel import ApiCollectionInfo
+from ..model.ApiHistoryModel import ApiHistory
 from ..model.ApiInfoCaseModel import ApiInfoCase
 from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
 from ..model.ApiKeyWordModel import ApiKeyWord
-from ..model.ApiHistoryModel import ApiHistory
 from ..schemas.api_collection_schema import (
     ApiCollectionInfoQuery, ApiCollectionInfoCreate, ApiCollectionInfoUpdate,
     ApiCollectionDetailCreate, BatchAddCasesRequest, UpdateDdtDataRequest,
     ApiCollectionInfoExecuteRequest
 )
-from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Any
-import subprocess
-import yaml
-import json
-import uuid
 
 logger = get_logger(__name__)
 
@@ -39,7 +40,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["API测试计划管理"
 
 # ==================== 测试计划CRUD ====================
 
-@module_route.post("/queryByPage", dependencies=[Depends(check_permission("apitest:collection:query"))])
+@module_route.post("/queryByPage", summary="分页查询测试计划", dependencies=[Depends(check_permission("apitest:collection:query"))])
 def queryByPage(query: ApiCollectionInfoQuery, session: Session = Depends(get_session)):
     """分页查询测试计划"""
     try:
@@ -75,7 +76,7 @@ def queryByPage(query: ApiCollectionInfoQuery, session: Session = Depends(get_se
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.get("/queryById")
+@module_route.get("/queryById", summary="根据ID查询测试计划", dependencies=[Depends(check_permission("apitest:collection:query"))])
 def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询测试计划（含关联用例）"""
     try:
@@ -117,7 +118,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/insert", dependencies=[Depends(check_permission("apitest:collection:add"))])
+@module_route.post("/insert", summary="新增测试计划", dependencies=[Depends(check_permission("apitest:collection:add"))])
 def insert(data: ApiCollectionInfoCreate, session: Session = Depends(get_session)):
     """新增测试计划"""
     try:
@@ -136,7 +137,7 @@ def insert(data: ApiCollectionInfoCreate, session: Session = Depends(get_session
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.put("/update", dependencies=[Depends(check_permission("apitest:collection:edit"))])
+@module_route.put("/update", summary="更新测试计划", dependencies=[Depends(check_permission("apitest:collection:edit"))])
 def update(data: ApiCollectionInfoUpdate, session: Session = Depends(get_session)):
     """更新测试计划"""
     try:
@@ -159,7 +160,7 @@ def update(data: ApiCollectionInfoUpdate, session: Session = Depends(get_session
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.delete("/delete", dependencies=[Depends(check_permission("apitest:collection:delete"))])
+@module_route.delete("/delete", summary="删除测试计划", dependencies=[Depends(check_permission("apitest:collection:delete"))])
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除测试计划"""
     try:
@@ -176,7 +177,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
 
 # ==================== 用例关联管理 ====================
 
-@module_route.post("/addCase")
+@module_route.post("/addCase", summary="添加用例到测试计划", dependencies=[Depends(check_permission("apitest:collection:edit"))])
 def addCase(data: ApiCollectionDetailCreate, session: Session = Depends(get_session)):
     """添加用例到计划"""
     try:
@@ -204,7 +205,7 @@ def addCase(data: ApiCollectionDetailCreate, session: Session = Depends(get_sess
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/batchAddCases")
+@module_route.post("/batchAddCases", summary="批量添加用例到测试计划", dependencies=[Depends(check_permission("apitest:collection:edit"))])
 def batchAddCases(data: BatchAddCasesRequest, session: Session = Depends(get_session)):
     """批量添加用例到计划"""
     try:
@@ -233,7 +234,7 @@ def batchAddCases(data: BatchAddCasesRequest, session: Session = Depends(get_ses
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.delete("/removeCase")
+@module_route.delete("/removeCase", summary="从测试计划移除用例", dependencies=[Depends(check_permission("apitest:collection:edit"))])
 def removeCase(plan_case_id: int = Query(...), session: Session = Depends(get_session)):
     """从计划中移除用例"""
     try:
@@ -248,7 +249,7 @@ def removeCase(plan_case_id: int = Query(...), session: Session = Depends(get_se
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/updateDdtData")
+@module_route.post("/updateDdtData", summary="更新测试计划的数据驱动信息", dependencies=[Depends(check_permission("apitest:collection:edit"))])
 def updateDdtData(data: UpdateDdtDataRequest, session: Session = Depends(get_session)):
     """更新用例的数据驱动数据"""
     try:
@@ -266,7 +267,7 @@ def updateDdtData(data: UpdateDdtDataRequest, session: Session = Depends(get_ses
 
 # ==================== 批量执行测试计划 ====================
 
-@module_route.post("/executePlan")
+@module_route.post("/executePlan", summary="批量执行测试计划", dependencies=[Depends(check_permission("apitest:collection:execute"))])
 def executePlan(request: ApiCollectionInfoExecuteRequest, background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
     """执行测试计划（批量执行用例）"""
     try:

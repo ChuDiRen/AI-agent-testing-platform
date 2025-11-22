@@ -1,23 +1,23 @@
+from datetime import datetime
+
+from core.database import get_session
+from core.dependencies import check_permission
+from core.logger import get_logger
+from core.resp_model import respModel
+from core.time_utils import TimeFormatter
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
-from core.resp_model import respModel
-from core.logger import get_logger
-
 
 from ..model.role import Role
 from ..model.role_menu import RoleMenu
 from ..schemas.role_schema import RoleQuery, RoleCreate, RoleUpdate, RoleMenuAssign
-from core.database import get_session
-from core.time_utils import TimeFormatter
-from datetime import datetime
-from typing import List
 
 module_name = "role"
 module_model = Role
 module_route = APIRouter(prefix=f"/{module_name}", tags=["角色管理"])
 logger = get_logger(__name__)
 
-@module_route.post("/queryByPage") # 分页查询角色
+@module_route.post("/queryByPage", summary="分页查询角色", dependencies=[Depends(check_permission("system:role:query"))]) # 分页查询角色
 def queryByPage(query: RoleQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
@@ -41,7 +41,7 @@ def queryByPage(query: RoleQuery, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.get("/queryById") # 根据ID查询角色
+@module_route.get("/queryById", summary="根据ID查询角色", dependencies=[Depends(check_permission("system:role:query"))]) # 根据ID查询角色
 def queryById(id: int, session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, id)
@@ -53,7 +53,7 @@ def queryById(id: int, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/insert") # 新增角色
+@module_route.post("/insert", summary="新增角色", dependencies=[Depends(check_permission("system:role:add"))]) # 新增角色
 def insert(request: RoleCreate, session: Session = Depends(get_session)):
     try:
         # 检查角色名是否重复
@@ -72,7 +72,7 @@ def insert(request: RoleCreate, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.put("/update") # 更新角色
+@module_route.put("/update", summary="更新角色", dependencies=[Depends(check_permission("system:role:edit"))]) # 更新角色
 def update(request: RoleUpdate, session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, request.id)
@@ -95,7 +95,7 @@ def update(request: RoleUpdate, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.delete("/delete") # 删除角色
+@module_route.delete("/delete", summary="删除角色", dependencies=[Depends(check_permission("system:role:delete"))]) # 删除角色
 def delete(id: int, session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, id)
@@ -116,7 +116,7 @@ def delete(id: int, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/assignMenus") # 为角色分配菜单权限
+@module_route.post("/assignMenus", summary="为角色分配菜单权限", dependencies=[Depends(check_permission("system:role:edit"))]) # 为角色分配菜单权限
 def assignMenus(request: RoleMenuAssign, session: Session = Depends(get_session)):
     try:
         # 检查角色是否存在
@@ -142,7 +142,7 @@ def assignMenus(request: RoleMenuAssign, session: Session = Depends(get_session)
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.get("/menus/{role_id}") # 获取角色的菜单权限
+@module_route.get("/menus/{role_id}", summary="获取角色的菜单权限", dependencies=[Depends(check_permission("system:role:query"))]) # 获取角色的菜单权限
 def getMenus(role_id: int, session: Session = Depends(get_session)):
     try:
         statement = select(RoleMenu).where(RoleMenu.role_id == role_id)

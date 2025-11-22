@@ -2,10 +2,9 @@
 测试执行消费者
 从RabbitMQ队列中消费测试执行任务，并通过WebSocket实时推送进度
 """
-import json
 import asyncio
+import json
 import logging
-from typing import Dict, Any
 from datetime import datetime
 
 logger = logging.getLogger(__name__)

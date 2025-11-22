@@ -2,17 +2,17 @@
 API测试报告查看器Controller
 提供公共访问的测试报告查看功能,无需认证
 """
-from fastapi import APIRouter, Query, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
-from sqlmodel import Session, select
+import os
 from pathlib import Path
 from typing import Optional
-import os
-import json
 
-from core.resp_model import respModel
-from core.logger import get_logger
 from core.database import get_session
+from core.logger import get_logger
+from core.resp_model import respModel
+from fastapi import APIRouter, Query, HTTPException
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from sqlmodel import select
+
 from ..model.ApiHistoryModel import ApiHistory
 
 logger = get_logger(__name__)
@@ -26,7 +26,7 @@ module_name = "ApiReportViewer"
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API测试报告查看"])
 
 
-@module_route.get("/view")
+@module_route.get("/view", summary="查看测试报告")
 async def view_report(
     history_id: Optional[int] = Query(None, description="测试历史记录ID"),
     execution_uuid: Optional[str] = Query(None, description="批量执行UUID"),
@@ -129,7 +129,7 @@ async def view_report(
         )
 
 
-@module_route.get("/download")
+@module_route.get("/download", summary="下载测试报告")
 async def download_report(
     history_id: Optional[int] = Query(None, description="测试历史记录ID"),
     execution_uuid: Optional[str] = Query(None, description="批量执行UUID")
@@ -217,7 +217,7 @@ async def download_report(
         raise HTTPException(status_code=500, detail=f"下载报告失败: {str(e)}")
 
 
-@module_route.get("/list")
+@module_route.get("/list", summary="列出所有测试报告")
 async def list_reports():
     """
     列出所有可用的测试报告

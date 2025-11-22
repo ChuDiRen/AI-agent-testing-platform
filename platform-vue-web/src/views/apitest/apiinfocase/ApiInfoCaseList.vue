@@ -146,13 +146,13 @@ const handleReset = () => {
 
 // 新增
 const handleCreate = () => {
-  router.push('/ApiCaseForm')
+  router.push('/ApiInfoCaseForm')
 }
 
 // 编辑
 const handleEdit = (row) => {
   router.push({
-    path: '/ApiCaseForm',
+    path: '/ApiInfoCaseForm',
     query: { id: row.id }
   })
 }

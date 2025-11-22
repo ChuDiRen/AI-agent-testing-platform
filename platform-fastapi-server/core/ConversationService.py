@@ -1,6 +1,7 @@
-from typing import List, Dict, Optional
-from sqlmodel import select, Session
 import logging
+from typing import List, Dict
+
+from sqlmodel import select, Session
 
 logger = logging.getLogger(__name__)
 

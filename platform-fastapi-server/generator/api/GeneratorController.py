@@ -1,24 +1,27 @@
 # -*- coding: utf-8 -*-
 """代码生成器-核心控制器"""
+import io
+import zipfile
+from datetime import datetime
+
+from core.database import get_session
+from core.dependencies import check_permission
+from core.logger import get_logger
+from core.resp_model import respModel
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
-from core.resp_model import respModel
-from core.logger import get_logger
+
+from ..model.GenHistory import GenHistory
 from ..model.GenTable import GenTable
 from ..model.GenTableColumn import GenTableColumn
-from ..model.GenHistory import GenHistory
 from ..schemas.generator_schema import GenerateRequest, GeneratePreviewRequest, GenerateBatchRequest
 from ..service.ASTCodeGenerator import ASTCodeGenerator
-from core.database import get_session
-from datetime import datetime
-import io
-import zipfile
 
 module_route = APIRouter(prefix="/Generator", tags=["代码生成器"])
 logger = get_logger(__name__)
 
-@module_route.post("/preview") # 预览生成代码
+@module_route.post("/preview", summary="预览生成代码", dependencies=[Depends(check_permission("generator:code:preview"))]) # 预览生成代码
 def preview(request: GeneratePreviewRequest, session: Session = Depends(get_session)):
     """预览生成的代码"""
     try:
@@ -63,7 +66,7 @@ def preview(request: GeneratePreviewRequest, session: Session = Depends(get_sess
         logger.error(f"代码预览失败: {e}", exc_info=True)
         return respModel.error_resp(f"代码预览失败:{e}")
 
-@module_route.post("/download") # 下载生成代码
+@module_route.post("/download", summary="下载生成代码", dependencies=[Depends(check_permission("generator:code:download"))]) # 下载生成代码
 def download(request: GenerateRequest, session: Session = Depends(get_session)):
     """下载生成的代码(ZIP压缩包)"""
     try:
@@ -161,7 +164,7 @@ def download(request: GenerateRequest, session: Session = Depends(get_session)):
         logger.error(f"代码下载失败: {e}", exc_info=True)
         return respModel.error_resp(f"代码下载失败:{e}")
 
-@module_route.post("/batchDownload") # 批量下载代码
+@module_route.post("/batchDownload", summary="批量下载代码", dependencies=[Depends(check_permission("generator:code:batchDownload"))]) # 批量下载代码
 def batchDownload(request: GenerateBatchRequest, session: Session = Depends(get_session)):
     """批量下载生成的代码"""
     try:
@@ -232,7 +235,7 @@ def batchDownload(request: GenerateBatchRequest, session: Session = Depends(get_
         logger.error(f"批量下载失败: {e}", exc_info=True)
         return respModel.error_resp(f"批量下载失败:{e}")
 
-@module_route.get("/history") # 获取生成历史
+@module_route.get("/history", summary="获取代码生成历史", dependencies=[Depends(check_permission("generator:history:query"))]) # 获取生成历史
 def getHistory(table_id: int = None, session: Session = Depends(get_session)):
     """获取代码生成历史记录"""
     try:

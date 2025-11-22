@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """模板管理器"""
 import os
-from jinja2 import Environment, FileSystemLoader, Template
 from typing import Dict, List
+
 from core.logger import get_logger
+from jinja2 import Environment, FileSystemLoader
 
 logger = get_logger(__name__)
 

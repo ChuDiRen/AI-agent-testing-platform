@@ -4,10 +4,16 @@
       <template #header>
         <div class="card-header">
           <h3>接口信息管理</h3>
-          <el-button type="primary" @click="onDataForm(-1)">
-            <el-icon><Plus /></el-icon>
-            新增接口
-          </el-button>
+          <div>
+            <el-button type="success" @click="showImportDialog">
+              <el-icon><Upload /></el-icon>
+              导入Swagger
+            </el-button>
+            <el-button type="primary" @click="onDataForm(-1)">
+              <el-icon><Plus /></el-icon>
+              新增接口
+            </el-button>
+          </div>
         </div>
       </template>
 
@@ -26,13 +32,6 @@
         <el-form-item label="请求方法">
           <el-select v-model="searchForm.request_method" placeholder="选择请求方法" clearable style="width: 180px">
             <el-option v-for="method in methodList" :key="method" :label="method" :value="method"/>     
-          </el-select>
-        </el-form-item>
-        
-        <el-form-item label="接口分组">
-          <el-select v-model="searchForm.group_id" placeholder="选择分组" clearable style="width: 180px">
-            <el-option label="未分组" :value="0"/>
-            <el-option v-for="group in groupList" :key="group.id" :label="group.group_name" :value="group.id"/>     
           </el-select>
         </el-form-item>
         
@@ -99,14 +98,63 @@
       />
     </div>
     </el-card>
+
+    <!-- 导入Swagger对话框 -->
+    <el-dialog v-model="importDialogVisible" title="导入Swagger文档" width="600px">
+      <el-form :model="importForm" label-width="120px">
+        <el-form-item label="选择项目" required>
+          <el-select v-model="importForm.project_id" placeholder="请选择项目" style="width: 100%">
+            <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id"/>
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="导入方式">
+          <el-radio-group v-model="importForm.importType">
+            <el-radio label="url">URL导入</el-radio>
+            <el-radio label="json">JSON导入</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        
+        <el-form-item v-if="importForm.importType === 'url'" label="Swagger URL" required>
+          <el-input 
+            v-model="importForm.swagger_url" 
+            placeholder="例如: https://petstore.swagger.io/v2/swagger.json"
+            clearable
+          />
+          <div style="color: #909399; font-size: 12px; margin-top: 5px;">
+            支持OpenAPI 2.0和3.0规范
+          </div>
+        </el-form-item>
+        
+        <el-form-item v-if="importForm.importType === 'json'" label="Swagger JSON" required>
+          <el-input 
+            v-model="importForm.swagger_json_text" 
+            type="textarea"
+            :rows="8"
+            placeholder="粘贴Swagger JSON内容"
+          />
+        </el-form-item>
+        
+        <el-form-item label="覆盖已存在">
+          <el-switch v-model="importForm.override_existing" />
+          <div style="color: #909399; font-size: 12px; margin-top: 5px;">
+            开启后将更新已存在的同名接口
+          </div>
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <el-button @click="importDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleImport" :loading="importing">开始导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from "vue";
-import { queryByPage, deleteData, getMethods } from './apiinfo.js';
+import { queryByPage, deleteData, getMethods, importSwagger } from './apiinfo.js';
 import { queryByPage as getProjectList } from '../project/apiProject.js';
-import { queryByPage as queryGroupByPage } from '../apigroup/apiGroup.js';
 import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -122,8 +170,7 @@ const total = ref(0);
 const searchForm = reactive({
   project_id: null,
   api_name: null,
-  request_method: null,
-  group_id: null
+  request_method: null
 });
 
 // 表格数据
@@ -132,18 +179,25 @@ const tableData = ref([]);
 // 项目列表
 const projectList = ref([]);
 
-// 分组列表
-const groupList = ref([]);
-
 // 请求方法列表
 const methodList = ref([]);
+
+// 导入对话框
+const importDialogVisible = ref(false);
+const importing = ref(false);
+const importForm = reactive({
+  project_id: null,
+  importType: 'url',
+  swagger_url: '',
+  swagger_json_text: '',
+  override_existing: false
+});
 
 // 重置搜索
 const resetSearch = () => {
   searchForm.project_id = null;
   searchForm.api_name = null;
   searchForm.request_method = null;
-  searchForm.group_id = null;
   currentPage.value = 1;
   loadData();
 };
@@ -188,17 +242,6 @@ const loadMethodList = () => {
     }
   }).catch((error) => {
     console.error('加载请求方法失败:', error);
-  });
-};
-
-// 加载分组列表
-const loadGroupList = () => {
-  queryGroupByPage({ page: 1, pageSize: 1000 }).then((res) => {
-    if (res.data.code === 200) {
-      groupList.value = res.data.data || [];
-    }
-  }).catch((error) => {
-    console.error('加载分组列表失败:', error);
   });
 };
 
@@ -286,11 +329,75 @@ const handleCurrentChange = (val) => {
   loadData();
 };
 
+// 显示导入对话框
+const showImportDialog = () => {
+  importForm.project_id = searchForm.project_id || null;
+  importForm.importType = 'url';
+  importForm.swagger_url = '';
+  importForm.swagger_json_text = '';
+  importForm.override_existing = false;
+  importDialogVisible.value = true;
+};
+
+// 执行导入
+const handleImport = async () => {
+  // 验证
+  if (!importForm.project_id) {
+    ElMessage.warning('请选择项目');
+    return;
+  }
+  
+  if (importForm.importType === 'url' && !importForm.swagger_url) {
+    ElMessage.warning('请输入Swagger URL');
+    return;
+  }
+  
+  if (importForm.importType === 'json' && !importForm.swagger_json_text) {
+    ElMessage.warning('请粘贴Swagger JSON内容');
+    return;
+  }
+  
+  try {
+    importing.value = true;
+    
+    const requestData: any = {
+      project_id: importForm.project_id,
+      override_existing: importForm.override_existing
+    };
+    
+    if (importForm.importType === 'url') {
+      requestData.swagger_url = importForm.swagger_url;
+    } else {
+      try {
+        requestData.swagger_json = JSON.parse(importForm.swagger_json_text);
+      } catch (e) {
+        ElMessage.error('JSON格式错误,请检查');
+        return;
+      }
+    }
+    
+    const res = await importSwagger(requestData);
+    
+    if (res.data.code === 200) {
+      const result = res.data.data;
+      ElMessage.success(`导入完成! 成功:${result.imported_apis}, 跳过:${result.skipped_apis}, 失败:${result.failed_apis}`);
+      importDialogVisible.value = false;
+      loadData(); // 刷新列表
+    } else {
+      ElMessage.error(res.data.msg || '导入失败');
+    }
+  } catch (error) {
+    console.error('导入失败:', error);
+    ElMessage.error('导入失败: ' + (error.message || '未知错误'));
+  } finally {
+    importing.value = false;
+  }
+};
+
 // 页面加载时执行
 onMounted(() => {
   loadProjectList();
   loadMethodList();
-  loadGroupList();
   loadData();
 });
 </script>

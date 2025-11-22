@@ -1,12 +1,13 @@
+import logging
+from datetime import datetime
+
+from core.database import get_session
+from core.resp_model import respModel
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import select, Session, func
-from datetime import datetime
-import logging
 
 from ..model.PromptTemplate import PromptTemplate
 from ..schemas.prompt_template_schema import PromptTemplateQuery, PromptTemplateCreate, PromptTemplateUpdate
-from core.database import get_session
-from core.resp_model import respModel
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ module_model = PromptTemplate
 module_route = APIRouter(prefix=f"/{module_name}", tags=["提示词模板管理"])
 
 
-@module_route.post("/queryByPage") # 分页查询提示词模板
+@module_route.post("/queryByPage", summary="分页查询提示词模板") # 分页查询提示词模板
 def queryByPage(query: PromptTemplateQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
@@ -52,7 +53,7 @@ def queryByPage(query: PromptTemplateQuery, session: Session = Depends(get_sessi
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 
-@module_route.get("/queryById") # 根据ID查询提示词模板
+@module_route.get("/queryById", summary="根据ID查询提示词模板") # 根据ID查询提示词模板
 def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
@@ -66,7 +67,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 
-@module_route.get("/queryByType") # 按测试类型获取所有激活的模板
+@module_route.get("/queryByType", summary="按测试类型获取所有激活的模板") # 按测试类型获取所有激活的模板
 def queryByType(testType: str = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(
@@ -80,7 +81,7 @@ def queryByType(testType: str = Query(...), session: Session = Depends(get_sessi
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 
-@module_route.get("/queryAll") # 查询所有提示词模板
+@module_route.get("/queryAll", summary="查询所有提示词模板") # 查询所有提示词模板
 def queryAll(session: Session = Depends(get_session)):
     try:
         statement = select(module_model).order_by(module_model.create_time.desc())
@@ -91,7 +92,7 @@ def queryAll(session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 
-@module_route.post("/insert") # 新增提示词模板
+@module_route.post("/insert", summary="新增提示词模板") # 新增提示词模板
 def insert(template: PromptTemplateCreate, session: Session = Depends(get_session)):
     try:
         data = module_model(**template.model_dump(), create_time=datetime.now(), modify_time=datetime.now())
@@ -106,7 +107,7 @@ def insert(template: PromptTemplateCreate, session: Session = Depends(get_sessio
         return respModel.error_resp(msg=f"添加失败:{e}")
 
 
-@module_route.put("/update") # 更新提示词模板
+@module_route.put("/update", summary="更新提示词模板") # 更新提示词模板
 def update(template: PromptTemplateUpdate, session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == template.id)
@@ -127,7 +128,7 @@ def update(template: PromptTemplateUpdate, session: Session = Depends(get_sessio
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
 
-@module_route.delete("/delete") # 删除提示词模板
+@module_route.delete("/delete", summary="删除提示词模板") # 删除提示词模板
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
@@ -145,7 +146,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"删除失败，请联系管理员:{e}")
 
 
-@module_route.post("/toggleActive") # 切换模板激活/停用状态
+@module_route.post("/toggleActive", summary="切换模板激活/停用状态") # 切换模板激活/停用状态
 def toggleActive(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         template = session.get(module_model, id)
@@ -165,7 +166,7 @@ def toggleActive(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"操作失败:{e}")
 
 
-@module_route.get("/queryByTestType") # 按测试类型查询模板
+@module_route.get("/queryByTestType", summary="按测试类型查询模板") # 按测试类型查询模板
 def queryByTestType(test_type: str = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(

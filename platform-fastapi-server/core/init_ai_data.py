@@ -1,9 +1,10 @@
 """初始化AI相关数据：模型、提示词模板"""
-from sqlmodel import Session, select
+import logging
+from datetime import datetime
+
 from aiassistant.model.AiModel import AiModel
 from aiassistant.model.PromptTemplate import PromptTemplate
-from datetime import datetime
-import logging
+from sqlmodel import Session, select
 
 logger = logging.getLogger(__name__)
 

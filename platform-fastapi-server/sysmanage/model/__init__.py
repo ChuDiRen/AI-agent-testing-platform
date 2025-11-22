@@ -1,9 +1,9 @@
-from .user import User
-from .role import Role
-from .menu import Menu
 from .dept import Dept
-from .user_role import UserRole
+from .menu import Menu
+from .role import Role
 from .role_menu import RoleMenu
+from .user import User
+from .user_role import UserRole
 
 __all__ = ["User", "Role", "Menu", "Dept", "UserRole", "RoleMenu"]
 

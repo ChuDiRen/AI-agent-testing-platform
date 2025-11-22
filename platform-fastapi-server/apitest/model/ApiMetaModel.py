@@ -1,6 +1,8 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from sqlmodel import SQLModel, Field
+
 
 class ApiMeta(SQLModel, table=True): # API元数据表
     __tablename__ = "t_api_meta"

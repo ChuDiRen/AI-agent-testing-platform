@@ -1,5 +1,7 @@
-from sqlmodel import SQLModel, Field
 from typing import Optional
+
+from sqlmodel import SQLModel, Field
+
 
 class UserRole(SQLModel, table=True): # 用户-角色关联表
     __tablename__ = "t_user_role"

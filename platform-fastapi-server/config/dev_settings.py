@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
+
 
 class Settings(BaseSettings): # 开发环境配置
     # 数据库配置 - 支持MySQL和SQLite切换

@@ -1,19 +1,21 @@
-from fastapi import APIRouter, Depends, Query, BackgroundTasks
-from sqlmodel import Session, select
-from core.resp_model import respModel
-from core.logger import get_logger
-from core.database import get_session
-from core.dependencies import check_permission
-from core.time_utils import TimeFormatter
-from ..model.ApiHistoryModel import ApiHistory
-from ..model.ApiInfoModel import ApiInfo
-from ..schemas.api_history_schema import ApiTestHistoryQuery, ApiTestExecuteRequest, ApiTestResult
+import json
+import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any
-import subprocess
+from typing import Dict, Optional, Any
+
 import yaml
-import json
+from core.database import get_session
+from core.dependencies import check_permission
+from core.logger import get_logger
+from core.resp_model import respModel
+from core.time_utils import TimeFormatter
+from fastapi import APIRouter, Depends, Query, BackgroundTasks
+from sqlmodel import Session, select
+
+from ..model.ApiHistoryModel import ApiHistory
+from ..model.ApiInfoModel import ApiInfo
+from ..schemas.api_history_schema import ApiTestHistoryQuery, ApiTestExecuteRequest
 
 logger = get_logger(__name__)
 
@@ -29,7 +31,7 @@ module_model = ApiHistory
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API测试历史管理"])
 
 # ==================== 路由处理函数 ====================
-@module_route.post("/queryByPage", dependencies=[Depends(check_permission("apitest:history:query"))])
+@module_route.post("/queryByPage", summary="分页查询API测试历史", dependencies=[Depends(check_permission("apitest:history:query"))])
 def queryByPage(query: ApiTestHistoryQuery, session: Session = Depends(get_session)):
     """分页查询测试历史"""
     try:
@@ -53,7 +55,7 @@ def queryByPage(query: ApiTestHistoryQuery, session: Session = Depends(get_sessi
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.get("/queryById")
+@module_route.get("/queryById", summary="根据ID查询API测试历史")
 def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询测试历史"""
     try:
@@ -63,7 +65,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/execute")
+@module_route.post("/execute", summary="执行API接口测试")
 def execute_test(request: ApiTestExecuteRequest, background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
     """执行接口测试"""
     try:
@@ -248,7 +250,7 @@ def execute_test(request: ApiTestExecuteRequest, background_tasks: BackgroundTas
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.get("/status")
+@module_route.get("/status", summary="查询API测试状态")
 def get_test_status(test_id: int = Query(...), session: Session = Depends(get_session)):
     """查询测试状态"""
     try:
@@ -271,7 +273,7 @@ def get_test_status(test_id: int = Query(...), session: Session = Depends(get_se
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.delete("/delete", dependencies=[Depends(check_permission("apitest:history:delete"))])
+@module_route.delete("/delete", summary="删除API测试历史", dependencies=[Depends(check_permission("apitest:history:delete"))])
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除测试历史"""
     try:
@@ -286,7 +288,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.get("/queryByPlanId")
+@module_route.get("/queryByPlanId", summary="根据测试计划ID查询历史记录")
 def queryByPlanId(plan_id: int = Query(...), session: Session = Depends(get_session)):
     """根据测试计划ID查询历史记录"""
     try:
@@ -315,7 +317,7 @@ def queryByPlanId(plan_id: int = Query(...), session: Session = Depends(get_sess
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.get("/queryByExecutionUuid")
+@module_route.get("/queryByExecutionUuid", summary="根据批量执行UUID查询历史记录")
 def queryByExecutionUuid(execution_uuid: str = Query(...), session: Session = Depends(get_session)):
     """根据批量执行UUID查询历史记录"""
     try:

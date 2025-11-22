@@ -200,7 +200,7 @@ const handleSubmit = async () => {
       const res = await updateData(data)
       if (res.data.code === 200) {
         ElMessage.success('更新成功')
-        router.push('/ApiCaseList')
+        router.push('/ApiInfoCaseList')
       } else {
         ElMessage.error(res.data.msg || '更新失败')
       }
@@ -208,7 +208,7 @@ const handleSubmit = async () => {
       const res = await insertData(data)
       if (res.data.code === 200) {
         ElMessage.success('创建成功')
-        router.push('/ApiCaseList')
+        router.push('/ApiInfoCaseList')
       } else {
         ElMessage.error(res.data.msg || '创建失败')
       }
@@ -253,7 +253,7 @@ const handleExecute = async () => {
 
 // 返回
 const handleBack = () => {
-  router.push('/ApiCaseList')
+  router.push('/ApiInfoCaseList')
 }
 
 // 加载用例数据

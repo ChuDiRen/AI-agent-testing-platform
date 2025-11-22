@@ -1,14 +1,15 @@
+from core.JwtUtil import JwtUtils
+from core.database import get_session
+from core.resp_model import respModel
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from sysmanage.model.user import User
-from core.JwtUtil import JwtUtils
-from core.resp_model import respModel
-from core.database import get_session
+
 from ..schemas.login_schema import LoginRequest
 
 module_route = APIRouter(tags=["登录"])
 
-@module_route.post("/login") # 用户登录
+@module_route.post("/login", summary="用户登录") # 用户登录
 def login(request: LoginRequest, session: Session = Depends(get_session)):
     statement = select(User).where(User.username == request.username, User.password == request.password)
     user = session.exec(statement).first()

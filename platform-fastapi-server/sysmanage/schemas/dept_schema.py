@@ -1,6 +1,7 @@
-from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime
+
+from pydantic import BaseModel
+
 
 class DeptQuery(BaseModel): # 部门查询请求
     dept_name: Optional[str] = None # 部门名称（模糊查询）

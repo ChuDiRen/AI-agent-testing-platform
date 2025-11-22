@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """代码生成器表配置Schema"""
-from pydantic import BaseModel, Field
 from typing import Optional, List
+
+from pydantic import BaseModel, Field
+
 
 class GenTableQuery(BaseModel): # 查询参数
     page: int = Field(default=1, ge=1, description='页码')

@@ -2,11 +2,11 @@
 统一日志工具类
 支持 trace_id 追踪，提供统一的日志接口
 """
-from contextvars import ContextVar
-import uuid
 import logging
-from typing import Optional
 import sys
+import uuid
+from contextvars import ContextVar
+from typing import Optional
 
 # 使用 ContextVar 存储当前请求的 trace_id
 trace_id_var: ContextVar[str] = ContextVar('trace_id', default='')

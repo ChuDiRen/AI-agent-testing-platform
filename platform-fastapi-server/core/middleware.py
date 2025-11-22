@@ -1,12 +1,14 @@
 """
 自定义中间件
 """
+import time
+import uuid
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
+
 from .logger import Logger
-import uuid
-import time
 
 
 class TraceIDMiddleware(BaseHTTPMiddleware):

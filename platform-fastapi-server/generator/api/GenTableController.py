@@ -1,23 +1,25 @@
 # -*- coding: utf-8 -*-
 """代码生成器-表配置管理控制器"""
+from datetime import datetime
+
+from core.database import get_session
+from core.dependencies import check_permission
+from core.logger import get_logger
+from core.resp_model import respModel
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
-from core.resp_model import respModel
-from core.logger import get_logger
+
 from ..model.GenTable import GenTable
 from ..model.GenTableColumn import GenTableColumn
-from ..schemas.gen_table_schema import GenTableQuery, GenTableCreate, GenTableUpdate, GenTableImport
+from ..schemas.gen_table_schema import GenTableQuery, GenTableUpdate, GenTableImport
 from ..service.DbMetaService import DbMetaService
-from core.database import get_session
-from datetime import datetime
-from typing import List
 
 module_name = "GenTable" # 模块名称
 module_model = GenTable
 module_route = APIRouter(prefix=f"/{module_name}", tags=["代码生成器-表配置"])
 logger = get_logger(__name__)
 
-@module_route.get("/dbTables") # 获取数据库表列表
+@module_route.get("/dbTables", summary="获取数据库可导入表", dependencies=[Depends(check_permission("generator:table:query"))])
 def getDbTables(session: Session = Depends(get_session)):
     """获取数据库所有表(用于导入表)"""
     try:
@@ -35,7 +37,7 @@ def getDbTables(session: Session = Depends(get_session)):
         logger.error(f"获取数据库表列表失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误:{e}")
 
-@module_route.post("/importTables") # 导入表配置
+@module_route.post("/importTables", summary="批量导入表配置", dependencies=[Depends(check_permission("generator:table:import"))])
 def importTables(request: GenTableImport, session: Session = Depends(get_session)):
     """批量导入表配置"""
     try:
@@ -92,7 +94,7 @@ def importTables(request: GenTableImport, session: Session = Depends(get_session
         logger.error(f"导入表配置失败: {e}", exc_info=True)
         return respModel.error_resp(f"导入失败:{e}")
 
-@module_route.post("/queryByPage") # 分页查询表配置
+@module_route.post("/queryByPage", summary="分页查询表配置", dependencies=[Depends(check_permission("generator:table:query"))])
 def queryByPage(query: GenTableQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
@@ -119,7 +121,7 @@ def queryByPage(query: GenTableQuery, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.get("/queryById") # 根据ID查询表配置(含字段)
+@module_route.get("/queryById", summary="根据ID查询表配置", dependencies=[Depends(check_permission("generator:table:query"))])
 def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         # 查询表配置
@@ -140,7 +142,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.put("/update") # 更新表配置
+@module_route.put("/update", summary="更新表配置", dependencies=[Depends(check_permission("generator:table:edit"))])
 def update(data: GenTableUpdate, session: Session = Depends(get_session)):
     try:
         table = session.get(GenTable, data.id)
@@ -160,7 +162,7 @@ def update(data: GenTableUpdate, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"修改失败:{e}")
 
-@module_route.delete("/delete") # 删除表配置
+@module_route.delete("/delete", summary="删除表配置", dependencies=[Depends(check_permission("generator:table:delete"))])
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         # 删除表配置

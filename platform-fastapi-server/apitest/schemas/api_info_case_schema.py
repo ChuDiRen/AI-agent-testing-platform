@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field
 from typing import Optional, List, Any, Dict
+
+from pydantic import BaseModel, Field
+
 
 # ==================== 用例查询相关 ====================
 class ApiInfoCaseQuery(BaseModel):

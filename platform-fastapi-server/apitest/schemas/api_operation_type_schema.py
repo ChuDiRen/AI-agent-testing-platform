@@ -1,5 +1,7 @@
-from pydantic import BaseModel
 from typing import Optional
+
+from pydantic import BaseModel
+
 
 class OperationTypeQuery(BaseModel): # 操作类型查询请求
     page: int = 1

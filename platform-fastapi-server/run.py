@@ -1,6 +1,8 @@
 """应用启动脚本"""
-import uvicorn
 import logging
+
+import uvicorn
+
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,

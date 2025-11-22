@@ -1,5 +1,7 @@
-from pydantic import BaseModel
 from typing import Optional
+
+from pydantic import BaseModel
+
 
 class ApiDbBaseQuery(BaseModel): # API数据库配置查询请求
     page: int = 1

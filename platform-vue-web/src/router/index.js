@@ -36,10 +36,6 @@ import ApiInfoList from '~/views/apitest/apiinfo/ApiInfoList.vue'
 import ApiInfoForm from '~/views/apitest/apiinfo/ApiInfoForm.vue'
 import ApiInfoEditor from '~/views/apitest/apiinfo/ApiInfoEditor.vue'
 
-// 接口分组管理相关导入
-import ApiGroupList from '~/views/apitest/apigroup/ApiGroupList.vue'
-import ApiGroupForm from '~/views/apitest/apigroup/ApiGroupForm.vue'
-
 // 测试执行相关导入（apitest目录仅包含JS工具函数）
 // import ApiTestList from '~/views/apitest/apitest/ApiTestList.vue'  // 已移除，使用ApiHistoryList代替
 
@@ -280,27 +276,6 @@ const routes = [
                 permission: "apitest:api:execute"
             }
         }, {
-            path: "/ApiGroupList",
-            component: ApiGroupList,
-            meta: {
-                title: "接口分组管理",
-                permission: "apitest:group:query"
-            }
-        }, {
-            path: "/apitest/apigroup",
-            component: ApiGroupList,
-            meta: {
-                title: "接口分组",
-                permission: "apitest:apigroup:list"
-            }
-        }, {
-            path: "/ApiGroupForm",
-            component: ApiGroupForm,
-            meta: {
-                title: "接口分组表单",
-                permission: "apitest:group:add"
-            }
-        }, {
             path: "/ApiHistoryList",
             component: ApiHistoryList,
             meta: {
@@ -357,13 +332,6 @@ const routes = [
                 permission: "apitest:case:query"
             }
         }, {
-            path: "/ApiCaseList",
-            component: ApiInfoCaseList,
-            meta: {
-                title: "用例管理",
-                permission: "apitest:case:list"
-            }
-        }, {
             path: "/ApiInfoCaseForm",
             component: ApiInfoCaseForm,
             meta: {
@@ -383,13 +351,6 @@ const routes = [
             meta: {
                 title: "测试集合表单",
                 permission: "apitest:collection:add"
-            }
-        }, {
-            path: "/ApiTestPlanList",
-            component: ApiCollectionInfoList,
-            meta: {
-                title: "测试计划",
-                permission: "apitest:plan:list"
             }
         }, {
             path: "/RobotConfigList",

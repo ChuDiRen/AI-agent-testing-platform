@@ -1,21 +1,24 @@
+from datetime import datetime
+
+from core.database import get_session
+from core.dependencies import check_permission
+from core.logger import get_logger
+from core.resp_model import respModel
+from core.time_utils import TimeFormatter
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
-from core.resp_model import respModel
-from core.logger import get_logger
+
 from ..model.menu import Menu
-from ..model.user_role import UserRole
 from ..model.role_menu import RoleMenu
-from ..schemas.menu_schema import MenuQuery, MenuCreate, MenuUpdate, MenuTree
-from core.database import get_session
-from core.time_utils import TimeFormatter
-from datetime import datetime
+from ..model.user_role import UserRole
+from ..schemas.menu_schema import MenuCreate, MenuUpdate
 
 module_name = "menu"
 module_model = Menu
 module_route = APIRouter(prefix=f"/{module_name}", tags=["菜单管理"])
 logger = get_logger(__name__)
 
-@module_route.get("/tree")
+@module_route.get("/tree", summary="获取菜单树", dependencies=[Depends(check_permission("system:menu:query"))])
 def getTree(session: Session = Depends(get_session)):
     """获取菜单树"""
     try:
@@ -64,7 +67,7 @@ def getTree(session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.get("/queryById")
+@module_route.get("/queryById", summary="根据ID查询菜单", dependencies=[Depends(check_permission("system:menu:query"))])
 def queryById(id: int, session: Session = Depends(get_session)):
     """根据ID查询菜单"""
     try:
@@ -74,7 +77,7 @@ def queryById(id: int, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/insert")
+@module_route.post("/insert", summary="新增菜单", dependencies=[Depends(check_permission("system:menu:add"))])
 def insert(request: MenuCreate, session: Session = Depends(get_session)):
     """新增菜单"""
     try:
@@ -88,7 +91,7 @@ def insert(request: MenuCreate, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.put("/update")
+@module_route.put("/update", summary="更新菜单", dependencies=[Depends(check_permission("system:menu:edit"))])
 def update(request: MenuUpdate, session: Session = Depends(get_session)):
     """更新菜单"""
     try:
@@ -108,7 +111,7 @@ def update(request: MenuUpdate, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.delete("/delete")
+@module_route.delete("/delete", summary="删除菜单", dependencies=[Depends(check_permission("system:menu:delete"))])
 def delete(id: int, session: Session = Depends(get_session)):
     """删除菜单"""
     try:
@@ -131,7 +134,7 @@ def delete(id: int, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.get("/user/{user_id}")
+@module_route.get("/user/{user_id}", summary="获取用户菜单权限")
 def getUserMenus(user_id: int, session: Session = Depends(get_session)):
     """获取用户的菜单权限（用于前端路由）"""
     try:

@@ -1,7 +1,8 @@
-from sqlmodel import create_engine, Session, SQLModel
-from config.dev_settings import settings
-from typing import Generator
 import logging
+from typing import Generator
+
+from config.dev_settings import settings
+from sqlmodel import create_engine, Session, SQLModel
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)

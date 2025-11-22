@@ -1,13 +1,14 @@
+import logging
+from datetime import datetime
+
+import httpx
+from core.database import get_session
+from core.resp_model import respModel
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import select, Session, func
-from datetime import datetime
-import logging
-import httpx
 
 from ..model.AiModel import AiModel
 from ..schemas.ai_model_schema import AiModelQuery, AiModelCreate, AiModelUpdate
-from core.database import get_session
-from core.resp_model import respModel
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ module_model = AiModel
 module_route = APIRouter(prefix=f"/{module_name}", tags=["AI模型管理"])
 
 
-@module_route.post("/queryByPage") # 分页查询AI模型
+@module_route.post("/queryByPage", summary="分页查询AI模型") # 分页查询AI模型
 def queryByPage(query: AiModelQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
@@ -47,7 +48,7 @@ def queryByPage(query: AiModelQuery, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 
-@module_route.get("/queryById") # 根据ID查询AI模型
+@module_route.get("/queryById", summary="根据ID查询AI模型") # 根据ID查询AI模型
 def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
@@ -61,7 +62,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 
-@module_route.get("/queryEnabled") # 查询所有已启用的模型
+@module_route.get("/queryEnabled", summary="查询所有已启用的模型") # 查询所有已启用的模型
 def queryEnabled(session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.is_enabled == True).order_by(module_model.create_time)
@@ -72,7 +73,7 @@ def queryEnabled(session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 
-@module_route.post("/insert") # 新增AI模型
+@module_route.post("/insert", summary="新增AI模型") # 新增AI模型
 def insert(model: AiModelCreate, session: Session = Depends(get_session)):
     try:
         # 检查模型代码是否重复
@@ -94,7 +95,7 @@ def insert(model: AiModelCreate, session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"添加失败:{e}")
 
 
-@module_route.put("/update") # 更新AI模型
+@module_route.put("/update", summary="更新AI模型") # 更新AI模型
 def update(model: AiModelUpdate, session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == model.id)
@@ -115,7 +116,7 @@ def update(model: AiModelUpdate, session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
 
-@module_route.delete("/delete") # 删除AI模型
+@module_route.delete("/delete", summary="删除AI模型") # 删除AI模型
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
@@ -133,7 +134,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"删除失败，请联系管理员:{e}")
 
 
-@module_route.post("/toggleStatus") # 切换模型启用/禁用状态
+@module_route.post("/toggleStatus", summary="切换模型启用/禁用状态") # 切换模型启用/禁用状态
 def toggleStatus(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         model = session.get(module_model, id)
@@ -153,7 +154,7 @@ def toggleStatus(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"操作失败:{e}")
 
 
-@module_route.post("/testConnection") # 测试模型API连接
+@module_route.post("/testConnection", summary="测试模型API连接") # 测试模型API连接
 async def testConnection(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         model = session.get(module_model, id)

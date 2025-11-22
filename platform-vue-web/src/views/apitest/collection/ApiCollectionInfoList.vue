@@ -117,12 +117,12 @@ const resetQuery = () => {
 
 // 新增
 const handleAdd = () => {
-  router.push('/ApiTestPlanForm')
+  router.push('/ApiCollectionInfoForm')
 }
 
 // 编辑
 const handleEdit = (row) => {
-  router.push({ path: '/ApiTestPlanForm', query: { id: row.id } })
+  router.push({ path: '/ApiCollectionInfoForm', query: { id: row.id } })
 }
 
 // 执行测试计划

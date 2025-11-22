@@ -1,30 +1,30 @@
 import os
+from datetime import datetime
+
+from config.dev_settings import settings
+from core.database import get_session
+from core.dependencies import check_permission
+from core.logger import get_logger
+from core.resp_model import respModel
+from core.time_utils import TimeFormatter
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
-from core.resp_model import respModel
-from core.logger import get_logger
-
 
 from ..model.ApiKeyWordModel import ApiKeyWord
 from ..schemas.api_keyword_schema import ApiKeyWordQuery, ApiKeyWordCreate, ApiKeyWordUpdate, KeywordFileRequest
-from core.database import get_session
-from core.dependencies import check_permission
-from core.time_utils import TimeFormatter
-from config.dev_settings import settings
-from datetime import datetime
 
 module_name = "ApiKeyWord" # 模块名称
 module_model = ApiKeyWord
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API关键字管理"])
 logger = get_logger(__name__)
 
-@module_route.get("/queryAll", dependencies=[Depends(check_permission("apitest:keyword:query"))]) # 查询所有关键字
+@module_route.get("/queryAll", summary="查询所有关键字", dependencies=[Depends(check_permission("apitest:keyword:query"))]) # 查询所有关键字
 def queryAll(session: Session = Depends(get_session)):
     statement = select(module_model)
     datas = session.exec(statement).all()
     return respModel.ok_resp_list(lst=datas, msg="查询成功")
 
-@module_route.post("/queryByPage") # 分页查询关键字
+@module_route.post("/queryByPage", summary="分页查询关键字", dependencies=[Depends(check_permission("apitest:keyword:query"))]) # 分页查询关键字
 def queryByPage(query: ApiKeyWordQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
@@ -53,7 +53,7 @@ def queryByPage(query: ApiKeyWordQuery, session: Session = Depends(get_session))
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.get("/queryById") # 根据ID查询关键字
+@module_route.get("/queryById", summary="根据ID查询关键字", dependencies=[Depends(check_permission("apitest:keyword:query"))]) # 根据ID查询关键字
 def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
@@ -66,7 +66,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/insert", dependencies=[Depends(check_permission("apitest:keyword:add"))]) # 新增关键字
+@module_route.post("/insert", summary="新增关键字", dependencies=[Depends(check_permission("apitest:keyword:add"))]) # 新增关键字
 def insert(keyword: ApiKeyWordCreate, session: Session = Depends(get_session)):
     try:
         # 检查关键字方法名是否重复
@@ -84,7 +84,7 @@ def insert(keyword: ApiKeyWordCreate, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"添加失败:{e}")
 
-@module_route.put("/update", dependencies=[Depends(check_permission("apitest:keyword:edit"))]) # 更新关键字
+@module_route.put("/update", summary="更新关键字", dependencies=[Depends(check_permission("apitest:keyword:edit"))]) # 更新关键字
 def update(keyword: ApiKeyWordUpdate, session: Session = Depends(get_session)):
     try:
         # 检查关键字方法名是否与其他记录重复
@@ -108,7 +108,7 @@ def update(keyword: ApiKeyWordUpdate, session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
-@module_route.delete("/delete", dependencies=[Depends(check_permission("apitest:keyword:delete"))]) # 删除关键字
+@module_route.delete("/delete", summary="删除关键字", dependencies=[Depends(check_permission("apitest:keyword:delete"))]) # 删除关键字
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
@@ -124,7 +124,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"服务器错误,删除失败：{e}")
 
-@module_route.post("/keywordFile", dependencies=[Depends(check_permission("apitest:keyword:generate"))]) # 生成关键字文件
+@module_route.post("/keywordFile", summary="生成关键字文件", dependencies=[Depends(check_permission("apitest:keyword:generate"))]) # 生成关键字文件
 def keywordFile(request: KeywordFileRequest):
     try:
         file_name = request.keyword_fun_name
@@ -138,7 +138,7 @@ def keywordFile(request: KeywordFileRequest):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"添加失败:{e}")
 
-@module_route.get("/queryByOperationType") # 根据操作类型ID查询关键字列表
+@module_route.get("/queryByOperationType", summary="根据操作类型查询关键字", dependencies=[Depends(check_permission("apitest:keyword:query"))]) # 根据操作类型ID查询关键字列表
 def queryByOperationType(operation_type_id: int = Query(...), session: Session = Depends(get_session)):
     """根据操作类型ID查询关键字列表"""
     try:
@@ -159,7 +159,7 @@ def queryByOperationType(operation_type_id: int = Query(...), session: Session =
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.get("/getKeywordFields") # 获取关键字的字段描述
+@module_route.get("/getKeywordFields", summary="获取关键字字段描述", dependencies=[Depends(check_permission("apitest:keyword:query"))]) # 获取关键字的字段描述
 def getKeywordFields(keyword_id: int = Query(...), session: Session = Depends(get_session)):
     """获取关键字的字段描述（解析keyword_desc）"""
     try:

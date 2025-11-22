@@ -1,6 +1,8 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from sqlmodel import SQLModel, Field
+
 
 class Menu(SQLModel, table=True): # 菜单/权限模型（参考RuoYi-Vue-Plus设计）
     __tablename__ = "t_menu"

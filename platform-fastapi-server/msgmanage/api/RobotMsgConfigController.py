@@ -1,23 +1,24 @@
 """
 机器人消息模板配置Controller
 """
-from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session, select
-from core.resp_model import respModel
-from ..model.RobotMsgConfigModel import RobotMsgConfig
-from ..model.RobotConfigModel import RobotConfig
-from ..schemas.robot_msg_config_schema import (
-    RobotMsgConfigQuery, RobotMsgConfigCreate, RobotMsgConfigUpdate,
-    RobotMsgConfigResponse, MessageSendRequest, MessageSendResponse
-)
+import json
+import re
+from datetime import datetime
+
+import httpx
 from core.database import get_session
 from core.dependencies import check_permission
 from core.logger import get_logger
-from datetime import datetime
-import httpx
-import json
-import re
+from core.resp_model import respModel
+from fastapi import APIRouter, Depends, Query
+from sqlmodel import Session, select
 
+from ..model.RobotConfigModel import RobotConfig
+from ..model.RobotMsgConfigModel import RobotMsgConfig
+from ..schemas.robot_msg_config_schema import (
+    RobotMsgConfigQuery, RobotMsgConfigCreate, RobotMsgConfigUpdate,
+    MessageSendRequest
+)
 
 module_name = "RobotMsgConfig"
 module_model = RobotMsgConfig
@@ -25,7 +26,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["机器人消息模板�
 logger = get_logger(__name__)
 
 
-@module_route.post("/queryByPage", dependencies=[Depends(check_permission("msgmanage:template:query"))])
+@module_route.post("/queryByPage", summary="分页查询消息模板", dependencies=[Depends(check_permission("msgmanage:template:query"))])
 def queryByPage(query: RobotMsgConfigQuery, session: Session = Depends(get_session)):
     """分页查询消息模板"""
     try:
@@ -62,7 +63,7 @@ def queryByPage(query: RobotMsgConfigQuery, session: Session = Depends(get_sessi
         return respModel.error_resp(f"服务器错误: {e}")
 
 
-@module_route.get("/queryById")
+@module_route.get("/queryById", summary="根据ID查询消息模板", dependencies=[Depends(check_permission("msgmanage:template:query"))])
 def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询消息模板"""
     try:
@@ -77,7 +78,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误: {e}")
 
 
-@module_route.get("/queryByRobotId")
+@module_route.get("/queryByRobotId", summary="根据机器人ID查询消息模板", dependencies=[Depends(check_permission("msgmanage:template:query"))])
 def queryByRobotId(robot_id: int = Query(...), session: Session = Depends(get_session)):
     """根据机器人ID查询所有模板"""
     try:
@@ -92,7 +93,7 @@ def queryByRobotId(robot_id: int = Query(...), session: Session = Depends(get_se
         return respModel.error_resp(f"服务器错误: {e}")
 
 
-@module_route.post("/insert", dependencies=[Depends(check_permission("msgmanage:template:add"))])
+@module_route.post("/insert", summary="新增消息模板", dependencies=[Depends(check_permission("msgmanage:template:add"))])
 def insert(template: RobotMsgConfigCreate, session: Session = Depends(get_session)):
     """新增消息模板"""
     try:
@@ -107,7 +108,7 @@ def insert(template: RobotMsgConfigCreate, session: Session = Depends(get_sessio
         return respModel.error_resp(msg=f"添加失败: {e}")
 
 
-@module_route.put("/update", dependencies=[Depends(check_permission("msgmanage:template:edit"))])
+@module_route.put("/update", summary="更新消息模板", dependencies=[Depends(check_permission("msgmanage:template:edit"))])
 def update(template: RobotMsgConfigUpdate, session: Session = Depends(get_session)):
     """更新消息模板"""
     try:
@@ -129,7 +130,7 @@ def update(template: RobotMsgConfigUpdate, session: Session = Depends(get_sessio
         return respModel.error_resp(msg=f"修改失败: {e}")
 
 
-@module_route.delete("/delete", dependencies=[Depends(check_permission("msgmanage:template:delete"))])
+@module_route.delete("/delete", summary="删除消息模板", dependencies=[Depends(check_permission("msgmanage:template:delete"))])
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除消息模板"""
     try:
@@ -160,7 +161,7 @@ def replace_variables(template_content: str, variables: dict) -> str:
     return template_content
 
 
-@module_route.post("/send", dependencies=[Depends(check_permission("msgmanage:template:send"))])
+@module_route.post("/send", summary="发送消息", dependencies=[Depends(check_permission("msgmanage:template:send"))])
 async def send(request: MessageSendRequest, session: Session = Depends(get_session)):
     """发送消息"""
     try:
@@ -237,7 +238,7 @@ async def send(request: MessageSendRequest, session: Session = Depends(get_sessi
         return respModel.error_resp(msg=f"发送失败: {e}")
 
 
-@module_route.post("/sendToRabbitMQ")
+@module_route.post("/sendToRabbitMQ", summary="推送消息任务到RabbitMQ", dependencies=[Depends(check_permission("msgmanage:template:send"))])
 async def sendToRabbitMQ(request: MessageSendRequest, session: Session = Depends(get_session)):
     """将消息发送任务推送到RabbitMQ队列（异步处理）"""
     try:

@@ -2,10 +2,10 @@
 WebSocket连接管理器
 用于管理测试执行的实时WebSocket连接
 """
-from fastapi import WebSocket, WebSocketDisconnect
-from typing import Dict, List
-import json
 import logging
+from typing import Dict, List
+
+from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
 

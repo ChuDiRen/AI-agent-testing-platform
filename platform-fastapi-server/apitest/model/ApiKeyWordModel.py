@@ -1,6 +1,8 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from sqlmodel import SQLModel, Field
+
 
 class ApiKeyWord(SQLModel, table=True): # API关键字表
     __tablename__ = "t_api_keyword"

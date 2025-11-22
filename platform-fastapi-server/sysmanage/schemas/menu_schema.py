@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime
+
+from pydantic import BaseModel, Field
+
 
 class MenuQuery(BaseModel): # 菜单查询请求（参考RuoYi-Vue-Plus）
     menu_name: Optional[str] = None # 菜单名称（模糊查询）

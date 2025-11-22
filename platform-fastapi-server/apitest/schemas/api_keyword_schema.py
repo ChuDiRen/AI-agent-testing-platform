@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field
 from typing import Optional
+
+from pydantic import BaseModel, Field
+
 
 class ApiKeyWordQuery(BaseModel): # API关键字查询请求
     page: int = Field(default=1, ge=1, description="页码")

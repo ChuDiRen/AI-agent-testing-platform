@@ -2,9 +2,10 @@
 机器人配置数据模型
 支持微信、钉钉、飞书等多平台机器人配置
 """
-from sqlmodel import SQLModel, Field
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from sqlmodel import SQLModel, Field
 
 
 class RobotConfig(SQLModel, table=True):

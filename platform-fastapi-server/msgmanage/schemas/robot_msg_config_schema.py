@@ -1,9 +1,9 @@
 """
 机器人消息模板配置Schema
 """
-from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
-from datetime import datetime
+
+from pydantic import BaseModel, Field
 
 
 # ==================== 消息模板查询相关 ====================

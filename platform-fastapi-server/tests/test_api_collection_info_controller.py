@@ -2,10 +2,11 @@
 ApiCollectionInfoController 单元测试
 测试集合管理的核心功能
 """
+from datetime import datetime
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
-from datetime import datetime
 
 
 @pytest.fixture(name="test_collection")

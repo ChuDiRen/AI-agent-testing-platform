@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
+
 
 class Settings(BaseSettings): # 测试环境配置
     # 数据库配置 - 测试环境推荐使用SQLite

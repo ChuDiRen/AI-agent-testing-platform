@@ -1,7 +1,8 @@
 import json
-import httpx
-from typing import AsyncGenerator, List, Dict, Callable, Optional
 import logging
+from typing import AsyncGenerator, List, Dict
+
+import httpx
 
 logger = logging.getLogger(__name__)
 

@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """数据库元数据解析服务"""
-from sqlalchemy import create_engine, inspect, text
 from typing import List, Dict, Optional
+
 from config.dev_settings import settings
 from core.logger import get_logger
+from sqlalchemy import create_engine, inspect, text
 
 logger = get_logger(__name__)
 

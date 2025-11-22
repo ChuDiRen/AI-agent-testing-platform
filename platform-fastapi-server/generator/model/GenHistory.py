@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """代码生成器-生成历史记录模型"""
-from sqlmodel import SQLModel, Field
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from sqlmodel import SQLModel, Field
+
 
 class GenHistory(SQLModel, table=True): # 代码生成历史记录
     __tablename__ = "gen_history"
