@@ -33,7 +33,10 @@ class Settings(BaseSettings): # 开发环境配置
     # 关键字文件目录
     KEY_WORDS_DIR: str = "./keywords"
     
-    # RabbitMQ配置
+    # 消息队列配置
+    QUEUE_TYPE: str = "memory"  # 队列类型: rabbitmq 或 memory
+    
+    # RabbitMQ配置（当QUEUE_TYPE=rabbitmq时使用）
     RABBITMQ_HOST: str = "localhost"
     RABBITMQ_PORT: int = 5672
     RABBITMQ_USER: str = "guest"

@@ -15,10 +15,10 @@ class TestExecutionConsumer:
     """测试执行消费者"""
     
     def __init__(self):
-        from core.RabbitMQManager import rabbitmq_manager
+        from core.QueueFactory import queue_manager
         from core.WebSocketManager import manager as ws_manager
         
-        self.rabbitmq = rabbitmq_manager
+        self.queue_manager = queue_manager
         self.ws_manager = ws_manager
     
     async def execute_test_case(self, case_id: int, execution_id: str):
@@ -125,18 +125,23 @@ class TestExecutionConsumer:
                 "timestamp": datetime.now().isoformat()
             })
     
-    def callback(self, ch, method, properties, body):
+    def callback(self, message):
         """
-        RabbitMQ消息回调函数
+        消息回调函数（兼容RabbitMQ和内存队列）
         
         Args:
-            ch: 通道
-            method: 方法
-            properties: 属性
-            body: 消息体
+            message: 消息数据（dict或RabbitMQ消息对象）
         """
         try:
-            data = json.loads(body)
+            # 兼容RabbitMQ和内存队列
+            if isinstance(message, dict):
+                # 内存队列：直接是字典
+                data = message
+            else:
+                # RabbitMQ：需要解析body
+                ch, method, properties, body = message
+                data = json.loads(body) if isinstance(body, (str, bytes)) else body
+            
             execution_id = data.get('execution_id')
             case_id = data.get('case_id')
             
@@ -145,18 +150,20 @@ class TestExecutionConsumer:
             # 执行测试用例（异步）
             asyncio.run(self.execute_test_case(case_id, execution_id))
             
-            # 确认消息
-            ch.basic_ack(delivery_tag=method.delivery_tag)
+            # 确认消息（仅RabbitMQ需要）
+            if not isinstance(message, dict):
+                ch.basic_ack(delivery_tag=method.delivery_tag)
             
         except Exception as e:
-            logger.error(f"Error processing test execution message: {e}")
-            # 拒绝消息并重新入队
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+            logger.error(f"Error processing test execution message: {e}", exc_info=True)
+            # 拒绝消息并重新入队（仅RabbitMQ）
+            if not isinstance(message, dict):
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
     
     def start(self):
         """启动消费者"""
         logger.info("Starting test execution consumer...")
-        self.rabbitmq.start_test_execution_consumer(self.callback)
+        self.queue_manager.start_test_execution_consumer(self.callback)
 
 
 # 全局测试执行消费者实例

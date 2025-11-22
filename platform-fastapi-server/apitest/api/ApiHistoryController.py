@@ -24,9 +24,9 @@ YAML_DIR = TEMP_DIR / "yaml_cases"
 REPORT_DIR = TEMP_DIR / "allure_reports"
 LOG_DIR = TEMP_DIR / "logs"
 
-module_name = "ApiTest"
+module_name = "ApiHistory"
 module_model = ApiHistory
-module_route = APIRouter(prefix=f"/{module_name}", tags=["API接口测试管理"])
+module_route = APIRouter(prefix=f"/{module_name}", tags=["API测试历史管理"])
 
 # ==================== 路由处理函数 ====================
 @module_route.post("/queryByPage", dependencies=[Depends(check_permission("apitest:history:query"))])

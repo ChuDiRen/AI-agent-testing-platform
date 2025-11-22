@@ -67,8 +67,11 @@ import TestExecutionView from '~/views/apitest/execution/TestExecutionView.vue'
 
 // AI测试助手模块相关导入
 import AiModelList from '~/views/aiassistant/model/AiModelList.vue'
+import AiModelForm from '~/views/aiassistant/model/AiModelForm.vue'
 import PromptTemplateList from '~/views/aiassistant/prompt/PromptTemplateList.vue'
+import PromptTemplateForm from '~/views/aiassistant/prompt/PromptTemplateForm.vue'
 import TestCaseList from '~/views/aiassistant/testcase/TestCaseList.vue'
+import TestCaseForm from '~/views/aiassistant/testcase/TestCaseForm.vue'
 import AgentChatIntegrated from '~/views/aiassistant/agentchat/AgentChatIntegrated.vue'
 
 // 消息管理模块相关导入
@@ -424,28 +427,53 @@ const routes = [
                 permission: "apitest:history:query"
             }
         }, {
-            path: "/test-cases",
-            component: TestCaseList,
-            meta: {
-                title: "测试用例管理"
-            }
-        }, {
             path: "/ai-models",
             component: AiModelList,
             meta: {
-                title: "AI模型管理"
+                title: "AI模型管理",
+                permission: "ai:model:list"
+            }
+        }, {
+            path: "/AiModelForm",
+            component: AiModelForm,
+            meta: {
+                title: "AI模型表单",
+                permission: "ai:model:add"
             }
         }, {
             path: "/ai-prompts",
             component: PromptTemplateList,
             meta: {
-                title: "提示词模板管理"
+                title: "提示词模板管理",
+                permission: "ai:prompt:list"
+            }
+        }, {
+            path: "/PromptTemplateForm",
+            component: PromptTemplateForm,
+            meta: {
+                title: "提示词模板表单",
+                permission: "ai:prompt:add"
             }
         }, {
             path: "/agent-chat",
             component: AgentChatIntegrated,
             meta: {
-                title: "智能体聊天"
+                title: "智能体聊天",
+                permission: "ai:agent:chat"
+            }
+        }, {
+            path: "/test-cases",
+            component: TestCaseList,
+            meta: {
+                title: "测试用例管理",
+                permission: "ai:testcase:list"
+            }
+        }, {
+            path: "/TestCaseForm",
+            component: TestCaseForm,
+            meta: {
+                title: "测试用例表单",
+                permission: "ai:testcase:add"
             }
         }, {
             path: "/GenTableList",
@@ -508,7 +536,8 @@ const routes = [
         path: '/:pathMatch(.*)*',
         name: 'NotFound',
         component: NotFound
-    }]
+    }
+]
 
 /** */
 const router = createRouter({

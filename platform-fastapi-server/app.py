@@ -28,11 +28,14 @@ async def lifespan(app: FastAPI):
         # 初始化数据
         init_data()
 
-        # 启动RabbitMQ消费者（后台线程）
+        # 启动消息队列消费者（后台线程）
         try:
+            from config.dev_settings import settings
             from core.TestExecutionConsumer import test_execution_consumer
             from core.MessagePushConsumer import message_push_consumer
             import threading
+            
+            logger.info(f"📨 消息队列类型: {settings.QUEUE_TYPE.upper()}")
             
             # 启动测试执行消费者
             test_thread = threading.Thread(
@@ -55,8 +58,10 @@ async def lifespan(app: FastAPI):
             logger.info("✓ 消息推送消费者已启动")
             
         except Exception as e:
-            logger.warning(f"⚠ RabbitMQ消费者启动失败（需要RabbitMQ服务运行）: {e}")
-            logger.info("提示: 启动RabbitMQ服务: docker-compose up -d rabbitmq")
+            logger.warning(f"⚠ 消息队列消费者启动失败: {e}")
+            if settings.QUEUE_TYPE == "rabbitmq":
+                logger.info("提示: 启动RabbitMQ服务: docker-compose up -d rabbitmq")
+                logger.info("或修改配置使用内存队列: QUEUE_TYPE=memory")
 
         logger.info("=" * 60)
         logger.info("🚀 应用启动完成！")

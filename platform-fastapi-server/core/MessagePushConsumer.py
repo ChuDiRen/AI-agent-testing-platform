@@ -14,10 +14,10 @@ class MessagePushConsumer:
     """消息推送消费者"""
     
     def __init__(self):
-        from core.RabbitMQManager import rabbitmq_manager
+        from core.QueueFactory import queue_manager
         from config.dev_settings import settings
         
-        self.rabbitmq = rabbitmq_manager
+        self.queue_manager = queue_manager
         self.retry_count = settings.ROBOT_RETRY_COUNT
         self.timeout = settings.ROBOT_TIMEOUT
     
@@ -62,42 +62,49 @@ class MessagePushConsumer:
                 logger.error(f"Failed to send message after {self.retry_count} retries")
                 return False
     
-    def callback(self, ch, method, properties, body):
+    def callback(self, message):
         """
-        RabbitMQ消息回调函数
+        消息回调函数（兼容RabbitMQ和内存队列）
         
         Args:
-            ch: 通道
-            method: 方法
-            properties: 属性
-            body: 消息体
+            message: 消息数据（dict或RabbitMQ消息对象）
         """
         try:
-            data = json.loads(body)
+            # 兼容RabbitMQ和内存队列
+            if isinstance(message, dict):
+                # 内存队列：直接是字典
+                data = message
+            else:
+                # RabbitMQ：需要解析body
+                ch, method, properties, body = message
+                data = json.loads(body) if isinstance(body, (str, bytes)) else body
+            
             robot_id = data.get('robot_id')
-            message = data.get('message')
+            message_content = data.get('message')
             
             logger.info(f"Received message push task for robot {robot_id}")
             
             # 发送消息
-            success = self.send_message(robot_id, message)
+            success = self.send_message(robot_id, message_content)
             
-            if success:
-                # 确认消息
-                ch.basic_ack(delivery_tag=method.delivery_tag)
-            else:
-                # 发送失败，拒绝消息（不重新入队，避免无限循环）
-                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+            # 确认消息（仅RabbitMQ需要）
+            if not isinstance(message, dict):
+                if success:
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                else:
+                    # 发送失败，拒绝消息（不重新入队，避免无限循环）
+                    ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
                 
         except Exception as e:
-            logger.error(f"Error processing message push: {e}")
-            # 拒绝消息并重新入队（可能是临时错误）
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+            logger.error(f"Error processing message push: {e}", exc_info=True)
+            # 拒绝消息并重新入队（仅RabbitMQ）
+            if not isinstance(message, dict):
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
     
     def start(self):
         """启动消费者"""
         logger.info("Starting message push consumer...")
-        self.rabbitmq.start_message_push_consumer(self.callback)
+        self.queue_manager.start_message_push_consumer(self.callback)
 
 
 # 全局消息推送消费者实例
