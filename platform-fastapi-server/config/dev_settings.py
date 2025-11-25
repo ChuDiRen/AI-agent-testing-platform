@@ -22,11 +22,11 @@ class Settings(BaseSettings): # 开发环境配置
     DB_TYPE: str = "sqlite" # 数据库类型: mysql 或 sqlite
     
     # MySQL配置
-    MYSQL_HOST: str = "192.168.1.111"
+    MYSQL_HOST: str = "192.168.111.128"
     MYSQL_PORT: int = 3306
     MYSQL_USER: str = "root"
-    MYSQL_PASSWORD: str = "root"
-    MYSQL_DATABASE: str = "platfrom_back"
+    MYSQL_PASSWORD: str = "admin123456"
+    MYSQL_DATABASE: str = "testdb"
     
     # SQLite配置
     SQLITE_DATABASE: str = "./data/ai_agent.db" # SQLite数据库文件路径
@@ -42,10 +42,10 @@ class Settings(BaseSettings): # 开发环境配置
     # ==================== MinIO配置 ====================
     # MINIO平台的配置信息
     # 注意：9000是API端口（SDK连接），9001是控制台端口（浏览器访问）
-    MINIO_CLIENT_URL: str = "http://192.168.163.128:9000"
-    MINIO_ENDPOINT: str = "192.168.163.128:9000"
+    MINIO_CLIENT_URL: str = "http://192.168.111.128:9000"
+    MINIO_ENDPOINT: str = "192.168.111.128:9000"
     MINIO_ACCESS_KEY: str = "admin"
-    MINIO_SECRET_KEY: str = "12345678"
+    MINIO_SECRET_KEY: str = "admin123456"
     MINIO_SECURE: bool = False
     
     # ==================== 消息队列配置 ====================
@@ -53,10 +53,23 @@ class Settings(BaseSettings): # 开发环境配置
     QUEUE_TYPE: str = "memory"  # 队列类型: rabbitmq 或 memory
     
     # RabbitMQ配置（当QUEUE_TYPE=rabbitmq时使用）
-    RABBITMQ_HOST: str = "localhost"
+    RABBITMQ_HOST: str = "192.168.111.128"
     RABBITMQ_PORT: int = 5672
-    RABBITMQ_USER: str = "guest"
-    RABBITMQ_PASSWORD: str = "guest"
+    RABBITMQ_USER: str = "admin"
+    RABBITMQ_PASSWORD: str = "admin123456"
+    
+    # ==================== Redis配置 ====================
+    REDIS_HOST: str = "192.168.111.128"
+    REDIS_PORT: int = 6379
+    REDIS_PASSWORD: str = "admin123456"
+    REDIS_DB: int = 0
+    
+    # ==================== MongoDB配置 ====================
+    MONGODB_HOST: str = "192.168.111.128"
+    MONGODB_PORT: int = 27017
+    MONGODB_USER: str = "root"
+    MONGODB_PASSWORD: str = "admin123456"
+    MONGODB_DATABASE: str = "testdb"
     
     # ==================== WebSocket配置 ====================
     WEBSOCKET_PING_INTERVAL: int = 30  # WebSocket心跳间隔（秒）

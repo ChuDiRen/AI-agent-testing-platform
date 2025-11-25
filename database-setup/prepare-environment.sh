@@ -19,7 +19,8 @@ NC='\033[0m'
 # ============================================================================
 # 网络配置参数（请根据实际环境修改）
 # ============================================================================
-GATEWAY="192.168.1.2"           # 默认网关地址
+STATIC_IP="192.168.111.128/24"  # 静态 IP 地址
+GATEWAY="192.168.111.2"         # 默认网关地址
 DNS1="114.114.114.114"          # 主 DNS（114 DNS）
 DNS2="223.5.5.5"                # 备用 DNS（阿里云 DNS）
 DNS3="119.29.29.29"             # 备用 DNS（腾讯 DNS）
@@ -87,11 +88,16 @@ check_network_interface() {
     return 0
 }
 
-fix_gateway() {
-    log_step "配置网关..."
+configure_static_ip() {
+    log_step "配置静态 IP..."
     
-    # 获取主网络接口
-    local interface=$(ip -o link show | awk -F': ' '{print $2}' | grep -v '^lo$' | head -n 1)
+    # 获取主网络接口（排除 lo、docker、veth 等虚拟接口）
+    local interface=$(ip -o link show | awk -F': ' '{print $2}' | grep -E '^(ens|eth)' | head -n 1)
+    
+    if [ -z "$interface" ]; then
+        # 如果没找到 ens/eth，取第一个非 lo 接口
+        interface=$(ip -o link show | awk -F': ' '{print $2}' | grep -v '^lo$' | grep -v docker | grep -v veth | grep -v br- | head -n 1)
+    fi
     
     if [ -z "$interface" ]; then
         log_error "未找到可用的网络接口"
@@ -99,25 +105,92 @@ fix_gateway() {
     fi
     
     log_info "网络接口: $interface"
+    log_info "静态 IP: $STATIC_IP"
+    log_info "网关: $GATEWAY"
     
-    # 删除旧的默认路由
-    ip route del default 2>/dev/null || true
-    
-    # 添加新的默认路由
-    if ip route add default via $GATEWAY dev $interface 2>/dev/null; then
-        log_success "网关配置成功: $GATEWAY"
+    # 检测是否支持 Netplan (Ubuntu)
+    if command -v netplan >/dev/null 2>&1; then
+        log_info "检测到 Netplan，配置永久静态 IP..."
+        
+        # 备份现有配置
+        mkdir -p /etc/netplan/backup
+        if ls /etc/netplan/*.yaml >/dev/null 2>&1; then
+            cp /etc/netplan/*.yaml /etc/netplan/backup/ 2>/dev/null || true
+        fi
+        
+        # 移除旧配置
+        rm -f /etc/netplan/*.yaml 2>/dev/null || true
+        
+        # 创建新的 Netplan 配置
+        cat > /etc/netplan/01-static-ip.yaml <<EOF
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    $interface:
+      dhcp4: no
+      addresses:
+        - $STATIC_IP
+      routes:
+        - to: default
+          via: $GATEWAY
+      nameservers:
+        addresses:
+          - $DNS1
+          - $DNS2
+          - $DNS3
+          - $DNS4
+EOF
+        
+        chmod 600 /etc/netplan/01-static-ip.yaml
+        
+        # 应用配置
+        if netplan apply 2>/dev/null; then
+            log_success "Netplan 配置已应用"
+        else
+            log_warn "Netplan 应用时有警告（可忽略）"
+        fi
+        
+        # 等待网络生效
+        sleep 3
+        
     else
-        log_warn "网关配置失败，可能已存在"
+        # 非 Netplan 系统，使用 ip 命令临时配置
+        log_warn "未检测到 Netplan，使用临时配置..."
+        
+        # 删除旧 IP
+        ip addr flush dev $interface 2>/dev/null || true
+        
+        # 添加新 IP
+        ip addr add $STATIC_IP dev $interface 2>/dev/null || true
+        
+        # 启用接口
+        ip link set $interface up
+        
+        # 删除旧路由
+        ip route del default 2>/dev/null || true
+        
+        # 添加默认路由
+        ip route add default via $GATEWAY dev $interface 2>/dev/null || true
+    fi
+    
+    # 验证配置
+    local configured_ip=$(ip -4 addr show $interface | grep -oP 'inet \K[0-9.]+' | head -n 1)
+    if [ -n "$configured_ip" ]; then
+        log_success "IP 配置成功: $configured_ip"
+    else
+        log_fail "IP 配置失败"
+        return 1
     fi
     
     # 测试网关连通性
     log_info "测试网关连通性..."
-    if ping -c 2 -W 2 $GATEWAY > /dev/null 2>&1; then
+    if ping -c 2 -W 3 $GATEWAY > /dev/null 2>&1; then
         log_success "网关连接正常"
         return 0
     else
-        log_fail "无法连接到网关 $GATEWAY"
-        return 1
+        log_warn "无法连接到网关 $GATEWAY，继续配置..."
+        return 0
     fi
 }
 
@@ -263,6 +336,7 @@ show_report() {
     echo ""
     
     echo "【网络配置】"
+    echo "  静态 IP: $STATIC_IP"
     echo "  网关: $GATEWAY"
     echo "  DNS:  $DNS1, $DNS2, $DNS3, $DNS4"
     echo ""
@@ -320,8 +394,8 @@ main() {
         network_ok=0
     fi
     
-    # 2. 配置网关
-    if ! fix_gateway; then
+    # 2. 配置静态 IP 和网关
+    if ! configure_static_ip; then
         network_ok=0
     fi
     

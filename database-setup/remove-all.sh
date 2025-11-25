@@ -28,7 +28,7 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 fi
 
 # 停止并删除容器
-containers=("mysql" "redis" "postgres" "minio" "rabbitmq")
+containers=("mysql" "redis" "postgres" "mongodb" "minio" "rabbitmq")
 
 for container in "${containers[@]}"; do
     if docker ps -a | grep -q "$container"; then
