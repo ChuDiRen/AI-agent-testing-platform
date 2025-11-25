@@ -126,10 +126,10 @@ class TestExecutionConsumer:
     
     def callback(self, message):
         """
-        消息回调函数（兼容RabbitMQ和内存队列）
+        消息回调函数(兼容RabbitMQ和内存队列)
         
         Args:
-            message: 消息数据（dict或RabbitMQ消息对象）
+            message: 消息数据(dict或RabbitMQ消息对象)
         """
         try:
             # 兼容RabbitMQ和内存队列
@@ -146,16 +146,22 @@ class TestExecutionConsumer:
             
             logger.info(f"Received test execution task: execution_id={execution_id}, case_id={case_id}")
             
-            # 执行测试用例（异步）
-            asyncio.run(self.execute_test_case(case_id, execution_id))
+            # ✅ 修复asyncio.run()问题：在线程中创建新事件循环
+            # 避免"RuntimeError: This event loop is already running"
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(self.execute_test_case(case_id, execution_id))
+            finally:
+                loop.close()
             
-            # 确认消息（仅RabbitMQ需要）
+            # 确认消息(仅RabbitMQ需要)
             if not isinstance(message, dict):
                 ch.basic_ack(delivery_tag=method.delivery_tag)
             
         except Exception as e:
             logger.error(f"Error processing test execution message: {e}", exc_info=True)
-            # 拒绝消息并重新入队（仅RabbitMQ）
+            # 拒绝消息并重新入队(仅RabbitMQ)
             if not isinstance(message, dict):
                 ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
     

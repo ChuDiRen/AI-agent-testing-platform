@@ -154,10 +154,34 @@ class RabbitMQManager:
         self.channel.start_consuming()
     
     def close(self):
-        """关闭RabbitMQ连接"""
-        if self.connection and not self.connection.is_closed:
-            self.connection.close()
-            logger.info("Closed RabbitMQ connection")
+        """✅ 优雅关闭RabbitMQ连接"""
+        try:
+            # 停止消费
+            if self.channel and self.channel.is_open:
+                try:
+                    self.channel.stop_consuming()
+                    logger.info("Stopped consuming messages")
+                except Exception as e:
+                    logger.warning(f"Error stopping consumer: {e}")
+            
+            # 关闭通道
+            if self.channel and self.channel.is_open:
+                try:
+                    self.channel.close()
+                    logger.info("Closed RabbitMQ channel")
+                except Exception as e:
+                    logger.warning(f"Error closing channel: {e}")
+            
+            # 关闭连接
+            if self.connection and not self.connection.is_closed:
+                try:
+                    self.connection.close()
+                    logger.info("Closed RabbitMQ connection")
+                except Exception as e:
+                    logger.warning(f"Error closing connection: {e}")
+                    
+        except Exception as e:
+            logger.error(f"Error during RabbitMQ cleanup: {e}", exc_info=True)
 
 
 # 全局RabbitMQ管理器实例

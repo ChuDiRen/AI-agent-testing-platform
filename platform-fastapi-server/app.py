@@ -85,8 +85,24 @@ async def lifespan(app: FastAPI):
     finally:
         # 关闭时执行清理工作
         logger.info("=" * 60)
-        logger.info("正在关闭RabbitMQ消费者...")
-        # 守护线程会自动随主进程退出
+        logger.info("正在优雅关闭应用...")
+        
+        # ✅ 修复消息队列优雅关闭
+        try:
+            from core.QueueFactory import queue_manager
+            logger.info("正在关闭消息队列...")
+            queue_manager.close()
+            logger.info("✓ 消息队列已关闭")
+        except Exception as e:
+            logger.error(f"关闭消息队列失败: {e}", exc_info=True)
+        
+        # 等待消费者线程完成当前任务(最多5秒)
+        if consumer_threads:
+            logger.info("等待消费者线程完成...")
+            import time
+            time.sleep(2)  # 给线程一些时间完成当前任务
+            logger.info("✓ 消费者线程已停止")
+        
         logger.info("👋 应用已安全关闭")
         logger.info("=" * 60)
 

@@ -21,15 +21,17 @@ from ..schemas.api_info_case_schema import (
     YamlGenerateRequest,
     ApiInfoCaseExecuteRequest
 )
+from config.dev_settings import settings
 
 logger = get_logger(__name__)
 
 # ==================== 配置常量 ====================
-BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
-TEMP_DIR = BASE_DIR / "temp"
-YAML_DIR = TEMP_DIR / "yaml_cases"
-REPORT_DIR = TEMP_DIR / "allure_reports"
-LOG_DIR = TEMP_DIR / "logs"
+# ✅ P2修复: 使用配置管理的路径,避免硬编码
+BASE_DIR = settings.BASE_DIR
+TEMP_DIR = settings.TEMP_DIR
+YAML_DIR = settings.YAML_DIR
+REPORT_DIR = settings.REPORT_DIR
+LOG_DIR = settings.LOG_DIR
 
 module_name = "ApiInfoCase"
 module_model = ApiInfoCase

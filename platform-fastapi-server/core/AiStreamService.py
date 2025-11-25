@@ -3,6 +3,7 @@ import logging
 from typing import AsyncGenerator, List, Dict
 
 import httpx
+from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class AiStreamService:
         流式调用AI模型
         
         Args:
-            model_code: 模型代码（deepseek-chat、qwen-max等）
+            model_code: 模型代码(deepseek-chat、qwen-max等)
             api_key: API密钥
             api_url: API地址
             messages: 消息列表
@@ -83,10 +84,18 @@ class AiStreamService:
                                 if content:
                                     yield content
                             except json.JSONDecodeError:
-                                logger.error(f"Failed to parse JSON: {data}")
+                                # ✅ P2修复: 降低日志级别,解析错误不是严重问题
+                                logger.debug(f"Failed to parse JSON chunk: {data[:100]}")
                                 continue
+        # ✅ P2修复: 分层异常处理
+        except httpx.TimeoutException as e:
+            logger.error(f"DeepSeek API timeout: {str(e)}")
+            raise
+        except httpx.HTTPError as e:
+            logger.error(f"DeepSeek HTTP error: {str(e)}", exc_info=True)
+            raise
         except Exception as e:
-            logger.error(f"DeepSeek stream error: {str(e)}")
+            logger.critical(f"DeepSeek unexpected error: {str(e)}", exc_info=True)
             raise
     
     @staticmethod
@@ -127,10 +136,18 @@ class AiStreamService:
                                     if content:
                                         yield content
                                 except json.JSONDecodeError:
-                                    logger.error(f"Failed to parse JSON: {data}")
+                                    # ✅ P2修复: 降低日志级别
+                                    logger.debug(f"Failed to parse JSON chunk: {data[:100]}")
                                     continue
+        # ✅ P2修复: 分层异常处理
+        except httpx.TimeoutException as e:
+            logger.error(f"Qwen API timeout: {str(e)}")
+            raise
+        except httpx.HTTPError as e:
+            logger.error(f"Qwen HTTP error: {str(e)}", exc_info=True)
+            raise
         except Exception as e:
-            logger.error(f"Qwen stream error: {str(e)}")
+            logger.critical(f"Qwen unexpected error: {str(e)}", exc_info=True)
             raise
     
     @staticmethod
@@ -141,7 +158,7 @@ class AiStreamService:
         temperature: float,
         max_tokens: int
     ) -> AsyncGenerator[str, None]:
-        """通用流式调用方式（兼容OpenAI风格API）"""
+        """通用流式调用方式(兼容OpenAI风格API)"""
         try:
             async with httpx.AsyncClient(timeout=120.0) as client:
                 async with client.stream(
@@ -166,8 +183,17 @@ class AiStreamService:
                                 if content:
                                     yield content
                             except json.JSONDecodeError:
-                                logger.error(f"Failed to parse JSON: {data}")
+                                # ✅ P2修复: 降低日志级别
+                                logger.debug(f"Failed to parse JSON chunk: {data[:100]}")
                                 continue
-        except Exception as e:
-            logger.error(f"Generic stream error: {str(e)}")
+        # ✅ P2修复: 分层异常处理
+        except httpx.TimeoutException as e:
+            logger.error(f"Generic API timeout: {str(e)}")
             raise
+        except httpx.HTTPError as e:
+            logger.error(f"Generic HTTP error: {str(e)}", exc_info=True)
+            raise
+        except Exception as e:
+            logger.critical(f"Generic unexpected error: {str(e)}", exc_info=True)
+            raise
+
