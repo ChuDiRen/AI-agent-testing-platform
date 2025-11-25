@@ -113,8 +113,7 @@ async def chat_stream(req: MessageStreamRequest, session: Session = Depends(get_
         except Exception as e:
             logger.error(f"Stream error: {str(e)}")
             yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
-        finally:
-            session.close()
+        # ✅ 修复Session管理：移除手动关闭,由FastAPI依赖注入自动管理
     return EventSourceResponse(_event_generator(), media_type="text/event-stream")
 
 

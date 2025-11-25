@@ -53,8 +53,12 @@ class ConnectionManager:
                     logger.error(f"Failed to send message to websocket: {e}")
                     disconnected.append(websocket)
             
-            # 清理断开的连接
+            # ✅ 修复连接泄露：清理并关闭断开的连接
             for ws in disconnected:
+                try:
+                    await ws.close()  # 正确关闭WebSocket连接
+                except Exception as e:
+                    logger.error(f"Error closing websocket: {e}")
                 self.disconnect(execution_id, ws)
     
     async def broadcast(self, data: dict):
