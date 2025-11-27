@@ -1,0 +1,44 @@
+# Text2SQL 模块依赖
+# 安装: pip install -r text2sql/requirements.txt
+
+# LangGraph 核心
+langgraph>=0.2.0
+langgraph-supervisor>=0.1.0
+langgraph-checkpoint-sqlite>=1.0.0
+langgraph-sdk>=0.1.0
+
+# LangChain 核心
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-openai>=0.2.0
+langchain-community>=0.3.0
+
+# 数据库驱动
+sqlalchemy>=2.0.0
+aiosqlite>=0.19.0
+aiomysql>=0.2.0
+asyncpg>=0.29.0
+pymysql>=1.1.0
+
+# MCP工具
+langchain-mcp-adapters>=0.1.9
+mcp>=1.12.4
+
+# 异步和并发
+aiohttp>=3.9.0
+aiofiles>=23.0.0
+aiolimiter>=1.1.0
+
+# API框架
+fastapi>=0.109.0
+uvicorn>=0.27.0
+sse-starlette>=1.8.0
+
+# 工具库
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+tiktoken>=0.5.0
+
+# 开发和测试
+pytest>=7.0.0
+pytest-asyncio>=0.21.0

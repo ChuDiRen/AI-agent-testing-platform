@@ -7,7 +7,9 @@
     "sql_agent": "./examples/sql_agent.py:agent_old",
     "sql_agent_hitl": "./examples/sql_agent.py:agent_hitl",
     "sql_agent_graph": "./examples/sql_agent_graph.py:agent_old",
-    "api_agent": "./examples/api_agent.py:agent_auto"
+    "api_agent": "./examples/api_agent.py:agent_auto",
+    "text2sql_agent": "./text2sql/chat_graph.py:get_app",
+    "text2sql_stream": "./text2sql/chat_graph.py:get_stream_app"
   },
   "env": ".env"
 }
