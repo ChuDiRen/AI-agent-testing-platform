@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大熊AI - Agents</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar injected by app.js -->
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">智能体</h1>
+                <p class="page-subtitle">定制化智能体，更加精准适配业务特征，自动化处理各类测试任务。</p>
+
+                <div class="header-actions">
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-pill active">探索</button>
+                        <button class="btn-pill">我的智能体</button>
+                    </div>
+                    <button class="btn-primary">
+                        <i class="ph ph-plus"></i>
+                        注册智能体
+                    </button>
+                </div>
+
+                <div class="search-bar" style="margin-top: 16px; width: 100%;">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <input type="text" placeholder="搜索智能体">
+                </div>
+
+                <div class="filter-tags" style="margin-top: 16px; display: flex; gap: 8px;">
+                    <span class="tag-pill active">全部</span>
+                    <span class="tag-pill">自动化</span>
+                    <span class="tag-pill">性能</span>
+                    <span class="tag-pill">安全</span>
+                    <span class="tag-pill">文档</span>
+                    <span class="tag-pill">数据库</span>
+                </div>
+            </div>
+
+            <section class="content-section">
+                <div class="card-grid" id="agents-grid">
+                    <!-- Cards injected by render.js -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/render.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            renderAgents();
+        });
+    </script>
+</body>
+
+</html>

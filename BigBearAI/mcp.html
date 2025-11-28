@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大熊AI - MCP</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        .mcp-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .mcp-status.connected {
+            background: #F0FDF4;
+            color: #16A34A;
+        }
+
+        .mcp-status.disconnected {
+            background: #FEF2F2;
+            color: #DC2626;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar injected by app.js -->
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">Model Context Protocol (MCP)</h1>
+                <p class="page-subtitle">管理与外部系统和数据的连接，扩展AI测试能力。</p>
+
+                <div class="header-actions">
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-pill active">已连接</button>
+                        <button class="btn-pill">可用 Server</button>
+                    </div>
+                    <button class="btn-primary">
+                        <i class="ph ph-plus"></i>
+                        添加 Server
+                    </button>
+                </div>
+
+                <div class="search-bar" style="margin-top: 16px; width: 100%;">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <input type="text" placeholder="搜索 MCP Server">
+                </div>
+
+                <div class="filter-tags" style="margin-top: 16px; display: flex; gap: 8px;">
+                    <span class="tag-pill active">全部</span>
+                    <span class="tag-pill">文件系统</span>
+                    <span class="tag-pill">数据库</span>
+                    <span class="tag-pill">API</span>
+                    <span class="tag-pill">云服务</span>
+                </div>
+            </div>
+
+            <section class="content-section">
+                <div class="card-grid" id="mcp-grid">
+                    <!-- Cards injected by render.js -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/render.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            renderMCP();
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大熊AI - Plugins</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar injected by app.js -->
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">插件</h1>
+                <p class="page-subtitle">扩展测试功能，提高测试效率，快速集成第三方工具。</p>
+
+                <div class="header-actions">
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-pill active">探索</button>
+                        <button class="btn-pill">我的插件</button>
+                    </div>
+                    <button class="btn-primary">
+                        <i class="ph ph-plus"></i>
+                        注册插件
+                    </button>
+                </div>
+
+                <div class="search-bar" style="margin-top: 16px; width: 100%;">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <input type="text" placeholder="搜索插件">
+                </div>
+
+                <div class="filter-tags" style="margin-top: 16px; display: flex; gap: 8px;">
+                    <span class="tag-pill active">全部</span>
+                    <span class="tag-pill">工具</span>
+                    <span class="tag-pill">插件</span>
+                    <span class="tag-pill">数据生成</span>
+                    <span class="tag-pill">校验</span>
+                </div>
+            </div>
+
+            <section class="content-section">
+                <div class="card-grid" id="plugins-grid">
+                    <!-- Cards injected by render.js -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/render.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            renderPlugins();
+        });
+    </script>
+</body>
+
+</html>
