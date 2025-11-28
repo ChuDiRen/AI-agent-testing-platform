@@ -1,12 +1,4 @@
-"""Supervisor 协调者 - 调度5个专家智能体
-
-核心特性:
-1. 智能意图识别: 根据用户输入自动识别目标阶段
-2. 完成标志检测: 通过标志精确识别每个阶段的完成情况
-3. 智能Token管理: 分层过滤策略，大幅降低Token消耗
-4. 流程自动推进: 看到完成标志后自动调用下一个专家
-5. 评审-修改循环: 支持最多3次迭代优化
-"""
+"""Supervisor协调者 - 调度5个专家智能体执行测试用例生成流程"""
 import re
 from typing import Literal, Optional, Dict, Any, List
 from enum import Enum
@@ -29,10 +21,8 @@ from .database import TestCaseDB
 from .models import TestCaseState
 
 
-# ============== 完成标志定义 ==============
-
 class CompletionFlag(Enum):
-    """完成标志枚举"""
+    """完成标志"""
     ANALYZE_COMPLETED = "需求分析完成"
     DESIGN_COMPLETED = "测试点设计完成"
     GENERATE_COMPLETED = "测试用例设计完成"
@@ -41,12 +31,8 @@ class CompletionFlag(Enum):
     PROCESS_COMPLETED = "所有处理步骤已完成"
 
 
-# ============== 意图识别 ==============
-
 class IntentRecognizer:
-    """意图识别器 - 识别用户想要什么"""
-    
-    # 意图关键词映射
+    """意图识别器"""
     INTENT_KEYWORDS = {
         "analyze": ["分析", "理解", "解析", "需求分析"],
         "design": ["设计", "测试点", "覆盖"],
@@ -56,14 +42,7 @@ class IntentRecognizer:
     
     @staticmethod
     def recognize(user_input: str) -> str:
-        """识别用户意图
-        
-        Args:
-            user_input: 用户输入
-            
-        Returns:
-            目标阶段: analyze/design/generate/end
-        """
+        """识别目标阶段: analyze/design/end"""
         user_input_lower = user_input.lower()
         
         # 检查是否只要分析
@@ -80,51 +59,18 @@ class IntentRecognizer:
         return "end"
 
 
-# ============== Token管理 ==============
-
 class TokenManager:
-    """智能Token管理器 - 优化上下文，降低成本"""
-    
-    # Supervisor专属过滤策略
-    SUPERVISOR_FILTER = {
-        "human": 5,    # 保留5条HumanMessage
-        "ai": 5,       # 保留5条AIMessage
-        "system": 1,   # 保留1条SystemMessage
-        "tool": 0,     # 不保留ToolMessage
-    }
-    
-    # 子智能体过滤策略
-    AGENT_FILTER = {
-        "human": 3,
-        "ai": 3,
-        "system": 1,
-        "tool": 5,
-    }
+    """消息过滤管理器"""
+    SUPERVISOR_FILTER = {"human": 5, "ai": 5, "system": 1, "tool": 0}
+    AGENT_FILTER = {"human": 3, "ai": 3, "system": 1, "tool": 5}
     
     @staticmethod
-    def filter_messages(
-        messages: List,
-        strategy: Dict[str, int],
-        phase_name: str = ""
-    ) -> List:
-        """过滤消息历史
-        
-        Args:
-            messages: 消息列表
-            strategy: 过滤策略
-            phase_name: 阶段名称 (用于日志)
-            
-        Returns:
-            过滤后的消息列表
-        """
+    def filter_messages(messages: List, strategy: Dict[str, int], phase_name: str = "") -> List:
+        """按策略过滤消息列表"""
         if not messages:
             return []
         
-        # 按类型分组
-        human_msgs = []
-        ai_msgs = []
-        system_msgs = []
-        tool_msgs = []
+        human_msgs, ai_msgs, system_msgs, tool_msgs = [], [], [], []
         
         for msg in messages:
             if isinstance(msg, HumanMessage):
@@ -136,14 +82,10 @@ class TokenManager:
             elif isinstance(msg, ToolMessage):
                 tool_msgs.append(msg)
         
-        # 按策略保留
         filtered = []
-        
-        # SystemMessage 放在最前面
         if strategy.get("system", 0) > 0 and system_msgs:
             filtered.extend(system_msgs[-strategy["system"]:])
         
-        # 保留最新的Human和AI消息
         if strategy.get("human", 0) > 0:
             filtered.extend(human_msgs[-strategy["human"]:])
         if strategy.get("ai", 0) > 0:
@@ -155,10 +97,8 @@ class TokenManager:
     
     @staticmethod
     def estimate_tokens(messages: List) -> int:
-        """估算消息的Token数量 (粗略估计)"""
-        total_chars = sum(len(str(msg.content)) for msg in messages if hasattr(msg, 'content'))
-        # 中文约1.5字符/token，英文约4字符/token，取平均
-        return int(total_chars / 2.5)
+        """Token数估算"""
+        return int(sum(len(str(msg.content)) for msg in messages if hasattr(msg, 'content')) / 2.5)
 
 
 class TestCaseSupervisor:
@@ -182,6 +122,7 @@ class TestCaseSupervisor:
         reader_model: BaseChatModel,
         writer_model: BaseChatModel,
         reviewer_model: BaseChatModel,
+        summarization_model: BaseChatModel = None,
         enable_middleware: bool = True,
         enable_human_review: bool = False,
         enable_persistence: bool = True,
@@ -195,6 +136,7 @@ class TestCaseSupervisor:
             reader_model: 需求分析和测试点设计使用的模型
             writer_model: 用例编写使用的模型
             reviewer_model: 用例评审使用的模型
+            summarization_model: 上下文压缩使用的模型（轻量级模型）
             enable_middleware: 是否启用 middlewareV1
             enable_human_review: 是否启用人工审核
             enable_persistence: 是否启用持久化存储
@@ -204,16 +146,17 @@ class TestCaseSupervisor:
         self.reader_model = reader_model
         self.writer_model = writer_model
         self.reviewer_model = reviewer_model
+        self.summarization_model = summarization_model
         self.enable_middleware = enable_middleware
         self.enable_human_review = enable_human_review
         self.enable_persistence = enable_persistence
         self.enable_data_export = enable_data_export
 
-        # 创建4个LLM专家智能体
-        self.analyzer = create_analyzer_agent(reader_model)
-        self.test_point_designer = create_test_point_designer_agent(reader_model)
-        self.writer = create_writer_agent(writer_model)
-        self.reviewer = create_reviewer_agent(reviewer_model)
+        # 创建4个LLM专家智能体（带上下文压缩中间件）
+        self.analyzer = create_analyzer_agent(reader_model, summarization_model)
+        self.test_point_designer = create_test_point_designer_agent(reader_model, summarization_model)
+        self.writer = create_writer_agent(writer_model, summarization_model)
+        self.reviewer = create_reviewer_agent(reviewer_model, summarization_model)
         
         # 数据处理专家不需要LLM，是自定义节点
         # 测试方法选择已集成到 Writer 智能体中（工具函数，不消耗Token）

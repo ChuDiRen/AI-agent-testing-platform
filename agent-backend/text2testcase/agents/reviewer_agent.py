@@ -1,8 +1,9 @@
-"""用例评审智能体 - 评审测试用例质量"""
+"""用例评审智能体"""
 from pathlib import Path
 from typing import Dict, Any
 
 from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, AIMessage
 
@@ -11,55 +12,34 @@ from ..middleware.config import TestCaseAgentFilterConfig
 from ..models import TestCaseState
 
 
-def create_reviewer_agent(model: BaseChatModel):
-    """创建用例评审智能体
-    
-    职责:
-    - 评审测试用例的完整性和正确性
-    - 检查是否覆盖所有测试点
-    - 提供改进建议
-    
-    Args:
-        model: 语言模型实例
-        
-    Returns:
-        用例评审智能体
-    """
-    # 加载系统提示词
+def create_reviewer_agent(model: BaseChatModel, summarization_model: BaseChatModel = None):
+    """创建用例评审智能体 - 带上下文压缩"""
     prompt_path = Path(__file__).parent.parent / "prompts" / "TESTCASE_REVIEWER_SYSTEM_MESSAGE.txt"
     system_prompt = prompt_path.read_text(encoding='utf-8')
     
-    # 创建智能体
+    middleware = []
+    if summarization_model:
+        middleware.append(SummarizationMiddleware(
+            model=summarization_model,
+            trigger=("tokens", 8000),
+            keep=("messages", 10),
+        ))
+
     agent = create_agent(
         model=model,
         tools=[],
         system_prompt=system_prompt,
         name="reviewer",
         state_schema=TestCaseState,
+        middleware=middleware,
     )
     
     return agent
 
 
-def _truncate_text(text: str, max_chars: int = 1500) -> str:
-    """截断文本，保留关键信息"""
-    if not text or len(text) <= max_chars:
-        return text
-    return text[:max_chars] + "\n\n... (已截断)"
-
-
 async def run_reviewer(agent, state: TestCaseState, enable_middleware: bool = True) -> Dict[str, Any]:
-    """运行用例评审智能体
-
-    Args:
-        agent: 智能体实例
-        state: 当前状态
-        enable_middleware: 是否启用中间件
-
-    Returns:
-        更新后的状态字典
-    """
-    # 1️⃣ 消息过滤 (middlewareV1 - 保留3条human, 3条ai)
+    """运行用例评审"""
+    # 消息过滤中间件
     if enable_middleware:
         filter_middleware = MessageFilterMiddleware(
             filter_config=TestCaseAgentFilterConfig.REVIEWER,
@@ -69,42 +49,26 @@ async def run_reviewer(agent, state: TestCaseState, enable_middleware: bool = Tr
         for key, value in filter_updates.items():
             setattr(state, key, value)
 
-    # 截断长文本，避免上下文过长
-    analysis_summary = _truncate_text(state.analysis, max_chars=1000)
-    test_points_summary = _truncate_text(state.test_points, max_chars=2000)
-
-    # 2️⃣ 构建输入消息 (精简上下文)
     user_message = f"""请评审以下测试用例:
 
 ## 原始需求
 {state.requirement}
 
-## 需求分析摘要
-{analysis_summary}
+## 需求分析
+{state.analysis}
 
-## 测试点摘要
-{test_points_summary}
+## 测试点设计
+{state.test_points}
 
 ## 生成的测试用例
 {state.testcases}
 
 请评审测试用例的质量,检查是否覆盖所有测试点,并提供改进建议。"""
 
-    # 3️⃣ 调用智能体
-    response = await agent.ainvoke({
-        "messages": state.messages + [HumanMessage(content=user_message)]
-    })
-
-    # 4️⃣ 提取AI输出
+    response = await agent.ainvoke({"messages": state.messages + [HumanMessage(content=user_message)]})
     ai_output = response["messages"][-1].content if response.get("messages") else ""
+    new_messages = state.messages + [HumanMessage(content=user_message), AIMessage(content=ai_output)]
 
-    # 5️⃣ 更新消息历史
-    new_messages = state.messages + [
-        HumanMessage(content=user_message),
-        AIMessage(content=ai_output)
-    ]
-
-    # 6️⃣ 状态同步 (middlewareV1)
     updates = {
         "review": ai_output,
         "messages": new_messages,
@@ -113,6 +77,7 @@ async def run_reviewer(agent, state: TestCaseState, enable_middleware: bool = Tr
         "iteration": state.iteration + 1,
     }
 
+    # 状态同步中间件
     if enable_middleware:
         sync_middleware = StateSyncMiddleware(
             save_to_field="review",

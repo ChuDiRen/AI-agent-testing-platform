@@ -1,4 +1,4 @@
-"""数据模型 - 支持版本管理、评审历史、质量评分"""
+"""数据模型"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

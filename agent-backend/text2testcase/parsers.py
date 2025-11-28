@@ -1,4 +1,4 @@
-"""解析器工具"""
+"""解析器"""
 from functools import lru_cache
 from pathlib import Path
 from typing import List, Tuple
