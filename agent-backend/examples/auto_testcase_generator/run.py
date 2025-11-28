@@ -1,10 +1,21 @@
 """运行脚本 - 支持演示与流式 CLI"""
 import asyncio
 import sys
+import os
 from pathlib import Path
 from typing import Optional
 
 import typer
+
+# 修复 Windows 控制台编码问题 (支持 emoji 和中文)
+if sys.platform == 'win32':
+    # 设置控制台输出编码为 UTF-8
+    os.system('chcp 65001 >nul 2>&1')
+    # 设置标准输出编码
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 
 def setup_python_path():
@@ -92,12 +103,14 @@ async def _run_requirement(
     except asyncio.TimeoutError:
         print("\n❌ 超时错误: AI模型调用超时(8分钟)")
         print("💡 建议: 检查网络连接或简化需求描述\n")
+        raise typer.Exit(1)
 
     except Exception as exc:
         print(f"\n❌ 错误: {type(exc).__name__}: {str(exc)}")
         import traceback
         traceback.print_exc()
         print("\n💡 请检查API配置和网络连接\n")
+        raise typer.Exit(1)
 
 
 @app.command(name="text")
@@ -164,4 +177,14 @@ if __name__ == "__main__":
     # 如果没有提供命令参数,默认执行text命令
     if len(sys.argv) == 1:
         sys.argv.append("text")
-    app()
+    
+    try:
+        app()
+    except SystemExit as e:
+        # 正常退出
+        exit_code = e.code if e.code is not None else 0
+    else:
+        exit_code = 0
+    
+    # 强制退出，避免异步清理问题
+    os._exit(exit_code)

@@ -1,11 +1,23 @@
+# 核心依赖
 langchain>=1.0.0
 langchain-openai>=0.1.0
 langgraph>=1.0.0
 langgraph-checkpoint>=3.0.0
 langgraph-checkpoint-sqlite>=3.0.0
+
+# 数据处理
+pydantic>=2.0.0
 requests>=2.31.0
+
+# 文档解析
 python-docx>=0.8.0
 pypdf>=6.0.0
-pydantic>=2.0.0
+beautifulsoup4>=4.12.0
+
+# 数据导出
+openpyxl>=3.1.0
+xmind>=1.2.0
+
+# CLI
 typer>=0.9.0
 

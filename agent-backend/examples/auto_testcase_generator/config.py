@@ -12,10 +12,11 @@ class Config:
     api_key: str = os.getenv("SILICONFLOW_API_KEY", "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem")
     
     # 模型配置 - 格式：provider:model_name
-    # 使用 SiliconFlow 的 Qwen2.5-72B-Instruct 模型（速度快3-5倍,质量仍然优秀）
-    reader_model: str = "siliconflow:Qwen/Qwen2.5-72B-Instruct"
-    writer_model: str = "siliconflow:Qwen/Qwen2.5-72B-Instruct"
-    reviewer_model: str = "siliconflow:Qwen/Qwen2.5-72B-Instruct"
+    # 使用 SiliconFlow 的 DeepSeek-V3 模型（速度快，质量优秀）
+    # DeepSeek-V3 比 Qwen2.5-72B 快 3-5 倍，质量相当
+    reader_model: str = "siliconflow:deepseek-ai/DeepSeek-V3"
+    writer_model: str = "siliconflow:deepseek-ai/DeepSeek-V3"
+    reviewer_model: str = "siliconflow:deepseek-ai/DeepSeek-V3"
     
     # 数据库和提示词路径
     checkpoint_db: Path = Path(__file__).parent.parent.parent / "data" / "checkpoints.db"

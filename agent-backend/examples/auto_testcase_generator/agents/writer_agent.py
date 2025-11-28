@@ -39,6 +39,13 @@ def create_writer_agent(model: BaseChatModel):
     return agent
 
 
+def _truncate_text(text: str, max_chars: int = 1500) -> str:
+    """截断文本，保留关键信息"""
+    if not text or len(text) <= max_chars:
+        return text
+    return text[:max_chars] + "\n\n... (已截断，完整内容见测试点)"
+
+
 async def run_writer(
     agent,
     state: TestCaseState,
@@ -56,13 +63,16 @@ async def run_writer(
         for key, value in filter_updates.items():
             setattr(state, key, value)
 
+    # 截断需求分析，避免上下文过长（测试点已包含关键信息）
+    analysis_summary = _truncate_text(state.analysis, max_chars=1500)
+
     user_message = f"""请基于以下信息编写测试用例:
 
 ## 原始需求
 {state.requirement}
 
-## 需求分析
-{state.analysis}
+## 需求分析摘要
+{analysis_summary}
 
 ## 测试点设计
 {state.test_points}

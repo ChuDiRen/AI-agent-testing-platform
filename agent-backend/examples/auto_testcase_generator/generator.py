@@ -146,6 +146,60 @@ class TestCaseGeneratorV3:
             "iteration": state.iteration,
             "completed": state.completed,
         }
+    
+    async def batch_generate(
+        self,
+        api_list: list,
+        max_concurrent: int = 5,
+        max_iterations: int = 1,
+    ):
+        """批量生成测试用例（并行处理）
+        
+        Args:
+            api_list: 接口信息列表，每个元素包含 requirement, name, test_type
+            max_concurrent: 最大并发数
+            max_iterations: 最大迭代次数
+            
+        Returns:
+            BatchResult
+        """
+        from .batch_processor import BatchProcessor, BatchConfig
+        
+        config = BatchConfig(
+            max_concurrent=max_concurrent,
+            max_iterations=max_iterations,
+        )
+        processor = BatchProcessor(self, config)
+        return await processor.process_batch(api_list)
+    
+    async def batch_generate_from_swagger(
+        self,
+        swagger_url: str,
+        max_apis: Optional[int] = None,
+        max_concurrent: int = 5,
+        max_iterations: int = 1,
+        test_type: str = "API",
+    ):
+        """从 Swagger 文档批量生成测试用例（并行处理）
+        
+        Args:
+            swagger_url: Swagger JSON URL
+            max_apis: 最大处理接口数
+            max_concurrent: 最大并发数
+            max_iterations: 最大迭代次数
+            test_type: 测试类型
+            
+        Returns:
+            BatchResult
+        """
+        from .batch_processor import BatchProcessor, BatchConfig
+        
+        config = BatchConfig(
+            max_concurrent=max_concurrent,
+            max_iterations=max_iterations,
+        )
+        processor = BatchProcessor(self, config)
+        return await processor.process_swagger(swagger_url, max_apis)
 
 
 # 创建全局生成器实例 (供外部导入使用)

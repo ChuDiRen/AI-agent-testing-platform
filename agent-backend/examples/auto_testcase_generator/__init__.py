@@ -24,17 +24,32 @@
     )
     result = await custom_generator.generate("需求描述...", test_type="API")
 """
+import sys
+import os
+
+# 修复 Windows 控制台编码问题 (支持 emoji 和中文)
+if sys.platform == 'win32':
+    os.system('chcp 65001 >nul 2>&1')
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 from .config import Config
 from .generator import generator, TestCaseGeneratorV3
 from .models import TestCaseState
+from .batch_processor import BatchProcessor, BatchConfig, BatchResult
 
 __all__ = [
     'generator',  # 全局实例
     'TestCaseGeneratorV3',  # 类
     'TestCaseState',
     'Config',
+    # 批量处理
+    'BatchProcessor',
+    'BatchConfig',
+    'BatchResult',
 ]
 
-__version__ = "3.0.0"
+__version__ = "5.0.0"  # 升级版本号
 

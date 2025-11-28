@@ -41,6 +41,13 @@ def create_reviewer_agent(model: BaseChatModel):
     return agent
 
 
+def _truncate_text(text: str, max_chars: int = 1500) -> str:
+    """截断文本，保留关键信息"""
+    if not text or len(text) <= max_chars:
+        return text
+    return text[:max_chars] + "\n\n... (已截断)"
+
+
 async def run_reviewer(agent, state: TestCaseState, enable_middleware: bool = True) -> Dict[str, Any]:
     """运行用例评审智能体
 
@@ -62,17 +69,21 @@ async def run_reviewer(agent, state: TestCaseState, enable_middleware: bool = Tr
         for key, value in filter_updates.items():
             setattr(state, key, value)
 
-    # 2️⃣ 构建输入消息 (包含完整上下文)
+    # 截断长文本，避免上下文过长
+    analysis_summary = _truncate_text(state.analysis, max_chars=1000)
+    test_points_summary = _truncate_text(state.test_points, max_chars=2000)
+
+    # 2️⃣ 构建输入消息 (精简上下文)
     user_message = f"""请评审以下测试用例:
 
 ## 原始需求
 {state.requirement}
 
-## 需求分析
-{state.analysis}
+## 需求分析摘要
+{analysis_summary}
 
-## 测试点设计
-{state.test_points}
+## 测试点摘要
+{test_points_summary}
 
 ## 生成的测试用例
 {state.testcases}
