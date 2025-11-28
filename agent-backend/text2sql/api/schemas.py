@@ -5,7 +5,7 @@ API请求/响应模型
 """
 
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
 
 
@@ -17,14 +17,15 @@ class QueryRequest(BaseModel):
     user_id: Optional[str] = Field(default=None, description="用户ID")
     stream: bool = Field(default=False, description="是否流式输出")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "query": "查询所有用户",
                 "connection_id": 0,
                 "stream": False
             }
         }
+    )
 
 
 class PaginationRequest(BaseModel):

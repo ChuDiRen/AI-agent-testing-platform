@@ -5,8 +5,8 @@
 import pytest
 import asyncio
 
-from text2sql.streaming.handler import StreamHandler, StreamEvent, StreamEventType
-from text2sql.streaming.sse import SSEMessage, SSEResponse
+from ..streaming.handler import StreamHandler, StreamEvent, StreamEventType
+from ..streaming.sse import SSEMessage, SSEResponse
 
 
 class TestStreamHandler:

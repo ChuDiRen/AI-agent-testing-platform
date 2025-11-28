@@ -15,7 +15,7 @@ class TestMessageTrimmer:
     
     def test_trim_last_strategy(self):
         """测试保留最后N条消息"""
-        from text2sql.context.trimmer import MessageTrimmer
+        from ..context.trimmer import MessageTrimmer
         
         trimmer = MessageTrimmer(max_messages=3, strategy="last")
         messages = [
@@ -33,7 +33,7 @@ class TestMessageTrimmer:
         
     def test_preserve_system_messages(self):
         """测试保留系统消息"""
-        from text2sql.context.trimmer import MessageTrimmer
+        from ..context.trimmer import MessageTrimmer
         
         trimmer = MessageTrimmer(max_messages=2, strategy="last", include_system=True)
         messages = [
@@ -49,7 +49,7 @@ class TestMessageTrimmer:
         
     def test_smart_trim_strategy(self):
         """测试智能裁剪策略"""
-        from text2sql.context.trimmer import MessageTrimmer
+        from ..context.trimmer import MessageTrimmer
         
         trimmer = MessageTrimmer(max_messages=3, strategy="smart")
         messages = [
@@ -70,7 +70,7 @@ class TestContextCompressor:
     
     def test_compress_schema_info(self):
         """测试Schema信息压缩"""
-        from text2sql.context.compressor import compress_schema_info
+        from ..context.compressor import compress_schema_info
         
         schema_info = {
             "tables": [
@@ -100,7 +100,7 @@ class TestContextCompressor:
         
     def test_compress_results(self):
         """测试结果压缩"""
-        from text2sql.context.compressor import compress_results
+        from ..context.compressor import compress_results
         
         # 大结果集
         results = [{"id": i, "name": f"item{i}"} for i in range(100)]
@@ -124,7 +124,7 @@ class TestMemoryManager:
             
     def test_schema_cache(self, temp_db):
         """测试Schema缓存"""
-        from text2sql.memory.manager import MemoryManager
+        from ..memory.manager import MemoryManager
         
         manager = MemoryManager(db_path=temp_db)
         
@@ -139,7 +139,7 @@ class TestMemoryManager:
         
     def test_user_preferences(self, temp_db):
         """测试用户偏好"""
-        from text2sql.memory.manager import MemoryManager
+        from ..memory.manager import MemoryManager
         
         manager = MemoryManager(db_path=temp_db)
         
@@ -160,7 +160,7 @@ class TestContextManager:
     
     def test_process_messages(self):
         """测试消息处理"""
-        from text2sql.context.manager import ContextManager
+        from ..context.manager import ContextManager
         
         manager = ContextManager(max_messages=5, enable_compression=False)
         
@@ -183,7 +183,7 @@ class TestContextManager:
         
     def test_prepare_schema_context(self):
         """测试Schema上下文准备"""
-        from text2sql.context.manager import ContextManager
+        from ..context.manager import ContextManager
         
         manager = ContextManager()
         

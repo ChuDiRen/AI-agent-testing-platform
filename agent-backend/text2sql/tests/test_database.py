@@ -6,8 +6,10 @@ import pytest
 import tempfile
 import os
 
-from text2sql.database.db_manager import DatabaseManager, DatabaseConfig, DatabaseType
-from text2sql.database.pagination import PaginationHandler, add_pagination_to_sql, get_count_sql
+from sqlalchemy import text
+
+from ..database.db_manager import DatabaseManager, DatabaseConfig, DatabaseType
+from ..database.pagination import PaginationHandler, add_pagination_to_sql, get_count_sql
 
 
 class TestDatabaseConfig:
@@ -57,32 +59,32 @@ class TestDatabaseManager:
         
         # 创建测试表
         with manager.get_connection() as conn:
-            conn.execute("""
+            conn.execute(text("""
                 CREATE TABLE users (
                     id INTEGER PRIMARY KEY,
                     name TEXT NOT NULL,
                     email TEXT UNIQUE
                 )
-            """)
-            conn.execute("""
+            """))
+            conn.execute(text("""
                 CREATE TABLE orders (
                     id INTEGER PRIMARY KEY,
                     user_id INTEGER,
                     amount REAL,
                     FOREIGN KEY (user_id) REFERENCES users(id)
                 )
-            """)
-            conn.execute("""
+            """))
+            conn.execute(text("""
                 INSERT INTO users (id, name, email) VALUES
                 (1, 'Alice', 'alice@test.com'),
                 (2, 'Bob', 'bob@test.com')
-            """)
-            conn.execute("""
+            """))
+            conn.execute(text("""
                 INSERT INTO orders (id, user_id, amount) VALUES
                 (1, 1, 100.0),
                 (2, 1, 200.0),
                 (3, 2, 150.0)
-            """)
+            """))
             conn.commit()
             
         yield manager

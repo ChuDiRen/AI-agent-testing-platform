@@ -4,9 +4,9 @@
 提供限流、连接池和请求队列管理
 """
 
-from text2sql.concurrency.limiter import RateLimiter, ConcurrencyLimiter
-from text2sql.concurrency.pool import ConnectionPoolManager
-from text2sql.concurrency.queue import RequestQueue
+from .limiter import RateLimiter, ConcurrencyLimiter
+from .pool import ConnectionPoolManager
+from .queue import RequestQueue
 
 __all__ = [
     "RateLimiter",

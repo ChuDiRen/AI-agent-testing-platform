@@ -10,8 +10,8 @@ from pathlib import Path
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.store.memory import InMemoryStore
 
-from text2sql.memory.checkpointer import CheckpointerManager
-from text2sql.memory.store import StoreManager, MemoryItem
+from .checkpointer import CheckpointerManager
+from .store import StoreManager, MemoryItem
 
 
 class MemoryManager:

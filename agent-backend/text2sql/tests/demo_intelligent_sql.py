@@ -18,7 +18,7 @@ async def demo_basic_query():
     print("演示1: 基本自然语言查询")
     print("=" * 50)
     
-    from text2sql.chat_graph import process_sql_query
+    from ..chat_graph import process_sql_query
     
     # 模拟查询（需要先配置数据库连接）
     query = "查询所有用户"
@@ -34,7 +34,7 @@ async def demo_streaming():
     print("演示2: 流式查询")
     print("=" * 50)
     
-    from text2sql.chat_graph import stream_sql_query
+    from ..chat_graph import stream_sql_query
     
     query = "统计每个部门的员工数量"
     
@@ -57,7 +57,7 @@ async def demo_pagination():
     print("演示3: 分页查询")
     print("=" * 50)
     
-    from text2sql.database.pagination import PaginationHandler
+    from ..database.pagination import PaginationHandler
     
     handler = PaginationHandler()
     
@@ -76,7 +76,7 @@ async def demo_validation():
     print("演示4: SQL验证")
     print("=" * 50)
     
-    from text2sql.tools.validation_tools import validate_sql
+    from ..tools.validation_tools import validate_sql
     
     # 测试有效SQL
     valid_sql = "SELECT id, name FROM users WHERE status = 'active' LIMIT 100"
@@ -103,7 +103,7 @@ async def demo_chart():
     print("演示5: 图表生成")
     print("=" * 50)
     
-    from text2sql.tools.chart_tools import generate_chart, recommend_chart_type
+    from ..tools.chart_tools import generate_chart, recommend_chart_type
     
     # 模拟查询结果
     data = [
@@ -141,7 +141,7 @@ async def demo_context_management():
     print("演示6: 上下文管理（防爆炸）")
     print("=" * 50)
     
-    from text2sql.context.trimmer import MessageTrimmer
+    from ..context.trimmer import MessageTrimmer
     from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
     
     # 模拟长对话
@@ -174,7 +174,7 @@ async def demo_memory():
     with tempfile.TemporaryDirectory() as tmpdir:
         db_path = os.path.join(tmpdir, "test_memory.db")
         
-        from text2sql.memory.manager import MemoryManager
+        from ..memory.manager import MemoryManager
         
         manager = MemoryManager(db_path=db_path)
         

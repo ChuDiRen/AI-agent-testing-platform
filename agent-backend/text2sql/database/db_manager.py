@@ -16,11 +16,11 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.pool import QueuePool
 from sqlalchemy.exc import SQLAlchemyError
 
-from text2sql.models.schema_models import (
+from ..models.schema_models import (
     TableInfo, ColumnInfo, IndexInfo, RelationshipInfo, 
     DatabaseSchema, ColumnType
 )
-from text2sql.models.result_models import QueryResult, QueryStatus, PaginationInfo
+from ..models.result_models import QueryResult, QueryStatus, PaginationInfo
 
 
 class DatabaseType(str, Enum):

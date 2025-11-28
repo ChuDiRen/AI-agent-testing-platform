@@ -4,8 +4,8 @@
 提供流式响应和SSE事件流支持
 """
 
-from text2sql.streaming.handler import StreamHandler
-from text2sql.streaming.sse import SSEResponse, create_sse_response
+from .handler import StreamHandler
+from .sse import SSEResponse, create_sse_response
 
 __all__ = [
     "StreamHandler",

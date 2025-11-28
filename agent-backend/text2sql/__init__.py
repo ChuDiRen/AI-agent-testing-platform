@@ -9,8 +9,8 @@ Text2SQL - 智能自然语言到SQL转换系统
 - 智能错误恢复
 """
 
-from text2sql.config import LLMConfig, get_model
-from text2sql.state import SQLMessageState
+from .config import LLMConfig, get_model
+from .state import SQLMessageState
 
 __version__ = "0.1.0"
 __all__ = ["LLMConfig", "get_model", "SQLMessageState"]

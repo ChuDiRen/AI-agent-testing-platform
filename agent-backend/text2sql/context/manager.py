@@ -7,13 +7,13 @@
 from typing import Any, Dict, List, Optional
 from langchain_core.messages import BaseMessage, SystemMessage
 
-from text2sql.context.trimmer import MessageTrimmer, trim_messages
-from text2sql.context.compressor import (
+from .trimmer import MessageTrimmer, trim_messages
+from .compressor import (
     ContextCompressor, 
     compress_schema_info, 
     compress_results
 )
-from text2sql.config import LLMConfig
+from ..config import LLMConfig
 
 
 class ContextManager:

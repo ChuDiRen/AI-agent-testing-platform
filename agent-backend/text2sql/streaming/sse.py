@@ -8,7 +8,7 @@ import json
 import asyncio
 from typing import Any, AsyncIterator, Dict, Optional
 
-from text2sql.streaming.handler import StreamEvent, StreamEventType
+from .handler import StreamEvent, StreamEventType
 
 
 class SSEMessage:

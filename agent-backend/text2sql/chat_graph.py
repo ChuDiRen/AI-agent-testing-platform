@@ -10,11 +10,11 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.store.memory import InMemoryStore
 
-from text2sql.state import SQLMessageState, WorkflowStage
-from text2sql.config import get_model, get_config, LLMConfig
-from text2sql.memory.manager import get_memory_manager
-from text2sql.context.manager import ContextManager
-from text2sql.agents.supervisor_agent import build_supervisor_with_config
+from .state import SQLMessageState, WorkflowStage
+from .config import get_model, get_config, LLMConfig
+from .memory.manager import get_memory_manager
+from .context.manager import ContextManager
+from .agents.supervisor_agent import build_supervisor_with_config
 
 
 def create_text2sql_graph(
@@ -70,10 +70,10 @@ def create_simple_graph(
     Returns:
         编译好的图
     """
-    from text2sql.agents.schema_agent import create_schema_agent
-    from text2sql.agents.sql_generator_agent import create_sql_generator_agent
-    from text2sql.agents.sql_validator_agent import quick_validate
-    from text2sql.agents.sql_executor_agent import direct_execute
+    from .agents.schema_agent import create_schema_agent
+    from .agents.sql_generator_agent import create_sql_generator_agent
+    from .agents.sql_validator_agent import quick_validate
+    from .agents.sql_executor_agent import direct_execute
     
     model = get_model()
     

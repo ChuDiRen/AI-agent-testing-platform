@@ -11,19 +11,19 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi.responses import StreamingResponse
 
-from text2sql.api.schemas import (
+from .schemas import (
     QueryRequest, QueryWithPaginationRequest, QueryResult,
     ChartRequest, ChartResponse,
     ConnectionConfig, ConnectionResponse,
     SchemaInfo, HealthResponse, ErrorResponse
 )
-from text2sql.chat_graph import process_sql_query, stream_sql_query
-from text2sql.database.db_manager import (
+from ..chat_graph import process_sql_query, stream_sql_query
+from ..database.db_manager import (
     register_connection, get_database_manager, 
     DatabaseConfig, DatabaseType
 )
-from text2sql.streaming.sse import format_as_sse
-from text2sql.tools.chart_tools import generate_chart
+from ..streaming.sse import format_as_sse
+from ..tools.chart_tools import generate_chart
 
 
 router = APIRouter(prefix="/api/v1", tags=["text2sql"])
@@ -218,7 +218,7 @@ async def create_chart(request: ChartRequest):
 @router.post("/sql/validate")
 async def validate_sql(sql: str = Query(...)):
     """验证SQL语句"""
-    from text2sql.tools.validation_tools import validate_sql as validate_tool
+    from ..tools.validation_tools import validate_sql as validate_tool
     
     result = validate_tool.invoke({"sql": sql})
     return result

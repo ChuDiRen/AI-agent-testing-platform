@@ -7,8 +7,8 @@ Schema相关工具
 from typing import Any, Dict, List, Optional
 from langchain_core.tools import tool
 
-from text2sql.database.db_manager import get_database_manager, DatabaseManager
-from text2sql.models.schema_models import TableInfo, DatabaseSchema
+from ..database.db_manager import get_database_manager, DatabaseManager
+from ..models.schema_models import TableInfo, DatabaseSchema
 
 
 def _get_manager(connection_id: int) -> DatabaseManager:

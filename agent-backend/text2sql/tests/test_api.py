@@ -5,7 +5,7 @@ API集成测试
 import pytest
 from fastapi.testclient import TestClient
 
-from text2sql.api.server import create_app
+from ..api.server import create_app
 
 
 @pytest.fixture

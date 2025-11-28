@@ -9,9 +9,9 @@ from typing import Any, Dict, List
 from langgraph.prebuilt import create_react_agent
 from langchain_core.language_models import BaseChatModel
 
-from text2sql.config import get_model
-from text2sql.prompts import load_prompt
-from text2sql.tools.sql_tools import SQL_TOOLS
+from ..config import get_model
+from ..prompts import load_prompt
+from ..tools.sql_tools import SQL_TOOLS
 
 
 def create_sql_generator_agent(

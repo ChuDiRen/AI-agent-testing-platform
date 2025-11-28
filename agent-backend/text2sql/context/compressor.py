@@ -7,7 +7,7 @@
 from typing import Any, Dict, List, Optional
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
 
-from text2sql.config import get_model, LLMConfig
+from ..config import get_model, LLMConfig
 
 
 class ContextCompressor:

@@ -46,7 +46,7 @@ class ConnectionPoolManager:
         """
         async with self._lock:
             if connection_id not in self._pools:
-                from text2sql.database.db_manager import get_database_manager
+                from ..database.db_manager import get_database_manager
                 manager = get_database_manager(connection_id)
                 self._pools[connection_id] = manager
             return self._pools[connection_id]

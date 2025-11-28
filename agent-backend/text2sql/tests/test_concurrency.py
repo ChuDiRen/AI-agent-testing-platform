@@ -6,8 +6,8 @@ import pytest
 import asyncio
 import time
 
-from text2sql.concurrency.limiter import RateLimiter, ConcurrencyLimiter, CombinedLimiter
-from text2sql.concurrency.queue import RequestQueue, Priority, AsyncTaskManager
+from ..concurrency.limiter import RateLimiter, ConcurrencyLimiter, CombinedLimiter
+from ..concurrency.queue import RequestQueue, Priority, AsyncTaskManager
 
 
 class TestRateLimiter:
@@ -201,14 +201,26 @@ class TestAsyncTaskManager:
     async def test_cancel_task(self):
         """测试取消任务"""
         manager = AsyncTaskManager()
+        cancelled_flag = False
         
         async def long_task():
-            await asyncio.sleep(10)
+            nonlocal cancelled_flag
+            try:
+                await asyncio.sleep(10)
+            except asyncio.CancelledError:
+                cancelled_flag = True
+                raise
         
         await manager.submit("task1", long_task())
         
+        # 等待任务开始执行
+        await asyncio.sleep(0.01)
+        
         success = await manager.cancel("task1")
         assert success is True
+        
+        # 等待取消完成
+        await asyncio.sleep(0.01)
         
         status = manager.get_status("task1")
         assert status is None  # 已删除
@@ -219,14 +231,27 @@ class TestAsyncTaskManager:
         manager = AsyncTaskManager(max_tasks=2)
         
         async def task():
-            await asyncio.sleep(1)
+            try:
+                await asyncio.sleep(0.1)  # 缩短等待时间
+            except asyncio.CancelledError:
+                pass
         
         await manager.submit("t1", task())
         await manager.submit("t2", task())
         
-        # 超过限制
-        success = await manager.submit("t3", task())
+        # 超过限制 - 需要先创建协程，然后处理拒绝的情况
+        coro = task()
+        success = await manager.submit("t3", coro)
         assert success is False
+        # 如果提交失败，需要关闭未使用的协程
+        coro.close()
+        
+        # 等待已提交的任务完成
+        await asyncio.sleep(0.15)
+        
+        # 取消所有任务
+        await manager.cancel("t1")
+        await manager.cancel("t2")
 
 
 if __name__ == "__main__":

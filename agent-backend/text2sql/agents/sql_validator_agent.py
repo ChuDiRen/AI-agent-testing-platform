@@ -9,9 +9,9 @@ from typing import Any, Dict, List
 from langgraph.prebuilt import create_react_agent
 from langchain_core.language_models import BaseChatModel
 
-from text2sql.config import get_model
-from text2sql.prompts import load_prompt
-from text2sql.tools.validation_tools import VALIDATION_TOOLS
+from ..config import get_model
+from ..prompts import load_prompt
+from ..tools.validation_tools import VALIDATION_TOOLS
 
 
 def create_sql_validator_agent(
@@ -103,7 +103,7 @@ def quick_validate(sql: str, schema_tables: List[str] = None) -> Dict[str, Any]:
     Returns:
         验证结果
     """
-    from text2sql.tools.validation_tools import validate_sql as validate_tool
+    from ..tools.validation_tools import validate_sql as validate_tool
     
     return validate_tool.invoke({
         "sql": sql,

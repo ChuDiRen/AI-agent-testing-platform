@@ -12,10 +12,10 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from text2sql.api.routes import router
-from text2sql.config import get_config
-from text2sql.database.db_manager import close_all_connections
-from text2sql.memory.manager import get_memory_manager
+from .routes import router
+from ..config import get_config
+from ..database.db_manager import close_all_connections
+from ..memory.manager import get_memory_manager
 
 
 @asynccontextmanager

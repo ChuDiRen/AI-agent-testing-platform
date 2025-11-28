@@ -9,9 +9,9 @@ from typing import Any, Dict, List
 from langgraph.prebuilt import create_react_agent
 from langchain_core.language_models import BaseChatModel
 
-from text2sql.config import get_model
-from text2sql.prompts import load_prompt
-from text2sql.tools.chart_tools import CHART_TOOLS
+from ..config import get_model
+from ..prompts import load_prompt
+from ..tools.chart_tools import CHART_TOOLS
 
 
 def create_chart_generator_agent(
@@ -107,7 +107,7 @@ def quick_chart(
     Returns:
         图表配置
     """
-    from text2sql.tools.chart_tools import generate_chart as gen_chart
+    from ..tools.chart_tools import generate_chart as gen_chart
     
     return gen_chart.invoke({
         "data": data,
