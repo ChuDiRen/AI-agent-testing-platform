@@ -3,13 +3,17 @@
 提供测试任务的执行、查询、取消等接口
 """
 from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session
+from sqlmodel import Session, select
 from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 from core.database import get_session
 from core.resp_model import respModel
+from core.logger import get_logger
 from ..service.TaskScheduler import task_scheduler
+from ..model.PluginModel import Plugin
+
+logger = get_logger(__name__)
 
 # 创建路由
 router = APIRouter(prefix="/Task", tags=["任务调度"])
@@ -140,14 +144,31 @@ async def cancel_task(
 async def list_executors(
     session: Session = Depends(get_session)
 ):
-    """获取所有可用的执行器插件列表"""
+    """
+    获取所有可用的执行器插件列表
+    - 只返回 plugin_type='executor' 且 is_enabled=1 的记录
+    """
     try:
-        result = await task_scheduler.list_available_executors(session=session)
-        
-        if result.get("success"):
-            return respModel.ok_resp(obj=result.get("executors"))
-        else:
-            return respModel.error_resp(msg=result.get("error", "查询失败"))
-    
+        # 直接查询 Plugin 表，不再通过 TaskScheduler
+        plugins = session.exec(
+            select(Plugin)
+            .where(Plugin.plugin_type == "executor")
+            .where(Plugin.is_enabled == 1)
+        ).all()
+
+        executors = [{
+            "plugin_code": p.plugin_code,
+            "plugin_name": p.plugin_name,
+            "version": p.version,
+            "command": p.command,
+            "work_dir": p.work_dir,
+            "capabilities": p.capabilities,
+            "description": p.description,
+        } for p in plugins]
+
+        logger.info(f"list_executors: 查询到 {len(executors)} 个执行器")
+
+        return respModel.ok_resp_listdata(lst=executors)
     except Exception as e:
+        logger.error(f"查询执行器失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"查询异常: {str(e)}")

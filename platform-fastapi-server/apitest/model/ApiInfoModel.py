@@ -19,4 +19,5 @@ class ApiInfo(SQLModel, table=True): # API接口信息表
     request_www_form_datas: Optional[str] = Field(default=None, description='www-form-data')
     requests_json_data: Optional[str] = Field(default=None, description='json数据')
     request_files: Optional[str] = Field(default=None, description='json数据')
+    executor_code: Optional[str] = Field(default=None, max_length=100, description='执行器插件代码')
     create_time: Optional[datetime] = Field(default_factory=datetime.now, description='创建时间')

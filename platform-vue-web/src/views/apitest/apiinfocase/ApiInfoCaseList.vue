@@ -10,6 +10,16 @@
       <el-form-item label="用例名称" prop="case_name">
         <el-input v-model="queryForm.case_name" placeholder="用例名称" clearable style="width: 180px" />
       </el-form-item>
+      <el-form-item label="执行器" prop="executor">
+        <el-select v-model="currentExecutorCode" placeholder="选择执行器" clearable style="width: 200px">
+          <el-option
+            v-for="exe in executorList"
+            :key="exe.plugin_code"
+            :label="exe.plugin_name"
+            :value="exe.plugin_code"
+          />
+        </el-select>
+      </el-form-item>
       <template #actions>
         <el-button type="primary" @click="handleCreate">
           <el-icon><Plus /></el-icon>
@@ -57,6 +67,7 @@ import { queryAll as queryProjects } from '../project/apiProject.js'
 import { useRouter } from 'vue-router'
 import BaseSearch from '~/components/BaseSearch/index.vue'
 import BaseTable from '~/components/BaseTable/index.vue'
+import { listExecutors } from '../task/apiTask.js'
 
 const router = useRouter()
 
@@ -71,11 +82,34 @@ const queryForm = reactive({
   case_name: ''
 })
 
+// 执行器列表与当前选择
+const executorList = ref([])
+const currentExecutorCode = ref('')
+
 // 表格数据
 const tableData = ref([])
 
 // 项目列表
 const projectList = ref([])
+
+// 加载执行器列表
+const loadExecutors = async () => {
+  try {
+    const res = await listExecutors()
+    if (res.data.code === 200) {
+      executorList.value = res.data.data || []
+      // 如未选择且有可用执行器，默认选第一个
+      if (!currentExecutorCode.value && executorList.value.length > 0) {
+        currentExecutorCode.value = executorList.value[0].plugin_code
+      }
+    } else {
+      ElMessage.error(res.data.msg || '加载执行器列表失败')
+    }
+  } catch (error) {
+    console.error('加载执行器列表失败:', error)
+    ElMessage.error('加载执行器列表失败，请稍后重试')
+  }
+}
 
 // 加载项目列表
 const loadProjects = async () => {
@@ -148,7 +182,8 @@ const handleExecute = async (row) => {
 
     const res = await executeCase({
       case_id: row.id,
-      test_name: `${row.case_name}_${new Date().getTime()}`
+      test_name: `${row.case_name}_${new Date().getTime()}`,
+      executor_code: currentExecutorCode.value || undefined
     })
 
     if (res.data.code === 200) {
@@ -211,6 +246,7 @@ const handleDelete = async (row) => {
 
 onMounted(() => {
   loadProjects()
+  loadExecutors()
   handleQuery()
 })
 </script>

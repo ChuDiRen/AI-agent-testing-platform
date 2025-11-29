@@ -93,6 +93,7 @@ class ApiInfoCaseExecuteRequest(BaseModel):
     case_id: int = Field(description="用例ID")
     test_name: Optional[str] = Field(default=None, description="测试名称")
     context_vars: Optional[Dict[str, Any]] = Field(default=None, description="上下文变量")
+    executor_code: Optional[str] = Field(default=None, description="执行器插件代码(例如 web_engine)，为空时可使用后端默认配置")
 
 class ApiInfoCaseExecuteResponse(BaseModel):
     """API用例执行响应"""

@@ -26,6 +26,7 @@ class ApiInfoCreate(BaseModel):
     request_www_form_datas: Optional[str] = None
     requests_json_data: Optional[str] = None
     request_files: Optional[str] = None
+    executor_code: Optional[str] = None  # 执行器插件代码
 
 # 更新Schema
 class ApiInfoUpdate(BaseModel):
@@ -41,6 +42,7 @@ class ApiInfoUpdate(BaseModel):
     request_www_form_datas: Optional[str] = None
     requests_json_data: Optional[str] = None
     request_files: Optional[str] = None
+    executor_code: Optional[str] = None  # 执行器插件代码
 
 # 测试执行Schema
 class ApiTestExecute(BaseModel):
@@ -65,4 +67,5 @@ class ApiInfoResponse(BaseModel):
     request_www_form_datas: Optional[str] = None
     requests_json_data: Optional[str] = None
     request_files: Optional[str] = None
+    executor_code: Optional[str] = None  # 执行器插件代码
     create_time: Optional[datetime] = None

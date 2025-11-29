@@ -20,10 +20,11 @@ const store = createStore({
                 localStorage.removeItem('asideWidth')
             }
             
-            // 非移动端：验证保存的宽度是否合理
-            if (savedWidth === "64px") {
-                return "64px"
-            }
+            // 非移动端：忽略折叠状态，默认展开
+            // 如果需要记住折叠状态，取消下面的注释
+            // if (savedWidth === "64px") {
+            //     return "64px"
+            // }
             
             if (savedWidth === "200px" || savedWidth === "250px") {
                 // 根据屏幕尺寸调整展开宽度

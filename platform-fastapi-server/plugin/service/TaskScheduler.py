@@ -99,7 +99,8 @@ class TaskScheduler:
             if not execute_result.get("success"):
                 return {
                     "success": False,
-                    "error": f"Plugin execution failed: {execute_result.get('error')}"
+                    "error": f"Plugin execution failed: {execute_result.get('error')}",
+                    "raw_result": execute_result
                 }
             
             # 6. 返回成功结果

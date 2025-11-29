@@ -277,19 +277,19 @@ class CommandExecutor:
                     await asyncio.wait_for(process.wait(), timeout=5.0)
                 except asyncio.TimeoutError:
                     process.kill()
-                
+
                 del self._running_tasks[task_id]
-                
+
                 return {
                     "success": True,
                     "message": "Task cancelled"
                 }
-            
+
             return {
                 "success": False,
                 "error": "Task not found or already completed"
             }
-        
+
         except Exception as e:
             logger.error(f"Cancel task failed: {str(e)}", exc_info=True)
             return {

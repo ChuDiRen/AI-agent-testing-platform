@@ -22,6 +22,8 @@ from ..schemas.api_info_case_schema import (
     ApiInfoCaseExecuteRequest
 )
 from config.dev_settings import settings
+from plugin.model.PluginModel import Plugin
+from plugin.service.TaskScheduler import task_scheduler
 
 logger = get_logger(__name__)
 
@@ -303,7 +305,20 @@ def executeCase(request: ApiInfoCaseExecuteRequest, background_tasks: Background
         case_info = session.get(ApiInfoCase, request.case_id)
         if not case_info:
             return respModel.error_resp("用例不存在")
-        
+
+        # 选择执行器插件：优先使用前端传入的 executor_code，没有则可以使用默认配置
+        plugin_code = request.executor_code or "web_engine"
+
+        plugin = session.exec(
+            select(Plugin).where(Plugin.plugin_code == plugin_code)
+        ).first()
+        if not plugin:
+            return respModel.error_resp(f"执行器插件不存在: {plugin_code}")
+        if plugin.is_enabled != 1:
+            return respModel.error_resp(f"执行器插件未启用: {plugin_code}")
+        if plugin.plugin_type != "executor":
+            return respModel.error_resp(f"插件类型错误: {plugin.plugin_type}")
+
         # 创建测试历史记录
         test_name = request.test_name or f"{case_info.case_name}_测试_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         test_history = ApiHistory(
@@ -322,6 +337,7 @@ def executeCase(request: ApiInfoCaseExecuteRequest, background_tasks: Background
         # 定义后台任务
         def _execute_background():
             from core.database import SessionLocal
+            import asyncio
             db = SessionLocal()
             test_hist = None
             try:
@@ -379,32 +395,31 @@ def executeCase(request: ApiInfoCaseExecuteRequest, background_tasks: Background
                 yaml_content = yaml.dump(yaml_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
                 yaml_filename = f"{case.case_name}_{test_history.id}.yaml"
                 (yaml_dir / yaml_filename).write_text(yaml_content, encoding='utf-8')
-                
-                # 执行测试
-                command = ['huace-apirun', '--cases', str(yaml_dir), '--alluredir', str(report_dir)]
-                exec_success = False
+
+                # 通过任务调度器调用插件执行器
                 exec_error = None
-                exec_start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                
                 try:
-                    start_time = datetime.now()
-                    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
-                    stdout, stderr = process.communicate(timeout=300)
-                    end_time = datetime.now()
-                    exec_success = process.returncode == 0
-                    
-                    log_content = f"=== 执行命令 ===\n{' '.join(command)}\n\n=== 开始时间 ===\n{exec_start_time}\n\n=== 结束时间 ===\n{end_time.strftime('%Y-%m-%d %H:%M:%S')}\n\n=== 执行时长 ===\n{(end_time - start_time).total_seconds()}秒\n\n=== 返回码 ===\n{process.returncode}\n\n=== 标准输出 ===\n{stdout}\n\n=== 错误输出 ===\n{stderr}\n"
-                    log_file.write_text(log_content, encoding='utf-8')
-                except subprocess.TimeoutExpired:
-                    exec_error = '测试执行超时（300秒）'
-                    process.kill()
-                except FileNotFoundError:
-                    exec_error = 'huace-apirun命令不存在，请确认api-engine已正确安装'
+                    execute_result = asyncio.run(
+                        task_scheduler.execute_test(
+                            session=db,
+                            plugin_code=plugin_code,
+                            test_case_id=test_history.id,
+                            test_case_content=yaml_content,
+                            config=None
+                        )
+                    )
+
+                    if not execute_result.get("success"):
+                        test_hist.test_status = "failed"
+                        exec_error = execute_result.get("error")
+                    else:
+                        test_hist.test_status = execute_result.get("status", "running")
+                        # 这里暂时只记录状态，具体 task_id / temp_dir 等可后续扩展到 ApiHistory 字段
                 except Exception as e:
                     exec_error = f'执行失败: {str(e)}'
-                
+                    test_hist.test_status = "failed"
+
                 # 更新测试历史记录
-                test_hist.test_status = "success" if exec_success else "failed"
                 test_hist.error_message = exec_error
                 test_hist.allure_report_path = str(report_dir)
                 test_hist.yaml_content = yaml_content

@@ -10,6 +10,14 @@
             <span class="subtitle">{{ isEdit ? '修改现有API接口配置' : '创建新的API接口配置' }}</span>
           </div>
           <div class="header-right">
+            <el-select v-model="currentExecutorCode" placeholder="选择执行器" style="width: 160px; margin-right: 12px">
+              <el-option
+                v-for="exe in executorList"
+                :key="exe.plugin_code"
+                :label="exe.plugin_name"
+                :value="exe.plugin_code"
+              />
+            </el-select>
             <el-button type="primary" @click="submitForm" :loading="submitting">
               保存接口
             </el-button>
@@ -309,6 +317,7 @@ import { ref, reactive, onMounted } from "vue";
 import { Connection, ArrowDown } from '@element-plus/icons-vue';
 import { queryById, insertData, updateData, getMethods } from './apiinfo.js';
 import { queryByPage as getProjectList } from '../project/apiProject.js';
+import { listExecutors, executeTask } from '../task/apiTask.js';
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
 
@@ -324,6 +333,10 @@ const testing = ref(false);
 
 // 项目列表
 const projectList = ref([]);
+
+// 执行器列表与当前选择
+const executorList = ref([]);
+const currentExecutorCode = ref('');
 
 // 请求方法列表
 const methodList = ref(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']);
@@ -362,7 +375,8 @@ const ruleForm = reactive({
   request_form_datas: '',
   request_www_form_datas: '',
   requests_json_data: '',
-  request_files: ''
+  request_files: '',
+  executor_code: ''
 });
 
 // 加载项目列表
@@ -376,6 +390,21 @@ const loadProjectList = () => {
   });
 };
 
+// 加载执行器列表
+const loadExecutors = async () => {
+  try {
+    const res = await listExecutors();
+    if (res.data.code === 200) {
+      executorList.value = res.data.data || [];
+      if (!currentExecutorCode.value && executorList.value.length > 0) {
+        currentExecutorCode.value = executorList.value[0].plugin_code;
+      }
+    }
+  } catch (error) {
+    console.error('加载执行器列表失败:', error);
+  }
+};
+
 // 加载数据（编辑模式）
 const loadData = (id) => {
   queryById(id).then((res) => {
@@ -386,6 +415,11 @@ const loadData = (id) => {
           ruleForm[key] = data[key];
         }
       });
+      
+      // 恢复执行器选择
+      if (data.executor_code) {
+        currentExecutorCode.value = data.executor_code;
+      }
       
       // 解析参数
       parseParams();
@@ -470,7 +504,7 @@ const parseParams = () => {
     // 解析变量
     if (ruleForm.debug_vars) {
       const vars = JSON.parse(ruleForm.debug_vars);
-      variableParams.value = Object.entries(vars).map(([key, value]) => ({ key, value, description: '' }));
+      variableParams.value = Object.entries(vars).map(([key, value]) => ({ key, value: String(value), description: '' }));
     }
   } catch (error) {
     console.error('解析参数失败:', error);
@@ -535,6 +569,9 @@ const serializeParams = () => {
       });
       ruleForm.debug_vars = JSON.stringify(vars);
     }
+    
+    // 保存执行器选择
+    ruleForm.executor_code = currentExecutorCode.value || '';
   } catch (error) {
     console.error('序列化参数失败:', error);
   }
@@ -708,6 +745,49 @@ const submitForm = async () => {
   }
 };
 
+// 生成接口测试用例YAML内容
+const generateTestCaseYaml = () => {
+  serializeParams();
+
+  // 构建 body 对象（优先 JSON，其次 form-data / x-www-form-urlencoded）
+  let body: any = null;
+  try {
+    if (ruleForm.requests_json_data) {
+      // requests_json_data 存的就是 JSON 字符串
+      body = JSON.parse(ruleForm.requests_json_data);
+    } else if (ruleForm.request_form_datas) {
+      body = JSON.parse(ruleForm.request_form_datas);
+    } else if (ruleForm.request_www_form_datas) {
+      body = JSON.parse(ruleForm.request_www_form_datas);
+    }
+  } catch (e) {
+    // 如果解析失败，就原样作为字符串传给插件
+    body = ruleForm.requests_json_data || ruleForm.request_form_datas || ruleForm.request_www_form_datas || null;
+  }
+
+  // 构建测试用例结构
+  const testCase = {
+    desc: ruleForm.api_name || '接口调试',
+    steps: [
+      {
+        ['发送请求']: {
+          '关键字': 'send_request',
+          'method': ruleForm.request_method || 'GET',
+          // 去掉 URL 首尾空格，避免前端输入时带入空格导致请求失败
+          'url': (ruleForm.request_url || '').trim(),
+          'headers': ruleForm.request_headers ? JSON.parse(ruleForm.request_headers) : {},
+          'params': ruleForm.request_params ? JSON.parse(ruleForm.request_params) : {},
+          'body': body
+        }
+      }
+    ]
+  };
+
+  // 目前后端 TaskScheduler + CommandExecutor 只是按“文本”写入临时 YAML 文件，
+  // 这里先用 JSON 字符串，api_engine 内部会按 JSON/YAML 解析。
+  return JSON.stringify(testCase, null, 2);
+};
+
 // 处理调试操作命令
 const handleTestCommand = async (command: string) => {
   if (!ruleForm.api_name) {
@@ -718,27 +798,38 @@ const handleTestCommand = async (command: string) => {
     ElMessage.warning('请先输入请求URL');
     return;
   }
+  if (!currentExecutorCode.value) {
+    ElMessage.warning('请选择执行器');
+    return;
+  }
 
   testing.value = true;
   
   try {
-    if (command === 'sendRequest') {
-      // 发送请求
-      ElMessage.success('正在发送请求...');
-      // 这里可以实现实际的请求逻辑
-      // 模拟延迟
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      ElMessage.success('请求发送成功');
-    } else if (command === 'downloadResult') {
-      // 发送并下载
-      ElMessage.success('正在发送请求并准备下载...');
-      // 这里可以实现实际的下载逻辑
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      ElMessage.success('下载完成');
+    // 生成测试用例YAML
+    const testCaseContent = generateTestCaseYaml();
+    
+    // 调用执行器插件执行
+    const res = await executeTask({
+      plugin_code: currentExecutorCode.value,
+      test_case_id: ruleForm.id || 0,
+      test_case_content: testCaseContent,
+      config: {}
+    });
+    
+    if (res.data.code === 200) {
+      ElMessage.success('调试任务已提交执行');
+      // 将结果显示在调试输出区域
+      debugOutput.value = JSON.stringify(res.data.data, null, 2);
+      activeTab.value = 'debug';
+    } else {
+      ElMessage.error(res.data.msg || '执行失败');
+      debugOutput.value = `执行失败: ${res.data.msg}`;
     }
   } catch (error) {
     console.error('调试操作失败:', error);
     ElMessage.error('操作失败，请稍后重试');
+    debugOutput.value = `操作失败: ${error.message || error}`;
   } finally {
     testing.value = false;
   }
@@ -752,12 +843,14 @@ const goBack = () => {
 // 页面加载时执行
 onMounted(() => {
   loadProjectList();
+  loadExecutors();
   
   // 检查是否为编辑模式
   const id = route.query.id;
   if (id) {
     isEdit.value = true;
-    loadData(parseInt(id));
+    const idStr = Array.isArray(id) ? id[0] : id;
+    loadData(parseInt(idStr));
   }
   // 新增模式已经在初始化时设置了默认空数据
 });

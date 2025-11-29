@@ -47,6 +47,17 @@
           </el-table>
         </div>
 
+        <el-form-item label="执行器" style="margin-top: 24px">
+          <el-select v-model="currentExecutorCode" placeholder="选择执行器" clearable style="width: 260px">
+            <el-option
+              v-for="exe in executorList"
+              :key="exe.plugin_code"
+              :label="exe.plugin_name"
+              :value="exe.plugin_code"
+            />
+          </el-select>
+        </el-form-item>
+
         <el-form-item style="margin-top: 30px">
           <el-button type="primary" @click="handleSubmit">保存用例</el-button>
           <el-button type="success" @click="handleGenerateYaml">生成YAML</el-button>
@@ -76,6 +87,7 @@ import { queryAll as queryProjects } from '../project/apiProject.js'
 import { queryAll as queryOperationType } from '../keyword/operationType.js'
 import { queryAll as queryKeywords } from '../keyword/apiKeyWord.js'
 import StepEditor from './components/StepEditor.vue'
+import { listExecutors } from '../task/apiTask.js'
 
 const router = useRouter()
 const formRef = ref(null)
@@ -97,6 +109,10 @@ const stepsList = ref([])
 const projectList = ref([])
 const operationTypeList = ref([])
 const keywordList = ref([])
+
+// 执行器列表与当前选择
+const executorList = ref([])
+const currentExecutorCode = ref('')
 
 // 步骤编辑器
 const stepEditorVisible = ref(false)
@@ -124,6 +140,24 @@ const loadOperationTypes = async () => {
 const loadKeywords = async () => {
   const res = await queryKeywords()
   if (res.data.code === 200) keywordList.value = res.data.data || []
+}
+
+// 加载执行器列表
+const loadExecutors = async () => {
+  try {
+    const res = await listExecutors()
+    if (res.data.code === 200) {
+      executorList.value = res.data.data || []
+      if (!currentExecutorCode.value && executorList.value.length > 0) {
+        currentExecutorCode.value = executorList.value[0].plugin_code
+      }
+    } else {
+      ElMessage.error(res.data.msg || '加载执行器列表失败')
+    }
+  } catch (error) {
+    console.error('加载执行器列表失败:', error)
+    ElMessage.error('加载执行器列表失败，请稍后重试')
+  }
 }
 
 // 获取操作类型名称
@@ -241,7 +275,8 @@ const handleExecute = async () => {
   
   const res = await executeCase({
     case_id: caseId.value,
-    test_name: `${caseForm.case_name}_${new Date().getTime()}`
+    test_name: `${caseForm.case_name}_${new Date().getTime()}`,
+    executor_code: currentExecutorCode.value || undefined
   })
   
   if (res.data.code === 200) {
@@ -277,7 +312,7 @@ const loadCaseData = async (id) => {
 }
 
 onMounted(async () => {
-  await Promise.all([loadProjects(), loadOperationTypes(), loadKeywords()])
+  await Promise.all([loadProjects(), loadOperationTypes(), loadKeywords(), loadExecutors()])
   
   const id = router.currentRoute.value.query.id
   if (id) {
