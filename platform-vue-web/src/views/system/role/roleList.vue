@@ -1,69 +1,57 @@
 <template>
   <div class="page-container">
-    <el-card class="page-card">
+    <BaseSearch 
+      :model="searchForm" 
+      @search="loadData" 
+      @reset="resetSearch"
+    >
+      <el-form-item label="角色名称">
+        <el-input v-model="searchForm.role_name" placeholder="根据角色名称筛选" />
+      </el-form-item>
+    </BaseSearch>
+
+    <BaseTable
+      title="角色管理"
+      :data="tableData"
+      :loading="loading"
+      :total="total"
+      v-model:pagination="pagination"
+      @refresh="loadData"
+    >
       <template #header>
-        <div class="card-header">
-          <h3>角色管理</h3>
-          <el-button type="primary" @click="onDataForm(-1)">
-            <el-icon><Plus /></el-icon>
-            新增角色
-          </el-button>
-        </div>
+        <el-button type="primary" @click="onDataForm(-1)">
+          <el-icon><Plus /></el-icon>
+          新增角色
+        </el-button>
       </template>
 
-      <!-- 搜索表单 -->
-      <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="角色名称">
-          <el-input v-model="searchForm.role_name" placeholder="根据角色名称筛选" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="loadData()">查询</el-button>
-          <el-button @click="resetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
-    <!-- END 搜索表单 -->
-    <!-- 数据表格 -->
-    <el-table :data="tableData" row-key="id" style="width: 100%;" max-height="600">
-        <el-table-column prop="id" label="角色ID" width="100" />
-        <el-table-column prop="role_name" label="角色名称" width="150" show-overflow-tooltip />
-        <el-table-column prop="remark" label="角色描述" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="create_time" label="创建时间" width="180">
-            <template #default="scope">
-                {{ formatDateTime(scope.row.create_time) }}
-            </template>
-        </el-table-column>
-        <!-- 操作 -->
-        <el-table-column fixed="right" label="操作" width="280">
-            <template #default="scope">
-                <el-button link type="primary" size="small" @click.prevent="onDataView(scope.$index)">
-                    查看
-                </el-button>
-                <el-button link type="success" size="small" @click.prevent="onDataForm(scope.$index)">
-                    编辑
-                </el-button>
-                <el-button link type="warning" size="small" @click.prevent="onAssignMenus(scope.$index)">
-                    分配权限
-                </el-button>
-                <el-button link type="danger" size="small" @click.prevent="onDelete(scope.$index)">
-                    删除
-                </el-button>
-            </template>
-        </el-table-column>
-    </el-table>
-    
-      <!-- 分页 -->
-      <div class="pagination">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 30, 50]"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="total"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
-    </el-card>
+      <el-table-column prop="id" label="角色ID" width="100" />
+      <el-table-column prop="role_name" label="角色名称" width="150" show-overflow-tooltip />
+      <el-table-column prop="remark" label="角色描述" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="create_time" label="创建时间" width="180">
+        <template #default="scope">
+          {{ formatDateTime(scope.row.create_time) }}
+        </template>
+      </el-table-column>
+      
+      <!-- 操作 -->
+      <el-table-column fixed="right" label="操作" width="280">
+        <template #default="scope">
+          <el-button link type="primary" size="small" @click.prevent="onDataView(scope.$index)">
+            查看
+          </el-button>
+          <el-button link type="success" size="small" @click.prevent="onDataForm(scope.$index)">
+            编辑
+          </el-button>
+          <el-button link type="warning" size="small" @click.prevent="onAssignMenus(scope.$index)">
+            分配权限
+          </el-button>
+          <el-button link type="danger" size="small" @click.prevent="onDelete(scope.$index)">
+            删除
+          </el-button>
+        </template>
+      </el-table-column>
+    </BaseTable>
 
     <!-- 权限分配对话框 -->
     <el-dialog v-model="menuDialogVisible" title="分配菜单权限" width="400px">
@@ -90,32 +78,31 @@ import { getMenuTree } from '../menu/menu'
 import { formatDateTime } from '~/utils/timeFormatter'
 import { useRouter } from "vue-router"
 import { ElMessage, ElMessageBox } from 'element-plus'
+import BaseSearch from '~/components/BaseSearch/index.vue'
+import BaseTable from '~/components/BaseTable/index.vue'
 
 const router = useRouter()
 
 // 分页参数
-const currentPage = ref(1)
-const pageSize = ref(10)
+const pagination = reactive({
+  page: 1,
+  limit: 10
+})
 const total = ref(0)
+const loading = ref(false)
 
 // 搜索功能 - 筛选表单
 const searchForm = reactive({ "role_name": null })
 
-// 表格列
-const columnList = ref([
-    { prop: "id", label: '角色ID' },
-    { prop: "role_name", label: '角色名称' },
-    { prop: "remark", label: '角色描述' },
-    { prop: "create_time", label: '创建时间' }
-])
 // 表格数据
 const tableData = ref([])
 
 // 加载页面数据
 const loadData = () => {
-    let searchData = searchForm
-    searchData["page"] = currentPage.value
-    searchData["pageSize"] = pageSize.value
+    loading.value = true
+    let searchData = { ...searchForm }
+    searchData["page"] = pagination.page
+    searchData["pageSize"] = pagination.limit
 
     queryByPage(searchData).then((res: { data: { code: number; data: never[]; total: number; msg: string }; }) => {
         if (res.data.code === 200) {
@@ -127,6 +114,8 @@ const loadData = () => {
     }).catch((error: any) => {
         console.error('查询失败:', error)
         ElMessage.error('查询失败，请稍后重试')
+    }).finally(() => {
+        loading.value = false
     })
 }
 loadData()
@@ -134,18 +123,7 @@ loadData()
 // 重置搜索
 const resetSearch = () => {
     searchForm.role_name = null
-    currentPage.value = 1
-    loadData()
-}
-
-// 变更 页大小
-const handleSizeChange = (val: number) => {
-    pageSize.value = val
-    loadData()
-}
-// 变更 页码
-const handleCurrentChange = (val: number) => {
-    currentPage.value = val
+    pagination.page = 1
     loadData()
 }
 
@@ -255,7 +233,6 @@ const handleSaveMenus = async () => {
 </script>
 
 <style scoped>
-@import '~/styles/common-list.css';
-@import '~/styles/common-form.css';
+/* 移除原有的样式引用 */
 </style>
 

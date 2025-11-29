@@ -9,7 +9,7 @@ const module_name = "login"
  * @param {String} password - 密码
  */
 export function login(username, password) {
-    return axios.post(`/${module_name}`, {
+    return axios.post(`/${module_name}?_alias=user-login`, {
         username,
         password
     })

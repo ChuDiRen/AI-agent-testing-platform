@@ -2,11 +2,11 @@
   <div class="f-header">
     <span class="logo">
       <el-icon class="logo-icon"><Opportunity /></el-icon>
-      <span class="logo-text">华测自动化测试平台</span>
+      <span class="logo-text">大熊AI自动化测试平台</span>
     </span>
     
-    <el-icon class="icon-btn" @click="$store.commit('handleAsideWidth')">
-      <Fold v-if="$store.state.asideWidth == '250px'"/>
+    <el-icon class="icon-btn" @click="handleAsideWidth">
+      <Fold v-if="asideWidth == '250px'"/>
       <Expand v-else/>
     </el-icon>
     
@@ -43,11 +43,16 @@ import { ElMessageBox } from 'element-plus'
 import { useRouter } from "vue-router"
 import { useCookies } from '@vueuse/integrations/useCookies'
 import { useStore } from 'vuex'
-import axios from '~/axios'
+import { queryById } from '~/views/system/users/user'
 
 const cookies = useCookies()
 const router = useRouter()
 const store = useStore()
+const asideWidth = computed(() => store.state.asideWidth)
+
+const handleAsideWidth = () => {
+  store.commit('handleAsideWidth')
+}
 
 // 从 Vuex 获取用户头像
 const circleUrl = computed(() => {
@@ -60,7 +65,7 @@ onMounted(async () => {
   if (!store.state.userInfo && cookies.get('l-token') && cookies.get('l-user-id')) {
     try {
       const userId = cookies.get('l-user-id')
-      const res = await axios.get(`/user/queryById?id=${userId}`)
+      const res = await queryById(userId)
       if (res.data.code === 200) {
         store.commit('setUserInfo', res.data.data)
       }

@@ -10,35 +10,35 @@ const module_name = "TestCase"
  * 分页查询
  */
 export function queryByPage(data) {
-    return axios.post(`/${module_name}/queryByPage`, data)
+    return axios.post(`/${module_name}/queryByPage?_alias=testcase-page`, data)
 }
 
 /**
  * 根据ID查询
  */
 export function queryById(id) {
-    return axios.get(`/${module_name}/queryById?id=${id}`)
+    return axios.get(`/${module_name}/queryById?id=${id}&_alias=testcase-detail`)
 }
 
 /**
  * 插入数据
  */
 export function insertData(data) {
-    return axios.post(`/${module_name}/insert`, data)
+    return axios.post(`/${module_name}/insert?_alias=testcase-insert`, data)
 }
 
 /**
  * 更新数据
  */
 export function updateData(data) {
-    return axios.put(`/${module_name}/update`, data)
+    return axios.put(`/${module_name}/update?_alias=testcase-update`, data)
 }
 
 /**
  * 删除数据
  */
 export function deleteData(id) {
-    return axios.delete(`/${module_name}/delete?id=${id}`)
+    return axios.delete(`/${module_name}/delete?id=${id}&_alias=testcase-delete`)
 }
 
 // 拓展其他方法
@@ -47,14 +47,14 @@ export function deleteData(id) {
  * 批量保存测试用例
  */
 export function batchInsert(data) {
-    return axios.post(`/${module_name}/batchInsert`, data)
+    return axios.post(`/${module_name}/batchInsert?_alias=testcase-batch`, data)
 }
 
 /**
  * 导出单个测试用例为YAML
  */
 export function exportYaml(id) {
-    return axios.get(`/${module_name}/exportYaml?id=${id}`, {
+    return axios.get(`/${module_name}/exportYaml?id=${id}&_alias=testcase-export`, {
         responseType: 'blob'
     })
 }
@@ -63,7 +63,7 @@ export function exportYaml(id) {
  * 批量导出测试用例为YAML
  */
 export function exportBatchYaml(data) {
-    return axios.post(`/${module_name}/exportBatchYaml`, data, {
+    return axios.post(`/${module_name}/exportBatchYaml?_alias=testcase-batch-export`, data, {
         responseType: 'blob'
     })
 }

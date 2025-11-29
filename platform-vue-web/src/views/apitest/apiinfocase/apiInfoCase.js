@@ -9,35 +9,35 @@ const module_name = "ApiInfoCase"
  * 分页查询用例
  */
 export function queryByPage(data) {
-    return axios.post(`/${module_name}/queryByPage`, data)
+    return axios.post(`/${module_name}/queryByPage?_alias=case-page`, data)
 }
 
 /**
  * 根据ID查询用例（含步骤）
  */
 export function queryById(id) {
-    return axios.get(`/${module_name}/queryById?id=${id}`)
+    return axios.get(`/${module_name}/queryById?id=${id}&_alias=case-detail`)
 }
 
 /**
  * 新增用例
  */
 export function insertData(data) {
-    return axios.post(`/${module_name}/insert`, data)
+    return axios.post(`/${module_name}/insert?_alias=case-insert`, data)
 }
 
 /**
  * 更新用例
  */
 export function updateData(data) {
-    return axios.put(`/${module_name}/update`, data)
+    return axios.put(`/${module_name}/update?_alias=case-update`, data)
 }
 
 /**
  * 删除用例
  */
 export function deleteData(id) {
-    return axios.delete(`/${module_name}/delete?id=${id}`)
+    return axios.delete(`/${module_name}/delete?id=${id}&_alias=case-delete`)
 }
 
 // ==================== 扩展接口 ====================
@@ -46,21 +46,21 @@ export function deleteData(id) {
  * 获取用例的所有步骤
  */
 export function getSteps(caseId) {
-    return axios.get(`/${module_name}/getSteps?case_id=${caseId}`)
+    return axios.get(`/${module_name}/getSteps?case_id=${caseId}&_alias=case-steps`)
 }
 
 /**
  * 生成用例YAML文件
  */
 export function generateYaml(data) {
-    return axios.post(`/${module_name}/generateYaml`, data)
+    return axios.post(`/${module_name}/generateYaml?_alias=case-yaml`, data)
 }
 
 /**
  * 执行用例
  */
 export function executeCase(data) {
-    return axios.post(`/${module_name}/executeCase`, data)
+    return axios.post(`/${module_name}/executeCase?_alias=case-execute`, data)
 }
 
 // ==================== 关键字相关接口 ====================
@@ -69,13 +69,13 @@ export function executeCase(data) {
  * 根据操作类型ID查询关键字列表
  */
 export function queryKeywordsByType(operationTypeId) {
-    return axios.get(`/ApiKeyWord/queryByOperationType?operation_type_id=${operationTypeId}`)
+    return axios.get(`/ApiKeyWord/queryByOperationType?operation_type_id=${operationTypeId}&_alias=keyword-by-type`)
 }
 
 /**
  * 获取关键字的字段描述
  */
 export function getKeywordFields(keywordId) {
-    return axios.get(`/ApiKeyWord/getKeywordFields?keyword_id=${keywordId}`)
+    return axios.get(`/ApiKeyWord/getKeywordFields?keyword_id=${keywordId}&_alias=keyword-fields`)
 }
 

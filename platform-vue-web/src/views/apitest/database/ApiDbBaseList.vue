@@ -45,7 +45,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import axios from '@/axios'
+import { queryByPage, deleteData, testConnection } from '../project/dbBase'
 import ApiDbBaseForm from './ApiDbBaseForm.vue'
 
 const loading = ref(false)
@@ -60,7 +60,7 @@ const currentId = ref(null)
 const loadData = async () => {
   loading.value = true
   try {
-    const { data } = await axios.post('/ApiDbBase/queryByPage', {
+    const { data } = await queryByPage({
       page: page.value,
       pageSize: pageSize.value
     })
@@ -89,7 +89,7 @@ const handleEdit = (row) => {
 
 const handleTest = async (row) => {
   try {
-    const { data } = await axios.post('/ApiDbBase/testConnection', { id: row.id })
+    const { data } = await testConnection({ id: row.id })
     if (data.code === 200) {
       ElMessage.success('连接成功')
     } else {
@@ -105,7 +105,7 @@ const handleDelete = (row) => {
     type: 'warning'
   }).then(async () => {
     try {
-      const { data } = await axios.delete(`/ApiDbBase/delete?id=${row.id}`)
+      const { data } = await deleteData(row.id)
       if (data.code === 200) {
         ElMessage.success('删除成功')
         loadData()

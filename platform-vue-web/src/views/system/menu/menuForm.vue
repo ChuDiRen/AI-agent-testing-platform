@@ -1,6 +1,14 @@
 <template>
-    <el-form ref="ruleFormRef" :model="ruleForm" :rules="rules" label-width="120px" class="demo-ruleForm"
-        status-icon>
+    <BaseForm 
+        ref="baseFormRef"
+        :title="ruleForm.id ? '编辑菜单' : '新增菜单'"
+        :model="ruleForm" 
+        :rules="rules" 
+        label-width="120px"
+        :loading="loading"
+        @submit="onBaseFormSubmit"
+        @cancel="closeForm"
+    >
         <el-row :gutter="20">
             <el-col :span="24">
                 <el-form-item label="菜单ID" prop="id">
@@ -70,7 +78,7 @@
             
             <el-col :span="12" v-if="ruleForm.menu_type === 'C'">
                 <el-form-item label="路由参数" prop="query">
-                    <el-input v-model="ruleForm.query" placeholder="如：{&quot;id&quot;: 1, &quot;name&quot;: &quot;ry&quot;}" />
+                    <el-input v-model="ruleForm.query" placeholder='如：{"id": 1, "name": "ry"}' />
                 </el-form-item>
             </el-col>
             
@@ -113,33 +121,27 @@
                 </el-form-item>
             </el-col>
         </el-row>
-        
-        <!-- 表单操作 -->
-        <el-form-item>
-            <el-button type="primary" @click="submitForm(ruleFormRef)">
-                提交
-            </el-button>
-            <el-button @click="resetForm(ruleFormRef)">重置</el-button>
-            <el-button @click="closeForm()">关闭</el-button>
-        </el-form-item>
-    </el-form>
+    </BaseForm>
 </template>
 
 <script lang="ts" setup>
 import { ref, reactive } from "vue"
 import { queryById, insertData, updateData, getMenuTree } from './menu'
-import type { FormInstance, FormRules } from 'element-plus'
 import { useRouter } from "vue-router"
 import IconSelect from '~/components/IconSelect.vue'
+import { ElMessage } from 'element-plus'
+import BaseForm from '~/components/BaseForm/index.vue'
 
 const router = useRouter()
 
-// 表单实例
-const ruleFormRef = ref<FormInstance>()
+// BaseForm 引用
+const baseFormRef = ref()
+const loading = ref(false)
+
 // 菜单树选项
 const menuTreeOptions = ref([{ id: 0, menu_name: '顶级菜单', children: [] }])
 
-// 表单数据（参考RuoYi-Vue-Plus）
+// 表单数据
 const ruleForm = reactive({
     id: 0,
     parent_id: 0,
@@ -198,33 +200,33 @@ const loadMenuTree = async () => {
 loadMenuTree()
 
 // 提交表单
-const submitForm = async (form: FormInstance | undefined) => {
-    if (!form) return
-    await form.validate((valid, fields) => {
-        if (!valid) {
-            return 
-        } 
+const onBaseFormSubmit = async () => {
+    loading.value = true
+    try {
         // 有ID 代表是修改， 没ID 代表是新增
         if (ruleForm.id > 0) {
-            updateData(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
-                if (res.data.code == 200) {
-                    router.push('/menuList')
-                }
-            })
+            const res = await updateData(ruleForm)
+            if (res.data.code == 200) {
+                ElMessage.success('更新成功')
+                router.push('/menuList')
+            } else {
+                ElMessage.error(res.data.msg || '更新失败')
+            }
         } else {
-            insertData(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
-                if (res.data.code == 200) {
-                    router.push('/menuList')
-                }
-            })
+            const res = await insertData(ruleForm)
+            if (res.data.code == 200) {
+                ElMessage.success('新增成功')
+                router.push('/menuList')
+            } else {
+                ElMessage.error(res.data.msg || '新增失败')
+            }
         }
-    })
-}
-
-// 重置表单
-const resetForm = (form: FormInstance | undefined) => {
-    if (!form) return
-    form.resetFields()
+    } catch (error) {
+        console.error('操作失败:', error)
+        ElMessage.error('操作失败，请稍后重试')
+    } finally {
+        loading.value = false
+    }
 }
 
 // 关闭表单
@@ -232,7 +234,7 @@ const closeForm = () => {
     router.push('/menuList')
 }
 
-// 加载表单数据（参考RuoYi-Vue-Plus）
+// 加载表单数据
 const loadData = async (id: number) => {
     const res = await queryById(id)
     ruleForm.id = res.data.data.id

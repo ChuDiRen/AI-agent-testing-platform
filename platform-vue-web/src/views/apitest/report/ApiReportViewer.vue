@@ -34,7 +34,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Download, Refresh } from '@element-plus/icons-vue'
-import axios from '@/axios'
+import { queryById } from '../history/apiHistory'
 
 const route = useRoute()
 const router = useRouter()
@@ -76,7 +76,7 @@ const loadReport = async () => {
     
     // 获取报告信息
     if (route.query.history_id) {
-      const { data } = await axios.get(`/ApiHistory/queryById?id=${route.query.history_id}`)
+      const { data } = await queryById(route.query.history_id)
       if (data.code === 200) {
         reportInfo.value = data.data
       }

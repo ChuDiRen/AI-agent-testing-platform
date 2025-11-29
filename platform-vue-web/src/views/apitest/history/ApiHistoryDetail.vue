@@ -88,7 +88,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { View, Download } from '@element-plus/icons-vue'
-import axios from '@/axios'
+import { queryById, executeTest, pollTestStatus, getReportUrl } from './apiHistory'
 
 const route = useRoute()
 const router = useRouter()
@@ -103,7 +103,7 @@ const pageTitle = computed(() => {
 const loadDetail = async () => {
   loading.value = true
   try {
-    const { data } = await axios.get(`/ApiHistory/queryById?id=${route.params.id}`)
+    const { data } = await queryById(route.params.id)
     if (data.code === 200) {
       detail.value = data.data
     }

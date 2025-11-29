@@ -1,6 +1,14 @@
 <template>
-    <el-form ref="ruleFormRef" :model="ruleForm" :rules="rules" label-width="120px" class="demo-ruleForm"
-        status-icon>
+    <BaseForm 
+        ref="baseFormRef"
+        :title="ruleForm.id ? '编辑部门' : '新增部门'"
+        :model="ruleForm" 
+        :rules="rules" 
+        label-width="120px"
+        :loading="loading"
+        @submit="onBaseFormSubmit"
+        @cancel="closeForm"
+    >
         <el-form-item label="部门ID" prop="id">
             <el-input v-model="ruleForm.id" disabled/>
         </el-form-item>
@@ -17,29 +25,24 @@
             <el-input v-model="ruleForm.dept_name" placeholder="请输入部门名称" />
         </el-form-item>
         <el-form-item label="排序" prop="order_num">
-            <el-input-number v-model="ruleForm.order_num" :min="0" />
+            <el-input-number v-model="ruleForm.order_num" :min="0" style="width: 100%;" />
         </el-form-item>
-        <!-- 表单操作 -->
-        <el-form-item>
-            <el-button type="primary" @click="submitForm(ruleFormRef)">
-                提交
-            </el-button>
-            <el-button @click="resetForm(ruleFormRef)">清空</el-button>
-            <el-button @click="closeForm()">关闭</el-button>
-        </el-form-item>
-    </el-form>
+    </BaseForm>
 </template>
 
 <script lang="ts" setup>
 import { ref, reactive } from "vue"
 import { queryById, insertData, updateData, getDeptTree } from './dept'
-import type { FormInstance, FormRules } from 'element-plus'
 import { useRouter } from "vue-router"
+import { ElMessage } from 'element-plus'
+import BaseForm from '~/components/BaseForm/index.vue'
 
 const router = useRouter()
 
-// 表单实例
-const ruleFormRef = ref<FormInstance>()
+// BaseForm 引用
+const baseFormRef = ref()
+const loading = ref(false)
+
 // 部门树选项
 const deptTreeOptions = ref([{ id: 0, dept_name: '顶级部门', children: [] }])
 
@@ -68,33 +71,33 @@ const loadDeptTree = async () => {
 loadDeptTree()
 
 // 提交表单
-const submitForm = async (form: FormInstance | undefined) => {
-    if (!form) return
-    await form.validate((valid, fields) => {
-        if (!valid) {
-            return 
-        } 
+const onBaseFormSubmit = async () => {
+    loading.value = true
+    try {
         // 有ID 代表是修改， 没ID 代表是新增
         if (ruleForm.id > 0) {
-            updateData(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
-                if (res.data.code == 200) {
-                    router.push('/deptList')
-                }
-            })
+            const res = await updateData(ruleForm)
+            if (res.data.code == 200) {
+                ElMessage.success('更新成功')
+                router.push('/deptList')
+            } else {
+                ElMessage.error(res.data.msg || '更新失败')
+            }
         } else {
-            insertData(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
-                if (res.data.code == 200) {
-                    router.push('/deptList')
-                }
-            })
+            const res = await insertData(ruleForm)
+            if (res.data.code == 200) {
+                ElMessage.success('新增成功')
+                router.push('/deptList')
+            } else {
+                ElMessage.error(res.data.msg || '新增失败')
+            }
         }
-    })
-}
-
-// 重置表单
-const resetForm = (form: FormInstance | undefined) => {
-    if (!form) return
-    form.resetFields()
+    } catch (error) {
+        console.error('操作失败:', error)
+        ElMessage.error('操作失败，请稍后重试')
+    } finally {
+        loading.value = false
+    }
 }
 
 // 关闭表单
@@ -123,4 +126,3 @@ if (ruleForm.id > 0) {
     ruleForm.parent_id = Number(query_parent_id)
 }
 </script>
-

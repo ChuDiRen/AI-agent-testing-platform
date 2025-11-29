@@ -1,101 +1,95 @@
 <template>
   <div class="page-container">
-    <el-card class="page-card">
+    <BaseSearch 
+      :model="searchForm" 
+      @search="loadData" 
+      @reset="resetSearch"
+    >
+      <el-form-item label="用户名">
+        <el-input v-model="searchForm.username" placeholder="根据用户名筛选" />
+      </el-form-item>
+    </BaseSearch>
+
+    <BaseTable
+      title="用户管理"
+      :data="tableData"
+      :loading="loading"
+      :total="total"
+      v-model:pagination="pagination"
+      @refresh="loadData"
+    >
       <template #header>
-        <div class="card-header">
-          <h3>用户管理</h3>
-          <el-button type="primary" @click="onDataForm(-1)">
-            <el-icon><Plus /></el-icon>
-            新增用户
-          </el-button>
-        </div>
+        <el-button type="primary" @click="onDataForm(-1)">
+          <el-icon><Plus /></el-icon>
+          新增用户
+        </el-button>
       </template>
 
-      <!-- 搜索表单 -->
-      <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="用户名">
-          <el-input v-model="searchForm.username" placeholder="根据用户名筛选" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="loadData()">查询</el-button>
-          <el-button @click="resetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
-    <!-- END 搜索表单 -->
-    <!-- 数据表格 -->
-    <el-table :data="tableData" row-key="id" style="width: 100%;" max-height="600">
-        <!-- 数据列 -->
-        <el-table-column prop="id" label="用户ID" width="100" />
-        <el-table-column prop="username" label="用户名" width="120" show-overflow-tooltip />
-        <el-table-column prop="email" label="邮箱" width="200" show-overflow-tooltip />
-        <el-table-column prop="mobile" label="联系电话" width="130" />
-        <el-table-column prop="dept_id" label="部门" width="120">
-            <template #default="scope">
-                {{ deptMap[scope.row.dept_id] || scope.row.dept_id }}
-            </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="80">
-            <template #default="scope">
-                <el-tag :type="scope.row.status === '1' ? 'success' : 'warning'">
-                    {{ scope.row.status === '1' ? '有效' : '锁定' }}
-                </el-tag>
-            </template>
-        </el-table-column>
-        <el-table-column prop="ssex" label="性别" width="80">
-            <template #default="scope">
-                {{ genderMap[scope.row.ssex] || '未知' }}
-            </template>
-        </el-table-column>
-        <el-table-column prop="create_time" label="创建时间" width="180">
-            <template #default="scope">
-                {{ formatDateTime(scope.row.create_time) }}
-            </template>
-        </el-table-column>
-        <!-- 操作 -->
-        <el-table-column fixed="right" label="操作" width="220">
-            <template #default="scope">
-                <el-button link type="primary" size="small" @click.prevent="onDataView(scope.$index)">
-                    查看
-                </el-button>
-                <el-button link type="success" size="small" @click.prevent="onDataForm(scope.$index)">
-                    编辑
-                </el-button>
-                <el-button link type="danger" size="small" @click.prevent="onDelete(scope.$index)">
-                    删除
-                </el-button>
-            </template>
-        </el-table-column>
-    </el-table>
-    
-    <!-- 分页 -->
-    <div class="pagination">
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :page-sizes="[10, 20, 30, 50]"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
-    </div>
-    </el-card>
+      <!-- 数据列 -->
+      <el-table-column prop="id" label="用户ID" width="100" />
+      <el-table-column prop="username" label="用户名" width="120" show-overflow-tooltip />
+      <el-table-column prop="email" label="邮箱" width="200" show-overflow-tooltip />
+      <el-table-column prop="mobile" label="联系电话" width="130" />
+      <el-table-column prop="dept_id" label="部门" width="120">
+        <template #default="scope">
+          {{ deptMap[scope.row.dept_id] || scope.row.dept_id }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="status" label="状态" width="80">
+        <template #default="scope">
+          <el-tag :type="scope.row.status === '1' ? 'success' : 'warning'">
+            {{ scope.row.status === '1' ? '有效' : '锁定' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="ssex" label="性别" width="80">
+        <template #default="scope">
+          {{ genderMap[scope.row.ssex] || '未知' }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="create_time" label="创建时间" width="180">
+        <template #default="scope">
+          {{ formatDateTime(scope.row.create_time) }}
+        </template>
+      </el-table-column>
+      
+      <!-- 操作 -->
+      <el-table-column fixed="right" label="操作" width="220">
+        <template #default="scope">
+          <el-button link type="primary" size="small" @click.prevent="onDataView(scope.$index)">
+            查看
+          </el-button>
+          <el-button link type="success" size="small" @click.prevent="onDataForm(scope.$index)">
+            编辑
+          </el-button>
+          <el-button link type="danger" size="small" @click.prevent="onDelete(scope.$index)">
+            删除
+          </el-button>
+        </template>
+      </el-table-column>
+    </BaseTable>
   </div>
 </template>
-  
+
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from "vue"
-import { queryByPage, deleteData } from './user' // 不同页面不同的接口
+import { queryByPage, deleteData } from './user'
+import { getDeptTree } from '../dept/dept'
 import { useRouter } from "vue-router";
 import { formatDateTime } from '~/utils/timeFormatter'
-import axios from '~/axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import BaseSearch from '~/components/BaseSearch/index.vue'
+import BaseTable from '~/components/BaseTable/index.vue'
+
 const router = useRouter()
 
 // 分页参数
-const currentPage = ref(1)
-const pageSize = ref(10)
+const pagination = reactive({
+  page: 1,
+  limit: 10
+})
 const total = ref(0)
+const loading = ref(false)
 
 // 搜索功能 - 筛选表单
 const searchForm = reactive({"username": null})
@@ -113,7 +107,7 @@ const deptMap = ref({})
 // 加载部门数据
 const loadDeptData = async () => {
     try {
-        const res = await axios.get('/dept/tree')
+        const res = await getDeptTree()
         if (res.data.code === 200) {
             const depts = res.data.data
             // 将部门树扁平化为映射表
@@ -122,7 +116,6 @@ const loadDeptData = async () => {
                     return map
                 }
                 deptList.forEach(dept => {
-                    // 修正字段名：使用 id 而不是 dept_id
                     if (dept.id !== undefined && dept.id !== null) {
                         map[dept.id] = dept.dept_name
                     }
@@ -144,9 +137,10 @@ const tableData = ref([])
 
 // 加载页面数据
 const loadData = () => {
-    let searchData = searchForm
-    searchData["page"] = currentPage.value
-    searchData["pageSize"] = pageSize.value
+    loading.value = true
+    let searchData = { ...searchForm }
+    searchData["page"] = pagination.page
+    searchData["pageSize"] = pagination.limit
 
     queryByPage(searchData).then((res: { data: { code: number; data: never[]; total: number; msg: string }; }) => {
         if (res.data.code === 200) {
@@ -157,32 +151,23 @@ const loadData = () => {
         }
     }).catch(() => {
         ElMessage.error('查询失败，请稍后重试')
+    }).finally(() => {
+        loading.value = false
     })
 }
 
 // 重置搜索
 const resetSearch = () => {
     searchForm.username = null
-    currentPage.value = 1
+    pagination.page = 1
     loadData()
 }
 
 // 页面初始化
 onMounted(() => {
-    loadDeptData() // 先加载部门数据
-    loadData() // 再加载用户数据
+    loadDeptData()
+    loadData()
 })
-
-// 变更 页大小
-const handleSizeChange = (val: number) => {
-    pageSize.value = val
-    loadData()
-}
-// 变更 页码
-const handleCurrentChange = (val: number) => {
-    currentPage.value = val
-    loadData()
-}
 
 // 查看用户详情
 const onDataView = (index: number) => {
@@ -191,7 +176,7 @@ const onDataView = (index: number) => {
         path: 'userForm',
         query: {
             id: item.id,
-            view: 'true' // 标记为查看模式
+            view: 'true'
         }
     })
 }
@@ -205,7 +190,7 @@ const onDataForm = (index: number) => {
         }
     }
     router.push({
-        path: 'userForm', // 不同页面不同的表单路径
+        path: 'userForm',
         query: params_data
     });
 }
@@ -228,18 +213,15 @@ const onDelete = (index: number) => {
             } else {
                 ElMessage.error(res.data.msg || '删除失败')
             }
-        }).catch(() => { // 删除失败处理
+        }).catch(() => {
             ElMessage.error('删除失败，请稍后重试')
         })
     }).catch(() => {
         ElMessage.info('已取消删除')
     })
 }
-
-// 其他功能拓展
-
 </script>
+
 <style scoped>
-@import '~/styles/common-list.css'; /* 统一使用~别名 */
-@import '~/styles/common-form.css'; /* 统一使用~别名 */
+/* 移除原来的样式引用，因为组件内部已经包含了必要的样式 */
 </style>

@@ -7,17 +7,17 @@ const module_name = "ApiHistory"
 
 // 分页查询测试历史
 export function queryByPage(data) {
-    return axios.post(`/${module_name}/queryByPage`, data)
+    return axios.post(`/${module_name}/queryByPage?_alias=history-page`, data)
 }
 
 // 根据ID查询测试历史
 export function queryById(id) {
-    return axios.get(`/${module_name}/queryById?id=${id}`)
+    return axios.get(`/${module_name}/queryById?id=${id}&_alias=history-detail`)
 }
 
 // 删除测试历史
 export function deleteData(id) {
-    return axios.delete(`/${module_name}/delete?id=${id}`)
+    return axios.delete(`/${module_name}/delete?id=${id}&_alias=history-delete`)
 }
 
 // ==================== 测试执行相关接口 ====================
@@ -35,7 +35,7 @@ export function deleteData(id) {
  * @returns {Promise}
  */
 export function executeTest(params) {
-    return axios.post(`/${module_name}/execute`, params)
+    return axios.post(`/${module_name}/execute?_alias=history-execute`, params)
 }
 
 /**
@@ -44,7 +44,7 @@ export function executeTest(params) {
  * @returns {Promise}
  */
 export function getTestStatus(testId) {
-    return axios.get(`/${module_name}/status`, {
+    return axios.get(`/${module_name}/status?_alias=history-status`, {
         params: { test_id: testId }
     })
 }
@@ -225,7 +225,7 @@ export function getReportUrl(testId) {
  */
 export async function checkEngineAvailable() {
     try {
-        const response = await axios.get('/api/engine/health')
+        const response = await axios.get('/api/engine/health?_alias=engine-health')
         return response.code === 200
     } catch {
         return false

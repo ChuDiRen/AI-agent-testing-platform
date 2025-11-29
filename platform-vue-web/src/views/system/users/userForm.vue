@@ -1,7 +1,15 @@
 <template>
-    <el-form ref="ruleFormRef" :model="ruleForm" :rules="rules" label-width="120px" class="demo-ruleForm"
-        status-icon>
-            <!-- 不同的页面，不同的表单字段 -->
+    <BaseForm 
+        ref="baseFormRef"
+        :title="isViewMode ? '用户详情' : (ruleForm.id ? '编辑用户' : '新增用户')"
+        :model="ruleForm" 
+        :rules="rules" 
+        label-width="120px"
+        :loading="loading"
+        @submit="onBaseFormSubmit"
+        @cancel="closeForm"
+    >
+        <!-- 不同的页面，不同的表单字段 -->
         <el-form-item label="编号" prop="id">
             <el-input v-model="ruleForm.id" disabled/>
         </el-form-item>
@@ -45,39 +53,34 @@
         <el-form-item label="描述" prop="description">
             <el-input v-model="ruleForm.description" type="textarea" :rows="3" :readonly="isViewMode" />
         </el-form-item>
-        <!-- 如果有不需要展示在页面的属性，建议通过 v-show="false" 进行控制，不要直接删除，这样方便你后续改来改去 -->
         <!-- END 表单字段 -->
-        <!-- 表单操作 -->
-        <el-form-item>
-            <el-button v-if="!isViewMode" type="primary" @click="submitForm(ruleFormRef)">
-                提交
-            </el-button>
-            <el-button v-if="!isViewMode" @click="resetForm(ruleFormRef)">清空</el-button>
-            <el-button @click="closeForm()">{{ isViewMode ? '返回' : '关闭' }}</el-button>
-        </el-form-item>
-        <!-- END 表单操作 -->
-    </el-form>
+        
+        <!-- 底部按钮已被BaseForm接管 -->
+    </BaseForm>
 </template>
   
 <script lang="ts" setup>
 import { ref, reactive, computed } from "vue"
-import { queryById, insertData, updateData } from './user' // 不同页面不同的接口
-import type { FormInstance, FormRules } from 'element-plus'
+import { queryById, insertData, updateData } from './user'
+import { getDeptTree } from '../dept/dept'
 import { useRouter } from "vue-router"
 import { useStore } from 'vuex'
 import { ElMessage } from 'element-plus'
-import axios from '~/axios'
+import BaseForm from '~/components/BaseForm/index.vue'
+
 const router = useRouter()
 const store = useStore()
 
 // 判断是否为查看模式
 const isViewMode = computed(() => router.currentRoute.value.query.view === 'true')
 
-// 表单实例
-const ruleFormRef = ref<FormInstance>()
+// BaseForm 引用
+const baseFormRef = ref()
+const loading = ref(false)
+
 // 部门选项列表
 const deptOptions = ref<any[]>([])
-// 表单数据 - 不同的页面，不同的表单字段
+// 表单数据
 const ruleForm = reactive({
     id: 0,
     username: '',
@@ -91,8 +94,7 @@ const ruleForm = reactive({
     description: ''
 })
 
-// 表单验证规则 - 不同的页面，不同的校验规则
-// 查看模式下不需要验证
+// 表单验证规则
 const rules = computed(() => {
     if (isViewMode.value) {
         return {}
@@ -112,72 +114,61 @@ const rules = computed(() => {
         ]
     }
 })
-// 提交表单
-const submitForm = async (form: FormInstance | undefined) => {
-    if (!form) return
-    await form.validate((valid, fields) => {
-        if (!valid) {
-            return 
-        } 
+
+// 提交表单 (BaseForm 已验证通过)
+const onBaseFormSubmit = async () => {
+    loading.value = true
+    try {
         // 有ID 代表是修改， 没ID 代表是新增
         if (ruleForm.id > 0) {
-            updateData(ruleForm).then(async (res: { data: { code: number; msg: string; }; }) => {
-                if (res.data.code == 200) {
-                    ElMessage.success('更新成功')
-                    // 如果修改的是当前登录用户，重新获取完整的用户信息并更新 Vuex
-                    if (store.state.userInfo && store.state.userInfo.id === ruleForm.id) {
-                        try {
-                            const userRes = await queryById(ruleForm.id)
-                            if (userRes.data.code === 200) {
-                                store.commit('setUserInfo', userRes.data.data)
-                            }
-                        } catch (error) {
-                            // 静默处理错误
+            const res = await updateData(ruleForm)
+            if (res.data.code == 200) {
+                ElMessage.success('更新成功')
+                // 如果修改的是当前登录用户，重新获取完整的用户信息并更新 Vuex
+                if (store.state.userInfo && store.state.userInfo.id === ruleForm.id) {
+                    try {
+                        const userRes = await queryById(ruleForm.id)
+                        if (userRes.data.code === 200) {
+                            store.commit('setUserInfo', userRes.data.data)
                         }
-                    }
-                    router.push('/userList') // 跳转回列表页面 - 不同的页面，不同的路径
-                } else {
-                    ElMessage.error(res.data.msg || '更新失败')
+                    } catch (error) { }
                 }
-            }).catch((error: any) => {
-                ElMessage.error('更新失败，请稍后重试')
-            })
+                router.push('/userList')
+            } else {
+                ElMessage.error(res.data.msg || '更新失败')
+            }
         } else {
-            insertData(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
-                if (res.data.code == 200) {
-                    ElMessage.success('新增成功')
-                    router.push('/userList') // 跳转回列表页面 - 不同的页面，不同的路径
-                } else {
-                    ElMessage.error(res.data.msg || '新增失败')
-                }
-            }).catch(() => {
-                ElMessage.error('新增失败，请稍后重试')
-            })
+            const res = await insertData(ruleForm)
+            if (res.data.code == 200) {
+                ElMessage.success('新增成功')
+                router.push('/userList')
+            } else {
+                ElMessage.error(res.data.msg || '新增失败')
+            }
         }
-    })
+    } catch (error) {
+        ElMessage.error('操作失败，请稍后重试')
+    } finally {
+        loading.value = false
+    }
 }
-// 重置表单
-const resetForm = (form: FormInstance | undefined) => {
-    if (!form) return
-    form.resetFields()
-}
-// 关闭表单 - 回到数据列表页 - 不同的页面，不同的路径
+
+// 关闭表单
 const closeForm = () => {
     router.push('/userList')
 }
+
 // 加载部门数据
 const loadDeptData = async () => {
     try {
-        const res = await axios.get('/dept/tree')
+        const res = await getDeptTree()
         if (res.data.code === 200) {
             const depts = res.data.data
-            // 将部门树扁平化为选项列表
             const flattenDepts = (deptList: any[], options: any[] = []) => {
                 if (!deptList || !Array.isArray(deptList)) {
                     return options
                 }
                 deptList.forEach(dept => {
-                    // 只添加有效的部门数据（id 和 dept_name 都存在）
                     if (dept.id !== undefined && dept.id !== null && dept.dept_name) {
                         options.push({ id: dept.id, name: dept.dept_name })
                     }
@@ -189,15 +180,12 @@ const loadDeptData = async () => {
             }
             deptOptions.value = flattenDepts(depts)
         }
-    } catch (error) {
-        // 静默处理错误
-    }
+    } catch (error) { }
 }
 
 // 加载表单数据
 const loadData = async (id: number) => {
     const res = await queryById(id)
-    // 不同的页面，不同的表单字段 (注意这里的res.data.data.xxx，xxx是接口返回的字段，不同的接口，字段不同)
     ruleForm.id = res.data.data.id
     ruleForm.username = res.data.data.username
     ruleForm.password = res.data.data.password
@@ -210,53 +198,17 @@ const loadData = async (id: number) => {
     ruleForm.description = res.data.data.description || ''
 }
 
-// 初始化：先加载部门数据
+// 初始化
 loadDeptData()
 
-// 如果有id参数，说明是编辑，需要获取数据
 let query_id = router.currentRoute.value.query.id
 ruleForm.id = query_id ? Number(query_id) : 0
 if (ruleForm.id > 0) {
     loadData(ruleForm.id)
 }
-// 其他逻辑
-
 </script>
 
 <style scoped>
-/* 查看模式样式优化 */
-:deep(.el-input.is-disabled .el-input__wrapper),
-:deep(.el-select.is-disabled .el-input__wrapper) {
-  background-color: #f5f7fa;
-  cursor: not-allowed;
-}
-
-/* 只读输入框样式 - 保持白色背景，允许选择文本 */
-:deep(.el-input__inner[readonly]),
-:deep(.el-textarea__inner[readonly]) {
-  cursor: text !important;
-  user-select: text !important;
-  background-color: #ffffff !important;
-  color: var(--el-text-color-primary);
-}
-
-/* 只读输入框悬停效果 */
-:deep(.el-input__inner[readonly]:hover),
-:deep(.el-textarea__inner[readonly]:hover) {
-  background-color: #fafafa !important;
-}
-
-/* 只读状态下去除边框焦点效果 */
-:deep(.el-input.is-readonly:hover .el-input__wrapper),
-:deep(.el-textarea.is-readonly:hover .el-textarea__inner) {
-  box-shadow: 0 0 0 1px var(--el-border-color) inset;
-}
-
-/* 禁用状态的单选框和选择器 */
-:deep(.el-radio.is-disabled),
-:deep(.el-select.is-disabled) {
-  opacity: 0.6;
-}
 </style>
   
 

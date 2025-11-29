@@ -49,7 +49,8 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import axios from '@/axios'
+import { queryAll as queryAllProjects } from '../project/apiProject'
+import { queryById, insertData, updateData } from '../project/dbBase'
 
 const props = defineProps({
   id: Number
@@ -79,7 +80,7 @@ const rules = {
 
 const loadProjects = async () => {
   try {
-    const { data } = await axios.get('/ApiProject/queryAll')
+    const { data } = await queryAllProjects()
     if (data.code === 200) {
       projects.value = data.data.list
     }
@@ -92,7 +93,7 @@ const loadDetail = async () => {
   if (!props.id) return
   
   try {
-    const { data } = await axios.get(`/ApiDbBase/queryById?id=${props.id}`)
+    const { data } = await queryById(props.id)
     if (data.code === 200) {
       Object.assign(form.value, data.data)
     }
@@ -105,13 +106,18 @@ const handleSubmit = async () => {
   await formRef.value.validate()
   
   try {
-    const url = props.id ? '/ApiDbBase/update' : '/ApiDbBase/insert'
-    const method = props.id ? 'put' : 'post'
-    
-    const { data } = await axios[method](url, form.value)
-    if (data.code === 200) {
-      ElMessage.success('保存成功')
-      emit('success')
+    if (props.id) {
+      const { data } = await updateData(form.value)
+      if (data.code === 200) {
+        ElMessage.success('保存成功')
+        emit('success')
+      }
+    } else {
+      const { data } = await insertData(form.value)
+      if (data.code === 200) {
+        ElMessage.success('保存成功')
+        emit('success')
+      }
     }
   } catch (error) {
     ElMessage.error('保存失败: ' + error.message)

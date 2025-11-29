@@ -9,9 +9,9 @@
     <el-col :lg="16" class="left">
       <div>
         <div>
-          欢迎光临华测教育
+          欢迎光临大熊AI
         </div>
-        <div>欢迎使用华测教育的在线测试平台学习,这里是《高级测试开发课》的演示地址</div>
+        <div>欢迎使用大熊AI自动化测试平台</div>
       </div>
     </el-col>
     <!-- <el-col :span="8" class="bg-indigo-50 flex items-center justify-center flex-col"> -->

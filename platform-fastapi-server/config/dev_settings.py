@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from pathlib import Path
+from typing import Optional
 import os
 
 
@@ -7,12 +8,12 @@ class Settings(BaseSettings): # 开发环境配置
     # ==================== 路径配置 ====================
     # ✅ P2修复: 统一管理项目路径,避免硬编码
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
-    TEMP_DIR: Path = None  # 将在__init__中初始化
-    YAML_DIR: Path = None
-    REPORT_DIR: Path = None
-    LOG_DIR: Path = None
-    KEYWORDS_DIR: Path = None
-    DATA_DIR: Path = None
+    TEMP_DIR: Optional[Path] = None  # 将在__init__中初始化
+    YAML_DIR: Optional[Path] = None
+    REPORT_DIR: Optional[Path] = None
+    LOG_DIR: Optional[Path] = None
+    KEYWORDS_DIR: Optional[Path] = None
+    DATA_DIR: Optional[Path] = None
     
     # ==================== 环境配置 ====================
     ENV: str = "development"  # 环境: development, production, test
