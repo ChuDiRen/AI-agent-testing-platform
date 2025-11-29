@@ -71,8 +71,10 @@ def run():
     # 测试执行完成后自动生成Allure报告
     print("\n=== 测试执行完成，正在生成Allure报告... ===")
     print(f"报告目录: {allure_report_dir}")
+    os.makedirs(allure_report_dir, exist_ok=True)
     os.system(f'allure generate -c -o "{allure_report_dir}" "{allure_results_dir}"')
-    combine_allure(allure_report_dir)
+    if os.listdir(allure_report_dir):
+        combine_allure(allure_report_dir)
 
 if __name__ == '__main__':
     # 调用run函数而不是直接执行测试代码

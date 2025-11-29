@@ -44,6 +44,7 @@ class TaskStatusQuery(BaseModel):
     """任务状态查询"""
     plugin_code: str = Field(..., description="插件代码")
     task_id: str = Field(..., description="任务ID")
+    temp_dir: str = Field(..., description="任务临时目录")
 
 
 @router.post("/execute", summary="执行测试任务")
@@ -84,7 +85,8 @@ async def get_task_status(
         result = await task_scheduler.get_task_status(
             session=session,
             plugin_code=query.plugin_code,
-            task_id=query.task_id
+            task_id=query.task_id,
+            temp_dir=query.temp_dir
         )
         
         if result.get("success"):

@@ -97,13 +97,15 @@ class TaskScheduler:
             )
             
             if not execute_result.get("success"):
+                error_msg = execute_result.get('error') or execute_result.get('message') or str(execute_result)
+                logger.error(f"Plugin execution failed: {error_msg}, raw_result: {execute_result}")
                 return {
                     "success": False,
-                    "error": f"Plugin execution failed: {execute_result.get('error')}",
+                    "error": f"Plugin execution failed: {error_msg}",
                     "raw_result": execute_result
                 }
             
-            # 6. 返回成功结果
+            # 6. 返回成功结果（包含执行结果详情）
             return {
                 "success": True,
                 "task_id": execute_result.get("task_id"),
@@ -111,7 +113,8 @@ class TaskScheduler:
                 "plugin_name": plugin.plugin_name,
                 "status": execute_result.get("status", "running"),
                 "message": execute_result.get("message", "Test execution started"),
-                "temp_dir": execute_result.get("temp_dir")
+                "temp_dir": execute_result.get("temp_dir"),
+                "result": execute_result.get("result")  # 包含详细执行结果
             }
         
         except Exception as e:

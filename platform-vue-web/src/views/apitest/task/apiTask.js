@@ -9,3 +9,8 @@ export function listExecutors() {
 export function executeTask(data) {
     return axios.post("/Task/execute?_alias=task-execute", data)
 }
+
+// 查询任务执行状态
+export function getTaskStatus(data) {
+    return axios.post("/Task/status?_alias=task-status", data)
+}

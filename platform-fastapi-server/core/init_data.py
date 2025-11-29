@@ -1150,6 +1150,22 @@ def create_initial_plugins():
                         "features": ["keyword_driven", "data_driven", "allure_report"]
                     },
                     "dependencies": ["selenium>=4.0.0", "allure-pytest", "pyyaml"]
+                },
+                {
+                    "plugin_name": "API Engine",
+                    "plugin_code": "api_engine",
+                    "plugin_type": "executor",
+                    "version": "1.0.0",
+                    "command": "python -m apirun.cli",
+                    "work_dir": "e:/AI-agent-testing-platform/api-engine",
+                    "description": "API自动化测试执行引擎，基于Requests，通过命令行调用",
+                    "author": "Platform Team",
+                    "is_enabled": 1,
+                    "capabilities": {
+                        "test_types": ["api"],
+                        "features": ["keyword_driven", "data_driven", "allure_report"]
+                    },
+                    "dependencies": ["requests", "allure-pytest", "pyyaml"]
                 }
             ]
             

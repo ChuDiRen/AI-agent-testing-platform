@@ -317,7 +317,7 @@ import { ref, reactive, onMounted } from "vue";
 import { Connection, ArrowDown } from '@element-plus/icons-vue';
 import { queryById, insertData, updateData, getMethods } from './apiinfo.js';
 import { queryByPage as getProjectList } from '../project/apiProject.js';
-import { listExecutors, executeTask } from '../task/apiTask.js';
+import { listExecutors, executeTask, getTaskStatus } from '../task/apiTask.js';
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
 
@@ -765,20 +765,54 @@ const generateTestCaseYaml = () => {
     body = ruleForm.requests_json_data || ruleForm.request_form_datas || ruleForm.request_www_form_datas || null;
   }
 
-  // 构建测试用例结构
+  // 构建请求步骤参数（符合 api-engine 的 send_request 关键字格式）
+  // send_request 内部使用 requests.Session().request(**kwargs)
+  const stepParams: Record<string, any> = {
+    '关键字': 'send_request',
+    method: ruleForm.request_method || 'GET',
+    url: (ruleForm.request_url || '').trim(),
+  };
+
+  // 添加请求头
+  if (ruleForm.request_headers) {
+    try {
+      const headers = JSON.parse(ruleForm.request_headers);
+      if (Object.keys(headers).length > 0) {
+        stepParams.headers = headers;
+      }
+    } catch (e) {
+      console.warn('解析请求头失败:', e);
+    }
+  }
+
+  // 添加URL查询参数
+  if (ruleForm.request_params) {
+    try {
+      const params = JSON.parse(ruleForm.request_params);
+      if (Object.keys(params).length > 0) {
+        stepParams.params = params;
+      }
+    } catch (e) {
+      console.warn('解析查询参数失败:', e);
+    }
+  }
+
+  // 添加请求体（根据类型选择 json 或 data）
+  // requests 库：json 参数用于 JSON 数据，data 参数用于表单数据
+  if (body !== null) {
+    if (ruleForm.requests_json_data) {
+      stepParams.json = body;
+    } else {
+      stepParams.data = body;
+    }
+  }
+
+  // 构建测试用例结构（符合 api-engine 的 YAML 用例格式）
   const testCase = {
     desc: ruleForm.api_name || '接口调试',
     steps: [
       {
-        ['发送请求']: {
-          '关键字': 'send_request',
-          'method': ruleForm.request_method || 'GET',
-          // 去掉 URL 首尾空格，避免前端输入时带入空格导致请求失败
-          'url': (ruleForm.request_url || '').trim(),
-          'headers': ruleForm.request_headers ? JSON.parse(ruleForm.request_headers) : {},
-          'params': ruleForm.request_params ? JSON.parse(ruleForm.request_params) : {},
-          'body': body
-        }
+        ['发送请求']: stepParams
       }
     ]
   };
@@ -818,21 +852,84 @@ const handleTestCommand = async (command: string) => {
     });
     
     if (res.data.code === 200) {
-      ElMessage.success('调试任务已提交执行');
-      // 将结果显示在调试输出区域
-      debugOutput.value = JSON.stringify(res.data.data, null, 2);
-      activeTab.value = 'debug';
+      const data = res.data.data;
+      const status = data.status;
+      
+      if (status === 'running') {
+        // 异步执行，开始轮询状态
+        ElMessage.info('测试任务已提交，执行中...');
+        activeTab.value = 'debug';
+        debugOutput.value = '正在执行测试...';
+        await pollTaskStatus(data.task_id, currentExecutorCode.value, data.temp_dir);
+      } else {
+        // 同步返回结果（兼容旧逻辑）
+        handleTaskResult(data);
+      }
     } else {
       ElMessage.error(res.data.msg || '执行失败');
       debugOutput.value = `执行失败: ${res.data.msg}`;
+      testing.value = false;
     }
   } catch (error) {
     console.error('调试操作失败:', error);
     ElMessage.error('操作失败，请稍后重试');
     debugOutput.value = `操作失败: ${error.message || error}`;
-  } finally {
     testing.value = false;
   }
+};
+
+// 轮询任务状态
+const pollTaskStatus = async (taskId: string, pluginCode: string, tempDir: string) => {
+  const maxAttempts = 60; // 最多轮询60次（60秒）
+  let attempts = 0;
+  
+  while (attempts < maxAttempts) {
+    attempts++;
+    await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒
+    
+    try {
+      const res = await getTaskStatus({
+        plugin_code: pluginCode,
+        task_id: taskId,
+        temp_dir: tempDir
+      });
+      
+      if (res.data.code === 200 && res.data.data) {
+        const result = res.data.data;
+        if (result.status !== 'running') {
+          // 任务完成
+          handleTaskResult({ result });
+          return;
+        }
+        debugOutput.value = `正在执行测试... (${attempts}s)`;
+      }
+    } catch (e) {
+      console.error('轮询状态失败:', e);
+    }
+  }
+  
+  // 超时
+  ElMessage.warning('任务执行超时');
+  debugOutput.value = '任务执行超时，请稍后查看结果';
+  testing.value = false;
+};
+
+// 处理任务结果
+const handleTaskResult = (data: any) => {
+  const result = data.result || data;
+  const status = result.status;
+  
+  if (status === 'completed') {
+    ElMessage.success('测试执行成功');
+  } else if (status === 'failed') {
+    ElMessage.warning('测试执行完成，但存在失败');
+  } else if (status === 'timeout') {
+    ElMessage.warning('测试执行超时');
+  }
+  
+  debugOutput.value = JSON.stringify(result, null, 2);
+  activeTab.value = 'debug';
+  testing.value = false;
 };
 
 // 返回列表页
