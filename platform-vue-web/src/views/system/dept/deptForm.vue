@@ -35,7 +35,7 @@ import { ref, reactive } from "vue"
 import { queryById, insertData, updateData, getDeptTree } from './dept'
 import { useRouter } from "vue-router"
 import { ElMessage } from 'element-plus'
-import BaseForm from '~/components/BaseForm/index.vue'
+import BaseForm from '@/components/BaseForm/index.vue'
 
 const router = useRouter()
 

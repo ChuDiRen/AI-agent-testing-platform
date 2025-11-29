@@ -1,97 +1,78 @@
 <template>
   <div class="page-container">
-    <el-card class="page-card">
-      <template #header>
-        <div class="card-header">
-          <h3>用例管理</h3>
-          <el-button type="primary" @click="handleCreate">
-            <el-icon><Plus /></el-icon>
-            新增用例
-          </el-button>
-        </div>
+    <!-- 搜索区域 -->
+    <BaseSearch :model="queryForm" :loading="loading" @search="handleQuery" @reset="handleReset">
+      <el-form-item label="项目" prop="project_id">
+        <el-select v-model="queryForm.project_id" placeholder="选择项目" clearable filterable style="width: 180px">
+          <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="用例名称" prop="case_name">
+        <el-input v-model="queryForm.case_name" placeholder="用例名称" clearable style="width: 180px" />
+      </el-form-item>
+      <template #actions>
+        <el-button type="primary" @click="handleCreate">
+          <el-icon><Plus /></el-icon>
+          新增用例
+        </el-button>
       </template>
+    </BaseSearch>
 
-      <!-- 搜索表单 -->
-      <el-form :inline="true" :model="queryForm" class="search-form">
-        <el-form-item label="项目">
-          <el-select v-model="queryForm.project_id" placeholder="选择项目" clearable filterable>
-            <el-option
-              v-for="project in projectList"
-              :key="project.id"
-              :label="project.project_name"
-              :value="project.id"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="用例名称">
-          <el-input v-model="queryForm.case_name" placeholder="用例名称" clearable />
-        </el-form-item>
-
-        <el-form-item>
-          <el-button type="primary" @click="handleQuery">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-
-      <!-- 数据表格 -->
-      <el-table :data="tableData" border stripe v-loading="loading">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="case_name" label="用例名称" show-overflow-tooltip />
-        <el-table-column prop="case_desc" label="用例描述" show-overflow-tooltip />
-        <el-table-column prop="project_id" label="项目" width="120">
-          <template #default="scope">
-            {{ getProjectName(scope.row.project_id) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="create_time" label="创建时间" width="180" />
-        <el-table-column label="操作" width="280" fixed="right">
-          <template #default="scope">
-            <el-button type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
-            <el-button type="success" size="small" @click="handleExecute(scope.row)">执行</el-button>
-            <el-button type="info" size="small" @click="handleGenerateYaml(scope.row)">生成YAML</el-button>
-            <el-button type="danger" size="small" @click="handleDelete(scope.row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <el-pagination
-        v-model:current-page="queryForm.page"
-        v-model:page-size="queryForm.pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleQuery"
-        @current-change="handleQuery"
-        class="pagination"
-      />
-    </el-card>
+    <!-- 表格区域 -->
+    <BaseTable 
+      title="用例管理"
+      :data="tableData" 
+      :total="total" 
+      :loading="loading"
+      v-model:pagination="pagination"
+      @refresh="handleQuery"
+    >
+      <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="case_name" label="用例名称" show-overflow-tooltip />
+      <el-table-column prop="case_desc" label="用例描述" show-overflow-tooltip />
+      <el-table-column prop="project_id" label="项目" width="120">
+        <template #default="scope">
+          {{ getProjectName(scope.row.project_id) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="create_time" label="创建时间" width="170" />
+      <el-table-column label="操作" width="260" fixed="right">
+        <template #default="scope">
+          <el-button link type="primary" @click="handleEdit(scope.row)">编辑</el-button>
+          <el-button link type="success" @click="handleExecute(scope.row)">执行</el-button>
+          <el-button link type="info" @click="handleGenerateYaml(scope.row)">生成YAML</el-button>
+          <el-button link type="danger" @click="handleDelete(scope.row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </BaseTable>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { queryByPage, deleteData, generateYaml, executeCase } from './apiInfoCase.js'
 import { queryAll as queryProjects } from '../project/apiProject.js'
 import { useRouter } from 'vue-router'
+import BaseSearch from '~/components/BaseSearch/index.vue'
+import BaseTable from '~/components/BaseTable/index.vue'
 
 const router = useRouter()
 
+// 分页参数
+const pagination = ref({ page: 1, limit: 10 })
+const total = ref(0)
+const loading = ref(false)
+
 // 查询表单
-const queryForm = ref({
+const queryForm = reactive({
   project_id: null,
-  case_name: '',
-  page: 1,
-  pageSize: 10
+  case_name: ''
 })
 
 // 表格数据
 const tableData = ref([])
-const total = ref(0)
-const loading = ref(false)
 
 // 项目列表
 const projectList = ref([])
@@ -118,7 +99,11 @@ const getProjectName = (projectId) => {
 const handleQuery = async () => {
   loading.value = true
   try {
-    const res = await queryByPage(queryForm.value)
+    const res = await queryByPage({
+      ...queryForm,
+      page: pagination.value.page,
+      pageSize: pagination.value.limit
+    })
     if (res.data.code === 200) {
       tableData.value = res.data.data || []
       total.value = res.data.total || 0
@@ -135,12 +120,9 @@ const handleQuery = async () => {
 
 // 重置
 const handleReset = () => {
-  queryForm.value = {
-    project_id: null,
-    case_name: '',
-    page: 1,
-    pageSize: 10
-  }
+  queryForm.project_id = null
+  queryForm.case_name = ''
+  pagination.value.page = 1
   handleQuery()
 }
 

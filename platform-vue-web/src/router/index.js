@@ -388,7 +388,7 @@ const routes = [
                 permission: "apitest:history:query"
             }
         }, {
-            path: "/ai-models",
+            path: "/AiModelList",
             component: AiModelList,
             meta: {
                 title: "AI模型管理",
@@ -402,7 +402,7 @@ const routes = [
                 permission: "ai:model:add"
             }
         }, {
-            path: "/ai-prompts",
+            path: "/PromptTemplateList",
             component: PromptTemplateList,
             meta: {
                 title: "提示词模板管理",
@@ -416,14 +416,14 @@ const routes = [
                 permission: "ai:prompt:add"
             }
         }, {
-            path: "/agent-chat",
+            path: "/AgentChatIntegrated",
             component: AgentChatIntegrated,
             meta: {
                 title: "智能体聊天",
                 permission: "ai:agent:chat"
             }
         }, {
-            path: "/test-cases",
+            path: "/TestCaseList",
             component: TestCaseList,
             meta: {
                 title: "测试用例管理",

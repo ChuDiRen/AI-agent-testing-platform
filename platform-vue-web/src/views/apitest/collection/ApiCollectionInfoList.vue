@@ -1,52 +1,46 @@
 <template>
-  <div class="api-test-plan-list">
-    <el-card>
-      <!-- 查询条件 -->
-      <el-form :inline="true" :model="queryForm">
-        <el-form-item label="项目">
-          <el-select v-model="queryForm.project_id" clearable placeholder="选择项目" style="width: 200px">
-            <!-- 这里可以从store或API获取项目列表 -->
-          </el-select>
-        </el-form-item>
-        <el-form-item label="计划名称">
-          <el-input v-model="queryForm.plan_name" clearable placeholder="请输入计划名称" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="loadData">查询</el-button>
-          <el-button @click="resetQuery">重置</el-button>
-          <el-button type="success" @click="handleAdd">新增计划</el-button>
-        </el-form-item>
-      </el-form>
+  <div class="page-container">
+    <!-- 搜索区域 -->
+    <BaseSearch :model="queryForm" :loading="loading" @search="loadData" @reset="resetQuery">
+      <el-form-item label="项目" prop="project_id">
+        <el-select v-model="queryForm.project_id" clearable placeholder="选择项目" style="width: 180px">
+          <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id"/>
+        </el-select>
+      </el-form-item>
+      <el-form-item label="计划名称" prop="plan_name">
+        <el-input v-model="queryForm.plan_name" clearable placeholder="请输入计划名称" style="width: 180px" />
+      </el-form-item>
+      <template #actions>
+        <el-button type="primary" @click="handleAdd">
+          <el-icon><Plus /></el-icon>
+          新增计划
+        </el-button>
+      </template>
+    </BaseSearch>
 
-      <!-- 数据表格 -->
-      <el-table :data="tableData" border stripe>
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="plan_name" label="计划名称" min-width="150" />
-        <el-table-column prop="plan_desc" label="计划描述" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="case_count" label="用例数量" width="100" align="center" />
-        <el-table-column prop="create_time" label="创建时间" width="160" />
-        <el-table-column label="操作" width="300" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button size="small" type="success" @click="handleExecute(row)">执行</el-button>
-            <el-button size="small" type="info" @click="handleViewHistory(row)">历史</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <el-pagination
-        v-model:current-page="queryForm.page"
-        v-model:page-size="queryForm.pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="loadData"
-        @current-change="loadData"
-        style="margin-top: 20px; text-align: right"
-      />
-    </el-card>
+    <!-- 表格区域 -->
+    <BaseTable 
+      title="测试计划管理"
+      :data="tableData" 
+      :total="total" 
+      :loading="loading"
+      v-model:pagination="pagination"
+      @refresh="loadData"
+    >
+      <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="plan_name" label="计划名称" min-width="150" show-overflow-tooltip />
+      <el-table-column prop="plan_desc" label="计划描述" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="case_count" label="用例数量" width="100" align="center" />
+      <el-table-column prop="create_time" label="创建时间" width="160" />
+      <el-table-column label="操作" width="250" fixed="right">
+        <template #default="{ row }">
+          <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+          <el-button link type="success" @click="handleExecute(row)">执行</el-button>
+          <el-button link type="info" @click="handleViewHistory(row)">历史</el-button>
+          <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </BaseTable>
 
     <!-- 执行历史对话框 -->
     <el-dialog v-model="historyDialogVisible" title="执行历史" width="80%">
@@ -68,50 +62,75 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import { queryByPage, deleteData, executePlan, queryHistoryByPlanId } from './apiCollectionInfo'
+import { queryAllProject } from '../project/apiProject.js'
+import BaseSearch from '~/components/BaseSearch/index.vue'
+import BaseTable from '~/components/BaseTable/index.vue'
 
 const router = useRouter()
 
+// 分页参数
+const pagination = ref({ page: 1, limit: 10 })
+const total = ref(0)
+const loading = ref(false)
+
 // 查询表单
-const queryForm = ref({
-  page: 1,
-  pageSize: 10,
+const queryForm = reactive({
   project_id: null,
   plan_name: ''
 })
 
 // 表格数据
 const tableData = ref([])
-const total = ref(0)
+
+// 项目列表
+const projectList = ref([])
 
 // 历史对话框
 const historyDialogVisible = ref(false)
 const historyData = ref([])
 
+// 加载项目列表
+const loadProjectList = async () => {
+  try {
+    const res = await queryAllProject()
+    if (res.data.code === 200) {
+      projectList.value = res.data.data || []
+    }
+  } catch (error) {
+    console.error('加载项目列表失败:', error)
+  }
+}
+
 // 加载数据
 const loadData = async () => {
+  loading.value = true
   try {
-    const res = await queryByPage(queryForm.value)
+    const res = await queryByPage({
+      ...queryForm,
+      page: pagination.value.page,
+      pageSize: pagination.value.limit
+    })
     if (res.code === 20000) {
       tableData.value = res.data.list || []
       total.value = res.data.total || 0
     }
   } catch (error) {
     ElMessage.error('加载数据失败: ' + error.message)
+  } finally {
+    loading.value = false
   }
 }
 
 // 重置查询
 const resetQuery = () => {
-  queryForm.value = {
-    page: 1,
-    pageSize: 10,
-    project_id: null,
-    plan_name: ''
-  }
+  queryForm.project_id = null
+  queryForm.plan_name = ''
+  pagination.value.page = 1
   loadData()
 }
 
@@ -181,13 +200,12 @@ const handleDelete = async (row) => {
 }
 
 onMounted(() => {
+  loadProjectList()
   loadData()
 })
 </script>
 
 <style scoped>
-.api-test-plan-list {
-  padding: 20px;
-}
+@import '~/styles/common-list.css';
 </style>
 

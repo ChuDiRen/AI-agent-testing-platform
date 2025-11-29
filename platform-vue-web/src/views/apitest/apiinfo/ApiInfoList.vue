@@ -1,103 +1,70 @@
 <template>
   <div class="page-container">
-    <el-card class="page-card">
-      <template #header>
-        <div class="card-header">
-          <h3>接口信息管理</h3>
-          <div>
-            <el-button type="success" @click="showImportDialog">
-              <el-icon><Upload /></el-icon>
-              导入Swagger
-            </el-button>
-            <el-button type="primary" @click="onDataForm(-1)">
-              <el-icon><Plus /></el-icon>
-              新增接口
-            </el-button>
-          </div>
-        </div>
+    <!-- 搜索区域 -->
+    <BaseSearch :model="searchForm" :loading="loading" @search="loadData" @reset="resetSearch">
+      <el-form-item label="项目" prop="project_id">
+        <el-select v-model="searchForm.project_id" placeholder="选择项目" clearable style="width: 160px">
+          <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id"/>     
+        </el-select>
+      </el-form-item>
+      <el-form-item label="接口名称" prop="api_name">
+        <el-input v-model="searchForm.api_name" placeholder="根据接口名称筛选" clearable style="width: 160px"/>
+      </el-form-item>
+      <el-form-item label="请求方法" prop="request_method">
+        <el-select v-model="searchForm.request_method" placeholder="选择请求方法" clearable style="width: 120px">
+          <el-option v-for="method in methodList" :key="method" :label="method" :value="method"/>     
+        </el-select>
+      </el-form-item>
+      <template #actions>
+        <el-button type="success" @click="showImportDialog">
+          <el-icon><Upload /></el-icon>
+          导入Swagger
+        </el-button>
+        <el-button type="primary" @click="onDataForm(-1)">
+          <el-icon><Plus /></el-icon>
+          新增接口
+        </el-button>
       </template>
+    </BaseSearch>
 
-      <!-- 搜索表单 -->
-      <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="项目">
-          <el-select v-model="searchForm.project_id" placeholder="选择项目" clearable style="width: 180px">
-            <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id"/>     
-          </el-select>
-        </el-form-item>
-        
-        <el-form-item label="接口名称">
-          <el-input v-model="searchForm.api_name" placeholder="根据接口名称筛选" clearable style="width: 180px"/>
-        </el-form-item>
-        
-        <el-form-item label="请求方法">
-          <el-select v-model="searchForm.request_method" placeholder="选择请求方法" clearable style="width: 180px">
-            <el-option v-for="method in methodList" :key="method" :label="method" :value="method"/>     
-          </el-select>
-        </el-form-item>
-        
-        <el-form-item>
-          <el-button type="primary" @click="loadData()">查询</el-button>
-          <el-button @click="resetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
-      <!-- END 搜索表单 -->
-
-    <!-- 数据表格 -->
-    <el-table :data="tableData" style="width: 100%" max-height="600">
-      <el-table-column prop="id" label="接口编号" width="100" />
-      <el-table-column prop="api_name" label="接口名称" width="200" show-overflow-tooltip />
-      <el-table-column prop="request_method" label="请求方法" width="120">
+    <!-- 表格区域 -->
+    <BaseTable 
+      title="接口信息管理"
+      :data="tableData" 
+      :total="total" 
+      :loading="loading"
+      v-model:pagination="pagination"
+      @refresh="loadData"
+    >
+      <el-table-column prop="id" label="编号" width="80" />
+      <el-table-column prop="api_name" label="接口名称" min-width="180" show-overflow-tooltip />
+      <el-table-column prop="request_method" label="请求方法" width="100">
         <template #default="scope">
-          <el-tag :type="getMethodTagType(scope.row.request_method)">
+          <el-tag :type="getMethodTagType(scope.row.request_method)" size="small">
             {{ scope.row.request_method }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="request_url" label="请求地址" min-width="300" show-overflow-tooltip />
-      <el-table-column prop="project_id" label="所属项目" width="150">
+      <el-table-column prop="request_url" label="请求地址" min-width="280" show-overflow-tooltip />
+      <el-table-column prop="project_id" label="所属项目" width="120">
         <template #default="scope">
           {{ getProjectName(scope.row.project_id) }}
         </template>
       </el-table-column>
-      <el-table-column prop="create_time" label="创建时间" width="180">
+      <el-table-column prop="create_time" label="创建时间" width="170">
         <template #default="scope">
           {{ formatDateTime(scope.row.create_time) }}
         </template>
       </el-table-column>
-      
-      <!-- 操作 -->
-      <el-table-column fixed="right" label="操作" width="250">
+      <el-table-column fixed="right" label="操作" width="200">
         <template #default="scope">
-          <el-button link type="primary" size="small" @click.prevent="onDataForm(scope.$index)">
-            编辑
-          </el-button>
-          <el-button link type="success" size="small" @click.prevent="onTestEditor(scope.$index)">
-            测试
-          </el-button>
-          <el-button link type="info" size="small" @click.prevent="onViewHistory(scope.$index)">
-            历史
-          </el-button>
-          <el-button link type="danger" size="small" @click.prevent="onDelete(scope.$index)">
-            删除
-          </el-button>
+          <el-button link type="primary" @click.prevent="onDataForm(scope.$index)">编辑</el-button>
+          <el-button link type="success" @click.prevent="onTestEditor(scope.$index)">测试</el-button>
+          <el-button link type="info" @click.prevent="onViewHistory(scope.$index)">历史</el-button>
+          <el-button link type="danger" @click.prevent="onDelete(scope.$index)">删除</el-button>
         </template>
       </el-table-column>
-    </el-table>
-    <!-- END 数据表格 -->
-
-    <!-- 分页 -->
-    <div class="pagination">
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :page-sizes="[10, 20, 30, 50]"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
-    </div>
-    </el-card>
+    </BaseTable>
 
     <!-- 导入Swagger对话框 -->
     <el-dialog v-model="importDialogVisible" title="导入Swagger文档" width="600px">
@@ -158,13 +125,16 @@ import { queryByPage as getProjectList } from '../project/apiProject.js';
 import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { Upload, Plus } from '@element-plus/icons-vue';
+import BaseSearch from '~/components/BaseSearch/index.vue';
+import BaseTable from '~/components/BaseTable/index.vue';
 
 const router = useRouter();
 
 // 分页参数
-const currentPage = ref(1);
-const pageSize = ref(10);
+const pagination = ref({ page: 1, limit: 10 });
 const total = ref(0);
+const loading = ref(false);
 
 // 搜索功能 - 筛选表单
 const searchForm = reactive({
@@ -198,19 +168,18 @@ const resetSearch = () => {
   searchForm.project_id = null;
   searchForm.api_name = null;
   searchForm.request_method = null;
-  currentPage.value = 1;
+  pagination.value.page = 1;
   loadData();
 };
 
 // 加载页面数据
 const loadData = () => {
-  let searchData = {
+  loading.value = true;
+  queryByPage({
     ...searchForm,
-    page: currentPage.value,
-    pageSize: pageSize.value
-  };
-
-  queryByPage(searchData).then((res) => {
+    page: pagination.value.page,
+    pageSize: pagination.value.limit
+  }).then((res) => {
     if (res.data.code === 200) {
       tableData.value = res.data.data || [];
       total.value = res.data.total || 0;
@@ -220,6 +189,8 @@ const loadData = () => {
   }).catch((error) => {
     console.error('查询失败:', error);
     ElMessage.error('查询失败，请稍后重试');
+  }).finally(() => {
+    loading.value = false;
   });
 };
 
@@ -314,19 +285,6 @@ const onDelete = (index) => {
   }).catch(() => {
     // 用户取消删除
   });
-};
-
-// 分页大小改变
-const handleSizeChange = (val) => {
-  pageSize.value = val;
-  currentPage.value = 1;
-  loadData();
-};
-
-// 当前页改变
-const handleCurrentChange = (val) => {
-  currentPage.value = val;
-  loadData();
 };
 
 // 显示导入对话框

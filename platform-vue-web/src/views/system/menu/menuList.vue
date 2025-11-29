@@ -77,7 +77,7 @@ import { ref } from "vue"
 import { getMenuTree, deleteData } from './menu'
 import { useRouter } from "vue-router"
 import { ElMessage, ElMessageBox } from 'element-plus'
-import BaseTable from '~/components/BaseTable/index.vue'
+import BaseTable from '@/components/BaseTable/index.vue'
 
 const router = useRouter()
 

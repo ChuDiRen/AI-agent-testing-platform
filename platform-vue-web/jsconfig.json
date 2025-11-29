@@ -1,23 +1,40 @@
 {
   "compilerOptions": {
-    "baseUrl": "src/agent-react",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "~/*": ["../*"]
+      "@/*": [
+        "src/*"
+      ],
+      "~/*": [
+        "src/*"
+      ]
     },
-    "jsx": "react",
+    "jsx": "preserve",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["vite/client", "node"]
+    "types": [
+      "vite/client",
+      "node"
+    ],
+    "target": "ESNext",
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowJs": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "vite.config.js"
   ],
   "exclude": [
     "node_modules",
     "dist"
   ]
 }
-

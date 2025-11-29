@@ -133,7 +133,7 @@ import {
   WarningFilled
 } from '@element-plus/icons-vue'
 import { applyReactInVue } from 'veaury'
-import AgentChatApp from '~/agent-react/AgentChatApp'
+import AgentChatApp from '@/agent-react/AgentChatApp'
 // 导入完整的 Agent Chat 样式
 import '~/agent-react/globals.css'
 // 导入 markdown 样式

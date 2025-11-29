@@ -1,82 +1,63 @@
 <template>
   <div class="page-container">
-    <el-card class="page-card">
+    <!-- 搜索区域 -->
+    <BaseSearch :model="searchForm" :loading="loading" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="提供商">
+        <el-select v-model="searchForm.provider" placeholder="全部" clearable>
+          <el-option label="全部" value="" />
+          <el-option v-for="p in providers" :key="p" :label="p" :value="p" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="searchForm.is_enabled" placeholder="全部" clearable>
+          <el-option label="全部" value="" />
+          <el-option label="已启用" :value="true" />
+          <el-option label="已禁用" :value="false" />
+        </el-select>
+      </el-form-item>
+    </BaseSearch>
+
+    <!-- 表格区域 -->
+    <BaseTable
+      title="AI模型管理"
+      :data="tableData"
+      :loading="loading"
+      :total="pagination.total"
+      v-model:pagination="paginationModel"
+      @refresh="loadData"
+    >
       <template #header>
-        <div class="card-header">
-          <h3>AI模型管理</h3>
-          <el-button type="primary" @click="handleAdd">
-            <el-icon><Plus /></el-icon>
-            新增模型
-          </el-button>
-        </div>
+        <el-button type="primary" @click="handleAdd">
+          <el-icon><Plus /></el-icon>
+          新增模型
+        </el-button>
       </template>
 
-      <!-- 搜索表单 -->
-      <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="提供商">
-          <el-select v-model="searchForm.provider" placeholder="全部" clearable @change="handleSearch">
-            <el-option label="全部" value="" />
-            <el-option v-for="p in providers" :key="p" :label="p" :value="p" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.is_enabled" placeholder="全部" clearable @change="handleSearch">
-            <el-option label="全部" value="" />
-            <el-option label="已启用" :value="true" />
-            <el-option label="已禁用" :value="false" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-      <!-- END 搜索表单 -->
-
-      <!-- 数据表格 -->
-      <el-table :data="tableData" v-loading="loading" style="width: 100%" max-height="500">
-        <el-table-column type="index" label="序号" width="60" align="center" />
-        <el-table-column prop="model_name" label="模型名称" min-width="150" />
-        <el-table-column prop="model_code" label="模型代码" min-width="150" />
-        <el-table-column prop="provider" label="提供商" width="120" />
-        <el-table-column prop="api_url" label="API地址" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="is_enabled" label="状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.is_enabled ? 'success' : 'info'">
-              {{ row.is_enabled ? '已启用' : '已禁用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="create_time" label="创建时间" width="160" />
-        <el-table-column label="操作" width="280" fixed="right" align="center">
-          <template #default="{ row }">
-            <el-button link type="primary" icon="el-icon-edit" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="primary" icon="el-icon-connection" @click="handleTest(row)">测试连接</el-button>
-            <el-button link type="primary"
-              :icon="row.is_enabled ? 'el-icon-circle-close' : 'el-icon-circle-check'"
-              @click="handleToggle(row)">
-              {{ row.is_enabled ? '禁用' : '启用' }}
-            </el-button>
-            <el-button link type="danger" icon="el-icon-delete" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <div class="pagination">
-        <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.page_size"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="pagination.total"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadData"
-          @current-change="loadData"
-        />
-      </div>
-      <!-- END 分页 -->
-    </el-card>
+      <el-table-column type="index" label="序号" width="60" align="center" />
+      <el-table-column prop="model_name" label="模型名称" min-width="150" />
+      <el-table-column prop="model_code" label="模型代码" min-width="150" />
+      <el-table-column prop="provider" label="提供商" width="120" />
+      <el-table-column prop="api_url" label="API地址" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="is_enabled" label="状态" width="100" align="center">
+        <template #default="{ row }">
+          <el-tag :type="row.is_enabled ? 'success' : 'info'">
+            {{ row.is_enabled ? '已启用' : '已禁用' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="create_time" label="创建时间" width="160" />
+      <el-table-column label="操作" width="280" fixed="right" align="center">
+        <template #default="{ row }">
+          <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+          <el-button link type="primary" @click="handleTest(row)">测试连接</el-button>
+          <el-button link type="primary" @click="handleToggle(row)">
+            {{ row.is_enabled ? '禁用' : '启用' }}
+          </el-button>
+          <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </BaseTable>
 
     <!-- 表单对话框组件 -->
     <AiModelForm 
@@ -88,11 +69,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { queryByPage, deleteData, testConnection, toggleStatus } from './aimodel'
 import AiModelForm from './AiModelForm.vue'
+import BaseSearch from '@/components/BaseSearch/index.vue'
+import BaseTable from '@/components/BaseTable/index.vue'
 
 // 搜索表单
 const searchForm = reactive({
@@ -109,6 +92,15 @@ const pagination = reactive({
   page: 1,
   page_size: 20,
   total: 0
+})
+
+// 分页模型（适配 BaseTable）
+const paginationModel = computed({
+  get: () => ({ page: pagination.page, limit: pagination.page_size }),
+  set: (val) => {
+    pagination.page = val.page
+    pagination.page_size = val.limit
+  }
 })
 
 // 提供商列表

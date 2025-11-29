@@ -1,111 +1,88 @@
 <template>
   <div class="page-container">
-    <el-card class="page-card">
+    <!-- 搜索区域 -->
+    <BaseSearch :model="searchForm" :loading="loading" @search="loadData" @reset="resetSearch">
+      <el-form-item label="模板名称">
+        <el-input v-model="searchForm.template_name" placeholder="请输入模板名称" clearable />
+      </el-form-item>
+      <el-form-item label="机器人">
+        <el-select v-model="searchForm.robot_id" placeholder="请选择机器人" clearable filterable>
+          <el-option
+            v-for="robot in robotList"
+            :key="robot.id"
+            :label="robot.robot_name"
+            :value="robot.id"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="消息类型">
+        <el-select v-model="searchForm.msg_type" placeholder="请选择" clearable>
+          <el-option label="文本消息" value="text" />
+          <el-option label="Markdown" value="markdown" />
+          <el-option label="卡片消息" value="card" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="searchForm.is_enabled" placeholder="请选择" clearable>
+          <el-option label="已启用" :value="true" />
+          <el-option label="已禁用" :value="false" />
+        </el-select>
+      </el-form-item>
+    </BaseSearch>
+
+    <!-- 表格区域 -->
+    <BaseTable
+      title="消息模板管理"
+      :data="tableData"
+      :loading="loading"
+      :total="total"
+      v-model:pagination="paginationModel"
+      @refresh="loadData"
+    >
       <template #header>
-        <div class="card-header">
-          <h3>消息模板管理</h3>
-          <el-button type="primary" @click="onDataForm(-1)">
-            <el-icon><Plus /></el-icon>
-            新增模板
-          </el-button>
-        </div>
+        <el-button type="primary" @click="onDataForm(-1)">
+          <el-icon><Plus /></el-icon>
+          新增模板
+        </el-button>
       </template>
 
-      <!-- 搜索栏 -->
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="模板名称">
-          <el-input v-model="searchForm.template_name" placeholder="请输入模板名称" clearable />
-        </el-form-item>
-        <el-form-item label="机器人">
-          <el-select v-model="searchForm.robot_id" placeholder="请选择机器人" clearable filterable>
-            <el-option
-              v-for="robot in robotList"
-              :key="robot.id"
-              :label="robot.robot_name"
-              :value="robot.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="消息类型">
-          <el-select v-model="searchForm.msg_type" placeholder="请选择" clearable>
-            <el-option label="文本消息" value="text" />
-            <el-option label="Markdown" value="markdown" />
-            <el-option label="卡片消息" value="card" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.is_enabled" placeholder="请选择" clearable>
-            <el-option label="已启用" :value="true" />
-            <el-option label="已禁用" :value="false" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="loadData">查询</el-button>
-          <el-button @click="resetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
-
-      <!-- 数据表格 -->
-      <el-table :data="tableData" style="width: 100%" max-height="500">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="template_name" label="模板名称" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="robot_name" label="机器人" width="150" show-overflow-tooltip />
-        <el-table-column prop="msg_type" label="消息类型" width="120" align="center">
-          <template #default="scope">
-            <el-tag :type="getMsgTypeTag(scope.row.msg_type)">
-              {{ getMsgTypeName(scope.row.msg_type) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="template_content" label="模板内容" min-width="200" show-overflow-tooltip>
-          <template #default="scope">
-            <div class="template-preview">
-              {{ getPreviewText(scope.row.template_content) }}
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="is_enabled" label="状态" width="100" align="center">
-          <template #default="scope">
-            <el-tag :type="scope.row.is_enabled ? 'success' : 'info'">
-              {{ scope.row.is_enabled ? '已启用' : '已禁用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="create_time" label="创建时间" width="180">
-          <template #default="scope">
-            {{ formatDateTime(scope.row.create_time) }}
-          </template>
-        </el-table-column>
-
-        <!-- 操作 -->
-        <el-table-column fixed="right" label="操作" width="240">
-          <template #default="scope">
-            <el-button link type="success" size="small" @click="sendTest(scope.$index)">
-              发送测试
-            </el-button>
-            <el-button link type="primary" size="small" @click="onDataForm(scope.$index)">
-              编辑
-            </el-button>
-            <el-button link type="danger" size="small" @click="onDelete(scope.$index)">
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <div class="pagination">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 30, 50]"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="total"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
-    </el-card>
+      <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="template_name" label="模板名称" min-width="150" show-overflow-tooltip />
+      <el-table-column prop="robot_name" label="机器人" width="150" show-overflow-tooltip />
+      <el-table-column prop="msg_type" label="消息类型" width="120" align="center">
+        <template #default="{ row }">
+          <el-tag :type="getMsgTypeTag(row.msg_type)">
+            {{ getMsgTypeName(row.msg_type) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="template_content" label="模板内容" min-width="200" show-overflow-tooltip>
+        <template #default="{ row }">
+          <div class="template-preview">
+            {{ getPreviewText(row.template_content) }}
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column prop="is_enabled" label="状态" width="100" align="center">
+        <template #default="{ row }">
+          <el-tag :type="row.is_enabled ? 'success' : 'info'">
+            {{ row.is_enabled ? '已启用' : '已禁用' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="create_time" label="创建时间" width="180">
+        <template #default="{ row }">
+          {{ formatDateTime(row.create_time) }}
+        </template>
+      </el-table-column>
+      <el-table-column fixed="right" label="操作" width="240">
+        <template #default="{ row, $index }">
+          <el-button link type="success" @click="sendTest($index)">发送测试</el-button>
+          <el-button link type="primary" @click="onDataForm($index)">编辑</el-button>
+          <el-button link type="danger" @click="onDelete($index)">删除</el-button>
+        </template>
+      </el-table-column>
+    </BaseTable>
 
     <!-- 发送测试对话框 -->
     <el-dialog v-model="sendDialogVisible" title="发送测试消息" width="600px">
@@ -152,18 +129,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
 import { queryByPage, deleteData, sendMessage, sendToRabbitMQ } from './robotMsgConfig.js';
 import { queryAll as queryAllRobots } from '../robot/robotConfig.js';
 import { formatDateTime } from '@/utils/timeFormatter.js';
+import BaseSearch from '@/components/BaseSearch/index.vue';
+import BaseTable from '@/components/BaseTable/index.vue';
 
 const router = useRouter();
 
 // 搜索表单
-const searchForm = ref({
+const searchForm = reactive({
   template_name: '',
   robot_id: null,
   msg_type: '',
@@ -178,8 +157,18 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
 
+// 分页模型（适配 BaseTable）
+const paginationModel = computed({
+  get: () => ({ page: currentPage.value, limit: pageSize.value }),
+  set: (val) => {
+    currentPage.value = val.page;
+    pageSize.value = val.limit;
+  }
+});
+
 // 表格数据
 const tableData = ref([]);
+const loading = ref(false);
 
 // 发送对话框
 const sendDialogVisible = ref(false);
@@ -204,8 +193,9 @@ const loadRobots = () => {
 
 // 加载数据
 const loadData = () => {
+  loading.value = true;
   const searchData = {
-    ...searchForm.value,
+    ...searchForm,
     page: currentPage.value,
     pageSize: pageSize.value
   };
@@ -220,17 +210,17 @@ const loadData = () => {
   }).catch(error => {
     console.error('查询失败:', error);
     ElMessage.error('查询失败，请稍后重试');
+  }).finally(() => {
+    loading.value = false;
   });
 };
 
 // 重置搜索
 const resetSearch = () => {
-  searchForm.value = {
-    template_name: '',
-    robot_id: null,
-    msg_type: '',
-    is_enabled: null
-  };
+  searchForm.template_name = '';
+  searchForm.robot_id = null;
+  searchForm.msg_type = '';
+  searchForm.is_enabled = null;
   currentPage.value = 1;
   loadData();
 };
@@ -240,17 +230,6 @@ onMounted(() => {
   loadRobots();
   loadData();
 });
-
-// 分页处理
-const handleSizeChange = (val) => {
-  pageSize.value = val;
-  loadData();
-};
-
-const handleCurrentChange = (val) => {
-  currentPage.value = val;
-  loadData();
-};
 
 // 打开表单
 const onDataForm = (index) => {
@@ -372,35 +351,7 @@ const getPreviewText = (content) => {
 </script>
 
 <style scoped>
-.page-container {
-  padding: 20px;
-}
-
-.page-card {
-  border-radius: 8px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.search-form {
-  margin-bottom: 20px;
-}
-
-.pagination {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
-}
+@import '~/styles/common-list.css';
 
 .template-preview {
   font-size: 13px;

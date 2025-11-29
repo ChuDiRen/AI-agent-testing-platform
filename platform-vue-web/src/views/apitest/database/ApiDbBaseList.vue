@@ -1,40 +1,37 @@
 <template>
-  <div class="db-list">
-    <el-card>
+  <div class="page-container">
+    <!-- 表格区域 -->
+    <BaseTable 
+      title="数据库配置"
+      :data="tableData" 
+      :total="total" 
+      :loading="loading"
+      v-model:pagination="pagination"
+      @refresh="loadData"
+    >
       <template #header>
-        <div class="card-header">
-          <span>数据库配置</span>
-          <el-button type="primary" @click="handleAdd">新增配置</el-button>
-        </div>
+        <el-button type="primary" @click="handleAdd">
+          <el-icon><Plus /></el-icon>
+          新增配置
+        </el-button>
       </template>
 
-      <el-table :data="tableData" v-loading="loading" border>
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="name" label="配置名称" />
-        <el-table-column prop="db_type" label="数据库类型" width="120">
-          <template #default="{ row }">
-            <el-tag>{{ row.db_type }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="project_name" label="所属项目" />
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="handleTest(row)">测试连接</el-button>
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        @current-change="loadData"
-        layout="total, prev, pager, next"
-        style="margin-top: 16px; justify-content: flex-end"
-      />
-    </el-card>
+      <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="name" label="配置名称" show-overflow-tooltip />
+      <el-table-column prop="db_type" label="数据库类型" width="120">
+        <template #default="{ row }">
+          <el-tag>{{ row.db_type }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="project_name" label="所属项目" show-overflow-tooltip />
+      <el-table-column label="操作" width="200" fixed="right">
+        <template #default="{ row }">
+          <el-button link type="primary" @click="handleTest(row)">测试连接</el-button>
+          <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+          <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </BaseTable>
 
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
       <ApiDbBaseForm :id="currentId" @success="handleSuccess" @cancel="dialogVisible = false" />
@@ -45,14 +42,20 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import { queryByPage, deleteData, testConnection } from '../project/dbBase'
 import ApiDbBaseForm from './ApiDbBaseForm.vue'
+import BaseTable from '~/components/BaseTable/index.vue'
 
-const loading = ref(false)
-const tableData = ref([])
-const page = ref(1)
-const pageSize = ref(10)
+// 分页参数
+const pagination = ref({ page: 1, limit: 10 })
 const total = ref(0)
+const loading = ref(false)
+
+// 表格数据
+const tableData = ref([])
+
+// 对话框
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const currentId = ref(null)
@@ -61,12 +64,12 @@ const loadData = async () => {
   loading.value = true
   try {
     const { data } = await queryByPage({
-      page: page.value,
-      pageSize: pageSize.value
+      page: pagination.value.page,
+      pageSize: pagination.value.limit
     })
     if (data.code === 200) {
-      tableData.value = data.data.list
-      total.value = data.data.total
+      tableData.value = data.data.list || data.data || []
+      total.value = data.data.total || data.total || 0
     }
   } catch (error) {
     ElMessage.error('加载失败: ' + error.message)
@@ -127,9 +130,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+@import '~/styles/common-list.css';
 </style>

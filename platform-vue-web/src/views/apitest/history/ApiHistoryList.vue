@@ -1,73 +1,56 @@
 <template>
   <div class="page-container">
-    <el-card class="page-card">
-      <template #header>
-        <div class="card-header">
-          <h3>测试历史</h3>
-        </div>
-      </template>
+    <!-- 搜索区域 -->
+    <BaseSearch :model="queryForm" :loading="loading" @search="handleQuery" @reset="handleReset">
+      <el-form-item label="接口ID" prop="api_info_id">
+        <el-input v-model="queryForm.api_info_id" placeholder="接口ID" clearable style="width: 150px" />
+      </el-form-item>
+      <el-form-item label="项目ID" prop="project_id">
+        <el-input v-model="queryForm.project_id" placeholder="项目ID" clearable style="width: 150px" />
+      </el-form-item>
+      <el-form-item label="测试状态" prop="test_status">
+        <el-select v-model="queryForm.test_status" placeholder="请选择" clearable style="width: 120px">
+          <el-option label="成功" value="success" />
+          <el-option label="失败" value="failed" />
+          <el-option label="运行中" value="running" />
+        </el-select>
+      </el-form-item>
+    </BaseSearch>
 
-      <!-- 搜索区域 -->
-      <el-form :inline="true" :model="queryForm" class="search-form">
-        <el-form-item label="接口ID">
-          <el-input v-model="queryForm.api_info_id" placeholder="接口ID" clearable />
-        </el-form-item>
-        <el-form-item label="项目ID">
-          <el-input v-model="queryForm.project_id" placeholder="项目ID" clearable />
-        </el-form-item>
-        <el-form-item label="测试状态">
-          <el-select v-model="queryForm.test_status" placeholder="请选择" clearable>
-            <el-option label="成功" value="success" />
-            <el-option label="失败" value="failed" />
-            <el-option label="运行中" value="running" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleQuery">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-
-      <!-- 表格 -->
-      <el-table :data="tableData" border stripe v-loading="loading">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="test_name" label="测试名称" show-overflow-tooltip />
-        <el-table-column prop="request_url" label="请求URL" show-overflow-tooltip />
-        <el-table-column prop="request_method" label="请求方法" width="100" />
-        <el-table-column prop="test_status" label="测试状态" width="100">
-          <template #default="scope">
-            <el-tag v-if="scope.row.test_status === 'success'" type="success">成功</el-tag>
-            <el-tag v-else-if="scope.row.test_status === 'failed'" type="danger">失败</el-tag>
-            <el-tag v-else type="info">运行中</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status_code" label="状态码" width="100" />
-        <el-table-column prop="response_time" label="响应时间(ms)" width="120" />
-        <el-table-column prop="create_time" label="创建时间" width="180">
-          <template #default="scope">
-            {{ formatDateTime(scope.row.create_time) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="scope">
-            <el-button type="primary" size="small" @click="handleView(scope.row)">查看</el-button>
-            <el-button type="danger" size="small" @click="handleDelete(scope.row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <el-pagination
-        v-model:current-page="queryForm.page"
-        v-model:page-size="queryForm.pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleQuery"
-        @current-change="handleQuery"
-        class="pagination"
-      />
-    </el-card>
+    <!-- 表格区域 -->
+    <BaseTable 
+      title="测试历史"
+      :data="tableData" 
+      :total="total" 
+      :loading="loading"
+      v-model:pagination="pagination"
+      @refresh="handleQuery"
+    >
+      <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="test_name" label="测试名称" show-overflow-tooltip />
+      <el-table-column prop="request_url" label="请求URL" show-overflow-tooltip />
+      <el-table-column prop="request_method" label="请求方法" width="100" />
+      <el-table-column prop="test_status" label="测试状态" width="100">
+        <template #default="scope">
+          <el-tag v-if="scope.row.test_status === 'success'" type="success">成功</el-tag>
+          <el-tag v-else-if="scope.row.test_status === 'failed'" type="danger">失败</el-tag>
+          <el-tag v-else type="info">运行中</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="status_code" label="状态码" width="100" />
+      <el-table-column prop="response_time" label="响应时间(ms)" width="120" />
+      <el-table-column prop="create_time" label="创建时间" width="180">
+        <template #default="scope">
+          {{ formatDateTime(scope.row.create_time) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="200" fixed="right">
+        <template #default="scope">
+          <el-button link type="primary" @click="handleView(scope.row)">查看</el-button>
+          <el-button link type="danger" @click="handleDelete(scope.row)">删除</el-button>
+        </template>
+      </el-table-column>
+    </BaseTable>
 
     <!-- 详情对话框 -->
     <el-dialog v-model="detailVisible" title="测试详情" width="80%">
@@ -130,19 +113,22 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { queryByPage, deleteData } from './apiHistory.js'
-import { formatDateTime } from '~/utils/timeFormatter'
+import { formatDateTime } from '@/utils/timeFormatter'
+import BaseSearch from '@/components/BaseSearch/index.vue'
+import BaseTable from '@/components/BaseTable/index.vue'
 
 // 查询表单
-const queryForm = ref({
+const queryForm = reactive({
   api_info_id: '',
   project_id: '',
-  test_status: '',
-  page: 1,
-  pageSize: 10
+  test_status: ''
 })
+
+// 分页参数
+const pagination = ref({ page: 1, limit: 10 })
 
 // 表格数据
 const tableData = ref([])
@@ -158,9 +144,11 @@ const handleQuery = async () => {
   loading.value = true
   try {
     const res = await queryByPage({
-      ...queryForm.value,
-      api_info_id: queryForm.value.api_info_id ? parseInt(queryForm.value.api_info_id) : null,
-      project_id: queryForm.value.project_id ? parseInt(queryForm.value.project_id) : null
+      ...queryForm,
+      page: pagination.value.page,
+      pageSize: pagination.value.limit,
+      api_info_id: queryForm.api_info_id ? parseInt(queryForm.api_info_id) : null,
+      project_id: queryForm.project_id ? parseInt(queryForm.project_id) : null
     })
     if (res.data.code === 200) {
       tableData.value = res.data.data || []
@@ -178,13 +166,10 @@ const handleQuery = async () => {
 
 // 重置
 const handleReset = () => {
-  queryForm.value = {
-    api_info_id: '',
-    project_id: '',
-    test_status: '',
-    page: 1,
-    pageSize: 10
-  }
+  queryForm.api_info_id = ''
+  queryForm.project_id = ''
+  queryForm.test_status = ''
+  pagination.value.page = 1
   handleQuery()
 }
 

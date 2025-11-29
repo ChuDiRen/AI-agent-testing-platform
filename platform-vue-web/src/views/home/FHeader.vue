@@ -43,7 +43,7 @@ import { ElMessageBox } from 'element-plus'
 import { useRouter } from "vue-router"
 import { useCookies } from '@vueuse/integrations/useCookies'
 import { useStore } from 'vuex'
-import { queryById } from '~/views/system/users/user'
+import { queryById } from '@/views/system/users/user'
 
 const cookies = useCookies()
 const router = useRouter()

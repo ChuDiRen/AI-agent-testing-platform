@@ -44,7 +44,7 @@ import { computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router';
 import {useStore} from 'vuex'
 import { useCookies } from '@vueuse/integrations/useCookies'
-import { getUserMenus, getMenuTree } from '~/views/system/menu/menu'
+import { getUserMenus, getMenuTree } from '@/views/system/menu/menu'
 // import store from '../../store';
 const router = useRouter()
 const route = useRoute()
