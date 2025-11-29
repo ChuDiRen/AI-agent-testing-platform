@@ -129,9 +129,9 @@ def keywordFile(request: KeywordFileRequest):
     try:
         file_name = request.keyword_fun_name
         keyword_value = request.keyword_value
-        key_words_dir = settings.KEY_WORDS_DIR
-        os.makedirs(key_words_dir, exist_ok=True)
-        with open(f'{key_words_dir}/{file_name}.py', 'w', encoding="utf-8") as f:
+        keywords_dir = str(settings.KEYWORDS_DIR)
+        os.makedirs(keywords_dir, exist_ok=True)
+        with open(f'{keywords_dir}/{file_name}.py', 'w', encoding="utf-8") as f:
             f.write(keyword_value)
         return respModel.ok_resp(msg="生成文件成功", dic_t={"id": file_name})
     except Exception as e:

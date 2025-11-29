@@ -261,7 +261,21 @@ def create_initial_menus():
                 {"id": 5021, "parent_id": 502, "menu_name": "模板查询", "path": None, "component": None, "query": None, "perms": "msgmanage:template:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 5022, "parent_id": 502, "menu_name": "模板新增", "path": None, "component": None, "query": None, "perms": "msgmanage:template:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 5023, "parent_id": 502, "menu_name": "模板修改", "path": None, "component": None, "query": None, "perms": "msgmanage:template:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
-                {"id": 5024, "parent_id": 502, "menu_name": "模板删除", "path": None, "component": None, "query": None, "perms": "msgmanage:template:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
+                {" id": 5024, "parent_id": 502, "menu_name": "模板删除", "path": None, "component": None, "query": None, "perms": "msgmanage:template:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
+                
+                # ================================
+                # 插件管理模块
+                # ================================
+                # 6. 插件管理（目录 M）
+                {"id": 600, "parent_id": 0, "menu_name": "插件管理", "path": "/plugin", "component": None, "query": None, "perms": None, "icon": "Setting", "menu_type": "M", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 6, "remark": "插件管理模块"},
+                
+                # 6.1 插件市场（菜单 C）
+                {"id": 601, "parent_id": 600, "menu_name": "插件市场", "path": "/plugin/market", "component": "plugin/PluginMarket", "query": None, "perms": "plugin:market:list", "icon": "Shop", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "插件市场"},
+                {"id": 6011, "parent_id": 601, "menu_name": "插件查询", "path": None, "component": None, "query": None, "perms": "plugin:market:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
+                {"id": 6012, "parent_id": 601, "menu_name": "插件注册", "path": None, "component": None, "query": None, "perms": "plugin:market:register", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
+                {"id": 6013, "parent_id": 601, "menu_name": "插件修改", "path": None, "component": None, "query": None, "perms": "plugin:market:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
+                {"id": 6014, "parent_id": 601, "menu_name": "插件删除", "path": None, "component": None, "query": None, "perms": "plugin:market:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
+                {"id": 6015, "parent_id": 601, "menu_name": "插件启用/禁用", "path": None, "component": None, "query": None, "perms": "plugin:market:toggle", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": None},
             ]
 
             for menu_data in api_menus:
@@ -1108,6 +1122,48 @@ def create_initial_keywords():
         logger.error(f"创建初始关键字失败: {e}")
         raise
 
+def create_initial_plugins():
+    """创建初始插件数据"""
+    try:
+        from plugin.model.PluginModel import Plugin
+        
+        with Session(engine) as session:
+            # 检查是否已存在插件数据
+            existing_plugins = session.exec(select(Plugin)).first()
+            if existing_plugins:
+                logger.info("插件数据已存在，跳过初始化")
+                return
+            
+            initial_plugins = [
+                {
+                    "plugin_name": "Web Engine",
+                    "plugin_code": "web_engine",
+                    "plugin_type": "executor",
+                    "version": "1.0.0",
+                    "command": "python -m webrun.cli",
+                    "work_dir": "e:/AI-agent-testing-platform/web-engine",
+                    "description": "Web自动化测试执行引擎，基于Selenium，通过命令行调用",
+                    "author": "Platform Team",
+                    "is_enabled": 1,
+                    "capabilities": {
+                        "test_types": ["web_ui"],
+                        "features": ["keyword_driven", "data_driven", "allure_report"]
+                    },
+                    "dependencies": ["selenium>=4.0.0", "allure-pytest", "pyyaml"]
+                }
+            ]
+            
+            for plugin_data in initial_plugins:
+                plugin = Plugin(**plugin_data, create_time=datetime.now(), modify_time=datetime.now())
+                session.add(plugin)
+                logger.info(f"创建插件: {plugin_data['plugin_name']}")
+            
+            session.commit()
+            logger.info(f"初始插件数据创建完成，共创建{len(initial_plugins)}个插件")
+    except Exception as e:
+        logger.error(f"创建初始插件失败: {e}")
+        raise
+
 def init_all_data():
     """初始化所有数据"""
     try:
@@ -1140,6 +1196,10 @@ def init_all_data():
         logger.info("开始初始化关键字数据...")
         create_initial_keywords()
         
+        # 初始化插件数据
+        logger.info("开始初始化插件数据...")
+        create_initial_plugins()
+        
         logger.info("系统数据初始化完成！")
         logger.info("=" * 70)
         logger.info("默认登录账号:")
@@ -1163,6 +1223,12 @@ def init_all_data():
         logger.info("  ✓ 8个工具类关键字 (等待/随机数/时间/加密/编码等)")
         logger.info("  ✓ 3个文件操作关键字 (读取/写入/删除)")
         logger.info("  ✓ 共计29个内置关键字，覆盖API测试全流程")
+        logger.info("")
+        logger.info("插件系统清单:")
+        logger.info("  ✓ 1个执行器插件 (Web Engine)")
+        logger.info("  ✓ 支持命令行调用方式")
+        logger.info("  ✓ 插件市场管理界面")
+        logger.info("  ✓ 任务调度和执行监控")
         logger.info("=" * 70)
         
     except Exception as e:

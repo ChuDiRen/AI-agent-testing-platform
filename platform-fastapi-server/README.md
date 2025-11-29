@@ -152,7 +152,7 @@ MINIO_SECRET_KEY = "12345678"
 MINIO_SECURE = False
 
 # 关键字文件目录
-KEY_WORDS_DIR = "./keywords"
+KEYWORDS_DIR = "./keywords"
 ```
 
 ### 环境切换

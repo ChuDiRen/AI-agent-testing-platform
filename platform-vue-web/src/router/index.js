@@ -81,6 +81,9 @@ import GenTableList from '~/views/generator/table/GenTableList.vue'
 import GeneratorCode from '~/views/generator/code/GeneratorCode.vue'
 import GenHistory from '~/views/generator/history/GenHistory.vue'
 
+// 插件管理相关导入
+import PluginMarket from '~/views/plugin/PluginMarket.vue'
+
 const cookies = useCookies()
 const routes = [
     {
@@ -477,6 +480,27 @@ const routes = [
             meta: {
                 title: "生成历史",
                 permission: "generator:history:list"
+            }
+        }, {
+            path: "/PluginMarket",
+            component: PluginMarket,
+            meta: {
+                title: "插件市场",
+                permission: "plugin:market:list"
+            }
+        }, {
+            path: "/plugin/market",
+            component: PluginMarket,
+            meta: {
+                title: "插件市场",
+                permission: "plugin:market:list"
+            }
+        }, {
+            path: "/plugin/PluginMarket",
+            component: PluginMarket,
+            meta: {
+                title: "插件市场",
+                permission: "plugin:market:list"
             }
         }]
     },

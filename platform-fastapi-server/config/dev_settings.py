@@ -14,6 +14,8 @@ class Settings(BaseSettings): # 开发环境配置
     LOG_DIR: Optional[Path] = None
     KEYWORDS_DIR: Optional[Path] = None
     DATA_DIR: Optional[Path] = None
+    # 插件存储根目录（可指向文件服务器挂载路径）
+    PLUGIN_BASE_DIR: Optional[Path] = None
     
     # ==================== 环境配置 ====================
     ENV: str = "development"  # 环境: development, production, test
@@ -95,6 +97,9 @@ class Settings(BaseSettings): # 开发环境配置
         self.LOG_DIR = self.TEMP_DIR / "logs"
         self.KEYWORDS_DIR = self.BASE_DIR / "keywords"
         self.DATA_DIR = self.BASE_DIR / "data"
+        # 默认插件目录: 项目根目录同级的 plugins 目录，可根据部署环境挂载到文件服务器
+        if self.PLUGIN_BASE_DIR is None:
+            self.PLUGIN_BASE_DIR = self.BASE_DIR.parent / "plugins"
         
         # 确保关键目录存在
         self._ensure_directories()
@@ -107,7 +112,8 @@ class Settings(BaseSettings): # 开发环境配置
             self.REPORT_DIR,
             self.LOG_DIR,
             self.KEYWORDS_DIR,
-            self.DATA_DIR
+            self.DATA_DIR,
+            self.PLUGIN_BASE_DIR
         ]
         for directory in directories:
             if directory and not directory.exists():
@@ -122,12 +128,6 @@ class Settings(BaseSettings): # 开发环境配置
             if db_dir and not os.path.exists(db_dir):
                 os.makedirs(db_dir, exist_ok=True)
             return f"sqlite:///{self.SQLITE_DATABASE}"
-    
-    # ✅ 向后兼容: 保留旧的KEY_WORDS_DIR属性
-    @property
-    def KEY_WORDS_DIR(self) -> str:
-        """向后兼容的关键字目录路径"""
-        return str(self.KEYWORDS_DIR)
     
     class Config:
         env_file = ".env"

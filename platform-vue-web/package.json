@@ -36,6 +36,7 @@
     "date-fns": "^4.1.0",
     "element-plus": "^2.6.3",
     "framer-motion": "^12.4.9",
+    "jszip": "^3.10.1",
     "katex": "^0.16.21",
     "lodash": "^4.17.21",
     "lucide-react": "^0.476.0",
