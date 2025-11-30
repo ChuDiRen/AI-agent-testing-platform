@@ -16,7 +16,7 @@ module_model = OperationType
 module_route = APIRouter(prefix=f"/{module_name}", tags=["操作类型管理"])
 logger = get_logger(__name__)
 
-@module_route.get("/queryAll", summary="查询所有操作类型", dependencies=[Depends(check_permission("apitest:operationtype:query"))]) # 查询所有操作类型
+@module_route.get("/queryAll", summary="查询所有操作类型") # 查询所有操作类型（无需权限，作为下拉选项数据源）
 def queryAll(session: Session = Depends(get_session)):
     statement = select(module_model)
     datas = session.exec(statement).all()

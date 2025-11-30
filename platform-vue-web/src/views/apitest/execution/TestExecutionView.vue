@@ -67,8 +67,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { VideoPlay, VideoPause } from '@element-plus/icons-vue'
 import TestExecutionProgress from '@/components/TestExecutionProgress.vue'
 import RealtimeLog from '@/components/RealtimeLog.vue'
-import { executeCase } from '@/views/apitest/apiinfocase/apiInfoCase.js'
+import { queryById } from '@/views/apitest/apiinfocase/apiInfoCase.js'
+import { queryAll as queryKeywords } from '@/views/apitest/keyword/apiKeyWord.js'
 import { executePlan } from '@/views/apitest/collection/apiCollectionInfo.js'
+import { executeTask, listExecutors } from '@/views/apitest/task/apiTask.js'
 
 // 状态
 const executionId = ref('')
@@ -86,10 +88,96 @@ const testConfig = ref({
   id: ''
 })
 
+// 关键字列表和执行器
+const keywordList = ref([])
+const executorList = ref([])
+const currentExecutorCode = ref('')
+
+// 加载关键字和执行器
+const loadKeywords = async () => {
+  try {
+    const res = await queryKeywords()
+    if (res.data.code === 200) {
+      keywordList.value = res.data.data || []
+    }
+  } catch (error) {
+    console.error('加载关键字失败:', error)
+  }
+}
+
+const loadExecutors = async () => {
+  try {
+    const res = await listExecutors()
+    if (res.data.code === 200) {
+      executorList.value = res.data.data || []
+      if (executorList.value.length > 0) {
+        currentExecutorCode.value = executorList.value[0].plugin_code
+      }
+    }
+  } catch (error) {
+    console.error('加载执行器失败:', error)
+  }
+}
+
+// 转换步骤数据为执行器期望的格式
+const convertStepData = (stepData, keywordFunName) => {
+  const result = {}
+  const paramMap = {
+    'URL': 'url',
+    'PARAMS': 'params', 
+    'HEADERS': 'headers',
+    'DATA': 'json',
+    'FILES': 'files'
+  }
+  
+  let method = 'GET'
+  if (keywordFunName.includes('post')) method = 'POST'
+  else if (keywordFunName.includes('put')) method = 'PUT'
+  else if (keywordFunName.includes('delete')) method = 'DELETE'
+  else if (keywordFunName.includes('patch')) method = 'PATCH'
+  
+  result.method = method
+  
+  for (const [key, value] of Object.entries(stepData || {})) {
+    const newKey = paramMap[key] || key.toLowerCase()
+    result[newKey] = value
+  }
+  
+  return result
+}
+
+// 生成测试用例内容
+const generateTestCaseContent = (caseData) => {
+  const steps = (caseData.steps || []).map(step => {
+    const keyword = keywordList.value.find(k => k.id === step.keyword_id)
+    const keywordFunName = keyword?.keyword_fun_name || 'unknown'
+    const stepDesc = step.step_desc || `步骤${step.run_order}`
+    
+    const convertedData = convertStepData(step.step_data, keywordFunName)
+    
+    return {
+      [stepDesc]: {
+        '关键字': 'send_request',
+        ...convertedData
+      }
+    }
+  })
+  return JSON.stringify({ desc: caseData.case_name, steps })
+}
+
+// 初始化
+loadKeywords()
+loadExecutors()
+
 // 开始测试
 const startNewTest = async () => {
   if (!testConfig.value.id) {
     ElMessage.warning('请输入测试ID')
+    return
+  }
+
+  if (!currentExecutorCode.value) {
+    ElMessage.warning('没有可用的执行器')
     return
   }
 
@@ -98,9 +186,25 @@ const startNewTest = async () => {
     
     // 根据类型调用不同的API
     if (testConfig.value.type === 'case') {
-      response = await executeCase({
-        case_id: testConfig.value.id,
-        test_name: `测试执行-${Date.now()}`
+      // 获取用例详情
+      const detailRes = await queryById(testConfig.value.id)
+      if (detailRes.data.code !== 200 || !detailRes.data.data) {
+        ElMessage.error('获取用例详情失败')
+        return
+      }
+      const caseData = detailRes.data.data
+      if (!caseData.steps || caseData.steps.length === 0) {
+        ElMessage.warning('该用例没有测试步骤')
+        return
+      }
+      
+      // 生成 test_case_content 并调用 Task/execute
+      const testCaseContent = generateTestCaseContent(caseData)
+      response = await executeTask({
+        plugin_code: currentExecutorCode.value,
+        test_case_id: Number(testConfig.value.id),
+        test_case_content: testCaseContent,
+        config: {}
       })
     } else if (testConfig.value.type === 'collection') {
       response = await executePlan({
@@ -111,10 +215,11 @@ const startNewTest = async () => {
 
     if (response.data.code === 200) {
       // 获取执行ID
-      executionId.value = response.data.data.execution_uuid || response.data.data.execution_id
+      const result = response.data.data || {}
+      executionId.value = result.task_id || result.execution_uuid || result.execution_id
       isExecuting.value = true
       
-      ElMessage.success('测试已启动，正在连接实时监控...')
+      ElMessage.success('测试已启动')
     } else {
       ElMessage.error(response.data.msg || '启动测试失败')
     }

@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 
 from ..model.ApiKeyWordModel import ApiKeyWord
+from ..model.ApiOperationTypeModel import OperationType
 from ..schemas.api_keyword_schema import ApiKeyWordQuery, ApiKeyWordCreate, ApiKeyWordUpdate, KeywordFileRequest
 
 module_name = "ApiKeyWord" # 模块名称
@@ -48,7 +49,28 @@ def queryByPage(query: ApiKeyWordQuery, session: Session = Depends(get_session))
         if query.page_id and query.page_id > 0:
             count_statement = count_statement.where(module_model.page_id == query.page_id)
         total = len(session.exec(count_statement).all())
-        return respModel.ok_resp_list(lst=datas, total=total)
+        
+        # 查询所有操作类型，构建ID到名称的映射
+        operation_types = session.exec(select(OperationType)).all()
+        op_type_map = {op.id: op.operation_type_name for op in operation_types}
+        
+        # 构建返回结果，添加操作类型名称
+        result = []
+        for data in datas:
+            item = {
+                "id": data.id,
+                "name": data.name,
+                "keyword_desc": data.keyword_desc,
+                "operation_type_id": data.operation_type_id,
+                "operation_type_name": op_type_map.get(data.operation_type_id, ""),
+                "keyword_fun_name": data.keyword_fun_name,
+                "keyword_value": data.keyword_value,
+                "is_enabled": data.is_enabled,
+                "create_time": TimeFormatter.format_datetime(data.create_time) if data.create_time else None
+            }
+            result.append(item)
+        
+        return respModel.ok_resp_list(lst=result, total=total)
     except Exception as e:
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
@@ -154,7 +176,7 @@ def queryByOperationType(operation_type_id: int = Query(...), session: Session =
                 "is_enabled": data.is_enabled
             } for data in datas
         ]
-        return respModel.ok_resp(obj=result, msg="查询成功")
+        return respModel.ok_resp_list(lst=result, msg="查询成功")
     except Exception as e:
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
@@ -175,12 +197,14 @@ def getKeywordFields(keyword_id: int = Query(...), session: Session = Depends(ge
         try:
             if keyword.keyword_desc:
                 fields = json.loads(keyword.keyword_desc)
+                # 这里 keyword_desc 本身就是字段定义列表，直接以数组形式返回
                 if isinstance(fields, list):
-                    return respModel.ok_resp(obj=fields, msg="查询成功")
+                    return respModel.ok_resp_simple(lst=fields, msg="查询成功")
                 else:
-                    return respModel.ok_resp(obj=[fields], msg="查询成功")
+                    return respModel.ok_resp_simple(lst=[fields], msg="查询成功")
         except json.JSONDecodeError:
-            pass  # 不是JSON格式，尝试从代码中提取
+            # 不是JSON格式，尝试从代码中提取
+            pass
         
         # 从keyword_value（函数代码）中提取参数
         fields = []
@@ -199,10 +223,11 @@ def getKeywordFields(keyword_id: int = Query(...), session: Session = Depends(ge
                 }
                 fields.append(field)
         
+        # 最终返回字段定义数组
         if fields:
-            return respModel.ok_resp(obj=fields, msg="查询成功")
+            return respModel.ok_resp_simple(lst=fields, msg="查询成功")
         else:
-            return respModel.ok_resp(obj=[], msg="该关键字没有字段描述")
+            return respModel.ok_resp_simple(lst=[], msg="该关键字没有字段描述")
     except Exception as e:
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")

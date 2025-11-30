@@ -102,14 +102,15 @@ const formTitle = computed(() => formData.value.id ? '编辑测试计划' : '新
 const loadDetail = async (id) => {
   try {
     const res = await queryById(id)
-    if (res.code === 20000 && res.data) {
+    if (res.data.code === 200 && res.data.data) {
+      const data = res.data.data
       formData.value = {
-        id: res.data.id,
-        plan_name: res.data.plan_name,
-        plan_desc: res.data.plan_desc,
-        project_id: res.data.project_id
+        id: data.id,
+        plan_name: data.plan_name,
+        plan_desc: data.plan_desc,
+        project_id: data.project_id
       }
-      caseList.value = res.data.cases || []
+      caseList.value = data.cases || []
     }
   } catch (error) {
     ElMessage.error('加载数据失败: ' + error.message)
@@ -124,11 +125,11 @@ const handleSubmit = async () => {
     const apiFunc = formData.value.id ? updateData : insertData
     const res = await apiFunc(formData.value)
     
-    if (res.code === 20000) {
+    if (res.data.code === 200) {
       ElMessage.success(formData.value.id ? '更新成功' : '新增成功')
       goBack()
     } else {
-      ElMessage.error(res.msg || '操作失败')
+      ElMessage.error(res.data.msg || '操作失败')
     }
   } catch (error) {
     if (error !== false) { // 表单验证失败会返回false
@@ -147,9 +148,11 @@ const handleAddCase = () => {
 const handleRemoveCase = async (row) => {
   try {
     const res = await removeCase(row.id)
-    if (res.code === 20000) {
+    if (res.data.code === 200) {
       ElMessage.success('移除成功')
       loadDetail(formData.value.id)
+    } else {
+      ElMessage.error(res.data.msg || '移除失败')
     }
   } catch (error) {
     ElMessage.error('移除失败: ' + error.message)
@@ -174,10 +177,12 @@ const handleSaveDdt = async () => {
       ddt_data: JSON.parse(currentDdtData.value)
     })
     
-    if (res.code === 20000) {
+    if (res.data.code === 200) {
       ElMessage.success('保存成功')
       ddtDialogVisible.value = false
       loadDetail(formData.value.id)
+    } else {
+      ElMessage.error(res.data.msg || '保存失败')
     }
   } catch (error) {
     ElMessage.error('JSON格式错误或保存失败: ' + error.message)

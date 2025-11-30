@@ -502,6 +502,15 @@ def create_initial_keywords():
                 logger.info("关键字数据已存在，跳过初始化")
                 return
             
+            # 查询操作类型表，构建名称到ID的映射
+            operation_types = session.exec(select(OperationType)).all()
+            op_type_map = {op.operation_type_name: op.id for op in operation_types}
+            logger.info(f"操作类型映射: {op_type_map}")
+            
+            # 如果操作类型表为空，记录警告
+            if not op_type_map:
+                logger.warning("操作类型表为空，关键字将不会关联操作类型")
+            
             initial_keywords = [
                 # ================================
                 # HTTP请求类关键字
@@ -509,7 +518,7 @@ def create_initial_keywords():
                 {
                     "name": "GET请求",
                     "keyword_desc": "发送GET请求",
-                    "operation_type_id": 1,
+                    "operation_type_name": "HTTP请求",
                     "keyword_fun_name": "request_get",
                     "keyword_value": """def request_get(self, **kwargs):
     \"\"\"发送GET请求\"\"\"
@@ -530,7 +539,7 @@ def create_initial_keywords():
                 {
                     "name": "POST请求(JSON)",
                     "keyword_desc": "发送POST请求，数据格式为JSON",
-                    "operation_type_id": 1,
+                    "operation_type_name": "HTTP请求",
                     "keyword_fun_name": "request_post_json",
                     "keyword_value": """def request_post_json(self, **kwargs):
     \"\"\"发送POST请求，数据格式为JSON\"\"\"
@@ -553,7 +562,7 @@ def create_initial_keywords():
                 {
                     "name": "POST请求(表单)",
                     "keyword_desc": "发送POST请求，数据格式为表单",
-                    "operation_type_id": 1,
+                    "operation_type_name": "HTTP请求",
                     "keyword_fun_name": "request_post_form",
                     "keyword_value": """def request_post_form(self, **kwargs):
     \"\"\"发送POST请求，数据格式为表单\"\"\"
@@ -576,7 +585,7 @@ def create_initial_keywords():
                 {
                     "name": "POST请求(文件上传)",
                     "keyword_desc": "发送POST请求，支持文件上传",
-                    "operation_type_id": 1,
+                    "operation_type_name": "HTTP请求",
                     "keyword_fun_name": "request_post_file",
                     "keyword_value": """def request_post_file(self, **kwargs):
     \"\"\"发送POST请求，支持文件上传\"\"\"
@@ -601,7 +610,7 @@ def create_initial_keywords():
                 {
                     "name": "PUT请求",
                     "keyword_desc": "发送PUT请求",
-                    "operation_type_id": 1,
+                    "operation_type_name": "HTTP请求",
                     "keyword_fun_name": "request_put",
                     "keyword_value": """def request_put(self, **kwargs):
     \"\"\"发送PUT请求\"\"\"
@@ -624,7 +633,7 @@ def create_initial_keywords():
                 {
                     "name": "DELETE请求",
                     "keyword_desc": "发送DELETE请求",
-                    "operation_type_id": 1,
+                    "operation_type_name": "HTTP请求",
                     "keyword_fun_name": "request_delete",
                     "keyword_value": """def request_delete(self, **kwargs):
     \"\"\"发送DELETE请求\"\"\"
@@ -645,7 +654,7 @@ def create_initial_keywords():
                 {
                     "name": "PATCH请求",
                     "keyword_desc": "发送PATCH请求",
-                    "operation_type_id": 1,
+                    "operation_type_name": "HTTP请求",
                     "keyword_fun_name": "request_patch",
                     "keyword_value": """def request_patch(self, **kwargs):
     \"\"\"发送PATCH请求\"\"\"
@@ -672,7 +681,7 @@ def create_initial_keywords():
                 {
                     "name": "提取JSON数据",
                     "keyword_desc": "使用JSONPath表达式提取响应中的JSON数据",
-                    "operation_type_id": 2,
+                    "operation_type_name": "数据提取",
                     "keyword_fun_name": "extract_json_data",
                     "keyword_value": """def extract_json_data(self, **kwargs):
     \"\"\"使用JSONPath表达式提取JSON数据\"\"\"
@@ -694,7 +703,7 @@ def create_initial_keywords():
                 {
                     "name": "提取正则数据",
                     "keyword_desc": "使用正则表达式提取响应中的数据",
-                    "operation_type_id": 2,
+                    "operation_type_name": "数据提取",
                     "keyword_fun_name": "extract_regex_data",
                     "keyword_value": """def extract_regex_data(self, **kwargs):
     \"\"\"使用正则表达式提取数据\"\"\"
@@ -716,7 +725,7 @@ def create_initial_keywords():
                 {
                     "name": "提取响应头",
                     "keyword_desc": "提取HTTP响应头信息",
-                    "operation_type_id": 2,
+                    "operation_type_name": "数据提取",
                     "keyword_fun_name": "extract_header",
                     "keyword_value": """def extract_header(self, **kwargs):
     \"\"\"提取HTTP响应头信息\"\"\"
@@ -736,7 +745,7 @@ def create_initial_keywords():
                 {
                     "name": "提取Cookie",
                     "keyword_desc": "提取响应中的Cookie信息",
-                    "operation_type_id": 2,
+                    "operation_type_name": "数据提取",
                     "keyword_fun_name": "extract_cookie",
                     "keyword_value": """def extract_cookie(self, **kwargs):
     \"\"\"提取Cookie信息\"\"\"
@@ -760,7 +769,7 @@ def create_initial_keywords():
                 {
                     "name": "断言状态码",
                     "keyword_desc": "验证HTTP响应状态码",
-                    "operation_type_id": 3,
+                    "operation_type_name": "断言验证",
                     "keyword_fun_name": "assert_status_code",
                     "keyword_value": """def assert_status_code(self, **kwargs):
     \"\"\"验证HTTP响应状态码\"\"\"
@@ -777,7 +786,7 @@ def create_initial_keywords():
                 {
                     "name": "断言响应时间",
                     "keyword_desc": "验证响应时间是否在预期范围内",
-                    "operation_type_id": 3,
+                    "operation_type_name": "断言验证",
                     "keyword_fun_name": "assert_response_time",
                     "keyword_value": """def assert_response_time(self, **kwargs):
     \"\"\"验证响应时间\"\"\"
@@ -794,7 +803,7 @@ def create_initial_keywords():
                 {
                     "name": "断言包含文本",
                     "keyword_desc": "验证响应内容包含指定文本",
-                    "operation_type_id": 3,
+                    "operation_type_name": "断言验证",
                     "keyword_fun_name": "assert_contains_text",
                     "keyword_value": """def assert_contains_text(self, **kwargs):
     \"\"\"验证响应内容包含指定文本\"\"\"
@@ -811,7 +820,7 @@ def create_initial_keywords():
                 {
                     "name": "断言JSON字段",
                     "keyword_desc": "验证JSON响应中指定字段的值",
-                    "operation_type_id": 3,
+                    "operation_type_name": "断言验证",
                     "keyword_fun_name": "assert_json_field",
                     "keyword_value": """def assert_json_field(self, **kwargs):
     \"\"\"验证JSON响应中指定字段的值\"\"\"
@@ -833,7 +842,7 @@ def create_initial_keywords():
                 {
                     "name": "断言数值比较",
                     "keyword_desc": "比较数值大小关系",
-                    "operation_type_id": 3,
+                    "operation_type_name": "断言验证",
                     "keyword_fun_name": "assert_number_compare",
                     "keyword_value": """def assert_number_compare(self, **kwargs):
     \"\"\"比较数值大小关系\"\"\"
@@ -865,7 +874,7 @@ def create_initial_keywords():
                 {
                     "name": "执行SQL查询",
                     "keyword_desc": "执行SQL查询并将结果存储到变量",
-                    "operation_type_id": 4,
+                    "operation_type_name": "数据库操作",
                     "keyword_fun_name": "execute_sql_query",
                     "keyword_value": """def execute_sql_query(self, **kwargs):
     \"\"\"执行SQL查询\"\"\"
@@ -900,7 +909,7 @@ def create_initial_keywords():
                 {
                     "name": "执行SQL更新",
                     "keyword_desc": "执行SQL更新操作(INSERT/UPDATE/DELETE)",
-                    "operation_type_id": 4,
+                    "operation_type_name": "数据库操作",
                     "keyword_fun_name": "execute_sql_update",
                     "keyword_value": """def execute_sql_update(self, **kwargs):
     \"\"\"执行SQL更新操作\"\"\"
@@ -928,7 +937,7 @@ def create_initial_keywords():
                 {
                     "name": "等待时间",
                     "keyword_desc": "等待指定的时间(秒)",
-                    "operation_type_id": 5,
+                    "operation_type_name": "工具方法",
                     "keyword_fun_name": "wait_time",
                     "keyword_value": """def wait_time(self, **kwargs):
     \"\"\"等待指定的时间\"\"\"
@@ -942,7 +951,7 @@ def create_initial_keywords():
                 {
                     "name": "生成随机字符串",
                     "keyword_desc": "生成指定长度的随机字符串",
-                    "operation_type_id": 5,
+                    "operation_type_name": "工具方法",
                     "keyword_fun_name": "generate_random_string",
                     "keyword_value": """def generate_random_string(self, **kwargs):
     \"\"\"生成随机字符串\"\"\"
@@ -964,7 +973,7 @@ def create_initial_keywords():
                 {
                     "name": "生成随机数字",
                     "keyword_desc": "生成指定范围的随机数字",
-                    "operation_type_id": 5,
+                    "operation_type_name": "工具方法",
                     "keyword_fun_name": "generate_random_number",
                     "keyword_value": """def generate_random_number(self, **kwargs):
     \"\"\"生成随机数字\"\"\"
@@ -985,7 +994,7 @@ def create_initial_keywords():
                 {
                     "name": "获取当前时间戳",
                     "keyword_desc": "获取当前时间戳(毫秒)",
-                    "operation_type_id": 5,
+                    "operation_type_name": "工具方法",
                     "keyword_fun_name": "get_timestamp",
                     "keyword_value": """def get_timestamp(self, **kwargs):
     \"\"\"获取当前时间戳\"\"\"
@@ -1003,7 +1012,7 @@ def create_initial_keywords():
                 {
                     "name": "格式化时间",
                     "keyword_desc": "格式化当前时间为指定格式",
-                    "operation_type_id": 5,
+                    "operation_type_name": "工具方法",
                     "keyword_fun_name": "format_datetime",
                     "keyword_value": """def format_datetime(self, **kwargs):
     \"\"\"格式化当前时间\"\"\"
@@ -1023,7 +1032,7 @@ def create_initial_keywords():
                 {
                     "name": "MD5加密",
                     "keyword_desc": "对字符串进行MD5加密",
-                    "operation_type_id": 5,
+                    "operation_type_name": "工具方法",
                     "keyword_fun_name": "md5_encrypt",
                     "keyword_value": """def md5_encrypt(self, **kwargs):
     \"\"\"MD5加密\"\"\"
@@ -1043,7 +1052,7 @@ def create_initial_keywords():
                 {
                     "name": "Base64编码",
                     "keyword_desc": "对字符串进行Base64编码",
-                    "operation_type_id": 5,
+                    "operation_type_name": "工具方法",
                     "keyword_fun_name": "base64_encode",
                     "keyword_value": """def base64_encode(self, **kwargs):
     \"\"\"Base64编码\"\"\"
@@ -1063,7 +1072,7 @@ def create_initial_keywords():
                 {
                     "name": "Base64解码",
                     "keyword_desc": "对Base64字符串进行解码",
-                    "operation_type_id": 5,
+                    "operation_type_name": "工具方法",
                     "keyword_fun_name": "base64_decode",
                     "keyword_value": """def base64_decode(self, **kwargs):
     \"\"\"Base64解码\"\"\"
@@ -1087,7 +1096,7 @@ def create_initial_keywords():
                 {
                     "name": "读取文件",
                     "keyword_desc": "读取文件内容",
-                    "operation_type_id": 6,
+                    "operation_type_name": "文件操作",
                     "keyword_fun_name": "read_file",
                     "keyword_value": """def read_file(self, **kwargs):
     \"\"\"读取文件内容\"\"\"
@@ -1107,7 +1116,7 @@ def create_initial_keywords():
                 {
                     "name": "写入文件",
                     "keyword_desc": "写入内容到文件",
-                    "operation_type_id": 6,
+                    "operation_type_name": "文件操作",
                     "keyword_fun_name": "write_file",
                     "keyword_value": """def write_file(self, **kwargs):
     \"\"\"写入内容到文件\"\"\"
@@ -1125,7 +1134,7 @@ def create_initial_keywords():
                 {
                     "name": "删除文件",
                     "keyword_desc": "删除指定文件",
-                    "operation_type_id": 6,
+                    "operation_type_name": "文件操作",
                     "keyword_fun_name": "delete_file",
                     "keyword_value": """def delete_file(self, **kwargs):
     \"\"\"删除文件\"\"\"
@@ -1143,9 +1152,17 @@ def create_initial_keywords():
             ]
 
             for keyword_data in initial_keywords:
+                # 从操作类型名称获取实际ID
+                op_type_name = keyword_data.pop("operation_type_name", None)
+                if op_type_name and op_type_name in op_type_map:
+                    keyword_data["operation_type_id"] = op_type_map[op_type_name]
+                else:
+                    keyword_data["operation_type_id"] = 0  # 默认值
+                    logger.warning(f"关键字'{keyword_data['name']}'未找到操作类型'{op_type_name}'")
+                
                 keyword = ApiKeyWord(**keyword_data, create_time=datetime.now())
                 session.add(keyword)
-                logger.info(f"创建关键字: {keyword_data['name']}")
+                logger.info(f"创建关键字: {keyword_data['name']} -> 操作类型ID: {keyword_data['operation_type_id']}")
 
             session.commit()
             logger.info(f"初始关键字数据创建完成，共创建{len(initial_keywords)}个关键字")

@@ -40,6 +40,7 @@
           />
           <div style="margin-top: 10px;">
             <el-button type="primary" @click="code_example">生成示例代码</el-button>
+            <el-button type="success" @click="formatCode">格式化代码</el-button>
           </div>
           <!-- 1-2 代码示例按钮 -->
         </el-tab-pane>
@@ -203,16 +204,49 @@ import CodeEditor from '@/components/CodeEditor.vue';
     router.push('/ApikeywordList');
   };
   
+  // 从代码中解析参数
+  const parseParamsFromCode = (code: string) => {
+    if (!code) return [];
+    const params: any[] = [];
+    // 匹配 kwargs.get("PARAM_NAME", default) 模式
+    const regex = /kwargs\.get\s*\(\s*["'](\w+)["']\s*(?:,\s*([^)]+))?\)/g;
+    let match;
+    while ((match = regex.exec(code)) !== null) {
+      const paramName = match[1];
+      // 避免重复
+      if (!params.find(p => p.name === paramName)) {
+        params.push({
+          name: paramName,
+          placeholder: `参数: ${paramName}`
+        });
+      }
+    }
+    return params;
+  };
+
   // 加载表单数据
   const loadData = async (id: number) => {
     const res = await queryById(id);
     ruleForm.id = res.data.data.id;
     ruleForm.name = res.data.data.name;
-    ruleForm.keyword_desc = JSON.parse(res.data.data.keyword_desc);
     ruleForm.operation_type_id = res.data.data.operation_type_id;
     ruleForm.keyword_fun_name = res.data.data.keyword_fun_name;
     ruleForm.keyword_value = res.data.data.keyword_value;
     ruleForm.is_enabled = res.data.data.is_enabled;
+    
+    // 尝试解析 keyword_desc
+    try {
+      const desc = res.data.data.keyword_desc;
+      if (desc && desc.startsWith('[')) {
+        ruleForm.keyword_desc = JSON.parse(desc);
+      } else {
+        // 如果不是 JSON 数组，从代码中解析参数
+        ruleForm.keyword_desc = parseParamsFromCode(ruleForm.keyword_value);
+      }
+    } catch (e) {
+      // 解析失败，从代码中解析参数
+      ruleForm.keyword_desc = parseParamsFromCode(ruleForm.keyword_value);
+    }
   };
   
   // 如果有id参数，说明是编辑，需要获取数据
@@ -227,6 +261,53 @@ import CodeEditor from '@/components/CodeEditor.vue';
   
 
   
+//  --------------扩展功能： 格式化代码 -------
+const formatCode = () => {
+  if (!ruleForm.keyword_value) {
+    ElMessage.warning('请先输入代码');
+    return;
+  }
+  
+  const lines = ruleForm.keyword_value.split('\n');
+  const formattedLines: string[] = [];
+  let indentLevel = 0;
+  const indentSize = 4;
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+    
+    // 跳过空行但保留一个
+    if (line === '') {
+      if (formattedLines.length > 0 && formattedLines[formattedLines.length - 1] !== '') {
+        formattedLines.push('');
+      }
+      continue;
+    }
+    
+    // 先检查是否需要减少缩进（闭合括号、else等）
+    if (line === '}' || line === ']' || line === ')' || 
+        line.startsWith('}') || line.startsWith(']') || line.startsWith(')')) {
+      indentLevel = Math.max(0, indentLevel - 1);
+    }
+    
+    // 添加缩进后的行
+    const indent = ' '.repeat(indentLevel * indentSize);
+    formattedLines.push(indent + line);
+    
+    // 检查是否需要增加缩进（冒号结尾、开括号结尾）
+    const trimmedLine = line.replace(/\s*#.*$/, ''); // 去掉注释
+    if (trimmedLine.endsWith(':')) {
+      indentLevel++;
+    } else if (trimmedLine.endsWith('{') || trimmedLine.endsWith('[') || trimmedLine.endsWith('(')) {
+      indentLevel++;
+    }
+  }
+  
+  ruleForm.keyword_value = formattedLines.join('\n');
+  ElMessage.success('代码格式化完成');
+};
+//  --------------END 扩展功能： 格式化代码 -------
+
 //  --------------扩展功能： 增加示例代码 -------
 const code_example = () => {
 let code = `# -*- coding: UTF-8 -*-

@@ -1,71 +1,121 @@
 <template>
   <div class="page-container">
-    <el-card class="page-card">
-      <template #header>
-        <h3>{{ caseId > 0 ? '编辑用例' : '新增用例' }}</h3>
-      </template>
-
-      <el-form ref="formRef" :model="caseForm" :rules="rules" label-width="120px">
-        <el-form-item label="项目" prop="project_id">
-          <el-select v-model="caseForm.project_id" placeholder="请选择项目" filterable>
-            <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="用例名称" prop="case_name">
-          <el-input v-model="caseForm.case_name" placeholder="请输入用例名称" />
-        </el-form-item>
-
-        <el-form-item label="用例描述" prop="case_desc">
-          <el-input v-model="caseForm.case_desc" type="textarea" :rows="3" placeholder="请输入用例描述" />
-        </el-form-item>
-
-        <el-divider>步骤管理</el-divider>
-
-        <div class="steps-section">
-          <el-button type="primary" @click="handleAddStep">添加步骤</el-button>
-
-          <el-table :data="stepsList" border stripe style="margin-top: 15px">
-            <el-table-column prop="run_order" label="序号" width="80" />
-            <el-table-column prop="step_desc" label="步骤描述" show-overflow-tooltip />
-            <el-table-column label="操作类型" width="120">
-              <template #default="scope">
-                {{ getOperationTypeName(scope.row.operation_type_id) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="关键字" width="120">
-              <template #default="scope">
-                {{ getKeywordName(scope.row.keyword_id) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="200" fixed="right">
-              <template #default="scope">
-                <el-button type="primary" size="small" @click="handleEditStep(scope.row, scope.$index)">编辑</el-button>
-                <el-button type="danger" size="small" @click="handleDeleteStep(scope.$index)">删除</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+    <!-- 顶部固定操作栏 -->
+    <div class="top-header">
+      <div class="header-left">
+        <el-button link @click="handleBack">
+          <el-icon :size="20"><Back /></el-icon>
+        </el-button>
+        <div class="title-info">
+          <h3 class="title">{{ caseId > 0 ? '编辑用例' : '新增用例' }}</h3>
+          <span class="subtitle">{{ caseForm.case_name || '未命名用例' }}</span>
         </div>
+      </div>
+      <div class="header-right">
+        <el-select 
+          v-model="currentExecutorCode" 
+          placeholder="选择执行器" 
+          style="width: 180px"
+          size="default"
+        >
+          <template #prefix><el-icon><VideoPlay /></el-icon></template>
+          <el-option
+            v-for="exe in executorList"
+            :key="exe.plugin_code"
+            :label="exe.plugin_name"
+            :value="exe.plugin_code"
+          />
+        </el-select>
+        <el-button type="primary" @click="handleSubmit">保存用例</el-button>
+        <el-button type="success" @click="handleExecute" :loading="executing">
+          <el-icon class="el-icon--left"><VideoPlay /></el-icon>
+          {{ executing ? executeStatus : '调试运行' }}
+        </el-button>
+      </div>
+    </div>
 
-        <el-form-item label="执行器" style="margin-top: 24px">
-          <el-select v-model="currentExecutorCode" placeholder="选择执行器" clearable style="width: 260px">
-            <el-option
-              v-for="exe in executorList"
-              :key="exe.plugin_code"
-              :label="exe.plugin_name"
-              :value="exe.plugin_code"
-            />
-          </el-select>
-        </el-form-item>
+    <div class="content-wrapper">
+      <el-form ref="formRef" :model="caseForm" :rules="rules" label-width="80px" label-position="left">
+        <!-- 基础信息卡片 -->
+        <el-card class="info-card" shadow="hover">
+          <div class="card-title">基础信息</div>
+          <el-row :gutter="40">
+            <el-col :span="8">
+              <el-form-item label="所属项目" prop="project_id">
+                <el-select v-model="caseForm.project_id" placeholder="请选择项目" filterable style="width: 100%">
+                  <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="16">
+              <el-form-item label="用例名称" prop="case_name">
+                <el-input v-model="caseForm.case_name" placeholder="请输入用例名称" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="用例描述" prop="case_desc" class="mb-0">
+                <el-input 
+                  v-model="caseForm.case_desc" 
+                  type="textarea" 
+                  :rows="1" 
+                  placeholder="请输入用例描述"
+                  resize="none"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-card>
 
-        <el-form-item style="margin-top: 30px">
-          <el-button type="primary" @click="handleSubmit">保存用例</el-button>
-          <el-button type="success" @click="handleGenerateYaml">生成YAML</el-button>
-          <el-button type="info" @click="handleExecute">执行测试</el-button>
-          <el-button @click="handleBack">返回</el-button>
-        </el-form-item>
+        <!-- 步骤管理卡片 -->
+        <el-card class="step-card" shadow="hover">
+          <div class="card-header-row">
+            <div class="card-title">用例步骤</div>
+            <el-button type="primary" plain size="small" icon="Plus" @click="handleAddStep">添加步骤</el-button>
+          </div>
+          
+          <div class="step-list">
+            <el-table 
+              :data="stepsList" 
+              border 
+              stripe 
+              header-cell-class-name="table-header"
+              class="custom-table"
+            >
+              <el-table-column prop="run_order" label="序号" width="70" align="center" />
+              <el-table-column prop="step_desc" label="步骤描述" min-width="250" show-overflow-tooltip>
+                <template #default="{ row }">
+                  <span class="step-desc-text">{{ row.step_desc }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作类型" width="140">
+                <template #default="{ row }">
+                  <el-tag size="small" effect="light" class="op-type-tag">{{ getOperationTypeName(row.operation_type_id) }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="关键字" width="180">
+                <template #default="{ row }">
+                  <span class="keyword-text">{{ getKeywordName(row.keyword_id) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="140" align="center" fixed="right">
+                <template #default="{ row, $index }">
+                  <el-button type="primary" link @click="handleEditStep(row, $index)">编辑</el-button>
+                  <el-button type="danger" link @click="handleDeleteStep($index)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            
+            <div v-if="stepsList.length === 0" class="empty-state">
+              <el-empty description="暂无测试步骤" :image-size="80">
+                <el-button type="primary" plain @click="handleAddStep">立即添加</el-button>
+              </el-empty>
+            </div>
+          </div>
+        </el-card>
       </el-form>
-    </el-card>
+    </div>
 
     <!-- 步骤编辑器 -->
     <StepEditor
@@ -75,6 +125,12 @@
       :next-order="getNextOrder()"
       @confirm="handleStepConfirm"
     />
+
+    <!-- 执行结果弹窗 -->
+    <ExecutionResultDialog
+      v-model="resultDialogVisible"
+      :result-data="executionResult"
+    />
   </div>
 </template>
 
@@ -82,12 +138,13 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { queryById, insertData, updateData, generateYaml, executeCaseWithPolling } from './apiInfoCase.js'
+import { queryById, insertData, updateData } from './apiInfoCase.js'
 import { queryAll as queryProjects } from '../project/apiProject.js'
 import { queryAll as queryOperationType } from '../keyword/operationType.js'
 import { queryAll as queryKeywords } from '../keyword/apiKeyWord.js'
 import StepEditor from './components/StepEditor.vue'
-import { listExecutors } from '../task/apiTask.js'
+import ExecutionResultDialog from './components/ExecutionResultDialog.vue'
+import { listExecutors, executeTask } from '../task/apiTask.js'
 
 const router = useRouter()
 const formRef = ref(null)
@@ -250,26 +307,72 @@ const handleSubmit = async () => {
   })
 }
 
-// 生成YAML
-const handleGenerateYaml = async () => {
-  if (caseId.value === 0) {
-    ElMessage.warning('请先保存用例')
-    return
-  }
-  
-  const res = await generateYaml({ case_id: caseId.value })
-  if (res.data.code === 200) {
-    ElMessage.success('YAML生成成功')
-    console.log(res.data.data.yaml_content)
-  } else {
-    ElMessage.error(res.data.msg || '生成失败')
-  }
-}
-
 // 执行测试
 // 执行状态
 const executing = ref(false)
 const executeStatus = ref('')
+
+// 执行结果弹窗
+const resultDialogVisible = ref(false)
+const executionResult = ref({})
+
+// 转换步骤数据为执行器期望的格式
+// 执行器 send_request 使用小写参数：url, method, headers, json/data
+const convertStepData = (stepData, keywordFunName) => {
+  const result = {}
+  
+  // 参数名映射：大写 → 小写
+  const paramMap = {
+    'URL': 'url',
+    'PARAMS': 'params', 
+    'HEADERS': 'headers',
+    'DATA': 'json',  // JSON 数据用 json 参数
+    'FILES': 'files'
+  }
+  
+  // 从关键字名推断 HTTP 方法
+  let method = 'GET'
+  if (keywordFunName.includes('post')) method = 'POST'
+  else if (keywordFunName.includes('put')) method = 'PUT'
+  else if (keywordFunName.includes('delete')) method = 'DELETE'
+  else if (keywordFunName.includes('patch')) method = 'PATCH'
+  
+  result.method = method
+  
+  // 转换参数
+  for (const [key, value] of Object.entries(stepData || {})) {
+    const newKey = paramMap[key] || key.toLowerCase()
+    result[newKey] = value
+  }
+  
+  return result
+}
+
+// 生成测试用例内容 JSON
+const generateTestCaseContent = () => {
+  const steps = stepsList.value.map(step => {
+    // 获取关键字信息
+    const keyword = keywordList.value.find(k => k.id === step.keyword_id)
+    const keywordFunName = keyword?.keyword_fun_name || 'unknown'
+    const stepDesc = step.step_desc || `步骤${step.run_order}`
+    
+    // 转换参数格式，统一使用 send_request 关键字
+    const convertedData = convertStepData(step.step_data, keywordFunName)
+    
+    // 构建步骤对象
+    return {
+      [stepDesc]: {
+        '关键字': 'send_request',  // 统一使用 send_request
+        ...convertedData
+      }
+    }
+  })
+  
+  return JSON.stringify({
+    desc: caseForm.case_name,
+    steps: steps
+  })
+}
 
 const handleExecute = async () => {
   if (caseId.value === 0) {
@@ -277,31 +380,59 @@ const handleExecute = async () => {
     return
   }
   
+  if (stepsList.value.length === 0) {
+    ElMessage.warning('请先添加测试步骤')
+    return
+  }
+  
+  if (!currentExecutorCode.value) {
+    ElMessage.warning('请选择执行器')
+    return
+  }
+  
   executing.value = true
-  executeStatus.value = '正在提交...'
+  executeStatus.value = '正在执行...'
   
   try {
-    const result = await executeCaseWithPolling(
-      {
-        case_id: caseId.value,
-        test_name: `${caseForm.case_name}_${new Date().getTime()}`,
-        executor_code: currentExecutorCode.value || undefined
-      },
-      {
-        onProgress: (status, data) => {
-          executeStatus.value = status === 'running' ? '正在执行...' : status
-        },
-        interval: 2000,
-        timeout: 120000
-      }
-    )
+    // 生成测试用例内容
+    const testCaseContent = generateTestCaseContent()
+    console.log('测试用例内容:', testCaseContent)
     
-    if (result.status === 'completed' || result.status === 'passed') {
-      ElMessage.success('测试执行成功')
+    // 调用 Task/execute API
+    const res = await executeTask({
+      plugin_code: currentExecutorCode.value,
+      test_case_id: caseId.value,
+      test_case_content: testCaseContent,
+      config: {}
+    })
+    
+    if (res.data.code === 200) {
+      const result = res.data.data || {}
+      
+      // 构建执行结果数据
+      executionResult.value = {
+        test_id: result.task_id,
+        test_name: `${caseForm.case_name}_${new Date().getTime()}`,
+        status: result.status || 'completed',
+        create_time: new Date().toLocaleString(),
+        finish_time: new Date().toLocaleString(),
+        response_data: JSON.stringify(result.result || result, null, 2),
+        yaml_content: testCaseContent,
+        error_message: result.error || null
+      }
+      
+      resultDialogVisible.value = true
+      
+      if (result.status === 'completed' || result.success) {
+        ElMessage.success('测试执行完成')
+      } else {
+        ElMessage.warning(result.error || '测试执行完成，请查看详情')
+      }
     } else {
-      ElMessage.error(result.error_message || '测试执行失败')
+      ElMessage.error(res.data.msg || '执行失败')
     }
   } catch (error) {
+    console.error('执行失败:', error)
     ElMessage.error(error.message || '执行失败')
   } finally {
     executing.value = false
@@ -346,12 +477,140 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-@import '~/styles/common-form.css';
+.page-container {
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
 
-.steps-section {
-  padding: 20px;
-  background: #f5f7fa;
+/* 顶部固定操作栏 */
+.top-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #fff;
+  height: 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.title-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.title-info .title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 1.2;
+}
+
+.title-info .subtitle {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 内容区域 */
+.content-wrapper {
+  max-width: 1200px;
+  margin: 24px auto;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* 卡片通用样式 */
+.info-card, .step-card {
+  border: none;
   border-radius: 4px;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 20px;
+  padding-left: 10px;
+  border-left: 3px solid #409eff;
+  line-height: 1;
+}
+
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.card-header-row .card-title {
+  margin-bottom: 0;
+}
+
+/* 表单微调 */
+:deep(.el-form-item__label) {
+  font-weight: 500;
+  color: #606266;
+}
+
+.mb-0 {
+  margin-bottom: 0 !important;
+}
+
+/* 表格样式优化 */
+.custom-table {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+:deep(.table-header) {
+  background-color: #f5f7fa !important;
+  color: #606266;
+  font-weight: 600;
+  height: 44px;
+}
+
+.step-desc-text {
+  color: #303133;
+  font-family: 'Menlo', 'Monaco', monospace;
+  font-size: 13px;
+}
+
+.op-type-tag {
+  font-weight: 500;
+}
+
+.keyword-text {
+  color: #409eff;
+  font-family: monospace;
+  background: #ecf5ff;
+  padding: 2px 6px;
+  border-radius: 2px;
+  font-size: 12px;
+}
+
+.empty-state {
+  padding: 40px 0;
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-top: none;
 }
 </style>
 

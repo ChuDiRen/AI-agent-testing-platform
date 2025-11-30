@@ -115,8 +115,8 @@ const loadData = async () => {
       page: pagination.value.page,
       pageSize: pagination.value.limit
     })
-    if (res.code === 20000) {
-      tableData.value = res.data.list || []
+    if (res.data.code === 200) {
+      tableData.value = res.data.data || []
       total.value = res.data.total || 0
     }
   } catch (error) {
@@ -152,11 +152,11 @@ const handleExecute = async (row) => {
     })
     
     const res = await executePlan({ plan_id: row.id })
-    if (res.code === 20000) {
-      ElMessage.success(`测试计划已开始执行，执行批次: ${res.data.execution_uuid}`)
+    if (res.data.code === 200) {
+      ElMessage.success(`测试计划已开始执行，执行批次: ${res.data.data?.execution_uuid || ''}`)
       // 可以跳转到执行历史页面
     } else {
-      ElMessage.error(res.msg || '执行失败')
+      ElMessage.error(res.data.msg || '执行失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -169,8 +169,8 @@ const handleExecute = async (row) => {
 const handleViewHistory = async (row) => {
   try {
     const res = await queryHistoryByPlanId(row.id)
-    if (res.code === 20000) {
-      historyData.value = res.data || []
+    if (res.data.code === 200) {
+      historyData.value = res.data.data || []
       historyDialogVisible.value = true
     }
   } catch (error) {
@@ -186,11 +186,11 @@ const handleDelete = async (row) => {
     })
     
     const res = await deleteData(row.id)
-    if (res.code === 20000) {
+    if (res.data.code === 200) {
       ElMessage.success('删除成功')
       loadData()
     } else {
-      ElMessage.error(res.msg || '删除失败')
+      ElMessage.error(res.data.msg || '删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {

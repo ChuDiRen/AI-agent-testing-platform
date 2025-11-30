@@ -1,111 +1,143 @@
 <template>
   <div class="yaml-viewer">
     <div class="viewer-header">
-      <span class="title">{{ title }}</span>
-      <div class="actions">
-        <el-button type="text" icon="el-icon-document-copy" @click="handleCopy">复制</el-button>
-        <el-button type="text" icon="el-icon-download" @click="handleDownload">下载</el-button>
-        <el-button v-if="editable" type="text" icon="el-icon-edit" @click="handleEdit">编辑</el-button>
+      <span class="title">{{ title || 'YAML' }}</span>
+      <div class="header-actions">
+        <el-button size="small" text @click="toggleExpand">
+          {{ isExpanded ? '折叠全部' : '展开全部' }}
+        </el-button>
+        <el-button v-if="copyable" size="small" type="primary" @click="handleCopy">
+          <el-icon><CopyDocument /></el-icon>
+          复制
+        </el-button>
       </div>
     </div>
-    <div class="viewer-content" ref="contentRef">
-      <pre><code>{{ formattedContent }}</code></pre>
-    </div>
+    <pre class="yaml-content" :class="{ collapsed: !isExpanded }"><code v-html="highlightedYaml"></code></pre>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { CopyDocument } from '@element-plus/icons-vue'
 
 const props = defineProps({
   content: {
-    type: String,
+    type: [String, Object],
     default: ''
   },
   title: {
     type: String,
-    default: 'YAML内容'
+    default: ''
   },
-  editable: {
+  copyable: {
     type: Boolean,
-    default: false
-  },
-  filename: {
-    type: String,
-    default: 'content.yaml'
+    default: true
   }
 })
 
-const emit = defineEmits(['edit', 'update'])
+const isExpanded = ref(true)
 
-const contentRef = ref(null)
+const toggleExpand = () => {
+  isExpanded.value = !isExpanded.value
+}
 
-// 格式化YAML内容（添加语法高亮样式的类名）
+// JSON 转 YAML
+const jsonToYaml = (obj, indent = 0) => {
+  const spaces = '  '.repeat(indent)
+  let yaml = ''
+  
+  if (obj === null) return 'null'
+  if (obj === undefined) return ''
+  if (typeof obj !== 'object') {
+    if (typeof obj === 'string') {
+      // 多行字符串或含特殊字符的字符串
+      if (obj.includes('\n') || obj.includes(':') || obj.includes('#')) {
+        return `"${obj.replace(/"/g, '\\"')}"`
+      }
+      return obj
+    }
+    return String(obj)
+  }
+  
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return '[]'
+    obj.forEach(item => {
+      if (typeof item === 'object' && item !== null) {
+        yaml += `${spaces}- `
+        const itemYaml = jsonToYaml(item, indent + 1)
+        // 移除第一行的缩进
+        yaml += itemYaml.replace(/^\s+/, '') + '\n'
+      } else {
+        yaml += `${spaces}- ${jsonToYaml(item, indent + 1)}\n`
+      }
+    })
+    return yaml.trimEnd()
+  }
+  
+  const keys = Object.keys(obj)
+  if (keys.length === 0) return '{}'
+  
+  keys.forEach(key => {
+    const value = obj[key]
+    if (typeof value === 'object' && value !== null) {
+      if (Array.isArray(value) && value.length === 0) {
+        yaml += `${spaces}${key}: []\n`
+      } else if (!Array.isArray(value) && Object.keys(value).length === 0) {
+        yaml += `${spaces}${key}: {}\n`
+      } else {
+        yaml += `${spaces}${key}:\n${jsonToYaml(value, indent + 1)}\n`
+      }
+    } else {
+      yaml += `${spaces}${key}: ${jsonToYaml(value, indent + 1)}\n`
+    }
+  })
+  
+  return yaml.trimEnd()
+}
+
 const formattedContent = computed(() => {
-  if (!props.content) return '# 暂无内容'
-  return props.content
+  if (!props.content) return ''
+  if (typeof props.content === 'object') {
+    return jsonToYaml(props.content)
+  }
+  // 尝试解析 JSON 字符串
+  try {
+    const parsed = JSON.parse(props.content)
+    return jsonToYaml(parsed)
+  } catch {
+    return props.content
+  }
 })
 
-// 复制到剪贴板
+// 语法高亮
+const highlightedYaml = computed(() => {
+  const yaml = formattedContent.value
+  if (!yaml) return ''
+  
+  return yaml
+    .replace(/^(\s*)([\w\u4e00-\u9fa5_-]+):/gm, '$1<span class="key">$2</span>:')  // 键名
+    .replace(/:\s*(".*?")/g, ': <span class="string">$1</span>')  // 字符串值
+    .replace(/:\s*(\d+\.?\d*)/g, ': <span class="number">$1</span>')  // 数字
+    .replace(/:\s*(true|false)/g, ': <span class="boolean">$1</span>')  // 布尔
+    .replace(/:\s*(null)/g, ': <span class="null">$1</span>')  // null
+    .replace(/^(\s*-)/gm, '<span class="dash">$1</span>')  // 列表符号
+})
+
 const handleCopy = async () => {
   try {
-    await navigator.clipboard.writeText(props.content)
-    ElMessage.success('复制成功')
+    await navigator.clipboard.writeText(formattedContent.value)
+    ElMessage.success('已复制到剪贴板')
   } catch (error) {
-    // 降级方案：使用传统方法
-    const textarea = document.createElement('textarea')
-    textarea.value = props.content
-    textarea.style.position = 'fixed'
-    textarea.style.opacity = '0'
-    document.body.appendChild(textarea)
-    textarea.select()
-    try {
-      document.execCommand('copy')
-      ElMessage.success('复制成功')
-    } catch (e) {
-      ElMessage.error('复制失败')
-    }
-    document.body.removeChild(textarea)
+    ElMessage.error('复制失败')
   }
 }
-
-// 下载为YAML文件
-const handleDownload = () => {
-  try {
-    const blob = new Blob([props.content], { type: 'text/yaml;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = props.filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-    ElMessage.success('下载成功')
-  } catch (error) {
-    ElMessage.error('下载失败')
-  }
-}
-
-// 编辑
-const handleEdit = () => {
-  emit('edit', props.content)
-}
-
-// 监听内容变化，自动滚动到底部
-watch(() => props.content, () => {
-  if (contentRef.value) {
-    contentRef.value.scrollTop = contentRef.value.scrollHeight
-  }
-})
 </script>
 
 <style scoped>
 .yaml-viewer {
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  background: #fff;
+  background: #1e1e1e;
+  border-radius: 8px;
   overflow: hidden;
 }
 
@@ -113,65 +145,64 @@ watch(() => props.content, () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 15px;
-  background: #f5f7fa;
-  border-bottom: 1px solid #dcdfe6;
+  padding: 8px 16px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #404040;
 }
 
-.viewer-header .title {
-  font-weight: 600;
-  color: #303133;
-  font-size: 14px;
-}
-
-.viewer-header .actions {
+.header-actions {
   display: flex;
-  gap: 5px;
+  gap: 8px;
 }
 
-.viewer-content {
-  max-height: 500px;
-  overflow: auto;
-  padding: 15px;
-  background: #fafafa;
+.title {
+  color: #e0e0e0;
+  font-size: 13px;
+  font-weight: 500;
 }
 
-.viewer-content pre {
+.yaml-content {
   margin: 0;
-  padding: 0;
+  padding: 16px;
+  color: #d4d4d4;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 13px;
   line-height: 1.6;
-  color: #2c3e50;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+  overflow: auto;
+  max-height: 500px;
+  white-space: pre;
 }
 
-.viewer-content code {
-  display: block;
-  padding: 0;
-  margin: 0;
-  background: transparent;
-  color: inherit;
+.yaml-content.collapsed {
+  max-height: 150px;
 }
 
-/* 滚动条样式 */
-.viewer-content::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+.yaml-content code {
+  font-family: inherit;
 }
 
-.viewer-content::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
+/* 语法高亮 */
+.yaml-content :deep(.key) {
+  color: #9cdcfe;
 }
 
-.viewer-content::-webkit-scrollbar-thumb:hover {
-  background: #a0a0a0;
+.yaml-content :deep(.string) {
+  color: #ce9178;
 }
 
-.viewer-content::-webkit-scrollbar-track {
-  background: #f0f0f0;
+.yaml-content :deep(.number) {
+  color: #b5cea8;
+}
+
+.yaml-content :deep(.boolean) {
+  color: #569cd6;
+}
+
+.yaml-content :deep(.null) {
+  color: #569cd6;
+}
+
+.yaml-content :deep(.dash) {
+  color: #d4d4d4;
 }
 </style>
-

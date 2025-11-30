@@ -325,23 +325,17 @@
 
                 <div class="detail-block" v-if="debugResult.request?.headers">
                   <div class="detail-label">请求头:</div>
-                  <div class="code-box">
-                    <pre>{{ JSON.stringify(debugResult.request.headers, null, 2) }}</pre>
-                  </div>
+                  <JsonViewer :data="debugResult.request.headers" :default-expanded="true" />
                 </div>
 
                 <div class="detail-block" v-if="debugResult.request?.body || debugResult.request?.data || debugResult.request?.json">
                   <div class="detail-label">请求数据:</div>
-                  <div class="code-box">
-                    <pre>{{ getRequestBody(debugResult.request) }}</pre>
-                  </div>
+                  <JsonViewer :data="getParsedRequestBody(debugResult.request)" :default-expanded="true" />
                 </div>
 
                 <div class="detail-block" v-if="debugResult.response?.body">
                   <div class="detail-label">响应数据:</div>
-                  <div class="code-box">
-                    <pre>{{ JSON.stringify(debugResult.response.body, null, 2) }}</pre>
-                  </div>
+                  <JsonViewer :data="debugResult.response.body" :default-expanded="true" />
                 </div>
                 
                 <div class="detail-block" v-if="debugResult.error">
@@ -352,10 +346,41 @@
                 </div>
               </div>
             </div>
-            <div v-else class="debug-empty-state">
-              <div class="empty-content">
-                <el-icon class="empty-icon"><Connection /></el-icon>
-                <p class="empty-text">{{ debugOutput || '点击右上角“调试操作”执行测试' }}</p>
+            <div v-else class="debug-result-wrapper">
+              <div class="debug-status-bar preview">
+                <div class="status-content">
+                  <strong>请求预览</strong> 
+                  <span class="separator">|</span> 
+                  <span>请求方式: {{ ruleForm.request_method || 'GET' }}</span> 
+                  <span class="separator">|</span> 
+                  <span>请求URL: {{ ruleForm.request_url || '未设置' }}</span>
+                </div>
+              </div>
+              
+              <div class="debug-detail">
+                <div class="detail-row">
+                  <div class="detail-label">请求URL:</div>
+                  <div class="detail-value">{{ ruleForm.request_url || '未设置' }}</div>
+                </div>
+                
+                <div class="detail-row">
+                  <div class="detail-label">请求方式:</div>
+                  <div class="detail-value">{{ ruleForm.request_method || 'GET' }}</div>
+                </div>
+
+                <div class="detail-block" v-if="getRequestPreview().headers">
+                  <div class="detail-label">请求头:</div>
+                  <JsonViewer :data="getRequestPreview().headers" :default-expanded="true" />
+                </div>
+
+                <div class="detail-block" v-if="getRequestPreview().body">
+                  <div class="detail-label">请求数据:</div>
+                  <JsonViewer :data="getRequestPreview().body" :default-expanded="true" />
+                </div>
+
+                <div class="preview-hint" v-if="!ruleForm.request_url">
+                  <el-empty description="请先配置接口URL和参数" :image-size="60" />
+                </div>
               </div>
             </div>
           </el-tab-pane>
@@ -372,9 +397,11 @@ import { Connection, ArrowDown } from '@element-plus/icons-vue';
 import { queryById, insertData, updateData, getMethods } from './apiinfo.js';
 import { queryByPage as getProjectList } from '../project/apiProject.js';
 import { listExecutors, executeTask } from '../task/apiTask.js';
-import { insertData as insertCaseData } from '../apiinfocase/apiInfoCase.js';
+import { insertData as insertCaseData, updateData as updateCaseData, queryByPage as queryCaseList, queryKeywordsByType } from '../apiinfocase/apiInfoCase.js';
+import { queryAll as queryOperationTypes } from '../keyword/operationType.js';
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
+import JsonViewer from '@/components/JsonViewer.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -991,6 +1018,72 @@ const getRequestBody = (request: any) => {
   return '';
 };
 
+// 获取解析后的请求体对象（用于 JsonViewer）
+const getParsedRequestBody = (request: any) => {
+  if (!request) return {};
+  if (request.json) return request.json;
+  if (request.data) {
+    try {
+      if (typeof request.data === 'string' && (request.data.startsWith('{') || request.data.startsWith('['))) {
+        return JSON.parse(request.data);
+      }
+      return { data: request.data };
+    } catch (e) {
+      return { data: request.data };
+    }
+  }
+  if (request.body) {
+    if (typeof request.body === 'object') return request.body;
+    try {
+      return JSON.parse(request.body);
+    } catch (e) {
+      return { body: request.body };
+    }
+  }
+  return {};
+};
+
+// 生成请求预览数据（用于在未执行调试时显示）
+const getRequestPreview = () => {
+  // 获取请求头
+  let headers: any = {};
+  try {
+    if (ruleForm.request_headers) {
+      const parsed = JSON.parse(ruleForm.request_headers);
+      if (Array.isArray(parsed)) {
+        parsed.forEach(h => { if (h.name) headers[h.name] = h.default || ''; });
+      } else {
+        headers = parsed;
+      }
+    }
+  } catch (e) {}
+  // 添加默认 Content-Type
+  if (!headers['Content-Type'] && (jsonBody.value || ruleForm.requests_json_data)) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  // 获取请求体
+  let body: any = null;
+  try {
+    if (jsonBody.value) {
+      body = JSON.parse(jsonBody.value);
+    } else if (ruleForm.requests_json_data) {
+      body = JSON.parse(ruleForm.requests_json_data);
+    } else if (ruleForm.request_form_datas) {
+      body = JSON.parse(ruleForm.request_form_datas);
+    } else if (ruleForm.request_www_form_datas) {
+      body = JSON.parse(ruleForm.request_www_form_datas);
+    }
+  } catch (e) {}
+
+  return {
+    url: ruleForm.request_url || '',
+    method: ruleForm.request_method || 'GET',
+    headers: Object.keys(headers).length > 0 ? headers : null,
+    body: body
+  };
+};
+
 // 格式化测试结果为易读格式
 const formatTestResult = (result: any): string => {
   const lines: string[] = [];
@@ -1106,116 +1199,218 @@ const addToTestCase = async () => {
     return;
   }
   
-  // 先序列化当前参数
-  serializeParams();
-  
-  // 根据请求方法确定关键字ID和步骤描述
-  // 数据库中的关键字ID对应：1=GET, 2=POST(JSON), 3=POST(表单), 4=POST(文件), 5=PUT, 6=DELETE, 7=PATCH
-  const method = ruleForm.request_method || 'GET';
-  let keywordId = 1;
-  let stepDesc = 'GET请求';
-  
-  // 判断Body类型
-  const hasJsonBody = !!ruleForm.requests_json_data;
-  const hasFormBody = !!ruleForm.request_form_datas || !!ruleForm.request_www_form_datas;
-  
-  if (method === 'GET') {
-    keywordId = 1;
-    stepDesc = 'GET请求';
-  } else if (method === 'POST') {
-    if (hasJsonBody) {
-      keywordId = 2;
-      stepDesc = 'POST请求(JSON)';
-    } else if (hasFormBody) {
-      keywordId = 3;
-      stepDesc = 'POST请求(表单)';
-    } else {
-      keywordId = 2;  // 默认JSON
-      stepDesc = 'POST请求(JSON)';
-    }
-  } else if (method === 'PUT') {
-    keywordId = 5;
-    stepDesc = 'PUT请求';
-  } else if (method === 'DELETE') {
-    keywordId = 6;
-    stepDesc = 'DELETE请求';
-  } else if (method === 'PATCH') {
-    keywordId = 7;
-    stepDesc = 'PATCH请求';
-  }
-  
-  // 构建步骤数据（符合关键字参数格式）
-  const stepData: Record<string, any> = {
-    URL: ruleForm.request_url.trim(),
-  };
-  
-  // 添加请求头
-  if (ruleForm.request_headers) {
-    try {
-      const headers = JSON.parse(ruleForm.request_headers);
-      if (Object.keys(headers).length > 0) {
-        stepData.HEADERS = headers;
-      }
-    } catch (e) {
-      console.warn('解析请求头失败:', e);
-    }
-  }
-  
-  // 添加URL查询参数
-  if (ruleForm.request_params) {
-    try {
-      const params = JSON.parse(ruleForm.request_params);
-      if (Object.keys(params).length > 0) {
-        stepData.PARAMS = params;
-      }
-    } catch (e) {
-      console.warn('解析查询参数失败:', e);
-    }
-  }
-  
-  // 添加请求体（DATA字段）
-  if (ruleForm.requests_json_data) {
-    try {
-      stepData.DATA = JSON.parse(ruleForm.requests_json_data);
-    } catch (e) {
-      stepData.DATA = ruleForm.requests_json_data;
-    }
-  } else if (ruleForm.request_form_datas) {
-    try {
-      stepData.DATA = JSON.parse(ruleForm.request_form_datas);
-    } catch (e) {
-      stepData.DATA = ruleForm.request_form_datas;
-    }
-  } else if (ruleForm.request_www_form_datas) {
-    try {
-      stepData.DATA = JSON.parse(ruleForm.request_www_form_datas);
-    } catch (e) {
-      stepData.DATA = ruleForm.request_www_form_datas;
-    }
-  }
-  
-  // 构建测试用例数据
-  const caseData = {
-    project_id: ruleForm.project_id || null,
-    case_name: ruleForm.api_name,
-    case_desc: `接口调试自动生成: ${method} ${ruleForm.request_url}`,
-    steps: [
-      {
-        run_order: 1,
-        step_desc: stepDesc,
-        operation_type_id: 1,  // 1=HTTP请求类
-        keyword_id: keywordId,
-        step_data: stepData
-      }
-    ]
-  };
-  
   addingCase.value = true;
-  
+
   try {
-    const res = await insertCaseData(caseData);
+    // 1. 获取操作类型ID (HTTP请求)
+    let operationTypeId = 1; // 默认为1
+    try {
+      const opRes = await queryOperationTypes();
+      if (opRes.data.code === 200 && Array.isArray(opRes.data.data)) {
+        const op = opRes.data.data.find((item: any) => item.operation_type_name === 'HTTP请求');
+        if (op) operationTypeId = op.id;
+      }
+    } catch (e) {
+      console.warn('查询操作类型失败，使用默认ID=1', e);
+    }
+
+    // 2. 获取关键字列表并匹配ID
+    let keywordId = null;
+    const method = ruleForm.request_method || 'GET';
+    
+    // 判断Body类型
+    const hasJsonBody = !!ruleForm.requests_json_data;
+    const hasFormBody = !!ruleForm.request_form_datas || !!ruleForm.request_www_form_datas;
+    
+    let targetName = 'GET请求';
+    if (method === 'GET') targetName = 'GET请求';
+    else if (method === 'POST') {
+      if (hasJsonBody) targetName = 'POST请求(JSON)';
+      else if (hasFormBody) targetName = 'POST请求(表单)';
+      else targetName = 'POST请求(JSON)';
+    }
+    else if (method === 'PUT') targetName = 'PUT请求';
+    else if (method === 'DELETE') targetName = 'DELETE请求';
+    else if (method === 'PATCH') targetName = 'PATCH请求';
+
+    try {
+      const kwRes = await queryKeywordsByType(operationTypeId);
+      if (kwRes.data.code === 200 && Array.isArray(kwRes.data.data)) {
+        const keywords = kwRes.data.data;
+        const kw = keywords.find((item: any) => item.name === targetName);
+        if (kw) {
+          keywordId = kw.id;
+        } else {
+          // 降级：如果找不到精确匹配，尝试找包含 method 的
+          const fuzzy = keywords.find((item: any) => item.name.includes(method));
+          if (fuzzy) keywordId = fuzzy.id;
+        }
+      }
+    } catch (e) {
+      console.warn('查询关键字列表失败，将尝试使用默认ID', e);
+    }
+    
+    // 3. 兜底策略：如果动态查找失败，使用标准初始化数据的ID
+    if (!keywordId) {
+      console.warn(`未动态匹配到关键字 '${targetName}'，使用默认ID兜底`);
+      if (method === 'GET') keywordId = 1;
+      else if (method === 'POST') {
+        if (targetName.includes('表单')) keywordId = 3;
+        else keywordId = 2;
+      }
+      else if (method === 'PUT') keywordId = 5;
+      else if (method === 'DELETE') keywordId = 6;
+      else if (method === 'PATCH') keywordId = 7;
+      else keywordId = 1; // 实在不行就GET
+    }
+    
+    if (!keywordId) {
+      ElMessage.warning('未找到对应的关键字定义，请检查关键字配置');
+      return;
+    }
+
+    // 先序列化当前参数
+    serializeParams();
+  
+    // 重新确定 stepDesc (为了保持一致性)
+    let stepDesc = `${method}请求`;
+    
+    if (method === 'GET') stepDesc = 'GET请求';
+    else if (method === 'POST') {
+        if (hasJsonBody) stepDesc = 'POST请求(JSON)';
+        else if (hasFormBody) stepDesc = 'POST请求(表单)';
+        else stepDesc = 'POST请求(JSON)';
+    }
+    else if (method === 'PUT') stepDesc = 'PUT请求';
+    else if (method === 'DELETE') stepDesc = 'DELETE请求';
+    else if (method === 'PATCH') stepDesc = 'PATCH请求';
+    
+    // 构建步骤数据（符合关键字参数格式）
+    const stepData: Record<string, any> = {
+      URL: ruleForm.request_url.trim(),
+    };
+    
+    // 添加请求头
+    if (ruleForm.request_headers) {
+      try {
+        const headers = JSON.parse(ruleForm.request_headers);
+        if (Object.keys(headers).length > 0) {
+          stepData.HEADERS = headers;
+        }
+      } catch (e) {
+        console.warn('解析请求头失败:', e);
+      }
+    }
+    
+    // 添加URL查询参数
+    if (ruleForm.request_params) {
+      try {
+        const params = JSON.parse(ruleForm.request_params);
+        if (Object.keys(params).length > 0) {
+          stepData.PARAMS = params;
+        }
+      } catch (e) {
+        console.warn('解析查询参数失败:', e);
+      }
+    }
+    
+    // 添加请求体（DATA字段）
+    if (ruleForm.requests_json_data) {
+      try {
+        stepData.DATA = JSON.parse(ruleForm.requests_json_data);
+      } catch (e) {
+        stepData.DATA = ruleForm.requests_json_data;
+      }
+    } else if (ruleForm.request_form_datas) {
+      try {
+        stepData.DATA = JSON.parse(ruleForm.request_form_datas);
+      } catch (e) {
+        stepData.DATA = ruleForm.request_form_datas;
+      }
+    } else if (ruleForm.request_www_form_datas) {
+      try {
+        stepData.DATA = JSON.parse(ruleForm.request_www_form_datas);
+      } catch (e) {
+        stepData.DATA = ruleForm.request_www_form_datas;
+      }
+    }
+    
+    // 构建测试用例数据
+    const caseData: any = {
+      project_id: ruleForm.project_id || null,
+      case_name: ruleForm.api_name,
+      case_desc: `接口调试自动生成: ${method} ${ruleForm.request_url}`,
+      steps: [
+        {
+          run_order: 1,
+          step_desc: stepDesc,
+          operation_type_id: operationTypeId,
+          keyword_id: keywordId,
+          step_data: stepData
+        }
+      ]
+    };
+    
+    // 1. 先查询是否存在同名用例
+    let existingCaseId = null;
+    try {
+      const queryRes = await queryCaseList({
+        page: 1,
+        pageSize: 10,
+        case_name: ruleForm.api_name,
+        project_id: ruleForm.project_id || undefined
+      });
+      
+      if (queryRes.data.code === 200 && queryRes.data.data && queryRes.data.data.length > 0) {
+        // 精确匹配名称
+        const exist = queryRes.data.data.find((item: any) => item.case_name === ruleForm.api_name);
+        if (exist) {
+          existingCaseId = exist.id;
+        }
+      }
+    } catch (e) {
+      console.warn('查询已存在用例失败:', e);
+    }
+
+    let res;
+    if (existingCaseId) {
+      // 2. 如果存在，询问是否覆盖
+      try {
+        await ElMessageBox.confirm(
+          `检测到已存在名称为 "${ruleForm.api_name}" 的用例，是否覆盖更新？`,
+          '用例已存在',
+          {
+            confirmButtonText: '覆盖更新',
+            cancelButtonText: '创建新用例', // 用户也可以选择创建新的（如果后端允许重名的话，或者改名）- 这里逻辑改为取消就是不覆盖，直接新增可能导致重名，不如直接覆盖或者取消
+            // 实际上用户可能想创建重复的，但这里为了方便覆盖，我们把 Cancel 当作 "不覆盖，作为新用例插入" 还是 "取消操作"？
+            // 通常 Cancel 是取消操作。但这里为了灵活性，可以设为 DistinguishCancelAndClose
+            distinguishCancelAndClose: true,
+            confirmButtonClass: 'el-button--warning',
+            type: 'warning'
+          }
+        );
+        
+        // 用户确认覆盖
+        caseData.id = existingCaseId;
+        res = await updateCaseData(caseData);
+        
+      } catch (action) {
+        if (action === 'cancel') {
+          // 用户点击"创建新用例" (对应 cancelButtonText)
+          res = await insertCaseData(caseData);
+        } else {
+          // 用户点击关闭或按ESC
+          addingCase.value = false;
+          return;
+        }
+      }
+    } else {
+      // 3. 不存在，直接新增
+      res = await insertCaseData(caseData);
+    }
+
     if (res.data.code === 200) {
-      ElMessage.success('已成功加入测试用例管理');
+      ElMessage.success(existingCaseId && caseData.id ? '用例已覆盖更新' : '已成功加入测试用例管理');
       // 询问是否跳转到用例管理页面
       ElMessageBox.confirm(
         '是否立即跳转到测试用例管理页面？',
@@ -1231,7 +1426,7 @@ const addToTestCase = async () => {
         // 用户选择留在当前页
       });
     } else {
-      ElMessage.error(res.data.msg || '加入测试用例失败');
+      ElMessage.error(res.data.msg || '操作失败');
     }
   } catch (error) {
     console.error('加入测试用例失败:', error);
@@ -1494,6 +1689,12 @@ onMounted(() => {
   border-bottom-color: #fde2e2;
 }
 
+.debug-status-bar.preview {
+  background-color: #ecf5ff;
+  color: #409eff;
+  border-bottom-color: #d9ecff;
+}
+
 .status-content {
   display: flex;
   align-items: center;
@@ -1595,5 +1796,10 @@ onMounted(() => {
 .empty-text {
   font-size: 14px;
   margin: 0;
+}
+
+.preview-hint {
+  padding: 20px;
+  text-align: center;
 }
 </style>

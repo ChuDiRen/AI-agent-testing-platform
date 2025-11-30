@@ -32,3 +32,8 @@ class TimeFormatter:
     def now_str() -> str:
         """获取当前时间的标准格式字符串"""
         return datetime.now().strftime(TimeFormatter.STANDARD_FORMAT)
+
+    @staticmethod
+    def datetime_to_str(dt: Optional[datetime]) -> Optional[str]:
+        """兼容旧代码：等价于 format_datetime"""
+        return TimeFormatter.format_datetime(dt)

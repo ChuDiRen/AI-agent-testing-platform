@@ -21,6 +21,10 @@
         </el-select>
       </el-form-item>
       <template #actions>
+        <el-button type="warning" :disabled="selectedRows.length === 0" @click="handleBatchAddToPlan">
+          <el-icon><FolderAdd /></el-icon>
+          添加到计划 ({{ selectedRows.length }})
+        </el-button>
         <el-button type="primary" @click="handleCreate">
           <el-icon><Plus /></el-icon>
           新增用例
@@ -36,7 +40,9 @@
       :loading="loading"
       v-model:pagination="pagination"
       @refresh="handleQuery"
+      @selection-change="handleSelectionChange"
     >
+      <el-table-column type="selection" width="55" />
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="case_name" label="用例名称" show-overflow-tooltip />
       <el-table-column prop="case_desc" label="用例描述" show-overflow-tooltip />
@@ -46,28 +52,56 @@
         </template>
       </el-table-column>
       <el-table-column prop="create_time" label="创建时间" width="170" />
-      <el-table-column label="操作" width="260" fixed="right">
+      <el-table-column label="操作" width="180" fixed="right">
         <template #default="scope">
           <el-button link type="primary" @click="handleEdit(scope.row)">编辑</el-button>
           <el-button link type="success" @click="handleExecute(scope.row)">执行</el-button>
-          <el-button link type="info" @click="handleGenerateYaml(scope.row)">生成YAML</el-button>
           <el-button link type="danger" @click="handleDelete(scope.row)">删除</el-button>
         </template>
       </el-table-column>
     </BaseTable>
+
+    <!-- 批量添加到计划弹窗 -->
+    <el-dialog v-model="batchAddDialogVisible" title="添加用例到测试计划" width="500px">
+      <el-form label-width="100px">
+        <el-form-item label="选择计划" required>
+          <el-select v-model="selectedPlanId" placeholder="请选择测试计划" filterable style="width: 100%">
+            <el-option
+              v-for="plan in planList"
+              :key="plan.id"
+              :label="plan.plan_name"
+              :value="plan.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="已选用例">
+          <div class="selected-cases">
+            <el-tag v-for="row in selectedRows" :key="row.id" size="small" style="margin: 2px;">
+              {{ row.case_name }}
+            </el-tag>
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="batchAddDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="batchAdding" @click="confirmBatchAdd">确定添加</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
-import { queryByPage, deleteData, generateYaml, executeCase } from './apiInfoCase.js'
+import { Plus, FolderAdd } from '@element-plus/icons-vue'
+import { queryByPage, deleteData, queryById } from './apiInfoCase.js'
 import { queryAll as queryProjects } from '../project/apiProject.js'
+import { queryAll as queryKeywords } from '../keyword/apiKeyWord.js'
 import { useRouter } from 'vue-router'
 import BaseSearch from '~/components/BaseSearch/index.vue'
 import BaseTable from '~/components/BaseTable/index.vue'
-import { listExecutors } from '../task/apiTask.js'
+import { listExecutors, executeTask } from '../task/apiTask.js'
+import { queryByPage as queryPlans, batchAddCases } from '../collection/apiCollectionInfo.js'
 
 const router = useRouter()
 
@@ -91,6 +125,16 @@ const tableData = ref([])
 
 // 项目列表
 const projectList = ref([])
+
+// 关键字列表
+const keywordList = ref([])
+
+// 批量添加到计划相关
+const selectedRows = ref([])
+const batchAddDialogVisible = ref(false)
+const selectedPlanId = ref(null)
+const planList = ref([])
+const batchAdding = ref(false)
 
 // 加载执行器列表
 const loadExecutors = async () => {
@@ -120,6 +164,75 @@ const loadProjects = async () => {
     }
   } catch (error) {
     console.error('加载项目列表失败:', error)
+  }
+}
+
+// 加载关键字列表
+const loadKeywords = async () => {
+  try {
+    const res = await queryKeywords()
+    if (res.data.code === 200) {
+      keywordList.value = res.data.data || []
+    }
+  } catch (error) {
+    console.error('加载关键字列表失败:', error)
+  }
+}
+
+// 加载测试计划列表
+const loadPlans = async () => {
+  try {
+    const res = await queryPlans({ page: 1, pageSize: 100 })
+    if (res.data.code === 200) {
+      planList.value = res.data.data || []
+    }
+  } catch (error) {
+    console.error('加载测试计划列表失败:', error)
+  }
+}
+
+// 表格选择变化
+const handleSelectionChange = (rows) => {
+  selectedRows.value = rows
+}
+
+// 打开批量添加到计划弹窗
+const handleBatchAddToPlan = () => {
+  if (selectedRows.value.length === 0) {
+    ElMessage.warning('请先选择用例')
+    return
+  }
+  selectedPlanId.value = null
+  batchAddDialogVisible.value = true
+}
+
+// 确认批量添加
+const confirmBatchAdd = async () => {
+  if (!selectedPlanId.value) {
+    ElMessage.warning('请选择测试计划')
+    return
+  }
+  
+  batchAdding.value = true
+  try {
+    const caseIds = selectedRows.value.map(row => row.id)
+    const res = await batchAddCases({
+      plan_id: selectedPlanId.value,
+      case_ids: caseIds
+    })
+    
+    if (res.data.code === 200) {
+      ElMessage.success(`成功添加 ${res.data.data?.added_count || caseIds.length} 个用例到计划`)
+      batchAddDialogVisible.value = false
+      selectedRows.value = []
+    } else {
+      ElMessage.error(res.data.msg || '添加失败')
+    }
+  } catch (error) {
+    console.error('批量添加失败:', error)
+    ElMessage.error('添加失败，请稍后重试')
+  } finally {
+    batchAdding.value = false
   }
 }
 
@@ -173,6 +286,56 @@ const handleEdit = (row) => {
   })
 }
 
+// 转换步骤数据为执行器期望的格式
+const convertStepData = (stepData, keywordFunName) => {
+  const result = {}
+  const paramMap = {
+    'URL': 'url',
+    'PARAMS': 'params', 
+    'HEADERS': 'headers',
+    'DATA': 'json',
+    'FILES': 'files'
+  }
+  
+  let method = 'GET'
+  if (keywordFunName.includes('post')) method = 'POST'
+  else if (keywordFunName.includes('put')) method = 'PUT'
+  else if (keywordFunName.includes('delete')) method = 'DELETE'
+  else if (keywordFunName.includes('patch')) method = 'PATCH'
+  
+  result.method = method
+  
+  for (const [key, value] of Object.entries(stepData || {})) {
+    const newKey = paramMap[key] || key.toLowerCase()
+    result[newKey] = value
+  }
+  
+  return result
+}
+
+// 生成测试用例内容 JSON
+const generateTestCaseContent = (caseData) => {
+  const steps = (caseData.steps || []).map(step => {
+    const keyword = keywordList.value.find(k => k.id === step.keyword_id)
+    const keywordFunName = keyword?.keyword_fun_name || 'unknown'
+    const stepDesc = step.step_desc || `步骤${step.run_order}`
+    
+    const convertedData = convertStepData(step.step_data, keywordFunName)
+    
+    return {
+      [stepDesc]: {
+        '关键字': 'send_request',
+        ...convertedData
+      }
+    }
+  })
+  
+  return JSON.stringify({
+    desc: caseData.case_name,
+    steps: steps
+  })
+}
+
 // 执行用例
 const handleExecute = async (row) => {
   try {
@@ -180,14 +343,43 @@ const handleExecute = async (row) => {
       type: 'warning'
     })
 
-    const res = await executeCase({
-      case_id: row.id,
-      test_name: `${row.case_name}_${new Date().getTime()}`,
-      executor_code: currentExecutorCode.value || undefined
+    if (!currentExecutorCode.value) {
+      ElMessage.warning('请先选择执行器')
+      return
+    }
+
+    // 获取用例详情（包含步骤）
+    const detailRes = await queryById(row.id)
+    if (detailRes.data.code !== 200 || !detailRes.data.data) {
+      ElMessage.error('获取用例详情失败')
+      return
+    }
+    
+    const caseData = detailRes.data.data
+    if (!caseData.steps || caseData.steps.length === 0) {
+      ElMessage.warning('该用例没有测试步骤')
+      return
+    }
+    
+    // 生成测试用例内容
+    const testCaseContent = generateTestCaseContent(caseData)
+    console.log('测试用例内容:', testCaseContent)
+
+    // 调用 Task/execute API
+    const res = await executeTask({
+      plugin_code: currentExecutorCode.value,
+      test_case_id: row.id,
+      test_case_content: testCaseContent,
+      config: {}
     })
 
     if (res.data.code === 200) {
-      ElMessage.success('用例已开始执行，请到测试历史查看结果')
+      const result = res.data.data || {}
+      if (result.status === 'completed' || result.success) {
+        ElMessage.success('用例执行完成')
+      } else {
+        ElMessage.warning(result.error || '用例执行完成，请查看详情')
+      }
     } else {
       ElMessage.error(res.data.msg || '执行失败')
     }
@@ -196,29 +388,6 @@ const handleExecute = async (row) => {
       console.error('执行失败:', error)
       ElMessage.error('执行失败，请稍后重试')
     }
-  }
-}
-
-// 生成YAML
-const handleGenerateYaml = async (row) => {
-  try {
-    const res = await generateYaml({
-      case_id: row.id
-    })
-
-    if (res.data.code === 200) {
-      ElMessage.success('YAML生成成功')
-      // 显示YAML内容
-      ElMessageBox.alert(res.data.data.yaml_content, 'YAML内容', {
-        confirmButtonText: '确定',
-        customStyle: { width: '80%' }
-      })
-    } else {
-      ElMessage.error(res.data.msg || '生成失败')
-    }
-  } catch (error) {
-    console.error('生成YAML失败:', error)
-    ElMessage.error('生成YAML失败，请稍后重试')
   }
 }
 
@@ -247,6 +416,8 @@ const handleDelete = async (row) => {
 onMounted(() => {
   loadProjects()
   loadExecutors()
+  loadKeywords()
+  loadPlans()
   handleQuery()
 })
 </script>

@@ -97,7 +97,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
             case_info = session.get(ApiInfoCase, pc.case_info_id)
             cases.append({
                 "id": pc.id,
-                "plan_id": pc.plan_id,
+                "plan_id": pc.collection_info_id,
                 "case_info_id": pc.case_info_id,
                 "case_name": case_info.case_name if case_info else "",
                 "case_desc": case_info.case_desc if case_info else "",

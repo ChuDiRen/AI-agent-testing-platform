@@ -53,7 +53,7 @@
         <el-form-item
           v-for="field in dynamicFields"
           :key="field.name"
-          :label="field.placeholder || field.name"
+          :label="field.placeholder || field.description || field.name"
         >
           <!-- 特殊字段：接口信息下拉 -->
           <el-select
@@ -93,14 +93,14 @@
             v-model="stepForm.step_data[field.name]"
             type="textarea"
             :rows="4"
-            :placeholder="field.placeholder || `请输入${field.name} (JSON格式)`"
+            :placeholder="field.placeholder || field.description || `请输入${field.name} (JSON格式)`"
           />
 
           <!-- 普通文本输入框 -->
           <el-input
             v-else
             v-model="stepForm.step_data[field.name]"
-            :placeholder="field.placeholder || `请输入${field.name}`"
+            :placeholder="field.placeholder || field.description || `请输入${field.name}`"
           />
         </el-form-item>
       </div>
@@ -117,6 +117,7 @@
 import { ref, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { queryKeywordsByType, getKeywordFields } from '../apiCase.js'
+import { queryById as queryKeywordById } from '../../keyword/apiKeyWord.js'
 import { queryAll as queryOperationType } from '../../keyword/operationType.js'
 import { queryAll as queryApiInfo } from '../../apiinfo/apiinfo.js'
 import { queryAll as queryDbBase } from '../../project/dbBase.js'
@@ -176,6 +177,7 @@ const loadOperationTypes = async () => {
     const res = await queryOperationType()
     if (res.data.code === 200) {
       operationTypeList.value = res.data.data || []
+      console.log('【StepEditor】操作类型列表：', operationTypeList.value)
     }
   } catch (error) {
     console.error('加载操作类型失败:', error)
@@ -223,6 +225,7 @@ const handleOperationTypeChange = async (value) => {
     const res = await queryKeywordsByType(value)
     if (res.data.code === 200) {
       keywordList.value = res.data.data || []
+      console.log('【StepEditor】操作类型', value, '关键字列表：', keywordList.value)
     }
   } catch (error) {
     console.error('加载关键字列表失败:', error)
@@ -231,10 +234,15 @@ const handleOperationTypeChange = async (value) => {
 }
 
 // 关键字改变事件
-const handleKeywordChange = async (value) => {
-  // 清空动态字段
+const handleKeywordChange = async (value, keepExisting = false) => {
+  // 清空字段定义
   dynamicFields.value = []
-  stepForm.step_data = {}
+  // 是否保留已有的 step_data（编辑已存在步骤时使用）
+  if (!keepExisting) {
+    stepForm.step_data = {}
+  } else if (!stepForm.step_data) {
+    stepForm.step_data = {}
+  }
   
   if (!value) {
     return
@@ -245,14 +253,40 @@ const handleKeywordChange = async (value) => {
     const res = await getKeywordFields(value)
     if (res.data.code === 200) {
       const fields = Array.isArray(res.data.data) ? res.data.data : []
+      
+      // 兜底策略：如果后端没解析出字段（空数组），但这是标准的HTTP关键字，手动补全标准字段
+      if (fields.length === 0) {
+        const currentKw = keywordList.value.find(k => k.id === value)
+        if (currentKw) {
+          const name = currentKw.name
+          if (name.includes('GET请求') || name.includes('DELETE请求')) {
+            fields.push(
+              { name: 'URL', placeholder: '请求地址' },
+              { name: 'PARAMS', placeholder: '查询参数 (JSON/String)' },
+              { name: 'HEADERS', placeholder: '请求头 (JSON)' }
+            )
+            console.log('【StepEditor】启用兜底字段 (GET/DELETE)')
+          } else if (name.includes('POST请求') || name.includes('PUT请求') || name.includes('PATCH请求')) {
+             fields.push(
+              { name: 'URL', placeholder: '请求地址' },
+              { name: 'PARAMS', placeholder: '查询参数 (JSON/String)' },
+              { name: 'HEADERS', placeholder: '请求头 (JSON)' },
+              { name: 'DATA', placeholder: '请求体 (JSON)' }
+            )
+            console.log('【StepEditor】启用兜底字段 (POST/PUT/PATCH)')
+          }
+        }
+      }
+
       dynamicFields.value = fields
+      console.log('【StepEditor】关键字', value, '字段描述：', dynamicFields.value)
       
       // 确保step_data是对象
       if (!stepForm.step_data) {
         stepForm.step_data = {}
       }
       
-      // 初始化step_data
+      // 初始化step_data：仅对缺失字段填充默认值，已存在的值（例如从接口页面生成的 URL/参数）不会被覆盖
       fields.forEach(field => {
         if (field && field.name) {
           // 只有当字段不存在时才初始化，避免覆盖已有值（在编辑模式下）
@@ -284,48 +318,69 @@ const handleKeywordChange = async (value) => {
 // 监听modelValue变化
 watch(() => props.modelValue, (val) => {
   dialogVisible.value = val
-  if (val) {
-    // 对话框打开时
-    loadOperationTypes()
-    
-    if (props.stepData) {
-      // 编辑模式：加载步骤数据
-      const rawStepData = props.stepData.step_data ? JSON.parse(JSON.stringify(props.stepData.step_data)) : {}
-      
-      // 将对象类型的参数转换为JSON字符串以便编辑
-      for (const key in rawStepData) {
-        if (typeof rawStepData[key] === 'object' && rawStepData[key] !== null) {
-          rawStepData[key] = JSON.stringify(rawStepData[key], null, 2)
-        }
-      }
+  if (!val) return
 
-      Object.assign(stepForm, {
-        run_order: props.stepData.run_order,
-        step_desc: props.stepData.step_desc,
-        operation_type_id: props.stepData.operation_type_id,
-        keyword_id: props.stepData.keyword_id,
-        step_data: rawStepData
-      })
-      
-      // 加载关键字列表和字段
-      if (props.stepData.operation_type_id) {
-        handleOperationTypeChange(props.stepData.operation_type_id)
+  // 打开对话框时先加载操作类型列表（供下拉使用）
+  loadOperationTypes()
+  
+  if (props.stepData) {
+    console.log('【StepEditor】接收到的步骤数据:', JSON.parse(JSON.stringify(props.stepData)))
+    // 编辑模式：加载步骤数据
+    const rawStepData = props.stepData.step_data ? JSON.parse(JSON.stringify(props.stepData.step_data)) : {}
+    
+    // 将对象类型的参数转换为JSON字符串以便编辑
+    for (const key in rawStepData) {
+      if (typeof rawStepData[key] === 'object' && rawStepData[key] !== null) {
+        rawStepData[key] = JSON.stringify(rawStepData[key], null, 2)
       }
-      if (props.stepData.keyword_id) {
-        setTimeout(() => {
-          handleKeywordChange(props.stepData.keyword_id)
-        }, 300)
-      }
-    } else {
-      // 新增模式：重置表单
-      stepForm.run_order = props.nextOrder
-      stepForm.step_desc = ''
-      stepForm.operation_type_id = null
-      stepForm.keyword_id = null
-      stepForm.step_data = {}
-      dynamicFields.value = []
-      keywordList.value = []
     }
+
+    Object.assign(stepForm, {
+      run_order: props.stepData.run_order,
+      step_desc: props.stepData.step_desc,
+      operation_type_id: props.stepData.operation_type_id,
+      keyword_id: props.stepData.keyword_id,
+      step_data: rawStepData
+    })
+
+    // 独立加载该操作类型下的关键字列表，并保持现有 step_data
+    if (props.stepData.operation_type_id) {
+      queryKeywordsByType(props.stepData.operation_type_id).then(async (res) => {
+        if (res.data.code === 200) {
+          keywordList.value = res.data.data || []
+        }
+        if (props.stepData && props.stepData.keyword_id) {
+          stepForm.keyword_id = props.stepData.keyword_id
+          // 如果当前关键字不在列表中，手动补全
+          if (!Array.isArray(keywordList.value)) keywordList.value = []
+          const exists = keywordList.value.find(k => k.id === stepForm.keyword_id)
+          if (!exists) {
+            try {
+              const kwRes = await queryKeywordById(stepForm.keyword_id)
+              if (kwRes.data.code === 200 && kwRes.data.data) {
+                keywordList.value.push(kwRes.data.data)
+                console.log('【StepEditor】手动补全关键字:', kwRes.data.data)
+              }
+            } catch (e) {
+              console.error('补全关键字失败:', e)
+            }
+          }
+          // 加载字段定义，但保留现有 step_data 数据
+          handleKeywordChange(props.stepData.keyword_id, true)
+        }
+      }).catch((e) => {
+        console.error('加载关键字列表失败:', e)
+      })
+    }
+  } else {
+    // 新增模式：重置表单
+    stepForm.run_order = props.nextOrder
+    stepForm.step_desc = ''
+    stepForm.operation_type_id = null
+    stepForm.keyword_id = null
+    stepForm.step_data = {}
+    dynamicFields.value = []
+    keywordList.value = []
   }
 })
 
