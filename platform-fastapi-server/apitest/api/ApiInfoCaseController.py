@@ -86,6 +86,15 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         statement = select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == id).order_by(ApiInfoCaseStep.run_order)
         steps = session.exec(statement).all()
         
+        # 解析step_data为对象
+        def parse_step_data(step_data_str):
+            if not step_data_str:
+                return {}
+            try:
+                return json.loads(step_data_str)
+            except:
+                return {}
+        
         # 构建响应
         result = {
             "id": case_info.id,
@@ -102,7 +111,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
                     "step_desc": step.step_desc,
                     "operation_type_id": step.operation_type_id,
                     "keyword_id": step.keyword_id,
-                    "step_data": step.step_data,
+                    "step_data": parse_step_data(step.step_data),
                     "create_time": TimeFormatter.format_datetime(step.create_time)
                 } for step in steps
             ]
@@ -195,10 +204,15 @@ def update(data: ApiInfoCaseUpdate, session: Session = Depends(get_session)):
 
 @module_route.delete("/delete", summary="删除API用例", dependencies=[Depends(check_permission("apitest:case:delete"))])
 def delete(id: int = Query(...), session: Session = Depends(get_session)):
-    """删除用例"""
+    """删除用例（含关联步骤）"""
     try:
         obj = session.get(module_model, id)
         if obj:
+            # 先删除关联的步骤
+            steps = session.exec(select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == id)).all()
+            for step in steps:
+                session.delete(step)
+            # 再删除用例
             session.delete(obj)
             session.commit()
             return respModel.ok_resp_text(msg="删除成功")
@@ -215,6 +229,14 @@ def getSteps(case_id: int = Query(...), session: Session = Depends(get_session))
         statement = select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == case_id).order_by(ApiInfoCaseStep.run_order)
         steps = session.exec(statement).all()
         
+        def parse_step_data(step_data_str):
+            if not step_data_str:
+                return {}
+            try:
+                return json.loads(step_data_str)
+            except:
+                return {}
+        
         result = [
             {
                 "id": step.id,
@@ -223,7 +245,7 @@ def getSteps(case_id: int = Query(...), session: Session = Depends(get_session))
                 "step_desc": step.step_desc,
                 "operation_type_id": step.operation_type_id,
                 "keyword_id": step.keyword_id,
-                "step_data": step.step_data,
+                "step_data": parse_step_data(step.step_data),
                 "create_time": TimeFormatter.format_datetime(step.create_time)
             } for step in steps
         ]
@@ -383,8 +405,9 @@ def executeCase(
         test_id = test_history.id
         def _execute_in_background():
             import asyncio
-            from core.database import SessionLocal
-            db = SessionLocal()
+            from core.database import engine
+            from sqlmodel import Session as DBSession
+            db = DBSession(engine)
             try:
                 hist = db.get(ApiHistory, test_id)
                 if not hist:

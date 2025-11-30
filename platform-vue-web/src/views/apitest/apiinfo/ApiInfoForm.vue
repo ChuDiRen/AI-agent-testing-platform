@@ -32,6 +32,9 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
+            <el-button type="warning" @click="addToTestCase" :loading="addingCase">
+              加入测试用例
+            </el-button>
             <el-button @click="goBack">
               关闭
             </el-button>
@@ -297,13 +300,64 @@
 
           <!-- 调试输出内容 -->
           <el-tab-pane label="调试输出内容" name="debug">
-            <el-input 
-              v-model="debugOutput" 
-              type="textarea" 
-              :rows="15" 
-              placeholder="调试输出内容将显示在这里..."
-              readonly
-            />
+            <div v-if="debugResult" class="debug-result-wrapper">
+              <div class="debug-status-bar" :class="debugResult.status === 'completed' ? 'success' : 'failed'">
+                <div class="status-content">
+                  <strong>调试结果: {{ debugResult.status === 'completed' ? 'PASSED' : 'FAILED' }}</strong> 
+                  <span class="separator">|</span> 
+                  <span>请求方式: {{ debugResult.request?.method }}</span> 
+                  <span class="separator">|</span> 
+                  <span>请求URL: {{ debugResult.request?.url }}</span>
+                </div>
+                <el-icon><ArrowDown /></el-icon>
+              </div>
+              
+              <div class="debug-detail">
+                <div class="detail-row">
+                  <div class="detail-label">请求URL:</div>
+                  <div class="detail-value">{{ debugResult.request?.url }}</div>
+                </div>
+                
+                <div class="detail-row">
+                  <div class="detail-label">请求方式:</div>
+                  <div class="detail-value">{{ debugResult.request?.method }}</div>
+                </div>
+
+                <div class="detail-block" v-if="debugResult.request?.headers">
+                  <div class="detail-label">请求头:</div>
+                  <div class="code-box">
+                    <pre>{{ JSON.stringify(debugResult.request.headers, null, 2) }}</pre>
+                  </div>
+                </div>
+
+                <div class="detail-block" v-if="debugResult.request?.body || debugResult.request?.data || debugResult.request?.json">
+                  <div class="detail-label">请求数据:</div>
+                  <div class="code-box">
+                    <pre>{{ getRequestBody(debugResult.request) }}</pre>
+                  </div>
+                </div>
+
+                <div class="detail-block" v-if="debugResult.response?.body">
+                  <div class="detail-label">响应数据:</div>
+                  <div class="code-box">
+                    <pre>{{ JSON.stringify(debugResult.response.body, null, 2) }}</pre>
+                  </div>
+                </div>
+                
+                <div class="detail-block" v-if="debugResult.error">
+                  <div class="detail-label text-danger">错误信息:</div>
+                  <div class="code-box error-box">
+                    <pre>{{ debugResult.error }}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="debug-empty-state">
+              <div class="empty-content">
+                <el-icon class="empty-icon"><Connection /></el-icon>
+                <p class="empty-text">{{ debugOutput || '点击右上角“调试操作”执行测试' }}</p>
+              </div>
+            </div>
           </el-tab-pane>
         </el-tabs>
         </div>
@@ -318,6 +372,7 @@ import { Connection, ArrowDown } from '@element-plus/icons-vue';
 import { queryById, insertData, updateData, getMethods } from './apiinfo.js';
 import { queryByPage as getProjectList } from '../project/apiProject.js';
 import { listExecutors, executeTask } from '../task/apiTask.js';
+import { insertData as insertCaseData } from '../apiinfocase/apiInfoCase.js';
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
 
@@ -330,6 +385,7 @@ const isEdit = ref(false);
 // 加载状态
 const submitting = ref(false);
 const testing = ref(false);
+const addingCase = ref(false);
 
 // 项目列表
 const projectList = ref([]);
@@ -356,6 +412,7 @@ const variableParams = ref([{ key: '', value: '', description: '' }]);
 
 // 调试输出内容
 const debugOutput = ref('');
+const debugResult = ref(null);
 
 // JSON Body
 const jsonBody = ref('');
@@ -840,6 +897,7 @@ const handleTestCommand = async (command: string) => {
   testing.value = true;
   activeTab.value = 'debug';
   debugOutput.value = '正在执行测试...';
+  debugResult.value = null;
   
   try {
     // 生成测试用例YAML
@@ -848,7 +906,7 @@ const handleTestCommand = async (command: string) => {
     // 调用执行器插件执行（同步等待结果）
     const res = await executeTask({
       plugin_code: currentExecutorCode.value,
-      test_case_id: ruleForm.id || 0,
+      test_case_id: ruleForm.id ? parseInt(String(ruleForm.id)) : 0,
       test_case_content: testCaseContent,
       config: {}
     });
@@ -856,6 +914,11 @@ const handleTestCommand = async (command: string) => {
     if (res.data.code === 200) {
       const data = res.data.data;
       handleTaskResult(data);
+      
+      // 如果是"发送并下载"命令，触发下载
+      if (command === 'downloadResult') {
+        downloadTestResult(data.result || data);
+      }
     } else {
       ElMessage.error(res.data.msg || '执行失败');
       debugOutput.value = `执行失败: ${res.data.msg}`;
@@ -869,6 +932,64 @@ const handleTestCommand = async (command: string) => {
   }
 };
 
+// 下载测试结果
+const downloadTestResult = (result: any) => {
+  try {
+    // 构建下载内容
+    const downloadData = {
+      api_name: ruleForm.api_name,
+      request_url: ruleForm.request_url,
+      request_method: ruleForm.request_method,
+      test_time: new Date().toISOString(),
+      result: result
+    };
+    
+    // 创建 Blob 并触发下载
+    const jsonStr = JSON.stringify(downloadData, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    // 生成文件名：接口名称_时间戳.json
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const safeName = (ruleForm.api_name || 'api_result').replace(/[\\/:*?"<>|]/g, '_');
+    link.download = `${safeName}_${timestamp}.json`;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    ElMessage.success('测试结果已下载');
+  } catch (error) {
+    console.error('下载失败:', error);
+    ElMessage.error('下载失败');
+  }
+};
+
+
+// 获取请求体显示内容
+const getRequestBody = (request: any) => {
+  if (!request) return '';
+  if (request.json) return JSON.stringify(request.json, null, 2);
+  if (request.data) {
+    try {
+      // 尝试解析JSON字符串
+      if (typeof request.data === 'string' && (request.data.startsWith('{') || request.data.startsWith('['))) {
+        return JSON.stringify(JSON.parse(request.data), null, 2);
+      }
+      return request.data;
+    } catch (e) {
+      return request.data;
+    }
+  }
+  if (request.body) {
+     if (typeof request.body === 'object') return JSON.stringify(request.body, null, 2);
+     return request.body;
+  }
+  return '';
+};
 
 // 格式化测试结果为易读格式
 const formatTestResult = (result: any): string => {
@@ -969,8 +1090,155 @@ const handleTaskResult = (data: any) => {
   
   // 使用格式化函数展示结果
   debugOutput.value = formatTestResult(result);
+  debugResult.value = result;
   activeTab.value = 'debug';
   testing.value = false;
+};
+
+// 加入测试用例管理
+const addToTestCase = async () => {
+  if (!ruleForm.api_name) {
+    ElMessage.warning('请先输入接口名称');
+    return;
+  }
+  if (!ruleForm.request_url) {
+    ElMessage.warning('请先输入请求URL');
+    return;
+  }
+  
+  // 先序列化当前参数
+  serializeParams();
+  
+  // 根据请求方法确定关键字ID和步骤描述
+  // 数据库中的关键字ID对应：1=GET, 2=POST(JSON), 3=POST(表单), 4=POST(文件), 5=PUT, 6=DELETE, 7=PATCH
+  const method = ruleForm.request_method || 'GET';
+  let keywordId = 1;
+  let stepDesc = 'GET请求';
+  
+  // 判断Body类型
+  const hasJsonBody = !!ruleForm.requests_json_data;
+  const hasFormBody = !!ruleForm.request_form_datas || !!ruleForm.request_www_form_datas;
+  
+  if (method === 'GET') {
+    keywordId = 1;
+    stepDesc = 'GET请求';
+  } else if (method === 'POST') {
+    if (hasJsonBody) {
+      keywordId = 2;
+      stepDesc = 'POST请求(JSON)';
+    } else if (hasFormBody) {
+      keywordId = 3;
+      stepDesc = 'POST请求(表单)';
+    } else {
+      keywordId = 2;  // 默认JSON
+      stepDesc = 'POST请求(JSON)';
+    }
+  } else if (method === 'PUT') {
+    keywordId = 5;
+    stepDesc = 'PUT请求';
+  } else if (method === 'DELETE') {
+    keywordId = 6;
+    stepDesc = 'DELETE请求';
+  } else if (method === 'PATCH') {
+    keywordId = 7;
+    stepDesc = 'PATCH请求';
+  }
+  
+  // 构建步骤数据（符合关键字参数格式）
+  const stepData: Record<string, any> = {
+    URL: ruleForm.request_url.trim(),
+  };
+  
+  // 添加请求头
+  if (ruleForm.request_headers) {
+    try {
+      const headers = JSON.parse(ruleForm.request_headers);
+      if (Object.keys(headers).length > 0) {
+        stepData.HEADERS = headers;
+      }
+    } catch (e) {
+      console.warn('解析请求头失败:', e);
+    }
+  }
+  
+  // 添加URL查询参数
+  if (ruleForm.request_params) {
+    try {
+      const params = JSON.parse(ruleForm.request_params);
+      if (Object.keys(params).length > 0) {
+        stepData.PARAMS = params;
+      }
+    } catch (e) {
+      console.warn('解析查询参数失败:', e);
+    }
+  }
+  
+  // 添加请求体（DATA字段）
+  if (ruleForm.requests_json_data) {
+    try {
+      stepData.DATA = JSON.parse(ruleForm.requests_json_data);
+    } catch (e) {
+      stepData.DATA = ruleForm.requests_json_data;
+    }
+  } else if (ruleForm.request_form_datas) {
+    try {
+      stepData.DATA = JSON.parse(ruleForm.request_form_datas);
+    } catch (e) {
+      stepData.DATA = ruleForm.request_form_datas;
+    }
+  } else if (ruleForm.request_www_form_datas) {
+    try {
+      stepData.DATA = JSON.parse(ruleForm.request_www_form_datas);
+    } catch (e) {
+      stepData.DATA = ruleForm.request_www_form_datas;
+    }
+  }
+  
+  // 构建测试用例数据
+  const caseData = {
+    project_id: ruleForm.project_id || null,
+    case_name: ruleForm.api_name,
+    case_desc: `接口调试自动生成: ${method} ${ruleForm.request_url}`,
+    steps: [
+      {
+        run_order: 1,
+        step_desc: stepDesc,
+        operation_type_id: 1,  // 1=HTTP请求类
+        keyword_id: keywordId,
+        step_data: stepData
+      }
+    ]
+  };
+  
+  addingCase.value = true;
+  
+  try {
+    const res = await insertCaseData(caseData);
+    if (res.data.code === 200) {
+      ElMessage.success('已成功加入测试用例管理');
+      // 询问是否跳转到用例管理页面
+      ElMessageBox.confirm(
+        '是否立即跳转到测试用例管理页面？',
+        '操作成功',
+        {
+          confirmButtonText: '立即跳转',
+          cancelButtonText: '留在当前页',
+          type: 'success'
+        }
+      ).then(() => {
+        router.push('/ApiInfoCaseList');
+      }).catch(() => {
+        // 用户选择留在当前页
+      });
+    } else {
+      ElMessage.error(res.data.msg || '加入测试用例失败');
+    }
+  } catch (error) {
+    console.error('加入测试用例失败:', error);
+    ElMessage.error('操作失败，请稍后重试');
+  } finally {
+    addingCase.value = false;
+  }
 };
 
 // 返回列表页
@@ -1051,8 +1319,8 @@ onMounted(() => {
 /* 表单内容区 */
 .form-content,
 .api-config-content {
+  padding: 16px;
   background: white;
-  padding: 20px;
   border-radius: 4px;
 }
 
@@ -1196,5 +1464,136 @@ onMounted(() => {
   font-size: 13px;
   line-height: 1.5;
   word-break: break-all;
+}
+
+/* 调试结果样式 */
+.debug-result-wrapper {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+}
+
+.debug-status-bar {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #ebeef5;
+  font-size: 14px;
+}
+
+.debug-status-bar.success {
+  background-color: #f0f9eb;
+  color: #67c23a;
+  border-bottom-color: #e1f3d8;
+}
+
+.debug-status-bar.failed {
+  background-color: #fef0f0;
+  color: #f56c6c;
+  border-bottom-color: #fde2e2;
+}
+
+.status-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.separator {
+  color: #dcdfe6;
+}
+
+.debug-detail {
+  padding: 20px;
+}
+
+.detail-row {
+  display: flex;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.detail-label {
+  width: 80px;
+  font-weight: 600;
+  color: #606266;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  color: #303133;
+  word-break: break-all;
+}
+
+.detail-block {
+  margin-bottom: 20px;
+}
+
+.detail-block .detail-label {
+  margin-bottom: 8px;
+  width: auto;
+}
+
+.code-box {
+  background-color: #fafafa;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  padding: 12px;
+  max-height: 400px;
+  overflow: auto;
+}
+
+.code-box pre {
+  margin: 0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  color: #333;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.text-danger {
+  color: #f56c6c;
+}
+
+.error-box {
+  background-color: #fef0f0;
+  border-color: #fde2e2;
+  color: #f56c6c;
+}
+
+.error-box pre {
+  color: #f56c6c;
+}
+
+/* 空状态样式 */
+.debug-empty-state {
+  height: 400px;
+  background-color: #fafafa;
+  border: 1px dashed #dcdfe6;
+  border-radius: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #909399;
+}
+
+.empty-content {
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: #c0c4cc;
+}
+
+.empty-text {
+  font-size: 14px;
+  margin: 0;
 }
 </style>

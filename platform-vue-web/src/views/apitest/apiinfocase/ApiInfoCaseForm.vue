@@ -329,7 +329,7 @@ const loadCaseData = async (id) => {
       step_desc: step.step_desc,
       operation_type_id: step.operation_type_id,
       keyword_id: step.keyword_id,
-      step_data: step.step_data ? JSON.parse(step.step_data) : {}
+      step_data: step.step_data || {}
     }))
   }
 }

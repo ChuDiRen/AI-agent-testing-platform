@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 
 from apitest.model.ApiKeyWordModel import ApiKeyWord
+from apitest.model.ApiOperationTypeModel import OperationType
 from sqlmodel import Session, select
 from sysmanage.model.dept import Dept
 from sysmanage.model.menu import Menu
@@ -459,6 +460,36 @@ def create_initial_role_menus():
             logger.info("初始角色菜单关联创建完成")
     except Exception as e:
         logger.error(f"创建角色菜单关联失败: {e}")
+        raise
+
+def create_initial_operation_types():
+    """创建初始操作类型数据"""
+    try:
+        with Session(engine) as session:
+            # 检查是否已存在操作类型数据
+            existing = session.exec(select(OperationType)).first()
+            if existing:
+                logger.info("操作类型数据已存在，跳过初始化")
+                return
+            
+            initial_types = [
+                {"id": 1, "operation_type_name": "HTTP请求", "ex_fun_name": "http_request"},
+                {"id": 2, "operation_type_name": "数据提取", "ex_fun_name": "data_extract"},
+                {"id": 3, "operation_type_name": "断言验证", "ex_fun_name": "assertion"},
+                {"id": 4, "operation_type_name": "数据库操作", "ex_fun_name": "database"},
+                {"id": 5, "operation_type_name": "工具方法", "ex_fun_name": "utility"},
+                {"id": 6, "operation_type_name": "文件操作", "ex_fun_name": "file_operation"},
+            ]
+            
+            for type_data in initial_types:
+                op_type = OperationType(**type_data, create_time=datetime.now())
+                session.add(op_type)
+                logger.info(f"创建操作类型: {type_data['operation_type_name']}")
+            
+            session.commit()
+            logger.info(f"初始操作类型数据创建完成，共创建{len(initial_types)}个操作类型")
+    except Exception as e:
+        logger.error(f"创建初始操作类型失败: {e}")
         raise
 
 def create_initial_keywords():
@@ -1149,6 +1180,10 @@ def init_all_data():
         from .init_ai_data import init_all_ai_data
         with Session(engine) as session:
             init_all_ai_data(session)
+        
+        # 初始化操作类型数据
+        logger.info("开始初始化操作类型数据...")
+        create_initial_operation_types()
         
         # 初始化关键字数据
         logger.info("开始初始化关键字数据...")

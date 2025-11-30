@@ -59,7 +59,6 @@
       <el-table-column fixed="right" label="操作" width="200">
         <template #default="scope">
           <el-button link type="primary" @click.prevent="onDataForm(scope.$index)">编辑</el-button>
-          <el-button link type="success" @click.prevent="onTestEditor(scope.$index)">测试</el-button>
           <el-button link type="info" @click.prevent="onViewHistory(scope.$index)">历史</el-button>
           <el-button link type="danger" @click.prevent="onDelete(scope.$index)">删除</el-button>
         </template>
@@ -244,12 +243,6 @@ const onDataForm = (index) => {
     const item = tableData.value[index];
     router.push(`/ApiInfoForm?id=${item.id}`);
   }
-};
-
-// 测试编辑器
-const onTestEditor = (index) => {
-  const item = tableData.value[index];
-  router.push(`/ApiInfoEditor?id=${item.id}`);
 };
 
 // 查看历史

@@ -4,7 +4,22 @@
     <el-card class="header-card" shadow="never">
       <div class="header-actions">
         <el-button type="primary" @click="handleSave">保存</el-button>
-        <el-button type="success" @click="handleContinueEdit">继续编辑</el-button>
+        <div class="executor-select-wrapper">
+          <el-select 
+            v-model="selectedExecutor" 
+            placeholder="选择执行器" 
+            size="default"
+            style="width: 180px"
+          >
+            <el-option 
+              v-for="executor in executorList" 
+              :key="executor.id" 
+              :label="executor.plugin_name" 
+              :value="executor.plugin_code" 
+            />
+          </el-select>
+        </div>
+        <el-button type="success" :loading="testing" @click="handleExecuteTest">执行测试</el-button>
         <el-button @click="goBack">关闭</el-button>
       </div>
     </el-card>
@@ -235,12 +250,18 @@ import { ElMessage } from 'element-plus'
 import { queryById, insertData, updateData } from './apiinfo.js'
 import { queryByPage as getProjectList } from '../project/apiProject.js'
 import { executeTest as executeApiTest } from '../apitest/apiTest.js'
+import { listEnabledPlugins } from '../../plugin/plugin.js'
 
 const router = useRouter()
 const route = useRoute()
 
 // 项目列表
 const projectList = ref([])
+
+// 执行器列表
+const executorList = ref([])
+const selectedExecutor = ref('')
+const testing = ref(false)
 
 // 表单数据
 const formData = reactive({
@@ -490,10 +511,29 @@ const handleSave = async () => {
   }
 }
 
-// 继续编辑
-const handleContinueEdit = async () => {
+// 加载执行器列表
+const loadExecutorList = async () => {
+  try {
+    const res = await listEnabledPlugins('executor')
+    if (res.data.code === 200) {
+      executorList.value = res.data.data || []
+      // 默认选择第一个执行器
+      if (executorList.value.length > 0 && !selectedExecutor.value) {
+        selectedExecutor.value = executorList.value[0].plugin_code
+      }
+    }
+  } catch (error) {
+    console.error('加载执行器列表失败:', error)
+  }
+}
+
+// 执行测试（按钮点击）
+const handleExecuteTest = async () => {
+  if (!selectedExecutor.value) {
+    ElMessage.warning('请选择执行器')
+    return
+  }
   await handleSave()
-  // 执行测试
   executeTest()
 }
 
@@ -504,7 +544,13 @@ const executeTest = async () => {
     return
   }
   
+  if (!selectedExecutor.value) {
+    ElMessage.warning('请选择执行器')
+    return
+  }
+  
   serializeParams()
+  testing.value = true
   
   try {
     const testData = {
@@ -513,7 +559,8 @@ const executeTest = async () => {
       request_url: formData.request_url,
       request_headers: formData.request_headers,
       request_params: formData.request_params,
-      request_body: formData.requests_json_data || formData.request_form_datas || formData.request_www_form_datas
+      request_body: formData.requests_json_data || formData.request_form_datas || formData.request_www_form_datas,
+      executor_code: selectedExecutor.value  // 添加执行器代码
     }
     
     const res = await executeApiTest(testData)
@@ -537,6 +584,8 @@ const executeTest = async () => {
     testResult.status = 'error'
     testResult.response = error.message || '测试执行失败'
     ElMessage.error('测试执行失败，请稍后重试')
+  } finally {
+    testing.value = false
   }
 }
 
@@ -561,6 +610,7 @@ const goBack = () => {
 // 页面加载
 onMounted(() => {
   loadProjectList()
+  loadExecutorList()
   
   const id = route.query.id
   if (id) {
@@ -588,7 +638,12 @@ onMounted(() => {
 
 .header-actions {
   display: flex;
+  align-items: center;
   gap: 10px;
+}
+
+.executor-select-wrapper {
+  margin-left: 20px;
 }
 
 .base-info {

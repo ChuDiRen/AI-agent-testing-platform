@@ -73,7 +73,7 @@
 
           <!-- 特殊字段：数据库下拉 -->
           <el-select
-            v-else-if="field.name.startsWith('_数据库')"
+            v-else-if="field.name && field.name.startsWith('_数据库')"
             v-model="stepForm.step_data[field.name]"
             placeholder="请选择数据库"
             filterable
@@ -86,6 +86,15 @@
               :value="db.id"
             />
           </el-select>
+
+          <!-- JSON/对象类型：使用文本域（后续可升级为JSON编辑器） -->
+          <el-input
+            v-else-if="['HEADERS', 'PARAMS', 'DATA', 'JSON'].includes(field.name)"
+            v-model="stepForm.step_data[field.name]"
+            type="textarea"
+            :rows="4"
+            :placeholder="field.placeholder || `请输入${field.name} (JSON格式)`"
+          />
 
           <!-- 普通文本输入框 -->
           <el-input
@@ -235,17 +244,27 @@ const handleKeywordChange = async (value) => {
   try {
     const res = await getKeywordFields(value)
     if (res.data.code === 200) {
-      const fields = res.data.data || []
+      const fields = Array.isArray(res.data.data) ? res.data.data : []
       dynamicFields.value = fields
+      
+      // 确保step_data是对象
+      if (!stepForm.step_data) {
+        stepForm.step_data = {}
+      }
       
       // 初始化step_data
       fields.forEach(field => {
-        stepForm.step_data[field.name] = ''
+        if (field && field.name) {
+          // 只有当字段不存在时才初始化，避免覆盖已有值（在编辑模式下）
+          if (stepForm.step_data[field.name] === undefined) {
+            stepForm.step_data[field.name] = field.default || ''
+          }
+        }
       })
       
       // 如果有特殊字段，加载对应的下拉数据
-      const hasApiField = fields.some(f => f.name.startsWith('_接口信息'))
-      const hasDbField = fields.some(f => f.name.startsWith('_数据库'))
+      const hasApiField = fields.some(f => f.name && f.name.startsWith('_接口信息'))
+      const hasDbField = fields.some(f => f.name && f.name.startsWith('_数据库'))
       
       if (hasApiField) {
         loadApiInfo()
@@ -253,10 +272,12 @@ const handleKeywordChange = async (value) => {
       if (hasDbField) {
         loadDbList()
       }
+    } else {
+      console.error('加载关键字字段失败，后端返回错误:', res.data.msg)
     }
   } catch (error) {
     console.error('加载关键字字段失败:', error)
-    ElMessage.error('加载关键字字段失败')
+    ElMessage.error('加载关键字字段失败: ' + (error.message || '未知错误'))
   }
 }
 
@@ -269,12 +290,21 @@ watch(() => props.modelValue, (val) => {
     
     if (props.stepData) {
       // 编辑模式：加载步骤数据
+      const rawStepData = props.stepData.step_data ? JSON.parse(JSON.stringify(props.stepData.step_data)) : {}
+      
+      // 将对象类型的参数转换为JSON字符串以便编辑
+      for (const key in rawStepData) {
+        if (typeof rawStepData[key] === 'object' && rawStepData[key] !== null) {
+          rawStepData[key] = JSON.stringify(rawStepData[key], null, 2)
+        }
+      }
+
       Object.assign(stepForm, {
         run_order: props.stepData.run_order,
         step_desc: props.stepData.step_desc,
         operation_type_id: props.stepData.operation_type_id,
         keyword_id: props.stepData.keyword_id,
-        step_data: props.stepData.step_data ? JSON.parse(JSON.stringify(props.stepData.step_data)) : {}
+        step_data: rawStepData
       })
       
       // 加载关键字列表和字段
@@ -316,13 +346,29 @@ const handleConfirm = async () => {
       return
     }
     
+    // 处理数据：尝试解析JSON字符串
+    const processedStepData = { ...stepForm.step_data }
+    for (const key in processedStepData) {
+      const val = processedStepData[key]
+      if (['HEADERS', 'PARAMS', 'DATA', 'JSON'].includes(key) && typeof val === 'string') {
+        try {
+          // 只有当看起来像JSON对象或数组时才解析
+          if ((val.trim().startsWith('{') || val.trim().startsWith('['))) {
+             processedStepData[key] = JSON.parse(val)
+          }
+        } catch (e) {
+          // 解析失败保持原样
+        }
+      }
+    }
+
     // 发送数据
     const stepData = {
       run_order: stepForm.run_order,
       step_desc: stepForm.step_desc,
       operation_type_id: stepForm.operation_type_id,
       keyword_id: stepForm.keyword_id,
-      step_data: { ...stepForm.step_data }
+      step_data: processedStepData
     }
     
     emit('confirm', stepData)

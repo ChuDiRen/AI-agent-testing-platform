@@ -161,31 +161,48 @@ def queryByOperationType(operation_type_id: int = Query(...), session: Session =
 
 @module_route.get("/getKeywordFields", summary="获取关键字字段描述", dependencies=[Depends(check_permission("apitest:keyword:query"))]) # 获取关键字的字段描述
 def getKeywordFields(keyword_id: int = Query(...), session: Session = Depends(get_session)):
-    """获取关键字的字段描述（解析keyword_desc）"""
+    """获取关键字的字段描述（解析keyword_desc或从代码中提取）"""
     try:
         import json
+        import re
         
         # 查询关键字
         keyword = session.get(module_model, keyword_id)
         if not keyword:
             return respModel.error_resp("关键字不存在")
         
-        # 解析keyword_desc
+        # 尝试解析keyword_desc为JSON
         try:
             if keyword.keyword_desc:
-                # 尝试解析为JSON
                 fields = json.loads(keyword.keyword_desc)
                 if isinstance(fields, list):
                     return respModel.ok_resp(obj=fields, msg="查询成功")
                 else:
-                    # 如果不是列表，转换为列表格式
                     return respModel.ok_resp(obj=[fields], msg="查询成功")
-            else:
-                return respModel.ok_resp(obj=[], msg="该关键字没有字段描述")
         except json.JSONDecodeError:
-            # 如果不是JSON格式，返回空列表
-            logger.warning(f"关键字 {keyword_id} 的 keyword_desc 不是有效的JSON格式")
-            return respModel.ok_resp(obj=[], msg="字段描述格式错误")
+            pass  # 不是JSON格式，尝试从代码中提取
+        
+        # 从keyword_value（函数代码）中提取参数
+        fields = []
+        if keyword.keyword_value:
+            # 匹配 kwargs.get("PARAM_NAME", default) 模式
+            pattern = r'kwargs\.get\s*\(\s*["\'](\w+)["\']\s*(?:,\s*([^)]+))?\)'
+            matches = re.findall(pattern, keyword.keyword_value)
+            
+            for param_name, default_value in matches:
+                field = {
+                    "name": param_name,
+                    "type": "string",
+                    "required": default_value.strip() == "None" if default_value else True,
+                    "description": f"参数: {param_name}",
+                    "default": "" if not default_value or default_value.strip() == "None" else default_value.strip().strip("'\"")
+                }
+                fields.append(field)
+        
+        if fields:
+            return respModel.ok_resp(obj=fields, msg="查询成功")
+        else:
+            return respModel.ok_resp(obj=[], msg="该关键字没有字段描述")
     except Exception as e:
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
