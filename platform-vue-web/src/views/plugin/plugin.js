@@ -52,7 +52,12 @@ export function uploadExecutor(formData) {
   })
 }
 
-// 安装执行器（pip install -e .）
+// 安装执行器（异步启动）
 export function installExecutor(id) {
   return axios.post('/Plugin/installExecutor', {}, { params: { id } })
+}
+
+// 查询安装进度
+export function getInstallStatus(id) {
+  return axios.get('/Plugin/installStatus', { params: { id } })
 }

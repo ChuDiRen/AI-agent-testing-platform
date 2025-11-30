@@ -11,6 +11,7 @@ import json
 import yaml
 import logging
 import re
+import shutil
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from pathlib import Path
@@ -75,16 +76,14 @@ def parse_test_output(stdout: str) -> Dict[str, Any]:
 class CommandExecutor:
     """命令行执行器"""
     
-    def __init__(self, command: str, work_dir: str):
+    def __init__(self, command: str):
         """
         初始化命令行执行器
         
         Args:
-            command: 执行命令（如: webrun）
-            work_dir: 工作目录（pip install -e 后的安装路径）
+            command: 执行命令（如: webrun, apirun）
         """
         self.command = command
-        self.work_dir = work_dir
         self._running_tasks: Dict[str, subprocess.Popen] = {}
     
     async def execute_test(
@@ -263,8 +262,8 @@ class CommandExecutor:
                 "error": stderr_str if stderr_str and process.returncode != 0 else None
             }
             
-            # 直接返回简洁结果
-            return {
+            # 构建返回结果
+            result = {
                 "success": True,
                 "task_id": task_id,
                 "status": simple_result["status"],
@@ -272,6 +271,16 @@ class CommandExecutor:
                 "case_file": str(case_file),
                 "temp_dir": str(temp_dir)
             }
+            
+            # 清理临时目录
+            try:
+                if temp_dir.exists():
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+                    logger.info(f"Task {task_id}: 临时目录已清理 {temp_dir}")
+            except Exception as cleanup_err:
+                logger.warning(f"Task {task_id}: 清理临时目录失败 {cleanup_err}")
+            
+            return result
         
         except Exception as e:
             import traceback
@@ -284,19 +293,10 @@ class CommandExecutor:
             }
 
     def _get_work_dir(self) -> Path:
-        """获取工作目录（项目相对路径）"""
-        # 项目根目录
+        """获取工作目录（临时文件存放目录）"""
+        # 项目根目录下的 executor_temp 目录
         project_root = Path(__file__).resolve().parents[2]
-        
-        if not self.work_dir:
-            # 使用项目目录下的 executor_temp 目录
-            return project_root / "executor_temp"
-        
-        work_dir = Path(self.work_dir)
-        if not work_dir.is_absolute():
-            work_dir = (project_root / self.work_dir).resolve()
-        
-        return work_dir
+        return project_root / "executor_temp"
     
     def _wait_and_save_result(self, task_id: str, process: subprocess.Popen, temp_dir: Path, timeout: int = 60):
         """在后台线程中等待测试完成并保存结果"""

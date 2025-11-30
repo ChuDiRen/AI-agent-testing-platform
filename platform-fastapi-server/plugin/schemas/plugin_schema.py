@@ -15,7 +15,6 @@ class PluginBase(BaseModel):
     plugin_type: str = Field(..., max_length=20, description="插件类型: executor/tool/extension")
     version: str = Field(default="1.0.0", max_length=20, description="版本号")
     command: str = Field(..., max_length=500, description="执行命令")
-    work_dir: str = Field(default="", max_length=500, description="安装目录")
     description: Optional[str] = Field(None, description="插件描述")
     author: Optional[str] = Field(None, max_length=100, description="作者")
     is_enabled: int = Field(default=1, description="是否启用: 0禁用 1启用")
@@ -35,7 +34,6 @@ class PluginUpdate(BaseModel):
     plugin_type: Optional[str] = Field(None, max_length=20)
     version: Optional[str] = Field(None, max_length=20)
     command: Optional[str] = Field(None, max_length=500)
-    work_dir: Optional[str] = Field(None, max_length=500)
     description: Optional[str] = None
     author: Optional[str] = Field(None, max_length=100)
     is_enabled: Optional[int] = None

@@ -163,7 +163,6 @@ async def list_executors(
             "plugin_name": p.plugin_name,
             "version": p.version,
             "command": p.command,
-            "work_dir": p.work_dir,
             "capabilities": p.capabilities,
             "description": p.description,
         } for p in plugins]

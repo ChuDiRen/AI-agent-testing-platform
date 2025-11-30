@@ -20,22 +20,20 @@ class TaskScheduler:
         """初始化调度器"""
         self._executors: Dict[str, CommandExecutor] = {}
     
-    def _get_executor(self, command: str, work_dir: str) -> CommandExecutor:
+    def _get_executor(self, command: str) -> CommandExecutor:
         """
         获取或创建命令行执行器
         
         Args:
             command: 执行命令
-            work_dir: 工作目录
         
         Returns:
             CommandExecutor实例
         """
-        key = f"{work_dir}:{command}"
-        if key not in self._executors:
-            self._executors[key] = CommandExecutor(command, work_dir)
+        if command not in self._executors:
+            self._executors[command] = CommandExecutor(command)
         
-        return self._executors[key]
+        return self._executors[command]
     
     async def execute_test(
         self,
@@ -86,7 +84,7 @@ class TaskScheduler:
             
             # 4. 获取命令行执行器
             logger.info(f"Executing test on plugin: {plugin_code}")
-            executor = self._get_executor(plugin.command, plugin.work_dir)
+            executor = self._get_executor(plugin.command)
             
             # 5. 执行测试
             execute_result = await executor.execute_test(
@@ -170,7 +168,7 @@ class TaskScheduler:
                 }
             
             # 获取执行器
-            executor = self._get_executor(plugin.command, plugin.work_dir)
+            executor = self._get_executor(plugin.command)
             
             # 查询状态
             status_result = await executor.get_task_status(task_id, temp_dir)
@@ -223,7 +221,7 @@ class TaskScheduler:
                 }
             
             # 获取执行器
-            executor = self._get_executor(plugin.command, plugin.work_dir)
+            executor = self._get_executor(plugin.command)
             
             # 取消任务
             cancel_result = await executor.cancel_task(task_id)
@@ -274,7 +272,6 @@ class TaskScheduler:
                     "plugin_name": plugin.plugin_name,
                     "version": plugin.version,
                     "command": plugin.command,
-                    "work_dir": plugin.work_dir,
                     "capabilities": plugin.capabilities,
                     "description": plugin.description
                 })

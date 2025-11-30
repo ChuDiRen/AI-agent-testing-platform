@@ -4,7 +4,7 @@
 """
 from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File
 from sqlmodel import Session, select, or_, func
-from typing import List
+from typing import List, Dict, Any
 import httpx
 import json
 import time
@@ -194,18 +194,79 @@ async def update_plugin(
 @module_route.delete("/unregister", summary="注销插件")
 async def unregister_plugin(
     id: int = Query(..., description="插件ID"),
+    uninstall_package: bool = Query(False, description="是否同时卸载已安装的pip包"),
+    cleanup_temp: bool = Query(False, description="是否同时清理所有临时执行文件"),
     session: Session = Depends(get_session)
 ):
-    """注销（删除）插件"""
+    """
+    注销（删除）插件
+    
+    Args:
+        id: 插件ID
+        uninstall_package: 是否同时卸载已安装的pip包（默认False）
+        cleanup_temp: 是否同时清理所有临时执行文件（默认False）
+    """
+    import subprocess
+    import sys
+    
     try:
         plugin = session.get(Plugin, id)
         if not plugin:
             return respModel.error_resp(msg="插件不存在")
         
+        cleanup_results = []
+        
+        # 1. 如果需要，卸载已安装的pip包
+        if uninstall_package and plugin.plugin_code:
+            try:
+                result = subprocess.run(
+                    [sys.executable, "-m", "pip", "uninstall", "-y", plugin.plugin_code],
+                    capture_output=True,
+                    text=True,
+                    timeout=60
+                )
+                if result.returncode == 0:
+                    cleanup_results.append(f"已卸载pip包: {plugin.plugin_code}")
+                else:
+                    cleanup_results.append(f"pip包卸载失败或不存在: {result.stderr or result.stdout}")
+            except Exception as e:
+                cleanup_results.append(f"pip卸载异常: {str(e)}")
+        
+        # 2. 清理临时执行目录
+        try:
+            project_root = Path(__file__).resolve().parents[2]
+            temp_dir = project_root / "executor_temp" / "temp"
+            if temp_dir.exists():
+                temp_items = list(temp_dir.iterdir())
+                temp_count = len(temp_items)
+                if temp_count > 0:
+                    if cleanup_temp:
+                        # 清理所有临时文件
+                        cleaned = 0
+                        for item in temp_items:
+                            try:
+                                if item.is_dir():
+                                    shutil.rmtree(item, ignore_errors=True)
+                                else:
+                                    item.unlink()
+                                cleaned += 1
+                            except Exception:
+                                pass
+                        cleanup_results.append(f"已清理 {cleaned}/{temp_count} 个临时文件")
+                    else:
+                        cleanup_results.append(f"临时目录存在 {temp_count} 个任务文件夹，如需清理请设置 cleanup_temp=true")
+        except Exception as e:
+            cleanup_results.append(f"检查临时目录异常: {str(e)}")
+        
+        # 3. 删除数据库记录
         session.delete(plugin)
         session.commit()
         
-        return respModel.ok_resp(msg="插件注销成功")
+        msg = "插件注销成功"
+        if cleanup_results:
+            msg += "。" + "；".join(cleanup_results)
+        
+        return respModel.ok_resp(msg=msg)
     
     except Exception as e:
         return respModel.error_resp(msg=f"注销失败: {str(e)}")
@@ -242,21 +303,25 @@ async def health_check_plugin(
     session: Session = Depends(get_session)
 ):
     """检查插件健康状态"""
+    import subprocess
+    import sys
+    
     try:
         plugin = session.get(Plugin, id)
         if not plugin:
             return respModel.error_resp(msg="插件不存在")
         
         start_time = time.time()
+        status = "unknown"
+        msg = ""
+        cmd_path = None
         
-        # 检查逻辑：
-        # 1. 如果有 plugin_content（内嵌执行器），检查是否已安装
-        # 2. 如果有 work_dir，检查目录是否存在
+        # 检查逻辑优先级：
+        # 1. 如果有 command，检查命令是否可用（最重要）
+        # 2. 如果有 plugin_content 但命令不可用，提示需要安装
         
-        if plugin.plugin_content:
-            # 内嵌执行器：检查命令是否可用
-            import subprocess
-            import sys
+        if plugin.command:
+            # 检查命令是否在 PATH 中可用
             try:
                 result = subprocess.run(
                     [sys.executable, "-c", f"import shutil; print(shutil.which('{plugin.command}'))"],
@@ -267,23 +332,25 @@ async def health_check_plugin(
                 cmd_path = result.stdout.strip()
                 if cmd_path and cmd_path != "None":
                     status = "healthy"
-                    msg = f"命令 {plugin.command} 已安装"
+                    msg = f"命令 {plugin.command} 可用，路径: {cmd_path}"
                 else:
-                    status = "not_installed"
-                    msg = f"命令 {plugin.command} 未安装，请点击安装按钮"
-            except Exception:
+                    # 命令不可用，检查是否有 plugin_content 可以安装
+                    if plugin.plugin_content:
+                        status = "not_installed"
+                        msg = f"命令 {plugin.command} 未安装，请点击安装按钮"
+                    else:
+                        status = "unhealthy"
+                        msg = f"命令 {plugin.command} 不可用，且无安装包"
+            except Exception as e:
                 status = "unknown"
-                msg = "无法检测命令状态"
-        elif plugin.work_dir:
-            if os.path.exists(plugin.work_dir):
-                status = "healthy"
-                msg = "工作目录存在"
-            else:
-                status = "unhealthy"
-                msg = f"工作目录不存在: {plugin.work_dir}"
+                msg = f"无法检测命令状态: {str(e)}"
+        elif plugin.plugin_content:
+            # 有安装包但没有配置 command
+            status = "not_configured"
+            msg = "插件已上传但未配置命令，请检查 setup.py"
         else:
             status = "not_configured"
-            msg = "插件未配置"
+            msg = "插件未配置（无命令、无工作目录、无安装包）"
 
         response_time = (time.time() - start_time) * 1000
         
@@ -444,7 +511,6 @@ async def upload_executor(
             existing.version = version
             existing.dependencies = json.dumps(dependencies) if dependencies else None
             existing.capabilities = json.dumps({"console_scripts": console_scripts})
-            existing.work_dir = ""  # 无固定工作目录，动态安装
             existing.modify_time = datetime.now()
             session.add(existing)
             session.commit()
@@ -457,7 +523,6 @@ async def upload_executor(
                 plugin_type="executor",
                 version=version,
                 command=command,
-                work_dir="",  # 无固定工作目录
                 plugin_content=zip_base64,
                 description=description,
                 author="User Upload",
@@ -489,36 +554,28 @@ async def upload_executor(
             shutil.rmtree(extract_dir, ignore_errors=True)
 
 
-@module_route.post("/installExecutor", summary="安装执行器到本地（pip install）")
-async def install_executor(
-    id: int = Query(..., description="执行器插件ID"),
-    session: Session = Depends(get_session)
-):
+# 安装任务状态存储（内存中，生产环境可用 Redis）
+_install_tasks: Dict[int, Dict[str, Any]] = {}
+
+
+def _run_pip_install(plugin_id: int, plugin_code: str, plugin_content: str, command: str):
     """
-    从数据库读取执行器内容，解压并执行 pip install . 安装为命令行工具
-    安装完成后删除源文件，只保留可执行命令
+    后台执行 pip install（在线程中运行）
     """
     import subprocess
     import sys
     
     extract_dir = None
-    
     try:
-        plugin = session.get(Plugin, id)
-        if not plugin:
-            return respModel.error_resp(msg="插件不存在")
+        _install_tasks[plugin_id] = {
+            "status": "installing",
+            "message": "正在解压执行器...",
+            "progress": 10
+        }
         
-        if not plugin.plugin_content:
-            return respModel.error_resp(msg="插件内容为空，请先上传执行器")
-        
-        # 1. 解码并解压到固定目录
-        zip_bytes = base64.b64decode(plugin.plugin_content)
-        
-        # 使用固定安装目录（项目根目录同级的 executors 目录）
-        executors_base = Path(__file__).resolve().parents[2].parent / "executors"
-        executors_base.mkdir(parents=True, exist_ok=True)
-        
-        extract_dir = executors_base / plugin.plugin_code
+        # 1. 解码并解压到临时目录
+        zip_bytes = base64.b64decode(plugin_content)
+        extract_dir = Path(tempfile.gettempdir()) / f"executor_install_{plugin_code}"
         if extract_dir.exists():
             shutil.rmtree(extract_dir)
         extract_dir.mkdir(parents=True, exist_ok=True)
@@ -533,37 +590,211 @@ async def install_executor(
         else:
             install_dir = extract_dir
         
-        # 2. 执行 pip install .（标准安装，不依赖源目录）
+        _install_tasks[plugin_id] = {
+            "status": "installing",
+            "message": "正在执行 pip install...",
+            "progress": 30
+        }
+        
+        # 2. 执行 pip install
         result = subprocess.run(
             [sys.executable, "-m", "pip", "install", "."],
             cwd=str(install_dir),
             capture_output=True,
-            text=True
+            text=True,
+            timeout=300  # 5分钟超时
         )
         
-        if result.returncode != 0:
-            return respModel.error_resp(
-                msg=f"安装失败: {result.stderr or result.stdout}"
-            )
-        
-        # 3. 安装成功后删除解压的源文件目录
+        # 3. 清理解压目录
         if extract_dir and extract_dir.exists():
             shutil.rmtree(extract_dir, ignore_errors=True)
         
-        # 4. 更新插件状态（不再需要 work_dir，命令已全局可用）
-        plugin.work_dir = ""  # 标准安装不需要工作目录
-        plugin.modify_time = datetime.now()
-        session.add(plugin)
-        session.commit()
+        if result.returncode != 0:
+            _install_tasks[plugin_id] = {
+                "status": "failed",
+                "message": f"安装失败: {result.stderr or result.stdout}",
+                "progress": 100
+            }
+        else:
+            _install_tasks[plugin_id] = {
+                "status": "completed",
+                "message": f"执行器安装成功，可使用命令: {command}",
+                "output": result.stdout,
+                "progress": 100
+            }
+    
+    except subprocess.TimeoutExpired:
+        _install_tasks[plugin_id] = {
+            "status": "failed",
+            "message": "安装超时（超过5分钟）",
+            "progress": 100
+        }
+    except Exception as e:
+        _install_tasks[plugin_id] = {
+            "status": "failed",
+            "message": f"安装异常: {str(e)}",
+            "progress": 100
+        }
+    finally:
+        if extract_dir and extract_dir.exists():
+            shutil.rmtree(extract_dir, ignore_errors=True)
+
+
+@module_route.post("/installExecutor", summary="安装执行器到本地（异步）")
+async def install_executor(
+    id: int = Query(..., description="执行器插件ID"),
+    session: Session = Depends(get_session)
+):
+    """
+    异步安装执行器：立即返回，后台执行 pip install
+    通过 /installStatus 接口查询安装进度
+    """
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+    
+    try:
+        plugin = session.get(Plugin, id)
+        if not plugin:
+            return respModel.error_resp(msg="插件不存在")
+        
+        if not plugin.plugin_content:
+            return respModel.error_resp(msg="插件内容为空，请先上传执行器")
+        
+        # 检查是否已在安装中
+        if id in _install_tasks and _install_tasks[id].get("status") == "installing":
+            return respModel.ok_resp(
+                obj={"status": "installing", "message": "安装任务已在进行中"},
+                msg="安装任务已在进行中"
+            )
+        
+        # 初始化安装状态
+        _install_tasks[id] = {
+            "status": "installing",
+            "message": "安装任务已启动...",
+            "progress": 0
+        }
+        
+        # 在后台线程中执行安装
+        loop = asyncio.get_event_loop()
+        executor = ThreadPoolExecutor(max_workers=1)
+        loop.run_in_executor(
+            executor,
+            _run_pip_install,
+            id,
+            plugin.plugin_code,
+            plugin.plugin_content,
+            plugin.command
+        )
         
         return respModel.ok_resp(
-            obj={
-                "command": plugin.command,
-                "output": result.stdout
-            },
-            msg=f"执行器安装成功，可使用命令: {plugin.command}"
+            obj={"status": "installing", "plugin_id": id},
+            msg="安装任务已启动，请通过 /installStatus 查询进度"
         )
     
     except Exception as e:
-        import traceback
-        return respModel.error_resp(msg=f"安装失败: {str(e)}\n{traceback.format_exc()}")
+        return respModel.error_resp(msg=f"启动安装失败: {str(e)}")
+
+
+@module_route.get("/installStatus", summary="查询安装进度")
+async def get_install_status(
+    id: int = Query(..., description="执行器插件ID")
+):
+    """
+    查询执行器安装进度
+    """
+    if id not in _install_tasks:
+        return respModel.ok_resp(
+            obj={"status": "unknown", "message": "未找到安装任务"},
+            msg="未找到安装任务"
+        )
+    
+    task_info = _install_tasks[id]
+    return respModel.ok_resp(obj=task_info, msg=task_info.get("message", ""))
+
+
+@module_route.delete("/cleanupTempFiles", summary="清理临时执行文件")
+async def cleanup_temp_files(
+    days: int = Query(7, description="清理多少天前的临时文件，默认7天"),
+    session: Session = Depends(get_session)
+):
+    """
+    清理临时执行目录中的旧文件
+    
+    Args:
+        days: 清理多少天前的文件（默认7天）
+    """
+    try:
+        project_root = Path(__file__).resolve().parents[2]
+        temp_dir = project_root / "executor_temp" / "temp"
+        
+        if not temp_dir.exists():
+            return respModel.ok_resp(msg="临时目录不存在，无需清理")
+        
+        cleaned_count = 0
+        failed_count = 0
+        cutoff_time = datetime.now().timestamp() - (days * 24 * 60 * 60)
+        
+        for task_dir in temp_dir.iterdir():
+            if task_dir.is_dir():
+                try:
+                    # 检查目录修改时间
+                    dir_mtime = task_dir.stat().st_mtime
+                    if dir_mtime < cutoff_time:
+                        shutil.rmtree(task_dir, ignore_errors=True)
+                        cleaned_count += 1
+                except Exception:
+                    failed_count += 1
+        
+        return respModel.ok_resp(
+            obj={
+                "cleaned": cleaned_count,
+                "failed": failed_count
+            },
+            msg=f"清理完成：删除 {cleaned_count} 个临时目录，{failed_count} 个删除失败"
+        )
+    
+    except Exception as e:
+        return respModel.error_resp(msg=f"清理失败: {str(e)}")
+
+
+@module_route.post("/uninstallExecutor", summary="卸载执行器pip包")
+async def uninstall_executor(
+    id: int = Query(..., description="执行器插件ID"),
+    session: Session = Depends(get_session)
+):
+    """
+    卸载已安装的执行器pip包（不删除数据库记录）
+    """
+    import subprocess
+    import sys
+    
+    try:
+        plugin = session.get(Plugin, id)
+        if not plugin:
+            return respModel.error_resp(msg="插件不存在")
+        
+        if not plugin.plugin_code:
+            return respModel.error_resp(msg="插件代码为空")
+        
+        # 执行 pip uninstall
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "uninstall", "-y", plugin.plugin_code],
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        
+        if result.returncode == 0:
+            return respModel.ok_resp(
+                obj={"output": result.stdout},
+                msg=f"执行器 {plugin.plugin_code} 卸载成功"
+            )
+        else:
+            return respModel.error_resp(
+                msg=f"卸载失败: {result.stderr or result.stdout}"
+            )
+    
+    except subprocess.TimeoutExpired:
+        return respModel.error_resp(msg="卸载超时")
+    except Exception as e:
+        return respModel.error_resp(msg=f"卸载失败: {str(e)}")

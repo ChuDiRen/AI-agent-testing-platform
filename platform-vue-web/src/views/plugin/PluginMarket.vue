@@ -6,7 +6,7 @@
         <el-input v-model="searchForm.plugin_name" placeholder="输入插件名称" clearable />
       </el-form-item>
       <el-form-item label="插件类型">
-        <el-select v-model="searchForm.plugin_type" placeholder="全部" clearable>
+        <el-select v-model="searchForm.plugin_type" placeholder="全部" clearable style="width: 120px">
           <el-option label="全部" value="" />
           <el-option label="执行器" value="executor" />
           <el-option label="工具" value="tool" />
@@ -14,7 +14,7 @@
         </el-select>
       </el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="searchForm.is_enabled" placeholder="全部" clearable>
+        <el-select v-model="searchForm.is_enabled" placeholder="全部" clearable style="width: 100px">
           <el-option label="全部" value="" />
           <el-option label="已启用" :value="1" />
           <el-option label="已禁用" :value="0" />
@@ -56,12 +56,6 @@
       </el-table-column>
       <el-table-column prop="version" label="版本" width="80" align="center" />
       <el-table-column prop="command" label="执行命令" min-width="120" show-overflow-tooltip />
-      <el-table-column prop="work_dir" label="安装目录" min-width="200" show-overflow-tooltip>
-        <template #default="{ row }">
-          <span v-if="row.work_dir">{{ row.work_dir }}</span>
-          <el-tag v-else type="warning" size="small">未安装</el-tag>
-        </template>
-      </el-table-column>
       <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip />
       <el-table-column prop="is_enabled" label="状态" width="80" align="center">
         <template #default="{ row }">
@@ -97,10 +91,6 @@
         <el-descriptions-item label="执行命令" :span="2">
           <code>{{ currentPlugin.command || '-' }}</code>
         </el-descriptions-item>
-        <el-descriptions-item label="安装目录" :span="2">
-          <code v-if="currentPlugin.work_dir">{{ currentPlugin.work_dir }}</code>
-          <el-tag v-else type="warning" size="small">未安装</el-tag>
-        </el-descriptions-item>
         <el-descriptions-item label="作者">{{ currentPlugin.author || '未知' }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="currentPlugin.is_enabled === 1 ? 'success' : 'danger'">
@@ -119,6 +109,20 @@
         <el-descriptions-item label="创建时间">{{ currentPlugin.create_time || '-' }}</el-descriptions-item>
         <el-descriptions-item label="修改时间">{{ currentPlugin.modify_time || '-' }}</el-descriptions-item>
       </el-descriptions>
+    </el-dialog>
+
+    <!-- 安装进度对话框 -->
+    <el-dialog v-model="installDialogVisible" title="安装执行器" width="450px" :close-on-click-modal="false" :close-on-press-escape="false" :show-close="!installLoading">
+      <div style="padding: 20px 0;">
+        <div style="margin-bottom: 15px; color: #606266;">
+          <el-icon v-if="installLoading" class="is-loading" style="margin-right: 8px;"><Loading /></el-icon>
+          {{ installMessage }}
+        </div>
+        <el-progress :percentage="installProgress" :status="installStatus === 'completed' ? 'success' : installStatus === 'failed' ? 'exception' : ''" />
+      </div>
+      <template #footer v-if="!installLoading">
+        <el-button type="primary" @click="installDialogVisible = false">确定</el-button>
+      </template>
     </el-dialog>
 
     <!-- 上传执行器对话框 -->
@@ -181,9 +185,9 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { Upload, UploadFilled, Folder } from '@element-plus/icons-vue'
+import { Upload, UploadFilled, Folder, Loading } from '@element-plus/icons-vue'
 import JSZip from 'jszip'
-import { queryByPage, togglePlugin, unregisterPlugin, healthCheck, uploadExecutor, installExecutor } from './plugin.js'
+import { queryByPage, togglePlugin, unregisterPlugin, healthCheck, uploadExecutor, installExecutor, getInstallStatus } from './plugin.js'
 import BaseSearch from '@/components/BaseSearch/index.vue'
 import BaseTable from '@/components/BaseTable/index.vue'
 
@@ -219,6 +223,13 @@ const detailVisible = ref(false)
 const executorUploadVisible = ref(false)
 const currentPlugin = ref(null)
 const executorFolderInput = ref(null)
+
+// 安装进度
+const installDialogVisible = ref(false)
+const installProgress = ref(0)
+const installMessage = ref('')
+const installStatus = ref('')
+const installLoading = ref(false)
 
 // 上传执行器文件
 const uploadExecutorFile = async (file) => {
@@ -282,21 +293,72 @@ const handleExecutorFolderChange = async (event) => {
   }
 }
 
-// 安装执行器
+// 安装执行器（异步轮询）
 const handleInstall = async (row) => {
-  const loadingInstance = ElLoading.service({ text: '正在安装执行器...' })
+  // 初始化进度对话框
+  installDialogVisible.value = true
+  installProgress.value = 0
+  installMessage.value = '正在启动安装...'
+  installStatus.value = 'installing'
+  installLoading.value = true
+  
   try {
     const res = await installExecutor(row.id)
-    loadingInstance.close()
-    if (res.data.code === 200) {
-      ElMessage.success(res.data.msg || '安装成功')
-      loadData()
-    } else {
-      ElMessage.error(res.data.msg || '安装失败')
+    if (res.data.code !== 200) {
+      installMessage.value = res.data.msg || '启动安装失败'
+      installStatus.value = 'failed'
+      installProgress.value = 100
+      installLoading.value = false
+      return
     }
+    
+    // 轮询安装状态
+    const pollStatus = async () => {
+      try {
+        const statusRes = await getInstallStatus(row.id)
+        if (statusRes.data.code === 200) {
+          const status = statusRes.data.data?.status
+          const message = statusRes.data.data?.message || ''
+          const progress = statusRes.data.data?.progress || 0
+          
+          installMessage.value = message || '正在安装执行器...'
+          installProgress.value = progress
+          installStatus.value = status
+          
+          if (status === 'installing') {
+            setTimeout(pollStatus, 1000) // 1秒后再次查询
+          } else if (status === 'completed') {
+            installLoading.value = false
+            ElMessage.success(message || '安装成功')
+            loadData()
+          } else if (status === 'failed') {
+            installLoading.value = false
+          } else {
+            installLoading.value = false
+            installMessage.value = '安装状态未知'
+          }
+        } else {
+          installMessage.value = '查询安装状态失败'
+          installStatus.value = 'failed'
+          installProgress.value = 100
+          installLoading.value = false
+        }
+      } catch (error) {
+        installMessage.value = '查询安装状态失败: ' + error.message
+        installStatus.value = 'failed'
+        installProgress.value = 100
+        installLoading.value = false
+      }
+    }
+    
+    // 开始轮询
+    setTimeout(pollStatus, 500)
+    
   } catch (error) {
-    loadingInstance.close()
-    ElMessage.error('安装失败: ' + error.message)
+    installMessage.value = '安装失败: ' + error.message
+    installStatus.value = 'failed'
+    installProgress.value = 100
+    installLoading.value = false
   }
 }
 

@@ -27,7 +27,6 @@ class Plugin(SQLModel, table=True):
     
     # 命令行配置
     command: str = Field(max_length=500, description="执行命令（从 setup.py 的 console_scripts 提取，如: webrun）")
-    work_dir: str = Field(default="", max_length=500, description="安装目录（pip install -e 后的路径）")
     
     # 插件包内容（Base64编码的ZIP包）
     plugin_content: Optional[str] = Field(default=None, description="插件ZIP包内容(Base64编码)，上传时存入，安装时解压并 pip install -e")
