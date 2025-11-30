@@ -26,9 +26,11 @@ class Plugin(SQLModel, table=True):
     version: str = Field(default="1.0.0", max_length=20, description="版本号")
     
     # 命令行配置
-    command: str = Field(max_length=500, description="执行命令（如: python -m webrun.cli）")
-    work_dir: str = Field(max_length=500, description="工作目录（插件根目录,本地执行路径）")
-    storage_path: str | None = Field(default=None, max_length=500, description="插件包在文件服务器/MinIO中的存储路径")
+    command: str = Field(max_length=500, description="执行命令（从 setup.py 的 console_scripts 提取，如: webrun）")
+    work_dir: str = Field(default="", max_length=500, description="安装目录（pip install -e 后的路径）")
+    
+    # 插件包内容（Base64编码的ZIP包）
+    plugin_content: Optional[str] = Field(default=None, description="插件ZIP包内容(Base64编码)，上传时存入，安装时解压并 pip install -e")
     
     # 描述信息
     description: Optional[str] = Field(default=None, description="插件描述")
@@ -61,19 +63,14 @@ class Plugin(SQLModel, table=True):
     class Config:
         json_schema_extra = {
             "example": {
-                "plugin_name": "Web Engine",
+                "plugin_name": "web-engine",
                 "plugin_code": "web_engine",
                 "plugin_type": "executor",
                 "version": "1.0.0",
-                "command": "python -m webrun.cli",
-                "work_dir": "e:/AI-agent-testing-platform/web-engine",
+                "command": "webrun",
                 "description": "Web自动化测试执行引擎",
-                "author": "Platform Team",
                 "is_enabled": 1,
-                "capabilities": {
-                    "test_types": ["web_ui"],
-                    "features": ["keyword_driven", "data_driven", "allure_report"]
-                },
-                "dependencies": ["selenium>=4.0.0", "allure-pytest", "pyyaml"]
+                "capabilities": {"console_scripts": {"webrun": "webrun.cli:run"}},
+                "dependencies": ["selenium>=4.0.0", "allure-pytest"]
             }
         }

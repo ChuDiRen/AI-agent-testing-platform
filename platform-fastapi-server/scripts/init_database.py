@@ -242,6 +242,9 @@ class DatabaseManager:
         from aiassistant.model.AiConversation import AiConversation
         from aiassistant.model.AiMessage import AiMessage
         from aiassistant.model.PromptTemplate import PromptTemplate
+        
+        # 插件模块
+        from plugin.model.PluginModel import Plugin
 
 
 def main():

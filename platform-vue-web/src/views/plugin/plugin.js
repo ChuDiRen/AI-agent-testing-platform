@@ -43,11 +43,16 @@ export function listEnabledPlugins(pluginType) {
   return axios.get('/Plugin/list/enabled', { params: { plugin_type: pluginType } })
 }
 
-// 上传插件
-export function uploadPlugin(formData) {
-  return axios.post('/Plugin/upload', formData, {
+// 上传执行器（存入数据库，不用文件服务器）
+export function uploadExecutor(formData) {
+  return axios.post('/Plugin/uploadExecutor', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
   })
+}
+
+// 安装执行器（pip install -e .）
+export function installExecutor(id) {
+  return axios.post('/Plugin/installExecutor', {}, { params: { id } })
 }

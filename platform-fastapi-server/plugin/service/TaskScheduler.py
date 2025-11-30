@@ -20,21 +20,20 @@ class TaskScheduler:
         """初始化调度器"""
         self._executors: Dict[str, CommandExecutor] = {}
     
-    def _get_executor(self, command: str, work_dir: str, storage_path: Optional[str] = None) -> CommandExecutor:
+    def _get_executor(self, command: str, work_dir: str) -> CommandExecutor:
         """
         获取或创建命令行执行器
         
         Args:
             command: 执行命令
             work_dir: 工作目录
-            storage_path: 插件在 MinIO 中的存储路径
         
         Returns:
             CommandExecutor实例
         """
-        key = f"{work_dir}:{command}:{storage_path or ''}"
+        key = f"{work_dir}:{command}"
         if key not in self._executors:
-            self._executors[key] = CommandExecutor(command, work_dir, storage_path=storage_path)
+            self._executors[key] = CommandExecutor(command, work_dir)
         
         return self._executors[key]
     
@@ -87,7 +86,7 @@ class TaskScheduler:
             
             # 4. 获取命令行执行器
             logger.info(f"Executing test on plugin: {plugin_code}")
-            executor = self._get_executor(plugin.command, plugin.work_dir, plugin.storage_path)
+            executor = self._get_executor(plugin.command, plugin.work_dir)
             
             # 5. 执行测试
             execute_result = await executor.execute_test(
@@ -106,15 +105,30 @@ class TaskScheduler:
                 }
             
             # 6. 返回成功结果（包含执行结果详情）
+            # 将 temp_dir 转换为相对路径（相对于项目根目录）
+            temp_dir_abs = execute_result.get("temp_dir", "")
+            temp_dir_relative = temp_dir_abs
+            if temp_dir_abs:
+                from pathlib import Path
+                try:
+                    # 获取项目根目录
+                    project_root = Path(__file__).resolve().parents[2]
+                    temp_path = Path(temp_dir_abs)
+                    # 尝试转换为相对路径
+                    temp_dir_relative = str(temp_path.relative_to(project_root))
+                except (ValueError, Exception):
+                    # 如果无法转换，保持原样
+                    temp_dir_relative = temp_dir_abs
+            
             return {
                 "success": True,
                 "task_id": execute_result.get("task_id"),
                 "plugin_code": plugin_code,
                 "plugin_name": plugin.plugin_name,
                 "status": execute_result.get("status", "running"),
-                "message": execute_result.get("message", "Test execution started"),
-                "temp_dir": execute_result.get("temp_dir"),
-                "result": execute_result.get("result")  # 包含详细执行结果
+                "message": execute_result.get("message", "Test execution completed"),
+                "temp_dir": temp_dir_relative,
+                "result": execute_result.get("data")  # 包含详细执行结果（从 data 字段获取）
             }
         
         except Exception as e:
@@ -156,7 +170,7 @@ class TaskScheduler:
                 }
             
             # 获取执行器
-            executor = self._get_executor(plugin.command, plugin.work_dir, plugin.storage_path)
+            executor = self._get_executor(plugin.command, plugin.work_dir)
             
             # 查询状态
             status_result = await executor.get_task_status(task_id, temp_dir)

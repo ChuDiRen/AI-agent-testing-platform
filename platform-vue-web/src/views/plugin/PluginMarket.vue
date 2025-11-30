@@ -32,9 +32,9 @@
       @refresh="loadData"
     >
       <template #header>
-        <el-button type="primary" @click="uploadVisible = true">
+        <el-button type="primary" @click="executorUploadVisible = true">
           <el-icon style="margin-right: 4px"><Upload /></el-icon>
-          安装插件
+          上传执行器
         </el-button>
       </template>
 
@@ -55,8 +55,13 @@
         </template>
       </el-table-column>
       <el-table-column prop="version" label="版本" width="80" align="center" />
-      <el-table-column prop="command" label="执行命令" min-width="180" show-overflow-tooltip />
-      <el-table-column prop="storage_path" label="存储路径" min-width="220" show-overflow-tooltip />
+      <el-table-column prop="command" label="执行命令" min-width="120" show-overflow-tooltip />
+      <el-table-column prop="work_dir" label="安装目录" min-width="200" show-overflow-tooltip>
+        <template #default="{ row }">
+          <span v-if="row.work_dir">{{ row.work_dir }}</span>
+          <el-tag v-else type="warning" size="small">未安装</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip />
       <el-table-column prop="is_enabled" label="状态" width="80" align="center">
         <template #default="{ row }">
@@ -72,6 +77,7 @@
         <template #default="{ row }">
           <el-button link type="primary" @click="handleView(row)">详情</el-button>
           <el-button link type="primary" @click="handleHealthCheck(row)">检测</el-button>
+          <el-button v-if="row.plugin_content" link type="success" @click="handleInstall(row)">安装</el-button>
           <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
@@ -91,8 +97,9 @@
         <el-descriptions-item label="执行命令" :span="2">
           <code>{{ currentPlugin.command || '-' }}</code>
         </el-descriptions-item>
-        <el-descriptions-item label="存储路径" :span="2">
-          <code>{{ currentPlugin.storage_path || '-' }}</code>
+        <el-descriptions-item label="安装目录" :span="2">
+          <code v-if="currentPlugin.work_dir">{{ currentPlugin.work_dir }}</code>
+          <el-tag v-else type="warning" size="small">未安装</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="作者">{{ currentPlugin.author || '未知' }}</el-descriptions-item>
         <el-descriptions-item label="状态">
@@ -114,22 +121,35 @@
       </el-descriptions>
     </el-dialog>
 
-    <!-- 上传插件对话框 -->
-    <el-dialog v-model="uploadVisible" title="安装插件" width="600px">
+    <!-- 上传执行器对话框 -->
+    <el-dialog v-model="executorUploadVisible" title="上传执行器" width="600px">
       <div class="upload-container">
+        <el-alert
+          title="执行器要求"
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 15px"
+        >
+          <template #default>
+            执行器需包含 <code>setup.py</code> 文件，并在 <code>entry_points.console_scripts</code> 中定义命令。
+            上传后存入数据库，点击"安装"后可通过命令行使用。
+          </template>
+        </el-alert>
+
         <div class="upload-section">
           <div class="section-title">方式一：上传 ZIP 包</div>
           <el-upload
             class="upload-demo"
             drag
             action="#"
-            :http-request="handleUpload"
+            :http-request="handleExecutorUpload"
             :show-file-list="false"
             accept=".zip"
           >
             <el-icon class="el-icon--upload"><upload-filled /></el-icon>
             <div class="el-upload__text">
-              拖拽 ZIP 文件到此处或 <em>点击上传</em>
+              拖拽执行器 ZIP 到此处或 <em>点击上传</em>
             </div>
           </el-upload>
         </div>
@@ -139,18 +159,18 @@
         </div>
 
         <div class="upload-section">
-          <div class="section-title">方式二：上传插件目录</div>
-          <div class="folder-upload-box" @click="triggerFolderSelect">
+          <div class="section-title">方式二：选择执行器目录</div>
+          <div class="folder-upload-box" @click="triggerExecutorFolderSelect">
             <el-icon class="folder-icon"><Folder /></el-icon>
-            <div class="upload-text">点击选择插件文件夹</div>
+            <div class="upload-text">点击选择执行器文件夹</div>
             <div class="upload-tip">自动压缩并上传</div>
           </div>
           <input 
             type="file" 
-            ref="folderInput" 
+            ref="executorFolderInput" 
             webkitdirectory 
             style="display:none" 
-            @change="handleFolderChange"
+            @change="handleExecutorFolderChange"
           >
         </div>
       </div>
@@ -163,7 +183,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { Upload, UploadFilled, Folder } from '@element-plus/icons-vue'
 import JSZip from 'jszip'
-import { queryByPage, togglePlugin, unregisterPlugin, healthCheck, uploadPlugin } from './plugin.js'
+import { queryByPage, togglePlugin, unregisterPlugin, healthCheck, uploadExecutor, installExecutor } from './plugin.js'
 import BaseSearch from '@/components/BaseSearch/index.vue'
 import BaseTable from '@/components/BaseTable/index.vue'
 
@@ -196,26 +216,26 @@ const paginationModel = computed({
 
 // 对话框控制
 const detailVisible = ref(false)
-const uploadVisible = ref(false)
+const executorUploadVisible = ref(false)
 const currentPlugin = ref(null)
-const folderInput = ref(null)
+const executorFolderInput = ref(null)
 
-// 通用上传逻辑
-const uploadFile = async (file) => {
-  const loadingInstance = ElLoading.service({ text: '正在上传并安装插件...' })
+// 上传执行器文件
+const uploadExecutorFile = async (file) => {
+  const loadingInstance = ElLoading.service({ text: '正在上传执行器...' })
   try {
     const formData = new FormData()
     formData.append('file', file)
     
-    const res = await uploadPlugin(formData)
+    const res = await uploadExecutor(formData)
     loadingInstance.close()
     
     if (res.data.code === 200) {
-      ElMessage.success(res.data.msg || '插件安装成功')
-      uploadVisible.value = false
+      ElMessage.success(res.data.msg || '执行器上传成功')
+      executorUploadVisible.value = false
       loadData()
     } else {
-      ElMessage.error(res.data.msg || '安装失败')
+      ElMessage.error(res.data.msg || '上传失败')
     }
   } catch (error) {
     loadingInstance.close()
@@ -223,22 +243,22 @@ const uploadFile = async (file) => {
   }
 }
 
-// 处理 ZIP 上传 (el-upload)
-const handleUpload = (options) => {
-  uploadFile(options.file)
+// 处理执行器 ZIP 上传
+const handleExecutorUpload = (options) => {
+  uploadExecutorFile(options.file)
 }
 
-// 触发文件夹选择
-const triggerFolderSelect = () => {
-  folderInput.value?.click()
+// 触发执行器文件夹选择
+const triggerExecutorFolderSelect = () => {
+  executorFolderInput.value?.click()
 }
 
-// 处理文件夹选择
-const handleFolderChange = async (event) => {
+// 处理执行器文件夹选择
+const handleExecutorFolderChange = async (event) => {
   const files = event.target.files
   if (!files || files.length === 0) return
   
-  const loadingInstance = ElLoading.service({ text: '正在压缩文件夹...' })
+  const loadingInstance = ElLoading.service({ text: '正在压缩执行器...' })
   try {
     const zip = new JSZip()
     const rootFolderName = files[0].webkitRelativePath.split('/')[0]
@@ -252,13 +272,31 @@ const handleFolderChange = async (event) => {
     const zipFile = new File([content], `${rootFolderName}.zip`, { type: 'application/zip' })
     
     loadingInstance.close()
-    uploadFile(zipFile)
+    uploadExecutorFile(zipFile)
     
   } catch (error) {
     loadingInstance.close()
-    ElMessage.error('压缩文件夹失败: ' + error.message)
+    ElMessage.error('压缩失败: ' + error.message)
   } finally {
     event.target.value = ''
+  }
+}
+
+// 安装执行器
+const handleInstall = async (row) => {
+  const loadingInstance = ElLoading.service({ text: '正在安装执行器...' })
+  try {
+    const res = await installExecutor(row.id)
+    loadingInstance.close()
+    if (res.data.code === 200) {
+      ElMessage.success(res.data.msg || '安装成功')
+      loadData()
+    } else {
+      ElMessage.error(res.data.msg || '安装失败')
+    }
+  } catch (error) {
+    loadingInstance.close()
+    ElMessage.error('安装失败: ' + error.message)
   }
 }
 

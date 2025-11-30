@@ -297,18 +297,24 @@ def generateYaml(request: YamlGenerateRequest, session: Session = Depends(get_se
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-@module_route.post("/executeCase", summary="执行用例测试", dependencies=[Depends(check_permission("apitest:case:execute"))])
-def executeCase(request: ApiInfoCaseExecuteRequest, background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
-    """执行用例"""
+@module_route.post("/executeCase", summary="执行用例测试（异步）", dependencies=[Depends(check_permission("apitest:case:execute"))])
+def executeCase(
+    request: ApiInfoCaseExecuteRequest,
+    background_tasks: BackgroundTasks,
+    session: Session = Depends(get_session)
+):
+    """
+    异步执行用例测试
+    接口立即返回 test_id，前端通过 /executionStatus 接口轮询结果
+    """
     try:
         # 查询用例信息
         case_info = session.get(ApiInfoCase, request.case_id)
         if not case_info:
             return respModel.error_resp("用例不存在")
 
-        # 选择执行器插件：优先使用前端传入的 executor_code，没有则可以使用默认配置
-        plugin_code = request.executor_code or "web_engine"
-
+        # 选择执行器插件
+        plugin_code = request.executor_code or "api_engine"
         plugin = session.exec(
             select(Plugin).where(Plugin.plugin_code == plugin_code)
         ).first()
@@ -322,7 +328,7 @@ def executeCase(request: ApiInfoCaseExecuteRequest, background_tasks: Background
         # 创建测试历史记录
         test_name = request.test_name or f"{case_info.case_name}_测试_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         test_history = ApiHistory(
-            api_info_id=0,  # 用例执行不关联接口
+            api_info_id=0,
             case_info_id=request.case_id,
             project_id=case_info.project_id or 0,
             test_name=test_name,
@@ -333,118 +339,145 @@ def executeCase(request: ApiInfoCaseExecuteRequest, background_tasks: Background
         session.add(test_history)
         session.commit()
         session.refresh(test_history)
-        
-        # 定义后台任务
-        def _execute_background():
-            from core.database import SessionLocal
-            import asyncio
-            db = SessionLocal()
-            test_hist = None
-            try:
-                # 获取测试历史记录
-                test_hist = db.get(ApiHistory, test_history.id)
-                if not test_hist:
-                    logger.warning(f"测试记录不存在: {test_history.id}")
-                    return
-                
-                # 获取用例信息
-                case = db.get(ApiInfoCase, request.case_id)
-                if not case:
-                    test_hist.test_status = "failed"
-                    test_hist.error_message = "用例不存在"
-                    db.commit()
-                    return
-                
-                # 创建工作空间
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                workspace_name = f"case_{test_history.id}_{timestamp}"
-                yaml_dir = YAML_DIR / workspace_name
-                report_dir = REPORT_DIR / workspace_name
-                log_file = LOG_DIR / f"{workspace_name}.log"
-                for directory in [TEMP_DIR, YAML_DIR, REPORT_DIR, LOG_DIR, yaml_dir, report_dir]:
-                    directory.mkdir(exist_ok=True)
-                
-                # 生成YAML文件
-                statement = select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == request.case_id).order_by(ApiInfoCaseStep.run_order)
-                steps = db.exec(statement).all()
-                
-                yaml_data = {
-                    'desc': case.case_name,
-                    'steps': []
-                }
-                
-                for step in steps:
-                    step_data_dict = json.loads(step.step_data) if step.step_data else {}
-                    keyword = db.get(ApiKeyWord, step.keyword_id) if step.keyword_id else None
-                    keyword_name = keyword.keyword_fun_name if keyword else "unknown"
-                    
-                    step_item = {
-                        step.step_desc or f"步骤{step.run_order}": {
-                            '关键字': keyword_name,
-                            **step_data_dict
-                        }
-                    }
-                    yaml_data['steps'].append(step_item)
-                
-                if request.context_vars:
-                    yaml_data['ddts'] = [{
-                        'desc': f'{case.case_name}_数据',
-                        **request.context_vars
-                    }]
-                
-                yaml_content = yaml.dump(yaml_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
-                yaml_filename = f"{case.case_name}_{test_history.id}.yaml"
-                (yaml_dir / yaml_filename).write_text(yaml_content, encoding='utf-8')
 
-                # 通过任务调度器调用插件执行器
-                exec_error = None
+        # 创建工作空间
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        workspace_name = f"case_{test_history.id}_{timestamp}"
+        yaml_dir = YAML_DIR / workspace_name
+        report_dir = REPORT_DIR / workspace_name
+        for directory in [TEMP_DIR, YAML_DIR, REPORT_DIR, LOG_DIR, yaml_dir, report_dir]:
+            directory.mkdir(exist_ok=True)
+
+        # 生成 YAML 内容
+        statement = select(ApiInfoCaseStep).where(
+            ApiInfoCaseStep.case_info_id == request.case_id
+        ).order_by(ApiInfoCaseStep.run_order)
+        steps = session.exec(statement).all()
+
+        yaml_data = {'desc': case_info.case_name, 'steps': []}
+        for step in steps:
+            step_data_dict = json.loads(step.step_data) if step.step_data else {}
+            keyword = session.get(ApiKeyWord, step.keyword_id) if step.keyword_id else None
+            keyword_name = keyword.keyword_fun_name if keyword else "unknown"
+            step_item = {
+                step.step_desc or f"步骤{step.run_order}": {
+                    '关键字': keyword_name,
+                    **step_data_dict
+                }
+            }
+            yaml_data['steps'].append(step_item)
+
+        if request.context_vars:
+            yaml_data['ddts'] = [{'desc': f'{case_info.case_name}_数据', **request.context_vars}]
+
+        yaml_content = yaml.dump(yaml_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        yaml_filename = f"{case_info.case_name}_{test_history.id}.yaml"
+        (yaml_dir / yaml_filename).write_text(yaml_content, encoding='utf-8')
+
+        # 保存 yaml_content 到历史记录
+        test_history.yaml_content = yaml_content
+        test_history.allure_report_path = str(report_dir)
+        session.commit()
+
+        # 定义后台任务
+        test_id = test_history.id
+        def _execute_in_background():
+            import asyncio
+            from core.database import SessionLocal
+            db = SessionLocal()
+            try:
+                hist = db.get(ApiHistory, test_id)
+                if not hist:
+                    logger.warning(f"测试记录不存在: {test_id}")
+                    return
+
+                # 执行测试
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
                 try:
-                    execute_result = asyncio.run(
+                    result = loop.run_until_complete(
                         task_scheduler.execute_test(
                             session=db,
                             plugin_code=plugin_code,
-                            test_case_id=test_history.id,
+                            test_case_id=test_id,
                             test_case_content=yaml_content,
                             config=None
                         )
                     )
+                finally:
+                    loop.close()
 
-                    if not execute_result.get("success"):
-                        test_hist.test_status = "failed"
-                        exec_error = execute_result.get("error")
-                    else:
-                        test_hist.test_status = execute_result.get("status", "running")
-                        # 这里暂时只记录状态，具体 task_id / temp_dir 等可后续扩展到 ApiHistory 字段
-                except Exception as e:
-                    exec_error = f'执行失败: {str(e)}'
-                    test_hist.test_status = "failed"
+                # 更新状态
+                if result.get("success"):
+                    hist.test_status = result.get("status", "completed")
+                    # 保存执行结果数据
+                    if result.get("result"):
+                        hist.response_data = json.dumps(result.get("result"), ensure_ascii=False)
+                else:
+                    hist.test_status = "failed"
+                    hist.error_message = result.get("error")
 
-                # 更新测试历史记录
-                test_hist.error_message = exec_error
-                test_hist.allure_report_path = str(report_dir)
-                test_hist.yaml_content = yaml_content
-                test_hist.finish_time = datetime.now()
-                test_hist.modify_time = datetime.now()
+                hist.finish_time = datetime.now()
+                hist.modify_time = datetime.now()
                 db.commit()
-                
-                logger.info(f"用例测试任务执行完成: {test_history.id}, 结果: {test_hist.test_status}")
-                
+                logger.info(f"用例测试完成: {test_id}, 状态: {hist.test_status}")
+
             except Exception as e:
-                logger.error(f"用例测试任务执行失败: {test_history.id}, 错误: {e}", exc_info=True)
-                if test_hist:
-                    test_hist.test_status = "failed"
-                    test_hist.error_message = str(e)
-                    test_hist.finish_time = datetime.now()
-                    test_hist.modify_time = datetime.now()
-                    db.commit()
+                logger.error(f"后台执行失败: {test_id}, 错误: {e}", exc_info=True)
+                try:
+                    hist = db.get(ApiHistory, test_id)
+                    if hist:
+                        hist.test_status = "failed"
+                        hist.error_message = str(e)
+                        hist.finish_time = datetime.now()
+                        db.commit()
+                except:
+                    pass
             finally:
                 db.close()
-        
+
         # 添加后台任务
-        background_tasks.add_task(_execute_background)
-        return respModel.ok_resp(dic_t={"test_id": test_history.id, "status": "running"}, msg="用例测试已开始执行")
+        background_tasks.add_task(_execute_in_background)
+
+        return respModel.ok_resp(
+            dic_t={"test_id": test_id, "status": "running"},
+            msg="用例测试已提交，请通过 executionStatus 接口查询结果"
+        )
     except Exception as e:
         session.rollback()
         logger.error(f"操作失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+        return respModel.error_resp(f"服务器错误: {str(e)}")
 
+
+@module_route.get("/executionStatus", summary="查询用例执行状态", dependencies=[Depends(check_permission("apitest:case:query"))])
+def executionStatus(test_id: int = Query(..., description="测试ID"), session: Session = Depends(get_session)):
+    """
+    查询用例执行状态
+    前端轮询此接口获取执行结果
+    """
+    try:
+        history = session.get(ApiHistory, test_id)
+        if not history:
+            return respModel.error_resp("测试记录不存在")
+
+        result = {
+            "test_id": history.id,
+            "status": history.test_status,
+            "test_name": history.test_name,
+            "error_message": history.error_message,
+            "yaml_content": history.yaml_content,
+            "response_data": history.response_data,
+            "create_time": TimeFormatter.datetime_to_str(history.create_time) if history.create_time else None,
+            "finish_time": TimeFormatter.datetime_to_str(history.finish_time) if history.finish_time else None,
+        }
+
+        # 判断是否完成
+        is_finished = history.test_status in ["completed", "passed", "failed", "error"]
+        
+        return respModel.ok_resp(
+            dic_t={"data": result, "finished": is_finished},
+            msg="查询成功"
+        )
+    except Exception as e:
+        logger.error(f"查询失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误: {str(e)}")

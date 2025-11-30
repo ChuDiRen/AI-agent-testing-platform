@@ -15,8 +15,7 @@ class PluginBase(BaseModel):
     plugin_type: str = Field(..., max_length=20, description="插件类型: executor/tool/extension")
     version: str = Field(default="1.0.0", max_length=20, description="版本号")
     command: str = Field(..., max_length=500, description="执行命令")
-    work_dir: str = Field(..., max_length=500, description="工作目录")
-    storage_path: Optional[str] = Field(None, max_length=500, description="插件包在文件服务器/MinIO中的存储路径")
+    work_dir: str = Field(default="", max_length=500, description="安装目录")
     description: Optional[str] = Field(None, description="插件描述")
     author: Optional[str] = Field(None, max_length=100, description="作者")
     is_enabled: int = Field(default=1, description="是否启用: 0禁用 1启用")
@@ -37,7 +36,6 @@ class PluginUpdate(BaseModel):
     version: Optional[str] = Field(None, max_length=20)
     command: Optional[str] = Field(None, max_length=500)
     work_dir: Optional[str] = Field(None, max_length=500)
-    storage_path: Optional[str] = Field(None, max_length=500)
     description: Optional[str] = None
     author: Optional[str] = Field(None, max_length=100)
     is_enabled: Optional[int] = None
@@ -61,6 +59,7 @@ class PluginResponse(PluginBase):
     id: int
     create_time: datetime
     modify_time: datetime
+    plugin_content: Optional[bool] = Field(None, description="是否有内嵌插件内容")
     
     @field_validator("capabilities", "config_schema", "dependencies", mode="before")
     @classmethod
@@ -71,6 +70,12 @@ class PluginResponse(PluginBase):
             except json.JSONDecodeError:
                 return None
         return v
+    
+    @field_validator("plugin_content", mode="before")
+    @classmethod
+    def convert_plugin_content(cls, v):
+        """将 plugin_content 转换为布尔值（是否存在内容）"""
+        return bool(v) if v else False
     
     class Config:
         from_attributes = True

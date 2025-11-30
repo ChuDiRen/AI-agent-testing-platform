@@ -82,7 +82,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { queryById, insertData, updateData, generateYaml, executeCase } from './apiInfoCase.js'
+import { queryById, insertData, updateData, generateYaml, executeCaseWithPolling } from './apiInfoCase.js'
 import { queryAll as queryProjects } from '../project/apiProject.js'
 import { queryAll as queryOperationType } from '../keyword/operationType.js'
 import { queryAll as queryKeywords } from '../keyword/apiKeyWord.js'
@@ -267,22 +267,45 @@ const handleGenerateYaml = async () => {
 }
 
 // 执行测试
+// 执行状态
+const executing = ref(false)
+const executeStatus = ref('')
+
 const handleExecute = async () => {
   if (caseId.value === 0) {
     ElMessage.warning('请先保存用例')
     return
   }
   
-  const res = await executeCase({
-    case_id: caseId.value,
-    test_name: `${caseForm.case_name}_${new Date().getTime()}`,
-    executor_code: currentExecutorCode.value || undefined
-  })
+  executing.value = true
+  executeStatus.value = '正在提交...'
   
-  if (res.data.code === 200) {
-    ElMessage.success('测试已开始执行，请到测试历史查看结果')
-  } else {
-    ElMessage.error(res.data.msg || '执行失败')
+  try {
+    const result = await executeCaseWithPolling(
+      {
+        case_id: caseId.value,
+        test_name: `${caseForm.case_name}_${new Date().getTime()}`,
+        executor_code: currentExecutorCode.value || undefined
+      },
+      {
+        onProgress: (status, data) => {
+          executeStatus.value = status === 'running' ? '正在执行...' : status
+        },
+        interval: 2000,
+        timeout: 120000
+      }
+    )
+    
+    if (result.status === 'completed' || result.status === 'passed') {
+      ElMessage.success('测试执行成功')
+    } else {
+      ElMessage.error(result.error_message || '测试执行失败')
+    }
+  } catch (error) {
+    ElMessage.error(error.message || '执行失败')
+  } finally {
+    executing.value = false
+    executeStatus.value = ''
   }
 }
 

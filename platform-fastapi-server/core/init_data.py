@@ -1122,64 +1122,6 @@ def create_initial_keywords():
         logger.error(f"创建初始关键字失败: {e}")
         raise
 
-def create_initial_plugins():
-    """创建初始插件数据"""
-    try:
-        from plugin.model.PluginModel import Plugin
-        
-        with Session(engine) as session:
-            # 检查是否已存在插件数据
-            existing_plugins = session.exec(select(Plugin)).first()
-            if existing_plugins:
-                logger.info("插件数据已存在，跳过初始化")
-                return
-            
-            initial_plugins = [
-                {
-                    "plugin_name": "Web Engine",
-                    "plugin_code": "web_engine",
-                    "plugin_type": "executor",
-                    "version": "1.0.0",
-                    "command": "python -m webrun.cli",
-                    "work_dir": "e:/AI-agent-testing-platform/web-engine",
-                    "description": "Web自动化测试执行引擎，基于Selenium，通过命令行调用",
-                    "author": "Platform Team",
-                    "is_enabled": 1,
-                    "capabilities": {
-                        "test_types": ["web_ui"],
-                        "features": ["keyword_driven", "data_driven", "allure_report"]
-                    },
-                    "dependencies": ["selenium>=4.0.0", "allure-pytest", "pyyaml"]
-                },
-                {
-                    "plugin_name": "API Engine",
-                    "plugin_code": "api_engine",
-                    "plugin_type": "executor",
-                    "version": "1.0.0",
-                    "command": "python -m apirun.cli",
-                    "work_dir": "e:/AI-agent-testing-platform/api-engine",
-                    "description": "API自动化测试执行引擎，基于Requests，通过命令行调用",
-                    "author": "Platform Team",
-                    "is_enabled": 1,
-                    "capabilities": {
-                        "test_types": ["api"],
-                        "features": ["keyword_driven", "data_driven", "allure_report"]
-                    },
-                    "dependencies": ["requests", "allure-pytest", "pyyaml"]
-                }
-            ]
-            
-            for plugin_data in initial_plugins:
-                plugin = Plugin(**plugin_data, create_time=datetime.now(), modify_time=datetime.now())
-                session.add(plugin)
-                logger.info(f"创建插件: {plugin_data['plugin_name']}")
-            
-            session.commit()
-            logger.info(f"初始插件数据创建完成，共创建{len(initial_plugins)}个插件")
-    except Exception as e:
-        logger.error(f"创建初始插件失败: {e}")
-        raise
-
 def init_all_data():
     """初始化所有数据"""
     try:
@@ -1212,9 +1154,7 @@ def init_all_data():
         logger.info("开始初始化关键字数据...")
         create_initial_keywords()
         
-        # 初始化插件数据
-        logger.info("开始初始化插件数据...")
-        create_initial_plugins()
+        # 插件数据不再预设，通过“上传执行器”功能动态添加
         
         logger.info("系统数据初始化完成！")
         logger.info("=" * 70)

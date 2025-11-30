@@ -13,6 +13,9 @@ import shutil
 import zipfile
 import uuid
 import re
+import base64
+import io
+import tempfile
 from pathlib import Path
 from datetime import datetime
 
@@ -23,8 +26,6 @@ from ..schemas.plugin_schema import (
 )
 from core.database import get_session
 from core.resp_model import respModel
-from config.dev_settings import settings  # TODO: 根据实际环境切换为统一配置入口
-from core.minio_client import minio_client
 
 # 创建路由
 module_route = APIRouter(prefix="/Plugin", tags=["插件管理"])
@@ -240,34 +241,59 @@ async def health_check_plugin(
     id: int = Query(..., description="插件ID"),
     session: Session = Depends(get_session)
 ):
-    """检查插件API健康状态"""
+    """检查插件健康状态"""
     try:
         plugin = session.get(Plugin, id)
         if not plugin:
             return respModel.error_resp(msg="插件不存在")
         
-        # 调用插件的健康检查API
         start_time = time.time()
         
-        # 命令行插件检查逻辑：
-        # 1. 检查工作目录是否存在
-        # 2. (可选) 尝试验证命令是否可用
+        # 检查逻辑：
+        # 1. 如果有 plugin_content（内嵌执行器），检查是否已安装
+        # 2. 如果有 work_dir，检查目录是否存在
         
-        if not plugin.work_dir:
-             return respModel.error_resp(msg="插件未配置工作目录")
-             
-        if not os.path.exists(plugin.work_dir):
-            return respModel.error_resp(msg=f"插件工作目录不存在: {plugin.work_dir}")
+        if plugin.plugin_content:
+            # 内嵌执行器：检查命令是否可用
+            import subprocess
+            import sys
+            try:
+                result = subprocess.run(
+                    [sys.executable, "-c", f"import shutil; print(shutil.which('{plugin.command}'))"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                cmd_path = result.stdout.strip()
+                if cmd_path and cmd_path != "None":
+                    status = "healthy"
+                    msg = f"命令 {plugin.command} 已安装"
+                else:
+                    status = "not_installed"
+                    msg = f"命令 {plugin.command} 未安装，请点击安装按钮"
+            except Exception:
+                status = "unknown"
+                msg = "无法检测命令状态"
+        elif plugin.work_dir:
+            if os.path.exists(plugin.work_dir):
+                status = "healthy"
+                msg = "工作目录存在"
+            else:
+                status = "unhealthy"
+                msg = f"工作目录不存在: {plugin.work_dir}"
+        else:
+            status = "not_configured"
+            msg = "插件未配置"
 
-        # 简单地返回健康状态，因为目录存在
         response_time = (time.time() - start_time) * 1000
         
         return respModel.ok_resp(obj=PluginHealthCheck(
             plugin_code=plugin.plugin_code,
-            status="healthy",
+            status=status,
             version=plugin.version,
-            response_time_ms=response_time
-        ))
+            response_time_ms=response_time,
+            error_message=msg if status != "healthy" else None
+        ), msg=msg)
     
     except Exception as e:
         return respModel.error_resp(msg=f"健康检查失败: {str(e)}")
@@ -294,188 +320,250 @@ async def list_enabled_plugins(
         return respModel.error_resp(msg=f"查询失败: {str(e)}")
 
 
-@module_route.post("/upload", summary="上传插件包")
-async def upload_plugin(
+def _parse_console_scripts(setup_content: str) -> dict:
+    """
+    解析 setup.py 中的 entry_points.console_scripts
+    返回 {"command_name": "module:function", ...}
+    """
+    scripts = {}
+    # 匹配 entry_points = { ... "console_scripts": [...] ... }
+    entry_points_match = re.search(
+        r'entry_points\s*=\s*\{([^}]+)\}', 
+        setup_content, 
+        re.DOTALL
+    )
+    if entry_points_match:
+        ep_content = entry_points_match.group(1)
+        # 匹配 "console_scripts": [...]
+        cs_match = re.search(
+            r'["\']console_scripts["\']\s*:\s*\[([^\]]+)\]',
+            ep_content,
+            re.DOTALL
+        )
+        if cs_match:
+            cs_content = cs_match.group(1)
+            # 匹配每个脚本定义 "name=module:func"
+            for script_match in re.finditer(r'["\']([^"\'=]+)=([^"\']+)["\']', cs_content):
+                cmd_name = script_match.group(1).strip()
+                module_func = script_match.group(2).strip()
+                scripts[cmd_name] = module_func
+    return scripts
+
+
+@module_route.post("/uploadExecutor", summary="上传执行器插件（存入数据库）")
+async def upload_executor(
     file: UploadFile = File(...),
     session: Session = Depends(get_session)
 ):
-    """上传插件ZIP包并自动安装"""
-    # 为了在 finally 中访问，先初始化临时变量
+    """
+    上传执行器ZIP包：
+    1. 解析 setup.py 提取 console_scripts 命令
+    2. 将 ZIP 内容 Base64 编码存入数据库
+    3. 不使用文件服务器，需要时动态安装
+    """
     extract_dir = None
-    plugin_root_fixed = None
-    temp_zip_path = None
-
+    
     try:
-        # 1. 使用配置中的插件根目录（通常指向文件服务器挂载路径）
-        base_dir = settings.PLUGIN_BASE_DIR
-        if base_dir is None:
-            # 兜底: 如果未配置则退回到项目根目录同级 plugins
-            base_dir = Path(__file__).resolve().parents[2].parent / "plugins"
-        if not base_dir.exists():
-            base_dir.mkdir(parents=True)
-
-        # 2. 保存上传文件到临时 zip, 便于解析和后续上传 MinIO
+        # 1. 读取上传的 ZIP 内容
+        zip_bytes = await file.read()
+        zip_base64 = base64.b64encode(zip_bytes).decode('utf-8')
+        
+        # 2. 解压到临时目录解析信息
         temp_id = str(uuid.uuid4())
-        temp_zip_path = base_dir / f"{temp_id}.zip"
-
-        with open(temp_zip_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        # 3. 解压到临时目录
-        extract_dir = base_dir / f"tmp_{temp_id}"
-        with zipfile.ZipFile(temp_zip_path, 'r') as zip_ref:
+        extract_dir = Path(tempfile.gettempdir()) / f"executor_{temp_id}"
+        extract_dir.mkdir(parents=True, exist_ok=True)
+        
+        with zipfile.ZipFile(io.BytesIO(zip_bytes), 'r') as zip_ref:
             zip_ref.extractall(extract_dir)
-
-        # 4. 解析插件信息
-        # 查找解压后的根目录（临时）
+        
+        # 查找解压后的根目录
         items = list(extract_dir.iterdir())
         if len(items) == 1 and items[0].is_dir():
-            temp_plugin_root = items[0]
+            plugin_root = items[0]
         else:
-            temp_plugin_root = extract_dir
-            
-        # 初始信息（先根据上传文件名推断，稍后再确定 plugin_root_fixed）
+            plugin_root = extract_dir
+        
+        # 3. 解析 setup.py 提取信息
         plugin_name = file.filename.replace('.zip', '')
         plugin_code = plugin_name.lower().replace('-', '_')
         command = ""
-        description = "通过上传安装的插件"
+        console_scripts = {}
+        description = "执行器插件"
         version = "1.0.0"
         dependencies = []
-        capabilities = {}
         
-        # 尝试查找主包名（在临时解压根目录中）
-        package_name = ""
-        for item in temp_plugin_root.iterdir():
-            if item.is_dir() and (item / "__init__.py").exists():
-                if item.name not in ['tests', 'examples', 'docs']:
-                    package_name = item.name
-                    break
+        setup_py = plugin_root / "setup.py"
+        if setup_py.exists():
+            with open(setup_py, "r", encoding="utf-8") as f:
+                setup_content = f.read()
+                
+                # 提取 console_scripts
+                console_scripts = _parse_console_scripts(setup_content)
+                if console_scripts:
+                    # 取第一个命令作为主命令
+                    command = list(console_scripts.keys())[0]
+                
+                # 提取 description
+                desc_match = re.search(r'description\s*=\s*["\']([^"\']+)["\']', setup_content)
+                if desc_match:
+                    description = desc_match.group(1)
+                
+                # 提取 version
+                ver_match = re.search(r'version\s*=\s*["\']([^"\']+)["\']', setup_content)
+                if ver_match:
+                    version = ver_match.group(1)
+                    
+                # 提取 name 作为 plugin_code
+                name_match = re.search(r'name\s*=\s*["\']([^"\']+)["\']', setup_content)
+                if name_match:
+                    plugin_code = name_match.group(1).lower().replace('-', '_')
+                    plugin_name = name_match.group(1)
         
-        # 自动生成命令
-        if package_name:
-            command = f"python -m {package_name}.cli"
-            if "engine" in plugin_code:
-                description = f"{plugin_name} 执行引擎"
+        # 解析 requirements.txt
+        requirements_txt = plugin_root / "requirements.txt"
+        if requirements_txt.exists():
+            with open(requirements_txt, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and not line.startswith("git+"):
+                        dependencies.append(line)
         
         if not command:
-            command = "python main.py"
-
-        # 解析依赖 (requirements.txt)
-        requirements_txt = temp_plugin_root / "requirements.txt"
-        if requirements_txt.exists():
-            try:
-                with open(requirements_txt, "r", encoding="utf-8") as f:
-                    for line in f:
-                        line = line.strip()
-                        if line and not line.startswith("#") and not line.startswith("git+"):
-                            dependencies.append(line)
-            except Exception:
-                pass
-                
-        # 尝试从 setup.py 提取信息
-        setup_py = temp_plugin_root / "setup.py"
-        if setup_py.exists():
-            try:
-                with open(setup_py, "r", encoding="utf-8") as f:
-                    content = f.read()
-                    
-                    # 提取 description
-                    desc_match = re.search(r'description=["\']([^"\']+)["\']', content)
-                    if desc_match:
-                        description = desc_match.group(1)
-                        
-                    # 提取 version
-                    ver_match = re.search(r'version=["\']([^"\']+)["\']', content)
-                    if ver_match:
-                        version = ver_match.group(1)
-
-                    # 提取 keywords 作为 features
-                    kw_match = re.search(r'keywords=["\']([^"\']+)["\']', content)
-                    if kw_match:
-                        keywords = kw_match.group(1).split()
-                        capabilities["features"] = keywords
-            except Exception:
-                pass
+            return respModel.error_resp(msg="未找到 console_scripts 命令定义，请确保 setup.py 中定义了 entry_points")
         
-        # 查找 plugin.json (优先级最高)
-        plugin_json = temp_plugin_root / "plugin.json"
-        if plugin_json.exists():
-            try:
-                with open(plugin_json, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    if "description" in data: description = data["description"]
-                    if "version" in data: version = data["version"]
-                    if "command" in data: command = data["command"]
-                    if "capabilities" in data: capabilities = data["capabilities"]
-                    if "dependencies" in data: dependencies = data["dependencies"]
-            except Exception:
-                pass
-
-        # 5. 上传原始 ZIP 到 MinIO, 对象命名为 plugins/{plugin_code}/latest.zip
-        #   注意: 这里重新打开临时 zip 文件作为流上传
-        minio_object = None
-        if temp_zip_path is not None and temp_zip_path.exists():
-            with open(temp_zip_path, "rb") as fp:
-                fp.seek(0, os.SEEK_END)
-                size = fp.tell()
-                fp.seek(0)
-                object_name = f"plugins/{plugin_code}/latest.zip"
-                minio_object = minio_client.upload_plugin_zip(fp, object_name, length=size)
-
-        # 6. 注册到数据库(本地不再保留固定 plugins 目录, work_dir 暂设为 plugin_code 逻辑路径)
+        # 4. 保存到数据库
         existing = session.exec(
             select(Plugin).where(Plugin.plugin_code == plugin_code)
         ).first()
         
         if existing:
-            # 更新
             existing.plugin_name = plugin_name
-            # work_dir 暂存逻辑路径, 后续执行可根据 storage_path 从 MinIO 下载到本地
-            existing.work_dir = f"plugins/{plugin_code}"
             existing.command = command
+            existing.plugin_content = zip_base64
             existing.description = description
+            existing.version = version
             existing.dependencies = json.dumps(dependencies) if dependencies else None
-            existing.capabilities = json.dumps(capabilities) if capabilities else None
-            if minio_object is not None:
-                existing.storage_path = minio_object
+            existing.capabilities = json.dumps({"console_scripts": console_scripts})
+            existing.work_dir = ""  # 无固定工作目录，动态安装
             existing.modify_time = datetime.now()
             session.add(existing)
             session.commit()
             action = "更新"
+            plugin_id = existing.id
         else:
-            # 新增
             new_plugin = Plugin(
                 plugin_name=plugin_name,
                 plugin_code=plugin_code,
                 plugin_type="executor",
                 version=version,
                 command=command,
-                # work_dir 暂存逻辑路径, 实际包存储在 MinIO
-                work_dir=f"plugins/{plugin_code}",
+                work_dir="",  # 无固定工作目录
+                plugin_content=zip_base64,
                 description=description,
                 author="User Upload",
                 is_enabled=1,
                 dependencies=json.dumps(dependencies) if dependencies else None,
-                capabilities=json.dumps(capabilities) if capabilities else None,
-                storage_path=minio_object
+                capabilities=json.dumps({"console_scripts": console_scripts})
             )
             session.add(new_plugin)
             session.commit()
+            session.refresh(new_plugin)
             action = "安装"
-            
-        return respModel.ok_resp(msg=f"插件 {plugin_name} {action}成功")
-
+            plugin_id = new_plugin.id
+        
+        return respModel.ok_resp(
+            obj={
+                "id": plugin_id,
+                "command": command,
+                "console_scripts": console_scripts
+            },
+            msg=f"执行器 {plugin_name} {action}成功，命令: {command}"
+        )
+    
     except Exception as e:
-        return respModel.error_resp(msg=f"上传失败: {str(e)}")
-
+        import traceback
+        return respModel.error_resp(msg=f"上传失败: {str(e)}\n{traceback.format_exc()}")
+    
     finally:
-        # 无论成功还是失败，都尝试清理临时解压目录 tmp_xxx
-        try:
-            if extract_dir is not None and extract_dir.exists():
-                # 只删除 tmp_xxx 目录自身，避免误删固定工作目录
-                shutil.rmtree(extract_dir)
-            if temp_zip_path is not None and temp_zip_path.exists():
-                os.remove(temp_zip_path)
-        except Exception:
-            # 清理失败不影响主流程
-            pass
+        if extract_dir and extract_dir.exists():
+            shutil.rmtree(extract_dir, ignore_errors=True)
+
+
+@module_route.post("/installExecutor", summary="安装执行器到本地（pip install）")
+async def install_executor(
+    id: int = Query(..., description="执行器插件ID"),
+    session: Session = Depends(get_session)
+):
+    """
+    从数据库读取执行器内容，解压并执行 pip install . 安装为命令行工具
+    安装完成后删除源文件，只保留可执行命令
+    """
+    import subprocess
+    import sys
+    
+    extract_dir = None
+    
+    try:
+        plugin = session.get(Plugin, id)
+        if not plugin:
+            return respModel.error_resp(msg="插件不存在")
+        
+        if not plugin.plugin_content:
+            return respModel.error_resp(msg="插件内容为空，请先上传执行器")
+        
+        # 1. 解码并解压到固定目录
+        zip_bytes = base64.b64decode(plugin.plugin_content)
+        
+        # 使用固定安装目录（项目根目录同级的 executors 目录）
+        executors_base = Path(__file__).resolve().parents[2].parent / "executors"
+        executors_base.mkdir(parents=True, exist_ok=True)
+        
+        extract_dir = executors_base / plugin.plugin_code
+        if extract_dir.exists():
+            shutil.rmtree(extract_dir)
+        extract_dir.mkdir(parents=True, exist_ok=True)
+        
+        with zipfile.ZipFile(io.BytesIO(zip_bytes), 'r') as zip_ref:
+            zip_ref.extractall(extract_dir)
+        
+        # 查找解压后的根目录
+        items = list(extract_dir.iterdir())
+        if len(items) == 1 and items[0].is_dir():
+            install_dir = items[0]
+        else:
+            install_dir = extract_dir
+        
+        # 2. 执行 pip install .（标准安装，不依赖源目录）
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "install", "."],
+            cwd=str(install_dir),
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode != 0:
+            return respModel.error_resp(
+                msg=f"安装失败: {result.stderr or result.stdout}"
+            )
+        
+        # 3. 安装成功后删除解压的源文件目录
+        if extract_dir and extract_dir.exists():
+            shutil.rmtree(extract_dir, ignore_errors=True)
+        
+        # 4. 更新插件状态（不再需要 work_dir，命令已全局可用）
+        plugin.work_dir = ""  # 标准安装不需要工作目录
+        plugin.modify_time = datetime.now()
+        session.add(plugin)
+        session.commit()
+        
+        return respModel.ok_resp(
+            obj={
+                "command": plugin.command,
+                "output": result.stdout
+            },
+            msg=f"执行器安装成功，可使用命令: {plugin.command}"
+        )
+    
+    except Exception as e:
+        import traceback
+        return respModel.error_resp(msg=f"安装失败: {str(e)}\n{traceback.format_exc()}")

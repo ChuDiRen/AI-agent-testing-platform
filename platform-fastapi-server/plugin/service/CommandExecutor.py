@@ -8,14 +8,13 @@ import uuid
 import os
 import sys
 import json
+import yaml
 import logging
 import re
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-
-from core.minio_client import minio_client
 
 logger = logging.getLogger(__name__)
 
@@ -76,18 +75,16 @@ def parse_test_output(stdout: str) -> Dict[str, Any]:
 class CommandExecutor:
     """命令行执行器"""
     
-    def __init__(self, command: str, work_dir: str, storage_path: Optional[str] = None):
+    def __init__(self, command: str, work_dir: str):
         """
         初始化命令行执行器
         
         Args:
-            command: 执行命令（如: python -m webrun.cli）
-            work_dir: 工作目录（逻辑工作目录，实际执行目录可能为从 MinIO 同步后的临时目录）
-            storage_path: 插件在 MinIO 中的存储路径（bucket/object_name）
+            command: 执行命令（如: webrun）
+            work_dir: 工作目录（pip install -e 后的安装路径）
         """
         self.command = command
         self.work_dir = work_dir
-        self.storage_path = storage_path
         self._running_tasks: Dict[str, subprocess.Popen] = {}
     
     async def execute_test(
@@ -97,7 +94,7 @@ class CommandExecutor:
         config: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        执行测试
+        同步执行测试（等待测试完成后返回结果）
         
         Args:
             test_case_content: 测试用例内容（YAML格式）
@@ -111,9 +108,8 @@ class CommandExecutor:
             # 生成任务ID
             task_id = str(uuid.uuid4())
 
-            # 准备实际执行目录: 如果配置了 storage_path, 则从 MinIO 下载 latest.zip 并解压到本地临时目录
-            # 否则仍然使用初始化传入的 work_dir
-            effective_work_dir = await self._prepare_work_dir_from_minio(task_id)
+            # 使用工作目录
+            effective_work_dir = self._get_work_dir()
 
             # 创建临时用例文件
             temp_dir = Path(effective_work_dir) / "temp" / task_id
@@ -121,7 +117,18 @@ class CommandExecutor:
             
             # 文件名需要以数字开头，符合 YamlCaseParser 的命名规范
             case_file = temp_dir / f"1_test_case_{test_case_id}.yaml"
-            case_file.write_text(test_case_content, encoding='utf-8')
+            
+            # 检测并转换内容格式：如果是 JSON 则转为 YAML
+            yaml_content = test_case_content
+            if test_case_content.strip().startswith('{'):
+                try:
+                    data = json.loads(test_case_content)
+                    yaml_content = yaml.dump(data, allow_unicode=True, default_flow_style=False, sort_keys=False)
+                    logger.info(f"Task {task_id}: 已将 JSON 转换为 YAML 格式")
+                except json.JSONDecodeError:
+                    pass  # 不是有效 JSON，保持原样
+            
+            case_file.write_text(yaml_content, encoding='utf-8')
             
             # 构建命令行参数（使用绝对路径避免路径解析问题）
             cmd_args = self.command.split()
@@ -140,32 +147,128 @@ class CommandExecutor:
             logger.info(f"Executing command: {' '.join(cmd_args)}")
             logger.info(f"Working directory: {effective_work_dir}")
             
-            # 使用 subprocess.Popen 启动进程
-            process = subprocess.Popen(
-                cmd_args,
-                cwd=str(effective_work_dir),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
-            )
+            # 获取超时时间
+            timeout = config.get("timeout", 120) if config else 120
             
-            # 保存进程引用和相关信息
-            self._running_tasks[task_id] = {
-                "process": process,
-                "temp_dir": temp_dir,
-                "started_at": datetime.now().isoformat()
+            # 使用临时文件捕获输出（避免 Windows 下 PIPE 缓冲区死锁）
+            stdout_file = temp_dir / "stdout.log"
+            stderr_file = temp_dir / "stderr.log"
+            
+            # 定义阻塞执行函数（在线程池中运行，避免阻塞事件循环）
+            def _run_subprocess():
+                with open(stdout_file, 'w', encoding='utf-8') as f_out, \
+                     open(stderr_file, 'w', encoding='utf-8') as f_err:
+                    proc = subprocess.Popen(
+                        cmd_args,
+                        cwd=str(effective_work_dir),
+                        stdout=f_out,
+                        stderr=f_err,
+                        stdin=subprocess.DEVNULL
+                    )
+                    try:
+                        proc.wait(timeout=timeout)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                        proc.wait()
+                        logger.warning(f"Task {task_id} timed out after {timeout} seconds")
+                    return proc.returncode
+            
+            # 在线程池中执行阻塞操作，避免阻塞 FastAPI 事件循环
+            loop = asyncio.get_event_loop()
+            returncode = await loop.run_in_executor(None, _run_subprocess)
+            process = type('Process', (), {'returncode': returncode})()
+            
+            # 读取输出文件
+            stdout = stdout_file.read_bytes() if stdout_file.exists() else b''
+            stderr = stderr_file.read_bytes() if stderr_file.exists() else b''
+            
+            stdout_str = stdout.decode('utf-8', errors='ignore') if stdout else ""
+            stderr_str = stderr.decode('utf-8', errors='ignore') if stderr else ""
+            
+            # 调试日志：记录命令输出
+            if stderr_str:
+                logger.warning(f"Task {task_id} stderr: {stderr_str[:1000]}")
+            if not stdout_str and process.returncode != 0:
+                logger.error(f"Task {task_id} failed with no output, returncode={process.returncode}")
+            
+            # 解析测试输出，提取关键结果
+            parsed_output = parse_test_output(stdout_str)
+            
+            # 构建完整执行结果（保存到文件）
+            full_result_data = {
+                "task_id": task_id,
+                "status": "completed" if process.returncode == 0 else "failed",
+                "returncode": process.returncode,
+                "test_cases": parsed_output["test_cases"],
+                "summary": parsed_output["summary"],
+                "response_data": parsed_output["response_data"],
+                "stderr": stderr_str if stderr_str else None,
+                "completed_at": datetime.now().isoformat(),
+                "raw_stdout": stdout_str
             }
             
-            # 在后台线程中等待进程完成
-            timeout = config.get("timeout", 60) if config else 60
-            _executor.submit(self._wait_and_save_result, task_id, process, temp_dir, timeout)
+            # 保存完整结果到文件（供后续查询）
+            result_file = temp_dir / "result.json"
+            result_file.write_text(json.dumps(full_result_data, ensure_ascii=False, indent=2), encoding='utf-8')
             
-            # 立即返回，不阻塞
+            logger.info(f"Task {task_id} completed with return code {process.returncode}")
+            
+            # 构建简洁的返回结果（给前端展示）
+            response_data = parsed_output.get("response_data") or {}
+            
+            # 解析请求体（可能是 b'...' 格式的字符串）
+            request_body = response_data.get("body", "")
+            if isinstance(request_body, str) and request_body.startswith("b'"):
+                try:
+                    # 去掉 b'...' 包装，解析实际内容
+                    request_body = eval(request_body).decode('utf-8') if request_body else ""
+                except Exception:
+                    pass
+            
+            # 尝试解析为 JSON 格式（更易读）
+            try:
+                if request_body:
+                    request_body = json.loads(request_body)
+            except Exception:
+                pass
+            
+            # 解析响应体
+            response_body = response_data.get("response", "")
+            if response_body:
+                try:
+                    response_body = json.loads(response_body)
+                except Exception:
+                    pass
+            
+            simple_result = {
+                "task_id": task_id,
+                "status": "completed" if process.returncode == 0 else "failed",
+                "test_cases": parsed_output["test_cases"],
+                "summary": {
+                    "total": parsed_output["summary"].get("passed", 0) + parsed_output["summary"].get("failed", 0),
+                    "passed": parsed_output["summary"].get("passed", 0),
+                    "failed": parsed_output["summary"].get("failed", 0),
+                    "duration": parsed_output["summary"].get("text", "")
+                },
+                "request": {
+                    "url": response_data.get("url", ""),
+                    "method": response_data.get("method", ""),
+                    "headers": response_data.get("headers", {}),
+                    "body": request_body
+                },
+                "response": {
+                    "status_code": response_data.get("status_code"),
+                    "body": response_body if response_body else None
+                },
+                "error": stderr_str if stderr_str and process.returncode != 0 else None
+            }
+            
+            # 直接返回简洁结果
             return {
                 "success": True,
                 "task_id": task_id,
-                "status": "running",
-                "message": "Test execution started",
+                "status": simple_result["status"],
+                "data": simple_result,
                 "case_file": str(case_file),
                 "temp_dir": str(temp_dir)
             }
@@ -180,81 +283,20 @@ class CommandExecutor:
                 "traceback": traceback.format_exc()
             }
 
-    async def _prepare_work_dir_from_minio(self, task_id: str) -> Path:
-        """根据 storage_path 从 MinIO 同步插件到本地, 返回实际执行目录
-
-        - 如果未配置 storage_path, 直接返回 self.work_dir 对应的 Path
-        - 当前实现假设 storage_path 格式为 "<bucket>/<object_name>",
-          其中 object_name 为 plugins/{plugin_code}/latest.zip
-        """
-        # 将 work_dir 转换为绝对路径
-        base_work_dir = Path(self.work_dir)
-        if not base_work_dir.is_absolute():
-            # 如果是相对路径，尝试从项目根目录解析
-            project_root = Path(__file__).resolve().parents[2]  # platform-fastapi-server 的父目录
-            base_work_dir = (project_root / self.work_dir).resolve()
+    def _get_work_dir(self) -> Path:
+        """获取工作目录（项目相对路径）"""
+        # 项目根目录
+        project_root = Path(__file__).resolve().parents[2]
         
-        logger.info(f"Base work dir: {base_work_dir}, exists: {base_work_dir.exists()}")
-
-        # 未启用 MinIO 同步, 直接使用现有工作目录
-        if not self.storage_path:
-            return base_work_dir
-
-        try:
-            bucket, object_name = self.storage_path.split("/", 1)
-        except ValueError:
-            logger.warning(f"Invalid storage_path format: {self.storage_path}, fallback to local work_dir")
-            return base_work_dir
-
-        # 本地临时插件目录: <work_dir>/.__plugins__/<plugin_code>
-        plugin_code = object_name.split("/")[1] if "/" in object_name else "plugin"
-        local_plugins_root = base_work_dir / ".__plugins__"
-        local_plugins_root.mkdir(parents=True, exist_ok=True)
-        local_plugin_dir = local_plugins_root / plugin_code
-
-        # 下载 ZIP 到临时文件
-        temp_zip_path = local_plugins_root / f"{plugin_code}_{task_id}.zip"
-        try:
-            logger.info(f"Downloading plugin from MinIO: {self.storage_path} -> {temp_zip_path}")
-            minio_client.client.fget_object(bucket, object_name, str(temp_zip_path))
-
-            # 清理旧目录
-            if local_plugin_dir.exists():
-                for child in local_plugin_dir.iterdir():
-                    if child.is_file():
-                        child.unlink()
-                    else:
-                        # 简单递归删除
-                        for root, dirs, files in os.walk(child, topdown=False):
-                            for name in files:
-                                os.remove(os.path.join(root, name))
-                            for name in dirs:
-                                os.rmdir(os.path.join(root, name))
-                        child.rmdir()
-            else:
-                local_plugin_dir.mkdir(parents=True, exist_ok=True)
-
-            # 解压到本地插件目录
-            import zipfile
-            with zipfile.ZipFile(temp_zip_path, "r") as zip_ref:
-                zip_ref.extractall(local_plugin_dir)
-
-            logger.info(f"Plugin extracted to: {local_plugin_dir}")
-
-        except Exception as e:
-            logger.error(f"Failed to sync plugin from MinIO: {e}", exc_info=True)
-            # 失败时退回原始 work_dir
-            return base_work_dir
-        finally:
-            # 删除临时 ZIP
-            try:
-                if temp_zip_path.exists():
-                    temp_zip_path.unlink()
-            except Exception:
-                pass
-
-        # 如果 ZIP 内部还有一层目录, 可以根据需要再探测一层, 暂时直接使用解压目录
-        return local_plugin_dir
+        if not self.work_dir:
+            # 使用项目目录下的 executor_temp 目录
+            return project_root / "executor_temp"
+        
+        work_dir = Path(self.work_dir)
+        if not work_dir.is_absolute():
+            work_dir = (project_root / self.work_dir).resolve()
+        
+        return work_dir
     
     def _wait_and_save_result(self, task_id: str, process: subprocess.Popen, temp_dir: Path, timeout: int = 60):
         """在后台线程中等待测试完成并保存结果"""

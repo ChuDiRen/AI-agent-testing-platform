@@ -317,7 +317,7 @@ import { ref, reactive, onMounted } from "vue";
 import { Connection, ArrowDown } from '@element-plus/icons-vue';
 import { queryById, insertData, updateData, getMethods } from './apiinfo.js';
 import { queryByPage as getProjectList } from '../project/apiProject.js';
-import { listExecutors, executeTask, getTaskStatus } from '../task/apiTask.js';
+import { listExecutors, executeTask } from '../task/apiTask.js';
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
 
@@ -838,12 +838,14 @@ const handleTestCommand = async (command: string) => {
   }
 
   testing.value = true;
+  activeTab.value = 'debug';
+  debugOutput.value = '正在执行测试...';
   
   try {
     // 生成测试用例YAML
     const testCaseContent = generateTestCaseYaml();
     
-    // 调用执行器插件执行
+    // 调用执行器插件执行（同步等待结果）
     const res = await executeTask({
       plugin_code: currentExecutorCode.value,
       test_case_id: ruleForm.id || 0,
@@ -853,65 +855,103 @@ const handleTestCommand = async (command: string) => {
     
     if (res.data.code === 200) {
       const data = res.data.data;
-      const status = data.status;
-      
-      if (status === 'running') {
-        // 异步执行，开始轮询状态
-        ElMessage.info('测试任务已提交，执行中...');
-        activeTab.value = 'debug';
-        debugOutput.value = '正在执行测试...';
-        await pollTaskStatus(data.task_id, currentExecutorCode.value, data.temp_dir);
-      } else {
-        // 同步返回结果（兼容旧逻辑）
-        handleTaskResult(data);
-      }
+      handleTaskResult(data);
     } else {
       ElMessage.error(res.data.msg || '执行失败');
       debugOutput.value = `执行失败: ${res.data.msg}`;
-      testing.value = false;
     }
   } catch (error) {
     console.error('调试操作失败:', error);
     ElMessage.error('操作失败，请稍后重试');
     debugOutput.value = `操作失败: ${error.message || error}`;
+  } finally {
     testing.value = false;
   }
 };
 
-// 轮询任务状态
-const pollTaskStatus = async (taskId: string, pluginCode: string, tempDir: string) => {
-  const maxAttempts = 60; // 最多轮询60次（60秒）
-  let attempts = 0;
+
+// 格式化测试结果为易读格式
+const formatTestResult = (result: any): string => {
+  const lines: string[] = [];
+  const divider = '─'.repeat(50);
   
-  while (attempts < maxAttempts) {
-    attempts++;
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒
-    
-    try {
-      const res = await getTaskStatus({
-        plugin_code: pluginCode,
-        task_id: taskId,
-        temp_dir: tempDir
-      });
-      
-      if (res.data.code === 200 && res.data.data) {
-        const result = res.data.data;
-        if (result.status !== 'running') {
-          // 任务完成
-          handleTaskResult({ result });
-          return;
-        }
-        debugOutput.value = `正在执行测试... (${attempts}s)`;
-      }
-    } catch (e) {
-      console.error('轮询状态失败:', e);
+  // 标题
+  const statusEmoji = result.status === 'completed' ? '✅' : '❌';
+  const statusText = result.status === 'completed' ? '测试通过' : '测试失败';
+  lines.push(`${statusEmoji} ${statusText}`);
+  lines.push(divider);
+  
+  // 测试用例结果
+  if (result.test_cases && result.test_cases.length > 0) {
+    lines.push('');
+    lines.push('【测试用例】');
+    result.test_cases.forEach((tc: any, index: number) => {
+      const icon = tc.status === 'PASSED' ? '✓' : '✗';
+      const statusClass = tc.status === 'PASSED' ? '通过' : '失败';
+      lines.push(`  ${index + 1}. ${tc.name} → ${statusClass}`);
+    });
+  }
+  
+  // 统计摘要
+  if (result.summary) {
+    lines.push('');
+    lines.push('【执行统计】');
+    lines.push(`  总数: ${result.summary.total}  |  通过: ${result.summary.passed}  |  失败: ${result.summary.failed}`);
+    if (result.summary.duration) {
+      const duration = result.summary.duration.replace(/\d+ passed in /, '');
+      lines.push(`  耗时: ${duration}`);
     }
   }
   
-  // 超时
-  ElMessage.warning('任务执行超时');
-  debugOutput.value = '任务执行超时，请稍后查看结果';
-  testing.value = false;
+  // 请求信息
+  if (result.request && result.request.url) {
+    lines.push('');
+    lines.push('【请求详情】');
+    lines.push(`  ${result.request.method} ${result.request.url}`);
+    if (result.request.body && Object.keys(result.request.body).length > 0) {
+      lines.push(`  请求体: ${JSON.stringify(result.request.body)}`);
+    }
+  }
+  
+  // 响应信息
+  if (result.response && result.response.body) {
+    lines.push('');
+    lines.push('【响应结果】');
+    const respBody = result.response.body;
+    if (respBody.code !== undefined) {
+      const codeIcon = respBody.code === 200 ? '✓' : '✗';
+      lines.push(`  ${codeIcon} 状态码: ${respBody.code}`);
+    }
+    if (respBody.msg) {
+      lines.push(`  消息: ${respBody.msg}`);
+    }
+    if (respBody.data) {
+      // 只显示关键字段
+      const keyFields = ['id', 'username', 'email', 'mobile', 'status', 'code', 'msg'];
+      const summary: string[] = [];
+      for (const key of keyFields) {
+        if (respBody.data[key] !== undefined) {
+          summary.push(`${key}: ${respBody.data[key]}`);
+        }
+      }
+      if (summary.length > 0) {
+        lines.push(`  关键数据: { ${summary.join(', ')} }`);
+      }
+      // 完整数据显示
+      lines.push('');
+      lines.push('【完整响应数据】');
+      lines.push(JSON.stringify(respBody.data, null, 2));
+    }
+  }
+  
+  // 错误信息
+  if (result.error) {
+    lines.push('');
+    lines.push('【错误信息】');
+    lines.push(`  ${result.error}`);
+  }
+  
+  return lines.join('\n');
 };
 
 // 处理任务结果
@@ -927,7 +967,8 @@ const handleTaskResult = (data: any) => {
     ElMessage.warning('测试执行超时');
   }
   
-  debugOutput.value = JSON.stringify(result, null, 2);
+  // 使用格式化函数展示结果
+  debugOutput.value = formatTestResult(result);
   activeTab.value = 'debug';
   testing.value = false;
 };
