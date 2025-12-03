@@ -1,5 +1,16 @@
 <template>
   <div class="page-container">
+    <!-- 搜索区域 -->
+    <BaseSearch 
+      :model="searchForm" 
+      @search="handleSearch" 
+      @reset="resetSearch"
+    >
+      <el-form-item label="项目名称">
+        <el-input v-model="searchForm.project_name" placeholder="请输入项目名称" clearable />
+      </el-form-item>
+    </BaseSearch>
+
     <!-- 表格区域 -->
     <BaseTable 
       title="项目管理"
@@ -167,6 +178,7 @@ import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import BaseTable from '@/components/BaseTable/index.vue';
+import BaseSearch from '@/components/BaseSearch/index.vue';
 
 const router = useRouter(); 
 
@@ -175,16 +187,27 @@ const pagination = ref({ page: 1, limit: 10 });
 const total = ref(0);
 const loading = ref(false);
 
+// 搜索表单
+const searchForm = reactive({
+  project_name: null as string | null
+});
+
 // 表格数据
 const tableData = ref([]);
 
 // 加载页面数据
 const loadData = () => {
   loading.value = true;
-  queryByPage({
+  const params: any = {
     page: pagination.value.page,
     pageSize: pagination.value.limit
-  }).then((res: { data: { code: number; data: never[]; total: number; msg: string } }) => {
+  };
+  // 添加搜索条件
+  if (searchForm.project_name) {
+    params.project_name = searchForm.project_name;
+  }
+  
+  queryByPage(params).then((res: { data: { code: number; data: never[]; total: number; msg: string } }) => {
     if (res.data.code === 200) {
       tableData.value = res.data.data || [];
       total.value = res.data.total || 0;
@@ -197,6 +220,19 @@ const loadData = () => {
   }).finally(() => {
     loading.value = false;
   });
+};
+
+// 搜索
+const handleSearch = () => {
+  pagination.value.page = 1; // 搜索时重置到第一页
+  loadData();
+};
+
+// 重置搜索
+const resetSearch = () => {
+  searchForm.project_name = null;
+  pagination.value.page = 1;
+  loadData();
 };
 
 // 打开表单 （编辑/新增）

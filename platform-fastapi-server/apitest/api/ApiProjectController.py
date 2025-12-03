@@ -20,9 +20,18 @@ logger = get_logger(__name__)
 def queryByPage(query: ApiProjectQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
-        statement = select(module_model).limit(query.pageSize).offset(offset)
-        datas = session.exec(statement).all()
+        # 构建基础查询
+        statement = select(module_model)
         count_statement = select(module_model)
+        
+        # 如果有项目名称检索条件，添加模糊查询
+        if query.project_name:
+            statement = statement.where(module_model.project_name.contains(query.project_name))
+            count_statement = count_statement.where(module_model.project_name.contains(query.project_name))
+        
+        # 添加分页
+        statement = statement.limit(query.pageSize).offset(offset)
+        datas = session.exec(statement).all()
         total = len(session.exec(count_statement).all())
         return respModel.ok_resp_list(lst=datas, total=total)
     except Exception as e:

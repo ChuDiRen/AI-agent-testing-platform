@@ -15,8 +15,8 @@ import uuid
 import re
 import base64
 import io
-import tempfile
 from pathlib import Path
+from core.temp_manager import get_temp_subdir, remove_temp_dir
 from datetime import datetime
 
 from ..model.PluginModel import Plugin
@@ -435,9 +435,9 @@ async def upload_executor(
         zip_bytes = await file.read()
         zip_base64 = base64.b64encode(zip_bytes).decode('utf-8')
         
-        # 2. 解压到临时目录解析信息
+        # 2. 解压到临时目录解析信息（使用项目 temp 目录）
         temp_id = str(uuid.uuid4())
-        extract_dir = Path(tempfile.gettempdir()) / f"executor_{temp_id}"
+        extract_dir = get_temp_subdir("executor") / f"executor_{temp_id}"
         extract_dir.mkdir(parents=True, exist_ok=True)
         
         with zipfile.ZipFile(io.BytesIO(zip_bytes), 'r') as zip_ref:
@@ -573,9 +573,9 @@ def _run_pip_install(plugin_id: int, plugin_code: str, plugin_content: str, comm
             "progress": 10
         }
         
-        # 1. 解码并解压到临时目录
+        # 1. 解码并解压到临时目录（使用项目 temp 目录）
         zip_bytes = base64.b64decode(plugin_content)
-        extract_dir = Path(tempfile.gettempdir()) / f"executor_install_{plugin_code}"
+        extract_dir = get_temp_subdir("executor") / f"executor_install_{plugin_code}"
         if extract_dir.exists():
             shutil.rmtree(extract_dir)
         extract_dir.mkdir(parents=True, exist_ok=True)

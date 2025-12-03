@@ -75,4 +75,26 @@ defineExpose({
 .search-actions {
   margin-left: auto;
 }
+
+/* 大屏幕适配 */
+@media (min-width: 1920px) {
+  .base-search {
+    padding: 20px 24px 0;
+  }
+  
+  .search-form {
+    gap: 16px;
+  }
+}
+
+/* 超大屏幕适配 */
+@media (min-width: 2560px) {
+  .base-search {
+    padding: 24px 32px 0;
+  }
+  
+  .search-form {
+    gap: 20px;
+  }
+}
 </style>

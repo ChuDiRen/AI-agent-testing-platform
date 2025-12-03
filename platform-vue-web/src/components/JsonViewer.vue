@@ -26,7 +26,7 @@ const props = defineProps({
   },
   showToolbar: {
     type: Boolean,
-    default: true
+    default: false
   },
   defaultExpanded: {
     type: Boolean,

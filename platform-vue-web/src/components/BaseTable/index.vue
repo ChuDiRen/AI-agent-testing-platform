@@ -134,4 +134,26 @@ const toggleExpandAll = () => {
   display: flex;
   gap: 8px;
 }
+
+/* 大屏幕适配 */
+@media (min-width: 1920px) {
+  .base-table {
+    padding: 24px;
+  }
+  
+  .header-title {
+    font-size: 18px;
+  }
+}
+
+/* 超大屏幕适配 */
+@media (min-width: 2560px) {
+  .base-table {
+    padding: 32px;
+  }
+  
+  .header-title {
+    font-size: 20px;
+  }
+}
 </style>

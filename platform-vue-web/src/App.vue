@@ -116,8 +116,24 @@ body {
 /* 响应式布局 - 大屏适配 */
 @media (min-width: 1920px) {
   .page-container {
-    max-width: 1600px;
-    margin: 0 auto;
+    /* 大屏幕充分利用空间，不限制最大宽度 */
+    max-width: none;
+    padding: 24px 32px;
+  }
+  
+  .el-table {
+    font-size: 14px;
+  }
+}
+
+/* 超大屏幕适配 (2K+) */
+@media (min-width: 2560px) {
+  .page-container {
+    padding: 32px 48px;
+  }
+  
+  .el-table {
+    font-size: 15px;
   }
 }
 </style>

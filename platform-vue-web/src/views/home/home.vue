@@ -177,5 +177,19 @@ const closeMenu = () => {
     padding: 8px 4px;
   }
 }
+
+/* 大屏幕适配 (1920px+) */
+@media (min-width: 1920px) {
+  .main-content {
+    padding: 24px 32px;
+  }
+}
+
+/* 超大屏幕适配 (2K+) */
+@media (min-width: 2560px) {
+  .main-content {
+    padding: 32px 48px;
+  }
+}
 </style>
 

@@ -1,180 +1,182 @@
 <template>
   <!--100vh就沾满了整个屏幕-->
   <!--上面这个是vite的CSS 下面是EL的样式 都是一样的效果-->
-  <el-row class="login-container">
-    <!-- <el-row style="min-height: 100vh;" class="bg-indigo-400"> -->
-    <!--总数是24 就是24列-->
-    <!-- <el-col :span="16" class="flex items-center justify-center"> -->
-    <!--响应式后-->
-    <el-col :lg="16" class="left">
-      <div>
+  <div class="login-container">
+    <div class="login-content">
+      <!-- 左侧欢迎区域 -->
+      <div class="left">
         <div>
-          欢迎光临大熊AI
+          <div>欢迎光临大熊AI</div>
+          <div>欢迎使用大熊AI自动化测试平台</div>
         </div>
-        <div>欢迎使用大熊AI自动化测试平台</div>
       </div>
-    </el-col>
-    <!-- <el-col :span="8" class="bg-indigo-50 flex items-center justify-center flex-col"> -->
-    <!--响应式后-->
-    <el-col :lg="8" class=" right">
+      <!-- 右侧登录表单 -->
+      <div class="right">
+        <h2 class="title">欢迎回来</h2>
+        <!--下面这个布局是个很明显的flex布局，左中右 都是水平垂直居中-->
+        <!--上下都要有外间距，所以my-5 都是灰色-->
+        <!--space-x-2 就是左右间距-->
+        <div>
+          <!--然后这里需要渲染颜色-->
+          <span class="line"></span>
+          <span>账号密码登录</span>
+          <span class="line"></span>
+        </div>
 
-      <h2 class="title">欢迎回来</h2>
-      <!--下面这个布局是个很明显的flex布局，左中右 都是水平垂直居中-->
-      <!--上下都要有外间距，所以my-5 都是灰色-->
-      <!--space-x-2 就是左右间距-->
-      <div>
-        <!--然后这里需要渲染颜色-->
-        <span class="line"></span>
-        <span>账号密码登录</span>
-        <span class="line"></span>
+        <el-form ref="formRef" :rules="rules" :model="form" class="w-[250px]">
+          <el-form-item prop="username">
+            <el-input v-model="form.username" placeholder="请输入用户名">
+              <!--这里需要插槽处理图标问题-->
+              <template #prefix>
+                <el-icon class="el-input__icon">
+                  <User />
+                </el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+          <el-form-item prop="password">
+            <el-input
+              type="password"
+              v-model="form.password"
+              placeholder="请输入密码"
+              show-password
+            >
+              <template #prefix>
+                <el-icon>
+                  <Lock />
+                </el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+          <el-form-item>
+            <el-button class="w-[250px] round" type="primary" @click="onSubmit"
+              >登录</el-button
+            >
+          </el-form-item>
+        </el-form>
       </div>
-
-      <el-form ref="formRef" :rules="rules" :model="form" class="w-[250px]">
-        <el-form-item prop="username">
-          <el-input v-model="form.username" placeholder="请输入用户名">
-            <!--这里需要插槽处理图标问题-->
-            <template #prefix>
-              <el-icon class="el-input__icon">
-                <User />
-              </el-icon>
-            </template>
-          </el-input>
-        </el-form-item>
-        <el-form-item prop="password">
-          <el-input type="password" v-model="form.password" placeholder="请输入密码" show-password>
-            <template #prefix>
-              <el-icon>
-                <Lock />
-              </el-icon>
-            </template>
-          </el-input>
-        </el-form-item>
-        <el-form-item>
-          <el-button class="w-[250px] round" type="primary" @click="onSubmit">登录</el-button>
-        </el-form-item>
-      </el-form>
-    </el-col>
-  </el-row>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { reactive, ref } from "vue";
-import { login } from './login.js'
-import { useCookies } from '@vueuse/integrations/useCookies';
-import { ElNotification } from 'element-plus'
+import { login } from "./login.js";
+import { useCookies } from "@vueuse/integrations/useCookies";
+import { ElNotification } from "element-plus";
 import { useRouter } from "vue-router";
-import { useStore } from 'vuex'
-import { getUserMenus, getMenuTree } from '@/views/system/menu/menu'
+import { useStore } from "vuex";
+import { getUserMenus, getMenuTree } from "@/views/system/menu/menu";
 
-const cookie = useCookies()
-const router = useRouter()
-const store = useStore()
-
+const cookie = useCookies();
+const router = useRouter();
+const store = useStore();
 
 // do not use same name with ref
 const form = reactive({
   username: "",
-  password: ""
+  password: "",
 });
-
 
 const rules = {
   username: [
-    { required: true, message: '用户名不能为空', trigger: 'blur' },
-    { min: 3, max: 16, message: '用户名长度必须在3到16之间', trigger: 'blur' },
+    { required: true, message: "用户名不能为空", trigger: "blur" },
+    { min: 3, max: 16, message: "用户名长度必须在3到16之间", trigger: "blur" },
   ],
-  password: [
-    { required: true, message: '密码不能为空', trigger: 'blur' }
-  ]
+  password: [{ required: true, message: "密码不能为空", trigger: "blur" }],
+};
 
-}
+const formRef = ref(null);
 
-const formRef = ref(null)
-
-const onSubmit = () => { // 提交登录表单
+const onSubmit = () => {
+  // 提交登录表单
   formRef.value.validate((valid) => {
     if (!valid) {
-      return false
+      return false;
     }
     login(form.username, form.password)
-      .then(res => {
+      .then((res) => {
         if (res.data.code == 200 && res.data.data.token != null) {
           ElNotification({
-            title: 'Success',
-            message: '登录成功',
-            type: 'success',
-            duration: 2000
-          })
-          cookie.set("l-token", res.data.data.token)
+            title: "Success",
+            message: "登录成功",
+            type: "success",
+            duration: 2000,
+          });
+          cookie.set("l-token", res.data.data.token);
           // 持久化一个用户ID，供刷新兜底拉取菜单
-          if(res?.data?.data?.id){
-            cookie.set('l-user-id', res.data.data.id)
+          if (res?.data?.data?.id) {
+            cookie.set("l-user-id", res.data.data.id);
           }
           // 保存用户名到localStorage，用于权限检查
-          if(res?.data?.data?.username){
-            localStorage.setItem('username', res.data.data.username)
+          if (res?.data?.data?.username) {
+            localStorage.setItem("username", res.data.data.username);
           }
           // 保存用户信息到全局状态
           try {
-            store.commit('setUserInfo', res.data.data)
+            store.commit("setUserInfo", res.data.data);
           } catch (e) {}
           // 拉取并写入用户菜单树，然后再跳转首页
-          const userId = res?.data?.data?.id
+          const userId = res?.data?.data?.id;
           if (userId) {
-            return getUserMenus(userId).then(async menuRes => {
+            return getUserMenus(userId).then(async (menuRes) => {
               if (menuRes?.data?.code === 200) {
                 try {
-                  const tree = menuRes.data.data || []
-                  console.log('登录时获取的用户菜单数据:', tree)
+                  const tree = menuRes.data.data || [];
+                  console.log("登录时获取的用户菜单数据:", tree);
                   if (tree.length > 0) {
-                    console.log('设置用户菜单，菜单数量:', tree.length)
-                    store.commit('setMenuTree', tree)
+                    console.log("设置用户菜单，菜单数量:", tree.length);
+                    store.commit("setMenuTree", tree);
                   } else {
                     // 兜底：用户无绑定权限，展示全量菜单树
-                    console.log('用户菜单为空，获取全量菜单')
-                    const allRes = await getMenuTree()
+                    console.log("用户菜单为空，获取全量菜单");
+                    const allRes = await getMenuTree();
                     if (allRes?.data?.code === 200) {
-                      const allMenuData = allRes.data.data || []
-                      console.log('设置全量菜单，菜单数量:', allMenuData.length)
-                      store.commit('setMenuTree', allMenuData)
+                      const allMenuData = allRes.data.data || [];
+                      console.log(
+                        "设置全量菜单，菜单数量:",
+                        allMenuData.length
+                      );
+                      store.commit("setMenuTree", allMenuData);
                     } else {
-                      console.warn('获取全量菜单失败，响应码:', allRes?.data?.code)
+                      console.warn(
+                        "获取全量菜单失败，响应码:",
+                        allRes?.data?.code
+                      );
                     }
                   }
                 } catch (e) {
-                  console.error('处理菜单数据失败:', e)
+                  console.error("处理菜单数据失败:", e);
                 }
               } else {
-                console.warn('获取用户菜单失败，响应码:', menuRes?.data?.code)
+                console.warn("获取用户菜单失败，响应码:", menuRes?.data?.code);
               }
               // 确保菜单数据加载完成后再跳转
-              router.replace("/Statistics")
-            })
+              router.replace("/Statistics");
+            });
           } else {
-            console.warn('登录响应中没有用户ID')
-            router.replace("/Statistics")
+            console.warn("登录响应中没有用户ID");
+            router.replace("/Statistics");
           }
-
         } else {
           ElNotification({
-            title: '登录失败',
+            title: "登录失败",
             message: res.data.msg,
-            type: 'error',
-            duration: 2000
-          })
+            type: "error",
+            duration: 2000,
+          });
         }
-      }).catch(err => {
-        ElNotification({
-          title: '错误',
-          message: '登录出现错误，请联系系统管理员',
-          type: 'error',
-          duration: 2000
-        })
-        return false
       })
-
-
-  })
+      .catch((err) => {
+        ElNotification({
+          title: "错误",
+          message: "登录出现错误，请联系系统管理员",
+          type: "error",
+          duration: 2000,
+        });
+        return false;
+      });
+  });
 };
 </script>
 
@@ -187,12 +189,26 @@ const onSubmit = () => { // 提交登录表单
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px;
+}
+
+/* 内容容器 - 限制最大宽度，大屏幕居中 */
+.login-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(40px, 8vw, 120px);
+  max-width: 1000px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+  margin: 0 auto;
 }
 
 /* 动态背景装饰 */
 .login-container::before,
 .login-container::after {
-  content: '';
+  content: "";
   position: absolute;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.1);
@@ -215,52 +231,64 @@ const onSubmit = () => { // 提交登录表单
 }
 
 @keyframes float {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  33% { transform: translate(30px, -50px) rotate(120deg); }
-  66% { transform: translate(-20px, 20px) rotate(240deg); }
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  33% {
+    transform: translate(30px, -50px) rotate(120deg);
+  }
+  66% {
+    transform: translate(-20px, 20px) rotate(240deg);
+  }
 }
 
-.login-container .left,
-.login-container .right {
+.login-content .left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 20px;
+}
+
+.login-content .right {
+  flex: 0 0 auto;
+  width: clamp(320px, 35vw, 400px);
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  z-index: 1;
-}
-
-.login-container .right {
   flex-direction: column;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   border-radius: 24px;
-  padding: 48px;
+  padding: clamp(32px, 4vw, 48px);
   box-shadow: var(--shadow-xl);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-[data-theme="dark"] .login-container .right {
+[data-theme="dark"] .login-content .right {
   background: rgba(30, 41, 59, 0.95);
 }
 
-.login-container .right:hover {
+.login-content .right:hover {
   transform: translateY(-8px);
   box-shadow: 0 24px 38px 3px rgba(0, 0, 0, 0.14);
 }
 
-.left>div>div:first-child {
+.left > div > div:first-child {
   font-weight: 700;
-  font-size: 3rem;
+  font-size: clamp(2rem, 4vw, 3.5rem);
   color: white;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   text-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   animation: slideInLeft 0.8s ease;
+  white-space: nowrap;
 }
 
-.left>div>div:last-child {
-  font-size: 1.125rem;
+.left > div > div:last-child {
+  font-size: clamp(0.9rem, 1.5vw, 1.25rem);
   color: rgba(255, 255, 255, 0.9);
-  max-width: 500px;
+  max-width: 400px;
   line-height: 1.6;
   animation: slideInLeft 0.8s ease 0.2s both;
 }
@@ -285,11 +313,15 @@ const onSubmit = () => { // 提交登录表单
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-.right>div {
+.right > div {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -348,20 +380,51 @@ const onSubmit = () => { // 提交登录表单
   transform: translateY(0);
 }
 
-/* 响应式设计 */
+/* 平板适配 */
+@media (max-width: 1024px) {
+  .login-content {
+    max-width: 900px;
+  }
+  
+  .login-content .left {
+    padding-right: 10px;
+  }
+}
+
+/* 小屏幕/手机适配 */
 @media (max-width: 768px) {
-  .left {
+  .login-content {
+    flex-direction: column;
+    gap: 30px;
+    max-width: 100%;
+  }
+
+  .login-content .left {
     display: none;
   }
-  
-  .login-container .right {
-    padding: 32px 24px;
+
+  .login-content .right {
+    width: 100%;
+    max-width: 360px;
     border-radius: 16px;
-    margin: 20px;
   }
-  
+
   .right .title {
     font-size: 1.5rem;
+  }
+}
+
+/* 大屏幕优化 */
+@media (min-width: 1400px) {
+  .login-content {
+    max-width: 1100px;
+  }
+}
+
+/* 超大屏幕优化 (2K+) */
+@media (min-width: 1920px) {
+  .login-content {
+    max-width: 1200px;
   }
 }
 </style>

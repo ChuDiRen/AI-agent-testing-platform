@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class ApiProjectQuery(BaseModel): # API项目查询请求
     page: int = 1
     pageSize: int = 10
+    project_name: Optional[str] = None  # 项目名称检索条件
 
 class ApiProjectCreate(BaseModel): # API项目创建请求
     project_name: str

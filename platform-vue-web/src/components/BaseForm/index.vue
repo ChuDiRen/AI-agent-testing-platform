@@ -87,9 +87,10 @@ defineExpose({
 }
 
 .form-card {
-  /* 调整最大宽度，适应更多内容，避免太窄 */
-  max-width: 1200px;
-  margin: 0 auto;
+  /* 表单卡片充分利用可用空间 */
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .card-header {
@@ -99,7 +100,26 @@ defineExpose({
 }
 
 .form-content {
-  padding: 20px 0;
+  padding: 20px;
+  max-width: 800px; /* 表单内容限制宽度，保持可读性 */
+}
+
+/* 大屏幕适配 */
+@media (min-width: 1400px) {
+  .form-content {
+    max-width: 900px;
+    padding: 24px 32px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .base-form-container {
+    padding: 24px 32px;
+  }
+  
+  .form-content {
+    max-width: 1000px;
+  }
 }
 
 .form-footer {

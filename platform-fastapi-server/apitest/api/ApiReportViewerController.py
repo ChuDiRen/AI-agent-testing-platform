@@ -9,6 +9,7 @@ from typing import Optional
 from core.database import get_session
 from core.logger import get_logger
 from core.resp_model import respModel
+from core.temp_manager import get_temp_subdir
 from fastapi import APIRouter, Query, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from sqlmodel import select
@@ -149,7 +150,6 @@ async def download_report(
     """
     try:
         import zipfile
-        import tempfile
         from datetime import datetime
         
         target_report_path = None
@@ -183,14 +183,14 @@ async def download_report(
         if not target_report_path or not target_report_path.exists():
             raise HTTPException(status_code=404, detail="报告不存在")
         
-        # 创建临时ZIP文件
+        # 创建临时ZIP文件（使用项目 temp 目录）
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         zip_filename = f"{report_name}_{timestamp}.zip"
-        temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
+        temp_zip_path = get_temp_subdir("reports") / zip_filename
         
         try:
             # 压缩报告目录
-            with zipfile.ZipFile(temp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            with zipfile.ZipFile(str(temp_zip_path), 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for file_path in target_report_path.rglob('*'):
                     if file_path.is_file():
                         arcname = file_path.relative_to(target_report_path)
@@ -200,7 +200,7 @@ async def download_report(
             
             # 返回ZIP文件
             return FileResponse(
-                path=temp_zip.name,
+                path=str(temp_zip_path),
                 media_type="application/zip",
                 filename=zip_filename,
                 headers={
@@ -209,8 +209,8 @@ async def download_report(
             )
         except Exception as e:
             # 清理临时文件
-            if os.path.exists(temp_zip.name):
-                os.unlink(temp_zip.name)
+            if temp_zip_path.exists():
+                temp_zip_path.unlink()
             raise
         
     except HTTPException:

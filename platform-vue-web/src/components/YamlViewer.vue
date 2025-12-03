@@ -1,6 +1,6 @@
 <template>
   <div class="yaml-viewer">
-    <div class="viewer-header">
+    <div class="viewer-header" v-if="showToolbar">
       <span class="title">{{ title || 'YAML' }}</span>
       <div class="header-actions">
         <el-button size="small" text @click="toggleExpand">
@@ -33,6 +33,10 @@ const props = defineProps({
   copyable: {
     type: Boolean,
     default: true
+  },
+  showToolbar: {
+    type: Boolean,
+    default: false
   }
 })
 

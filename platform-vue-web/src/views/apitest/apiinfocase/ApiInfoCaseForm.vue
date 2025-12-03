@@ -421,12 +421,18 @@ const handleExecute = async () => {
         error_message: result.error || null
       }
       
-      resultDialogVisible.value = true
-      
       if (result.status === 'completed' || result.success) {
-        ElMessage.success('测试执行完成')
+        ElMessage.success('测试执行完成，正在跳转到测试报告页面...')
+        // 跳转到测试历史页面查看执行结果
+        setTimeout(() => {
+          router.push('/ApiHistoryList')
+        }, 1000)
       } else {
         ElMessage.warning(result.error || '测试执行完成，请查看详情')
+        // 失败时也跳转到历史页面
+        setTimeout(() => {
+          router.push('/ApiHistoryList')
+        }, 1500)
       }
     } else {
       ElMessage.error(res.data.msg || '执行失败')
@@ -529,12 +535,26 @@ onMounted(async () => {
 
 /* 内容区域 */
 .content-wrapper {
-  max-width: 1200px;
-  margin: 24px auto;
-  padding: 0 24px;
+  margin: 24px;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+/* 大屏幕适配 */
+@media (min-width: 1920px) {
+  .content-wrapper {
+    margin: 32px 48px;
+    gap: 28px;
+  }
+}
+
+@media (min-width: 2560px) {
+  .content-wrapper {
+    margin: 40px 64px;
+    gap: 32px;
+  }
 }
 
 /* 卡片通用样式 */

@@ -156,39 +156,39 @@ def create_initial_menus():
                 {"id": 2014, "parent_id": 201, "menu_name": "接口删除", "path": None, "component": None, "query": None, "perms": "apitest:api:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
                 # 2.3 关键字管理（菜单 C）
-                {"id": 203, "parent_id": 200, "menu_name": "关键字管理", "path": "/apitest/keyword", "component": "ApiKeyWordList", "query": None, "perms": "apitest:keyword:list", "icon": "Key", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": "关键字管理"},
+                {"id": 203, "parent_id": 200, "menu_name": "关键字管理", "path": "/apitest/keyword", "component": "ApiKeyWordList", "query": None, "perms": "apitest:keyword:list", "icon": "Key", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "关键字管理"},
                 {"id": 2031, "parent_id": 203, "menu_name": "关键字查询", "path": None, "component": None, "query": None, "perms": "apitest:keyword:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 2032, "parent_id": 203, "menu_name": "关键字新增", "path": None, "component": None, "query": None, "perms": "apitest:keyword:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 2033, "parent_id": 203, "menu_name": "关键字修改", "path": None, "component": None, "query": None, "perms": "apitest:keyword:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 2034, "parent_id": 203, "menu_name": "关键字删除", "path": None, "component": None, "query": None, "perms": "apitest:keyword:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
-                # 2.5 素材管理（菜单 C）
-                {"id": 204, "parent_id": 200, "menu_name": "素材管理", "path": "/apitest/mate", "component": "ApiMateManageList", "query": None, "perms": "apitest:mate:list", "icon": "Picture", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": "素材管理"},
+                # 2.4 素材管理（菜单 C）
+                {"id": 204, "parent_id": 200, "menu_name": "素材管理", "path": "/apitest/mate", "component": "ApiMateManageList", "query": None, "perms": "apitest:mate:list", "icon": "Picture", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": "素材管理"},
                 {"id": 2041, "parent_id": 204, "menu_name": "素材查询", "path": None, "component": None, "query": None, "perms": "apitest:mate:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 2042, "parent_id": 204, "menu_name": "素材新增", "path": None, "component": None, "query": None, "perms": "apitest:mate:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 2043, "parent_id": 204, "menu_name": "素材修改", "path": None, "component": None, "query": None, "perms": "apitest:mate:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 2044, "parent_id": 204, "menu_name": "素材删除", "path": None, "component": None, "query": None, "perms": "apitest:mate:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
-                # 2.4 测试历史（菜单 C）
-                {"id": 205, "parent_id": 200, "menu_name": "测试历史", "path": "/apitest/testhistory", "component": "ApiTestHistory", "query": None, "perms": "apitest:history:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": "测试历史记录"},
-                {"id": 2051, "parent_id": 205, "menu_name": "历史查询", "path": None, "component": None, "query": None, "perms": "apitest:history:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
-                {"id": 2052, "parent_id": 205, "menu_name": "历史删除", "path": None, "component": None, "query": None, "perms": "apitest:history:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
-
-                # 2.6 用例管理（菜单 C）
-                {"id": 206, "parent_id": 200, "menu_name": "用例管理", "path": "/ApiInfoCaseList", "component": "ApiInfoCaseList", "query": None, "perms": "apitest:case:list", "icon": "Document", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 6, "remark": "API用例管理"},
+                # 2.5 用例管理（菜单 C）
+                {"id": 206, "parent_id": 200, "menu_name": "用例管理", "path": "/ApiInfoCaseList", "component": "ApiInfoCaseList", "query": None, "perms": "apitest:case:list", "icon": "Document", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": "API用例管理"},
                 {"id": 2061, "parent_id": 206, "menu_name": "用例查询", "path": None, "component": None, "query": None, "perms": "apitest:case:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 2062, "parent_id": 206, "menu_name": "用例新增", "path": None, "component": None, "query": None, "perms": "apitest:case:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 2063, "parent_id": 206, "menu_name": "用例修改", "path": None, "component": None, "query": None, "perms": "apitest:case:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 2064, "parent_id": 206, "menu_name": "用例删除", "path": None, "component": None, "query": None, "perms": "apitest:case:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
                 {"id": 2065, "parent_id": 206, "menu_name": "用例执行", "path": None, "component": None, "query": None, "perms": "apitest:case:execute", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": None},
 
-                # 2.7 测试计划（菜单 C）
-                {"id": 207, "parent_id": 200, "menu_name": "测试计划", "path": "/ApiCollectionInfoList", "component": "ApiCollectionInfoList", "query": None, "perms": "apitest:plan:list", "icon": "DataAnalysis", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 7, "remark": "API测试计划管理"},
+                # 2.6 测试计划（菜单 C）
+                {"id": 207, "parent_id": 200, "menu_name": "测试计划", "path": "/ApiCollectionInfoList", "component": "ApiCollectionInfoList", "query": None, "perms": "apitest:plan:list", "icon": "DataAnalysis", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 6, "remark": "API测试计划管理"},
                 {"id": 2071, "parent_id": 207, "menu_name": "计划查询", "path": None, "component": None, "query": None, "perms": "apitest:plan:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 2072, "parent_id": 207, "menu_name": "计划新增", "path": None, "component": None, "query": None, "perms": "apitest:plan:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 2073, "parent_id": 207, "menu_name": "计划修改", "path": None, "component": None, "query": None, "perms": "apitest:plan:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 2074, "parent_id": 207, "menu_name": "计划删除", "path": None, "component": None, "query": None, "perms": "apitest:plan:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
                 {"id": 2075, "parent_id": 207, "menu_name": "计划执行", "path": None, "component": None, "query": None, "perms": "apitest:plan:execute", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": None},
+
+                # 2.7 测试历史（菜单 C）
+                {"id": 205, "parent_id": 200, "menu_name": "测试历史", "path": "/apitest/testhistory", "component": "ApiTestHistory", "query": None, "perms": "apitest:history:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 7, "remark": "测试历史记录"},
+                {"id": 2051, "parent_id": 205, "menu_name": "历史查询", "path": None, "component": None, "query": None, "perms": "apitest:history:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
+                {"id": 2052, "parent_id": 205, "menu_name": "历史删除", "path": None, "component": None, "query": None, "perms": "apitest:history:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
 
                 # ================================
                 # AI配置模块
