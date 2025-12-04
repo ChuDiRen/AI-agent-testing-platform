@@ -58,6 +58,12 @@ def engine_fixture():
     from aiassistant.model.AiMessage import AiMessage
     from aiassistant.model.PromptTemplate import PromptTemplate
     
+    from plugin.model.PluginModel import Plugin
+    
+    from generator.model.GenTable import GenTable
+    from generator.model.GenTableColumn import GenTableColumn
+    from generator.model.GenHistory import GenHistory
+    
     # 创建所有表
     SQLModel.metadata.create_all(engine)
     
@@ -107,9 +113,9 @@ def auth_headers_fixture(session: Session) -> dict:
     session.commit()
     session.refresh(test_user)
     
-    # 生成测试token (简化版,实际应该使用JWT)
-    from core.JwtUtil import create_access_token
-    token = create_access_token({"sub": test_user.username, "user_id": test_user.id})
+    # 生成测试token
+    from core.JwtUtil import JwtUtils
+    token = JwtUtils.create_token(test_user.username, test_user.password)
     
     return {"Authorization": f"Bearer {token}"}
 

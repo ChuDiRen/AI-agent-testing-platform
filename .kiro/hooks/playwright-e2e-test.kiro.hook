@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Playwright E2E 测试生成",
+  "description": "当用户触发功能测试时，使用Playwright框架创建端到端(E2E)全流程测试用例，覆盖完整的用户操作流程",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "请使用Playwright框架为当前项目创建E2E端到端测试。要求：\n\n1. **分析测试目标**：确定需要测试的功能模块和用户流程\n\n2. **创建测试文件**：在 `test-engine/examples/web-cases_pytest/` 目录下创建Playwright测试脚本\n\n3. **测试用例设计**：\n   - 覆盖完整的用户操作流程（登录、核心功能、退出等）\n   - 包含正向和异向测试场景\n   - 添加适当的断言验证\n\n4. **Playwright最佳实践**：\n   - 使用Page Object Model模式组织代码\n   - 使用合适的定位器策略（优先使用data-testid、role等）\n   - 添加适当的等待机制（避免硬编码sleep）\n   - 配置截图和视频录制用于调试\n\n5. **测试结构示例**：\n```python\nimport pytest\nfrom playwright.sync_api import Page, expect\n\nclass TestE2EFlow:\n    def test_complete_user_journey(self, page: Page):\n        # 1. 导航到应用\n        # 2. 执行登录\n        # 3. 执行核心业务操作\n        # 4. 验证结果\n        # 5. 清理/退出\n        pass\n```\n\n6. **配置conftest.py**：确保Playwright fixture正确配置\n\n请根据项目的前端应用(platform-vue-web或agent-fronted)生成相应的E2E测试用例。"
+  }
+}
