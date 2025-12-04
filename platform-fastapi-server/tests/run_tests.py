@@ -34,23 +34,19 @@ def run_module_tests(module: str):
     print(f"运行模块测试: {module}")
     print("=" * 80)
     
-    # 模块映射
+    # 模块映射（仅接口测试）
     module_map = {
-        "core": "test_core_utils.py",
         "login": "test_login_controller.py",
-        "user": "test_user_controller.py",
-        "role": "test_role_controller.py",
+        "user": "test_user_controller_enhanced.py",
+        "role": "test_role_controller_enhanced.py",
         "menu": "test_menu_controller.py",
         "dept": "test_dept_controller.py",
         "plugin": "test_plugin_controller.py",
         "task": "test_task_controller.py",
         "robot": "test_robot_config_controller.py test_robot_msg_config_controller.py",
-        "ai": "test_ai_model_controller.py test_ai_conversation_controller.py test_prompt_template_controller.py test_test_case_controller.py",
-        "generator": "test_generator_controller.py",
-        "apitest": "test_api_*.py",
-        "models": "test_models.py",
-        "schemas": "test_schemas.py",
-        "integration": "test_integration.py"
+        "ai": "test_ai_model_controller_enhanced.py test_ai_conversation_controller_enhanced.py test_prompt_template_controller.py test_test_case_controller.py",
+        "generator": "test_generator_controller.py test_gen_table_controller.py",
+        "apitest": "test_api_project_controller.py test_api_info_controller.py test_api_history_controller_enhanced.py test_api_*.py"
     }
     
     if module not in module_map:
@@ -111,11 +107,10 @@ def show_help():
   python run_tests.py
   python run_tests.py --coverage
   python run_tests.py --file test_api_project_controller.py
-  python run_tests.py --mark unit
-  python run_tests.py --module core
+  python run_tests.py --mark api
+  python run_tests.py --module login
 
 模块:
-  core         - 核心工具模块 (JwtUtil, time_utils, resp_model等)
   login        - 登录模块
   user         - 用户管理模块
   role         - 角色管理模块
@@ -127,15 +122,9 @@ def show_help():
   ai           - AI助手模块
   generator    - 代码生成器模块
   apitest      - API测试模块
-  models       - 数据模型测试
-  schemas      - Schema验证测试
-  integration  - 集成测试
 
 标记:
-  unit         - 单元测试
-  integration  - 集成测试
-  api          - API测试
-  database     - 数据库测试
+  api          - API接口测试
   slow         - 慢速测试
     """)
 

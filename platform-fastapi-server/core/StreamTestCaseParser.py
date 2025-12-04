@@ -33,19 +33,33 @@ class StreamTestCaseParser:
             if brace_pos >= 0:
                 self.in_json_block = True
                 self.buffer = self.buffer[brace_pos:]  # 移除{之前的内容
-                self.brace_count = 1
+                self.brace_count = 0  # 重置计数，下面会重新计算整个buffer
         
-        # 在JSON块中，计算括号
+        # 在JSON块中，重新计算整个buffer的括号
         if self.in_json_block:
-            # 计算新增chunk中的括号
-            for char in chunk:
+            self.brace_count = 0
+            in_string = False
+            escape_next = False
+            
+            for char in self.buffer:
+                if escape_next:
+                    escape_next = False
+                    continue
+                if char == '\\':
+                    escape_next = True
+                    continue
+                if char == '"':
+                    in_string = not in_string
+                    continue
+                if in_string:
+                    continue
                 if char == '{':
                     self.brace_count += 1
                 elif char == '}':
                     self.brace_count -= 1
             
             # 当括号平衡时，我们有了一个完整的JSON对象
-            if self.brace_count == 0:
+            if self.brace_count == 0 and self.buffer.strip():
                 return self._extract_and_reset()
         
         return None

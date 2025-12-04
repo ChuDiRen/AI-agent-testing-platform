@@ -7,17 +7,17 @@ from pathlib import Path
 from typing import Generator
 
 import pytest
+import httpx
 
 # 添加项目根目录到Python路径
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
-from fastapi.testclient import TestClient
 from sqlmodel import Session, create_engine, SQLModel
 from sqlalchemy.pool import StaticPool
 
-from app import application
-from core.database import get_session
+# 后端服务地址
+BASE_URL = "http://127.0.0.1:5000"
 
 
 # 测试数据库引擎 (使用内存SQLite)
@@ -81,17 +81,10 @@ def session_fixture(engine) -> Generator[Session, None, None]:
 
 
 @pytest.fixture(name="client")
-def client_fixture(session: Session) -> Generator[TestClient, None, None]:
-    """创建测试客户端"""
-    def get_session_override():
-        return session
-    
-    application.dependency_overrides[get_session] = get_session_override
-    
-    client = TestClient(application)
-    yield client
-    
-    application.dependency_overrides.clear()
+def client_fixture() -> Generator[httpx.Client, None, None]:
+    """创建测试客户端 - 连接到真实后端服务"""
+    with httpx.Client(base_url=BASE_URL, timeout=30.0) as client:
+        yield client
 
 
 @pytest.fixture(name="auth_headers")
