@@ -8,10 +8,10 @@ import rehypeKatex from "rehype-katex";
 import remarkMath from "remark-math";
 import { FC, memo, useState } from "react";
 import { CheckIcon, CopyIcon } from "lucide-react";
-import { SyntaxHighlighter } from "@/components/thread/syntax-highlighter";
-import { MarkdownImage } from "@/components/thread/markdown-image";
+import { SyntaxHighlighter } from "./syntax-highlighter";
+import { MarkdownImage } from "./markdown-image";
 
-import { TooltipIconButton } from "@/components/thread/tooltip-icon-button";
+import { TooltipIconButton } from "./tooltip-icon-button";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/hooks/useI18n";
 

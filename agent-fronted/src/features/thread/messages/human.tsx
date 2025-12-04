@@ -5,7 +5,7 @@ import { getContentString } from "../utils";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { BranchSwitcher, CommandBar } from "./shared";
-import { MultimodalPreview } from "@/components/thread/MultimodalPreview";
+import { MultimodalPreview } from "../MultimodalPreview";
 import { isBase64ContentBlock } from "@/lib/multimodal-utils";
 
 function EditableContent({

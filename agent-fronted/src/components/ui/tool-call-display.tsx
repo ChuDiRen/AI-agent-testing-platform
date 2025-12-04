@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Copy, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { MarkdownImage } from "@/components/thread/markdown-image";
+import { MarkdownImage } from "@/features/thread/markdown-image";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 
