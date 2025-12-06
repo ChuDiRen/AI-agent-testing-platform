@@ -54,6 +54,11 @@ class Plugin(SQLModel, table=True):
         sa_column=Column(JSON),
         description="依赖包列表"
     )
+    keywords: Optional[str] = Field(
+        default=None,
+        sa_column=Column(JSON),
+        description="插件支持的关键字列表（从 keywords.yaml 解析）"
+    )
     
     # 时间戳
     create_time: datetime = Field(default_factory=datetime.now, description="创建时间")

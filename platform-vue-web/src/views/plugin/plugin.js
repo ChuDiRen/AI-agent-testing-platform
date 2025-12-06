@@ -61,3 +61,8 @@ export function installExecutor(id) {
 export function getInstallStatus(id) {
   return axios.get('/Plugin/installStatus', { params: { id } })
 }
+
+// 查询所有执行器插件
+export function queryAllExecutors() {
+  return axios.get('/Plugin/list/enabled', { params: { plugin_type: 'executor' } })
+}

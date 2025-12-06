@@ -380,7 +380,7 @@ async def list_enabled_plugins(
         plugins = session.exec(statement).all()
         result = [PluginResponse.from_orm(p) for p in plugins]
         
-        return respModel.ok_resp(obj=result)
+        return respModel.ok_resp_list(lst=result)
     
     except Exception as e:
         return respModel.error_resp(msg=f"查询失败: {str(e)}")
@@ -414,6 +414,196 @@ def _parse_console_scripts(setup_content: str) -> dict:
                 module_func = script_match.group(2).strip()
                 scripts[cmd_name] = module_func
     return scripts
+
+
+def _parse_keywords_from_python(plugin_root: Path) -> dict:
+    """
+    从 keywords.py 文件解析关键字方法
+    通过解析类中的方法定义和 kwargs.get() 调用提取参数
+    同时提取完整的方法体代码
+    """
+    keywords = {}
+    
+    py_patterns = [
+        "**/keywords.py",
+        "**/extend/keywords.py"
+    ]
+    
+    for pattern in py_patterns:
+        for py_file in plugin_root.glob(pattern):
+            try:
+                with open(py_file, "r", encoding="utf-8") as f:
+                    content = f.read()
+                    lines = content.split('\n')
+                
+                # 匹配方法定义: def method_name(self, **kwargs):
+                method_pattern = re.compile(
+                    r'def\s+(\w+)\s*\(\s*self\s*,\s*\*\*kwargs\s*\)\s*:',
+                    re.MULTILINE
+                )
+                
+                # 查找所有方法
+                for match in method_pattern.finditer(content):
+                    method_name = match.group(1)
+                    
+                    # 跳过私有方法和特殊方法
+                    if method_name.startswith('_'):
+                        continue
+                    
+                    # 获取方法定义的起始位置
+                    method_def_start = match.start()
+                    
+                    # 获取方法体（从方法定义到下一个方法或文件结尾）
+                    body_start_pos = match.end()
+                    next_method = method_pattern.search(content, body_start_pos)
+                    body_end_pos = next_method.start() if next_method else len(content)
+                    method_body = content[body_start_pos:body_end_pos]
+                    
+                    # 提取完整方法代码（包含 def 行）
+                    full_method_code = content[method_def_start:body_end_pos].rstrip()
+                    
+                    # 从方法体中提取 kwargs.get("PARAM") 调用
+                    params = []
+                    param_pattern = re.compile(r'kwargs\.get\s*\(\s*["\'](\w+)["\']')
+                    for param_match in param_pattern.finditer(method_body):
+                        param_name = param_match.group(1)
+                        if param_name not in params and param_name != '关键字':
+                            params.append(param_name)
+                    
+                    # 提取方法的文档字符串作为描述
+                    doc_match = re.search(r'"""([^"]+)"""', method_body[:500])
+                    description = doc_match.group(1).strip().split('\n')[0] if doc_match else ""
+                    
+                    if method_name not in keywords:
+                        keywords[method_name] = {
+                            "params": params,
+                            "category": "Python方法",
+                            "description": description,
+                            "source": str(py_file.relative_to(plugin_root)),
+                            "code": full_method_code
+                        }
+                
+            except Exception as e:
+                print(f"解析 {py_file} 时出错: {e}")
+                continue
+    
+    return keywords
+
+
+def _parse_keywords_yaml(plugin_root: Path) -> dict:
+    """
+    解析插件中的关键字定义
+    优先从 keywords.yaml 读取，同时从 keywords.py 补充
+    返回格式: {
+        "keyword_name": {
+            "params": ["PARAM1", "PARAM2"],
+            "category": "HTTP请求类关键字"
+        }
+    }
+    """
+    keywords = {}
+    
+    # ========== 1. 从 keywords.yaml 解析 ==========
+    keywords_patterns = [
+        "**/keywords.yaml",
+        "**/keywords.yml",
+        "**/extend/keywords.yaml",
+        "**/extend/keywords.yml"
+    ]
+    
+    for pattern in keywords_patterns:
+        for yaml_file in plugin_root.glob(pattern):
+            try:
+                import yaml as yaml_lib
+                with open(yaml_file, "r", encoding="utf-8") as f:
+                    content = f.read()
+                    data = yaml_lib.safe_load(content)
+                
+                if not data or not isinstance(data, dict):
+                    continue
+                
+                current_category = "未分类"
+                
+                # 解析注释获取分类（通过读取原始内容）
+                lines = content.split('\n')
+                for i, line in enumerate(lines):
+                    stripped = line.strip()
+                    # 检测分类注释，如 "# HTTP请求类关键字"
+                    if stripped.startswith('#') and '关键字' in stripped:
+                        # 提取分类名称
+                        category_match = re.search(r'#\s*=*\s*(.+关键字)\s*=*', stripped)
+                        if category_match:
+                            current_category = category_match.group(1).strip()
+                    
+                    # 检测关键字定义行（不以空格开头，以冒号结尾）
+                    if stripped and not stripped.startswith('#') and not stripped.startswith('-') and not stripped.startswith(' '):
+                        keyword_match = re.match(r'^(\w+)\s*:', stripped)
+                        if keyword_match:
+                            keyword_name = keyword_match.group(1)
+                            if keyword_name in data:
+                                params = data[keyword_name]
+                                # 处理参数格式
+                                if isinstance(params, list):
+                                    # 提取参数名（去掉注释）
+                                    param_list = []
+                                    for p in params:
+                                        if isinstance(p, str):
+                                            # 去掉注释部分
+                                            param_name = p.split('#')[0].strip()
+                                            param_list.append(param_name)
+                                    params = param_list
+                                elif isinstance(params, str):
+                                    # 逗号分隔格式
+                                    params = [p.strip() for p in params.split(',')]
+                                else:
+                                    params = []
+                                
+                                keywords[keyword_name] = {
+                                    "params": params,
+                                    "category": current_category,
+                                    "source": str(yaml_file.relative_to(plugin_root))
+                                }
+                
+                # 如果上面的方式没有解析到，直接遍历 data
+                for keyword_name, params in data.items():
+                    if keyword_name not in keywords:
+                        if isinstance(params, list):
+                            param_list = []
+                            for p in params:
+                                if isinstance(p, str):
+                                    param_name = p.split('#')[0].strip()
+                                    param_list.append(param_name)
+                            params = param_list
+                        elif isinstance(params, str):
+                            params = [p.strip() for p in params.split(',')]
+                        else:
+                            params = []
+                        
+                        keywords[keyword_name] = {
+                            "params": params,
+                            "category": "未分类",
+                            "source": str(yaml_file.relative_to(plugin_root))
+                        }
+                
+            except Exception as e:
+                print(f"解析 {yaml_file} 时出错: {e}")
+                continue
+    
+    # ========== 2. 从 keywords.py 补充 ==========
+    py_keywords = _parse_keywords_from_python(plugin_root)
+    for keyword_name, keyword_info in py_keywords.items():
+        if keyword_name not in keywords:
+            # YAML 中没有定义，从 Python 文件补充
+            keywords[keyword_name] = keyword_info
+        else:
+            # YAML 中已定义，补充描述信息和代码
+            if keyword_info.get("description") and not keywords[keyword_name].get("description"):
+                keywords[keyword_name]["description"] = keyword_info["description"]
+            # 补充方法体代码（关键：YAML 定义的关键字也需要代码）
+            if keyword_info.get("code") and not keywords[keyword_name].get("code"):
+                keywords[keyword_name]["code"] = keyword_info["code"]
+    
+    return keywords
 
 
 def _parse_pytest_addoption(plugin_root: Path) -> list:
@@ -753,7 +943,10 @@ async def upload_executor(
         if not command:
             return respModel.error_resp(msg="未找到 console_scripts 命令定义，请确保 setup.py 中定义了 entry_points")
         
-        # 4. 保存到数据库
+        # 5. 解析 keywords.yaml 获取关键字定义
+        keywords = _parse_keywords_yaml(plugin_root)
+        
+        # 6. 保存到数据库
         existing = session.exec(
             select(Plugin).where(Plugin.plugin_code == plugin_code)
         ).first()
@@ -767,6 +960,7 @@ async def upload_executor(
             existing.dependencies = json.dumps(dependencies) if dependencies else None
             existing.capabilities = json.dumps({"console_scripts": console_scripts})
             existing.config_schema = json.dumps(config_schema) if config_schema else None
+            existing.keywords = json.dumps(keywords) if keywords else None
             existing.modify_time = datetime.now()
             session.add(existing)
             session.commit()
@@ -785,7 +979,8 @@ async def upload_executor(
                 is_enabled=1,
                 dependencies=json.dumps(dependencies) if dependencies else None,
                 capabilities=json.dumps({"console_scripts": console_scripts}),
-                config_schema=json.dumps(config_schema) if config_schema else None
+                config_schema=json.dumps(config_schema) if config_schema else None,
+                keywords=json.dumps(keywords) if keywords else None
             )
             session.add(new_plugin)
             session.commit()
@@ -795,6 +990,7 @@ async def upload_executor(
         
         # 确定参数来源
         param_source = "plugin.yaml" if plugin_yaml.exists() else ("plugin.json" if plugin_json.exists() else "代码解析")
+        keywords_count = len(keywords) if keywords else 0
         
         return respModel.ok_resp(
             obj={
@@ -802,9 +998,11 @@ async def upload_executor(
                 "command": command,
                 "console_scripts": console_scripts,
                 "config_schema": config_schema,
+                "keywords": keywords,
+                "keywords_count": keywords_count,
                 "param_source": param_source
             },
-            msg=f"执行器 {plugin_name} {action}成功，命令: {command}，从 {param_source} 解析到 {len(config_params)} 个参数"
+            msg=f"执行器 {plugin_name} {action}成功，命令: {command}，解析到 {len(config_params)} 个参数，{keywords_count} 个关键字"
         )
     
     except Exception as e:
@@ -867,9 +1065,8 @@ def _run_pip_install(plugin_id: int, plugin_code: str, plugin_content: str, comm
             timeout=300  # 5分钟超时
         )
         
-        # 3. 清理解压目录
-        if extract_dir and extract_dir.exists():
-            shutil.rmtree(extract_dir, ignore_errors=True)
+        # 3. 保留安装目录（不清理），用于存放报告等运行时文件
+        # 安装目录: temp/executor/executor_install_{plugin_code}/
         
         if result.returncode != 0:
             _install_tasks[plugin_id] = {

@@ -2,9 +2,11 @@
 """FastAPI应用入口"""
 import asyncio
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from core.database import init_db, init_data
 from core.logger import setup_logging, get_logger
@@ -225,5 +227,13 @@ async def websocket_test_execution(websocket: WebSocket, execution_id: str):
     except WebSocketDisconnect:
         ws_manager.disconnect(execution_id, websocket)
         logger.info(f"WebSocket disconnected: {execution_id}")
+
+# 挂载静态文件服务 - 报告目录
+# 注意：前端代理会把 /api 前缀去掉，所以这里挂载到 /reports
+from config.dev_settings import settings
+reports_dir = Path(settings.BASE_DIR) / "temp"
+if reports_dir.exists():
+    application.mount("/reports", StaticFiles(directory=str(reports_dir), html=True), name="reports")
+    logger.info(f"📁 报告目录已挂载: /reports -> {reports_dir}")
 
 # 移除旧的 on_event 装饰器，已使用 lifespan 替代

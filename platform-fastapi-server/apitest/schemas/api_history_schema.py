@@ -25,6 +25,7 @@ class ApiTestHistoryQuery(BaseModel):
     pageSize: int = 10
     api_info_id: Optional[int] = None
     project_id: Optional[int] = None
+    plan_id: Optional[int] = None
     test_status: Optional[str] = None
     start_date: Optional[str] = None
     end_date: Optional[str] = None

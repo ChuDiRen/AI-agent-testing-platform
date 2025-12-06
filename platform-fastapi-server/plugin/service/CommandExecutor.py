@@ -237,6 +237,35 @@ class CommandExecutor:
             
             logger.info(f"Task {task_id} completed with return code {process.returncode}")
             
+            # 复制报告文件到 temp 目录
+            try:
+                cmd_name = self.command.split()[0]
+                executor_base = get_temp_subdir("executor")
+                
+                # 查找报告文件的可能路径
+                report_patterns = []
+                
+                # 1. 从 temp/executor/executor_install_{cmd_name}/ 目录查找（用户上传的插件）
+                for install_dir in executor_base.glob(f"executor_install_*"):
+                    # 查找安装目录下的 reports 目录
+                    for reports_dir in install_dir.rglob("reports"):
+                        report_file = reports_dir / "complete.html"
+                        if report_file.exists():
+                            report_patterns.append(report_file)
+                
+                # 2. 从命令名对应的目录查找
+                report_patterns.append(executor_base / f"executor_install_{cmd_name}" / "reports" / "complete.html")
+                report_patterns.append(executor_base / f"executor_install_{cmd_name.replace('-', '_')}" / "reports" / "complete.html")
+                
+                for report_src in report_patterns:
+                    if report_src.exists():
+                        report_dst = temp_dir / "complete.html"
+                        shutil.copy2(report_src, report_dst)
+                        logger.info(f"Task {task_id}: 报告已复制到 {report_dst}")
+                        break
+            except Exception as copy_err:
+                logger.warning(f"Task {task_id}: 复制报告失败 {copy_err}")
+            
             # 构建简洁的返回结果（给前端展示）
             response_data = parsed_output.get("response_data") or {}
             
@@ -299,13 +328,8 @@ class CommandExecutor:
                 "temp_dir": str(temp_dir)
             }
             
-            # 清理临时目录
-            try:
-                if temp_dir.exists():
-                    shutil.rmtree(temp_dir, ignore_errors=True)
-                    logger.info(f"Task {task_id}: 临时目录已清理 {temp_dir}")
-            except Exception as cleanup_err:
-                logger.warning(f"Task {task_id}: 清理临时目录失败 {cleanup_err}")
+            # 注意：不再清理临时目录，保留报告文件供前端查看
+            # 如需清理，可通过 /Plugin/cleanupTempFiles 接口定期清理过期报告
             
             return result
         

@@ -9,6 +9,8 @@ class ApiKeyWordQuery(BaseModel): # API关键字查询请求
     name: Optional[str] = Field(default=None, description="关键字名称")
     operation_type_id: Optional[int] = Field(default=None, description="操作类型ID")
     page_id: Optional[int] = Field(default=None, description="页面ID")
+    plugin_id: Optional[int] = Field(default=None, description="执行引擎插件ID")
+    plugin_code: Optional[str] = Field(default=None, description="执行引擎插件代码")
 
 class ApiKeyWordCreate(BaseModel): # API关键字创建请求
     name: str
@@ -17,6 +19,9 @@ class ApiKeyWordCreate(BaseModel): # API关键字创建请求
     keyword_fun_name: str
     keyword_value: str
     is_enabled: str
+    plugin_id: Optional[int] = None
+    plugin_code: Optional[str] = None
+    category: Optional[str] = None
 
 class ApiKeyWordUpdate(BaseModel): # API关键字更新请求
     id: int
@@ -26,6 +31,9 @@ class ApiKeyWordUpdate(BaseModel): # API关键字更新请求
     keyword_fun_name: Optional[str] = None
     keyword_value: Optional[str] = None
     is_enabled: Optional[str] = None
+    plugin_id: Optional[int] = None
+    plugin_code: Optional[str] = None
+    category: Optional[str] = None
 
 class KeywordFileRequest(BaseModel): # 关键字文件生成请求
     keyword_fun_name: str

@@ -13,6 +13,19 @@
         <el-form-item label="计划名称" prop="plan_name">
           <el-input v-model="formData.plan_name" placeholder="请输入计划名称" />
         </el-form-item>
+        <el-form-item label="执行引擎" prop="plugin_code">
+          <el-select v-model="formData.plugin_code" placeholder="请选择执行引擎" style="width: 300px">
+            <el-option
+              v-for="item in pluginList"
+              :key="item.plugin_code"
+              :label="item.plugin_name"
+              :value="item.plugin_code"
+            >
+              <span>{{ item.plugin_name }}</span>
+              <span style="color: #999; margin-left: 10px; font-size: 12px">{{ item.plugin_code }}</span>
+            </el-option>
+          </el-select>
+        </el-form-item>
         <el-form-item label="计划描述">
           <el-input v-model="formData.plan_desc" type="textarea" :rows="3" placeholder="请输入计划描述" />
         </el-form-item>
@@ -75,6 +88,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { insertData, updateData, queryById, removeCase, updateDdtData } from './apiCollectionInfo'
+import { queryAllExecutors } from '@/views/plugin/plugin.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -84,8 +98,12 @@ const formData = ref({
   id: null,
   plan_name: '',
   plan_desc: '',
-  project_id: null
+  project_id: null,
+  plugin_code: 'api_engine'
 })
+
+// 插件列表
+const pluginList = ref([])
 
 const rules = {
   plan_name: [{ required: true, message: '请输入计划名称', trigger: 'blur' }]
@@ -98,6 +116,18 @@ const currentEditingCase = ref(null)
 
 const formTitle = computed(() => formData.value.id ? '编辑测试计划' : '新增测试计划')
 
+// 加载插件列表
+const loadPluginList = async () => {
+  try {
+    const res = await queryAllExecutors()
+    if (res.data.code === 200) {
+      pluginList.value = res.data.data || []
+    }
+  } catch (error) {
+    console.error('加载插件列表失败:', error)
+  }
+}
+
 // 加载详情
 const loadDetail = async (id) => {
   try {
@@ -108,7 +138,8 @@ const loadDetail = async (id) => {
         id: data.id,
         plan_name: data.plan_name,
         plan_desc: data.plan_desc,
-        project_id: data.project_id
+        project_id: data.project_id,
+        plugin_code: data.plugin_code || 'api_engine'
       }
       caseList.value = data.cases || []
     }
@@ -194,6 +225,7 @@ const goBack = () => {
 }
 
 onMounted(() => {
+  loadPluginList()
   if (route.query.id) {
     loadDetail(route.query.id)
   }

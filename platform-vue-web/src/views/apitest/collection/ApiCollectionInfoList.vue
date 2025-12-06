@@ -41,23 +41,6 @@
         </template>
       </el-table-column>
     </BaseTable>
-
-    <!-- 执行历史对话框 -->
-    <el-dialog v-model="historyDialogVisible" title="执行历史" width="80%">
-      <el-table :data="historyData" border>
-        <el-table-column prop="test_name" label="测试名称" min-width="150" />
-        <el-table-column prop="test_status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.test_status === 'success' ? 'success' : row.test_status === 'failed' ? 'danger' : 'warning'">
-              {{ row.test_status }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="execution_uuid" label="执行批次" width="120" show-overflow-tooltip />
-        <el-table-column prop="create_time" label="开始时间" width="160" />
-        <el-table-column prop="finish_time" label="结束时间" width="160" />
-      </el-table>
-    </el-dialog>
   </div>
 </template>
 
@@ -66,7 +49,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { queryByPage, deleteData, executePlan, queryHistoryByPlanId } from './apiCollectionInfo'
+import { queryByPage, deleteData, executePlan } from './apiCollectionInfo'
 import { queryAllProject } from '../project/apiProject.js'
 import BaseSearch from '~/components/BaseSearch/index.vue'
 import BaseTable from '~/components/BaseTable/index.vue'
@@ -89,10 +72,6 @@ const tableData = ref([])
 
 // 项目列表
 const projectList = ref([])
-
-// 历史对话框
-const historyDialogVisible = ref(false)
-const historyData = ref([])
 
 // 加载项目列表
 const loadProjectList = async () => {
@@ -153,8 +132,10 @@ const handleExecute = async (row) => {
     
     const res = await executePlan({ plan_id: row.id })
     if (res.data.code === 200) {
-      ElMessage.success(`测试计划已开始执行，执行批次: ${res.data.data?.execution_uuid || ''}`)
-      // 可以跳转到执行历史页面
+      ElMessage.success('测试计划执行完成，正在跳转到测试报告页面...')
+      setTimeout(() => {
+        router.push('/ApiHistoryList')
+      }, 1000)
     } else {
       ElMessage.error(res.data.msg || '执行失败')
     }
@@ -166,16 +147,9 @@ const handleExecute = async (row) => {
 }
 
 // 查看执行历史
-const handleViewHistory = async (row) => {
-  try {
-    const res = await queryHistoryByPlanId(row.id)
-    if (res.data.code === 200) {
-      historyData.value = res.data.data || []
-      historyDialogVisible.value = true
-    }
-  } catch (error) {
-    ElMessage.error('加载历史失败: ' + error.message)
-  }
+const handleViewHistory = (row) => {
+  // 跳转到测试历史页面，可以带上计划ID作为筛选条件
+  router.push({ path: '/ApiHistoryList', query: { plan_id: row.id } })
 }
 
 // 删除

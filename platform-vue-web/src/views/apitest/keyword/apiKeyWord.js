@@ -33,3 +33,16 @@ export function queryAll() {
 export function keywordFile(data) {
     return axios.post(`/${module_name}/keywordFile?_alias=keyword-file`, data)
 }
+
+// 从执行引擎同步关键字
+export function syncFromPlugin(pluginId) {
+    return axios.post(`/${module_name}/syncFromPlugin?plugin_id=${pluginId}&_alias=keyword-sync`)
+}
+
+// 根据插件查询关键字
+export function queryByPlugin(pluginId, pluginCode) {
+    const params = new URLSearchParams()
+    if (pluginId) params.append('plugin_id', pluginId)
+    if (pluginCode) params.append('plugin_code', pluginCode)
+    return axios.get(`/${module_name}/queryByPlugin?${params.toString()}&_alias=keyword-by-plugin`)
+}

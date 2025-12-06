@@ -43,6 +43,8 @@ def queryByPage(query: ApiTestHistoryQuery, session: Session = Depends(get_sessi
             statement = statement.where(module_model.api_info_id == query.api_info_id)
         if query.project_id:
             statement = statement.where(module_model.project_id == query.project_id)
+        if query.plan_id:
+            statement = statement.where(module_model.plan_id == query.plan_id)
         if query.test_status:
             statement = statement.where(module_model.test_status == query.test_status)
         if query.start_date:

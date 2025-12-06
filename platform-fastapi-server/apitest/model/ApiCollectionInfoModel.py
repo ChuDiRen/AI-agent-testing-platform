@@ -12,6 +12,7 @@ class ApiCollectionInfo(SQLModel, table=True):
     project_id: Optional[int] = Field(default=None, description='项目ID')
     plan_name: str = Field(max_length=255, description='计划名称')
     plan_desc: Optional[str] = Field(default=None, description='计划描述')
+    plugin_code: Optional[str] = Field(default='api_engine', max_length=50, description='执行引擎插件代码')
     create_time: Optional[datetime] = Field(default_factory=datetime.now, description='创建时间')
     modify_time: Optional[datetime] = Field(default_factory=datetime.now, description='修改时间')
 

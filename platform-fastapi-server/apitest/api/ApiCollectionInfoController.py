@@ -271,8 +271,11 @@ def updateDdtData(data: UpdateDdtDataRequest, session: Session = Depends(get_ses
 # ==================== 批量执行测试计划 ====================
 
 @module_route.post("/executePlan", summary="批量执行测试计划", dependencies=[Depends(check_permission("apitest:collection:execute"))])
-def executePlan(request: ApiCollectionInfoExecuteRequest, background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
-    """执行测试计划（批量执行用例）"""
+async def executePlan(request: ApiCollectionInfoExecuteRequest, session: Session = Depends(get_session)):
+    """执行测试计划（所有用例合并到一个目录执行，生成一个包含所有用例的报告）"""
+    from plugin.service.TaskScheduler import task_scheduler
+    import yaml
+    
     try:
         # 查询测试计划
         plan = session.get(ApiCollectionInfo, request.plan_id)
@@ -286,154 +289,107 @@ def executePlan(request: ApiCollectionInfoExecuteRequest, background_tasks: Back
         if not plan_cases:
             return respModel.error_resp("测试计划中没有用例")
         
-        # 生成唯一的执行UUID
+        # 生成唯一的执行UUID（整个计划共享）
         execution_uuid = str(uuid.uuid4())
         
-        # 定义后台任务
-        def _execute_plan_background():
-            from core.database import SessionLocal
-            db = SessionLocal()
-            try:
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                workspace_name = f"plan_{request.plan_id}_{timestamp}_{execution_uuid[:8]}"
-                yaml_dir = YAML_DIR / workspace_name
-                report_dir = REPORT_DIR / workspace_name
-                log_file = LOG_DIR / f"{workspace_name}.log"
-                
-                for directory in [TEMP_DIR, YAML_DIR, REPORT_DIR, LOG_DIR, yaml_dir, report_dir]:
-                    directory.mkdir(exist_ok=True)
-                
-                # 遍历所有用例，生成YAML文件
-                all_yaml_files = []
-                for plan_case in plan_cases:
-                    case_info = db.get(ApiInfoCase, plan_case.case_info_id)
-                    if not case_info:
-                        continue
-                    
-                    # 查询用例步骤
-                    step_stmt = select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == plan_case.case_info_id).order_by(ApiInfoCaseStep.run_order)
-                    steps = db.exec(step_stmt).all()
-                    
-                    if not steps:
-                        continue
-                    
-                    # 解析数据驱动数据
-                    ddt_data_list = []
-                    if plan_case.ddt_data:
-                        try:
-                            ddt_data_list = json.loads(plan_case.ddt_data)
-                        except:
-                            ddt_data_list = []
-                    
-                    # 如果没有数据驱动，生成一个默认用例
-                    if not ddt_data_list:
-                        ddt_data_list = [{}]
-                    
-                    # 为每组数据生成一个YAML文件
-                    for idx, ddt_data in enumerate(ddt_data_list):
-                        yaml_data = {
-                            'desc': f"{case_info.case_name}_数据组{idx+1}" if len(ddt_data_list) > 1 else case_info.case_name,
-                            'steps': []
-                        }
-                        
-                        # 构建步骤
-                        for step in steps:
-                            step_data_dict = json.loads(step.step_data) if step.step_data else {}
-                            keyword = db.get(ApiKeyWord, step.keyword_id) if step.keyword_id else None
-                            keyword_name = keyword.keyword_fun_name if keyword else "unknown"
-                            
-                            step_item = {
-                                step.step_desc or f"步骤{step.run_order}": {
-                                    '关键字': keyword_name,
-                                    **step_data_dict
-                                }
-                            }
-                            yaml_data['steps'].append(step_item)
-                        
-                        # 添加数据驱动节点
-                        if ddt_data:
-                            yaml_data['ddts'] = [{
-                                'desc': ddt_data.get('desc', f'数据组{idx+1}'),
-                                **{k: v for k, v in ddt_data.items() if k != 'desc'}
-                            }]
-                        
-                        # 生成YAML内容
-                        yaml_content = yaml.dump(yaml_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
-                        
-                        # 写入文件
-                        yaml_filename = f"{plan_case.run_order:03d}_{case_info.case_name}_data{idx+1}.yaml"
-                        yaml_file_path = yaml_dir / yaml_filename
-                        yaml_file_path.write_text(yaml_content, encoding='utf-8')
-                        all_yaml_files.append(yaml_file_path)
-                        
-                        # 创建测试历史记录
-                        test_history = ApiHistory(
-                            api_info_id=0,
-                            project_id=plan.project_id or 0,
-                            plan_id=request.plan_id,
-                            case_info_id=plan_case.case_info_id,
-                            execution_uuid=execution_uuid,
-                            test_name=f"{plan.plan_name}_{case_info.case_name}_数据组{idx+1}",
-                            test_status="running",
-                            yaml_content=yaml_content,
-                            allure_report_path=str(report_dir),
-                            create_time=datetime.now(),
-                            modify_time=datetime.now()
-                        )
-                        db.add(test_history)
-                
-                db.commit()
-                
-                # 批量执行所有YAML文件
-                command = ['huace-apirun', '--cases', str(yaml_dir), '--alluredir', str(report_dir)]
-                exec_success = False
-                exec_error = None
-                exec_start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                
-                try:
-                    start_time = datetime.now()
-                    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
-                    stdout, stderr = process.communicate(timeout=600)  # 10分钟超时
-                    end_time = datetime.now()
-                    exec_success = process.returncode == 0
-                    
-                    log_content = f"=== 批量执行命令 ===\n{' '.join(command)}\n\n=== 开始时间 ===\n{exec_start_time}\n\n=== 结束时间 ===\n{end_time.strftime('%Y-%m-%d %H:%M:%S')}\n\n=== 执行时长 ===\n{(end_time - start_time).total_seconds()}秒\n\n=== 返回码 ===\n{process.returncode}\n\n=== YAML文件数 ===\n{len(all_yaml_files)}\n\n=== 标准输出 ===\n{stdout}\n\n=== 错误输出 ===\n{stderr}\n"
-                    log_file.write_text(log_content, encoding='utf-8')
-                except subprocess.TimeoutExpired:
-                    exec_error = '测试执行超时（600秒）'
-                    process.kill()
-                except FileNotFoundError:
-                    exec_error = 'huace-apirun命令不存在，请确认api-engine已正确安装'
-                except Exception as e:
-                    exec_error = f'执行失败: {str(e)}'
-                
-                # 更新所有测试历史记录
-                update_stmt = select(ApiHistory).where(ApiHistory.execution_uuid == execution_uuid)
-                test_histories = db.exec(update_stmt).all()
-                for hist in test_histories:
-                    hist.test_status = "success" if exec_success else "failed"
-                    if exec_error:
-                        hist.error_message = exec_error
-                    hist.finish_time = datetime.now()
-                    hist.modify_time = datetime.now()
-                
-                db.commit()
-                logger.info(f"测试计划执行完成: {request.plan_id}, UUID: {execution_uuid}, 结果: {'成功' if exec_success else '失败'}")
-                
-            except Exception as e:
-                logger.error(f"测试计划执行失败: {request.plan_id}, 错误: {e}", exc_info=True)
-            finally:
-                db.close()
+        # 构建所有用例的 YAML 文件列表
+        all_yaml_cases = []
+        combined_yaml_content = ""
         
-        # 添加后台任务
-        background_tasks.add_task(_execute_plan_background)
+        for idx, plan_case in enumerate(plan_cases):
+            case_info = session.get(ApiInfoCase, plan_case.case_info_id)
+            if not case_info:
+                continue
+            
+            # 查询用例步骤
+            step_stmt = select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == plan_case.case_info_id).order_by(ApiInfoCaseStep.run_order)
+            steps = session.exec(step_stmt).all()
+            
+            if not steps:
+                continue
+            
+            # 构建单个用例
+            yaml_data = {
+                'desc': case_info.case_name,
+                'steps': []
+            }
+            
+            for step in steps:
+                step_data_dict = json.loads(step.step_data) if step.step_data else {}
+                keyword = session.get(ApiKeyWord, step.keyword_id) if step.keyword_id else None
+                keyword_name = keyword.keyword_fun_name if keyword else "send_request"
+                
+                step_item = {
+                    step.step_desc or f"步骤{step.run_order}": {
+                        '关键字': keyword_name,
+                        **step_data_dict
+                    }
+                }
+                yaml_data['steps'].append(step_item)
+            
+            yaml_content = yaml.dump(yaml_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
+            all_yaml_cases.append({
+                'index': idx + 1,
+                'case_info': case_info,
+                'yaml_data': yaml_data,
+                'yaml_content': yaml_content
+            })
+            combined_yaml_content += f"# 用例 {idx + 1}: {case_info.case_name}\n{yaml_content}\n---\n"
+        
+        if not all_yaml_cases:
+            return respModel.error_resp("没有有效的测试用例")
+        
+        # 将所有用例合并为一个列表，传递给执行器
+        all_cases_list = [item['yaml_data'] for item in all_yaml_cases]
+        combined_content = json.dumps(all_cases_list, ensure_ascii=False)
+        
+        # 执行整个计划（一次执行，一个报告包含所有用例）
+        result = await task_scheduler.execute_test(
+            session=session,
+            plugin_code=plan.plugin_code or 'api_engine',
+            test_case_id=request.plan_id,
+            test_case_content=combined_content,
+            config={}
+        )
+        
+        # 获取执行结果
+        is_success = result.get("success", False)
+        report_path = result.get("temp_dir", "")
+        error_msg = result.get("error") if not is_success else None
+        
+        # 统计结果
+        total_cases = len(all_yaml_cases)
+        success_count = total_cases if is_success else 0
+        failed_count = 0 if is_success else total_cases
+        
+        # 创建一条测试历史记录（整个计划一条记录）
+        test_history = ApiHistory(
+            api_info_id=0,
+            project_id=plan.project_id or 0,
+            plan_id=request.plan_id,
+            case_info_id=0,
+            execution_uuid=execution_uuid,
+            test_name=plan.plan_name,
+            test_status="success" if is_success else "failed",
+            yaml_content=combined_yaml_content,
+            allure_report_path=report_path or "",
+            error_message=error_msg,
+            create_time=datetime.now(),
+            finish_time=datetime.now(),
+            modify_time=datetime.now()
+        )
+        session.add(test_history)
+        session.commit()
         
         return respModel.ok_resp(dic_t={
             "execution_uuid": execution_uuid,
-            "status": "running",
-            "total_cases": len(plan_cases),
-            "message": "测试计划已开始执行"
-        }, msg="测试计划已开始执行")
+            "status": "completed",
+            "total_cases": total_cases,
+            "success_count": success_count,
+            "failed_count": failed_count,
+            "report_path": report_path,
+            "message": f"测试计划执行完成，共 {total_cases} 个用例"
+        }, msg="测试计划执行完成")
         
     except Exception as e:
         session.rollback()

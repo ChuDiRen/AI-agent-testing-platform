@@ -2,11 +2,11 @@
   <div class="page-container">
     <!-- 搜索区域 -->
     <BaseSearch :model="queryForm" :loading="loading" @search="handleQuery" @reset="handleReset">
-      <el-form-item label="接口ID" prop="api_info_id">
-        <el-input v-model="queryForm.api_info_id" placeholder="接口ID" clearable style="width: 150px" />
+      <el-form-item label="计划ID" prop="plan_id">
+        <el-input v-model="queryForm.plan_id" placeholder="计划ID" clearable style="width: 120px" />
       </el-form-item>
       <el-form-item label="项目ID" prop="project_id">
-        <el-input v-model="queryForm.project_id" placeholder="项目ID" clearable style="width: 150px" />
+        <el-input v-model="queryForm.project_id" placeholder="项目ID" clearable style="width: 120px" />
       </el-form-item>
       <el-form-item label="测试状态" prop="test_status">
         <el-select v-model="queryForm.test_status" placeholder="请选择" clearable style="width: 120px">
@@ -27,9 +27,8 @@
       @refresh="handleQuery"
     >
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="test_name" label="测试名称" show-overflow-tooltip />
-      <el-table-column prop="request_url" label="请求URL" show-overflow-tooltip />
-      <el-table-column prop="request_method" label="请求方法" width="100" />
+      <el-table-column prop="test_name" label="测试名称" min-width="150" show-overflow-tooltip />
+      <el-table-column prop="execution_uuid" label="执行批次" width="120" show-overflow-tooltip />
       <el-table-column prop="test_status" label="测试状态" width="100">
         <template #default="scope">
           <el-tag v-if="scope.row.test_status === 'success'" type="success">成功</el-tag>
@@ -37,16 +36,21 @@
           <el-tag v-else type="info">运行中</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="status_code" label="状态码" width="100" />
-      <el-table-column prop="response_time" label="响应时间(ms)" width="120" />
+      <el-table-column prop="allure_report_path" label="报告路径" width="200" show-overflow-tooltip>
+        <template #default="scope">
+          <span v-if="scope.row.allure_report_path">{{ scope.row.allure_report_path }}</span>
+          <span v-else class="text-muted">-</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="create_time" label="创建时间" width="180">
         <template #default="scope">
           {{ formatDateTime(scope.row.create_time) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column label="操作" width="250" fixed="right">
         <template #default="scope">
           <el-button link type="primary" @click="handleView(scope.row)">查看</el-button>
+          <el-button v-if="scope.row.allure_report_path" link type="success" @click="handleViewReport(scope.row)">报告</el-button>
           <el-button link type="danger" @click="handleDelete(scope.row)">删除</el-button>
         </template>
       </el-table-column>
@@ -67,6 +71,13 @@
         <el-descriptions-item label="响应时间">{{ currentRow.response_time }}ms</el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ formatDateTime(currentRow.create_time) }}</el-descriptions-item>
         <el-descriptions-item label="完成时间">{{ formatDateTime(currentRow.finish_time) }}</el-descriptions-item>
+        <el-descriptions-item label="执行批次">{{ currentRow.execution_uuid || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="报告路径">
+          <template v-if="currentRow.allure_report_path">
+            <el-link type="primary" @click="handleViewReport(currentRow)">{{ currentRow.allure_report_path }}</el-link>
+          </template>
+          <span v-else>-</span>
+        </el-descriptions-item>
       </el-descriptions>
 
       <!-- 错误信息 -->
@@ -118,6 +129,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { queryByPage, deleteData } from './apiHistory.js'
 import { formatDateTime } from '@/utils/timeFormatter'
@@ -126,10 +138,13 @@ import BaseTable from '@/components/BaseTable/index.vue'
 import JsonViewer from '@/components/JsonViewer.vue'
 import YamlViewer from '@/components/YamlViewer.vue'
 
+const route = useRoute()
+
 // 查询表单
 const queryForm = reactive({
   api_info_id: '',
   project_id: '',
+  plan_id: '',
   test_status: ''
 })
 
@@ -154,7 +169,8 @@ const handleQuery = async () => {
       page: pagination.value.page,
       pageSize: pagination.value.limit,
       api_info_id: queryForm.api_info_id ? parseInt(queryForm.api_info_id) : null,
-      project_id: queryForm.project_id ? parseInt(queryForm.project_id) : null
+      project_id: queryForm.project_id ? parseInt(queryForm.project_id) : null,
+      plan_id: queryForm.plan_id ? parseInt(queryForm.plan_id) : null
     })
     if (res.data.code === 200) {
       tableData.value = res.data.data || []
@@ -174,6 +190,7 @@ const handleQuery = async () => {
 const handleReset = () => {
   queryForm.api_info_id = ''
   queryForm.project_id = ''
+  queryForm.plan_id = ''
   queryForm.test_status = ''
   pagination.value.page = 1
   handleQuery()
@@ -183,6 +200,21 @@ const handleReset = () => {
 const handleView = (row) => {
   currentRow.value = { ...row }
   detailVisible.value = true
+}
+
+// 查看报告
+const handleViewReport = (row) => {
+  if (row.allure_report_path) {
+    // 报告路径格式: temp\executor\xxx 或 temp/executor/xxx
+    // 静态文件挂载: /api/reports -> temp 目录
+    let reportPath = row.allure_report_path
+      .replace(/^temp[\\/]/, '')  // 去掉 temp\ 或 temp/ 前缀
+      .replace(/\\/g, '/')        // 将反斜杠替换为正斜杠
+    const reportUrl = `/api/reports/${reportPath}/complete.html`
+    window.open(reportUrl, '_blank')
+  } else {
+    ElMessage.warning('暂无报告')
+  }
 }
 
 // 删除
@@ -223,6 +255,10 @@ const formatJson = (data) => {
 }
 
 onMounted(() => {
+  // 从URL获取plan_id参数
+  if (route.query.plan_id) {
+    queryForm.plan_id = route.query.plan_id
+  }
   handleQuery()
 })
 </script>
