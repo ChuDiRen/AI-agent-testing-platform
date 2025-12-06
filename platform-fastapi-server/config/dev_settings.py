@@ -38,7 +38,7 @@ class Settings(BaseSettings): # 开发环境配置
     # JWT密钥
     SECRET_KEY: str = "1234567812345678"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8小时
     
     # ==================== MinIO配置 ====================
     # MINIO平台的配置信息

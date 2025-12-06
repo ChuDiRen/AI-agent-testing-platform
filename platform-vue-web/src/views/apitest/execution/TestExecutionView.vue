@@ -18,17 +18,42 @@
       </template>
 
       <!-- 测试配置 -->
-      <el-form v-if="!executionId" :inline="true" class="test-config">
-        <el-form-item label="测试类型">
-          <el-select v-model="testConfig.type" placeholder="请选择">
-            <el-option label="单个用例" value="case" />
-            <el-option label="测试集合" value="collection" />
-            <el-option label="接口测试" value="api" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="测试ID">
-          <el-input v-model="testConfig.id" placeholder="请输入测试ID" />
-        </el-form-item>
+      <el-form v-if="!executionId" class="test-config" label-width="100px">
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="执行器">
+              <el-select v-model="currentExecutorCode" placeholder="请选择执行器" style="width: 100%">
+                <el-option
+                  v-for="executor in executorList"
+                  :key="executor.plugin_code"
+                  :label="executor.plugin_name"
+                  :value="executor.plugin_code"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="测试类型">
+              <el-select v-model="testConfig.type" placeholder="请选择" style="width: 100%">
+                <el-option label="单个用例" value="case" />
+                <el-option label="测试集合" value="collection" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="测试ID">
+              <el-input v-model="testConfig.id" placeholder="请输入测试ID" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <!-- 动态执行器参数配置 -->
+        <el-divider v-if="currentExecutorSchema" content-position="left">执行器参数</el-divider>
+        <ExecutorConfigForm
+          v-if="currentExecutorSchema"
+          :config-schema="currentExecutorSchema"
+          v-model="executorConfig"
+        />
       </el-form>
 
       <!-- 执行进度组件 -->
@@ -62,11 +87,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { VideoPlay, VideoPause } from '@element-plus/icons-vue'
 import TestExecutionProgress from '@/components/TestExecutionProgress.vue'
 import RealtimeLog from '@/components/RealtimeLog.vue'
+import ExecutorConfigForm from '@/components/ExecutorConfigForm.vue'
 import { queryById } from '@/views/apitest/apiinfocase/apiInfoCase.js'
 import { queryAll as queryKeywords } from '@/views/apitest/keyword/apiKeyWord.js'
 import { executePlan } from '@/views/apitest/collection/apiCollectionInfo.js'
@@ -92,6 +118,27 @@ const testConfig = ref({
 const keywordList = ref([])
 const executorList = ref([])
 const currentExecutorCode = ref('')
+const executorConfig = ref({})
+
+// 当前执行器的配置 schema
+const currentExecutorSchema = computed(() => {
+  const executor = executorList.value.find(e => e.plugin_code === currentExecutorCode.value)
+  if (!executor) return null
+  // config_schema 可能是字符串或对象
+  if (typeof executor.config_schema === 'string') {
+    try {
+      return JSON.parse(executor.config_schema)
+    } catch {
+      return null
+    }
+  }
+  return executor.config_schema
+})
+
+// 当执行器变化时，重置配置
+watch(currentExecutorCode, () => {
+  executorConfig.value = {}
+})
 
 // 加载关键字和执行器
 const loadKeywords = async () => {
@@ -204,7 +251,7 @@ const startNewTest = async () => {
         plugin_code: currentExecutorCode.value,
         test_case_id: Number(testConfig.value.id),
         test_case_content: testCaseContent,
-        config: {}
+        config: { ...executorConfig.value }
       })
     } else if (testConfig.value.type === 'collection') {
       response = await executePlan({

@@ -75,7 +75,7 @@ async def execute_test(
         try:
             test_status = "success" if result.get("success") else "failed"
             error_msg = result.get("error") if not result.get("success") else None
-            exec_result = result.get("result", {})
+            exec_result = result.get("result", {}) or {}
             
             # 获取用例信息
             case_info = session.get(ApiInfoCase, request.test_case_id)
@@ -87,6 +87,7 @@ async def execute_test(
             request_url = None
             request_method = None
             request_headers = None
+            request_params = None
             request_body = None
             response_time = None
             status_code = None
@@ -100,18 +101,24 @@ async def execute_test(
                     request_url = req_data.get("url")
                     request_method = req_data.get("method")
                     request_headers = req_data.get("headers")
+                    request_params = req_data.get("params")
                     request_body = req_data.get("body")
-                    if request_headers and not isinstance(request_headers, str):
+                    if request_headers is not None and not isinstance(request_headers, str):
                         request_headers = json.dumps(request_headers, ensure_ascii=False)
-                    if request_body and not isinstance(request_body, str):
+                    if request_params is not None and not isinstance(request_params, str):
+                        request_params = json.dumps(request_params, ensure_ascii=False) if request_params else None
+                    if request_body is not None and not isinstance(request_body, str):
                         request_body = json.dumps(request_body, ensure_ascii=False)
                 
                 # 提取响应信息
                 resp_data = exec_result.get("response", {})
                 if resp_data:
                     status_code = resp_data.get("status_code")
+                    response_headers = resp_data.get("headers")
                     response_body = resp_data.get("body")
-                    if response_body and not isinstance(response_body, str):
+                    if response_headers is not None and not isinstance(response_headers, str):
+                        response_headers = json.dumps(response_headers, ensure_ascii=False) if response_headers else None
+                    if response_body is not None and not isinstance(response_body, str):
                         response_body = json.dumps(response_body, ensure_ascii=False)
                 
                 # 提取汇总信息中的耗时
@@ -149,6 +156,7 @@ async def execute_test(
                 request_url=request_url,
                 request_method=request_method,
                 request_headers=request_headers,
+                request_params=request_params,
                 request_body=request_body,
                 response_time=int(response_time) if response_time else None,
                 status_code=int(status_code) if status_code else None,
@@ -269,6 +277,7 @@ async def list_executors(
             "command": p.command,
             "capabilities": p.capabilities,
             "description": p.description,
+            "config_schema": p.config_schema,  # 包含参数定义
         } for p in plugins]
 
         logger.info(f"list_executors: 查询到 {len(executors)} 个执行器")

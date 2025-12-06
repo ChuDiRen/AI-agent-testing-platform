@@ -416,6 +416,170 @@ def _parse_console_scripts(setup_content: str) -> dict:
     return scripts
 
 
+def _parse_pytest_addoption(plugin_root: Path) -> list:
+    """
+    解析插件中的自定义参数配置
+    支持两种方式:
+    1. CasesPlugin.py/conftest.py 中的 pytest_addoption (parser.addoption)
+    2. cli.py 中的命令行参数解析 (startswith("--xxx="))
+    返回参数列表: [{"name": "--type", "default": "yaml", "help": "...", "type": "string"}, ...]
+    """
+    config_params = []
+    
+    # ========== 方式1: 解析 pytest_addoption ==========
+    pytest_patterns = [
+        "**/CasesPlugin.py",
+        "**/conftest.py",
+        "**/plugin.py",
+        "**/pytest_plugin.py"
+    ]
+    
+    for pattern in pytest_patterns:
+        for py_file in plugin_root.glob(pattern):
+            try:
+                with open(py_file, "r", encoding="utf-8") as f:
+                    content = f.read()
+                
+                if "addoption" not in content:
+                    continue
+                
+                # 匹配 parser.addoption("--name", action="store", default="value", help="desc")
+                addoption_pattern = re.compile(
+                    r'parser\.addoption\s*\(\s*'
+                    r'["\'](-{1,2}[\w-]+)["\']'  # 参数名
+                    r'[^)]*?'
+                    r'(?:default\s*=\s*(["\'][^"\']*["\']|[\w.]+))?'  # default 值
+                    r'[^)]*?'
+                    r'(?:help\s*=\s*["\']([^"\']*)["\'])?'  # help 描述
+                    r'[^)]*?'
+                    r'(?:action\s*=\s*["\']([^"\']*)["\'])?'  # action 类型
+                    r'[^)]*\)',
+                    re.DOTALL
+                )
+                
+                for match in addoption_pattern.finditer(content):
+                    param_name = match.group(1)
+                    default_val = match.group(2)
+                    help_text = match.group(3) or ""
+                    action = match.group(4) or "store"
+                    
+                    if default_val:
+                        default_val = default_val.strip('"\'').strip()
+                    else:
+                        default_val = ""
+                    
+                    param_type = "string"
+                    if action == "store_true" or action == "store_false":
+                        param_type = "boolean"
+                        default_val = "true" if action == "store_true" else "false"
+                    elif default_val.isdigit():
+                        param_type = "integer"
+                    elif default_val.lower() in ["true", "false"]:
+                        param_type = "boolean"
+                    
+                    if not any(p["name"] == param_name for p in config_params):
+                        config_params.append({
+                            "name": param_name,
+                            "default": default_val,
+                            "help": help_text,
+                            "type": param_type,
+                            "required": False,
+                            "source": str(py_file.relative_to(plugin_root))
+                        })
+                
+            except Exception as e:
+                print(f"解析 {py_file} 时出错: {e}")
+                continue
+    
+    # ========== 方式2: 解析 cli.py 中的命令行参数 ==========
+    cli_patterns = ["**/cli.py", "**/main.py", "**/run.py"]
+    
+    for pattern in cli_patterns:
+        for py_file in plugin_root.glob(pattern):
+            try:
+                with open(py_file, "r", encoding="utf-8") as f:
+                    content = f.read()
+                
+                # 匹配 startswith("--xxx=") 或 startswith("--xxx") 模式
+                # 例如: arg.startswith("--engine-type=")
+                cli_arg_pattern = re.compile(
+                    r'startswith\s*\(\s*["\'](-{1,2}[\w-]+)[="]?\s*["\']',
+                    re.DOTALL
+                )
+                
+                for match in cli_arg_pattern.finditer(content):
+                    param_name = match.group(1).rstrip("=")
+                    
+                    # 尝试从上下文提取默认值和帮助信息
+                    default_val = ""
+                    help_text = ""
+                    
+                    # 查找附近的注释或字符串作为帮助信息
+                    # 例如: # 从命令行参数中获取 engine-type
+                    context_start = max(0, match.start() - 200)
+                    context_end = min(len(content), match.end() + 200)
+                    context = content[context_start:context_end]
+                    
+                    # 提取函数文档字符串或注释
+                    doc_match = re.search(r'"""([^"]+)"""', context)
+                    if doc_match:
+                        help_text = doc_match.group(1).strip().split('\n')[0]
+                    
+                    # 提取默认值 (例如: return 'yaml'  # 默认值)
+                    default_match = re.search(
+                        rf'{param_name}.*?(?:default|默认)[^\w]*["\']?([\w]+)["\']?',
+                        context, re.IGNORECASE
+                    )
+                    if default_match:
+                        default_val = default_match.group(1)
+                    
+                    if not any(p["name"] == param_name for p in config_params):
+                        config_params.append({
+                            "name": param_name,
+                            "default": default_val,
+                            "help": help_text or f"CLI 参数 {param_name}",
+                            "type": "string",
+                            "required": False,
+                            "source": str(py_file.relative_to(plugin_root))
+                        })
+                
+                # 匹配 argparse 风格: parser.add_argument("--xxx", ...)
+                argparse_pattern = re.compile(
+                    r'add_argument\s*\(\s*'
+                    r'["\'](-{1,2}[\w-]+)["\']'
+                    r'[^)]*?'
+                    r'(?:default\s*=\s*(["\'][^"\']*["\']|[\w.]+))?'
+                    r'[^)]*?'
+                    r'(?:help\s*=\s*["\']([^"\']*)["\'])?'
+                    r'[^)]*\)',
+                    re.DOTALL
+                )
+                
+                for match in argparse_pattern.finditer(content):
+                    param_name = match.group(1)
+                    default_val = match.group(2) or ""
+                    help_text = match.group(3) or ""
+                    
+                    if default_val:
+                        default_val = default_val.strip('"\'').strip()
+                    
+                    if not any(p["name"] == param_name for p in config_params):
+                        config_params.append({
+                            "name": param_name,
+                            "default": default_val,
+                            "help": help_text,
+                            "type": "string",
+                            "required": False,
+                            "source": str(py_file.relative_to(plugin_root))
+                        })
+                
+            except Exception as e:
+                print(f"解析 {py_file} 时出错: {e}")
+                continue
+    
+    return config_params
+
+
 @module_route.post("/uploadExecutor", summary="上传执行器插件（存入数据库）")
 async def upload_executor(
     file: UploadFile = File(...),
@@ -494,6 +658,98 @@ async def upload_executor(
                     if line and not line.startswith("#") and not line.startswith("git+"):
                         dependencies.append(line)
         
+        # 4. 解析自定义参数配置
+        # 优先读取 plugin.yaml 配置文件（推荐方式）
+        config_schema = None
+        config_params = []
+        
+        plugin_yaml = plugin_root / "plugin.yaml"
+        plugin_json = plugin_root / "plugin.json"
+        
+        if plugin_yaml.exists():
+            # 方式1: 从 plugin.yaml 读取参数定义（推荐）
+            try:
+                import yaml as yaml_lib
+                with open(plugin_yaml, "r", encoding="utf-8") as f:
+                    plugin_config = yaml_lib.safe_load(f)
+                
+                if plugin_config:
+                    # 覆盖从 setup.py 提取的信息
+                    if plugin_config.get("name"):
+                        plugin_name = plugin_config["name"]
+                        plugin_code = plugin_name.lower().replace("-", "_")
+                    if plugin_config.get("version"):
+                        version = plugin_config["version"]
+                    if plugin_config.get("description"):
+                        description = plugin_config["description"]
+                    if plugin_config.get("command"):
+                        command = plugin_config["command"]
+                    
+                    # 读取参数定义
+                    if plugin_config.get("params"):
+                        config_params = plugin_config["params"]
+                        config_schema = {
+                            "type": "object",
+                            "properties": {},
+                            "params": config_params
+                        }
+                        for param in config_params:
+                            prop_name = param["name"].lstrip("-").replace("-", "_")
+                            config_schema["properties"][prop_name] = {
+                                "type": param.get("type", "string"),
+                                "default": param.get("default", ""),
+                                "description": param.get("help", param.get("label", "")),
+                                "label": param.get("label", prop_name),
+                                "options": param.get("options"),
+                                "required": param.get("required", False),
+                                "condition": param.get("condition")
+                            }
+            except Exception as e:
+                print(f"解析 plugin.yaml 失败: {e}")
+        
+        elif plugin_json.exists():
+            # 方式2: 从 plugin.json 读取参数定义
+            try:
+                with open(plugin_json, "r", encoding="utf-8") as f:
+                    plugin_config = json.load(f)
+                
+                if plugin_config and plugin_config.get("params"):
+                    config_params = plugin_config["params"]
+                    config_schema = {
+                        "type": "object",
+                        "properties": {},
+                        "params": config_params
+                    }
+                    for param in config_params:
+                        prop_name = param["name"].lstrip("-").replace("-", "_")
+                        config_schema["properties"][prop_name] = {
+                            "type": param.get("type", "string"),
+                            "default": param.get("default", ""),
+                            "description": param.get("help", param.get("label", "")),
+                            "label": param.get("label", prop_name),
+                            "options": param.get("options"),
+                            "required": param.get("required", False)
+                        }
+            except Exception as e:
+                print(f"解析 plugin.json 失败: {e}")
+        
+        else:
+            # 方式3: 回退到解析代码（不推荐，仅兼容旧插件）
+            config_params = _parse_pytest_addoption(plugin_root)
+            if config_params:
+                config_schema = {
+                    "type": "object",
+                    "properties": {},
+                    "params": config_params
+                }
+                for param in config_params:
+                    prop_name = param["name"].lstrip("-").replace("-", "_")
+                    config_schema["properties"][prop_name] = {
+                        "type": param["type"],
+                        "default": param["default"],
+                        "description": param["help"]
+                    }
+        
         if not command:
             return respModel.error_resp(msg="未找到 console_scripts 命令定义，请确保 setup.py 中定义了 entry_points")
         
@@ -510,6 +766,7 @@ async def upload_executor(
             existing.version = version
             existing.dependencies = json.dumps(dependencies) if dependencies else None
             existing.capabilities = json.dumps({"console_scripts": console_scripts})
+            existing.config_schema = json.dumps(config_schema) if config_schema else None
             existing.modify_time = datetime.now()
             session.add(existing)
             session.commit()
@@ -527,7 +784,8 @@ async def upload_executor(
                 author="User Upload",
                 is_enabled=1,
                 dependencies=json.dumps(dependencies) if dependencies else None,
-                capabilities=json.dumps({"console_scripts": console_scripts})
+                capabilities=json.dumps({"console_scripts": console_scripts}),
+                config_schema=json.dumps(config_schema) if config_schema else None
             )
             session.add(new_plugin)
             session.commit()
@@ -535,13 +793,18 @@ async def upload_executor(
             action = "安装"
             plugin_id = new_plugin.id
         
+        # 确定参数来源
+        param_source = "plugin.yaml" if plugin_yaml.exists() else ("plugin.json" if plugin_json.exists() else "代码解析")
+        
         return respModel.ok_resp(
             obj={
                 "id": plugin_id,
                 "command": command,
-                "console_scripts": console_scripts
+                "console_scripts": console_scripts,
+                "config_schema": config_schema,
+                "param_source": param_source
             },
-            msg=f"执行器 {plugin_name} {action}成功，命令: {command}"
+            msg=f"执行器 {plugin_name} {action}成功，命令: {command}，从 {param_source} 解析到 {len(config_params)} 个参数"
         )
     
     except Exception as e:
@@ -696,14 +959,39 @@ async def install_executor(
 
 @module_route.get("/installStatus", summary="查询安装进度")
 async def get_install_status(
-    id: int = Query(..., description="执行器插件ID")
+    id: int = Query(..., description="执行器插件ID"),
+    session: Session = Depends(get_session)
 ):
     """
     查询执行器安装进度
     """
     if id not in _install_tasks:
+        # 检查插件是否存在，如果存在且已安装，返回完成状态
+        plugin = session.get(Plugin, id)
+        if plugin and plugin.command:
+            # 尝试检查命令是否可用（直接运行 console script）
+            import subprocess
+            import shutil
+            try:
+                cmd = plugin.command.split()[0]
+                # 检查命令是否在 PATH 中
+                cmd_path = shutil.which(cmd)
+                if cmd_path:
+                    result = subprocess.run(
+                        [cmd, "--help"],
+                        capture_output=True,
+                        timeout=5
+                    )
+                    if result.returncode == 0:
+                        return respModel.ok_resp(
+                            obj={"status": "completed", "message": f"执行器已安装: {plugin.command}", "progress": 100},
+                            msg=f"执行器已安装: {plugin.command}"
+                        )
+            except Exception:
+                pass
+        
         return respModel.ok_resp(
-            obj={"status": "unknown", "message": "未找到安装任务"},
+            obj={"status": "unknown", "message": "未找到安装任务，可能已完成或未启动", "progress": 0},
             msg="未找到安装任务"
         )
     

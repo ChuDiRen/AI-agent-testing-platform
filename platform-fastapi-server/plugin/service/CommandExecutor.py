@@ -40,18 +40,25 @@ def parse_test_output(stdout: str) -> Dict[str, Any]:
         "response_data": None,
     }
     
-    # 提取 response_data
+    # 提取 response_data（支持多种格式）
+    # 格式1: -----------current_response_data------------
+    # 格式2: -+current_response_data-+
     response_match = re.search(
-        r'-+current_response_data-+\s*\n(.+?)\n-+end current_response_data-+',
-        stdout, re.DOTALL
+        r'-+\s*current_response_data\s*-+\s*\n(.+?)\n\s*-+\s*end\s*current_response_data\s*-+',
+        stdout, re.DOTALL | re.IGNORECASE
     )
     if response_match:
         try:
             # 尝试解析为字典
             response_str = response_match.group(1).strip()
             result["response_data"] = eval(response_str)  # 因为是 Python dict 格式
-        except:
-            result["response_data"] = response_match.group(1).strip()
+        except Exception as e:
+            # 如果 eval 失败，尝试用 ast.literal_eval
+            try:
+                import ast
+                result["response_data"] = ast.literal_eval(response_str)
+            except:
+                result["response_data"] = response_str
     
     # 提取测试用例结果 (格式: test_case_execute[用例名] ... PASSED/FAILED)
     case_pattern = re.compile(r'test_case_execute\[(.+?)\].*?(PASSED|FAILED)', re.DOTALL)
@@ -134,12 +141,32 @@ class CommandExecutor:
                 f"--cases={case_file.parent.resolve()}",
             ])
             
-            # 添加配置参数
+            # 动态添加配置参数（支持所有自定义参数）
             if config:
-                if "browser" in config:
-                    cmd_args.append(f"--browser={config['browser']}")
-                if "headless" in config:
-                    cmd_args.append(f"--headless={str(config['headless']).lower()}")
+                for key, value in config.items():
+                    # 跳过内部配置项（不传递给命令行）
+                    if key in ("timeout", "work_dir", "_internal"):
+                        continue
+                    
+                    # 跳过已经通过固定参数传递的
+                    if key in ("type", "cases"):
+                        continue
+                    
+                    # 转换参数名：下划线转连字符（engine_type -> engine-type）
+                    param_name = key.replace("_", "-")
+                    
+                    # 处理布尔值
+                    if isinstance(value, bool):
+                        cmd_args.append(f"--{param_name}={str(value).lower()}")
+                    # 处理 None 值（跳过）
+                    elif value is None:
+                        continue
+                    # 处理其他值
+                    else:
+                        cmd_args.append(f"--{param_name}={value}")
+            
+            # 设置工作目录（默认使用临时目录）
+            effective_work_dir = temp_dir
             
             logger.info(f"Executing command: {' '.join(cmd_args)}")
             logger.info(f"Working directory: {effective_work_dir}")
@@ -251,10 +278,12 @@ class CommandExecutor:
                     "url": response_data.get("url", ""),
                     "method": response_data.get("method", ""),
                     "headers": response_data.get("headers", {}),
+                    "params": response_data.get("params", {}),
                     "body": request_body
                 },
                 "response": {
                     "status_code": response_data.get("status_code"),
+                    "headers": response_data.get("response_headers", {}),
                     "body": response_body if response_body else None
                 },
                 "error": stderr_str if stderr_str and process.returncode != 0 else None

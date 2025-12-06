@@ -376,9 +376,17 @@ const handleExecute = async (row) => {
     if (res.data.code === 200) {
       const result = res.data.data || {}
       if (result.status === 'completed' || result.success) {
-        ElMessage.success('用例执行完成')
+        ElMessage.success('测试执行完成，正在跳转到测试报告页面...')
+        // 跳转到测试历史页面查看执行结果
+        setTimeout(() => {
+          router.push('/ApiHistoryList')
+        }, 1000)
       } else {
-        ElMessage.warning(result.error || '用例执行完成，请查看详情')
+        ElMessage.warning(result.error || '测试执行完成，请查看详情')
+        // 失败时也跳转到历史页面
+        setTimeout(() => {
+          router.push('/ApiHistoryList')
+        }, 1500)
       }
     } else {
       ElMessage.error(res.data.msg || '执行失败')

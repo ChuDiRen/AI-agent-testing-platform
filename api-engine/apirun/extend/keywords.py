@@ -50,12 +50,22 @@ class Keywords:
             g_context().set_dict("current_response", response)  # 默认设置成全局变量-- 对象
 
             #  组装请求数据到全局变量，从response进行获取。方便平台进行显示, 可能请求出错，所以结合请求数据进行填写
+            # 从 URL 中解析出 params
+            from urllib.parse import urlparse, parse_qs
+            parsed_url = urlparse(response.url)
+            url_params = parse_qs(parsed_url.query)
+            # 将列表值转换为单个值（如果只有一个元素）
+            params_dict = {k: v[0] if len(v) == 1 else v for k, v in url_params.items()}
+            
             request_data = {
                 "url": unquote(response.url),
                 "method": response.request.method,
                 "headers": dict(response.request.headers),
+                "params": params_dict,
                 "body": str(response.request.body), # 避免返回的是二进制数据 接口端报错。
-                "response": response.text
+                "response": response.text,
+                "status_code": response.status_code,
+                "response_headers": dict(response.headers)
             }
             g_context().set_dict("current_response_data", request_data)  # 默认设置成全局变量
         except Exception as e:
@@ -63,7 +73,7 @@ class Keywords:
             raise e
         finally:
             print("-----------current_response_data------------")
-            print(request_data)  # 一定要打印，后续是利用它进行前端的显示
+            print(request_data)
             print("----------end current_response_data-------------")
 
 
@@ -112,7 +122,9 @@ class Keywords:
                 "headers": dict(response.request.headers),
                 "body": response.request.body,
                 "response": response.text,
-                "current_response_file_path":file_path
+                "current_response_file_path": file_path,
+                "status_code": response.status_code,
+                "response_headers": dict(response.headers)
             }
             g_context().set_dict("current_response_data", request_data)  # 默认设置成全局变量
 
@@ -121,7 +133,7 @@ class Keywords:
             raise e
         finally:
             print("-----------current_response_data------------")
-            print(request_data)  # 一定要打印，后续是利用它进行前端的显示
+            print(request_data)
             print("----------end current_response_data-------------")
 
 

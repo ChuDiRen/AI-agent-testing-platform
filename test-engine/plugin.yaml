@@ -1,0 +1,81 @@
+# Test Engine 插件配置
+# 平台上传插件时会读取此文件，获取参数定义
+
+name: test-engine
+version: "1.0.0"
+description: 统一的自动化测试引擎，支持 API 测试和 Web UI 测试
+command: testrun
+type: executor
+
+# 执行参数定义 - 按引擎类型分组
+# engine_type 是必选参数，决定使用哪组参数
+
+params:
+  # 主参数：选择引擎类型
+  - name: engine_type
+    label: 测试引擎类型
+    type: select
+    options:
+      - value: api
+        label: API 测试
+      - value: web
+        label: Web UI 测试
+    required: true
+    help: 选择要运行的测试引擎类型
+
+  # 通用参数（API 和 Web 都有）
+  - name: type
+    label: 用例格式
+    type: select
+    options:
+      - value: yaml
+        label: YAML 格式
+      - value: excel
+        label: Excel 格式
+      - value: pytest
+        label: Pytest 脚本
+    default: yaml
+    group: common
+    help: 测试用例的格式类型
+
+  - name: keyDir
+    label: 扩展关键字目录
+    type: string
+    default: ""
+    group: common
+    help: 自定义关键字目录路径（可选）
+
+  # Web 专属参数
+  - name: browser
+    label: 浏览器类型
+    type: select
+    options:
+      - value: chrome
+        label: Chrome
+      - value: firefox
+        label: Firefox
+      - value: edge
+        label: Edge
+    default: chrome
+    group: web
+    show_when:
+      engine_type: web
+    help: Web 测试使用的浏览器
+
+  - name: headless
+    label: 无头模式
+    type: boolean
+    default: false
+    group: web
+    show_when:
+      engine_type: web
+    help: 是否使用无头模式运行浏览器
+
+# 参数分组定义（供前端渲染使用）
+param_groups:
+  - id: common
+    label: 通用配置
+    engines: [api, web]
+  - id: web
+    label: Web 测试配置
+    engines: [web]

@@ -1,6 +1,7 @@
 """
 统一的测试引擎命令行入口
 支持 API 测试和 Web 测试，通过 --engine-type 参数或配置文件指定测试类型
+参数定义从 plugin.yaml 读取
 """
 import os
 import sys
@@ -11,35 +12,66 @@ import pytest
 import yaml
 from allure_combine import combine_allure
 
+from .plugin_config import plugin_config
 
-def get_engine_type_from_args() -> Optional[str]:
+
+import shutil
+
+
+def generate_report(allure_results_dir: Path, allure_report_dir: Path) -> Optional[Path]:
     """
-    从命令行参数中获取 engine-type
-    返回: 'api', 'web' 或 None
+    生成 Allure 报告并只保留 complete.html
+    
+    :param allure_results_dir: allure-results 目录
+    :param allure_report_dir: allure-report 目录
+    :return: complete.html 文件路径，失败返回 None
     """
-    engine_arg = next((arg for arg in sys.argv if arg.startswith("--engine-type=")), None)
-    if engine_arg:
-        engine_type = engine_arg.split("=")[1].lower()
-        if engine_type in ['api', 'web']:
-            # 从 sys.argv 中移除这个参数，避免传递给子引擎
-            sys.argv.remove(engine_arg)
-            return engine_type
-        else:
-            print(f"错误: 不支持的 engine-type: {engine_type}")
-            print("支持的类型: api, web")
-            sys.exit(1)
-    return None
+    print("\n=== 测试执行完成，正在生成Allure报告... ===")
+    
+    # 1. 生成 Allure 报告
+    os.system(f'allure generate -c -o "{allure_report_dir}" "{allure_results_dir}"')
+    
+    # 2. 使用 allure-combine 生成单文件报告
+    try:
+        combine_allure(str(allure_report_dir))
+    except Exception as e:
+        print(f"警告: allure-combine 失败: {e}")
+        return None
+    
+    complete_html = allure_report_dir / "complete.html"
+    if not complete_html.exists():
+        print("警告: complete.html 未生成")
+        return None
+    
+    # 3. 将 complete.html 移动到 reports 目录
+    reports_dir = allure_report_dir.parent
+    final_report = reports_dir / "complete.html"
+    shutil.copy2(complete_html, final_report)
+    
+    # 4. 清理临时目录（只保留 complete.html）
+    try:
+        shutil.rmtree(allure_results_dir, ignore_errors=True)
+        shutil.rmtree(allure_report_dir, ignore_errors=True)
+        # 清理 logdata 目录
+        logdata_dir = reports_dir / "logdata"
+        if logdata_dir.exists():
+            shutil.rmtree(logdata_dir, ignore_errors=True)
+        # 清理空的 screenshots 目录
+        screenshots_dir = reports_dir / "screenshots"
+        if screenshots_dir.exists() and not any(screenshots_dir.iterdir()):
+            shutil.rmtree(screenshots_dir, ignore_errors=True)
+    except Exception as e:
+        print(f"警告: 清理临时文件失败: {e}")
+    
+    print(f"报告已生成: {final_report}")
+    return final_report
 
 
 def get_engine_type_from_config(cases_dir: str) -> Optional[str]:
-    """
-    从 context.yaml 配置文件中读取 ENGINE_TYPE
-    返回: 'api', 'web' 或 None
-    """
+    """从 context.yaml 配置文件中读取 ENGINE_TYPE"""
     if not cases_dir:
         return None
 
-    # 查找 context.yaml 文件
     context_file = Path(cases_dir) / "context.yaml"
     if not context_file.exists():
         return None
@@ -55,28 +87,6 @@ def get_engine_type_from_config(cases_dir: str) -> Optional[str]:
         print(f"警告: 读取配置文件失败: {e}")
 
     return None
-
-
-def get_cases_dir_from_args() -> Optional[str]:
-    """
-    从命令行参数中获取 cases 目录
-    """
-    cases_arg = next((arg for arg in sys.argv if arg.startswith("--cases=")), None)
-    return cases_arg.split("=")[1] if cases_arg else None
-
-
-def get_case_type_from_args() -> str:
-    """
-    从命令行参数中获取用例类型
-    
-    :return: 'yaml', 'excel', 'pytest'，默认为 'yaml'
-    """
-    type_arg = next((arg for arg in sys.argv if arg.startswith("--type=")), None)
-    if type_arg:
-        case_type = type_arg.split("=")[1].lower()
-        if case_type in ['yaml', 'excel', 'pytest']:
-            return case_type
-    return 'yaml'  # 默认值
 
 
 def run_pytest_tests(
@@ -130,11 +140,8 @@ def run_pytest_tests(
     print(f"运行 {engine.upper()} Pytest 测试:", pytest_args)
     exit_code = pytest.main(pytest_args)  # 不传 plugins 参数
     
-    # 生成 Allure 报告
-    print("\n=== 测试执行完成，正在生成Allure报告... ===")
-    print(f"报告目录: {allure_report_dir}")
-    os.system(f'allure generate -c -o "{allure_report_dir}" "{allure_results_dir}"')
-    combine_allure(str(allure_report_dir))  # 转换为字符串类型
+    # 生成报告（只保留 complete.html）
+    generate_report(allure_results_dir, allure_report_dir)
     return exit_code
 
 
@@ -187,36 +194,26 @@ def run_with_plugin(
     print(f"运行 {engine.upper()} 测试引擎:", pytest_args)
     exit_code = pytest.main(pytest_args, plugins=[plugin_class()])
     
-    # 测试执行完成后自动生成Allure报告
-    print("\n=== 测试执行完成，正在生成Allure报告... ===")
-    print(f"报告目录: {allure_report_dir}")
-    os.system(f'allure generate -c -o "{allure_report_dir}" "{allure_results_dir}"')
-    combine_allure(str(allure_report_dir))  # 转换为字符串类型
+    # 生成报告（只保留 complete.html）
+    generate_report(allure_results_dir, allure_report_dir)
     return exit_code
 
 
 def run_api_engine() -> int:
-    """
-    运行 API 测试引擎
-    支持 yaml、excel、pytest 三种用例类型
-    """
+    """运行 API 测试引擎"""
     try:
-        # 获取项目根目录（test-engine目录）
         project_root = Path(__file__).parent.parent
         reports_dir = project_root / "reports"
         reports_dir.mkdir(exist_ok=True)
         
-        # 获取用例类型和用例目录
-        case_type = get_case_type_from_args()
-        cases_dir = get_cases_dir_from_args() or "examples/api-cases_yaml"
+        # 从 plugin_config 获取参数
+        case_type = plugin_config.get_arg("type", "yaml")
+        cases_dir = plugin_config.get_arg("cases") or "examples/api-cases_yaml"
         
-        # 根据用例类型选择运行方式
         if case_type == 'pytest':
-            # 直接运行 pytest 脚本（不使用 CasesPlugin）
             print(f"检测到 pytest 模式，直接运行测试脚本")
             return run_pytest_tests('api', project_root, reports_dir, cases_dir)
         else:
-            # 使用 CasesPlugin 运行 yaml/excel 用例
             from testengine_api.core.CasesPlugin import CasesPlugin
             print(f"检测到 {case_type} 模式，使用 CasesPlugin 运行")
             api_runner_path = project_root / "testengine_api" / "core" / "ApiTestRunner.py"
@@ -228,27 +225,20 @@ def run_api_engine() -> int:
 
 
 def run_web_engine() -> int:
-    """
-    运行 Web 测试引擎
-    支持 yaml、excel、pytest 三种用例类型
-    """
+    """运行 Web 测试引擎"""
     try:
-        # 获取项目根目录（test-engine目录）
         project_root = Path(__file__).parent.parent
         reports_dir = project_root / "reports"
         reports_dir.mkdir(exist_ok=True)
         
-        # 获取用例类型和用例目录
-        case_type = get_case_type_from_args()
-        cases_dir = get_cases_dir_from_args() or "examples/web-cases_yaml"
+        # 从 plugin_config 获取参数
+        case_type = plugin_config.get_arg("type", "yaml")
+        cases_dir = plugin_config.get_arg("cases") or "examples/web-cases_yaml"
         
-        # 根据用例类型选择运行方式
         if case_type == 'pytest':
-            # 直接运行 pytest 脚本（不使用 CasesPlugin）
             print(f"检测到 pytest 模式，直接运行测试脚本")
             return run_pytest_tests('web', project_root, reports_dir, cases_dir)
         else:
-            # 使用 CasesPlugin 运行 yaml/excel 用例
             from testengine_web.core.CasesPlugin import CasesPlugin
             print(f"检测到 {case_type} 模式，使用 CasesPlugin 运行")
             web_runner_path = project_root / "testengine_web" / "core" / "WebTestRunner.py"
@@ -262,39 +252,58 @@ def run_web_engine() -> int:
 def run() -> None:
     """
     统一入口函数
-    1. 从命令行参数获取 engine-type（优先级高）
-    2. 如果未指定，从 context.yaml 读取 ENGINE_TYPE
-    3. 根据类型运行对应的引擎
+    1. 检查是否请求帮助
+    2. 从 plugin.yaml 解析命令行参数
+    3. 验证参数并运行对应引擎
     """
+    # 检查是否请求帮助
+    if "--help" in sys.argv or "-h" in sys.argv:
+        plugin_config.print_help()
+        sys.exit(0)
+    
     print("=" * 60)
-    print("Test Engine - 统一自动化测试引擎")
+    print(f"{plugin_config.name} v{plugin_config.version}")
+    print(plugin_config.description)
     print("=" * 60)
-
-    # 1. 从命令行参数获取 engine-type
-    engine_type = get_engine_type_from_args()
-
-    # 2. 如果未指定，尝试从配置文件读取
+    
+    # 解析命令行参数（基于 plugin.yaml 定义）
+    args = plugin_config.parse_args()
+    
+    # 1. 获取 engine_type
+    engine_type = args.get("engine_type")
+    
+    # 2. 如果未指定，尝试从 context.yaml 读取
     if not engine_type:
-        if cases_dir := get_cases_dir_from_args():
-            if engine_type := get_engine_type_from_config(cases_dir):
+        cases_dir = args.get("cases")
+        if cases_dir:
+            engine_type = get_engine_type_from_config(cases_dir)
+            if engine_type:
                 print(f"从配置文件读取 ENGINE_TYPE: {engine_type}")
-
-    # 3. 如果还是没有，提示用户
+    
+    # 3. 验证参数
     if not engine_type:
         print("\n错误: 未指定测试引擎类型!")
-        print("\n请使用以下方式之一指定测试类型:")
-        print("  1. 命令行参数: --engine-type=api 或 --engine-type=web")
-        print("  2. 在 context.yaml 中配置: ENGINE_TYPE: api 或 ENGINE_TYPE: web")
-        print("\n示例:")
-        print("  testrun --engine-type=api --type=yaml --cases=examples/api-cases_yaml")
-        print("  testrun --engine-type=web --type=yaml --cases=examples/web-cases_yaml --browser=chrome")
+        plugin_config.print_help()
         sys.exit(1)
-
-    print(f"测试引擎类型: {engine_type.upper()}")
+    
+    # 验证当前引擎类型的参数
+    errors = plugin_config.validate_args(engine_type)
+    if errors:
+        print("\n参数验证失败:")
+        for err in errors:
+            print(f"  - {err}")
+        sys.exit(1)
+    
+    print(f"\n测试引擎类型: {engine_type.upper()}")
+    print(f"用例格式: {args.get('type', 'yaml')}")
+    print(f"用例目录: {args.get('cases', '默认')}")
+    if engine_type == 'web':
+        print(f"浏览器: {args.get('browser', 'chrome')}")
+        print(f"无头模式: {args.get('headless', False)}")
     print("=" * 60)
     print()
 
-    # 4. 根据类型运行对应的引擎（使用字典映射）
+    # 4. 运行对应引擎
     engine_runners = {
         'api': run_api_engine,
         'web': run_web_engine

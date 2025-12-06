@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 
 import pytest
 from allure_combine import combine_allure
@@ -7,53 +8,46 @@ from allure_combine import combine_allure
 # 添加父目录到Python路径,使webrun可以被导入
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from webrun.core.CasesPlugin import CasesPlugin  # 绝对导入: cli.py作为入口文件
+from webrun.core.CasesPlugin import CasesPlugin
+from webrun.plugin_config import plugin_config
 
 
 def run():
-    """
-    命令行入口函数
-    """
-    # 获取项目根目录（web-engine目录）
+    """命令行入口函数"""
+    # 检查是否请求帮助
+    if "--help" in sys.argv or "-h" in sys.argv:
+        plugin_config.print_help()
+        return
+    
+    print("=" * 60)
+    print(f"{plugin_config.name} v{plugin_config.version}")
+    print(plugin_config.description)
+    print("=" * 60)
+    
+    # 解析命令行参数（基于 plugin.yaml 定义）
+    args = plugin_config.parse_args()
+    
+    print(f"用例格式: {args.get('type', 'yaml')}")
+    print(f"浏览器: {args.get('browser', 'chrome')}")
+    print(f"无头模式: {args.get('headless', False)}")
+    print("=" * 60)
+    
+    # 获取项目根目录
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     reports_dir = os.path.join(project_root, "reports")
-    
-    # 创建 reports 目录（如果不存在）
     os.makedirs(reports_dir, exist_ok=True)
     
     # 定义报告路径
     allure_results_dir = os.path.join(reports_dir, "allure-results")
     allure_report_dir = os.path.join(reports_dir, "allure-report")
     
-    # 创建 logdata 目录并定义日志文件路径
+    # 创建 logdata 目录
     logdata_dir = os.path.join(reports_dir, "logdata")
     os.makedirs(logdata_dir, exist_ok=True)
     log_file = os.path.join(logdata_dir, "log.log")
     
-    # 获取 python运行参数
-    # 1. 读取命令行传入的参数
-    pytest_cmd_config = []
-    i = 1  # 跳过脚本名称
-    while i < len(sys.argv):
-        arg = sys.argv[i]
-        if arg.startswith("--"):
-            # 处理长选项，如 --type=yaml 或 --cases=path
-            if "=" in arg:
-                pytest_cmd_config.append(arg)
-            else:
-                # 处理分离的参数，如 --type yaml
-                if i + 1 < len(sys.argv):
-                    pytest_cmd_config.append(arg)
-                    pytest_cmd_config.append(sys.argv[i + 1])
-                    i += 1  # 跳过下一个参数，因为它是当前选项的值
-                else:
-                    pytest_cmd_config.append(arg)
-        elif arg.startswith("-"):
-            pytest_cmd_config.append(arg)
-        i += 1
-
-    print("解析到的参数:", pytest_cmd_config)  # 调试输出
-    print(os.path.join(os.path.dirname(__file__), "core/WebTestRunner.py"))
+    # 获取剩余的 pytest 参数
+    pytest_cmd_config = [arg for arg in sys.argv[1:] if arg.startswith("-")]
     
     # 2. 构建pytest参数
     pytest_args = ["-s", "-v", "--capture=tee-sys"]
@@ -73,11 +67,34 @@ def run():
     # 执行测试
     pytest.main(pytest_args, plugins=[CasesPlugin()])
 
-    # 测试执行完成后自动生成Allure报告
+    # 生成报告（只保留 complete.html）
     print("\n=== 测试执行完成，正在生成Allure报告... ===")
-    print(f"报告目录: {allure_report_dir}")
     os.system(f'allure generate -c -o "{allure_report_dir}" "{allure_results_dir}"')
-    combine_allure(allure_report_dir)
+    
+    try:
+        combine_allure(allure_report_dir)
+    except Exception as e:
+        print(f"警告: allure-combine 失败: {e}")
+        return
+    
+    complete_html = os.path.join(allure_report_dir, "complete.html")
+    if not os.path.exists(complete_html):
+        print("警告: complete.html 未生成")
+        return
+    
+    # 将 complete.html 移动到 reports 目录
+    final_report = os.path.join(reports_dir, "complete.html")
+    shutil.copy2(complete_html, final_report)
+    
+    # 清理临时目录（只保留 complete.html）
+    try:
+        shutil.rmtree(allure_results_dir, ignore_errors=True)
+        shutil.rmtree(allure_report_dir, ignore_errors=True)
+        shutil.rmtree(logdata_dir, ignore_errors=True)
+    except Exception as e:
+        print(f"警告: 清理临时文件失败: {e}")
+    
+    print(f"报告已生成: {final_report}")
 
 
 if __name__ == '__main__':

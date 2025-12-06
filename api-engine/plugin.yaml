@@ -1,0 +1,24 @@
+# API Engine 插件配置
+name: api-engine
+version: "0.0.1"
+description: 华测教育 API 自动化测试工具
+command: huace-apirun
+type: executor
+
+params:
+  - name: type
+    label: 用例格式
+    type: select
+    options:
+      - value: yaml
+        label: YAML 格式
+      - value: excel
+        label: Excel 格式
+    default: yaml
+    help: 测试用例的格式类型
+
+  - name: keyDir
+    label: 扩展关键字目录
+    type: string
+    default: ""
+    help: 自定义关键字目录路径（可选）

@@ -82,13 +82,15 @@
         <h4>请求详情</h4>
         <el-tabs>
           <el-tab-pane label="请求头">
-            <pre>{{ formatJson(currentRow.request_headers) }}</pre>
+            <JsonViewer :data="currentRow.request_headers" :show-toolbar="false" />
           </el-tab-pane>
           <el-tab-pane label="请求参数">
-            <pre>{{ formatJson(currentRow.request_params) }}</pre>
+            <JsonViewer v-if="currentRow.request_params" :data="currentRow.request_params" :show-toolbar="false" />
+            <el-empty v-else description="无请求参数" :image-size="60" />
           </el-tab-pane>
           <el-tab-pane label="请求体">
-            <pre>{{ formatJson(currentRow.request_body) }}</pre>
+            <JsonViewer v-if="currentRow.request_body" :data="currentRow.request_body" :show-toolbar="false" />
+            <el-empty v-else description="无请求体" :image-size="60" />
           </el-tab-pane>
         </el-tabs>
       </div>
@@ -98,13 +100,15 @@
         <h4>响应详情</h4>
         <el-tabs>
           <el-tab-pane label="响应头">
-            <pre>{{ formatJson(currentRow.response_headers) }}</pre>
+            <JsonViewer v-if="currentRow.response_headers" :data="currentRow.response_headers" :show-toolbar="false" />
+            <el-empty v-else description="无响应头" :image-size="60" />
           </el-tab-pane>
           <el-tab-pane label="响应体">
-            <pre>{{ formatJson(currentRow.response_body) }}</pre>
+            <JsonViewer v-if="currentRow.response_body" :data="currentRow.response_body" :show-toolbar="false" />
+            <el-empty v-else description="无响应体" :image-size="60" />
           </el-tab-pane>
           <el-tab-pane label="YAML用例" v-if="currentRow.yaml_content">
-            <pre>{{ currentRow.yaml_content }}</pre>
+            <YamlViewer :content="currentRow.yaml_content" :show-toolbar="false" />
           </el-tab-pane>
         </el-tabs>
       </div>
@@ -119,6 +123,8 @@ import { queryByPage, deleteData } from './apiHistory.js'
 import { formatDateTime } from '@/utils/timeFormatter'
 import BaseSearch from '@/components/BaseSearch/index.vue'
 import BaseTable from '@/components/BaseTable/index.vue'
+import JsonViewer from '@/components/JsonViewer.vue'
+import YamlViewer from '@/components/YamlViewer.vue'
 
 // 查询表单
 const queryForm = reactive({
@@ -246,6 +252,15 @@ pre {
   max-height: 300px;
   font-size: 12px;
   font-family: 'Courier New', monospace;
+}
+
+.yaml-content {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 16px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 </style>
 

@@ -98,6 +98,17 @@
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="描述" :span="2">{{ currentPlugin.description || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="参数配置" :span="2">
+          <template v-if="currentPluginParams.length">
+            <div v-for="param in currentPluginParams" :key="param.name" class="param-item">
+              <el-tag size="small" type="info">{{ param.name }}</el-tag>
+              <span class="param-label">{{ param.label || param.name }}</span>
+              <span class="param-type">({{ param.type || 'string' }})</span>
+              <span v-if="param.default" class="param-default">默认: {{ param.default }}</span>
+            </div>
+          </template>
+          <span v-else>-</span>
+        </el-descriptions-item>
         <el-descriptions-item label="依赖" :span="2">
           <template v-if="currentPlugin.dependencies && currentPlugin.dependencies.length">
             <el-tag v-for="(dep, index) in parseDependencies(currentPlugin.dependencies)" :key="index" style="margin: 2px;">
@@ -183,7 +194,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { Upload, UploadFilled, Folder, Loading } from '@element-plus/icons-vue'
 import JSZip from 'jszip'
@@ -223,6 +234,20 @@ const detailVisible = ref(false)
 const executorUploadVisible = ref(false)
 const currentPlugin = ref(null)
 const executorFolderInput = ref(null)
+
+// 当前插件的参数列表
+const currentPluginParams = computed(() => {
+  if (!currentPlugin.value?.config_schema) return []
+  let schema = currentPlugin.value.config_schema
+  if (typeof schema === 'string') {
+    try {
+      schema = JSON.parse(schema)
+    } catch {
+      return []
+    }
+  }
+  return schema?.params || []
+})
 
 // 安装进度
 const installDialogVisible = ref(false)
@@ -313,6 +338,18 @@ const handleInstall = async (row) => {
     }
     
     // 轮询安装状态
+    let pollRetryCount = 0
+    const maxPollRetries = 3
+    let pollTimer = null
+    
+    const stopPolling = () => {
+      if (pollTimer) {
+        clearTimeout(pollTimer)
+        pollTimer = null
+      }
+      installLoading.value = false
+    }
+    
     const pollStatus = async () => {
       try {
         const statusRes = await getInstallStatus(row.id)
@@ -326,33 +363,46 @@ const handleInstall = async (row) => {
           installStatus.value = status
           
           if (status === 'installing') {
-            setTimeout(pollStatus, 1000) // 1秒后再次查询
+            pollRetryCount = 0 // 只在 installing 时重置
+            pollTimer = setTimeout(pollStatus, 1000)
           } else if (status === 'completed') {
-            installLoading.value = false
+            stopPolling()
             ElMessage.success(message || '安装成功')
             loadData()
           } else if (status === 'failed') {
-            installLoading.value = false
+            stopPolling()
+          } else if (status === 'unknown') {
+            // 未找到安装任务，可能已完成或服务重启
+            pollRetryCount++
+            if (pollRetryCount < maxPollRetries) {
+              pollTimer = setTimeout(pollStatus, 1000)
+            } else {
+              // 多次查询都是 unknown，停止轮询
+              installMessage.value = '未找到安装任务，可能已完成或未启动'
+              installProgress.value = 0
+              stopPolling()
+              loadData()
+            }
           } else {
-            installLoading.value = false
+            stopPolling()
             installMessage.value = '安装状态未知'
           }
         } else {
           installMessage.value = '查询安装状态失败'
           installStatus.value = 'failed'
           installProgress.value = 100
-          installLoading.value = false
+          stopPolling()
         }
       } catch (error) {
         installMessage.value = '查询安装状态失败: ' + error.message
         installStatus.value = 'failed'
         installProgress.value = 100
-        installLoading.value = false
+        stopPolling()
       }
     }
     
     // 开始轮询
-    setTimeout(pollStatus, 500)
+    pollTimer = setTimeout(pollStatus, 500)
     
   } catch (error) {
     installMessage.value = '安装失败: ' + error.message
@@ -587,5 +637,26 @@ code {
   font-size: 12px;
   color: #909399;
   margin-top: 5px;
+}
+
+.param-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.param-label {
+  font-weight: 500;
+}
+
+.param-type {
+  color: #909399;
+  font-size: 12px;
+}
+
+.param-default {
+  color: #67c23a;
+  font-size: 12px;
 }
 </style>
