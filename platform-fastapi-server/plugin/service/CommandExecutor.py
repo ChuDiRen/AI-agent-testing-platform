@@ -16,6 +16,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+from core.temp_manager import get_temp_subdir
 
 logger = logging.getLogger(__name__)
 
@@ -107,11 +108,8 @@ class CommandExecutor:
             # 生成任务ID
             task_id = str(uuid.uuid4())
 
-            # 使用工作目录
-            effective_work_dir = self._get_work_dir()
-
-            # 创建临时用例文件
-            temp_dir = Path(effective_work_dir) / "temp" / task_id
+            # 使用项目 temp 目录下的 executor 子目录
+            temp_dir = get_temp_subdir("executor") / task_id
             temp_dir.mkdir(parents=True, exist_ok=True)
             
             # 文件名需要以数字开头，符合 YamlCaseParser 的命名规范
@@ -294,9 +292,8 @@ class CommandExecutor:
 
     def _get_work_dir(self) -> Path:
         """获取工作目录（临时文件存放目录）"""
-        # 项目根目录下的 executor_temp 目录
-        project_root = Path(__file__).resolve().parents[2]
-        return project_root / "executor_temp"
+        # 使用项目 temp 目录下的 executor 子目录
+        return get_temp_subdir("executor")
     
     def _wait_and_save_result(self, task_id: str, process: subprocess.Popen, temp_dir: Path, timeout: int = 60):
         """在后台线程中等待测试完成并保存结果"""

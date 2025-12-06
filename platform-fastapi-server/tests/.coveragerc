@@ -9,7 +9,6 @@ omit =
     */__pycache__/*
     */temp/*
     */data/*
-    */executor_temp/*
 
 [report]
 precision = 2

@@ -232,12 +232,11 @@ async def unregister_plugin(
             except Exception as e:
                 cleanup_results.append(f"pip卸载异常: {str(e)}")
         
-        # 2. 清理临时执行目录
+        # 2. 清理临时执行目录（使用 temp_manager 统一管理）
         try:
-            project_root = Path(__file__).resolve().parents[2]
-            temp_dir = project_root / "executor_temp" / "temp"
-            if temp_dir.exists():
-                temp_items = list(temp_dir.iterdir())
+            executor_temp_dir = get_temp_subdir("executor")
+            if executor_temp_dir.exists():
+                temp_items = list(executor_temp_dir.iterdir())
                 temp_count = len(temp_items)
                 if temp_count > 0:
                     if cleanup_temp:
@@ -724,17 +723,17 @@ async def cleanup_temp_files(
         days: 清理多少天前的文件（默认7天）
     """
     try:
-        project_root = Path(__file__).resolve().parents[2]
-        temp_dir = project_root / "executor_temp" / "temp"
+        # 使用 temp_manager 统一管理的临时目录
+        executor_temp_dir = get_temp_subdir("executor")
         
-        if not temp_dir.exists():
+        if not executor_temp_dir.exists():
             return respModel.ok_resp(msg="临时目录不存在，无需清理")
         
         cleaned_count = 0
         failed_count = 0
         cutoff_time = datetime.now().timestamp() - (days * 24 * 60 * 60)
         
-        for task_dir in temp_dir.iterdir():
+        for task_dir in executor_temp_dir.iterdir():
             if task_dir.is_dir():
                 try:
                     # 检查目录修改时间
