@@ -257,6 +257,17 @@ class CommandExecutor:
                 report_patterns.append(executor_base / f"executor_install_{cmd_name}" / "reports" / "complete.html")
                 report_patterns.append(executor_base / f"executor_install_{cmd_name.replace('-', '_')}" / "reports" / "complete.html")
                 
+                # 3. 从系统安装的插件模块路径查找（pip install -e 安装的插件）
+                try:
+                    # 根据命令名推断模块名（huace-apirun -> apirun）
+                    module_name = cmd_name.replace('huace-', '').replace('-', '_')
+                    import importlib
+                    module = importlib.import_module(module_name)
+                    module_root = Path(module.__file__).parent.parent
+                    report_patterns.append(module_root / "reports" / "complete.html")
+                except Exception:
+                    pass
+                
                 for report_src in report_patterns:
                     if report_src.exists():
                         report_dst = temp_dir / "complete.html"

@@ -5,7 +5,7 @@ Swagger/OpenAPI 解析器
 import json
 from typing import Dict, List, Any, Optional
 
-import requests
+import httpx
 from core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -26,8 +26,10 @@ class SwaggerParser:
         self.base_url = self._get_base_url()
         # 缓存已解析的$ref,避免循环引用
         self._ref_cache = {}
-        # 提取全局通用Header
-        self.common_headers = self._extract_common_headers()
+        # 提取安全方案定义（用于后续判断接口是否需要认证）
+        self.security_schemes = self._extract_security_schemes()
+        # 检查是否有全局security配置
+        self.global_security = self.data.get('security', [])
         
     def _detect_version(self) -> str:
         """检测OpenAPI版本"""
@@ -39,50 +41,89 @@ class SwaggerParser:
                 return '3.0'
         return 'unknown'
     
-    def _extract_common_headers(self) -> List[Dict[str, Any]]:
+    def _extract_security_schemes(self) -> Dict[str, Dict[str, Any]]:
         """
-        提取全局通用Header(从security定义中)
-        :return: 通用Header列表
+        提取安全方案定义
+        :return: 安全方案字典 {scheme_name: header_info}
         """
-        headers = []
+        schemes = {}
         
         # OpenAPI 3.0: components.securitySchemes
         if self.version == '3.0':
             security_schemes = self.data.get('components', {}).get('securitySchemes', {})
             for scheme_name, scheme in security_schemes.items():
                 if scheme.get('type') == 'apiKey' and scheme.get('in') == 'header':
-                    headers.append({
+                    schemes[scheme_name] = {
                         'name': scheme.get('name', 'Authorization'),
                         'type': 'string',
                         'required': False,
                         'description': scheme.get('description', f'{scheme_name} 认证'),
                         'default': '',
                         'enum': None
-                    })
+                    }
                 elif scheme.get('type') == 'http':
                     # Bearer Token
-                    headers.append({
+                    schemes[scheme_name] = {
                         'name': 'Authorization',
                         'type': 'string',
                         'required': False,
                         'description': scheme.get('description', 'Bearer Token认证'),
                         'default': 'Bearer <token>',
                         'enum': None
-                    })
+                    }
         
         # OpenAPI 2.0: securityDefinitions
         elif self.version == '2.0':
             security_defs = self.data.get('securityDefinitions', {})
             for scheme_name, scheme in security_defs.items():
                 if scheme.get('type') == 'apiKey' and scheme.get('in') == 'header':
-                    headers.append({
+                    schemes[scheme_name] = {
                         'name': scheme.get('name', 'Authorization'),
                         'type': 'string',
                         'required': False,
                         'description': scheme.get('description', f'{scheme_name} 认证'),
                         'default': '',
                         'enum': None
-                    })
+                    }
+        
+        return schemes
+    
+    def _get_operation_auth_headers(self, operation: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        获取接口需要的认证Header
+        根据OpenAPI规范：
+        - 如果接口有security配置，使用接口级配置
+        - 如果接口security为空数组[]，表示不需要认证
+        - 否则使用全局security配置
+        :param operation: 接口操作定义
+        :return: 认证Header列表
+        """
+        headers = []
+        
+        # 确定使用哪个security配置
+        operation_security = operation.get('security')
+        if operation_security is not None:
+            # 接口有自己的security配置
+            if not operation_security:  # 空数组表示不需要认证
+                return []
+            security_requirements = operation_security
+        else:
+            # 使用全局security配置
+            if not self.global_security:  # 没有全局security配置
+                return []
+            security_requirements = self.global_security
+        
+        # 根据security requirements添加对应的header
+        added_headers = set()
+        for requirement in security_requirements:
+            if isinstance(requirement, dict):
+                for scheme_name in requirement.keys():
+                    if scheme_name in self.security_schemes:
+                        header_info = self.security_schemes[scheme_name]
+                        header_name = header_info['name']
+                        if header_name not in added_headers:
+                            headers.append(header_info.copy())
+                            added_headers.add(header_name)
         
         return headers
     
@@ -199,16 +240,17 @@ class SwaggerParser:
                     request_body['request_headers'] = json.dumps(existing_headers, ensure_ascii=False)
                 api_info.update(request_body)
             
-            # 添加全局通用Header到每个接口
-            if self.common_headers:
+            # 根据接口的security配置添加认证Header
+            auth_headers = self._get_operation_auth_headers(operation)
+            if auth_headers:
                 existing_headers = json.loads(api_info.get('request_headers', 'null') or '[]')
                 if not isinstance(existing_headers, list):
                     existing_headers = []
                 # 避免重复添加(检查header name)
                 existing_names = {h.get('name') for h in existing_headers if isinstance(h, dict)}
-                for common_header in self.common_headers:
-                    if common_header['name'] not in existing_names:
-                        existing_headers.append(common_header)
+                for auth_header in auth_headers:
+                    if auth_header['name'] not in existing_names:
+                        existing_headers.append(auth_header)
                 api_info['request_headers'] = json.dumps(existing_headers, ensure_ascii=False) if existing_headers else None
             
             return api_info
@@ -452,16 +494,17 @@ class SwaggerParser:
             return None
 
 
-def fetch_swagger_from_url(url: str) -> Dict[str, Any]:
+async def fetch_swagger_from_url(url: str) -> Dict[str, Any]:
     """
-    从URL获取Swagger JSON
+    从URL获取Swagger JSON (异步版本，避免自请求死锁)
     :param url: Swagger JSON URL
     :return: Swagger数据
     """
     try:
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()
-        return response.json()
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            return response.json()
     except Exception as e:
         logger.error(f"获取Swagger失败: {e}")
         raise ValueError(f"无法获取Swagger文档: {e}")

@@ -1,41 +1,24 @@
 import json
-import subprocess
-import uuid
 from datetime import datetime
-from pathlib import Path
 
-import yaml
 from core.database import get_session
 from core.dependencies import check_permission
 from core.logger import get_logger
 from core.resp_model import respModel
 from core.time_utils import TimeFormatter
-from fastapi import APIRouter, Depends, Query, BackgroundTasks
+from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 
 from ..model.ApiCollectionDetailModel import ApiCollectionDetail
 from ..model.ApiCollectionInfoModel import ApiCollectionInfo
-from ..model.ApiHistoryModel import ApiHistory
 from ..model.ApiInfoCaseModel import ApiInfoCase
 from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
-from ..model.ApiKeyWordModel import ApiKeyWord
 from ..schemas.api_collection_schema import (
     ApiCollectionInfoQuery, ApiCollectionInfoCreate, ApiCollectionInfoUpdate,
-    ApiCollectionDetailCreate, BatchAddCasesRequest, UpdateDdtDataRequest,
-    ApiCollectionInfoExecuteRequest
+    ApiCollectionDetailCreate, BatchAddCasesRequest, UpdateDdtDataRequest
 )
 
 logger = get_logger(__name__)
-
-# ==================== 配置常量 ====================
-# ✅ P2修复: 使用配置管理的路径,避免硬编码
-from config.dev_settings import settings
-
-BASE_DIR = settings.BASE_DIR
-TEMP_DIR = settings.TEMP_DIR
-YAML_DIR = settings.YAML_DIR
-REPORT_DIR = settings.REPORT_DIR
-LOG_DIR = settings.LOG_DIR
 
 module_name = "ApiCollectionInfo"
 module_model = ApiCollectionInfo
@@ -210,8 +193,53 @@ async def addCase(data: ApiCollectionDetailCreate, session: Session = Depends(ge
 
 @module_route.post("/batchAddCases", summary="批量添加用例到测试计划", dependencies=[Depends(check_permission("apitest:collection:edit"))])
 async def batchAddCases(data: BatchAddCasesRequest, session: Session = Depends(get_session)):
-    """批量添加用例到计划"""
+    """批量添加用例到计划，自动提取数据驱动配置"""
     try:
+        # 不需要参数化的字段
+        skip_fields = {'URL', 'url', 'METHOD', 'method', 'Content-Type', 'content-type'}
+        
+        def extract_ddt_from_case(case_id: int) -> str:
+            """从用例步骤中提取数据驱动配置"""
+            variables = {}
+            
+            def extract_all_fields(data_dict):
+                if isinstance(data_dict, dict):
+                    for key, value in data_dict.items():
+                        if key in skip_fields:
+                            continue
+                        if isinstance(value, dict):
+                            extract_all_fields(value)
+                        elif isinstance(value, list):
+                            for item in value:
+                                extract_all_fields(item)
+                        elif isinstance(value, (str, int, float, bool)):
+                            variables[key] = value if isinstance(value, str) else str(value)
+                elif isinstance(data_dict, list):
+                    for item in data_dict:
+                        extract_all_fields(item)
+            
+            # 获取用例步骤
+            steps = session.exec(
+                select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == case_id)
+            ).all()
+            
+            for step in steps:
+                if step.step_data:
+                    try:
+                        step_dict = json.loads(step.step_data)
+                        extract_all_fields(step_dict)
+                    except:
+                        pass
+            
+            # 获取用例名称
+            case_info = session.get(ApiInfoCase, case_id)
+            case_name = case_info.case_name if case_info else f"用例{case_id}"
+            
+            if variables:
+                template = [{"desc": f"{case_name}_数据1", **variables}]
+                return json.dumps(template, ensure_ascii=False)
+            return None
+        
         added_count = 0
         for idx, case_id in enumerate(data.case_ids):
             # 检查是否已存在
@@ -221,10 +249,13 @@ async def batchAddCases(data: BatchAddCasesRequest, session: Session = Depends(g
             )
             existing = session.exec(check_stmt).first()
             if not existing:
+                # 自动提取数据驱动配置
+                ddt_data = extract_ddt_from_case(case_id)
                 plan_case = ApiCollectionDetail(
                     collection_info_id=data.plan_id,
                     case_info_id=case_id,
                     run_order=idx + 1,
+                    ddt_data=ddt_data,
                     create_time=datetime.now()
                 )
                 session.add(plan_case)
@@ -268,131 +299,7 @@ async def updateDdtData(data: UpdateDdtDataRequest, session: Session = Depends(g
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
-# ==================== 批量执行测试计划 ====================
-
-@module_route.post("/executePlan", summary="批量执行测试计划", dependencies=[Depends(check_permission("apitest:collection:execute"))])
-async def executePlan(request: ApiCollectionInfoExecuteRequest, session: Session = Depends(get_session)):
-    """执行测试计划（所有用例合并到一个目录执行，生成一个包含所有用例的报告）"""
-    from plugin.service.TaskScheduler import task_scheduler
-    import yaml
-    
-    try:
-        # 查询测试计划
-        plan = session.get(ApiCollectionInfo, request.plan_id)
-        if not plan:
-            return respModel.error_resp("测试计划不存在")
-        
-        # 查询计划中的所有用例
-        case_stmt = select(ApiCollectionDetail).where(ApiCollectionDetail.collection_info_id == request.plan_id).order_by(ApiCollectionDetail.run_order)
-        plan_cases = session.exec(case_stmt).all()
-        
-        if not plan_cases:
-            return respModel.error_resp("测试计划中没有用例")
-        
-        # 生成唯一的执行UUID（整个计划共享）
-        execution_uuid = str(uuid.uuid4())
-        
-        # 构建所有用例的 YAML 文件列表
-        all_yaml_cases = []
-        combined_yaml_content = ""
-        
-        for idx, plan_case in enumerate(plan_cases):
-            case_info = session.get(ApiInfoCase, plan_case.case_info_id)
-            if not case_info:
-                continue
-            
-            # 查询用例步骤
-            step_stmt = select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == plan_case.case_info_id).order_by(ApiInfoCaseStep.run_order)
-            steps = session.exec(step_stmt).all()
-            
-            if not steps:
-                continue
-            
-            # 构建单个用例
-            yaml_data = {
-                'desc': case_info.case_name,
-                'steps': []
-            }
-            
-            for step in steps:
-                step_data_dict = json.loads(step.step_data) if step.step_data else {}
-                keyword = session.get(ApiKeyWord, step.keyword_id) if step.keyword_id else None
-                keyword_name = keyword.keyword_fun_name if keyword else "send_request"
-                
-                step_item = {
-                    step.step_desc or f"步骤{step.run_order}": {
-                        '关键字': keyword_name,
-                        **step_data_dict
-                    }
-                }
-                yaml_data['steps'].append(step_item)
-            
-            yaml_content = yaml.dump(yaml_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
-            all_yaml_cases.append({
-                'index': idx + 1,
-                'case_info': case_info,
-                'yaml_data': yaml_data,
-                'yaml_content': yaml_content
-            })
-            combined_yaml_content += f"# 用例 {idx + 1}: {case_info.case_name}\n{yaml_content}\n---\n"
-        
-        if not all_yaml_cases:
-            return respModel.error_resp("没有有效的测试用例")
-        
-        # 将所有用例合并为一个列表，传递给执行器
-        all_cases_list = [item['yaml_data'] for item in all_yaml_cases]
-        combined_content = json.dumps(all_cases_list, ensure_ascii=False)
-        
-        # 执行整个计划（一次执行，一个报告包含所有用例）
-        result = await task_scheduler.execute_test(
-            session=session,
-            plugin_code=plan.plugin_code or 'api_engine',
-            test_case_id=request.plan_id,
-            test_case_content=combined_content,
-            config={}
-        )
-        
-        # 获取执行结果
-        is_success = result.get("success", False)
-        report_path = result.get("temp_dir", "")
-        error_msg = result.get("error") if not is_success else None
-        
-        # 统计结果
-        total_cases = len(all_yaml_cases)
-        success_count = total_cases if is_success else 0
-        failed_count = 0 if is_success else total_cases
-        
-        # 创建一条测试历史记录（整个计划一条记录）
-        test_history = ApiHistory(
-            api_info_id=0,
-            project_id=plan.project_id or 0,
-            plan_id=request.plan_id,
-            case_info_id=0,
-            execution_uuid=execution_uuid,
-            test_name=plan.plan_name,
-            test_status="success" if is_success else "failed",
-            yaml_content=combined_yaml_content,
-            allure_report_path=report_path or "",
-            error_message=error_msg,
-            create_time=datetime.now(),
-            finish_time=datetime.now(),
-            modify_time=datetime.now()
-        )
-        session.add(test_history)
-        session.commit()
-        
-        return respModel.ok_resp(dic_t={
-            "execution_uuid": execution_uuid,
-            "status": "completed",
-            "total_cases": total_cases,
-            "success_count": success_count,
-            "failed_count": failed_count,
-            "report_path": report_path,
-            "message": f"测试计划执行完成，共 {total_cases} 个用例"
-        }, msg="测试计划执行完成")
-        
-    except Exception as e:
-        session.rollback()
-        logger.error(f"操作失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+# ==================== 批量执行测试计划（已废弃，请使用 /ApiInfoCase/executeCase 接口） ====================
+# 注意：executePlan 接口已合并到 /ApiInfoCase/executeCase 接口
+# 前端调用 executeCase 时传入 plan_id 即可实现批量执行
 

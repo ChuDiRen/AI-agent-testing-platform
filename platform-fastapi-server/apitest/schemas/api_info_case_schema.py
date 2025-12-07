@@ -89,8 +89,14 @@ class YamlGenerateResponse(BaseModel):
 
 # ==================== 用例执行相关 ====================
 class ApiInfoCaseExecuteRequest(BaseModel):
-    """API用例执行请求"""
-    case_id: int = Field(description="用例ID")
+    """API用例执行请求
+    
+    支持两种模式：
+    - 单用例执行：提供 case_id
+    - 批量执行计划：提供 plan_id（执行计划中所有用例）
+    """
+    case_id: Optional[int] = Field(default=None, description="用例ID（单用例执行时必填）")
+    plan_id: Optional[int] = Field(default=None, description="测试计划ID（批量执行时必填）")
     test_name: Optional[str] = Field(default=None, description="测试名称")
     context_vars: Optional[Dict[str, Any]] = Field(default=None, description="上下文变量")
     executor_code: Optional[str] = Field(default=None, description="执行器插件代码(例如 web_engine)，为空时可使用后端默认配置")

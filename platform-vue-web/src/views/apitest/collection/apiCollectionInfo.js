@@ -70,13 +70,20 @@ export function updateDdtData(data) {
     return axios.post(`/${module_name}/updateDdtData?_alias=collection-ddt`, data)
 }
 
+/**
+ * 获取用例数据驱动模板
+ */
+export function getDdtTemplate(caseInfoId) {
+    return axios.get(`/ApiCollectionDetail/getDdtTemplate?case_info_id=${caseInfoId}&_alias=ddt-template`)
+}
+
 // ==================== 扩展接口 - 测试执行 ====================
 
 /**
- * 执行测试计划
+ * 执行测试计划（调用统一的 executeCase 接口，传入 plan_id）
  */
 export function executePlan(data) {
-    return axios.post(`/${module_name}/executePlan?_alias=collection-execute`, data)
+    return axios.post(`/ApiInfoCase/executeCase?_alias=collection-execute`, data)
 }
 
 /**

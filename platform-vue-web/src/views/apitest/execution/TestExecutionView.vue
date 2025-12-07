@@ -255,7 +255,8 @@ const startNewTest = async () => {
       })
     } else if (testConfig.value.type === 'collection') {
       response = await executePlan({
-        plan_id: testConfig.value.id,
+        plan_id: Number(testConfig.value.id),
+        executor_code: currentExecutorCode.value,
         test_name: `集合执行-${Date.now()}`
       })
     }

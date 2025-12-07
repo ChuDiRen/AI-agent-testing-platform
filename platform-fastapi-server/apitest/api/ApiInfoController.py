@@ -140,7 +140,7 @@ async def import_swagger(request: SwaggerImportRequest, session: Session = Depen
         # 获取Swagger数据
         source_url = None
         if request.swagger_url:
-            swagger_data = fetch_swagger_from_url(request.swagger_url)
+            swagger_data = await fetch_swagger_from_url(request.swagger_url)
             source_url = request.swagger_url
         elif request.swagger_json:
             swagger_data = request.swagger_json

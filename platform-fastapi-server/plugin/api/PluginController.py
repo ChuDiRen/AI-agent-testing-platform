@@ -1684,9 +1684,10 @@ def _run_pip_install(plugin_id: int, plugin_code: str, plugin_content: str, comm
             "message": f"安装异常: {str(e)}",
             "progress": 100
         }
-    finally:
+        # 安装失败时清理目录
         if extract_dir and extract_dir.exists():
             shutil.rmtree(extract_dir, ignore_errors=True)
+    # 注意：安装成功后保留目录，用于存放报告等运行时文件
 
 
 @module_route.post("/installExecutor", summary="安装执行器到本地（异步）")

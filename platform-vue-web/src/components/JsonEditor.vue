@@ -4,9 +4,11 @@
       <span class="title">{{ title }}</span>
       <div class="actions">
         <el-button type="text" icon="el-icon-check" @click="handleFormat">格式化</el-button>
-        <el-button type="text" icon="el-icon-document-copy" @click="handleCopy">复制</el-button>
-        <el-button type="text" icon="el-icon-refresh" @click="handleReset">重置</el-button>
-        <el-button v-if="!readonly" type="primary" size="small" @click="handleSave">保存</el-button>
+        <template v-if="showToolbar">
+          <el-button type="text" icon="el-icon-document-copy" @click="handleCopy">复制</el-button>
+          <el-button type="text" icon="el-icon-refresh" @click="handleReset">重置</el-button>
+          <el-button v-if="!readonly" type="primary" size="small" @click="handleSave">保存</el-button>
+        </template>
       </div>
     </div>
     <div class="editor-content">
@@ -55,6 +57,10 @@ const props = defineProps({
     default: '请输入JSON内容...'
   },
   showPreview: {
+    type: Boolean,
+    default: true
+  },
+  showToolbar: {
     type: Boolean,
     default: true
   },

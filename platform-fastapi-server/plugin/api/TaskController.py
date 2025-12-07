@@ -164,6 +164,7 @@ async def execute_test(
                 response_headers=response_headers,
                 yaml_content=request.test_case_content,
                 error_message=error_msg,
+                allure_report_path=result.get("temp_dir") or None,
                 create_time=datetime.now(),
                 finish_time=datetime.now(),
                 modify_time=datetime.now()

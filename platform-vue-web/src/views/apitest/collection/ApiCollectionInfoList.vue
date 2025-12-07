@@ -130,9 +130,13 @@ const handleExecute = async (row) => {
       type: 'warning'
     })
     
-    const res = await executePlan({ plan_id: row.id })
+    const res = await executePlan({ 
+      plan_id: row.id,
+      executor_code: 'api_engine'  // 默认使用 api_engine 执行器
+    })
     if (res.data.code === 200) {
-      ElMessage.success('测试计划执行完成，正在跳转到测试报告页面...')
+      const data = res.data.data || {}
+      ElMessage.success(`测试计划已提交执行，共 ${data.total_cases || 0} 个用例`)
       setTimeout(() => {
         router.push('/ApiHistoryList')
       }, 1000)

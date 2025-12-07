@@ -41,17 +41,21 @@
       <template #header>
         <div class="card-header">
           <span>关联用例</span>
-          <el-button type="success" size="small" @click="handleAddCase">添加用例</el-button>
+          <div>
+            <el-button type="danger" size="small" :disabled="selectedCases.length === 0" @click="handleBatchRemove">批量移除{{ selectedCases.length > 0 ? ` (${selectedCases.length})` : '' }}</el-button>
+            <el-button type="success" size="small" @click="handleAddCase">添加用例</el-button>
+          </div>
         </div>
       </template>
 
-      <el-table :data="caseList" border>
+      <el-table :data="caseList" border @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="55" />
         <el-table-column prop="run_order" label="执行顺序" width="100" />
         <el-table-column prop="case_name" label="用例名称" min-width="150" />
         <el-table-column prop="case_desc" label="用例描述" min-width="200" show-overflow-tooltip />
         <el-table-column label="数据驱动" width="120">
           <template #default="{ row }">
-            <el-tag v-if="row.ddt_data">已配置</el-tag>
+            <el-tag v-if="hasDdtData(row.ddt_data)">已配置</el-tag>
             <el-tag v-else type="info">未配置</el-tag>
           </template>
         </el-table-column>
@@ -66,15 +70,13 @@
 
     <!-- 数据驱动配置对话框 -->
     <el-dialog v-model="ddtDialogVisible" title="配置数据驱动" width="70%">
-      <div>
-        <p>数据驱动配置（JSON格式数组）：</p>
-        <el-input
-          v-model="currentDdtData"
-          type="textarea"
-          :rows="10"
-          placeholder='示例: [{"desc": "数据组1", "username": "test1"}, {"desc": "数据组2", "username": "test2"}]'
-        />
-      </div>
+      <JsonEditor
+        v-model="currentDdtData"
+        title="数据驱动配置（JSON格式数组）"
+        :show-toolbar="false"
+        :show-preview="false"
+        placeholder='[{"desc": "数据组1", "username": "test1"}]'
+      />
       <template #footer>
         <el-button @click="ddtDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="handleSaveDdt">保存</el-button>
@@ -84,10 +86,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { insertData, updateData, queryById, removeCase, updateDdtData } from './apiCollectionInfo'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { insertData, updateData, queryById, removeCase, updateDdtData, getDdtTemplate } from './apiCollectionInfo'
+import JsonEditor from '@/components/JsonEditor.vue'
 import { queryAllExecutors } from '@/views/plugin/plugin.js'
 
 const router = useRouter()
@@ -110,11 +113,34 @@ const rules = {
 }
 
 const caseList = ref([])
+const selectedCases = ref([])
 const ddtDialogVisible = ref(false)
 const currentDdtData = ref('')
 const currentEditingCase = ref(null)
 
 const formTitle = computed(() => formData.value.id ? '编辑测试计划' : '新增测试计划')
+
+// 判断是否有有效的数据驱动配置
+const hasDdtData = (ddtData) => {
+  if (!ddtData) return false
+  if (typeof ddtData === 'string') {
+    const trimmed = ddtData.trim()
+    if (!trimmed || trimmed === '[]' || trimmed === 'null' || trimmed === '""') return false
+    try {
+      const parsed = JSON.parse(trimmed)
+      return Array.isArray(parsed) && parsed.length > 0
+    } catch {
+      return false
+    }
+  }
+  if (Array.isArray(ddtData)) return ddtData.length > 0
+  return false
+}
+
+// 选择变化
+const handleSelectionChange = (selection) => {
+  selectedCases.value = selection
+}
 
 // 加载插件列表
 const loadPluginList = async () => {
@@ -190,22 +216,122 @@ const handleRemoveCase = async (row) => {
   }
 }
 
+// 批量移除用例
+const handleBatchRemove = async () => {
+  if (selectedCases.value.length === 0) {
+    ElMessage.warning('请先选择要移除的用例')
+    return
+  }
+  
+  try {
+    await ElMessageBox.confirm(
+      `确定要移除选中的 ${selectedCases.value.length} 个用例吗？`,
+      '批量移除',
+      { type: 'warning' }
+    )
+    
+    // 逐个移除
+    let successCount = 0
+    let failCount = 0
+    for (const row of selectedCases.value) {
+      try {
+        const res = await removeCase(row.id)
+        if (res.data.code === 200) {
+          successCount++
+        } else {
+          failCount++
+        }
+      } catch {
+        failCount++
+      }
+    }
+    
+    if (successCount > 0) {
+      ElMessage.success(`成功移除 ${successCount} 个用例${failCount > 0 ? `，${failCount} 个失败` : ''}`)
+      selectedCases.value = []
+      loadDetail(formData.value.id)
+    } else {
+      ElMessage.error('移除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('操作失败: ' + error.message)
+    }
+  }
+}
+
 // 编辑数据驱动
-const handleEditDdt = (row) => {
+const handleEditDdt = async (row) => {
   currentEditingCase.value = row
-  currentDdtData.value = row.ddt_data || '[]'
+  
+  // 准备数据
+  let ddtContent = ''
+  if (row.ddt_data && row.ddt_data !== '[]' && row.ddt_data !== 'null') {
+    // 已有数据，直接显示
+    if (typeof row.ddt_data === 'string') {
+      try {
+        // 格式化JSON显示
+        const parsed = JSON.parse(row.ddt_data)
+        ddtContent = JSON.stringify(parsed, null, 2)
+      } catch {
+        ddtContent = row.ddt_data
+      }
+    } else {
+      ddtContent = JSON.stringify(row.ddt_data, null, 2)
+    }
+  } else {
+    // 没有数据，从后端获取模板
+    try {
+      const res = await getDdtTemplate(row.case_info_id)
+      if (res.data.code === 200 && res.data.data) {
+        const template = res.data.data.template || []
+        ddtContent = JSON.stringify(template, null, 2)
+      } else {
+        // 后端获取失败，使用默认模板
+        const template = [
+          {
+            "desc": `${row.case_name || '测试'}_数据1`,
+            "变量名1": "值1",
+            "变量名2": "值2"
+          }
+        ]
+        ddtContent = JSON.stringify(template, null, 2)
+      }
+    } catch (error) {
+      console.error('获取模板失败:', error)
+      // 使用默认模板
+      const template = [
+        {
+          "desc": `${row.case_name || '测试'}_数据1`,
+          "变量名1": "值1",
+          "变量名2": "值2"
+        }
+      ]
+      ddtContent = JSON.stringify(template, null, 2)
+    }
+  }
+  
+  // 先设置数据，再打开对话框
+  currentDdtData.value = ddtContent
   ddtDialogVisible.value = true
+  
+  // 等待 DOM 更新后再次设置数据，确保编辑器能接收到
+  await nextTick()
+  currentDdtData.value = ddtContent
 }
 
 // 保存数据驱动配置
 const handleSaveDdt = async () => {
   try {
-    // 验证JSON格式
-    JSON.parse(currentDdtData.value)
+    // JsonEditor 返回的可能是对象或字符串
+    let ddtData = currentDdtData.value
+    if (typeof ddtData === 'string') {
+      ddtData = JSON.parse(ddtData)
+    }
     
     const res = await updateDdtData({
       plan_case_id: currentEditingCase.value.id,
-      ddt_data: JSON.parse(currentDdtData.value)
+      ddt_data: ddtData
     })
     
     if (res.data.code === 200) {

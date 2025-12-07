@@ -56,6 +56,14 @@
       </el-table-column>
     </BaseTable>
 
+    <!-- 报告对话框 -->
+    <el-dialog v-model="reportVisible" title="测试报告" width="95%" top="2vh" class="report-dialog">
+      <div class="report-container">
+        <iframe v-if="reportUrl" :src="reportUrl" class="report-iframe" />
+        <el-empty v-else description="加载报告中..." />
+      </div>
+    </el-dialog>
+
     <!-- 详情对话框 -->
     <el-dialog v-model="detailVisible" title="测试详情" width="80%">
       <el-descriptions :column="2" border>
@@ -160,6 +168,10 @@ const loading = ref(false)
 const detailVisible = ref(false)
 const currentRow = ref({})
 
+// 报告对话框
+const reportVisible = ref(false)
+const reportUrl = ref('')
+
 // 查询数据
 const handleQuery = async () => {
   loading.value = true
@@ -210,8 +222,8 @@ const handleViewReport = (row) => {
     let reportPath = row.allure_report_path
       .replace(/^temp[\\/]/, '')  // 去掉 temp\ 或 temp/ 前缀
       .replace(/\\/g, '/')        // 将反斜杠替换为正斜杠
-    const reportUrl = `/api/reports/${reportPath}/complete.html`
-    window.open(reportUrl, '_blank')
+    reportUrl.value = `/api/reports/${reportPath}/complete.html`
+    reportVisible.value = true
   } else {
     ElMessage.warning('暂无报告')
   }
@@ -297,6 +309,18 @@ pre {
   border-radius: 6px;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+.report-container {
+  width: 100%;
+  height: calc(90vh - 100px);
+}
+
+.report-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
 }
 </style>
 
