@@ -44,7 +44,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["API测试计划管理"
 # ==================== 测试计划CRUD ====================
 
 @module_route.post("/queryByPage", summary="分页查询测试计划", dependencies=[Depends(check_permission("apitest:collection:query"))])
-def queryByPage(query: ApiCollectionInfoQuery, session: Session = Depends(get_session)):
+async def queryByPage(query: ApiCollectionInfoQuery, session: Session = Depends(get_session)):
     """分页查询测试计划"""
     try:
         statement = select(module_model)
@@ -80,7 +80,7 @@ def queryByPage(query: ApiCollectionInfoQuery, session: Session = Depends(get_se
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById", summary="根据ID查询测试计划", dependencies=[Depends(check_permission("apitest:collection:query"))])
-def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询测试计划（含关联用例）"""
     try:
         plan = session.get(module_model, id)
@@ -122,7 +122,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/insert", summary="新增测试计划", dependencies=[Depends(check_permission("apitest:collection:add"))])
-def insert(data: ApiCollectionInfoCreate, session: Session = Depends(get_session)):
+async def insert(data: ApiCollectionInfoCreate, session: Session = Depends(get_session)):
     """新增测试计划"""
     try:
         plan = module_model(
@@ -141,7 +141,7 @@ def insert(data: ApiCollectionInfoCreate, session: Session = Depends(get_session
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.put("/update", summary="更新测试计划", dependencies=[Depends(check_permission("apitest:collection:edit"))])
-def update(data: ApiCollectionInfoUpdate, session: Session = Depends(get_session)):
+async def update(data: ApiCollectionInfoUpdate, session: Session = Depends(get_session)):
     """更新测试计划"""
     try:
         plan = session.get(module_model, data.id)
@@ -164,7 +164,7 @@ def update(data: ApiCollectionInfoUpdate, session: Session = Depends(get_session
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.delete("/delete", summary="删除测试计划", dependencies=[Depends(check_permission("apitest:collection:delete"))])
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除测试计划"""
     try:
         obj = session.get(module_model, id)
@@ -181,7 +181,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
 # ==================== 用例关联管理 ====================
 
 @module_route.post("/addCase", summary="添加用例到测试计划", dependencies=[Depends(check_permission("apitest:collection:edit"))])
-def addCase(data: ApiCollectionDetailCreate, session: Session = Depends(get_session)):
+async def addCase(data: ApiCollectionDetailCreate, session: Session = Depends(get_session)):
     """添加用例到计划"""
     try:
         # 检查是否已存在
@@ -209,7 +209,7 @@ def addCase(data: ApiCollectionDetailCreate, session: Session = Depends(get_sess
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/batchAddCases", summary="批量添加用例到测试计划", dependencies=[Depends(check_permission("apitest:collection:edit"))])
-def batchAddCases(data: BatchAddCasesRequest, session: Session = Depends(get_session)):
+async def batchAddCases(data: BatchAddCasesRequest, session: Session = Depends(get_session)):
     """批量添加用例到计划"""
     try:
         added_count = 0
@@ -238,7 +238,7 @@ def batchAddCases(data: BatchAddCasesRequest, session: Session = Depends(get_ses
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.delete("/removeCase", summary="从测试计划移除用例", dependencies=[Depends(check_permission("apitest:collection:edit"))])
-def removeCase(plan_case_id: int = Query(...), session: Session = Depends(get_session)):
+async def removeCase(plan_case_id: int = Query(...), session: Session = Depends(get_session)):
     """从计划中移除用例"""
     try:
         obj = session.get(ApiCollectionDetail, plan_case_id)
@@ -253,7 +253,7 @@ def removeCase(plan_case_id: int = Query(...), session: Session = Depends(get_se
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/updateDdtData", summary="更新测试计划的数据驱动信息", dependencies=[Depends(check_permission("apitest:collection:edit"))])
-def updateDdtData(data: UpdateDdtDataRequest, session: Session = Depends(get_session)):
+async def updateDdtData(data: UpdateDdtDataRequest, session: Session = Depends(get_session)):
     """更新用例的数据驱动数据"""
     try:
         plan_case = session.get(ApiCollectionDetail, data.plan_case_id)

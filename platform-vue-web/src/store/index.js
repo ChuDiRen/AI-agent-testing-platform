@@ -1,7 +1,4 @@
 import { createStore } from 'vuex'
-import { useCookies } from '@vueuse/integrations/useCookies'
-
-const cookies = useCookies()
 
 const store = createStore({
     state() {
@@ -9,34 +6,34 @@ const store = createStore({
         const getInitialAsideWidth = () => {
             const width = window.innerWidth
             const savedWidth = localStorage.getItem('asideWidth')
-            
+
             // 移动端始终返回 0px
             if (width <= 768) {
                 return "0px"
             }
-            
+
             // 清理无效的 0px 状态（非移动端不应该是 0px）
             if (savedWidth === "0px") {
                 localStorage.removeItem('asideWidth')
             }
-            
+
             // 非移动端：忽略折叠状态，默认展开
             // 如果需要记住折叠状态，取消下面的注释
             // if (savedWidth === "64px") {
             //     return "64px"
             // }
-            
+
             if (savedWidth === "200px" || savedWidth === "250px") {
                 // 根据屏幕尺寸调整展开宽度
                 const expandedWidth = width <= 1366 ? "200px" : "250px"
                 return expandedWidth
             }
-            
+
             // 没有有效的保存宽度，使用默认展开状态
             const defaultWidth = width <= 1366 ? "200px" : "250px"
             return defaultWidth
         }
-        
+
         return {
             asideWidth: getInitialAsideWidth(),
             theme: localStorage.getItem('theme') || 'light', // 主题模式
@@ -63,12 +60,12 @@ const store = createStore({
             // 保存到 localStorage
             localStorage.setItem('asideWidth', state.asideWidth)
         },
-        
+
         // 响应式调整侧边栏宽度（窗口大小变化时）
         adjustAsideWidth(state) {
             const width = window.innerWidth
             const isCollapsed = state.asideWidth === "64px" || state.asideWidth === "0px"
-            
+
             // 移动端特殊处理
             if (width <= 768) {
                 if (!isCollapsed) {
@@ -76,7 +73,7 @@ const store = createStore({
                 }
                 return
             }
-            
+
             // 非移动端：保持折叠状态，只调整展开时的宽度
             if (isCollapsed) {
                 state.asideWidth = "64px"
@@ -131,7 +128,8 @@ const store = createStore({
             state.roles = []
             state.permissions = []
             state.menuTree = []
-            cookies.remove('l-token')
+            localStorage.removeItem('token')
+            localStorage.removeItem('username')
         }
     },
     actions: {

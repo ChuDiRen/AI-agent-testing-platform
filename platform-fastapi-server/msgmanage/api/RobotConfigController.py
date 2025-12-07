@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 
 
 @module_route.post("/queryByPage", summary="分页查询机器人配置", dependencies=[Depends(check_permission("msgmanage:robot:query"))])
-def queryByPage(query: RobotConfigQuery, session: Session = Depends(get_session)):
+async def queryByPage(query: RobotConfigQuery, session: Session = Depends(get_session)):
     """分页查询机器人配置"""
     try:
         offset = (query.page - 1) * query.pageSize
@@ -58,7 +58,7 @@ def queryByPage(query: RobotConfigQuery, session: Session = Depends(get_session)
 
 
 @module_route.get("/queryById", summary="根据ID查询机器人配置", dependencies=[Depends(check_permission("msgmanage:robot:query"))])
-def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询机器人配置"""
     try:
         statement = select(module_model).where(module_model.id == id)
@@ -73,7 +73,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
 
 
 @module_route.get("/queryAll", summary="查询所有启用的机器人配置", dependencies=[Depends(check_permission("msgmanage:robot:query"))])
-def queryAll(session: Session = Depends(get_session)):
+async def queryAll(session: Session = Depends(get_session)):
     """查询所有启用的机器人配置"""
     try:
         statement = select(module_model).where(module_model.is_enabled == True)
@@ -85,7 +85,7 @@ def queryAll(session: Session = Depends(get_session)):
 
 
 @module_route.post("/insert", summary="新增机器人配置", dependencies=[Depends(check_permission("msgmanage:robot:add"))])
-def insert(robot: RobotConfigCreate, session: Session = Depends(get_session)):
+async def insert(robot: RobotConfigCreate, session: Session = Depends(get_session)):
     """新增机器人配置"""
     try:
         data = module_model(**robot.model_dump(), create_time=datetime.now())
@@ -100,7 +100,7 @@ def insert(robot: RobotConfigCreate, session: Session = Depends(get_session)):
 
 
 @module_route.put("/update", summary="更新机器人配置", dependencies=[Depends(check_permission("msgmanage:robot:edit"))])
-def update(robot: RobotConfigUpdate, session: Session = Depends(get_session)):
+async def update(robot: RobotConfigUpdate, session: Session = Depends(get_session)):
     """更新机器人配置"""
     try:
         statement = select(module_model).where(module_model.id == robot.id)
@@ -122,7 +122,7 @@ def update(robot: RobotConfigUpdate, session: Session = Depends(get_session)):
 
 
 @module_route.delete("/delete", summary="删除机器人配置", dependencies=[Depends(check_permission("msgmanage:robot:delete"))])
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除机器人配置"""
     try:
         statement = select(module_model).where(module_model.id == id)

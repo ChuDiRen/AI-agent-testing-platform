@@ -42,7 +42,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["API用例管理"])
 # ==================== 路由处理函数 ====================
 
 @module_route.post("/queryByPage", summary="分页查询API用例", dependencies=[Depends(check_permission("apitest:case:query"))])
-def queryByPage(query: ApiInfoCaseQuery, session: Session = Depends(get_session)):
+async def queryByPage(query: ApiInfoCaseQuery, session: Session = Depends(get_session)):
     """分页查询用例"""
     try:
         statement = select(module_model)
@@ -74,7 +74,7 @@ def queryByPage(query: ApiInfoCaseQuery, session: Session = Depends(get_session)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById", summary="根据ID查询API用例（含步骤）", dependencies=[Depends(check_permission("apitest:case:query"))])
-def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询用例（含步骤）"""
     try:
         # 查询用例基本信息
@@ -123,7 +123,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/insert", summary="新增API用例（含步骤）", dependencies=[Depends(check_permission("apitest:case:add"))])
-def insert(data: ApiInfoCaseCreate, session: Session = Depends(get_session)):
+async def insert(data: ApiInfoCaseCreate, session: Session = Depends(get_session)):
     """新增用例（含步骤）"""
     try:
         # 创建用例基本信息
@@ -159,7 +159,7 @@ def insert(data: ApiInfoCaseCreate, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.put("/update", summary="更新API用例（含步骤）", dependencies=[Depends(check_permission("apitest:case:edit"))])
-def update(data: ApiInfoCaseUpdate, session: Session = Depends(get_session)):
+async def update(data: ApiInfoCaseUpdate, session: Session = Depends(get_session)):
     """更新用例（含步骤）"""
     try:
         # 更新用例基本信息
@@ -203,7 +203,7 @@ def update(data: ApiInfoCaseUpdate, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.delete("/delete", summary="删除API用例", dependencies=[Depends(check_permission("apitest:case:delete"))])
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除用例（含关联步骤）"""
     try:
         obj = session.get(module_model, id)
@@ -223,7 +223,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/getSteps", summary="获取用例步骤", dependencies=[Depends(check_permission("apitest:case:query"))])
-def getSteps(case_id: int = Query(...), session: Session = Depends(get_session)):
+async def getSteps(case_id: int = Query(...), session: Session = Depends(get_session)):
     """获取用例的所有步骤"""
     try:
         statement = select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == case_id).order_by(ApiInfoCaseStep.run_order)
@@ -256,7 +256,7 @@ def getSteps(case_id: int = Query(...), session: Session = Depends(get_session))
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/generateYaml", summary="生成用例YAML文件", dependencies=[Depends(check_permission("apitest:case:generate"))])
-def generateYaml(request: YamlGenerateRequest, session: Session = Depends(get_session)):
+async def generateYaml(request: YamlGenerateRequest, session: Session = Depends(get_session)):
     """生成用例YAML文件"""
     try:
         # 查询用例信息
@@ -320,7 +320,7 @@ def generateYaml(request: YamlGenerateRequest, session: Session = Depends(get_se
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/executeCase", summary="执行用例测试（异步）", dependencies=[Depends(check_permission("apitest:case:execute"))])
-def executeCase(
+async def executeCase(
     request: ApiInfoCaseExecuteRequest,
     background_tasks: BackgroundTasks,
     session: Session = Depends(get_session)
@@ -473,7 +473,7 @@ def executeCase(
 
 
 @module_route.get("/executionStatus", summary="查询用例执行状态", dependencies=[Depends(check_permission("apitest:case:query"))])
-def executionStatus(test_id: int = Query(..., description="测试ID"), session: Session = Depends(get_session)):
+async def executionStatus(test_id: int = Query(..., description="测试ID"), session: Session = Depends(get_session)):
     """
     查询用例执行状态
     前端轮询此接口获取执行结果

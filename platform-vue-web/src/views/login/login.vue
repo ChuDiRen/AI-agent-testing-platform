@@ -61,16 +61,19 @@
 
 <script setup>
 import { reactive, ref } from "vue";
-import { login } from "./login.js";
-import { useCookies } from "@vueuse/integrations/useCookies";
+import { login, getUserInfo } from "./login.js";
 import { ElNotification } from "element-plus";
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
 import { getUserMenus, getMenuTree } from "@/views/system/menu/menu";
 
-const cookie = useCookies();
 const router = useRouter();
 const store = useStore();
+
+// token 存储到 localStorage
+function setToken(token) {
+    localStorage.setItem('token', token);
+}
 
 // do not use same name with ref
 const form = reactive({
@@ -90,92 +93,90 @@ const formRef = ref(null);
 
 const onSubmit = () => {
   // 提交登录表单
-  formRef.value.validate((valid) => {
+  formRef.value.validate(async (valid) => {
     if (!valid) {
       return false;
     }
-    login(form.username, form.password)
-      .then((res) => {
-        if (res.data.code == 200 && res.data.data.token != null) {
-          ElNotification({
-            title: "Success",
-            message: "登录成功",
-            type: "success",
-            duration: 2000,
-          });
-          cookie.set("l-token", res.data.data.token);
-          // 持久化一个用户ID，供刷新兜底拉取菜单
-          if (res?.data?.data?.id) {
-            cookie.set("l-user-id", res.data.data.id);
-          }
-          // 保存用户名到localStorage，用于权限检查
-          if (res?.data?.data?.username) {
-            localStorage.setItem("username", res.data.data.username);
-          }
-          // 保存用户信息到全局状态
-          try {
-            store.commit("setUserInfo", res.data.data);
-          } catch (e) {}
-          // 拉取并写入用户菜单树，然后再跳转首页
-          const userId = res?.data?.data?.id;
-          if (userId) {
-            return getUserMenus(userId).then(async (menuRes) => {
-              if (menuRes?.data?.code === 200) {
-                try {
-                  const tree = menuRes.data.data || [];
-                  console.log("登录时获取的用户菜单数据:", tree);
-                  if (tree.length > 0) {
-                    console.log("设置用户菜单，菜单数量:", tree.length);
-                    store.commit("setMenuTree", tree);
-                  } else {
-                    // 兜底：用户无绑定权限，展示全量菜单树
-                    console.log("用户菜单为空，获取全量菜单");
-                    const allRes = await getMenuTree();
-                    if (allRes?.data?.code === 200) {
-                      const allMenuData = allRes.data.data || [];
-                      console.log(
-                        "设置全量菜单，菜单数量:",
-                        allMenuData.length
-                      );
-                      store.commit("setMenuTree", allMenuData);
-                    } else {
-                      console.warn(
-                        "获取全量菜单失败，响应码:",
-                        allRes?.data?.code
-                      );
-                    }
-                  }
-                } catch (e) {
-                  console.error("处理菜单数据失败:", e);
-                }
-              } else {
-                console.warn("获取用户菜单失败，响应码:", menuRes?.data?.code);
-              }
-              // 确保菜单数据加载完成后再跳转
-              router.replace("/Statistics");
-            });
-          } else {
-            console.warn("登录响应中没有用户ID");
-            router.replace("/Statistics");
-          }
-        } else {
-          ElNotification({
-            title: "登录失败",
-            message: res.data.msg,
-            type: "error",
-            duration: 2000,
-          });
-        }
-      })
-      .catch((err) => {
+    try {
+      // 1. 登录获取 token
+      const loginRes = await login(form.username, form.password);
+      if (loginRes.data.code !== 200 || !loginRes.data.data?.access_token) {
         ElNotification({
-          title: "错误",
-          message: "登录出现错误，请联系系统管理员",
+          title: "登录失败",
+          message: loginRes.data.msg || "登录失败",
           type: "error",
           duration: 2000,
         });
-        return false;
+        return;
+      }
+
+      // 2. 保存 token
+      const token = loginRes.data.data.access_token;
+      setToken(token);
+
+      // 3. 获取用户信息
+      const userRes = await getUserInfo();
+      if (userRes.data.code !== 200 || !userRes.data.data) {
+        ElNotification({
+          title: "错误",
+          message: "获取用户信息失败",
+          type: "error",
+          duration: 2000,
+        });
+        return;
+      }
+
+      const userInfo = userRes.data.data;
+      
+      // 4. 保存用户信息到全局状态
+      store.commit("setUserInfo", userInfo);
+      localStorage.setItem("username", userInfo.username);
+
+      ElNotification({
+        title: "Success",
+        message: "登录成功",
+        type: "success",
+        duration: 2000,
       });
+
+      // 5. 拉取用户菜单
+      const userId = userInfo.id;
+      if (userId) {
+        try {
+          const menuRes = await getUserMenus(userId);
+          if (menuRes?.data?.code === 200) {
+            const tree = menuRes.data.data || [];
+            console.log("登录时获取的用户菜单数据:", tree);
+            if (tree.length > 0) {
+              console.log("设置用户菜单，菜单数量:", tree.length);
+              store.commit("setMenuTree", tree);
+            } else {
+              // 兜底：用户无绑定权限，展示全量菜单树
+              console.log("用户菜单为空，获取全量菜单");
+              const allRes = await getMenuTree();
+              if (allRes?.data?.code === 200) {
+                const allMenuData = allRes.data.data || [];
+                console.log("设置全量菜单，菜单数量:", allMenuData.length);
+                store.commit("setMenuTree", allMenuData);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("处理菜单数据失败:", e);
+        }
+      }
+
+      // 6. 跳转首页
+      router.replace("/Statistics");
+    } catch (err) {
+      console.error("登录错误:", err);
+      ElNotification({
+        title: "错误",
+        message: "登录出现错误，请联系系统管理员",
+        type: "error",
+        duration: 2000,
+      });
+    }
   });
 };
 </script>

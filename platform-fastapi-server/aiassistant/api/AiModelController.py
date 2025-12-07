@@ -18,7 +18,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["AI模型管理"])
 
 
 @module_route.post("/queryByPage", summary="分页查询AI模型") # 分页查询AI模型
-def queryByPage(query: AiModelQuery, session: Session = Depends(get_session)):
+async def queryByPage(query: AiModelQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
         statement = select(module_model)
@@ -49,7 +49,7 @@ def queryByPage(query: AiModelQuery, session: Session = Depends(get_session)):
 
 
 @module_route.get("/queryById", summary="根据ID查询AI模型") # 根据ID查询AI模型
-def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
@@ -63,7 +63,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
 
 
 @module_route.get("/queryEnabled", summary="查询所有已启用的模型") # 查询所有已启用的模型
-def queryEnabled(session: Session = Depends(get_session)):
+async def queryEnabled(session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.is_enabled == True).order_by(module_model.create_time)
         datas = session.exec(statement).all()
@@ -74,7 +74,7 @@ def queryEnabled(session: Session = Depends(get_session)):
 
 
 @module_route.post("/insert", summary="新增AI模型") # 新增AI模型
-def insert(model: AiModelCreate, session: Session = Depends(get_session)):
+async def insert(model: AiModelCreate, session: Session = Depends(get_session)):
     try:
         # 检查模型代码是否重复
         existing = session.exec(
@@ -96,7 +96,7 @@ def insert(model: AiModelCreate, session: Session = Depends(get_session)):
 
 
 @module_route.put("/update", summary="更新AI模型") # 更新AI模型
-def update(model: AiModelUpdate, session: Session = Depends(get_session)):
+async def update(model: AiModelUpdate, session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == model.id)
         db_model = session.exec(statement).first()
@@ -117,7 +117,7 @@ def update(model: AiModelUpdate, session: Session = Depends(get_session)):
 
 
 @module_route.delete("/delete", summary="删除AI模型") # 删除AI模型
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
@@ -135,7 +135,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
 
 
 @module_route.post("/toggleStatus", summary="切换模型启用/禁用状态") # 切换模型启用/禁用状态
-def toggleStatus(id: int = Query(...), session: Session = Depends(get_session)):
+async def toggleStatus(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         model = session.get(module_model, id)
         if not model:

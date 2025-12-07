@@ -19,7 +19,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["API接口信息管理"
 logger = get_logger(__name__)
 
 @module_route.post("/queryByPage", summary="分页查询API接口信息", dependencies=[Depends(check_permission("apitest:api:query"))]) # 分页查询API接口信息
-def queryByPage(query: ApiInfoQuery, session: Session = Depends(get_session)):
+async def queryByPage(query: ApiInfoQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
         statement = select(module_model)
@@ -51,7 +51,7 @@ def queryByPage(query: ApiInfoQuery, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById", summary="根据ID查询API接口信息") # 根据ID查询API接口信息
-def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
@@ -64,7 +64,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/insert", summary="新增API接口信息", dependencies=[Depends(check_permission("apitest:api:add"))]) # 新增API接口信息
-def insert(api_info: ApiInfoCreate, session: Session = Depends(get_session)):
+async def insert(api_info: ApiInfoCreate, session: Session = Depends(get_session)):
     try:
         data = module_model(**api_info.model_dump(), create_time=datetime.now())
         session.add(data)
@@ -76,7 +76,7 @@ def insert(api_info: ApiInfoCreate, session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"添加失败:{e}")
 
 @module_route.put("/update", summary="更新API接口信息", dependencies=[Depends(check_permission("apitest:api:edit"))]) # 更新API接口信息
-def update(api_info: ApiInfoUpdate, session: Session = Depends(get_session)):
+async def update(api_info: ApiInfoUpdate, session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, api_info.id)
         if not obj:
@@ -97,7 +97,7 @@ def update(api_info: ApiInfoUpdate, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.delete("/delete", summary="删除API接口信息", dependencies=[Depends(check_permission("apitest:api:delete"))]) # 删除API接口信息
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, id)
         if not obj:
@@ -112,7 +112,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/getByProject", summary="根据项目ID获取接口列表") # 根据项目ID获取接口列表
-def getByProject(project_id: int = Query(...), session: Session = Depends(get_session)):
+async def getByProject(project_id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.project_id == project_id)
         datas = session.exec(statement).all()
@@ -122,7 +122,7 @@ def getByProject(project_id: int = Query(...), session: Session = Depends(get_se
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/getMethods", summary="获取所有请求方法") # 获取所有请求方法
-def getMethods():
+async def getMethods():
     try:
         methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
         return respModel.ok_resp_simple(lst=methods, msg="获取成功")
@@ -131,7 +131,7 @@ def getMethods():
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/importSwagger", summary="导入Swagger/OpenAPI文档", dependencies=[Depends(check_permission("apitest:api:add"))]) # 导入Swagger
-def import_swagger(request: SwaggerImportRequest, session: Session = Depends(get_session)):
+async def import_swagger(request: SwaggerImportRequest, session: Session = Depends(get_session)):
     """
     导入Swagger/OpenAPI文档
     支持OpenAPI 2.0和3.0规范

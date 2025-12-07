@@ -17,13 +17,13 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["操作类型管理"])
 logger = get_logger(__name__)
 
 @module_route.get("/queryAll", summary="查询所有操作类型") # 查询所有操作类型（无需权限，作为下拉选项数据源）
-def queryAll(session: Session = Depends(get_session)):
+async def queryAll(session: Session = Depends(get_session)):
     statement = select(module_model)
     datas = session.exec(statement).all()
     return respModel.ok_resp_list(lst=datas, msg="查询成功")
 
 @module_route.post("/queryByPage", summary="分页查询操作类型", dependencies=[Depends(check_permission("apitest:operationtype:query"))]) # 分页查询操作类型
-def queryByPage(query: OperationTypeQuery, session: Session = Depends(get_session)):
+async def queryByPage(query: OperationTypeQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
         statement = select(module_model)
@@ -42,7 +42,7 @@ def queryByPage(query: OperationTypeQuery, session: Session = Depends(get_sessio
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById", summary="根据ID查询操作类型", dependencies=[Depends(check_permission("apitest:operationtype:query"))]) # 根据ID查询操作类型
-def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
@@ -55,7 +55,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/insert", summary="新增操作类型", dependencies=[Depends(check_permission("apitest:operationtype:add"))]) # 新增操作类型
-def insert(op_type: OperationTypeCreate, session: Session = Depends(get_session)):
+async def insert(op_type: OperationTypeCreate, session: Session = Depends(get_session)):
     try:
         data = module_model(**op_type.model_dump(), create_time=datetime.now())
         session.add(data)
@@ -68,7 +68,7 @@ def insert(op_type: OperationTypeCreate, session: Session = Depends(get_session)
         return respModel.error_resp(msg=f"添加失败:{e}")
 
 @module_route.put("/update", summary="更新操作类型", dependencies=[Depends(check_permission("apitest:operationtype:edit"))]) # 更新操作类型
-def update(op_type: OperationTypeUpdate, session: Session = Depends(get_session)):
+async def update(op_type: OperationTypeUpdate, session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == op_type.id)
         db_data = session.exec(statement).first()
@@ -86,7 +86,7 @@ def update(op_type: OperationTypeUpdate, session: Session = Depends(get_session)
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
 @module_route.delete("/delete", summary="删除操作类型", dependencies=[Depends(check_permission("apitest:operationtype:delete"))]) # 删除操作类型
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()

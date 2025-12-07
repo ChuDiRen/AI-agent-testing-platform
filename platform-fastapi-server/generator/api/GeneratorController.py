@@ -22,7 +22,7 @@ module_route = APIRouter(prefix="/Generator", tags=["代码生成器"])
 logger = get_logger(__name__)
 
 @module_route.post("/preview", summary="预览生成代码", dependencies=[Depends(check_permission("generator:code:preview"))]) # 预览生成代码
-def preview(request: GeneratePreviewRequest, session: Session = Depends(get_session)):
+async def preview(request: GeneratePreviewRequest, session: Session = Depends(get_session)):
     """预览生成的代码"""
     try:
         # 获取表配置
@@ -67,7 +67,7 @@ def preview(request: GeneratePreviewRequest, session: Session = Depends(get_sess
         return respModel.error_resp(f"代码预览失败:{e}")
 
 @module_route.post("/download", summary="下载生成代码", dependencies=[Depends(check_permission("generator:code:download"))]) # 下载生成代码
-def download(request: GenerateRequest, session: Session = Depends(get_session)):
+async def download(request: GenerateRequest, session: Session = Depends(get_session)):
     """下载生成的代码(ZIP压缩包)"""
     try:
         # 获取表配置
@@ -165,7 +165,7 @@ def download(request: GenerateRequest, session: Session = Depends(get_session)):
         return respModel.error_resp(f"代码下载失败:{e}")
 
 @module_route.post("/batchDownload", summary="批量下载代码", dependencies=[Depends(check_permission("generator:code:batchDownload"))]) # 批量下载代码
-def batchDownload(request: GenerateBatchRequest, session: Session = Depends(get_session)):
+async def batchDownload(request: GenerateBatchRequest, session: Session = Depends(get_session)):
     """批量下载生成的代码"""
     try:
         # 创建ZIP文件
@@ -236,7 +236,7 @@ def batchDownload(request: GenerateBatchRequest, session: Session = Depends(get_
         return respModel.error_resp(f"批量下载失败:{e}")
 
 @module_route.get("/history", summary="获取代码生成历史", dependencies=[Depends(check_permission("generator:history:query"))]) # 获取生成历史
-def getHistory(table_id: int = None, session: Session = Depends(get_session)):
+async def getHistory(table_id: int = None, session: Session = Depends(get_session)):
     """获取代码生成历史记录"""
     try:
         statement = select(GenHistory)

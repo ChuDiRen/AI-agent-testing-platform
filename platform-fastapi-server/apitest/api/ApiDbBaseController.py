@@ -17,7 +17,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["API数据库配置管�
 logger = get_logger(__name__)
 
 @module_route.post("/queryByPage", summary="分页查询数据库配置", dependencies=[Depends(check_permission("apitest:database:query"))]) # 分页查询API数据库配置
-def queryByPage(query: ApiDbBaseQuery, session: Session = Depends(get_session)):
+async def queryByPage(query: ApiDbBaseQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
         statement = select(module_model)
@@ -41,7 +41,7 @@ def queryByPage(query: ApiDbBaseQuery, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById", summary="根据ID查询数据库配置", dependencies=[Depends(check_permission("apitest:database:query"))]) # 根据ID查询API数据库配置
-def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
@@ -54,7 +54,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/insert", summary="新增数据库配置", dependencies=[Depends(check_permission("apitest:database:add"))]) # 新增API数据库配置
-def insert(db_config: ApiDbBaseCreate, session: Session = Depends(get_session)):
+async def insert(db_config: ApiDbBaseCreate, session: Session = Depends(get_session)):
     try:
         # 检查引用名称是否重复
         statement = select(module_model).where(module_model.ref_name == db_config.ref_name)
@@ -72,7 +72,7 @@ def insert(db_config: ApiDbBaseCreate, session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"添加失败:{e}")
 
 @module_route.put("/update", summary="更新数据库配置", dependencies=[Depends(check_permission("apitest:database:edit"))]) # 更新API数据库配置
-def update(db_config: ApiDbBaseUpdate, session: Session = Depends(get_session)):
+async def update(db_config: ApiDbBaseUpdate, session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == db_config.id)
         db_data = session.exec(statement).first()
@@ -90,7 +90,7 @@ def update(db_config: ApiDbBaseUpdate, session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
 @module_route.delete("/delete", summary="删除数据库配置", dependencies=[Depends(check_permission("apitest:database:delete"))]) # 删除API数据库配置
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()

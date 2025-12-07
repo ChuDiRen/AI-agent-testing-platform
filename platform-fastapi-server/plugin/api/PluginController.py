@@ -442,6 +442,28 @@ def _parse_keywords_from_python(plugin_root: Path) -> dict:
                     re.MULTILINE
                 )
                 
+                # 匹配装饰器（用于确定方法的真正结束位置）
+                decorator_pattern = re.compile(r'^\s*@\w+', re.MULTILINE)
+                
+                # 按行分割，便于向前查找装饰器
+                lines = content.split('\n')
+                
+                # 构建行号到字符位置的映射
+                line_positions = []
+                pos = 0
+                for line in lines:
+                    line_positions.append(pos)
+                    pos += len(line) + 1  # +1 for newline
+                
+                def get_line_number(char_pos):
+                    """根据字符位置获取行号"""
+                    for i, lp in enumerate(line_positions):
+                        if i + 1 < len(line_positions) and char_pos < line_positions[i + 1]:
+                            return i
+                        elif i + 1 == len(line_positions):
+                            return i
+                    return 0
+                
                 # 查找所有方法
                 for match in method_pattern.finditer(content):
                     method_name = match.group(1)
@@ -453,14 +475,49 @@ def _parse_keywords_from_python(plugin_root: Path) -> dict:
                     # 获取方法定义的起始位置
                     method_def_start = match.start()
                     
-                    # 获取方法体（从方法定义到下一个方法或文件结尾）
+                    # 获取 def 所在的行号
+                    def_line_num = get_line_number(method_def_start)
+                    
+                    # 向前查找装饰器（按行查找）
+                    code_start_line = def_line_num
+                    check_line = def_line_num - 1
+                    while check_line >= 0:
+                        line_content = lines[check_line].strip()
+                        
+                        if line_content.startswith('@'):
+                            # 找到装饰器
+                            code_start_line = check_line
+                            check_line -= 1
+                        elif line_content == '' or line_content.startswith('#'):
+                            # 空行或注释行，继续向前查找
+                            check_line -= 1
+                        else:
+                            # 不是装饰器，停止查找
+                            break
+                    
+                    code_start = line_positions[code_start_line]
+                    
+                    # 获取方法体的起始位置
                     body_start_pos = match.end()
+                    
+                    # 查找下一个方法定义或装饰器（以确定当前方法的结束位置）
                     next_method = method_pattern.search(content, body_start_pos)
-                    body_end_pos = next_method.start() if next_method else len(content)
+                    next_decorator = decorator_pattern.search(content, body_start_pos)
+                    
+                    # 确定方法结束位置：取下一个装饰器或下一个方法定义中较早的位置
+                    body_end_pos = len(content)
+                    if next_method:
+                        body_end_pos = next_method.start()
+                    if next_decorator:
+                        # 只有当装饰器在下一个方法之前才使用它作为结束位置
+                        decorator_pos = next_decorator.start()
+                        if decorator_pos < body_end_pos:
+                            body_end_pos = decorator_pos
+                    
                     method_body = content[body_start_pos:body_end_pos]
                     
-                    # 提取完整方法代码（包含 def 行）
-                    full_method_code = content[method_def_start:body_end_pos].rstrip()
+                    # 提取完整方法代码（包含装饰器和 def 行，不包含下一个方法的装饰器）
+                    full_method_code = content[code_start:body_end_pos].rstrip()
                     
                     # 从方法体中提取 kwargs.get("PARAM") 调用
                     params = []
@@ -591,19 +648,552 @@ def _parse_keywords_yaml(plugin_root: Path) -> dict:
     
     # ========== 2. 从 keywords.py 补充 ==========
     py_keywords = _parse_keywords_from_python(plugin_root)
+    
+    # 先处理 Python 中有实现的关键字
     for keyword_name, keyword_info in py_keywords.items():
         if keyword_name not in keywords:
             # YAML 中没有定义，从 Python 文件补充
             keywords[keyword_name] = keyword_info
+            # 标记为已实现
+            keywords[keyword_name]["is_implemented"] = True
         else:
             # YAML 中已定义，补充描述信息和代码
             if keyword_info.get("description") and not keywords[keyword_name].get("description"):
                 keywords[keyword_name]["description"] = keyword_info["description"]
             # 补充方法体代码（关键：YAML 定义的关键字也需要代码）
-            if keyword_info.get("code") and not keywords[keyword_name].get("code"):
+            if keyword_info.get("code"):
                 keywords[keyword_name]["code"] = keyword_info["code"]
+            # 标记为已实现
+            keywords[keyword_name]["is_implemented"] = True
+    
+    # 对于只在 YAML 中定义但没有 Python 实现的关键字，生成可执行代码
+    for keyword_name in keywords:
+        if not keywords[keyword_name].get("is_implemented"):
+            # 没有 Python 实现，生成可执行代码
+            keywords[keyword_name]["is_extension"] = True
+            
+            # 生成方法代码
+            params = keywords[keyword_name].get("params", [])
+            category = keywords[keyword_name].get("category", "未分类")
+            
+            # 根据函数名称生成对应的实现代码
+            code_template = _generate_keyword_implementation(keyword_name, params, category)
+            
+            keywords[keyword_name]["code"] = code_template
+            # 保留原分类，添加待实现标记
+            keywords[keyword_name]["category"] = f"{category} (待实现)"
     
     return keywords
+
+
+def _generate_keyword_implementation(keyword_name: str, params: list, category: str, 
+                                       existing_templates: dict = None) -> str:
+    """
+    根据关键字名称、参数和分类，基于已有模板动态生成可执行的实现代码
+    
+    逻辑：
+    1. 从已有实现中找到同类型的模板（如 request_get 作为 HTTP GET 模板）
+    2. 根据新关键字的名称和参数，替换模板中的关键部分
+    3. 生成新的可执行代码
+    """
+    # 构建参数获取代码
+    param_lines = []
+    for param in params:
+        param_lower = param.lower()
+        param_lines.append(f'        {param_lower} = kwargs.get("{param}", None)')
+    params_code = "\n".join(param_lines) if param_lines else ''
+    
+    # ========== 根据函数名称推断类型并生成代码 ==========
+    
+    # 1. HTTP 请求类：request_xxx
+    if keyword_name.startswith("request_"):
+        return _generate_http_request_code(keyword_name, params, params_code)
+    
+    # 2. 数据提取类：extract_xxx 或 ex_xxx
+    elif keyword_name.startswith("extract_") or keyword_name.startswith("ex_"):
+        return _generate_extract_code(keyword_name, params, params_code)
+    
+    # 3. 断言类：assert_xxx
+    elif keyword_name.startswith("assert_"):
+        return _generate_assert_code(keyword_name, params, params_code)
+    
+    # 4. 数据库类：execute_sql_xxx 或包含 mysql/sql
+    elif keyword_name.startswith("execute_sql") or "mysql" in keyword_name.lower() or "sql" in keyword_name.lower():
+        return _generate_database_code(keyword_name, params, params_code)
+    
+    # 5. 根据分类生成通用代码
+    else:
+        return _generate_generic_code(keyword_name, params, params_code, category)
+
+
+def _generate_http_request_code(keyword_name: str, params: list, params_code: str) -> str:
+    """
+    基于 request_get 模板生成 HTTP 请求代码
+    模板格式参考：
+        @allure.step(">>>>>>参数数据：")
+        def request_get(self, **kwargs):
+            url = kwargs.get("URL", None)
+            ...
+            response = requests.get(**request_data)
+            g_context().set_dict("current_response", response)
+    """
+    # 解析函数名: request_get -> GET, request_post_json -> POST
+    parts = keyword_name.replace("request_", "").split("_")
+    http_method = parts[0].upper()  # GET, POST, PUT, DELETE, PATCH
+    
+    # 解析 body 类型
+    body_type = "json"  # 默认
+    if len(parts) > 1:
+        body_hint = "_".join(parts[1:])
+        if "form" in body_hint or "urlencoded" in body_hint:
+            body_type = "data"
+        elif "file" in body_hint:
+            body_type = "files"
+    
+    # 构建 request_data 字典项
+    request_data_items = ['"url": url', '"params": params', '"headers": headers']
+    if "DATA" in params:
+        request_data_items.append(f'"{body_type}": data')
+    if "FILES" in params:
+        request_data_items.append('"files": files')
+    
+    request_data_code = ",\n            ".join(request_data_items)
+    
+    # 生成描述
+    method_desc_map = {
+        "GET": "发送GET请求",
+        "POST": "发送POST请求",
+        "PUT": "发送PUT请求",
+        "DELETE": "发送DELETE请求",
+        "PATCH": "发送PATCH请求",
+    }
+    method_desc = method_desc_map.get(http_method, f"发送{http_method}请求")
+    
+    return f'''    @allure.step(">>>>>>参数数据：")
+    def {keyword_name}(self, **kwargs):
+        """
+        {method_desc}
+        """
+{params_code}
+
+        request_data = {{
+            {request_data_code}
+        }}
+
+        response = requests.{http_method.lower()}(**request_data)
+        g_context().set_dict("current_response", response)
+        print("-----------------------")
+        print(response.text)
+        print("-----------------------")'''
+
+
+def _generate_extract_code(keyword_name: str, params: list, params_code: str) -> str:
+    """
+    基于 ex_jsonData 模板生成数据提取代码
+    模板格式参考：
+        @allure.step(">>>>>>参数数据：")
+        def ex_jsonData(self, **kwargs):
+            EXPRESSION = kwargs.get("EXVALUE", None)
+            response = g_context().get_dict("current_response").json()
+            ex_data = jsonpath.jsonpath(response, EXPRESSION)[INDEX]
+            g_context().set_dict(kwargs["VARNAME"], ex_data)
+    """
+    # 确定变量名参数
+    var_name_param = "VAR_NAME" if "VAR_NAME" in params else "VARNAME"
+    expr_param = "EXPRESSION" if "EXPRESSION" in params else "EXVALUE"
+    
+    # 根据函数名确定提取类型
+    if "json" in keyword_name.lower():
+        extract_type = "json"
+        extract_desc = "提取JSON数据"
+        extract_logic = f'''        response = g_context().get_dict("current_response").json()
+        index = int(kwargs.get("INDEX", 0) or 0)
+        ex_data = jsonpath.jsonpath(response, {expr_param.lower()})[index]
+        g_context().set_dict({var_name_param.lower()}, ex_data)'''
+    
+    elif "regex" in keyword_name.lower() or keyword_name == "ex_reData":
+        extract_type = "regex"
+        extract_desc = "提取正则数据"
+        extract_logic = f'''        response = g_context().get_dict("current_response").text
+        index = int(kwargs.get("INDEX", 0) or 0)
+        ex_data = re.findall({expr_param.lower()}, response)[index]
+        g_context().set_dict({var_name_param.lower()}, ex_data)'''
+    
+    elif "header" in keyword_name.lower():
+        extract_type = "header"
+        extract_desc = "提取响应头"
+        header_param = "HEADER_NAME" if "HEADER_NAME" in params else "header_name"
+        extract_logic = f'''        response = g_context().get_dict("current_response")
+        ex_data = response.headers.get({header_param.lower()})
+        g_context().set_dict({var_name_param.lower()}, ex_data)'''
+    
+    elif "cookie" in keyword_name.lower():
+        extract_type = "cookie"
+        extract_desc = "提取Cookie"
+        cookie_param = "COOKIE_NAME" if "COOKIE_NAME" in params else "cookie_name"
+        extract_logic = f'''        response = g_context().get_dict("current_response")
+        ex_data = response.cookies.get({cookie_param.lower()})
+        g_context().set_dict({var_name_param.lower()}, ex_data)'''
+    
+    else:
+        # 默认 JSON 提取
+        extract_desc = "提取数据"
+        extract_logic = f'''        response = g_context().get_dict("current_response").json()
+        index = int(kwargs.get("INDEX", 0) or 0)
+        ex_data = jsonpath.jsonpath(response, {expr_param.lower()})[index]
+        g_context().set_dict({var_name_param.lower()}, ex_data)'''
+    
+    return f'''    @allure.step(">>>>>>参数数据：")
+    def {keyword_name}(self, **kwargs):
+        """
+        {extract_desc}
+        """
+{params_code}
+
+{extract_logic}
+        print("-----------------------")
+        print(g_context().show_dict())
+        print("-----------------------")'''
+
+
+def _generate_assert_code(keyword_name: str, params: list, params_code: str) -> str:
+    """
+    基于 assert_text_comparators 模板生成断言代码
+    模板格式参考：
+        @allure.step(">>>>>>参数数据：")
+        def assert_text_comparators(self, **kwargs):
+            comparators = {...}
+            if not comparators[kwargs['OP_STR']](kwargs['VALUE'], kwargs["EXPECTED"]):
+                raise AssertionError(...)
+    """
+    # 根据函数名确定断言类型
+    if "status" in keyword_name.lower() and "code" in keyword_name.lower():
+        assert_desc = "断言状态码"
+        expected_param = "EXPECTED_CODE" if "EXPECTED_CODE" in params else "expected_code"
+        assert_logic = f'''        response = g_context().get_dict("current_response")
+        actual_code = response.status_code
+        expected = int({expected_param.lower()} or 200)
+        
+        assert actual_code == expected, f"状态码断言失败: 期望 {{expected}}, 实际 {{actual_code}}"
+        print(f"✅ 状态码断言成功: {{actual_code}}")'''
+    
+    elif "time" in keyword_name.lower():
+        assert_desc = "断言响应时间"
+        max_param = "MAX_TIME" if "MAX_TIME" in params else "max_time"
+        assert_logic = f'''        response = g_context().get_dict("current_response")
+        actual_time = response.elapsed.total_seconds()
+        max_t = float({max_param.lower()} or 5)
+        
+        assert actual_time <= max_t, f"响应时间断言失败: 期望 <= {{max_t}}s, 实际 {{actual_time}}s"
+        print(f"✅ 响应时间断言成功: {{actual_time}}s")'''
+    
+    elif "contains" in keyword_name.lower() or ("text" in keyword_name.lower() and "json" not in keyword_name.lower()):
+        assert_desc = "断言响应包含文本"
+        text_param = "EXPECTED_TEXT" if "EXPECTED_TEXT" in params else "expected_text"
+        assert_logic = f'''        response = g_context().get_dict("current_response")
+        response_text = response.text
+        
+        assert {text_param.lower()} in response_text, f"文本断言失败: 响应中不包含 '{{{text_param.lower()}}}'"
+        print(f"✅ 文本断言成功")'''
+    
+    elif "json" in keyword_name.lower() and "field" in keyword_name.lower():
+        assert_desc = "断言JSON字段值"
+        path_param = "JSON_PATH" if "JSON_PATH" in params else "json_path"
+        expected_param = "EXPECTED_VALUE" if "EXPECTED_VALUE" in params else "expected_value"
+        assert_logic = f'''        response = g_context().get_dict("current_response").json()
+        actual_value = jsonpath.jsonpath(response, {path_param.lower()})
+        actual_value = actual_value[0] if actual_value else None
+        
+        assert actual_value == {expected_param.lower()}, f"JSON字段断言失败: {{{path_param.lower()}}} 期望 {{{expected_param.lower()}}}, 实际 {{actual_value}}"
+        print(f"✅ JSON字段断言成功")'''
+    
+    elif "number" in keyword_name.lower() or "compare" in keyword_name.lower():
+        assert_desc = "数值比较断言"
+        actual_param = "ACTUAL_VALUE" if "ACTUAL_VALUE" in params else "VALUE"
+        expected_param = "EXPECTED_VALUE" if "EXPECTED_VALUE" in params else "EXPECTED"
+        op_param = "OPERATOR" if "OPERATOR" in params else "OP_STR"
+        assert_logic = f'''        comparators = {{
+            '>': lambda a, b: a > b,
+            '<': lambda a, b: a < b,
+            '==': lambda a, b: a == b,
+            '>=': lambda a, b: a >= b,
+            '<=': lambda a, b: a <= b,
+            '!=': lambda a, b: a != b,
+        }}
+        
+        op = {op_param.lower()} or "=="
+        result = comparators[op](float({actual_param.lower()}), float({expected_param.lower()}))
+        assert result, f"数值比较断言失败: {{{actual_param.lower()}}} {{op}} {{{expected_param.lower()}}}"
+        print(f"✅ 数值比较断言成功")'''
+    
+    else:
+        # 默认断言
+        assert_desc = "断言验证"
+        assert_logic = '''        # TODO: 实现断言逻辑
+        print(f"执行断言")'''
+    
+    return f'''    @allure.step(">>>>>>参数数据：")
+    def {keyword_name}(self, **kwargs):
+        """
+        {assert_desc}
+        """
+{params_code}
+
+{assert_logic}'''
+
+
+def _generate_database_code(keyword_name: str, params: list, params_code: str) -> str:
+    """
+    基于 ex_mysqlData 模板生成数据库操作代码
+    """
+    db_param = "DB_NAME" if "DB_NAME" in params else "数据库"
+    sql_param = "SQL" if "SQL" in params else "sql"
+    
+    if "query" in keyword_name.lower() or "select" in keyword_name.lower() or "Data" in keyword_name:
+        db_desc = "执行SQL查询"
+        db_logic = f'''        import pymysql
+        from pymysql import cursors
+        
+        config = {{"cursorclass": cursors.DictCursor}}
+        db_config = g_context().get_dict("_database")[{db_param.lower()}]
+        config.update(db_config)
+        
+        con = pymysql.connect(**config)
+        cur = con.cursor()
+        cur.execute({sql_param.lower()})
+        rs = cur.fetchall()
+        cur.close()
+        con.close()
+        
+        # 存储结果到全局变量
+        for i, item in enumerate(rs, start=1):
+            for key, value in item.items():
+                g_context().set_dict(f"{{key}}_{{i}}", value)
+        
+        print(f"✅ 查询成功，返回 {{len(rs)}} 条记录")'''
+    else:
+        db_desc = "执行SQL更新"
+        db_logic = f'''        import pymysql
+        
+        db_config = g_context().get_dict("_database")[{db_param.lower()}]
+        
+        con = pymysql.connect(**db_config)
+        cur = con.cursor()
+        affected_rows = cur.execute({sql_param.lower()})
+        con.commit()
+        cur.close()
+        con.close()
+        
+        print(f"✅ SQL执行成功，影响行数: {{affected_rows}}")'''
+    
+    return f'''    @allure.step(">>>>>>参数数据：")
+    def {keyword_name}(self, **kwargs):
+        """
+        {db_desc}
+        """
+{params_code}
+
+{db_logic}'''
+
+
+def _generate_generic_code(keyword_name: str, params: list, params_code: str, category: str) -> str:
+    """
+    根据分类和函数名生成通用代码
+    """
+    # 根据函数名关键词匹配功能
+    if "wait" in keyword_name.lower() or "sleep" in keyword_name.lower():
+        seconds_param = "SECONDS" if "SECONDS" in params else "seconds"
+        return f'''    @allure.step(">>>>>>执行操作：")
+    def {keyword_name}(self, **kwargs):
+        """
+        等待指定时间
+        """
+        import time
+{params_code}
+
+        time.sleep(float({seconds_param.lower()} or 1))
+        print(f"✅ 等待 {{{seconds_param.lower()}}} 秒完成")'''
+    
+    elif "random" in keyword_name.lower() and "string" in keyword_name.lower():
+        length_param = "LENGTH" if "LENGTH" in params else "length"
+        var_param = "VAR_NAME" if "VAR_NAME" in params else "var_name"
+        return f'''    @allure.step(">>>>>>执行操作：")
+    def {keyword_name}(self, **kwargs):
+        """
+        生成随机字符串
+        """
+        import random
+        import string as str_lib
+{params_code}
+
+        result = ''.join(random.choices(str_lib.ascii_letters + str_lib.digits, k=int({length_param.lower()} or 8)))
+        g_context().set_dict({var_param.lower()} or "random_string", result)
+        print(f"✅ 生成随机字符串: {{result}}")'''
+    
+    elif "random" in keyword_name.lower() and "number" in keyword_name.lower():
+        min_param = "MIN_VALUE" if "MIN_VALUE" in params else "min_value"
+        max_param = "MAX_VALUE" if "MAX_VALUE" in params else "max_value"
+        var_param = "VAR_NAME" if "VAR_NAME" in params else "var_name"
+        return f'''    @allure.step(">>>>>>执行操作：")
+    def {keyword_name}(self, **kwargs):
+        """
+        生成随机数
+        """
+        import random
+{params_code}
+
+        result = random.randint(int({min_param.lower()} or 0), int({max_param.lower()} or 100))
+        g_context().set_dict({var_param.lower()} or "random_number", result)
+        print(f"✅ 生成随机数: {{result}}")'''
+    
+    elif "timestamp" in keyword_name.lower():
+        var_param = "VAR_NAME" if "VAR_NAME" in params else "var_name"
+        return f'''    @allure.step(">>>>>>执行操作：")
+    def {keyword_name}(self, **kwargs):
+        """
+        获取当前时间戳
+        """
+        import time
+{params_code}
+
+        result = int(time.time())
+        g_context().set_dict({var_param.lower()} or "timestamp", result)
+        print(f"✅ 当前时间戳: {{result}}")'''
+    
+    elif "datetime" in keyword_name.lower() or ("format" in keyword_name.lower() and "time" in category.lower()):
+        format_param = "FORMAT" if "FORMAT" in params else "format"
+        var_param = "VAR_NAME" if "VAR_NAME" in params else "var_name"
+        return f'''    @allure.step(">>>>>>执行操作：")
+    def {keyword_name}(self, **kwargs):
+        """
+        格式化当前时间
+        """
+        from datetime import datetime
+{params_code}
+
+        result = datetime.now().strftime({format_param.lower()} or "%Y-%m-%d %H:%M:%S")
+        g_context().set_dict({var_param.lower()} or "datetime", result)
+        print(f"✅ 格式化时间: {{result}}")'''
+    
+    elif "md5" in keyword_name.lower():
+        text_param = "TEXT" if "TEXT" in params else "text"
+        var_param = "VAR_NAME" if "VAR_NAME" in params else "var_name"
+        return f'''    @allure.step(">>>>>>执行操作：")
+    def {keyword_name}(self, **kwargs):
+        """
+        MD5加密
+        """
+        import hashlib
+{params_code}
+
+        result = hashlib.md5(({text_param.lower()} or "").encode()).hexdigest()
+        g_context().set_dict({var_param.lower()} or "md5_result", result)
+        print(f"✅ MD5加密结果: {{result}}")'''
+    
+    elif "base64" in keyword_name.lower():
+        if "decode" in keyword_name.lower():
+            text_param = "ENCODED_TEXT" if "ENCODED_TEXT" in params else "encoded_text"
+            var_param = "VAR_NAME" if "VAR_NAME" in params else "var_name"
+            return f'''    @allure.step(">>>>>>执行操作：")
+    def {keyword_name}(self, **kwargs):
+        """
+        Base64解码
+        """
+        import base64 as b64
+{params_code}
+
+        result = b64.b64decode({text_param.lower()} or "").decode()
+        g_context().set_dict({var_param.lower()} or "decoded_result", result)
+        print(f"✅ Base64解码结果: {{result}}")'''
+        else:
+            text_param = "TEXT" if "TEXT" in params else "text"
+            var_param = "VAR_NAME" if "VAR_NAME" in params else "var_name"
+            return f'''    @allure.step(">>>>>>执行操作：")
+    def {keyword_name}(self, **kwargs):
+        """
+        Base64编码
+        """
+        import base64 as b64
+{params_code}
+
+        result = b64.b64encode(({text_param.lower()} or "").encode()).decode()
+        g_context().set_dict({var_param.lower()} or "base64_result", result)
+        print(f"✅ Base64编码结果: {{result}}")'''
+    
+    elif "read" in keyword_name.lower() and "file" in keyword_name.lower():
+        path_param = "FILE_PATH" if "FILE_PATH" in params else "file_path"
+        enc_param = "ENCODING" if "ENCODING" in params else "encoding"
+        var_param = "VAR_NAME" if "VAR_NAME" in params else "var_name"
+        return f'''    @allure.step(">>>>>>文件操作：")
+    def {keyword_name}(self, **kwargs):
+        """
+        读取文件内容
+        """
+{params_code}
+
+        with open({path_param.lower()}, 'r', encoding={enc_param.lower()} or "utf-8") as f:
+            content = f.read()
+        
+        g_context().set_dict({var_param.lower()} or "file_content", content)
+        print(f"✅ 读取文件成功: {{{path_param.lower()}}}")'''
+    
+    elif "write" in keyword_name.lower() and "file" in keyword_name.lower():
+        path_param = "FILE_PATH" if "FILE_PATH" in params else "file_path"
+        content_param = "CONTENT" if "CONTENT" in params else "content"
+        enc_param = "ENCODING" if "ENCODING" in params else "encoding"
+        mode_param = "MODE" if "MODE" in params else "mode"
+        return f'''    @allure.step(">>>>>>文件操作：")
+    def {keyword_name}(self, **kwargs):
+        """
+        写入文件内容
+        """
+{params_code}
+
+        with open({path_param.lower()}, {mode_param.lower()} or "w", encoding={enc_param.lower()} or "utf-8") as f:
+            f.write({content_param.lower()} or "")
+        
+        print(f"✅ 写入文件成功: {{{path_param.lower()}}}")'''
+    
+    elif "delete" in keyword_name.lower() and "file" in keyword_name.lower():
+        path_param = "FILE_PATH" if "FILE_PATH" in params else "file_path"
+        return f'''    @allure.step(">>>>>>文件操作：")
+    def {keyword_name}(self, **kwargs):
+        """
+        删除文件
+        """
+        import os
+{params_code}
+
+        if os.path.exists({path_param.lower()}):
+            os.remove({path_param.lower()})
+            print(f"✅ 删除文件成功: {{{path_param.lower()}}}")
+        else:
+            print(f"⚠️ 文件不存在: {{{path_param.lower()}}}")'''
+    
+    # ========== 默认模板 ==========
+    else:
+        # 根据分类选择装饰器描述
+        step_desc = "执行操作"
+        if "HTTP" in category or "请求" in category:
+            step_desc = "参数数据"
+        elif "提取" in category:
+            step_desc = "数据提取"
+        elif "断言" in category:
+            step_desc = "断言验证"
+        elif "数据库" in category:
+            step_desc = "数据库操作"
+        elif "文件" in category:
+            step_desc = "文件操作"
+        
+        return f'''    @allure.step(">>>>>>{step_desc}：")
+    def {keyword_name}(self, **kwargs):
+        """
+        {keyword_name}
+        """
+{params_code}
+        
+        # TODO: 根据业务需求实现此方法
+        print(f"执行 {keyword_name}")'''
 
 
 def _parse_pytest_addoption(plugin_root: Path) -> list:
@@ -1282,3 +1872,66 @@ async def uninstall_executor(
         return respModel.error_resp(msg="卸载超时")
     except Exception as e:
         return respModel.error_resp(msg=f"卸载失败: {str(e)}")
+
+
+@module_route.post("/reparseKeywords", summary="重新解析插件关键字")
+async def reparse_keywords(
+    id: int = Query(..., description="执行器插件ID"),
+    session: Session = Depends(get_session)
+):
+    """
+    重新解析插件的关键字定义
+    从数据库中的 plugin_content（ZIP包）重新提取并更新 keywords 字段
+    """
+    try:
+        plugin = session.get(Plugin, id)
+        if not plugin:
+            return respModel.error_resp(msg="插件不存在")
+        
+        if not plugin.plugin_content:
+            return respModel.error_resp(msg="插件内容为空，请先上传执行器")
+        
+        # 1. 解码并解压到临时目录
+        zip_bytes = base64.b64decode(plugin.plugin_content)
+        extract_dir = get_temp_subdir("executor") / f"reparse_{plugin.plugin_code}_{uuid.uuid4().hex[:8]}"
+        extract_dir.mkdir(parents=True, exist_ok=True)
+        
+        try:
+            with zipfile.ZipFile(io.BytesIO(zip_bytes), 'r') as zip_ref:
+                zip_ref.extractall(extract_dir)
+            
+            # 查找解压后的根目录
+            items = list(extract_dir.iterdir())
+            if len(items) == 1 and items[0].is_dir():
+                plugin_root = items[0]
+            else:
+                plugin_root = extract_dir
+            
+            # 2. 重新解析关键字
+            keywords = _parse_keywords_yaml(plugin_root)
+            
+            # 3. 更新数据库
+            plugin.keywords = json.dumps(keywords) if keywords else None
+            plugin.modify_time = datetime.now()
+            session.add(plugin)
+            session.commit()
+            
+            keywords_count = len(keywords) if keywords else 0
+            
+            return respModel.ok_resp(
+                obj={
+                    "id": plugin.id,
+                    "keywords_count": keywords_count,
+                    "keywords": keywords
+                },
+                msg=f"重新解析成功，共 {keywords_count} 个关键字"
+            )
+        
+        finally:
+            # 清理临时目录
+            if extract_dir.exists():
+                shutil.rmtree(extract_dir, ignore_errors=True)
+    
+    except Exception as e:
+        import traceback
+        return respModel.error_resp(msg=f"重新解析失败: {str(e)}\n{traceback.format_exc()}")

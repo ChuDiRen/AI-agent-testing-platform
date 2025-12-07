@@ -20,7 +20,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["代码生成器-表配
 logger = get_logger(__name__)
 
 @module_route.get("/dbTables", summary="获取数据库可导入表", dependencies=[Depends(check_permission("generator:table:query"))])
-def getDbTables(session: Session = Depends(get_session)):
+async def getDbTables(session: Session = Depends(get_session)):
     """获取数据库所有表(用于导入表)"""
     try:
         db_service = DbMetaService()
@@ -38,7 +38,7 @@ def getDbTables(session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误:{e}")
 
 @module_route.post("/importTables", summary="批量导入表配置", dependencies=[Depends(check_permission("generator:table:import"))])
-def importTables(request: GenTableImport, session: Session = Depends(get_session)):
+async def importTables(request: GenTableImport, session: Session = Depends(get_session)):
     """批量导入表配置"""
     try:
         db_service = DbMetaService()
@@ -95,7 +95,7 @@ def importTables(request: GenTableImport, session: Session = Depends(get_session
         return respModel.error_resp(f"导入失败:{e}")
 
 @module_route.post("/queryByPage", summary="分页查询表配置", dependencies=[Depends(check_permission("generator:table:query"))])
-def queryByPage(query: GenTableQuery, session: Session = Depends(get_session)):
+async def queryByPage(query: GenTableQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
         statement = select(module_model)
@@ -122,7 +122,7 @@ def queryByPage(query: GenTableQuery, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById", summary="根据ID查询表配置", dependencies=[Depends(check_permission("generator:table:query"))])
-def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         # 查询表配置
         table = session.get(GenTable, id)
@@ -143,7 +143,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.put("/update", summary="更新表配置", dependencies=[Depends(check_permission("generator:table:edit"))])
-def update(data: GenTableUpdate, session: Session = Depends(get_session)):
+async def update(data: GenTableUpdate, session: Session = Depends(get_session)):
     try:
         table = session.get(GenTable, data.id)
         if not table:
@@ -163,7 +163,7 @@ def update(data: GenTableUpdate, session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"修改失败:{e}")
 
 @module_route.delete("/delete", summary="删除表配置", dependencies=[Depends(check_permission("generator:table:delete"))])
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         # 删除表配置
         table = session.get(GenTable, id)

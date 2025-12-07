@@ -17,7 +17,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["API项目管理"])
 logger = get_logger(__name__)
 
 @module_route.post("/queryByPage", summary="分页查询API项目", dependencies=[Depends(check_permission("apitest:project:query"))]) # 分页查询API项目
-def queryByPage(query: ApiProjectQuery, session: Session = Depends(get_session)):
+async def queryByPage(query: ApiProjectQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
         # 构建基础查询
@@ -39,7 +39,7 @@ def queryByPage(query: ApiProjectQuery, session: Session = Depends(get_session))
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById", summary="根据ID查询API项目", dependencies=[Depends(check_permission("apitest:project:query"))]) # 根据ID查询API项目
-def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
@@ -52,7 +52,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/insert", summary="新增API项目", dependencies=[Depends(check_permission("apitest:project:add"))]) # 新增API项目
-def insert(project: ApiProjectCreate, session: Session = Depends(get_session)):
+async def insert(project: ApiProjectCreate, session: Session = Depends(get_session)):
     try:
         data = module_model(**project.model_dump(), create_time=datetime.now())
         session.add(data)
@@ -64,7 +64,7 @@ def insert(project: ApiProjectCreate, session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"添加失败:{e}")
 
 @module_route.put("/update", summary="更新API项目", dependencies=[Depends(check_permission("apitest:project:edit"))]) # 更新API项目
-def update(project: ApiProjectUpdate, session: Session = Depends(get_session)):
+async def update(project: ApiProjectUpdate, session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == project.id)
         db_project = session.exec(statement).first()
@@ -82,7 +82,7 @@ def update(project: ApiProjectUpdate, session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
 @module_route.delete("/delete", summary="删除API项目", dependencies=[Depends(check_permission("apitest:project:delete"))]) # 删除API项目
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
@@ -98,7 +98,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"服务器错误,删除失败：{e}")
 
 @module_route.get("/queryAll", summary="查询所有API项目", dependencies=[Depends(check_permission("apitest:project:query"))]) # 查询所有API项目
-def queryAll(session: Session = Depends(get_session)):
+async def queryAll(session: Session = Depends(get_session)):
     statement = select(module_model)
     datas = session.exec(statement).all()
     return respModel.ok_resp_list(lst=datas, msg="查询成功")

@@ -52,8 +52,8 @@ async function refreshToken() {
         const response = await axios.post('/api/refreshToken', {}, {
             headers: { 'Authorization': `Bearer ${token}` }
         })
-        if (response.data.code === 200 && response.data.data?.token) {
-            const newToken = response.data.data.token
+        if (response.data.code === 200 && response.data.data?.access_token) {
+            const newToken = response.data.data.access_token
             setToken(newToken)
             return newToken
         }

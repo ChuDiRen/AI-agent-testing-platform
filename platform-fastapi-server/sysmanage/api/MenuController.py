@@ -19,7 +19,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["菜单管理"])
 logger = get_logger(__name__)
 
 @module_route.get("/tree", summary="获取菜单树", dependencies=[Depends(check_permission("system:menu:query"))])
-def getTree(session: Session = Depends(get_session)):
+async def getTree(session: Session = Depends(get_session)):
     """获取菜单树"""
     try:
         statement = select(module_model)
@@ -68,7 +68,7 @@ def getTree(session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById", summary="根据ID查询菜单", dependencies=[Depends(check_permission("system:menu:query"))])
-def queryById(id: int, session: Session = Depends(get_session)):
+async def queryById(id: int, session: Session = Depends(get_session)):
     """根据ID查询菜单"""
     try:
         obj = session.get(module_model, id)
@@ -78,7 +78,7 @@ def queryById(id: int, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/insert", summary="新增菜单", dependencies=[Depends(check_permission("system:menu:add"))])
-def insert(request: MenuCreate, session: Session = Depends(get_session)):
+async def insert(request: MenuCreate, session: Session = Depends(get_session)):
     """新增菜单"""
     try:
         obj = module_model(**request.model_dump())
@@ -92,7 +92,7 @@ def insert(request: MenuCreate, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.put("/update", summary="更新菜单", dependencies=[Depends(check_permission("system:menu:edit"))])
-def update(request: MenuUpdate, session: Session = Depends(get_session)):
+async def update(request: MenuUpdate, session: Session = Depends(get_session)):
     """更新菜单"""
     try:
         obj = session.get(module_model, request.id)
@@ -112,7 +112,7 @@ def update(request: MenuUpdate, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.delete("/delete", summary="删除菜单", dependencies=[Depends(check_permission("system:menu:delete"))])
-def delete(id: int, session: Session = Depends(get_session)):
+async def delete(id: int, session: Session = Depends(get_session)):
     """删除菜单"""
     try:
         obj = session.get(module_model, id)
@@ -135,7 +135,7 @@ def delete(id: int, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/user/{user_id}", summary="获取用户菜单权限")
-def getUserMenus(user_id: int, session: Session = Depends(get_session)):
+async def getUserMenus(user_id: int, session: Session = Depends(get_session)):
     """获取用户的菜单权限（用于前端路由）"""
     try:
         statement = select(UserRole).where(UserRole.user_id == user_id)

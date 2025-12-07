@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 
 
 @module_route.get("/queryByCollectionId", summary="根据集合ID查询关联用例", dependencies=[Depends(check_permission("apitest:collectiondetail:query"))])
-def queryByCollectionId(collection_info_id: int = Query(...), session: Session = Depends(get_session)):
+async def queryByCollectionId(collection_info_id: int = Query(...), session: Session = Depends(get_session)):
     """根据集合ID查询所有关联用例"""
     try:
         statement = select(module_model).where(
@@ -36,7 +36,7 @@ def queryByCollectionId(collection_info_id: int = Query(...), session: Session =
 
 
 @module_route.post("/insert", summary="新增集合详情", dependencies=[Depends(check_permission("apitest:collectiondetail:add"))])
-def insert(detail: ApiCollectionDetailCreate, session: Session = Depends(get_session)):
+async def insert(detail: ApiCollectionDetailCreate, session: Session = Depends(get_session)):
     """新增集合详情"""
     try:
         # 将字典转换为JSON字符串
@@ -56,7 +56,7 @@ def insert(detail: ApiCollectionDetailCreate, session: Session = Depends(get_ses
 
 
 @module_route.put("/update", summary="更新集合详情", dependencies=[Depends(check_permission("apitest:collectiondetail:edit"))])
-def update(detail: ApiCollectionDetailUpdate, session: Session = Depends(get_session)):
+async def update(detail: ApiCollectionDetailUpdate, session: Session = Depends(get_session)):
     """更新集合详情"""
     try:
         statement = select(module_model).where(module_model.id == detail.id)
@@ -80,7 +80,7 @@ def update(detail: ApiCollectionDetailUpdate, session: Session = Depends(get_ses
 
 
 @module_route.delete("/delete", summary="删除集合详情", dependencies=[Depends(check_permission("apitest:collectiondetail:delete"))])
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除集合详情"""
     try:
         statement = select(module_model).where(module_model.id == id)
@@ -98,7 +98,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
 
 
 @module_route.post("/batchAdd", summary="批量添加用例到集合", dependencies=[Depends(check_permission("apitest:collectiondetail:edit"))])
-def batchAdd(collection_info_id: int, case_ids: List[int], session: Session = Depends(get_session)):
+async def batchAdd(collection_info_id: int, case_ids: List[int], session: Session = Depends(get_session)):
     """批量添加用例到集合"""
     try:
         # 获取当前最大的run_order
@@ -125,7 +125,7 @@ def batchAdd(collection_info_id: int, case_ids: List[int], session: Session = De
 
 
 @module_route.post("/batchUpdateOrder", summary="批量更新集合执行顺序", dependencies=[Depends(check_permission("apitest:collectiondetail:edit"))])
-def batchUpdateOrder(details: List[dict], session: Session = Depends(get_session)):
+async def batchUpdateOrder(details: List[dict], session: Session = Depends(get_session)):
     """批量更新执行顺序"""
     try:
         for detail_data in details:

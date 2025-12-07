@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 
 
 @module_route.get("/queryByCaseId", summary="根据用例ID查询步骤", dependencies=[Depends(check_permission("apitest:step:query"))])
-def queryByCaseId(case_info_id: int = Query(...), session: Session = Depends(get_session)):
+async def queryByCaseId(case_info_id: int = Query(...), session: Session = Depends(get_session)):
     """根据用例ID查询所有步骤"""
     try:
         statement = select(module_model).where(module_model.case_info_id == case_info_id).order_by(module_model.run_order)
@@ -34,7 +34,7 @@ def queryByCaseId(case_info_id: int = Query(...), session: Session = Depends(get
 
 
 @module_route.post("/insert", summary="新增用例步骤", dependencies=[Depends(check_permission("apitest:step:add"))])
-def insert(step: ApiInfoCaseStepCreate, session: Session = Depends(get_session)):
+async def insert(step: ApiInfoCaseStepCreate, session: Session = Depends(get_session)):
     """新增用例步骤"""
     try:
         # 将字典转换为JSON字符串
@@ -54,7 +54,7 @@ def insert(step: ApiInfoCaseStepCreate, session: Session = Depends(get_session))
 
 
 @module_route.put("/update", summary="更新用例步骤", dependencies=[Depends(check_permission("apitest:step:edit"))])
-def update(step: ApiInfoCaseStepUpdate, session: Session = Depends(get_session)):
+async def update(step: ApiInfoCaseStepUpdate, session: Session = Depends(get_session)):
     """更新用例步骤"""
     try:
         statement = select(module_model).where(module_model.id == step.id)
@@ -78,7 +78,7 @@ def update(step: ApiInfoCaseStepUpdate, session: Session = Depends(get_session))
 
 
 @module_route.delete("/delete", summary="删除用例步骤", dependencies=[Depends(check_permission("apitest:step:delete"))])
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除用例步骤"""
     try:
         statement = select(module_model).where(module_model.id == id)
@@ -96,7 +96,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
 
 
 @module_route.post("/batchUpdateOrder", summary="批量更新步骤顺序", dependencies=[Depends(check_permission("apitest:step:edit"))])
-def batchUpdateOrder(steps: List[dict], session: Session = Depends(get_session)):
+async def batchUpdateOrder(steps: List[dict], session: Session = Depends(get_session)):
     """批量更新步骤顺序"""
     try:
         for step_data in steps:

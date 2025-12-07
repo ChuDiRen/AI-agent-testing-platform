@@ -43,9 +43,8 @@
 import { computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router';
 import {useStore} from 'vuex'
-import { useCookies } from '@vueuse/integrations/useCookies'
 import { getUserMenus, getMenuTree } from '@/views/system/menu/menu'
-// import store from '../../store';
+
 const router = useRouter()
 const route = useRoute()
 const store = useStore()
@@ -60,8 +59,6 @@ const isCollapse = computed(()=> {
 const handleSelect =(e)=>{
  router.push(e)
 }
-const cookies = useCookies()
-
 // 获取菜单图标名称
 function getIconName(iconName) {
   // 如果没有图标或图标为空，返回默认图标
@@ -149,7 +146,8 @@ async function loadMenuData() {
     return
   }
   
-  const uid = cookies.get('l-user-id')
+  // 从 store 中获取用户ID
+  const uid = store.state.userInfo?.id
   
   if(!uid){
     // 如果没有用户ID，尝试获取全量菜单

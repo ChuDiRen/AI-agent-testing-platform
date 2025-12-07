@@ -17,7 +17,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["用户管理"])
 logger = get_logger(__name__)
 
 @module_route.post("/queryByPage", summary="分页查询用户") # 分页查询用户
-def queryByPage(query: UserQuery, session: Session = Depends(get_session)):
+async def queryByPage(query: UserQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
         statement = select(module_model)
@@ -53,7 +53,7 @@ def queryByPage(query: UserQuery, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById", summary="根据ID查询用户") # 根据ID查询用户
-def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
@@ -66,7 +66,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/insert", summary="新增用户") # 新增用户
-def insert(user: UserCreate, session: Session = Depends(get_session)):
+async def insert(user: UserCreate, session: Session = Depends(get_session)):
     try:
         data = module_model(**user.model_dump(), create_time=datetime.now())
         session.add(data)
@@ -78,7 +78,7 @@ def insert(user: UserCreate, session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"添加失败:{e}")
 
 @module_route.put("/update", summary="更新用户") # 更新用户
-def update(user: UserUpdate, session: Session = Depends(get_session)):
+async def update(user: UserUpdate, session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == user.id)
         db_user = session.exec(statement).first()
@@ -96,7 +96,7 @@ def update(user: UserUpdate, session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
 @module_route.delete("/delete", summary="删除用户") # 删除用户
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
@@ -118,7 +118,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"服务器错误,删除失败：{e}")
 
 @module_route.post("/assignRoles", summary="为用户分配角色") # 为用户分配角色
-def assignRoles(request: UserRoleAssign, session: Session = Depends(get_session)):
+async def assignRoles(request: UserRoleAssign, session: Session = Depends(get_session)):
     try:
         # 检查用户是否存在
         user = session.get(User, request.id)
@@ -144,7 +144,7 @@ def assignRoles(request: UserRoleAssign, session: Session = Depends(get_session)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/roles/{user_id}", summary="获取用户的角色") # 获取用户的角色
-def getRoles(user_id: int, session: Session = Depends(get_session)):
+async def getRoles(user_id: int, session: Session = Depends(get_session)):
     try:
         statement = select(UserRole).where(UserRole.user_id == user_id)
         user_roles = session.exec(statement).all()
@@ -155,7 +155,7 @@ def getRoles(user_id: int, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.put("/updateStatus", summary="更新用户状态（锁定/启用）") # 更新用户状态（锁定/启用）
-def updateStatus(request: UserStatusUpdate, session: Session = Depends(get_session)):
+async def updateStatus(request: UserStatusUpdate, session: Session = Depends(get_session)):
     try:
         user = session.get(User, request.id)
         if not user:

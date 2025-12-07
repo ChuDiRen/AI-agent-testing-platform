@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 
 
 @module_route.post("/queryByPage", summary="分页查询消息模板", dependencies=[Depends(check_permission("msgmanage:template:query"))])
-def queryByPage(query: RobotMsgConfigQuery, session: Session = Depends(get_session)):
+async def queryByPage(query: RobotMsgConfigQuery, session: Session = Depends(get_session)):
     """分页查询消息模板"""
     try:
         offset = (query.page - 1) * query.pageSize
@@ -64,7 +64,7 @@ def queryByPage(query: RobotMsgConfigQuery, session: Session = Depends(get_sessi
 
 
 @module_route.get("/queryById", summary="根据ID查询消息模板", dependencies=[Depends(check_permission("msgmanage:template:query"))])
-def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询消息模板"""
     try:
         statement = select(module_model).where(module_model.id == id)
@@ -79,7 +79,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
 
 
 @module_route.get("/queryByRobotId", summary="根据机器人ID查询消息模板", dependencies=[Depends(check_permission("msgmanage:template:query"))])
-def queryByRobotId(robot_id: int = Query(...), session: Session = Depends(get_session)):
+async def queryByRobotId(robot_id: int = Query(...), session: Session = Depends(get_session)):
     """根据机器人ID查询所有模板"""
     try:
         statement = select(module_model).where(
@@ -94,7 +94,7 @@ def queryByRobotId(robot_id: int = Query(...), session: Session = Depends(get_se
 
 
 @module_route.post("/insert", summary="新增消息模板", dependencies=[Depends(check_permission("msgmanage:template:add"))])
-def insert(template: RobotMsgConfigCreate, session: Session = Depends(get_session)):
+async def insert(template: RobotMsgConfigCreate, session: Session = Depends(get_session)):
     """新增消息模板"""
     try:
         data = module_model(**template.model_dump(), create_time=datetime.now())
@@ -109,7 +109,7 @@ def insert(template: RobotMsgConfigCreate, session: Session = Depends(get_sessio
 
 
 @module_route.put("/update", summary="更新消息模板", dependencies=[Depends(check_permission("msgmanage:template:edit"))])
-def update(template: RobotMsgConfigUpdate, session: Session = Depends(get_session)):
+async def update(template: RobotMsgConfigUpdate, session: Session = Depends(get_session)):
     """更新消息模板"""
     try:
         statement = select(module_model).where(module_model.id == template.id)
@@ -131,7 +131,7 @@ def update(template: RobotMsgConfigUpdate, session: Session = Depends(get_sessio
 
 
 @module_route.delete("/delete", summary="删除消息模板", dependencies=[Depends(check_permission("msgmanage:template:delete"))])
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除消息模板"""
     try:
         statement = select(module_model).where(module_model.id == id)

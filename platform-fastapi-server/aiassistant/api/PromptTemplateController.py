@@ -17,7 +17,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["提示词模板管理"
 
 
 @module_route.post("/queryByPage", summary="分页查询提示词模板") # 分页查询提示词模板
-def queryByPage(query: PromptTemplateQuery, session: Session = Depends(get_session)):
+async def queryByPage(query: PromptTemplateQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
         statement = select(module_model)
@@ -54,7 +54,7 @@ def queryByPage(query: PromptTemplateQuery, session: Session = Depends(get_sessi
 
 
 @module_route.get("/queryById", summary="根据ID查询提示词模板") # 根据ID查询提示词模板
-def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
@@ -68,7 +68,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
 
 
 @module_route.get("/queryByType", summary="按测试类型获取所有激活的模板") # 按测试类型获取所有激活的模板
-def queryByType(testType: str = Query(...), session: Session = Depends(get_session)):
+async def queryByType(testType: str = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(
             (module_model.test_type == testType) &
@@ -82,7 +82,7 @@ def queryByType(testType: str = Query(...), session: Session = Depends(get_sessi
 
 
 @module_route.get("/queryAll", summary="查询所有提示词模板") # 查询所有提示词模板
-def queryAll(session: Session = Depends(get_session)):
+async def queryAll(session: Session = Depends(get_session)):
     try:
         statement = select(module_model).order_by(module_model.create_time.desc())
         datas = session.exec(statement).all()
@@ -93,7 +93,7 @@ def queryAll(session: Session = Depends(get_session)):
 
 
 @module_route.post("/insert", summary="新增提示词模板") # 新增提示词模板
-def insert(template: PromptTemplateCreate, session: Session = Depends(get_session)):
+async def insert(template: PromptTemplateCreate, session: Session = Depends(get_session)):
     try:
         data = module_model(**template.model_dump(), create_time=datetime.now(), modify_time=datetime.now())
         session.add(data)
@@ -108,7 +108,7 @@ def insert(template: PromptTemplateCreate, session: Session = Depends(get_sessio
 
 
 @module_route.put("/update", summary="更新提示词模板") # 更新提示词模板
-def update(template: PromptTemplateUpdate, session: Session = Depends(get_session)):
+async def update(template: PromptTemplateUpdate, session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == template.id)
         db_template = session.exec(statement).first()
@@ -129,7 +129,7 @@ def update(template: PromptTemplateUpdate, session: Session = Depends(get_sessio
 
 
 @module_route.delete("/delete", summary="删除提示词模板") # 删除提示词模板
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
@@ -147,7 +147,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
 
 
 @module_route.post("/toggleActive", summary="切换模板激活/停用状态") # 切换模板激活/停用状态
-def toggleActive(id: int = Query(...), session: Session = Depends(get_session)):
+async def toggleActive(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         template = session.get(module_model, id)
         if not template:
@@ -167,7 +167,7 @@ def toggleActive(id: int = Query(...), session: Session = Depends(get_session)):
 
 
 @module_route.get("/queryByTestType", summary="按测试类型查询模板") # 按测试类型查询模板
-def queryByTestType(test_type: str = Query(...), session: Session = Depends(get_session)):
+async def queryByTestType(test_type: str = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(
             module_model.test_type == test_type,

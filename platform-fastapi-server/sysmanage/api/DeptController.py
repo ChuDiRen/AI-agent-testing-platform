@@ -17,7 +17,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["部门管理"])
 logger = get_logger(__name__)
 
 @module_route.get("/tree", summary="获取部门树", dependencies=[Depends(check_permission("system:dept:query"))])
-def getTree(session: Session = Depends(get_session)):
+async def getTree(session: Session = Depends(get_session)):
     """获取部门树"""
     try:
         statement = select(module_model)
@@ -47,7 +47,7 @@ def getTree(session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById", summary="根据ID查询部门", dependencies=[Depends(check_permission("system:dept:query"))])
-def queryById(id: int, session: Session = Depends(get_session)):
+async def queryById(id: int, session: Session = Depends(get_session)):
     """根据ID查询部门"""
     try:
         obj = session.get(module_model, id)
@@ -57,7 +57,7 @@ def queryById(id: int, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/insert", summary="新增部门", dependencies=[Depends(check_permission("system:dept:add"))])
-def insert(request: DeptCreate, session: Session = Depends(get_session)):
+async def insert(request: DeptCreate, session: Session = Depends(get_session)):
     """新增部门"""
     try:
         obj = module_model(**request.model_dump())
@@ -71,7 +71,7 @@ def insert(request: DeptCreate, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.put("/update", summary="更新部门", dependencies=[Depends(check_permission("system:dept:edit"))])
-def update(request: DeptUpdate, session: Session = Depends(get_session)):
+async def update(request: DeptUpdate, session: Session = Depends(get_session)):
     """更新部门"""
     try:
         obj = session.get(module_model, request.id)
@@ -91,7 +91,7 @@ def update(request: DeptUpdate, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.delete("/delete", summary="删除部门", dependencies=[Depends(check_permission("system:dept:delete"))])
-def delete(id: int, session: Session = Depends(get_session)):
+async def delete(id: int, session: Session = Depends(get_session)):
     """删除部门"""
     try:
         obj = session.get(module_model, id)

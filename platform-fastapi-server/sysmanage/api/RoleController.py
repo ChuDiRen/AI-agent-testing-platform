@@ -18,7 +18,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["角色管理"])
 logger = get_logger(__name__)
 
 @module_route.post("/queryByPage", summary="分页查询角色", dependencies=[Depends(check_permission("system:role:query"))]) # 分页查询角色
-def queryByPage(query: RoleQuery, session: Session = Depends(get_session)):
+async def queryByPage(query: RoleQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
         statement = select(module_model)
@@ -42,7 +42,7 @@ def queryByPage(query: RoleQuery, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/queryById", summary="根据ID查询角色", dependencies=[Depends(check_permission("system:role:query"))]) # 根据ID查询角色
-def queryById(id: int, session: Session = Depends(get_session)):
+async def queryById(id: int, session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, id)
         if obj:
@@ -54,7 +54,7 @@ def queryById(id: int, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/insert", summary="新增角色", dependencies=[Depends(check_permission("system:role:add"))]) # 新增角色
-def insert(request: RoleCreate, session: Session = Depends(get_session)):
+async def insert(request: RoleCreate, session: Session = Depends(get_session)):
     try:
         # 检查角色名是否重复
         statement = select(module_model).where(module_model.role_name == request.role_name)
@@ -73,7 +73,7 @@ def insert(request: RoleCreate, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.put("/update", summary="更新角色", dependencies=[Depends(check_permission("system:role:edit"))]) # 更新角色
-def update(request: RoleUpdate, session: Session = Depends(get_session)):
+async def update(request: RoleUpdate, session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, request.id)
         if not obj:
@@ -96,7 +96,7 @@ def update(request: RoleUpdate, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.delete("/delete", summary="删除角色", dependencies=[Depends(check_permission("system:role:delete"))]) # 删除角色
-def delete(id: int, session: Session = Depends(get_session)):
+async def delete(id: int, session: Session = Depends(get_session)):
     try:
         obj = session.get(module_model, id)
         if not obj:
@@ -117,7 +117,7 @@ def delete(id: int, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/assignMenus", summary="为角色分配菜单权限", dependencies=[Depends(check_permission("system:role:edit"))]) # 为角色分配菜单权限
-def assignMenus(request: RoleMenuAssign, session: Session = Depends(get_session)):
+async def assignMenus(request: RoleMenuAssign, session: Session = Depends(get_session)):
     try:
         # 检查角色是否存在
         role = session.get(Role, request.id)
@@ -143,7 +143,7 @@ def assignMenus(request: RoleMenuAssign, session: Session = Depends(get_session)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/menus/{role_id}", summary="获取角色的菜单权限", dependencies=[Depends(check_permission("system:role:query"))]) # 获取角色的菜单权限
-def getMenus(role_id: int, session: Session = Depends(get_session)):
+async def getMenus(role_id: int, session: Session = Depends(get_session)):
     try:
         statement = select(RoleMenu).where(RoleMenu.role_id == role_id)
         role_menus = session.exec(statement).all()

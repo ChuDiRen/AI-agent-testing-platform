@@ -41,11 +41,9 @@
 import { computed, onMounted } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useRouter } from "vue-router"
-import { useCookies } from '@vueuse/integrations/useCookies'
 import { useStore } from 'vuex'
-import { queryById } from '@/views/system/users/user'
+import { getUserInfo } from '@/views/login/login'
 
-const cookies = useCookies()
 const router = useRouter()
 const store = useStore()
 const asideWidth = computed(() => store.state.asideWidth)
@@ -61,11 +59,11 @@ const circleUrl = computed(() => {
 
 // 页面加载时获取用户信息
 onMounted(async () => {
-  // 如果 Vuex 中没有用户信息，但有 token 和 user-id，则重新获取
-  if (!store.state.userInfo && cookies.get('l-token') && cookies.get('l-user-id')) {
+  // 如果 Vuex 中没有用户信息，但有 token，则通过 token 重新获取
+  const token = localStorage.getItem('token')
+  if (!store.state.userInfo && token) {
     try {
-      const userId = cookies.get('l-user-id')
-      const res = await queryById(userId)
+      const res = await getUserInfo()
       if (res.data.code === 200) {
         store.commit('setUserInfo', res.data.data)
       }
@@ -84,7 +82,9 @@ const toggleTheme = () => {
 
 function handleLogout() {
   showModal("是否要退出登录？", "warning", "").then((res) => {
-    cookies.remove("l-token")
+    localStorage.removeItem('token')
+    localStorage.removeItem('username')
+    store.commit('clearUserInfo')
     router.push("/login");
   });
 }

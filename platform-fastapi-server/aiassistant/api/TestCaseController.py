@@ -19,7 +19,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["测试用例管理"])
 
 
 @module_route.post("/queryByPage", summary="分页查询测试用例") # 分页查询测试用例
-def queryByPage(query: TestCaseQuery, session: Session = Depends(get_session)):
+async def queryByPage(query: TestCaseQuery, session: Session = Depends(get_session)):
     try:
         offset = (query.page - 1) * query.pageSize
         statement = select(module_model)
@@ -56,7 +56,7 @@ def queryByPage(query: TestCaseQuery, session: Session = Depends(get_session)):
 
 
 @module_route.get("/queryById", summary="根据ID查询测试用例") # 根据ID查询测试用例
-def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
@@ -70,7 +70,7 @@ def queryById(id: int = Query(...), session: Session = Depends(get_session)):
 
 
 @module_route.post("/insert", summary="新增测试用例") # 新增测试用例
-def insert(case: TestCaseCreate, session: Session = Depends(get_session)):
+async def insert(case: TestCaseCreate, session: Session = Depends(get_session)):
     try:
         data = module_model(**case.model_dump(), create_time=datetime.now(), modify_time=datetime.now())
         session.add(data)
@@ -85,7 +85,7 @@ def insert(case: TestCaseCreate, session: Session = Depends(get_session)):
 
 
 @module_route.post("/batchInsert", summary="批量插入测试用例") # 批量插入测试用例
-def batchInsert(req: BatchInsertRequest, session: Session = Depends(get_session)):
+async def batchInsert(req: BatchInsertRequest, session: Session = Depends(get_session)):
     try:
         created_cases = []
         for case_data in req.test_cases:
@@ -111,7 +111,7 @@ def batchInsert(req: BatchInsertRequest, session: Session = Depends(get_session)
 
 
 @module_route.put("/update", summary="更新测试用例") # 更新测试用例
-def update(case: TestCaseUpdate, session: Session = Depends(get_session)):
+async def update(case: TestCaseUpdate, session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == case.id)
         db_case = session.exec(statement).first()
@@ -132,7 +132,7 @@ def update(case: TestCaseUpdate, session: Session = Depends(get_session)):
 
 
 @module_route.delete("/delete", summary="删除测试用例") # 删除测试用例
-def delete(id: int = Query(...), session: Session = Depends(get_session)):
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         statement = select(module_model).where(module_model.id == id)
         data = session.exec(statement).first()
@@ -150,7 +150,7 @@ def delete(id: int = Query(...), session: Session = Depends(get_session)):
 
 
 @module_route.get("/exportYaml", summary="导出单个测试用例为YAML") # 导出单个测试用例为YAML
-def exportYaml(id: int = Query(...), session: Session = Depends(get_session)):
+async def exportYaml(id: int = Query(...), session: Session = Depends(get_session)):
     try:
         test_case = session.get(module_model, id)
         if not test_case:
@@ -182,7 +182,7 @@ def exportYaml(id: int = Query(...), session: Session = Depends(get_session)):
 
 
 @module_route.post("/exportBatchYaml", summary="批量导出测试用例为YAML") # 批量导出测试用例为YAML
-def exportBatchYaml(case_ids: list[int], session: Session = Depends(get_session)):
+async def exportBatchYaml(case_ids: list[int], session: Session = Depends(get_session)):
     try:
         test_cases = session.exec(
             select(module_model).where(module_model.id.in_(case_ids))

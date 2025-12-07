@@ -32,12 +32,8 @@
 import { ref } from 'vue'
 //这里要后期绑定对应的跳转流程，所以这里需要写下来
 import { useRoute,onBeforeRouteUpdate,useRouter } from 'vue-router';
-//引入cookie用来保存已经打开的页签
-import { useCookies } from '@vueuse/integrations/useCookies';
-// import * as router  from '../../router/index.js'
 
 const route = useRoute()
-const cookies = useCookies()
 const router = useRouter()
 
 
@@ -59,7 +55,7 @@ function addTab(tab){
      //如果noTab为True就表示没有Tab
      tabList.value.push(tab)
    }
-   cookies.set("tabList",tabList.value)
+   localStorage.setItem("tabList", JSON.stringify(tabList.value))
     }
 }
 
@@ -88,11 +84,15 @@ const changeTab = (t)=>{ // 切换标签页
 
 // 初始化标签导航列表
 function initTabList(){
-    const tbs = cookies.get("tabList")
-    if(tbs){
-        tabList.value = tbs
-    } else {
-        // 首次打开不主动导航，避免与路由重定向/其它导航冲突
+    try {
+        const tbs = JSON.parse(localStorage.getItem("tabList") || 'null')
+        if(tbs && Array.isArray(tbs)){
+            tabList.value = tbs
+        } else {
+            // 首次打开不主动导航，避免与路由重定向/其它导航冲突
+            activeTab.value = route.path || tabList.value[0].path
+        }
+    } catch(e) {
         activeTab.value = route.path || tabList.value[0].path
     }
 }
@@ -117,7 +117,7 @@ const removeTab = (t) => {
     changeTab(a)
     tabList.value = tabList.value.filter(tab=>tab.path != t)
 
-    cookies.set("tabList",tabList.value)
+    localStorage.setItem("tabList", JSON.stringify(tabList.value))
 }
 </script>
 <style scoped>

@@ -2,7 +2,6 @@ import {
     createRouter,
     createWebHashHistory
 } from 'vue-router'
-import { useCookies } from '@vueuse/integrations/useCookies';
 
 import NotFound from '~/views/404.vue'
 import Forbidden from '~/views/403.vue'
@@ -84,7 +83,11 @@ import GenHistory from '~/views/generator/history/GenHistory.vue'
 // 插件管理相关导入
 import PluginMarket from '~/views/plugin/PluginMarket.vue'
 
-const cookies = useCookies()
+// 获取 token
+function getToken() {
+    return localStorage.getItem('token')
+}
+
 const routes = [
     {
         path: '/',
@@ -563,7 +566,7 @@ function checkPermission(permission) {
 
 //导航判断逻辑
 router.beforeEach((to, from, next) => {
-    const token = cookies.get("l-token");
+    const token = getToken();
 
     // 如果访问已删除的路由，重定向到首页
     if (deletedRoutes.includes(to.path)) {
