@@ -49,7 +49,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { queryByPage, deleteData, executePlan } from './apiCollectionInfo'
+import { queryByPage, deleteData, executePlan } from './testPlan'
 import { queryAllProject } from '../project/apiProject.js'
 import BaseSearch from '~/components/BaseSearch/index.vue'
 import BaseTable from '~/components/BaseTable/index.vue'
@@ -115,12 +115,12 @@ const resetQuery = () => {
 
 // 新增
 const handleAdd = () => {
-  router.push('/ApiCollectionInfoForm')
+  router.push('/TestPlanForm')
 }
 
 // 编辑
 const handleEdit = (row) => {
-  router.push({ path: '/ApiCollectionInfoForm', query: { id: row.id } })
+  router.push({ path: '/TestPlanForm', query: { id: row.id } })
 }
 
 // 执行测试计划

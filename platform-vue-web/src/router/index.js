@@ -27,8 +27,8 @@ import ApiProjectForm from '~/views/apitest/project/ApiProjectForm.vue'
 import ApiKeyWordForm from '~/views/apitest/keyword/ApiKeyWordForm.vue'
 import ApiKeyWordList from '~/views/apitest/keyword/ApiKeyWordList.vue'
 
-import ApiMateForm from '~/views/apitest/apimate/ApiMateForm.vue'
-import ApiMateList from '~/views/apitest/apimate/ApiMateList.vue'
+import ApiMetaForm from '~/views/apitest/apimeta/ApiMetaForm.vue'
+import ApiMetaList from '~/views/apitest/apimeta/ApiMetaList.vue'
 
 // 接口信息管理相关导入
 import ApiInfoList from '~/views/apitest/apiinfo/ApiInfoList.vue'
@@ -42,9 +42,9 @@ import ApiInfoEditor from '~/views/apitest/apiinfo/ApiInfoEditor.vue'
 import ApiInfoCaseList from '~/views/apitest/apiinfocase/ApiInfoCaseList.vue'
 import ApiInfoCaseForm from '~/views/apitest/apiinfocase/ApiInfoCaseForm.vue'
 
-// 测试集合相关导入（已重命名）
-import ApiCollectionInfoList from '~/views/apitest/collection/ApiCollectionInfoList.vue'
-import ApiCollectionInfoForm from '~/views/apitest/collection/ApiCollectionInfoForm.vue'
+// 测试计划相关导入
+import TestPlanList from '~/views/apitest/testplan/TestPlanList.vue'
+import TestPlanForm from '~/views/apitest/testplan/TestPlanForm.vue'
 
 // 测试历史相关导入（已重命名）
 import ApiHistoryList from '~/views/apitest/history/ApiHistoryList.vue'
@@ -233,25 +233,25 @@ const routes = [
                 permission: "apitest:keyword:list"
             }
         }, {
-            path: "/ApiMateManageForm",
-            component: ApiMateForm,
+            path: "/ApiMetaForm",
+            component: ApiMetaForm,
             meta: {
-                title: "素材维护管理编辑页面",
+                title: "素材编辑",
                 permission: "apitest:meta:add"
             }
         }, {
-            path: "/ApiMateManageList",
-            component: ApiMateList,
+            path: "/ApiMetaList",
+            component: ApiMetaList,
             meta: {
-                title: "素材维护管列表页面",
+                title: "素材列表",
                 permission: "apitest:meta:query"
             }
         }, {
-            path: "/apitest/mate",
-            component: ApiMateList,
+            path: "/apitest/meta",
+            component: ApiMetaList,
             meta: {
                 title: "素材管理",
-                permission: "apitest:mate:list"
+                permission: "apitest:meta:list"
             }
         }, {
             path: "/ApiInfoList",
@@ -345,18 +345,25 @@ const routes = [
                 permission: "apitest:case:add"
             }
         }, {
-            path: "/ApiCollectionInfoList",
-            component: ApiCollectionInfoList,
+            path: "/TestPlanList",
+            component: TestPlanList,
             meta: {
-                title: "测试集合",
-                permission: "apitest:collection:query"
+                title: "测试计划",
+                permission: "apitest:plan:query"
             }
         }, {
-            path: "/ApiCollectionInfoForm",
-            component: ApiCollectionInfoForm,
+            path: "/TestPlanForm",
+            component: TestPlanForm,
             meta: {
-                title: "测试集合表单",
-                permission: "apitest:collection:add"
+                title: "测试计划表单",
+                permission: "apitest:plan:add"
+            }
+        }, {
+            path: "/apitest/plan",
+            component: TestPlanList,
+            meta: {
+                title: "测试计划",
+                permission: "apitest:plan:list"
             }
         }, {
             path: "/RobotConfigList",

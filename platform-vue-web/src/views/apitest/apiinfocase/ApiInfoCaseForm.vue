@@ -138,13 +138,13 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { queryById, insertData, updateData } from './apiInfoCase.js'
+import { queryById, insertData, updateData, executeCase, getExecutionStatus } from './apiInfoCase.js'
 import { queryAll as queryProjects } from '../project/apiProject.js'
 import { queryAll as queryOperationType } from '../keyword/operationType.js'
 import { queryAll as queryKeywords } from '../keyword/apiKeyWord.js'
 import StepEditor from './components/StepEditor.vue'
 import ExecutionResultDialog from './components/ExecutionResultDialog.vue'
-import { listExecutors, executeTask } from '../task/apiTask.js'
+import { listExecutors } from '../task/apiTask.js'
 
 const router = useRouter()
 const formRef = ref(null)
@@ -316,64 +316,7 @@ const executeStatus = ref('')
 const resultDialogVisible = ref(false)
 const executionResult = ref({})
 
-// 转换步骤数据为执行器期望的格式
-// 执行器 send_request 使用小写参数：url, method, headers, json/data
-const convertStepData = (stepData, keywordFunName) => {
-  const result = {}
-  
-  // 参数名映射：大写 → 小写
-  const paramMap = {
-    'URL': 'url',
-    'PARAMS': 'params', 
-    'HEADERS': 'headers',
-    'DATA': 'json',  // JSON 数据用 json 参数
-    'FILES': 'files'
-  }
-  
-  // 从关键字名推断 HTTP 方法
-  let method = 'GET'
-  if (keywordFunName.includes('post')) method = 'POST'
-  else if (keywordFunName.includes('put')) method = 'PUT'
-  else if (keywordFunName.includes('delete')) method = 'DELETE'
-  else if (keywordFunName.includes('patch')) method = 'PATCH'
-  
-  result.method = method
-  
-  // 转换参数
-  for (const [key, value] of Object.entries(stepData || {})) {
-    const newKey = paramMap[key] || key.toLowerCase()
-    result[newKey] = value
-  }
-  
-  return result
-}
-
-// 生成测试用例内容 JSON
-const generateTestCaseContent = () => {
-  const steps = stepsList.value.map(step => {
-    // 获取关键字信息
-    const keyword = keywordList.value.find(k => k.id === step.keyword_id)
-    const keywordFunName = keyword?.keyword_fun_name || 'unknown'
-    const stepDesc = step.step_desc || `步骤${step.run_order}`
-    
-    // 转换参数格式，统一使用 send_request 关键字
-    const convertedData = convertStepData(step.step_data, keywordFunName)
-    
-    // 构建步骤对象
-    return {
-      [stepDesc]: {
-        '关键字': 'send_request',  // 统一使用 send_request
-        ...convertedData
-      }
-    }
-  })
-  
-  return JSON.stringify({
-    desc: caseForm.case_name,
-    steps: steps
-  })
-}
-
+// 执行用例（调用后端统一接口，后端负责 YAML 构建）
 const handleExecute = async () => {
   if (caseId.value === 0) {
     ElMessage.warning('请先保存用例')
@@ -391,49 +334,24 @@ const handleExecute = async () => {
   }
   
   executing.value = true
-  executeStatus.value = '正在执行...'
+  executeStatus.value = '正在提交...'
   
   try {
-    // 生成测试用例内容
-    const testCaseContent = generateTestCaseContent()
-    console.log('测试用例内容:', testCaseContent)
-    
-    // 调用 Task/execute API
-    const res = await executeTask({
-      plugin_code: currentExecutorCode.value,
-      test_case_id: caseId.value,
-      test_case_content: testCaseContent,
-      config: {}
+    // 调用后端统一执行接口，只传 case_id，后端负责构建 YAML
+    const res = await executeCase({
+      case_id: caseId.value,
+      executor_code: currentExecutorCode.value,
+      test_name: caseForm.case_name
     })
     
     if (res.data.code === 200) {
       const result = res.data.data || {}
+      ElMessage.success('用例已提交执行')
       
-      // 构建执行结果数据
-      executionResult.value = {
-        test_id: result.task_id,
-        test_name: `${caseForm.case_name}_${new Date().getTime()}`,
-        status: result.status || 'completed',
-        create_time: new Date().toLocaleString(),
-        finish_time: new Date().toLocaleString(),
-        response_data: JSON.stringify(result.result || result, null, 2),
-        yaml_content: testCaseContent,
-        error_message: result.error || null
-      }
-      
-      if (result.status === 'completed' || result.success) {
-        ElMessage.success('测试执行完成，正在跳转到测试报告页面...')
-        // 跳转到测试历史页面查看执行结果
-        setTimeout(() => {
-          router.push('/ApiHistoryList')
-        }, 1000)
-      } else {
-        ElMessage.warning(result.error || '测试执行完成，请查看详情')
-        // 失败时也跳转到历史页面
-        setTimeout(() => {
-          router.push('/ApiHistoryList')
-        }, 1500)
-      }
+      // 跳转到测试历史页面查看执行结果
+      setTimeout(() => {
+        router.push('/ApiHistoryList')
+      }, 1000)
     } else {
       ElMessage.error(res.data.msg || '执行失败')
     }

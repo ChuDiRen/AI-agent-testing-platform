@@ -28,7 +28,7 @@
 import { reactive, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { insertData, queryById } from "./apiMate.js";
+import { insertData, queryById } from "./apiMeta.js";
 import { queryAllProject } from "../project/apiProject.js";
 import BaseForm from '@/components/BaseForm/index.vue';
 
@@ -87,7 +87,7 @@ const handleSubmit = async () => {
     const res = await insertData(formData);
     if (res.data.code === 200) {
       ElMessage.success('素材上传成功');
-      router.push("/ApiMateManageList");
+      router.push("/ApiMetaList");
     } else {
       ElMessage.error(res.data.msg || '素材上传失败');
     }
@@ -101,7 +101,7 @@ const handleSubmit = async () => {
 
 // 取消
 const handleCancel = () => {
-  router.push("/ApiMateManageList");
+  router.push("/ApiMetaList");
 };
 
 // 加载表单数据

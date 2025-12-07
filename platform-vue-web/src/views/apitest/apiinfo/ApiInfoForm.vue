@@ -21,17 +21,9 @@
             <el-button type="primary" @click="submitForm" :loading="submitting">
               保存接口
             </el-button>
-            <el-dropdown @command="handleTestCommand" trigger="click">
-              <el-button type="success" :loading="testing">
-                调试操作<el-icon class="el-icon--right"><arrow-down /></el-icon>
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="sendRequest">发送请求</el-dropdown-item>
-                  <el-dropdown-item command="downloadResult">发送并下载</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <el-button type="success" :loading="testing" @click="handleTestCommand('sendRequest')">
+              发送请求
+            </el-button>
             <el-button type="warning" @click="addToTestCase" :loading="addingCase">
               加入测试用例
             </el-button>
@@ -942,10 +934,6 @@ const handleTestCommand = async (command: string) => {
       const data = res.data.data;
       handleTaskResult(data);
       
-      // 如果是"发送并下载"命令，触发下载
-      if (command === 'downloadResult') {
-        downloadTestResult(data.result || data);
-      }
     } else {
       ElMessage.error(res.data.msg || '执行失败');
       debugOutput.value = `执行失败: ${res.data.msg}`;

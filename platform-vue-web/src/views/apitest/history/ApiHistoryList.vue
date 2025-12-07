@@ -36,10 +36,15 @@
           <el-tag v-else type="info">运行中</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="allure_report_path" label="报告路径" width="200" show-overflow-tooltip>
+      <el-table-column label="用例统计" width="150">
         <template #default="scope">
-          <span v-if="scope.row.allure_report_path">{{ scope.row.allure_report_path }}</span>
-          <span v-else class="text-muted">-</span>
+          <template v-if="getCaseSummary(scope.row)">
+            <span style="color: #67c23a">{{ getCaseSummary(scope.row).passed }}</span>
+            <span> / </span>
+            <span style="color: #f56c6c">{{ getCaseSummary(scope.row).failed }}</span>
+            <span> / {{ getCaseSummary(scope.row).total }}</span>
+          </template>
+          <span v-else>-</span>
         </template>
       </el-table-column>
       <el-table-column prop="create_time" label="创建时间" width="180">
@@ -65,7 +70,7 @@
     </el-dialog>
 
     <!-- 详情对话框 -->
-    <el-dialog v-model="detailVisible" title="测试详情" width="80%">
+    <el-dialog v-model="detailVisible" title="测试详情" width="85%" top="3vh">
       <el-descriptions :column="2" border>
         <el-descriptions-item label="测试名称">{{ currentRow.test_name }}</el-descriptions-item>
         <el-descriptions-item label="测试状态">
@@ -73,20 +78,44 @@
           <el-tag v-else-if="currentRow.test_status === 'failed'" type="danger">失败</el-tag>
           <el-tag v-else type="info">运行中</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="请求URL">{{ currentRow.request_url }}</el-descriptions-item>
-        <el-descriptions-item label="请求方法">{{ currentRow.request_method }}</el-descriptions-item>
-        <el-descriptions-item label="状态码">{{ currentRow.status_code }}</el-descriptions-item>
-        <el-descriptions-item label="响应时间">{{ currentRow.response_time }}ms</el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ formatDateTime(currentRow.create_time) }}</el-descriptions-item>
         <el-descriptions-item label="完成时间">{{ formatDateTime(currentRow.finish_time) }}</el-descriptions-item>
         <el-descriptions-item label="执行批次">{{ currentRow.execution_uuid || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="报告路径">
-          <template v-if="currentRow.allure_report_path">
-            <el-link type="primary" @click="handleViewReport(currentRow)">{{ currentRow.allure_report_path }}</el-link>
-          </template>
-          <span v-else>-</span>
+        <el-descriptions-item label="用例统计" v-if="parsedResponseData">
+          <span>总计: {{ parsedResponseData.total }} | </span>
+          <span style="color: #67c23a">通过: {{ parsedResponseData.passed }}</span>
+          <span> | </span>
+          <span style="color: #f56c6c">失败: {{ parsedResponseData.failed }}</span>
         </el-descriptions-item>
       </el-descriptions>
+
+      <!-- 汇总报告按钮 -->
+      <div v-if="currentRow.allure_report_path" class="detail-section" style="margin-top: 15px;">
+        <el-button type="primary" @click="handleViewReport(currentRow)">
+          查看汇总报告
+        </el-button>
+      </div>
+
+      <!-- 用例执行结果列表（计划执行时显示） -->
+      <div v-if="parsedResponseData && parsedResponseData.cases && parsedResponseData.cases.length > 0" class="detail-section">
+        <h4>用例执行结果 ({{ parsedResponseData.cases.length }} 个用例)</h4>
+        <el-table :data="parsedResponseData.cases" border stripe style="width: 100%" max-height="400">
+          <el-table-column type="index" label="#" width="50" />
+          <el-table-column prop="case_name" label="用例名称" min-width="250" show-overflow-tooltip />
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="scope">
+              <el-tag v-if="scope.row.success" type="success" size="small">通过</el-tag>
+              <el-tag v-else type="danger" size="small">失败</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="error" label="错误信息" min-width="200" show-overflow-tooltip>
+            <template #default="scope">
+              <span v-if="scope.row.error" style="color: #f56c6c">{{ scope.row.error }}</span>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
       <!-- 错误信息 -->
       <div v-if="currentRow.error_message" class="error-section">
@@ -96,47 +125,57 @@
         </el-alert>
       </div>
 
-      <!-- 请求详情 -->
-      <div class="detail-section">
-        <h4>请求详情</h4>
-        <el-tabs>
-          <el-tab-pane label="请求头">
-            <JsonViewer :data="currentRow.request_headers" :show-toolbar="false" />
-          </el-tab-pane>
-          <el-tab-pane label="请求参数">
-            <JsonViewer v-if="currentRow.request_params" :data="currentRow.request_params" :show-toolbar="false" />
-            <el-empty v-else description="无请求参数" :image-size="60" />
-          </el-tab-pane>
-          <el-tab-pane label="请求体">
-            <JsonViewer v-if="currentRow.request_body" :data="currentRow.request_body" :show-toolbar="false" />
-            <el-empty v-else description="无请求体" :image-size="60" />
-          </el-tab-pane>
-        </el-tabs>
-      </div>
+      <!-- 单用例请求详情（非计划执行时显示） -->
+      <template v-if="!parsedResponseData || !parsedResponseData.cases">
+        <div class="detail-section" v-if="currentRow.request_url">
+          <h4>请求详情</h4>
+          <el-descriptions :column="2" border size="small">
+            <el-descriptions-item label="请求URL">{{ currentRow.request_url }}</el-descriptions-item>
+            <el-descriptions-item label="请求方法">{{ currentRow.request_method }}</el-descriptions-item>
+            <el-descriptions-item label="状态码">{{ currentRow.status_code }}</el-descriptions-item>
+            <el-descriptions-item label="响应时间">{{ currentRow.response_time }}ms</el-descriptions-item>
+          </el-descriptions>
+          <el-tabs style="margin-top: 10px">
+            <el-tab-pane label="请求头">
+              <JsonViewer :data="currentRow.request_headers" :show-toolbar="false" />
+            </el-tab-pane>
+            <el-tab-pane label="请求参数">
+              <JsonViewer v-if="currentRow.request_params" :data="currentRow.request_params" :show-toolbar="false" />
+              <el-empty v-else description="无请求参数" :image-size="60" />
+            </el-tab-pane>
+            <el-tab-pane label="请求体">
+              <JsonViewer v-if="currentRow.request_body" :data="currentRow.request_body" :show-toolbar="false" />
+              <el-empty v-else description="无请求体" :image-size="60" />
+            </el-tab-pane>
+          </el-tabs>
+        </div>
 
-      <!-- 响应详情 -->
-      <div class="detail-section">
-        <h4>响应详情</h4>
-        <el-tabs>
-          <el-tab-pane label="响应头">
-            <JsonViewer v-if="currentRow.response_headers" :data="currentRow.response_headers" :show-toolbar="false" />
-            <el-empty v-else description="无响应头" :image-size="60" />
-          </el-tab-pane>
-          <el-tab-pane label="响应体">
-            <JsonViewer v-if="currentRow.response_body" :data="currentRow.response_body" :show-toolbar="false" />
-            <el-empty v-else description="无响应体" :image-size="60" />
-          </el-tab-pane>
-          <el-tab-pane label="YAML用例" v-if="currentRow.yaml_content">
-            <YamlViewer :content="currentRow.yaml_content" :show-toolbar="false" />
-          </el-tab-pane>
-        </el-tabs>
+        <div class="detail-section" v-if="currentRow.response_body || currentRow.response_headers">
+          <h4>响应详情</h4>
+          <el-tabs>
+            <el-tab-pane label="响应头">
+              <JsonViewer v-if="currentRow.response_headers" :data="currentRow.response_headers" :show-toolbar="false" />
+              <el-empty v-else description="无响应头" :image-size="60" />
+            </el-tab-pane>
+            <el-tab-pane label="响应体">
+              <JsonViewer v-if="currentRow.response_body" :data="currentRow.response_body" :show-toolbar="false" />
+              <el-empty v-else description="无响应体" :image-size="60" />
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+      </template>
+
+      <!-- YAML用例 -->
+      <div class="detail-section" v-if="currentRow.yaml_content">
+        <h4>YAML用例</h4>
+        <YamlViewer :content="currentRow.yaml_content" :show-toolbar="false" />
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { queryByPage, deleteData } from './apiHistory.js'
@@ -171,6 +210,43 @@ const currentRow = ref({})
 // 报告对话框
 const reportVisible = ref(false)
 const reportUrl = ref('')
+
+// 解析 response_data（计划执行时包含多个用例结果）
+const parsedResponseData = computed(() => {
+  if (!currentRow.value.response_data) return null
+  try {
+    const data = typeof currentRow.value.response_data === 'string' 
+      ? JSON.parse(currentRow.value.response_data) 
+      : currentRow.value.response_data
+    // 检查是否是计划执行的结果格式
+    if (data && typeof data.total === 'number' && Array.isArray(data.cases)) {
+      return data
+    }
+    return null
+  } catch {
+    return null
+  }
+})
+
+// 获取用例统计（用于表格列表显示）
+const getCaseSummary = (row) => {
+  if (!row.response_data) return null
+  try {
+    const data = typeof row.response_data === 'string' 
+      ? JSON.parse(row.response_data) 
+      : row.response_data
+    if (data && typeof data.total === 'number') {
+      return {
+        total: data.total,
+        passed: data.passed || 0,
+        failed: data.failed || 0
+      }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
 
 // 查询数据
 const handleQuery = async () => {
@@ -214,15 +290,31 @@ const handleView = (row) => {
   detailVisible.value = true
 }
 
+// 构建报告URL
+const buildReportUrl = (path) => {
+  if (!path) return null
+  // 报告路径格式: temp\executor\xxx 或 temp/executor/xxx
+  // 静态文件挂载: /api/reports -> temp 目录
+  let reportPath = path
+    .replace(/^temp[\\/]/, '')  // 去掉 temp\ 或 temp/ 前缀
+    .replace(/\\/g, '/')        // 将反斜杠替换为正斜杠
+  return `/api/reports/${reportPath}/complete.html`
+}
+
 // 查看报告
 const handleViewReport = (row) => {
   if (row.allure_report_path) {
-    // 报告路径格式: temp\executor\xxx 或 temp/executor/xxx
-    // 静态文件挂载: /api/reports -> temp 目录
-    let reportPath = row.allure_report_path
-      .replace(/^temp[\\/]/, '')  // 去掉 temp\ 或 temp/ 前缀
-      .replace(/\\/g, '/')        // 将反斜杠替换为正斜杠
-    reportUrl.value = `/api/reports/${reportPath}/complete.html`
+    reportUrl.value = buildReportUrl(row.allure_report_path)
+    reportVisible.value = true
+  } else {
+    ElMessage.warning('暂无报告')
+  }
+}
+
+// 查看单个用例的报告
+const handleViewCaseReport = (caseRow) => {
+  if (caseRow.temp_dir) {
+    reportUrl.value = buildReportUrl(caseRow.temp_dir)
     reportVisible.value = true
   } else {
     ElMessage.warning('暂无报告')

@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import Column, Text
 from sqlmodel import SQLModel, Field
 
 
@@ -12,6 +13,6 @@ class ApiCollectionDetail(SQLModel, table=True):
     collection_info_id: int = Field(description='测试集合ID')
     case_info_id: int = Field(description='用例ID')
     run_order: int = Field(default=0, description='执行顺序')
-    ddt_data: Optional[str] = Field(default=None, description='数据驱动JSON（数组格式）')
+    ddt_data: Optional[str] = Field(default=None, sa_column=Column(Text), description='数据驱动JSON（数组格式）')
     create_time: Optional[datetime] = Field(default_factory=datetime.now, description='创建时间')
 

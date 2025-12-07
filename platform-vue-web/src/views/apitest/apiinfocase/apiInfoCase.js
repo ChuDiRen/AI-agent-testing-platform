@@ -49,6 +49,22 @@ export function getSteps(caseId) {
     return axios.get(`/${module_name}/getSteps?case_id=${caseId}&_alias=case-steps`)
 }
 
+// ==================== 执行相关接口 ====================
+
+/**
+ * 执行单个用例（后端统一处理 YAML 构建）
+ */
+export function executeCase(data) {
+    return axios.post(`/${module_name}/executeCase?_alias=case-execute`, data)
+}
+
+/**
+ * 查询执行状态
+ */
+export function getExecutionStatus(testId) {
+    return axios.get(`/${module_name}/executionStatus?test_id=${testId}&_alias=case-status`)
+}
+
 // ==================== 关键字相关接口 ====================
 
 /**

@@ -49,7 +49,7 @@
 
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from "vue";
-import { queryByPage, deleteData, downloadFile } from "./apiMate.js";
+import { queryByPage, deleteData, downloadFile } from "./apiMeta.js";
 import { queryAllProject } from "../project/apiProject.js";
 import { formatDateTime } from '@/utils/timeFormatter';
 import { useRouter } from "vue-router";
@@ -121,7 +121,7 @@ const onDataForm = (index: number) => {
   if (index >= 0) {
     params_data = { id: tableData.value[index]["id"] };
   }
-  router.push({ path: "/ApiMateManageForm", query: params_data });
+  router.push({ path: "/ApiMetaForm", query: params_data });
 };
 
 // 删除

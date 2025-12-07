@@ -1,31 +1,27 @@
 import json
-import subprocess
 from datetime import datetime
 from pathlib import Path
 
 import yaml
+from fastapi import APIRouter, Depends, Query
+from sqlmodel import Session, select
+
 from core.database import get_session
 from core.dependencies import check_permission
 from core.logger import get_logger
 from core.resp_model import respModel
 from core.time_utils import TimeFormatter
-from fastapi import APIRouter, Depends, Query, BackgroundTasks
-from sqlmodel import Session, select
+from config.dev_settings import settings
 
 from ..model.ApiHistoryModel import ApiHistory
 from ..model.ApiInfoCaseModel import ApiInfoCase
 from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
 from ..model.ApiKeyWordModel import ApiKeyWord
-from ..model.ApiCollectionInfoModel import ApiCollectionInfo
-from ..model.ApiCollectionDetailModel import ApiCollectionDetail
 from ..schemas.api_info_case_schema import (
     ApiInfoCaseQuery, ApiInfoCaseCreate, ApiInfoCaseUpdate,
     YamlGenerateRequest,
     ApiInfoCaseExecuteRequest
 )
-from config.dev_settings import settings
-from plugin.model.PluginModel import Plugin
-from plugin.service.TaskScheduler import task_scheduler
 
 logger = get_logger(__name__)
 
@@ -324,329 +320,47 @@ async def generateYaml(request: YamlGenerateRequest, session: Session = Depends(
 @module_route.post("/executeCase", summary="执行用例测试（异步）", dependencies=[Depends(check_permission("apitest:case:execute"))])
 async def executeCase(
     request: ApiInfoCaseExecuteRequest,
-    background_tasks: BackgroundTasks,
     session: Session = Depends(get_session)
 ):
     """
     异步执行用例测试
     支持两种模式：
     - 单用例执行：提供 case_id
-    - 批量执行计划：提供 plan_id（执行计划中所有用例，生成一份报告）
+    - 批量执行计划：提供 plan_id
     接口立即返回 test_id，前端通过 /executionStatus 接口轮询结果
     """
-    import uuid
+    from ..service.execution_service import ExecutionService
     
     try:
         # 参数校验
         if not request.case_id and not request.plan_id:
             return respModel.error_resp("请提供 case_id 或 plan_id")
         
-        # 选择执行器插件
+        exec_service = ExecutionService(session)
         plugin_code = request.executor_code or "api_engine"
-        plugin = session.exec(
-            select(Plugin).where(Plugin.plugin_code == plugin_code)
-        ).first()
-        if not plugin:
-            return respModel.error_resp(f"执行器插件不存在: {plugin_code}")
-        if plugin.is_enabled != 1:
-            return respModel.error_resp(f"执行器插件未启用: {plugin_code}")
-        if plugin.plugin_type != "executor":
-            return respModel.error_resp(f"插件类型错误: {plugin.plugin_type}")
         
-        # ==================== 批量执行计划模式 ====================
+        # 验证执行器
+        exec_service.validate_executor(plugin_code)
+        
+        # 执行（内部自动提交后台任务）
         if request.plan_id:
-            plan = session.get(ApiCollectionInfo, request.plan_id)
-            if not plan:
-                return respModel.error_resp("测试计划不存在")
-            
-            # 查询计划中的所有用例
-            case_stmt = select(ApiCollectionDetail).where(
-                ApiCollectionDetail.collection_info_id == request.plan_id
-            ).order_by(ApiCollectionDetail.run_order)
-            plan_cases = session.exec(case_stmt).all()
-            
-            if not plan_cases:
-                return respModel.error_resp("测试计划中没有用例")
-            
-            # 生成唯一的执行UUID
-            execution_uuid = str(uuid.uuid4())
-            
-            # 构建所有用例的 YAML 数据
-            all_yaml_cases = []
-            combined_yaml_content = ""
-            
-            for idx, plan_case in enumerate(plan_cases):
-                case_info = session.get(ApiInfoCase, plan_case.case_info_id)
-                if not case_info:
-                    continue
-                
-                # 查询用例步骤
-                step_stmt = select(ApiInfoCaseStep).where(
-                    ApiInfoCaseStep.case_info_id == plan_case.case_info_id
-                ).order_by(ApiInfoCaseStep.run_order)
-                steps = session.exec(step_stmt).all()
-                
-                if not steps:
-                    continue
-                
-                # 构建单个用例
-                yaml_data = {'desc': case_info.case_name, 'steps': []}
-                for step in steps:
-                    step_data_dict = json.loads(step.step_data) if step.step_data else {}
-                    keyword = session.get(ApiKeyWord, step.keyword_id) if step.keyword_id else None
-                    keyword_name = keyword.keyword_fun_name if keyword else "send_request"
-                    step_item = {
-                        step.step_desc or f"步骤{step.run_order}": {
-                            '关键字': keyword_name,
-                            **step_data_dict
-                        }
-                    }
-                    yaml_data['steps'].append(step_item)
-                
-                yaml_content_single = yaml.dump(yaml_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
-                all_yaml_cases.append(yaml_data)
-                combined_yaml_content += f"# 用例 {idx + 1}: {case_info.case_name}\n{yaml_content_single}\n---\n"
-            
-            if not all_yaml_cases:
-                return respModel.error_resp("没有有效的测试用例")
-            
-            # 创建测试历史记录
-            test_name = request.test_name or f"{plan.plan_name}_测试_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            test_history = ApiHistory(
-                api_info_id=0,
-                case_info_id=0,
-                project_id=plan.project_id or 0,
+            result = exec_service.execute_plan(
                 plan_id=request.plan_id,
-                execution_uuid=execution_uuid,
-                test_name=test_name,
-                test_status="running",
-                yaml_content=combined_yaml_content,
-                create_time=datetime.now(),
-                modify_time=datetime.now()
+                executor_code=plugin_code,
+                test_name=request.test_name
             )
-            session.add(test_history)
-            session.commit()
-            session.refresh(test_history)
-            
-            # 创建工作空间
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            workspace_name = f"plan_{test_history.id}_{timestamp}"
-            yaml_dir = YAML_DIR / workspace_name
-            report_dir = REPORT_DIR / workspace_name
-            for directory in [TEMP_DIR, YAML_DIR, REPORT_DIR, LOG_DIR, yaml_dir, report_dir]:
-                directory.mkdir(exist_ok=True)
-            
-            # 保存 YAML 文件
-            yaml_filename = f"{plan.plan_name}_{test_history.id}.yaml"
-            (yaml_dir / yaml_filename).write_text(combined_yaml_content, encoding='utf-8')
-            test_history.allure_report_path = str(report_dir)
-            session.commit()
-            
-            # 将所有用例合并为一个列表传递给执行器
-            combined_content = json.dumps(all_yaml_cases, ensure_ascii=False)
-            test_id = test_history.id
-            total_cases = len(all_yaml_cases)
-            
-            def _execute_plan_in_background():
-                import asyncio
-                from core.database import engine
-                from sqlmodel import Session as DBSession
-                db = DBSession(engine)
-                try:
-                    hist = db.get(ApiHistory, test_id)
-                    if not hist:
-                        logger.warning(f"测试记录不存在: {test_id}")
-                        return
-                    
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    try:
-                        result = loop.run_until_complete(
-                            task_scheduler.execute_test(
-                                session=db,
-                                plugin_code=plugin_code,
-                                test_case_id=test_id,
-                                test_case_content=combined_content,
-                                config={}
-                            )
-                        )
-                    finally:
-                        loop.close()
-                    
-                    logger.info(f"计划执行结果: success={result.get('success')}, temp_dir={result.get('temp_dir')}")
-                    if result.get("success"):
-                        hist.test_status = result.get("status", "completed")
-                        if result.get("result"):
-                            hist.response_data = json.dumps(result.get("result"), ensure_ascii=False)
-                        temp_dir = result.get("temp_dir")
-                        if temp_dir:
-                            hist.allure_report_path = temp_dir
-                    else:
-                        hist.test_status = "failed"
-                        hist.error_message = result.get("error")
-                    
-                    hist.finish_time = datetime.now()
-                    hist.modify_time = datetime.now()
-                    db.commit()
-                    logger.info(f"计划测试完成: {test_id}, 状态: {hist.test_status}")
-                    
-                except Exception as e:
-                    logger.error(f"计划执行失败: {test_id}, 错误: {e}", exc_info=True)
-                    try:
-                        hist = db.get(ApiHistory, test_id)
-                        if hist:
-                            hist.test_status = "failed"
-                            hist.error_message = str(e)
-                            hist.finish_time = datetime.now()
-                            db.commit()
-                    except:
-                        pass
-                finally:
-                    db.close()
-            
-            background_tasks.add_task(_execute_plan_in_background)
-            
-            return respModel.ok_resp(
-                dic_t={
-                    "test_id": test_id,
-                    "execution_uuid": execution_uuid,
-                    "status": "running",
-                    "total_cases": total_cases,
-                    "plan_id": request.plan_id
-                },
-                msg="测试计划已提交，请通过 executionStatus 接口查询结果"
-            )
+            return respModel.ok_resp(dic_t=result, msg="测试计划已提交，请通过 executionStatus 接口查询结果")
         
-        # ==================== 单用例执行模式 ====================
-        case_info = session.get(ApiInfoCase, request.case_id)
-        if not case_info:
-            return respModel.error_resp("用例不存在")
-
-        # 创建测试历史记录
-        test_name = request.test_name or f"{case_info.case_name}_测试_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        test_history = ApiHistory(
-            api_info_id=0,
-            case_info_id=request.case_id,
-            project_id=case_info.project_id or 0,
-            test_name=test_name,
-            test_status="running",
-            create_time=datetime.now(),
-            modify_time=datetime.now()
+        result = exec_service.execute_case(
+            case_id=request.case_id,
+            executor_code=plugin_code,
+            test_name=request.test_name,
+            context_vars=request.context_vars
         )
-        session.add(test_history)
-        session.commit()
-        session.refresh(test_history)
-
-        # 创建工作空间
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        workspace_name = f"case_{test_history.id}_{timestamp}"
-        yaml_dir = YAML_DIR / workspace_name
-        report_dir = REPORT_DIR / workspace_name
-        for directory in [TEMP_DIR, YAML_DIR, REPORT_DIR, LOG_DIR, yaml_dir, report_dir]:
-            directory.mkdir(exist_ok=True)
-
-        # 生成 YAML 内容
-        statement = select(ApiInfoCaseStep).where(
-            ApiInfoCaseStep.case_info_id == request.case_id
-        ).order_by(ApiInfoCaseStep.run_order)
-        steps = session.exec(statement).all()
-
-        yaml_data = {'desc': case_info.case_name, 'steps': []}
-        for step in steps:
-            step_data_dict = json.loads(step.step_data) if step.step_data else {}
-            keyword = session.get(ApiKeyWord, step.keyword_id) if step.keyword_id else None
-            keyword_name = keyword.keyword_fun_name if keyword else "unknown"
-            step_item = {
-                step.step_desc or f"步骤{step.run_order}": {
-                    '关键字': keyword_name,
-                    **step_data_dict
-                }
-            }
-            yaml_data['steps'].append(step_item)
-
-        if request.context_vars:
-            yaml_data['ddts'] = [{'desc': f'{case_info.case_name}_数据', **request.context_vars}]
-
-        yaml_content = yaml.dump(yaml_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
-        yaml_filename = f"{case_info.case_name}_{test_history.id}.yaml"
-        (yaml_dir / yaml_filename).write_text(yaml_content, encoding='utf-8')
-
-        # 保存 yaml_content 到历史记录
-        test_history.yaml_content = yaml_content
-        test_history.allure_report_path = str(report_dir)
-        session.commit()
-
-        # 定义后台任务
-        test_id = test_history.id
-        def _execute_in_background():
-            import asyncio
-            from core.database import engine
-            from sqlmodel import Session as DBSession
-            db = DBSession(engine)
-            try:
-                hist = db.get(ApiHistory, test_id)
-                if not hist:
-                    logger.warning(f"测试记录不存在: {test_id}")
-                    return
-
-                # 执行测试
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    result = loop.run_until_complete(
-                        task_scheduler.execute_test(
-                            session=db,
-                            plugin_code=plugin_code,
-                            test_case_id=test_id,
-                            test_case_content=yaml_content,
-                            config=None
-                        )
-                    )
-                finally:
-                    loop.close()
-
-                # 更新状态
-                logger.info(f"执行结果: success={result.get('success')}, temp_dir={result.get('temp_dir')}")
-                if result.get("success"):
-                    hist.test_status = result.get("status", "completed")
-                    # 保存执行结果数据
-                    if result.get("result"):
-                        hist.response_data = json.dumps(result.get("result"), ensure_ascii=False)
-                    # 更新报告路径（temp_dir 是执行目录，报告在其中）
-                    temp_dir = result.get("temp_dir")
-                    if temp_dir:
-                        hist.allure_report_path = temp_dir
-                        logger.info(f"报告路径已更新: {temp_dir}")
-                else:
-                    hist.test_status = "failed"
-                    hist.error_message = result.get("error")
-
-                hist.finish_time = datetime.now()
-                hist.modify_time = datetime.now()
-                db.commit()
-                logger.info(f"用例测试完成: {test_id}, 状态: {hist.test_status}")
-
-            except Exception as e:
-                logger.error(f"后台执行失败: {test_id}, 错误: {e}", exc_info=True)
-                try:
-                    hist = db.get(ApiHistory, test_id)
-                    if hist:
-                        hist.test_status = "failed"
-                        hist.error_message = str(e)
-                        hist.finish_time = datetime.now()
-                        db.commit()
-                except:
-                    pass
-            finally:
-                db.close()
-
-        # 添加后台任务
-        background_tasks.add_task(_execute_in_background)
-
-        return respModel.ok_resp(
-            dic_t={"test_id": test_id, "status": "running"},
-            msg="用例测试已提交，请通过 executionStatus 接口查询结果"
-        )
+        return respModel.ok_resp(dic_t=result, msg="用例测试已提交，请通过 executionStatus 接口查询结果")
+        
+    except ValueError as e:
+        return respModel.error_resp(str(e))
     except Exception as e:
         session.rollback()
         logger.error(f"操作失败: {e}", exc_info=True)

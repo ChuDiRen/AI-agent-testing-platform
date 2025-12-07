@@ -89,7 +89,7 @@
 import { ref, onMounted, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { insertData, updateData, queryById, removeCase, updateDdtData, getDdtTemplate } from './apiCollectionInfo'
+import { insertData, updateData, queryById, removeCase, updateDdtData, getDdtTemplate } from './testPlan'
 import JsonEditor from '@/components/JsonEditor.vue'
 import { queryAllExecutors } from '@/views/plugin/plugin.js'
 

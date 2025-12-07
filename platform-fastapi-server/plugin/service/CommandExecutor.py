@@ -112,40 +112,62 @@ class CommandExecutor:
             执行结果
         """
         try:
-            # 生成任务ID
-            task_id = str(uuid.uuid4())
-
-            # 使用项目 temp 目录下的 executor 子目录
-            temp_dir = get_temp_subdir("executor") / task_id
-            temp_dir.mkdir(parents=True, exist_ok=True)
+            # 检查是否是目录模式（计划批量执行）
+            is_directory = config.get("is_directory", False) if config else False
             
-            # 文件名需要以数字开头，符合 YamlCaseParser 的命名规范
-            case_file = temp_dir / f"1_test_case_{test_case_id}.yaml"
-            
-            # 检测并转换内容格式：如果是 JSON 则转为 YAML
-            yaml_content = test_case_content
-            if test_case_content.strip().startswith('{'):
-                try:
-                    data = json.loads(test_case_content)
-                    yaml_content = yaml.dump(data, allow_unicode=True, default_flow_style=False, sort_keys=False)
-                    logger.info(f"Task {task_id}: 已将 JSON 转换为 YAML 格式")
-                except json.JSONDecodeError:
-                    pass  # 不是有效 JSON，保持原样
-            
-            case_file.write_text(yaml_content, encoding='utf-8')
+            if is_directory:
+                # 目录模式：test_case_content 是已存在的用例目录路径
+                cases_dir = Path(test_case_content)
+                if not cases_dir.exists():
+                    return {
+                        "success": False,
+                        "error": f"用例目录不存在: {cases_dir}"
+                    }
+                temp_dir = cases_dir
+                task_id = cases_dir.name  # 使用目录名作为任务ID
+                logger.info(f"Task {task_id}: 目录模式，使用已有用例目录: {cases_dir}")
+            else:
+                # 单用例模式：创建临时目录并保存用例文件
+                task_id = str(uuid.uuid4())
+                temp_dir = get_temp_subdir("executor") / task_id
+                temp_dir.mkdir(parents=True, exist_ok=True)
+                
+                # 文件名需要以数字开头，符合 YamlCaseParser 的命名规范
+                case_file = temp_dir / f"1_test_case_{test_case_id}.yaml"
+                
+                # 检测并转换内容格式：如果是 JSON 则转为 YAML
+                yaml_content = test_case_content
+                stripped_content = test_case_content.strip()
+                if stripped_content.startswith('{') or stripped_content.startswith('['):
+                    try:
+                        data = json.loads(test_case_content)
+                        # 如果是列表，需要将每个用例分别转换为 YAML 并用 --- 分隔
+                        if isinstance(data, list):
+                            yaml_parts = []
+                            for item in data:
+                                yaml_parts.append(yaml.dump(item, allow_unicode=True, default_flow_style=False, sort_keys=False))
+                            yaml_content = "---\n".join(yaml_parts)
+                            logger.info(f"Task {task_id}: 已将 JSON 数组({len(data)}个用例)转换为 YAML 格式")
+                        else:
+                            yaml_content = yaml.dump(data, allow_unicode=True, default_flow_style=False, sort_keys=False)
+                            logger.info(f"Task {task_id}: 已将 JSON 对象转换为 YAML 格式")
+                    except json.JSONDecodeError:
+                        pass  # 不是有效 JSON，保持原样
+                
+                case_file.write_text(yaml_content, encoding='utf-8')
             
             # 构建命令行参数（使用绝对路径避免路径解析问题）
             cmd_args = self.command.split()
             cmd_args.extend([
                 "--type=yaml",
-                f"--cases={case_file.parent.resolve()}",
+                f"--cases={temp_dir.resolve()}",
             ])
             
             # 动态添加配置参数（支持所有自定义参数）
             if config:
                 for key, value in config.items():
                     # 跳过内部配置项（不传递给命令行）
-                    if key in ("timeout", "work_dir", "_internal"):
+                    if key in ("timeout", "work_dir", "_internal", "is_directory"):
                         continue
                     
                     # 跳过已经通过固定参数传递的
@@ -335,7 +357,6 @@ class CommandExecutor:
                 "task_id": task_id,
                 "status": simple_result["status"],
                 "data": simple_result,
-                "case_file": str(case_file),
                 "temp_dir": str(temp_dir)
             }
             

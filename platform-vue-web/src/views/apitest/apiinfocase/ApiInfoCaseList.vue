@@ -100,8 +100,9 @@ import { queryAll as queryKeywords } from '../keyword/apiKeyWord.js'
 import { useRouter } from 'vue-router'
 import BaseSearch from '~/components/BaseSearch/index.vue'
 import BaseTable from '~/components/BaseTable/index.vue'
-import { listExecutors, executeTask } from '../task/apiTask.js'
-import { queryByPage as queryPlans, batchAddCases } from '../collection/apiCollectionInfo.js'
+import { listExecutors } from '../task/apiTask.js'
+import { queryByPage as queryPlans, batchAddCases } from '../testplan/testPlan.js'
+import { executeCase } from './apiInfoCase.js'
 
 const router = useRouter()
 
@@ -286,57 +287,7 @@ const handleEdit = (row) => {
   })
 }
 
-// 转换步骤数据为执行器期望的格式
-const convertStepData = (stepData, keywordFunName) => {
-  const result = {}
-  const paramMap = {
-    'URL': 'url',
-    'PARAMS': 'params', 
-    'HEADERS': 'headers',
-    'DATA': 'json',
-    'FILES': 'files'
-  }
-  
-  let method = 'GET'
-  if (keywordFunName.includes('post')) method = 'POST'
-  else if (keywordFunName.includes('put')) method = 'PUT'
-  else if (keywordFunName.includes('delete')) method = 'DELETE'
-  else if (keywordFunName.includes('patch')) method = 'PATCH'
-  
-  result.method = method
-  
-  for (const [key, value] of Object.entries(stepData || {})) {
-    const newKey = paramMap[key] || key.toLowerCase()
-    result[newKey] = value
-  }
-  
-  return result
-}
-
-// 生成测试用例内容 JSON
-const generateTestCaseContent = (caseData) => {
-  const steps = (caseData.steps || []).map(step => {
-    const keyword = keywordList.value.find(k => k.id === step.keyword_id)
-    const keywordFunName = keyword?.keyword_fun_name || 'unknown'
-    const stepDesc = step.step_desc || `步骤${step.run_order}`
-    
-    const convertedData = convertStepData(step.step_data, keywordFunName)
-    
-    return {
-      [stepDesc]: {
-        '关键字': 'send_request',
-        ...convertedData
-      }
-    }
-  })
-  
-  return JSON.stringify({
-    desc: caseData.case_name,
-    steps: steps
-  })
-}
-
-// 执行用例
+// 执行用例（调用后端统一接口，后端负责 YAML 构建）
 const handleExecute = async (row) => {
   try {
     await ElMessageBox.confirm(`确定执行用例 "${row.case_name}" 吗？`, '提示', {
@@ -348,46 +299,19 @@ const handleExecute = async (row) => {
       return
     }
 
-    // 获取用例详情（包含步骤）
-    const detailRes = await queryById(row.id)
-    if (detailRes.data.code !== 200 || !detailRes.data.data) {
-      ElMessage.error('获取用例详情失败')
-      return
-    }
-    
-    const caseData = detailRes.data.data
-    if (!caseData.steps || caseData.steps.length === 0) {
-      ElMessage.warning('该用例没有测试步骤')
-      return
-    }
-    
-    // 生成测试用例内容
-    const testCaseContent = generateTestCaseContent(caseData)
-    console.log('测试用例内容:', testCaseContent)
-
-    // 调用 Task/execute API
-    const res = await executeTask({
-      plugin_code: currentExecutorCode.value,
-      test_case_id: row.id,
-      test_case_content: testCaseContent,
-      config: {}
+    // 调用后端统一执行接口，只传 case_id，后端负责构建 YAML
+    const res = await executeCase({
+      case_id: row.id,
+      executor_code: currentExecutorCode.value,
+      test_name: row.case_name
     })
 
     if (res.data.code === 200) {
-      const result = res.data.data || {}
-      if (result.status === 'completed' || result.success) {
-        ElMessage.success('测试执行完成，正在跳转到测试报告页面...')
-        // 跳转到测试历史页面查看执行结果
-        setTimeout(() => {
-          router.push('/ApiHistoryList')
-        }, 1000)
-      } else {
-        ElMessage.warning(result.error || '测试执行完成，请查看详情')
-        // 失败时也跳转到历史页面
-        setTimeout(() => {
-          router.push('/ApiHistoryList')
-        }, 1500)
-      }
+      ElMessage.success('用例已提交执行')
+      // 跳转到测试历史页面查看执行结果
+      setTimeout(() => {
+        router.push('/ApiHistoryList')
+      }, 1000)
     } else {
       ElMessage.error(res.data.msg || '执行失败')
     }
