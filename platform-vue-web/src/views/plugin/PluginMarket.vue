@@ -57,7 +57,15 @@
       <el-table-column prop="version" label="版本" width="80" align="center" />
       <el-table-column prop="command" label="执行命令" min-width="120" show-overflow-tooltip />
       <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip />
-      <el-table-column prop="is_enabled" label="状态" width="80" align="center">
+      <el-table-column prop="install_status" label="安装状态" width="100" align="center">
+        <template #default="{ row }">
+          <el-tag v-if="row.install_status === 'installed'" type="success" size="small">已安装</el-tag>
+          <el-tag v-else-if="row.install_status === 'installing'" type="warning" size="small">安装中</el-tag>
+          <el-tag v-else-if="row.install_status === 'install_failed'" type="danger" size="small">安装失败</el-tag>
+          <el-tag v-else type="info" size="small">未安装</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="is_enabled" label="启用" width="70" align="center">
         <template #default="{ row }">
           <el-switch
             v-model="row.is_enabled"
@@ -67,11 +75,25 @@
           />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="150" fixed="right" align="center">
+      <el-table-column label="操作" width="180" fixed="right" align="center">
         <template #default="{ row }">
           <el-button link type="primary" @click="handleView(row)">详情</el-button>
           <el-button link type="primary" @click="handleHealthCheck(row)">检测</el-button>
-          <el-button v-if="row.plugin_content" link type="success" @click="handleInstall(row)">安装</el-button>
+          <el-button 
+            v-if="row.plugin_content && row.install_status !== 'installed'" 
+            link 
+            type="success" 
+            @click="handleInstall(row)"
+            :disabled="row.install_status === 'installing'"
+          >
+            {{ row.install_status === 'installing' ? '安装中...' : '安装' }}
+          </el-button>
+          <el-button 
+            v-if="row.install_status === 'installed'" 
+            link 
+            type="warning" 
+            @click="handleUninstall(row)"
+          >卸载</el-button>
           <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
@@ -119,6 +141,24 @@
         </el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ currentPlugin.create_time || '-' }}</el-descriptions-item>
         <el-descriptions-item label="修改时间">{{ currentPlugin.modify_time || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="安装状态">
+          <el-tag v-if="currentPlugin.install_status === 'installed'" type="success">已安装</el-tag>
+          <el-tag v-else-if="currentPlugin.install_status === 'installing'" type="warning">安装中</el-tag>
+          <el-tag v-else-if="currentPlugin.install_status === 'install_failed'" type="danger">安装失败</el-tag>
+          <el-tag v-else type="info">未安装</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="健康状态">
+          <el-tag v-if="currentPlugin.health_status === 'healthy'" type="success">健康</el-tag>
+          <el-tag v-else-if="currentPlugin.health_status === 'unhealthy'" type="danger">不健康</el-tag>
+          <el-tag v-else-if="currentPlugin.health_status === 'degraded'" type="warning">降级</el-tag>
+          <el-tag v-else type="info">未知</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item v-if="currentPlugin.venv_path" label="虚拟环境" :span="2">
+          <code>{{ currentPlugin.venv_path }}</code>
+        </el-descriptions-item>
+        <el-descriptions-item v-if="currentPlugin.install_time" label="安装时间">
+          {{ currentPlugin.install_time }}
+        </el-descriptions-item>
       </el-descriptions>
     </el-dialog>
 
@@ -198,7 +238,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { Upload, UploadFilled, Folder, Loading } from '@element-plus/icons-vue'
 import JSZip from 'jszip'
-import { queryByPage, togglePlugin, unregisterPlugin, healthCheck, uploadExecutor, installExecutor, getInstallStatus } from './plugin.js'
+import { queryByPage, togglePlugin, unregisterPlugin, healthCheck, uploadExecutor, installExecutor, getInstallStatus, uninstallExecutor } from './plugin.js'
 import BaseSearch from '@/components/BaseSearch/index.vue'
 import BaseTable from '@/components/BaseTable/index.vue'
 
@@ -489,6 +529,30 @@ const handleHealthCheck = async (row) => {
     loadingInstance.close()
     ElMessage.error('插件检测失败')
   }
+}
+
+// 卸载执行器
+const handleUninstall = (row) => {
+  ElMessageBox.confirm(`确定要卸载执行器 "${row.plugin_name}" 吗？\n这将删除安装目录和虚拟环境，但保留数据库记录。`, '确认卸载', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    const loadingInstance = ElLoading.service({ text: '正在卸载...' })
+    try {
+      const res = await uninstallExecutor(row.id)
+      loadingInstance.close()
+      if (res.data.code === 200) {
+        ElMessage.success('卸载成功')
+        loadData()
+      } else {
+        ElMessage.error(res.data.msg || '卸载失败')
+      }
+    } catch (error) {
+      loadingInstance.close()
+      ElMessage.error('卸载失败: ' + error.message)
+    }
+  })
 }
 
 // 删除插件

@@ -291,20 +291,29 @@ const handleView = (row) => {
 }
 
 // 构建报告URL
-const buildReportUrl = (path) => {
-  if (!path) return null
-  // 报告路径格式: temp\executor\xxx 或 temp/executor/xxx
-  // 静态文件挂载: /api/reports -> temp 目录
-  let reportPath = path
-    .replace(/^temp[\\/]/, '')  // 去掉 temp\ 或 temp/ 前缀
-    .replace(/\\/g, '/')        // 将反斜杠替换为正斜杠
-  return `/api/reports/${reportPath}/complete.html`
+const buildReportUrl = (path, historyId) => {
+  // 使用后端 API 查看报告（智能查找报告文件）
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+  
+  if (historyId) {
+    return `${apiBase}/ApiReportViewer/view?history_id=${historyId}`
+  }
+  
+  // 备用：如果没有 historyId，尝试静态文件方式
+  if (path) {
+    let reportPath = path
+      .replace(/^temp[\\/]/, '')
+      .replace(/\\/g, '/')
+    return `/api/reports/${reportPath}/complete.html`
+  }
+  
+  return null
 }
 
 // 查看报告
 const handleViewReport = (row) => {
-  if (row.allure_report_path) {
-    reportUrl.value = buildReportUrl(row.allure_report_path)
+  if (row.allure_report_path || row.id) {
+    reportUrl.value = buildReportUrl(row.allure_report_path, row.id)
     reportVisible.value = true
   } else {
     ElMessage.warning('暂无报告')

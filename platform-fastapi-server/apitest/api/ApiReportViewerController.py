@@ -30,6 +30,67 @@ module_name = "ApiReportViewer"
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API测试报告查看"])
 
 
+def find_report_file(target_report_path: Path) -> Optional[Path]:
+    """
+    智能查找报告文件
+    
+    查找顺序：
+    1. 目标目录下的 complete.html
+    2. 目标目录下的 index.html
+    3. 关联的 venv/site-packages/reports/complete.html（执行器生成的报告）
+    
+    Args:
+        target_report_path: 测试执行目录路径
+    
+    Returns:
+        报告文件路径，未找到返回 None
+    """
+    if not target_report_path:
+        return None
+    
+    # 1. 目标目录下的 complete.html
+    if target_report_path.exists():
+        complete_file = target_report_path / "complete.html"
+        if complete_file.exists():
+            return complete_file
+        
+        # 2. 目标目录下的 index.html
+        index_file = target_report_path / "index.html"
+        if index_file.exists():
+            return index_file
+    
+    # 3. 查找关联的执行器 venv 中的报告
+    # 路径格式: temp/executor/case_xxx -> 查找 temp/executor/plugin_xxx/venv/.../reports/complete.html
+    try:
+        # 从测试目录名提取信息，查找对应的插件目录
+        # 测试目录格式: case_{case_id}_{timestamp}_{uuid}
+        executor_base = target_report_path.parent  # temp/executor
+        
+        # 遍历所有 plugin_* 目录
+        if executor_base.exists():
+            for plugin_dir in executor_base.iterdir():
+                if plugin_dir.is_dir() and plugin_dir.name.startswith("plugin_"):
+                    # 查找 venv/Lib/site-packages/reports/complete.html (Windows)
+                    venv_report = plugin_dir / "venv" / "Lib" / "site-packages" / "reports" / "complete.html"
+                    if venv_report.exists():
+                        logger.info(f"在 venv 中找到报告: {venv_report}")
+                        return venv_report
+                    
+                    # 查找 venv/lib/python*/site-packages/reports/complete.html (Linux)
+                    venv_lib = plugin_dir / "venv" / "lib"
+                    if venv_lib.exists():
+                        for py_dir in venv_lib.iterdir():
+                            if py_dir.name.startswith("python"):
+                                venv_report = py_dir / "site-packages" / "reports" / "complete.html"
+                                if venv_report.exists():
+                                    logger.info(f"在 venv 中找到报告: {venv_report}")
+                                    return venv_report
+    except Exception as e:
+        logger.warning(f"查找 venv 报告失败: {e}")
+    
+    return None
+
+
 @module_route.get("/view", summary="查看测试报告")
 async def view_report(
     history_id: Optional[int] = Query(None, description="测试历史记录ID"),
@@ -61,7 +122,12 @@ async def view_report(
             with next(get_session()) as session:
                 history = session.get(ApiHistory, history_id)
                 if history and history.allure_report_path:
-                    target_report_path = Path(history.allure_report_path)
+                    # 处理相对路径和绝对路径
+                    report_path = Path(history.allure_report_path)
+                    if not report_path.is_absolute():
+                        target_report_path = BASE_DIR / report_path
+                    else:
+                        target_report_path = report_path
                     logger.info(f"通过history_id={history_id}查找报告: {target_report_path}")
         
         # 方式2: 通过 execution_uuid 查找
@@ -73,7 +139,12 @@ async def view_report(
                 ).limit(1)
                 history = session.exec(statement).first()
                 if history and history.allure_report_path:
-                    target_report_path = Path(history.allure_report_path)
+                    # 处理相对路径和绝对路径
+                    report_path = Path(history.allure_report_path)
+                    if not report_path.is_absolute():
+                        target_report_path = BASE_DIR / report_path
+                    else:
+                        target_report_path = report_path
                     logger.info(f"通过execution_uuid={execution_uuid}查找报告: {target_report_path}")
         
         # 方式3: 直接通过 report_path 访问
@@ -95,32 +166,34 @@ async def view_report(
                 }
             )
         
-        # 检查报告是否存在
-        if not target_report_path or not target_report_path.exists():
-            logger.warning(f"报告不存在: {target_report_path}")
-            return HTMLResponse(
-                content=generate_not_found_html(),
-                status_code=404
+        # 查找报告文件（支持多种位置和格式）
+        report_file = find_report_file(target_report_path)
+        
+        if report_file and report_file.exists():
+            logger.info(f"找到报告文件: {report_file}")
+            return FileResponse(
+                path=str(report_file),
+                media_type="text/html",
+                headers={"Cache-Control": "no-cache"}
             )
         
-        # 查找 index.html
-        index_file = target_report_path / "index.html"
-        if not index_file.exists():
-            logger.warning(f"报告index.html不存在: {index_file}")
-            return HTMLResponse(
-                content=generate_not_found_html("报告文件不完整"),
-                status_code=404
-            )
+        # 尝试查找执行结果文件（非 Allure 报告）
+        if target_report_path and target_report_path.exists():
+            result_file = target_report_path / "result.json"
+            stdout_file = target_report_path / "stdout.log"
+            
+            if result_file.exists() or stdout_file.exists():
+                # 生成简单的执行结果页面
+                logger.info(f"生成执行结果页面: {target_report_path}")
+                return HTMLResponse(
+                    content=generate_execution_result_html(target_report_path),
+                    status_code=200
+                )
         
-        # 返回报告页面
-        logger.info(f"成功访问报告: {index_file}")
-        return FileResponse(
-            path=str(index_file),
-            media_type="text/html",
-            headers={
-                "Cache-Control": "no-cache",
-                "X-Report-Path": str(target_report_path.relative_to(REPORT_DIR))
-            }
+        logger.warning(f"报告文件不存在: {target_report_path}")
+        return HTMLResponse(
+            content=generate_not_found_html("报告文件不存在"),
+            status_code=404
         )
         
     except HTTPException:
@@ -278,6 +351,123 @@ async def list_reports():
             "msg": f"服务器错误: {str(e)}",
             "data": None
         }
+
+
+def generate_execution_result_html(report_path: Path) -> str:
+    """生成执行结果页面HTML"""
+    import json
+    
+    result_content = ""
+    stdout_content = ""
+    stderr_content = ""
+    
+    # 读取 result.json
+    result_file = report_path / "result.json"
+    if result_file.exists():
+        try:
+            with open(result_file, 'r', encoding='utf-8') as f:
+                result_data = json.load(f)
+                result_content = json.dumps(result_data, indent=2, ensure_ascii=False)
+        except Exception as e:
+            result_content = f"读取失败: {e}"
+    
+    # 读取 stdout.log
+    stdout_file = report_path / "stdout.log"
+    if stdout_file.exists():
+        try:
+            with open(stdout_file, 'r', encoding='utf-8') as f:
+                stdout_content = f.read()
+        except Exception as e:
+            stdout_content = f"读取失败: {e}"
+    
+    # 读取 stderr.log
+    stderr_file = report_path / "stderr.log"
+    if stderr_file.exists():
+        try:
+            with open(stderr_file, 'r', encoding='utf-8') as f:
+                stderr_content = f.read()
+        except Exception as e:
+            stderr_content = f"读取失败: {e}"
+    
+    return f"""
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>执行结果</title>
+        <style>
+            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: #f5f5f5;
+                padding: 20px;
+            }}
+            .container {{
+                max-width: 1200px;
+                margin: 0 auto;
+            }}
+            h1 {{
+                color: #333;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #667eea;
+            }}
+            .section {{
+                background: white;
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 20px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }}
+            .section h2 {{
+                color: #667eea;
+                margin-bottom: 15px;
+                font-size: 18px;
+            }}
+            pre {{
+                background: #1e1e1e;
+                color: #d4d4d4;
+                padding: 15px;
+                border-radius: 6px;
+                overflow-x: auto;
+                font-family: 'Consolas', 'Monaco', monospace;
+                font-size: 13px;
+                line-height: 1.5;
+                max-height: 400px;
+                overflow-y: auto;
+            }}
+            .empty {{
+                color: #999;
+                font-style: italic;
+            }}
+            .error {{
+                color: #f56c6c;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>📋 执行结果</h1>
+            
+            <div class="section">
+                <h2>📊 测试结果 (result.json)</h2>
+                {f'<pre>{result_content}</pre>' if result_content else '<p class="empty">无结果数据</p>'}
+            </div>
+            
+            <div class="section">
+                <h2>📝 标准输出 (stdout.log)</h2>
+                {f'<pre>{stdout_content}</pre>' if stdout_content else '<p class="empty">无输出</p>'}
+            </div>
+            
+            <div class="section">
+                <h2>⚠️ 错误输出 (stderr.log)</h2>
+                {f'<pre class="error">{stderr_content}</pre>' if stderr_content else '<p class="empty">无错误</p>'}
+            </div>
+        </div>
+    </body>
+    </html>
+    """
 
 
 def generate_not_found_html(message: str = "报告不存在") -> str:

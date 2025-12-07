@@ -55,14 +55,27 @@ class TaskStatusQuery(BaseModel):
 @router.post("/execute", summary="执行测试任务")
 async def execute_test(
     request: ExecuteTestRequest,
+    validate_case: bool = Query(True, description="是否在执行前校验用例格式"),
     session: Session = Depends(get_session)
 ):
     """
     执行测试任务
     
     调用指定的执行器插件执行测试用例，并保存执行历史
+    支持执行前校验用例格式
     """
+    from ..service.PluginValidator import plugin_validator
+    
     try:
+        # 校验用例格式（可选）
+        if validate_case and request.test_case_content:
+            is_valid, errors, detected_format = plugin_validator.validate_test_case(request.test_case_content)
+            if not is_valid:
+                return respModel.error_resp(
+                    msg=f"用例格式校验失败({detected_format}): {'; '.join(errors)}"
+                )
+            logger.info(f"用例格式校验通过，格式: {detected_format}")
+        
         result = await task_scheduler.execute_test(
             session=session,
             plugin_code=request.plugin_code,

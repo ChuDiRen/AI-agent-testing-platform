@@ -66,3 +66,10 @@ export function getInstallStatus(id) {
 export function queryAllExecutors() {
   return axios.get('/Plugin/list/enabled', { params: { plugin_type: 'executor' } })
 }
+
+// 卸载执行器
+export function uninstallExecutor(id, deleteFiles = true) {
+  return axios.post('/Plugin/uninstallExecutor', {}, {
+    params: { id, delete_files: deleteFiles }
+  })
+}

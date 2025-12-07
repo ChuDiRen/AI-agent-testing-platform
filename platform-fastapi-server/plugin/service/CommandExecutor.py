@@ -1,6 +1,7 @@
 """
 命令行执行器
 用于调用插件命令行的执行器
+支持独立 venv 和全局安装两种模式
 """
 import subprocess
 import asyncio
@@ -12,16 +13,57 @@ import yaml
 import logging
 import re
 import shutil
+import ast
+import platform
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+import threading
 from core.temp_manager import get_temp_subdir
 
 logger = logging.getLogger(__name__)
 
 # 创建线程池用于执行子进程（解决 Windows 上 asyncio 子进程的兼容性问题）
-_executor = ThreadPoolExecutor(max_workers=10)
+# 限制并发数为 5，避免资源耗尽
+MAX_CONCURRENT_TASKS = 5
+_executor = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_TASKS)
+
+# 并发任务计数器
+_task_semaphore = threading.Semaphore(MAX_CONCURRENT_TASKS)
+_running_task_count = 0
+_task_count_lock = threading.Lock()
+
+
+def safe_parse_dict(data_str: str) -> Any:
+    """
+    安全解析字典/列表字符串，避免使用 eval
+    
+    Args:
+        data_str: 待解析的字符串
+    
+    Returns:
+        解析后的对象，解析失败返回原字符串
+    """
+    if not data_str or not isinstance(data_str, str):
+        return data_str
+    
+    data_str = data_str.strip()
+    
+    # 1. 尝试 JSON 解析
+    try:
+        return json.loads(data_str)
+    except (json.JSONDecodeError, ValueError):
+        pass
+    
+    # 2. 尝试 ast.literal_eval（安全的 Python 字面量解析）
+    try:
+        return ast.literal_eval(data_str)
+    except (ValueError, SyntaxError):
+        pass
+    
+    # 3. 解析失败，返回原字符串
+    return data_str
 
 
 def parse_test_output(stdout: str) -> Dict[str, Any]:
@@ -48,17 +90,9 @@ def parse_test_output(stdout: str) -> Dict[str, Any]:
         stdout, re.DOTALL | re.IGNORECASE
     )
     if response_match:
-        try:
-            # 尝试解析为字典
-            response_str = response_match.group(1).strip()
-            result["response_data"] = eval(response_str)  # 因为是 Python dict 格式
-        except Exception as e:
-            # 如果 eval 失败，尝试用 ast.literal_eval
-            try:
-                import ast
-                result["response_data"] = ast.literal_eval(response_str)
-            except:
-                result["response_data"] = response_str
+        response_str = response_match.group(1).strip()
+        # 使用安全解析替代 eval
+        result["response_data"] = safe_parse_dict(response_str)
     
     # 提取测试用例结果 (格式: test_case_execute[用例名] ... PASSED/FAILED)
     case_pattern = re.compile(r'test_case_execute\[(.+?)\].*?(PASSED|FAILED)', re.DOTALL)
@@ -81,18 +115,54 @@ def parse_test_output(stdout: str) -> Dict[str, Any]:
     return result
 
 
+def get_current_task_count() -> int:
+    """获取当前运行中的任务数"""
+    with _task_count_lock:
+        return _running_task_count
+
+
 class CommandExecutor:
-    """命令行执行器"""
+    """
+    命令行执行器
+    支持独立 venv 和全局安装两种模式
+    """
     
-    def __init__(self, command: str):
+    def __init__(self, command: str, venv_path: Optional[str] = None, plugin_code: Optional[str] = None):
         """
         初始化命令行执行器
         
         Args:
             command: 执行命令（如: webrun, apirun）
+            venv_path: 虚拟环境路径（可选，不提供则使用全局命令）
+            plugin_code: 插件代码（用于查找 venv）
         """
         self.command = command
+        self.venv_path = venv_path
+        self.plugin_code = plugin_code
         self._running_tasks: Dict[str, subprocess.Popen] = {}
+    
+    def _get_command_path(self) -> str:
+        """
+        获取实际执行的命令路径
+        如果有 venv_path，使用 venv 中的命令；否则使用全局命令
+        """
+        cmd_name = self.command.split()[0]
+        
+        if self.venv_path:
+            venv_dir = Path(self.venv_path)
+            if platform.system() == "Windows":
+                cmd_path = venv_dir / "Scripts" / f"{cmd_name}.exe"
+            else:
+                cmd_path = venv_dir / "bin" / cmd_name
+            
+            if cmd_path.exists():
+                return str(cmd_path)
+            else:
+                # 尝试通过 python -m 方式调用
+                logger.warning(f"命令 {cmd_path} 不存在，尝试使用全局命令")
+        
+        # 使用全局命令
+        return cmd_name
     
     async def execute_test(
         self,
@@ -156,8 +226,19 @@ class CommandExecutor:
                 
                 case_file.write_text(yaml_content, encoding='utf-8')
             
+            # 检查并发限制
+            global _running_task_count
+            with _task_count_lock:
+                if _running_task_count >= MAX_CONCURRENT_TASKS:
+                    return {
+                        "success": False,
+                        "error": f"并发任务数已达上限({MAX_CONCURRENT_TASKS})，请稍后重试"
+                    }
+                _running_task_count += 1
+            
             # 构建命令行参数（使用绝对路径避免路径解析问题）
-            cmd_args = self.command.split()
+            actual_command = self._get_command_path()
+            cmd_args = [actual_command]
             cmd_args.extend([
                 "--type=yaml",
                 f"--cases={temp_dir.resolve()}",
@@ -306,8 +387,12 @@ class CommandExecutor:
             request_body = response_data.get("body", "")
             if isinstance(request_body, str) and request_body.startswith("b'"):
                 try:
-                    # 去掉 b'...' 包装，解析实际内容
-                    request_body = eval(request_body).decode('utf-8') if request_body else ""
+                    # 使用安全解析替代 eval
+                    parsed_body = safe_parse_dict(request_body)
+                    if isinstance(parsed_body, bytes):
+                        request_body = parsed_body.decode('utf-8')
+                    elif parsed_body != request_body:
+                        request_body = parsed_body
                 except Exception:
                     pass
             
@@ -374,6 +459,11 @@ class CommandExecutor:
                 "error": error_detail,
                 "traceback": traceback.format_exc()
             }
+        
+        finally:
+            # 释放并发计数
+            with _task_count_lock:
+                _running_task_count = max(0, _running_task_count - 1)
 
     def _get_work_dir(self) -> Path:
         """获取工作目录（临时文件存放目录）"""

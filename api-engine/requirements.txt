@@ -1,3 +1,4 @@
+allure-combine==1.0.11
 allure-pytest==2.13.5
 allure-python-commons==2.13.5
 async-timeout==5.0.1

@@ -48,6 +48,8 @@ class PluginQuery(BaseModel):
     plugin_code: Optional[str] = Field(None, description="插件代码")
     plugin_type: Optional[str] = Field(None, description="插件类型")
     is_enabled: Optional[int] = Field(None, description="是否启用")
+    install_status: Optional[str] = Field(None, description="安装状态")
+    health_status: Optional[str] = Field(None, description="健康状态")
     pageNum: int = Field(default=1, ge=1, description="页码")
     pageSize: int = Field(default=10, ge=1, le=100, description="每页数量")
 
@@ -58,6 +60,21 @@ class PluginResponse(PluginBase):
     create_time: datetime
     modify_time: datetime
     plugin_content: Optional[bool] = Field(None, description="是否有内嵌插件内容")
+    
+    # 安装与版本管理
+    content_hash: Optional[str] = Field(None, description="插件包SHA256哈希值")
+    install_status: str = Field(default="not_installed", description="安装状态")
+    install_path: Optional[str] = Field(None, description="安装目录路径")
+    venv_path: Optional[str] = Field(None, description="虚拟环境路径")
+    install_time: Optional[datetime] = Field(None, description="安装时间")
+    
+    # 健康检查
+    health_status: str = Field(default="unknown", description="健康状态")
+    health_message: Optional[str] = Field(None, description="健康检查消息")
+    last_health_check: Optional[datetime] = Field(None, description="上次健康检查时间")
+    
+    # 禁用原因
+    disable_reason: Optional[str] = Field(None, description="禁用原因")
     
     @field_validator("capabilities", "config_schema", "dependencies", mode="before")
     @classmethod
@@ -82,10 +99,14 @@ class PluginResponse(PluginBase):
 class PluginHealthCheck(BaseModel):
     """插件健康检查响应"""
     plugin_code: str
-    status: str  # healthy/unhealthy
+    status: str  # healthy/unhealthy/degraded/not_installed/unknown
     version: Optional[str] = None
     response_time_ms: Optional[float] = None
     error_message: Optional[str] = None
+    install_status: Optional[str] = None
+    venv_path: Optional[str] = None
+    command_path: Optional[str] = None
+    dependencies_check: Optional[Dict[str, Any]] = None  # 依赖检查结果
 
 
 class PluginRegisterRequest(BaseModel):

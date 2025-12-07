@@ -299,11 +299,15 @@ async def toggle_plugin(
 @module_route.post("/healthCheck", summary="检查插件健康状态")
 async def health_check_plugin(
     id: int = Query(..., description="插件ID"),
+    update_db: bool = Query(True, description="是否更新数据库中的健康状态"),
     session: Session = Depends(get_session)
 ):
-    """检查插件健康状态"""
-    import subprocess
-    import sys
+    """
+    检查插件健康状态
+    支持独立 venv 和全局安装两种模式
+    """
+    from ..service.PluginInstaller import plugin_installer
+    from ..model.PluginModel import HealthStatus, InstallStatus
     
     try:
         plugin = session.get(Plugin, id)
@@ -311,54 +315,58 @@ async def health_check_plugin(
             return respModel.error_resp(msg="插件不存在")
         
         start_time = time.time()
-        status = "unknown"
-        msg = ""
-        cmd_path = None
         
-        # 检查逻辑优先级：
-        # 1. 如果有 command，检查命令是否可用（最重要）
-        # 2. 如果有 plugin_content 但命令不可用，提示需要安装
-        
-        if plugin.command:
-            # 检查命令是否在 PATH 中可用
-            try:
-                result = subprocess.run(
-                    [sys.executable, "-c", f"import shutil; print(shutil.which('{plugin.command}'))"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
-                )
-                cmd_path = result.stdout.strip()
-                if cmd_path and cmd_path != "None":
-                    status = "healthy"
-                    msg = f"命令 {plugin.command} 可用，路径: {cmd_path}"
-                else:
-                    # 命令不可用，检查是否有 plugin_content 可以安装
-                    if plugin.plugin_content:
-                        status = "not_installed"
-                        msg = f"命令 {plugin.command} 未安装，请点击安装按钮"
-                    else:
-                        status = "unhealthy"
-                        msg = f"命令 {plugin.command} 不可用，且无安装包"
-            except Exception as e:
-                status = "unknown"
-                msg = f"无法检测命令状态: {str(e)}"
-        elif plugin.plugin_content:
-            # 有安装包但没有配置 command
-            status = "not_configured"
-            msg = "插件已上传但未配置命令，请检查 setup.py"
+        # 检查安装状态
+        if plugin.install_status == InstallStatus.NOT_INSTALLED.value:
+            # 未安装
+            status = HealthStatus.NOT_INSTALLED.value
+            msg = "插件未安装，请先点击安装按钮"
+            health_result = {
+                "status": status,
+                "message": msg,
+                "command_path": None,
+                "venv_path": None
+            }
+        elif plugin.venv_path:
+            # 使用独立 venv 安装的插件
+            health_result = plugin_installer.check_health(
+                plugin_code=plugin.plugin_code,
+                command=plugin.command,
+                use_venv=True
+            )
+            status = health_result.get("status", "unknown")
+            msg = health_result.get("message", "")
         else:
-            status = "not_configured"
-            msg = "插件未配置（无命令、无工作目录、无安装包）"
-
+            # 全局安装的插件（兼容旧版本）
+            health_result = plugin_installer.check_health(
+                plugin_code=plugin.plugin_code,
+                command=plugin.command,
+                use_venv=False
+            )
+            status = health_result.get("status", "unknown")
+            msg = health_result.get("message", "")
+        
         response_time = (time.time() - start_time) * 1000
+        
+        # 更新数据库中的健康状态
+        if update_db:
+            plugin.health_status = status
+            plugin.health_message = msg[:500] if msg else None
+            plugin.last_health_check = datetime.now()
+            plugin.modify_time = datetime.now()
+            session.add(plugin)
+            session.commit()
         
         return respModel.ok_resp(obj=PluginHealthCheck(
             plugin_code=plugin.plugin_code,
             status=status,
             version=plugin.version,
             response_time_ms=response_time,
-            error_message=msg if status != "healthy" else None
+            error_message=msg if status != HealthStatus.HEALTHY.value else None,
+            install_status=plugin.install_status,
+            venv_path=health_result.get("venv_path"),
+            command_path=health_result.get("command_path"),
+            dependencies_check=health_result.get("dependencies_check")
         ), msg=msg)
     
     except Exception as e:
@@ -1367,15 +1375,21 @@ async def upload_executor(
 ):
     """
     上传执行器ZIP包：
-    1. 解析 setup.py 提取 console_scripts 命令
-    2. 将 ZIP 内容 Base64 编码存入数据库
-    3. 不使用文件服务器，需要时动态安装
+    1. 计算 ZIP 包 SHA256 哈希值
+    2. 解析 setup.py 提取 console_scripts 命令
+    3. 校验 config_schema 格式
+    4. 将 ZIP 内容 Base64 编码存入数据库
+    5. 记录安装状态为 not_installed
     """
+    from ..service.PluginValidator import plugin_validator
+    from ..model.PluginModel import InstallStatus, HealthStatus
+    
     extract_dir = None
     
     try:
-        # 1. 读取上传的 ZIP 内容
+        # 1. 读取上传的 ZIP 内容并计算哈希
         zip_bytes = await file.read()
+        content_hash = plugin_validator.compute_hash(zip_bytes)
         zip_base64 = base64.b64encode(zip_bytes).decode('utf-8')
         
         # 2. 解压到临时目录解析信息（使用项目 temp 目录）
@@ -1533,18 +1547,45 @@ async def upload_executor(
         if not command:
             return respModel.error_resp(msg="未找到 console_scripts 命令定义，请确保 setup.py 中定义了 entry_points")
         
-        # 5. 解析 keywords.yaml 获取关键字定义
+        # 5. 校验 config_schema 格式
+        schema_valid = True
+        schema_errors = []
+        if config_schema:
+            schema_valid, schema_errors = plugin_validator.validate_config_schema(config_schema)
+            if not schema_valid:
+                return respModel.error_resp(msg=f"config_schema 校验失败: {'; '.join(schema_errors)}")
+        
+        # 6. 解析 keywords.yaml 获取关键字定义
         keywords = _parse_keywords_yaml(plugin_root)
         
-        # 6. 保存到数据库
+        # 7. 保存到数据库
         existing = session.exec(
             select(Plugin).where(Plugin.plugin_code == plugin_code)
         ).first()
         
         if existing:
+            # 检查哈希是否相同（相同则跳过重复上传）
+            if existing.content_hash == content_hash:
+                return respModel.ok_resp(
+                    obj={"id": existing.id, "command": existing.command, "skipped": True},
+                    msg=f"插件 {plugin_name} 已存在且内容未变化，跳过上传"
+                )
+            
+            # 内容变化时，先删除旧的安装目录
+            from ..service.PluginInstaller import PluginInstaller
+            old_install_dir = PluginInstaller.get_install_dir(existing.plugin_code)
+            if old_install_dir.exists():
+                try:
+                    import shutil
+                    shutil.rmtree(old_install_dir)
+                    print(f"已删除旧安装目录: {old_install_dir}")
+                except Exception as e:
+                    print(f"删除旧安装目录失败: {e}")
+            
             existing.plugin_name = plugin_name
             existing.command = command
             existing.plugin_content = zip_base64
+            existing.content_hash = content_hash
             existing.description = description
             existing.version = version
             existing.dependencies = json.dumps(dependencies) if dependencies else None
@@ -1552,6 +1593,13 @@ async def upload_executor(
             existing.config_schema = json.dumps(config_schema) if config_schema else None
             existing.keywords = json.dumps(keywords) if keywords else None
             existing.modify_time = datetime.now()
+            # 内容变化时重置安装状态
+            existing.install_status = InstallStatus.NOT_INSTALLED.value
+            existing.health_status = HealthStatus.NOT_INSTALLED.value
+            existing.install_path = None
+            existing.venv_path = None
+            existing.install_time = None
+            existing.install_log = None
             session.add(existing)
             session.commit()
             action = "更新"
@@ -1564,9 +1612,12 @@ async def upload_executor(
                 version=version,
                 command=command,
                 plugin_content=zip_base64,
+                content_hash=content_hash,
                 description=description,
                 author="User Upload",
                 is_enabled=1,
+                install_status=InstallStatus.NOT_INSTALLED.value,
+                health_status=HealthStatus.NOT_INSTALLED.value,
                 dependencies=json.dumps(dependencies) if dependencies else None,
                 capabilities=json.dumps({"console_scripts": console_scripts}),
                 config_schema=json.dumps(config_schema) if config_schema else None,
@@ -1575,7 +1626,7 @@ async def upload_executor(
             session.add(new_plugin)
             session.commit()
             session.refresh(new_plugin)
-            action = "安装"
+            action = "上传"
             plugin_id = new_plugin.id
         
         # 确定参数来源
@@ -1586,13 +1637,15 @@ async def upload_executor(
             obj={
                 "id": plugin_id,
                 "command": command,
+                "content_hash": content_hash,
+                "install_status": InstallStatus.NOT_INSTALLED.value,
                 "console_scripts": console_scripts,
                 "config_schema": config_schema,
                 "keywords": keywords,
                 "keywords_count": keywords_count,
                 "param_source": param_source
             },
-            msg=f"执行器 {plugin_name} {action}成功，命令: {command}，解析到 {len(config_params)} 个参数，{keywords_count} 个关键字"
+            msg=f"执行器 {plugin_name} {action}成功，命令: {command}，解析到 {len(config_params)} 个参数，{keywords_count} 个关键字。请点击安装按钮完成安装。"
         )
     
     except Exception as e:
@@ -1604,103 +1657,68 @@ async def upload_executor(
             shutil.rmtree(extract_dir, ignore_errors=True)
 
 
-# 安装任务状态存储（内存中，生产环境可用 Redis）
-_install_tasks: Dict[int, Dict[str, Any]] = {}
-
-
-def _run_pip_install(plugin_id: int, plugin_code: str, plugin_content: str, command: str):
+def _run_venv_install(plugin_id: int, plugin_code: str, plugin_content: str, command: str, session_maker):
     """
-    后台执行 pip install（在线程中运行）
+    后台执行独立 venv 安装（在线程中运行）
+    安装完成后更新数据库中的安装状态
     """
-    import subprocess
-    import sys
+    from ..service.PluginInstaller import plugin_installer
+    from ..model.PluginModel import InstallStatus, HealthStatus
     
-    extract_dir = None
     try:
-        _install_tasks[plugin_id] = {
-            "status": "installing",
-            "message": "正在解压执行器...",
-            "progress": 10
-        }
-        
-        # 1. 解码并解压到临时目录（使用项目 temp 目录）
-        zip_bytes = base64.b64decode(plugin_content)
-        extract_dir = get_temp_subdir("executor") / f"executor_install_{plugin_code}"
-        if extract_dir.exists():
-            shutil.rmtree(extract_dir)
-        extract_dir.mkdir(parents=True, exist_ok=True)
-        
-        with zipfile.ZipFile(io.BytesIO(zip_bytes), 'r') as zip_ref:
-            zip_ref.extractall(extract_dir)
-        
-        # 查找解压后的根目录
-        items = list(extract_dir.iterdir())
-        if len(items) == 1 and items[0].is_dir():
-            install_dir = items[0]
-        else:
-            install_dir = extract_dir
-        
-        _install_tasks[plugin_id] = {
-            "status": "installing",
-            "message": "正在执行 pip install...",
-            "progress": 30
-        }
-        
-        # 2. 执行 pip install
-        result = subprocess.run(
-            [sys.executable, "-m", "pip", "install", "."],
-            cwd=str(install_dir),
-            capture_output=True,
-            text=True,
-            timeout=300  # 5分钟超时
+        # 执行安装
+        result = plugin_installer.install_plugin(
+            plugin_id=plugin_id,
+            plugin_code=plugin_code,
+            plugin_content=plugin_content,
+            command=command,
+            use_venv=True
         )
         
-        # 3. 保留安装目录（不清理），用于存放报告等运行时文件
-        # 安装目录: temp/executor/executor_install_{plugin_code}/
-        
-        if result.returncode != 0:
-            _install_tasks[plugin_id] = {
-                "status": "failed",
-                "message": f"安装失败: {result.stderr or result.stdout}",
-                "progress": 100
-            }
-        else:
-            _install_tasks[plugin_id] = {
-                "status": "completed",
-                "message": f"执行器安装成功，可使用命令: {command}",
-                "output": result.stdout,
-                "progress": 100
-            }
+        # 更新数据库中的安装状态
+        try:
+            session = session_maker()
+            plugin = session.get(Plugin, plugin_id)
+            if plugin:
+                if result.get("success"):
+                    plugin.install_status = InstallStatus.INSTALLED.value
+                    plugin.health_status = HealthStatus.HEALTHY.value
+                    plugin.install_path = result.get("install_path")
+                    plugin.venv_path = result.get("venv_path")
+                    plugin.install_time = datetime.now()
+                    plugin.install_log = result.get("install_log", "")[:5000]  # 截断日志
+                else:
+                    plugin.install_status = InstallStatus.INSTALL_FAILED.value
+                    plugin.health_status = HealthStatus.UNHEALTHY.value
+                    plugin.install_log = result.get("install_log", result.get("error", ""))[:5000]
+                
+                plugin.modify_time = datetime.now()
+                session.add(plugin)
+                session.commit()
+            session.close()
+        except Exception as db_err:
+            print(f"更新数据库失败: {db_err}")
     
-    except subprocess.TimeoutExpired:
-        _install_tasks[plugin_id] = {
-            "status": "failed",
-            "message": "安装超时（超过5分钟）",
-            "progress": 100
-        }
     except Exception as e:
-        _install_tasks[plugin_id] = {
-            "status": "failed",
-            "message": f"安装异常: {str(e)}",
-            "progress": 100
-        }
-        # 安装失败时清理目录
-        if extract_dir and extract_dir.exists():
-            shutil.rmtree(extract_dir, ignore_errors=True)
-    # 注意：安装成功后保留目录，用于存放报告等运行时文件
+        print(f"安装异常: {e}")
 
 
-@module_route.post("/installExecutor", summary="安装执行器到本地（异步）")
+@module_route.post("/installExecutor", summary="安装执行器到本地（异步，独立venv）")
 async def install_executor(
     id: int = Query(..., description="执行器插件ID"),
     session: Session = Depends(get_session)
 ):
     """
-    异步安装执行器：立即返回，后台执行 pip install
+    异步安装执行器：
+    1. 创建独立虚拟环境
+    2. 在 venv 中执行 pip install
+    3. 更新数据库中的安装状态
     通过 /installStatus 接口查询安装进度
     """
     import asyncio
-    from concurrent.futures import ThreadPoolExecutor
+    from ..service.PluginInstaller import plugin_installer
+    from ..model.PluginModel import InstallStatus
+    from core.database import get_session_maker
     
     try:
         plugin = session.get(Plugin, id)
@@ -1711,34 +1729,40 @@ async def install_executor(
             return respModel.error_resp(msg="插件内容为空，请先上传执行器")
         
         # 检查是否已在安装中
-        if id in _install_tasks and _install_tasks[id].get("status") == "installing":
+        current_status = plugin_installer.get_install_status(id)
+        if current_status.get("status") == "installing":
             return respModel.ok_resp(
                 obj={"status": "installing", "message": "安装任务已在进行中"},
                 msg="安装任务已在进行中"
             )
         
+        # 更新数据库状态为安装中
+        plugin.install_status = InstallStatus.INSTALLING.value
+        plugin.modify_time = datetime.now()
+        session.add(plugin)
+        session.commit()
+        
         # 初始化安装状态
-        _install_tasks[id] = {
-            "status": "installing",
-            "message": "安装任务已启动...",
-            "progress": 0
-        }
+        plugin_installer.update_install_status(
+            id, "installing", "安装任务已启动...", 0
+        )
         
         # 在后台线程中执行安装
         loop = asyncio.get_event_loop()
-        executor = ThreadPoolExecutor(max_workers=1)
+        from ..service.PluginInstaller import _installer_executor
         loop.run_in_executor(
-            executor,
-            _run_pip_install,
+            _installer_executor,
+            _run_venv_install,
             id,
             plugin.plugin_code,
             plugin.plugin_content,
-            plugin.command
+            plugin.command,
+            get_session_maker()
         )
         
         return respModel.ok_resp(
             obj={"status": "installing", "plugin_id": id},
-            msg="安装任务已启动，请通过 /installStatus 查询进度"
+            msg="安装任务已启动（独立 venv 模式），请通过 /installStatus 查询进度"
         )
     
     except Exception as e:
@@ -1752,44 +1776,42 @@ async def get_install_status(
 ):
     """
     查询执行器安装进度
+    优先从内存状态查询，其次从数据库查询
     """
-    if id not in _install_tasks:
-        # 检查插件是否存在，如果存在且已安装，返回完成状态
-        plugin = session.get(Plugin, id)
-        if plugin and plugin.command:
-            # 尝试检查命令是否可用（直接运行 console script）
-            import subprocess
-            import shutil
-            try:
-                cmd = plugin.command.split()[0]
-                # 检查命令是否在 PATH 中
-                cmd_path = shutil.which(cmd)
-                if cmd_path:
-                    result = subprocess.run(
-                        [cmd, "--help"],
-                        capture_output=True,
-                        timeout=5
-                    )
-                    if result.returncode == 0:
-                        return respModel.ok_resp(
-                            obj={"status": "completed", "message": f"执行器已安装: {plugin.command}", "progress": 100},
-                            msg=f"执行器已安装: {plugin.command}"
-                        )
-            except Exception:
-                pass
-        
-        return respModel.ok_resp(
-            obj={"status": "unknown", "message": "未找到安装任务，可能已完成或未启动", "progress": 0},
-            msg="未找到安装任务"
-        )
+    from ..service.PluginInstaller import plugin_installer
+    from ..model.PluginModel import InstallStatus
     
-    task_info = _install_tasks[id]
-    return respModel.ok_resp(obj=task_info, msg=task_info.get("message", ""))
+    # 1. 从内存查询实时状态
+    task_info = plugin_installer.get_install_status(id)
+    if task_info.get("status") not in ["unknown"]:
+        return respModel.ok_resp(obj=task_info, msg=task_info.get("message", ""))
+    
+    # 2. 从数据库查询安装状态
+    plugin = session.get(Plugin, id)
+    if not plugin:
+        return respModel.error_resp(msg="插件不存在")
+    
+    # 根据数据库中的安装状态返回
+    status_map = {
+        InstallStatus.NOT_INSTALLED.value: {"status": "not_installed", "message": "未安装，请点击安装按钮", "progress": 0},
+        InstallStatus.INSTALLING.value: {"status": "installing", "message": "安装中...", "progress": 50},
+        InstallStatus.INSTALLED.value: {"status": "completed", "message": f"已安装，命令: {plugin.command}", "progress": 100},
+        InstallStatus.INSTALL_FAILED.value: {"status": "failed", "message": plugin.install_log or "安装失败", "progress": 100},
+        InstallStatus.UPGRADING.value: {"status": "installing", "message": "升级中...", "progress": 50},
+    }
+    
+    result = status_map.get(plugin.install_status, {"status": "unknown", "message": "未知状态", "progress": 0})
+    result["install_path"] = plugin.install_path
+    result["venv_path"] = plugin.venv_path
+    result["install_time"] = plugin.install_time.isoformat() if plugin.install_time else None
+    
+    return respModel.ok_resp(obj=result, msg=result.get("message", ""))
 
 
 @module_route.delete("/cleanupTempFiles", summary="清理临时执行文件")
 async def cleanup_temp_files(
     days: int = Query(7, description="清理多少天前的临时文件，默认7天"),
+    exclude_installed: bool = Query(True, description="是否排除已安装插件的目录"),
     session: Session = Depends(get_session)
 ):
     """
@@ -1797,6 +1819,7 @@ async def cleanup_temp_files(
     
     Args:
         days: 清理多少天前的文件（默认7天）
+        exclude_installed: 是否排除已安装插件的目录（默认True）
     """
     try:
         # 使用 temp_manager 统一管理的临时目录
@@ -1805,43 +1828,68 @@ async def cleanup_temp_files(
         if not executor_temp_dir.exists():
             return respModel.ok_resp(msg="临时目录不存在，无需清理")
         
+        # 获取已安装插件的目录列表（排除清理）
+        installed_dirs = set()
+        if exclude_installed:
+            from ..model.PluginModel import InstallStatus
+            installed_plugins = session.exec(
+                select(Plugin).where(Plugin.install_status == InstallStatus.INSTALLED.value)
+            ).all()
+            for p in installed_plugins:
+                if p.install_path:
+                    installed_dirs.add(Path(p.install_path).name)
+        
         cleaned_count = 0
         failed_count = 0
+        skipped_count = 0
+        cleaned_size = 0
         cutoff_time = datetime.now().timestamp() - (days * 24 * 60 * 60)
         
         for task_dir in executor_temp_dir.iterdir():
             if task_dir.is_dir():
+                # 跳过已安装插件的目录
+                if task_dir.name in installed_dirs:
+                    skipped_count += 1
+                    continue
+                
                 try:
                     # 检查目录修改时间
                     dir_mtime = task_dir.stat().st_mtime
                     if dir_mtime < cutoff_time:
+                        # 计算目录大小
+                        dir_size = sum(f.stat().st_size for f in task_dir.rglob('*') if f.is_file())
                         shutil.rmtree(task_dir, ignore_errors=True)
                         cleaned_count += 1
+                        cleaned_size += dir_size
                 except Exception:
                     failed_count += 1
         
         return respModel.ok_resp(
             obj={
                 "cleaned": cleaned_count,
-                "failed": failed_count
+                "failed": failed_count,
+                "skipped": skipped_count,
+                "cleaned_size_mb": round(cleaned_size / (1024 * 1024), 2)
             },
-            msg=f"清理完成：删除 {cleaned_count} 个临时目录，{failed_count} 个删除失败"
+            msg=f"清理完成：删除 {cleaned_count} 个目录({round(cleaned_size / (1024 * 1024), 2)}MB)，跳过 {skipped_count} 个已安装插件目录，{failed_count} 个删除失败"
         )
     
     except Exception as e:
         return respModel.error_resp(msg=f"清理失败: {str(e)}")
 
 
-@module_route.post("/uninstallExecutor", summary="卸载执行器pip包")
+@module_route.post("/uninstallExecutor", summary="卸载执行器（支持venv模式）")
 async def uninstall_executor(
     id: int = Query(..., description="执行器插件ID"),
+    delete_files: bool = Query(True, description="是否删除安装目录"),
     session: Session = Depends(get_session)
 ):
     """
-    卸载已安装的执行器pip包（不删除数据库记录）
+    卸载已安装的执行器（不删除数据库记录）
+    支持独立 venv 和全局安装两种模式
     """
-    import subprocess
-    import sys
+    from ..service.PluginInstaller import plugin_installer
+    from ..model.PluginModel import InstallStatus, HealthStatus
     
     try:
         plugin = session.get(Plugin, id)
@@ -1851,26 +1899,37 @@ async def uninstall_executor(
         if not plugin.plugin_code:
             return respModel.error_resp(msg="插件代码为空")
         
-        # 执行 pip uninstall
-        result = subprocess.run(
-            [sys.executable, "-m", "pip", "uninstall", "-y", plugin.plugin_code],
-            capture_output=True,
-            text=True,
-            timeout=60
-        )
+        # 判断是否使用 venv 模式
+        use_venv = bool(plugin.venv_path)
         
-        if result.returncode == 0:
+        if delete_files:
+            success, msg = plugin_installer.uninstall_plugin(
+                plugin_code=plugin.plugin_code,
+                use_venv=use_venv
+            )
+        else:
+            success = True
+            msg = "仅重置状态，未删除文件"
+        
+        if success:
+            # 更新数据库状态
+            plugin.install_status = InstallStatus.NOT_INSTALLED.value
+            plugin.health_status = HealthStatus.NOT_INSTALLED.value
+            plugin.install_path = None
+            plugin.venv_path = None
+            plugin.install_time = None
+            plugin.install_log = None
+            plugin.modify_time = datetime.now()
+            session.add(plugin)
+            session.commit()
+            
             return respModel.ok_resp(
-                obj={"output": result.stdout},
+                obj={"message": msg},
                 msg=f"执行器 {plugin.plugin_code} 卸载成功"
             )
         else:
-            return respModel.error_resp(
-                msg=f"卸载失败: {result.stderr or result.stdout}"
-            )
+            return respModel.error_resp(msg=f"卸载失败: {msg}")
     
-    except subprocess.TimeoutExpired:
-        return respModel.error_resp(msg="卸载超时")
     except Exception as e:
         return respModel.error_resp(msg=f"卸载失败: {str(e)}")
 

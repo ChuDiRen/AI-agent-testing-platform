@@ -47,16 +47,18 @@ const reportTitle = computed(() => {
   return reportInfo.value?.test_name || '测试报告'
 })
 
-// 获取报告URL
+// 获取报告URL（通过后端API代理）
 const getReportUrl = () => {
   const { history_id, execution_uuid, report_path } = route.query
+  // 使用后端API地址（开发环境通过代理，生产环境直接访问）
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
   
   if (history_id) {
-    return `/ApiReportViewer/view?history_id=${history_id}`
+    return `${apiBase}/ApiReportViewer/view?history_id=${history_id}`
   } else if (execution_uuid) {
-    return `/ApiReportViewer/view?execution_uuid=${execution_uuid}`
+    return `${apiBase}/ApiReportViewer/view?execution_uuid=${execution_uuid}`
   } else if (report_path) {
-    return `/ApiReportViewer/view?report_path=${report_path}`
+    return `${apiBase}/ApiReportViewer/view?report_path=${report_path}`
   }
   
   return ''
@@ -97,7 +99,8 @@ const onIframeLoad = () => {
 const downloadReport = async () => {
   try {
     const { history_id, execution_uuid } = route.query
-    let url = '/ApiReportViewer/download?'
+    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+    let url = `${apiBase}/ApiReportViewer/download?`
     
     if (history_id) {
       url += `history_id=${history_id}`

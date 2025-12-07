@@ -31,6 +31,12 @@ def get_session() -> Generator[Session, None, None]: # 获取数据库会话（�
     with Session(engine) as session:
         yield session
 
+def get_session_maker(): # 获取会话工厂（用于后台线程）
+    """返回一个可调用的会话工厂，用于在后台线程中创建数据库会话"""
+    def session_factory():
+        return Session(engine)
+    return session_factory
+
 def init_db(): # 初始化数据库表
     try:
         logger.info("开始创建数据库表...")
