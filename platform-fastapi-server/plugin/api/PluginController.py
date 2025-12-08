@@ -195,17 +195,17 @@ async def update_plugin(
 async def unregister_plugin(
     id: int = Query(..., description="插件ID"),
     uninstall_package: bool = Query(False, description="是否同时卸载已安装的pip包"),
-    cleanup_temp: bool = Query(False, description="是否同时清理所有临时执行文件"),
     session: Session = Depends(get_session)
 ):
     """
     注销（删除）插件
+    同时清理插件安装目录和相关临时文件
     
     Args:
         id: 插件ID
         uninstall_package: 是否同时卸载已安装的pip包（默认False）
-        cleanup_temp: 是否同时清理所有临时执行文件（默认False）
     """
+    from ..service.PluginInstaller import PluginInstaller
     import subprocess
     import sys
     
@@ -215,49 +215,59 @@ async def unregister_plugin(
             return respModel.error_resp(msg="插件不存在")
         
         cleanup_results = []
+        plugin_code = plugin.plugin_code
         
         # 1. 如果需要，卸载已安装的pip包
-        if uninstall_package and plugin.plugin_code:
+        if uninstall_package and plugin_code:
             try:
                 result = subprocess.run(
-                    [sys.executable, "-m", "pip", "uninstall", "-y", plugin.plugin_code],
+                    [sys.executable, "-m", "pip", "uninstall", "-y", plugin_code],
                     capture_output=True,
                     text=True,
                     timeout=60
                 )
                 if result.returncode == 0:
-                    cleanup_results.append(f"已卸载pip包: {plugin.plugin_code}")
+                    cleanup_results.append(f"已卸载pip包: {plugin_code}")
                 else:
                     cleanup_results.append(f"pip包卸载失败或不存在: {result.stderr or result.stdout}")
             except Exception as e:
                 cleanup_results.append(f"pip卸载异常: {str(e)}")
         
-        # 2. 清理临时执行目录（使用 temp_manager 统一管理）
-        try:
-            executor_temp_dir = get_temp_subdir("executor")
-            if executor_temp_dir.exists():
-                temp_items = list(executor_temp_dir.iterdir())
-                temp_count = len(temp_items)
-                if temp_count > 0:
-                    if cleanup_temp:
-                        # 清理所有临时文件
-                        cleaned = 0
-                        for item in temp_items:
+        # 2. 清理插件安装目录（包含 venv）
+        if plugin_code:
+            try:
+                install_dir = PluginInstaller.get_install_dir(plugin_code)
+                if install_dir.exists():
+                    shutil.rmtree(install_dir, ignore_errors=True)
+                    cleanup_results.append(f"已清理安装目录: {install_dir.name}")
+            except Exception as e:
+                cleanup_results.append(f"清理安装目录异常: {str(e)}")
+        
+        # 3. 清理该插件相关的临时执行目录（只删除包含该插件代码的目录）
+        if plugin_code:
+            try:
+                executor_temp_dir = get_temp_subdir("executor")
+                if executor_temp_dir.exists():
+                    cleaned = 0
+                    for item in executor_temp_dir.iterdir():
+                        # 只清理与当前插件相关的目录：
+                        # - plugin_{plugin_code} 格式的安装目录
+                        # - 包含该插件代码的执行目录
+                        if item.is_dir() and (
+                            item.name == f"plugin_{plugin_code}" or
+                            plugin_code in item.name
+                        ):
                             try:
-                                if item.is_dir():
-                                    shutil.rmtree(item, ignore_errors=True)
-                                else:
-                                    item.unlink()
+                                shutil.rmtree(item, ignore_errors=True)
                                 cleaned += 1
                             except Exception:
                                 pass
-                        cleanup_results.append(f"已清理 {cleaned}/{temp_count} 个临时文件")
-                    else:
-                        cleanup_results.append(f"临时目录存在 {temp_count} 个任务文件夹，如需清理请设置 cleanup_temp=true")
-        except Exception as e:
-            cleanup_results.append(f"检查临时目录异常: {str(e)}")
+                    if cleaned > 0:
+                        cleanup_results.append(f"已清理 {cleaned} 个相关临时目录")
+            except Exception as e:
+                cleanup_results.append(f"清理临时目录异常: {str(e)}")
         
-        # 3. 删除数据库记录
+        # 4. 删除数据库记录
         session.delete(plugin)
         session.commit()
         
@@ -677,19 +687,24 @@ def _parse_keywords_yaml(plugin_root: Path) -> dict:
     # 对于只在 YAML 中定义但没有 Python 实现的关键字，生成可执行代码
     for keyword_name in keywords:
         if not keywords[keyword_name].get("is_implemented"):
-            # 没有 Python 实现，生成可执行代码
-            keywords[keyword_name]["is_extension"] = True
-            
-            # 生成方法代码
-            params = keywords[keyword_name].get("params", [])
-            category = keywords[keyword_name].get("category", "未分类")
-            
-            # 根据函数名称生成对应的实现代码
-            code_template = _generate_keyword_implementation(keyword_name, params, category)
-            
-            keywords[keyword_name]["code"] = code_template
-            # 保留原分类，添加待实现标记
-            keywords[keyword_name]["category"] = f"{category} (待实现)"
+            # 检查是否已有代码（可能从其他来源获取）
+            if keywords[keyword_name].get("code"):
+                # 已有代码，标记为已实现
+                keywords[keyword_name]["is_implemented"] = True
+            else:
+                # 没有代码，生成模板代码
+                keywords[keyword_name]["is_extension"] = True
+                
+                # 生成方法代码
+                params = keywords[keyword_name].get("params", [])
+                category = keywords[keyword_name].get("category", "未分类")
+                
+                # 根据函数名称生成对应的实现代码
+                code_template = _generate_keyword_implementation(keyword_name, params, category)
+                
+                keywords[keyword_name]["code"] = code_template
+                # 保留原分类，添加待实现标记
+                keywords[keyword_name]["category"] = f"{category} (待实现)"
     
     return keywords
 
@@ -1576,7 +1591,6 @@ async def upload_executor(
             old_install_dir = PluginInstaller.get_install_dir(existing.plugin_code)
             if old_install_dir.exists():
                 try:
-                    import shutil
                     shutil.rmtree(old_install_dir)
                     print(f"已删除旧安装目录: {old_install_dir}")
                 except Exception as e:

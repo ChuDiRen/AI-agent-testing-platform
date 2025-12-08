@@ -215,22 +215,53 @@ class PluginInstaller:
             requirements_file = source_dir / "requirements.txt"
             if requirements_file.exists():
                 install_log.append(f"[{datetime.now().isoformat()}] 发现 requirements.txt，开始安装依赖...")
-                req_args = [
-                    python_exe, "-m", "pip", "install", "-r", str(requirements_file),
-                    "-i", "https://pypi.tuna.tsinghua.edu.cn/simple",
-                    "--trusted-host", "pypi.tuna.tsinghua.edu.cn"
-                ]
-                req_result = subprocess.run(
-                    req_args,
-                    cwd=str(source_dir),
-                    capture_output=True,
-                    text=True,
-                    timeout=600
-                )
-                if req_result.returncode != 0:
-                    install_log.append(f"[{datetime.now().isoformat()}] requirements.txt 安装警告:\n{req_result.stderr}")
-                else:
-                    install_log.append(f"[{datetime.now().isoformat()}] requirements.txt 安装完成")
+                
+                # 读取 requirements.txt，过滤掉本地包（不在 PyPI 上的包）
+                with open(requirements_file, 'r', encoding='utf-8') as f:
+                    requirements = f.readlines()
+                
+                # 过滤掉可能是本地包的依赖（如 HuaceAPIRunner）
+                filtered_reqs = []
+                skipped_reqs = []
+                for req in requirements:
+                    req = req.strip()
+                    if not req or req.startswith('#'):
+                        continue
+                    # 跳过看起来像本地包的依赖（包名包含大写字母且版本为 0.0.x）
+                    pkg_name = req.split('==')[0].split('>=')[0].split('<=')[0]
+                    if any(c.isupper() for c in pkg_name) and ('==0.0.' in req or '==0.1.' in req):
+                        skipped_reqs.append(req)
+                    else:
+                        filtered_reqs.append(req)
+                
+                if skipped_reqs:
+                    install_log.append(f"[{datetime.now().isoformat()}] 跳过本地包: {', '.join(skipped_reqs)}")
+                
+                # 逐个安装依赖，忽略失败的包
+                installed_count = 0
+                failed_pkgs = []
+                for req in filtered_reqs:
+                    req_args = [
+                        python_exe, "-m", "pip", "install", req,
+                        "-i", "https://pypi.tuna.tsinghua.edu.cn/simple",
+                        "--trusted-host", "pypi.tuna.tsinghua.edu.cn",
+                        "-q"  # 静默模式
+                    ]
+                    req_result = subprocess.run(
+                        req_args,
+                        cwd=str(source_dir),
+                        capture_output=True,
+                        text=True,
+                        timeout=120
+                    )
+                    if req_result.returncode == 0:
+                        installed_count += 1
+                    else:
+                        failed_pkgs.append(req.split('==')[0])
+                
+                install_log.append(f"[{datetime.now().isoformat()}] requirements.txt: 成功安装 {installed_count} 个包")
+                if failed_pkgs:
+                    install_log.append(f"[{datetime.now().isoformat()}] 安装失败的包: {', '.join(failed_pkgs)}")
             
             # 4.2 安装插件本身
             PluginInstaller.update_install_status(

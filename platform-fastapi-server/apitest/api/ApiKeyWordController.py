@@ -285,14 +285,34 @@ async def syncFromPlugin(
         existing_op_types = session.exec(select(OperationType)).all()
         op_type_name_map = {op.operation_type_name: op.id for op in existing_op_types}
         
-        # 分类名称简化映射
+        def normalize_category(cat: str) -> str:
+            """标准化分类名称：去除后缀、简化名称"""
+            # 去除 (待实现) 等后缀
+            cat = cat.replace(" (待实现)", "").replace("(待实现)", "").strip()
+            # 去除 "类关键字" 后缀
+            cat = cat.replace("类关键字", "").replace("关键字", "").strip()
+            return cat
+        
+        def find_matching_op_type(category: str) -> int | None:
+            """查找匹配的操作类型ID"""
+            normalized = normalize_category(category)
+            # 直接匹配
+            if normalized in op_type_name_map:
+                return op_type_name_map[normalized]
+            # 模糊匹配：检查是否包含关键词
+            for op_name, op_id in op_type_name_map.items():
+                if normalized in op_name or op_name in normalized:
+                    return op_id
+            return None
+        
+        # 分类名称简化映射（用于创建新类型时的标准名称）
         category_mapping = {
-            "HTTP请求类关键字": "HTTP请求",
-            "数据提取类关键字": "数据提取",
-            "断言验证类关键字": "断言验证",
-            "数据库操作类关键字": "数据库操作",
-            "工具类关键字": "工具方法",
-            "文件操作类关键字": "文件操作",
+            "HTTP请求": "HTTP请求",
+            "数据提取": "数据提取",
+            "断言验证": "断言验证",
+            "数据库操作": "数据库操作",
+            "工具": "工具方法",
+            "文件操作": "文件操作",
             "Python方法": "Python方法",
             "未分类": "其他"
         }
@@ -309,24 +329,31 @@ async def syncFromPlugin(
             
             # 获取或创建操作类型
             if category not in category_to_operation_type:
-                # 简化分类名称
-                simple_name = category_mapping.get(category, category.replace("类关键字", "").replace("关键字", ""))
+                # 先尝试匹配现有操作类型
+                matched_op_id = find_matching_op_type(category)
                 
-                # 查找现有操作类型
-                if simple_name in op_type_name_map:
-                    category_to_operation_type[category] = op_type_name_map[simple_name]
+                if matched_op_id:
+                    category_to_operation_type[category] = matched_op_id
                 else:
-                    # 创建新操作类型
-                    new_op_type = OperationType(
-                        operation_type_name=simple_name,
-                        ex_fun_name=simple_name.lower().replace(" ", "_"),
-                        create_time=datetime.now()
-                    )
-                    session.add(new_op_type)
-                    session.flush()  # 获取 ID
-                    category_to_operation_type[category] = new_op_type.id
-                    op_type_name_map[simple_name] = new_op_type.id
-                    new_op_types.append(simple_name)
+                    # 标准化分类名称后创建新类型
+                    normalized = normalize_category(category)
+                    simple_name = category_mapping.get(normalized, normalized)
+                    
+                    # 再次检查标准化后的名称是否存在
+                    if simple_name in op_type_name_map:
+                        category_to_operation_type[category] = op_type_name_map[simple_name]
+                    else:
+                        # 创建新操作类型
+                        new_op_type = OperationType(
+                            operation_type_name=simple_name,
+                            ex_fun_name=simple_name.lower().replace(" ", "_"),
+                            create_time=datetime.now()
+                        )
+                        session.add(new_op_type)
+                        session.flush()  # 获取 ID
+                        category_to_operation_type[category] = new_op_type.id
+                        op_type_name_map[simple_name] = new_op_type.id
+                        new_op_types.append(simple_name)
             
             operation_type_id = category_to_operation_type[category]
             
