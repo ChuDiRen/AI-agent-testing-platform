@@ -1,16 +1,19 @@
 """
 长期记忆存储
 
-基于InMemoryStore封装，提供持久化知识存储
+基于 LangGraph Store 封装，提供 SQLite 持久化知识存储
+参考: https://docs.langchain.com/oss/python/langchain/long-term-memory
 """
 
 import json
 import sqlite3
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Sequence
 from dataclasses import dataclass
+from datetime import datetime
+import hashlib
 
-from langgraph.store.memory import InMemoryStore
+from langgraph.store.base import BaseStore, Item, SearchItem
 
 
 @dataclass
@@ -19,30 +22,41 @@ class MemoryItem:
     namespace: Tuple[str, ...]
     key: str
     value: Dict[str, Any]
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
         return {
             "namespace": list(self.namespace),
             "key": self.key,
-            "value": self.value
+            "value": self.value,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at
         }
 
 
-class StoreManager:
-    """长期记忆存储管理器
+class PersistentStore(BaseStore):
+    """持久化长期记忆存储
     
-    提供Schema缓存、查询模式和用户偏好的持久化存储
+    直接使用 SQLite 持久化存储，无内存缓存
+    支持:
+    - Schema 缓存
+    - 查询模式存储
+    - 用户偏好
     """
     
     def __init__(self, db_path: str = "data/agent_memory.db"):
-        """初始化存储管理器
+        """初始化持久化存储
         
         Args:
-            db_path: SQLite数据库文件路径
+            db_path: SQLite 数据库文件路径
         """
         self.db_path = Path(db_path)
-        self._store: Optional[InMemoryStore] = None
         self._conn: Optional[sqlite3.Connection] = None
+        
+        # 初始化
+        self._ensure_dir()
+        self._init_tables()
         
     def _ensure_dir(self) -> None:
         """确保数据库目录存在"""
@@ -51,152 +65,343 @@ class StoreManager:
     def _get_connection(self) -> sqlite3.Connection:
         """获取数据库连接"""
         if self._conn is None:
-            self._ensure_dir()
             self._conn = sqlite3.connect(
                 str(self.db_path),
                 check_same_thread=False
             )
-            self._init_tables()
+            self._conn.row_factory = sqlite3.Row
         return self._conn
     
     def _init_tables(self) -> None:
         """初始化存储表"""
-        self._conn.execute("""
+        conn = self._get_connection()
+        
+        # 主存储表
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS long_term_memory (
+                id TEXT PRIMARY KEY,
                 namespace TEXT NOT NULL,
                 key TEXT NOT NULL,
                 value TEXT NOT NULL,
+                metadata TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (namespace, key)
+                UNIQUE(namespace, key)
             )
         """)
-        self._conn.commit()
         
-    def get_store(self) -> InMemoryStore:
-        """获取InMemoryStore实例
+        # 索引
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_namespace 
+            ON long_term_memory(namespace)
+        """)
         
-        返回内存存储，同时会加载持久化的数据
-        """
-        if self._store is None:
-            self._store = InMemoryStore()
-            self._load_from_db()
-        return self._store
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_namespace_key 
+            ON long_term_memory(namespace, key)
+        """)
+        
+        conn.commit()
     
-    def _load_from_db(self) -> None:
-        """从数据库加载数据到内存存储"""
-        conn = self._get_connection()
-        cursor = conn.execute(
-            "SELECT namespace, key, value FROM long_term_memory"
-        )
-        for row in cursor.fetchall():
-            namespace = tuple(row[0].split("/"))
-            key = row[1]
-            value = json.loads(row[2])
-            self._store.put(namespace, key, value)
-            
-    def put(self, namespace: Tuple[str, ...], key: str, value: Dict[str, Any]) -> None:
+    def _namespace_to_str(self, namespace: Tuple[str, ...]) -> str:
+        """将命名空间元组转换为字符串"""
+        return "/".join(namespace)
+    
+    def _str_to_namespace(self, namespace_str: str) -> Tuple[str, ...]:
+        """将字符串转换为命名空间元组"""
+        return tuple(namespace_str.split("/"))
+    
+    def _generate_id(self, namespace: Tuple[str, ...], key: str) -> str:
+        """生成唯一ID"""
+        content = f"{self._namespace_to_str(namespace)}:{key}"
+        return hashlib.md5(content.encode()).hexdigest()
+    
+    # ==================== BaseStore 接口实现 ====================
+    
+    def put(
+        self, 
+        namespace: Tuple[str, ...], 
+        key: str, 
+        value: Dict[str, Any],
+        index: Optional[bool] = None
+    ) -> None:
         """存储数据
         
-        同时保存到内存和数据库
+        Args:
+            namespace: 命名空间元组，如 ("user_123", "schema_cache")
+            key: 键名
+            value: 要存储的值（字典）
+            index: 保留参数（未使用）
         """
-        # 保存到内存
-        store = self.get_store()
-        store.put(namespace, key, value)
+        namespace_str = self._namespace_to_str(namespace)
+        memory_id = self._generate_id(namespace, key)
         
         # 持久化到数据库
         conn = self._get_connection()
-        namespace_str = "/".join(namespace)
-        value_str = json.dumps(value, ensure_ascii=False)
-        conn.execute("""
-            INSERT OR REPLACE INTO long_term_memory (namespace, key, value, updated_at)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-        """, (namespace_str, key, value_str))
-        conn.commit()
+        value_str = json.dumps(value, ensure_ascii=False, default=str)
         
-    def get(self, namespace: Tuple[str, ...], key: str) -> Optional[Dict[str, Any]]:
-        """获取数据"""
-        store = self.get_store()
-        item = store.get(namespace, key)
-        return item.value if item else None
+        conn.execute("""
+            INSERT INTO long_term_memory (id, namespace, key, value, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(namespace, key) DO UPDATE SET
+                value = excluded.value,
+                updated_at = CURRENT_TIMESTAMP
+        """, (memory_id, namespace_str, key, value_str))
+        conn.commit()
     
-    def search(
+    def get(
         self, 
         namespace: Tuple[str, ...], 
-        query: Optional[str] = None,
-        limit: int = 10
-    ) -> List[MemoryItem]:
-        """搜索数据
+        key: str
+    ) -> Optional[Item]:
+        """获取数据
         
         Args:
             namespace: 命名空间
-            query: 搜索查询（可选）
-            limit: 最大返回数量
+            key: 键名
             
         Returns:
-            匹配的记忆项列表
+            Item 对象，如果不存在返回 None
         """
-        store = self.get_store()
-        items = store.search(namespace, query=query, limit=limit)
-        return [
-            MemoryItem(
-                namespace=item.namespace,
-                key=item.key,
-                value=item.value
-            )
-            for item in items
-        ]
+        namespace_str = self._namespace_to_str(namespace)
+        
+        conn = self._get_connection()
+        cursor = conn.execute(
+            "SELECT value, created_at, updated_at FROM long_term_memory WHERE namespace = ? AND key = ?",
+            (namespace_str, key)
+        )
+        row = cursor.fetchone()
+        
+        if row is None:
+            return None
+        
+        return Item(
+            namespace=namespace,
+            key=key,
+            value=json.loads(row["value"]),
+            created_at=row["created_at"],
+            updated_at=row["updated_at"]
+        )
     
     def delete(self, namespace: Tuple[str, ...], key: str) -> None:
-        """删除数据"""
-        store = self.get_store()
-        store.delete(namespace, key)
+        """删除数据
         
-        # 从数据库删除
+        Args:
+            namespace: 命名空间
+            key: 键名
+        """
+        namespace_str = self._namespace_to_str(namespace)
+        
         conn = self._get_connection()
-        namespace_str = "/".join(namespace)
         conn.execute(
             "DELETE FROM long_term_memory WHERE namespace = ? AND key = ?",
             (namespace_str, key)
         )
         conn.commit()
+    
+    def search(
+        self, 
+        namespace: Tuple[str, ...],
+        *,
+        query: Optional[str] = None,
+        filter: Optional[Dict[str, Any]] = None,
+        limit: int = 10,
+        offset: int = 0
+    ) -> List[SearchItem]:
+        """搜索数据
         
+        Args:
+            namespace: 命名空间（支持前缀匹配）
+            query: 搜索查询（用于文本匹配）
+            filter: 过滤条件
+            limit: 最大返回数量
+            offset: 偏移量
+            
+        Returns:
+            匹配的 SearchItem 列表
+        """
+        namespace_str = self._namespace_to_str(namespace)
+        
+        conn = self._get_connection()
+        
+        # 构建查询
+        sql = "SELECT namespace, key, value, created_at, updated_at FROM long_term_memory WHERE namespace LIKE ?"
+        params = [namespace_str + "%"]
+        
+        # 文本搜索（简单的 LIKE 匹配）
+        if query:
+            sql += " AND value LIKE ?"
+            params.append(f"%{query}%")
+        
+        sql += " ORDER BY updated_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+        
+        cursor = conn.execute(sql, params)
+        results = []
+        
+        for row in cursor.fetchall():
+            value = json.loads(row["value"])
+            
+            # 过滤条件匹配
+            if filter:
+                match = True
+                for k, v in filter.items():
+                    if value.get(k) != v:
+                        match = False
+                        break
+                if not match:
+                    continue
+            
+            results.append(SearchItem(
+                namespace=self._str_to_namespace(row["namespace"]),
+                key=row["key"],
+                value=value,
+                created_at=row["created_at"],
+                updated_at=row["updated_at"],
+                score=1.0
+            ))
+        
+        return results
+    
+    def list_namespaces(
+        self,
+        *,
+        prefix: Optional[Tuple[str, ...]] = None,
+        suffix: Optional[Tuple[str, ...]] = None,
+        max_depth: Optional[int] = None,
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[Tuple[str, ...]]:
+        """列出命名空间
+        
+        Args:
+            prefix: 命名空间前缀
+            suffix: 命名空间后缀
+            max_depth: 最大深度
+            limit: 最大返回数量
+            offset: 偏移量
+            
+        Returns:
+            命名空间列表
+        """
+        conn = self._get_connection()
+        
+        sql = "SELECT DISTINCT namespace FROM long_term_memory"
+        params = []
+        
+        if prefix:
+            prefix_str = self._namespace_to_str(prefix)
+            sql += " WHERE namespace LIKE ?"
+            params.append(prefix_str + "%")
+        
+        cursor = conn.execute(sql, params)
+        
+        namespaces = set()
+        for row in cursor.fetchall():
+            ns_str = row["namespace"]
+            ns = self._str_to_namespace(ns_str)
+            
+            if max_depth and len(ns) > max_depth:
+                ns = ns[:max_depth]
+            
+            if suffix:
+                suffix_str = self._namespace_to_str(suffix)
+                if not ns_str.endswith(suffix_str):
+                    continue
+            
+            namespaces.add(ns)
+        
+        result = sorted(list(namespaces))
+        return result[offset:offset + limit]
+    
+    # ==================== 便捷方法 ====================
+    
     def clear_namespace(self, namespace: Tuple[str, ...]) -> None:
         """清除命名空间下的所有数据"""
+        namespace_str = self._namespace_to_str(namespace)
+        
         conn = self._get_connection()
-        namespace_str = "/".join(namespace)
         conn.execute(
             "DELETE FROM long_term_memory WHERE namespace LIKE ?",
             (namespace_str + "%",)
         )
         conn.commit()
-        
-        # 重新加载内存存储
-        self._store = None
-        
+    
+    def get_all_in_namespace(
+        self, 
+        namespace: Tuple[str, ...]
+    ) -> List[MemoryItem]:
+        """获取命名空间下的所有数据"""
+        items = self.search(namespace, limit=1000)
+        return [
+            MemoryItem(
+                namespace=item.namespace,
+                key=item.key,
+                value=item.value,
+                created_at=item.created_at,
+                updated_at=item.updated_at
+            )
+            for item in items
+        ]
+    
     def close(self) -> None:
         """关闭连接"""
         if self._conn:
             self._conn.close()
             self._conn = None
-            self._store = None
+    
+    # ==================== 批量操作 ====================
+    
+    async def abatch(
+        self,
+        ops: Sequence[tuple]
+    ) -> List[Any]:
+        """异步批量操作"""
+        results = []
+        for op in ops:
+            op_type = op[0]
+            if op_type == "put":
+                _, namespace, key, value = op
+                self.put(namespace, key, value)
+                results.append(None)
+            elif op_type == "get":
+                _, namespace, key = op
+                results.append(self.get(namespace, key))
+            elif op_type == "search":
+                _, namespace, kwargs = op
+                results.append(self.search(namespace, **kwargs))
+        return results
+    
+    def batch(self, ops: Sequence[tuple]) -> List[Any]:
+        """同步批量操作"""
+        import asyncio
+        return asyncio.get_event_loop().run_until_complete(self.abatch(ops))
 
 
-# 全局管理器实例
-_store_manager: Optional[StoreManager] = None
+# ==================== 全局实例管理 ====================
+
+_store_manager: Optional[PersistentStore] = None
 
 
-def get_store(db_path: str = "data/agent_memory.db") -> InMemoryStore:
-    """获取全局的InMemoryStore实例"""
+def get_store(db_path: str = "data/agent_memory.db") -> PersistentStore:
+    """获取全局的 Store 实例
+    
+    Args:
+        db_path: 数据库路径
+        
+    Returns:
+        PersistentStore 实例
+    """
     global _store_manager
     if _store_manager is None:
-        _store_manager = StoreManager(db_path)
-    return _store_manager.get_store()
-
-
-def get_store_manager() -> StoreManager:
-    """获取全局存储管理器实例"""
-    global _store_manager
-    if _store_manager is None:
-        _store_manager = StoreManager()
+        _store_manager = PersistentStore(db_path=db_path)
     return _store_manager
+
+
+def get_store_manager() -> PersistentStore:
+    """获取全局存储管理器实例"""
+    return get_store()
+
+
+# 保持向后兼容
+StoreManager = PersistentStore

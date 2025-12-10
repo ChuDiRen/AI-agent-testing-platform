@@ -1,9 +1,13 @@
 {
+  "$schema": "https://langchain-ai.github.io/langgraph/langgraph.schema.json",
   "graphs": {
-    "text2sql": "./graph.py:graph"
+    "text2sql": "./chat_graph.py:graph"
   },
-  "env": ".env",
-  "dependencies": [
-    "."
-  ]
+  "store": {
+    "path": "./api/custom_store.py:get_store"
+  },
+  "http": {
+    "app": "./api/server.py:custom_app"
+  },
+  "env": ".env"
 }

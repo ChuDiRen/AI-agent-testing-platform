@@ -60,8 +60,13 @@ class CheckpointerManager:
         Args:
             thread_id: 线程ID
         """
-        checkpointer = self.get_checkpointer()
-        checkpointer.delete_thread(thread_id)
+        conn = self._get_connection()
+        try:
+            conn.execute("DELETE FROM checkpoints WHERE thread_id = ?", (thread_id,))
+            conn.commit()
+        except sqlite3.OperationalError:
+            # 表可能不存在
+            pass
         
     def list_threads(self) -> list[str]:
         """列出所有线程ID
@@ -70,10 +75,14 @@ class CheckpointerManager:
             线程ID列表
         """
         conn = self._get_connection()
-        cursor = conn.execute(
-            "SELECT DISTINCT thread_id FROM checkpoints"
-        )
-        return [row[0] for row in cursor.fetchall()]
+        try:
+            cursor = conn.execute(
+                "SELECT DISTINCT thread_id FROM checkpoints"
+            )
+            return [row[0] for row in cursor.fetchall()]
+        except sqlite3.OperationalError:
+            # 表可能不存在
+            return []
     
     def close(self) -> None:
         """关闭连接"""
@@ -108,6 +117,14 @@ def get_manager() -> CheckpointerManager:
     if _manager is None:
         _manager = CheckpointerManager()
     return _manager
+
+
+def reset_checkpointer_manager() -> None:
+    """重置全局管理器"""
+    global _manager
+    if _manager:
+        _manager.close()
+    _manager = None
 
 
 @contextmanager
