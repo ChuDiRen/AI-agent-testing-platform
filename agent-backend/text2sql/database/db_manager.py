@@ -469,3 +469,47 @@ def close_all_connections() -> None:
     for manager in _connections.values():
         manager.close()
     _connections.clear()
+
+
+# ============ Chinook 测试数据库 ============
+
+import sqlite3
+import urllib.request
+from pathlib import Path
+
+CHINOOK_DB_URL = "https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite"
+DEFAULT_CHINOOK_PATH = Path(__file__).parent.parent.parent / "data" / "Chinook.db"
+
+
+def setup_chinook(db_path: Path = None) -> Path:
+    """自动下载并设置 Chinook 测试数据库
+    
+    Args:
+        db_path: 数据库路径，默认为 agent-backend/data/Chinook.db
+        
+    Returns:
+        数据库文件路径
+    """
+    if db_path is None:
+        db_path = DEFAULT_CHINOOK_PATH
+    
+    # 检查是否已存在有效数据库
+    if db_path.exists():
+        try:
+            with sqlite3.connect(db_path) as conn:
+                tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+                if tables:
+                    return db_path
+        except Exception:
+            pass
+    
+    # 下载数据库
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    print(f"[Chinook] 正在下载数据库...")
+    
+    try:
+        urllib.request.urlretrieve(CHINOOK_DB_URL, db_path)
+        print(f"[Chinook] 下载完成: {db_path}")
+        return db_path
+    except Exception as e:
+        raise RuntimeError(f"下载失败: {e}\n手动下载: {CHINOOK_DB_URL}")

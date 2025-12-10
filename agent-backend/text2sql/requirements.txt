@@ -6,6 +6,7 @@ langgraph>=0.2.0
 langgraph-supervisor>=0.1.0
 langgraph-checkpoint-sqlite>=1.0.0
 langgraph-sdk>=0.1.0
+langgraph-cli[inmem]>=0.1.0
 
 # LangChain 核心
 langchain>=0.3.0

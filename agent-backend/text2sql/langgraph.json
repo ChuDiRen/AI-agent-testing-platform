@@ -1,0 +1,9 @@
+{
+  "graphs": {
+    "text2sql": "./graph.py:graph"
+  },
+  "env": ".env",
+  "dependencies": [
+    "."
+  ]
+}
