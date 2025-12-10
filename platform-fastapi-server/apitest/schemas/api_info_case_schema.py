@@ -46,6 +46,8 @@ class ApiInfoCaseCreate(BaseModel):
     project_id: Optional[int] = Field(default=None, description="项目ID")
     case_name: str = Field(description="用例名称")
     case_desc: Optional[str] = Field(default=None, description="用例描述")
+    context_config: Optional[Dict[str, Any]] = Field(default=None, description="全局配置")
+    ddts: Optional[List[Dict[str, Any]]] = Field(default=None, description="数据驱动列表")
     steps: Optional[List[ApiInfoCaseStepCreate]] = Field(default=None, description="用例步骤列表")
 
 class ApiInfoCaseUpdate(BaseModel):
@@ -54,6 +56,8 @@ class ApiInfoCaseUpdate(BaseModel):
     project_id: Optional[int] = Field(default=None, description="项目ID")
     case_name: Optional[str] = Field(default=None, description="用例名称")
     case_desc: Optional[str] = Field(default=None, description="用例描述")
+    context_config: Optional[Dict[str, Any]] = Field(default=None, description="全局配置")
+    ddts: Optional[List[Dict[str, Any]]] = Field(default=None, description="数据驱动列表")
     steps: Optional[List[ApiInfoCaseStepCreate]] = Field(default=None, description="用例步骤列表")
 
 # ==================== 用例响应相关 ====================

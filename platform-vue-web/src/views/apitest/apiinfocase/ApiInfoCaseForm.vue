@@ -68,11 +68,55 @@
           </el-row>
         </el-card>
 
+        <!-- 全局配置卡片 -->
+        <el-card class="config-card" shadow="hover">
+          <div class="card-header-row">
+            <div class="card-title">全局配置</div>
+            <div class="header-actions">
+              <el-button type="success" plain size="small" icon="Upload" @click="contextImporterVisible = true">导入配置</el-button>
+              <el-button type="primary" plain size="small" icon="Plus" @click="handleAddConfig">添加变量</el-button>
+            </div>
+          </div>
+          
+          <div v-if="configTableData.length > 0" class="config-list">
+            <el-table 
+              :data="configTableData" 
+              border 
+              stripe 
+              header-cell-class-name="table-header"
+              class="custom-table"
+            >
+              <el-table-column prop="key" label="变量名" width="200">
+                <template #default="{ row }">
+                  <span class="config-key">{{ row.key }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="value" label="变量值" min-width="300" show-overflow-tooltip>
+                <template #default="{ row }">
+                  <span class="config-value">{{ row.value }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="140" align="center" fixed="right">
+                <template #default="{ row }">
+                  <el-button type="primary" link @click="handleEditConfig(row.key)">编辑</el-button>
+                  <el-button type="danger" link @click="handleDeleteConfig(row.key)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <div v-else class="config-empty">
+            <span class="config-hint">暂无全局配置，点击"导入配置"或"添加变量"</span>
+          </div>
+        </el-card>
+
         <!-- 步骤管理卡片 -->
         <el-card class="step-card" shadow="hover">
           <div class="card-header-row">
             <div class="card-title">用例步骤</div>
-            <el-button type="primary" plain size="small" icon="Plus" @click="handleAddStep">添加步骤</el-button>
+            <div class="header-actions">
+              <el-button type="success" plain size="small" icon="Upload" @click="yamlImporterVisible = true">YAML 导入</el-button>
+              <el-button type="primary" plain size="small" icon="Plus" @click="handleAddStep">添加步骤</el-button>
+            </div>
           </div>
           
           <div class="step-list">
@@ -108,11 +152,36 @@
             </el-table>
             
             <div v-if="stepsList.length === 0" class="empty-state">
-              <el-empty description="暂无测试步骤" :image-size="80">
-                <el-button type="primary" plain @click="handleAddStep">立即添加</el-button>
-              </el-empty>
+              <el-empty description="暂无测试步骤" :image-size="80" />
             </div>
           </div>
+        </el-card>
+
+        <!-- 数据驱动卡片 -->
+        <el-card v-if="ddtsList.length > 0" class="ddts-card" shadow="hover">
+          <div class="card-header-row">
+            <div class="card-title">数据驱动 ({{ ddtsList.length }} 组)</div>
+            <div class="header-actions">
+              <el-button type="primary" plain size="small" icon="Plus" @click="handleAddDdt">添加</el-button>
+              <el-button type="danger" plain size="small" icon="Delete" @click="handleClearDdts">清空</el-button>
+            </div>
+          </div>
+          <el-table :data="ddtsList" border stripe max-height="250" class="custom-table">
+            <el-table-column prop="desc" label="数据描述" width="200" show-overflow-tooltip />
+            <el-table-column label="变量" min-width="400">
+              <template #default="{ row }">
+                <el-tag v-for="(value, key) in row" :key="key" v-show="key !== 'desc'" size="small" class="ddts-var-tag">
+                  {{ key }}={{ value }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="120" align="center">
+              <template #default="{ row, $index }">
+                <el-button type="primary" link @click="handleEditDdt(row, $index)">编辑</el-button>
+                <el-button type="danger" link @click="handleDeleteDdt($index)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
         </el-card>
       </el-form>
     </div>
@@ -126,16 +195,75 @@
       @confirm="handleStepConfirm"
     />
 
+    <!-- YAML 导入器 -->
+    <YamlImporter
+      v-model="yamlImporterVisible"
+      :start-order="getNextOrder()"
+      @import="handleYamlImport"
+    />
+
+    <!-- 全局配置导入器 -->
+    <ContextImporter
+      v-model="contextImporterVisible"
+      @import="handleContextImport"
+    />
+
     <!-- 执行结果弹窗 -->
     <ExecutionResultDialog
       v-model="resultDialogVisible"
       :result-data="executionResult"
     />
+
+    <!-- 全局配置编辑弹窗 -->
+    <el-dialog v-model="configEditorVisible" :title="isEditConfig ? '编辑配置' : '添加配置'" width="500px">
+      <el-form :model="configForm" label-width="80px">
+        <el-form-item label="变量名">
+          <el-input v-model="configForm.key" placeholder="如 URL、API_KEY" />
+        </el-form-item>
+        <el-form-item label="变量值">
+          <el-input 
+            v-model="configForm.value" 
+            type="textarea" 
+            :rows="4" 
+            placeholder="变量值，支持 JSON 格式" 
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="configEditorVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleConfigConfirm">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- DDT 编辑弹窗 -->
+    <el-dialog v-model="ddtEditorVisible" :title="isEditDdt ? '编辑数据' : '添加数据'" width="600px">
+      <el-form :model="ddtForm" label-width="100px">
+        <el-form-item label="数据描述">
+          <el-input v-model="ddtForm.desc" placeholder="请输入数据描述" />
+        </el-form-item>
+        <el-divider>变量配置</el-divider>
+        <div v-for="(item, index) in ddtForm.vars" :key="index" class="ddt-var-row">
+          <el-input v-model="item.key" placeholder="变量名" style="width: 150px" />
+          <span class="ddt-var-eq">=</span>
+          <el-input v-model="item.value" placeholder="变量值" style="flex: 1" />
+          <el-button type="danger" link @click="ddtForm.vars.splice(index, 1)">
+            <el-icon><Delete /></el-icon>
+          </el-button>
+        </div>
+        <el-button type="primary" link @click="ddtForm.vars.push({ key: '', value: '' })">
+          <el-icon><Plus /></el-icon> 添加变量
+        </el-button>
+      </el-form>
+      <template #footer>
+        <el-button @click="ddtEditorVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleDdtConfirm">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { queryById, insertData, updateData, executeCase, getExecutionStatus } from './apiInfoCase.js'
@@ -144,7 +272,10 @@ import { queryAll as queryOperationType } from '../keyword/operationType.js'
 import { queryAll as queryKeywords } from '../keyword/apiKeyWord.js'
 import StepEditor from './components/StepEditor.vue'
 import ExecutionResultDialog from './components/ExecutionResultDialog.vue'
+import YamlImporter from './components/YamlImporter.vue'
+import ContextImporter from './components/ContextImporter.vue'
 import { listExecutors } from '../task/apiTask.js'
+import { Delete, Plus } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const formRef = ref(null)
@@ -162,6 +293,35 @@ const caseForm = reactive({
 // 步骤列表
 const stepsList = ref([])
 
+// 数据驱动列表
+const ddtsList = ref([])
+
+// 全局配置
+const contextConfig = reactive({})
+
+// 全局配置表格数据
+const configTableData = computed(() => {
+  return Object.entries(contextConfig).map(([key, value]) => ({ key, value }))
+})
+
+// 全局配置编辑器
+const configEditorVisible = ref(false)
+const isEditConfig = ref(false)
+const currentConfigKey = ref('')
+const configForm = reactive({
+  key: '',
+  value: ''
+})
+
+// DDT 编辑器
+const ddtEditorVisible = ref(false)
+const isEditDdt = ref(false)
+const currentDdtIndex = ref(-1)
+const ddtForm = reactive({
+  desc: '',
+  vars: []
+})
+
 // 项目列表
 const projectList = ref([])
 const operationTypeList = ref([])
@@ -176,6 +336,12 @@ const stepEditorVisible = ref(false)
 const currentStep = ref(null)
 const isEditStep = ref(false)
 const currentStepIndex = ref(-1)
+
+// YAML 导入器
+const yamlImporterVisible = ref(false)
+
+// 全局配置导入器
+const contextImporterVisible = ref(false)
 
 // 表单验证规则
 const rules = {
@@ -268,6 +434,131 @@ const handleStepConfirm = (stepData) => {
   stepsList.value.sort((a, b) => a.run_order - b.run_order)
 }
 
+// YAML 导入处理
+const handleYamlImport = ({ steps, ddts, context }) => {
+  // 批量添加步骤
+  steps.forEach(step => {
+    stepsList.value.push({
+      run_order: step.run_order,
+      step_desc: step.step_desc,
+      operation_type_id: step.operation_type_id,
+      keyword_id: step.keyword_id,
+      step_data: step.step_data
+    })
+  })
+  // 按序号排序
+  stepsList.value.sort((a, b) => a.run_order - b.run_order)
+  
+  // 导入数据驱动
+  if (ddts && ddts.length > 0) {
+    ddtsList.value = [...ddtsList.value, ...ddts]
+  }
+  
+  // 导入全局配置
+  if (context && Object.keys(context).length > 0) {
+    Object.entries(context).forEach(([key, value]) => {
+      const strValue = typeof value === 'object' ? JSON.stringify(value) : String(value)
+      contextConfig[key] = strValue
+    })
+  }
+}
+
+// 导入全局配置
+const handleContextImport = (config) => {
+  Object.entries(config).forEach(([key, value]) => {
+    const strValue = typeof value === 'object' ? JSON.stringify(value) : String(value)
+    contextConfig[key] = strValue
+  })
+}
+
+// 全局配置操作
+const handleAddConfig = () => {
+  isEditConfig.value = false
+  currentConfigKey.value = ''
+  configForm.key = ''
+  configForm.value = ''
+  configEditorVisible.value = true
+}
+
+const handleEditConfig = (key) => {
+  isEditConfig.value = true
+  currentConfigKey.value = key
+  configForm.key = key
+  configForm.value = contextConfig[key]
+  configEditorVisible.value = true
+}
+
+const handleDeleteConfig = (key) => {
+  delete contextConfig[key]
+}
+
+const handleConfigConfirm = () => {
+  if (!configForm.key.trim()) {
+    ElMessage.warning('请输入变量名')
+    return
+  }
+  
+  // 编辑模式下，如果键名改变，删除旧的
+  if (isEditConfig.value && currentConfigKey.value !== configForm.key) {
+    delete contextConfig[currentConfigKey.value]
+  }
+  
+  contextConfig[configForm.key] = configForm.value
+  configEditorVisible.value = false
+}
+
+// 清空数据驱动
+const handleClearDdts = () => {
+  ddtsList.value = []
+}
+
+// 删除单个数据驱动
+const handleDeleteDdt = (index) => {
+  ddtsList.value.splice(index, 1)
+}
+
+// 添加数据驱动
+const handleAddDdt = () => {
+  isEditDdt.value = false
+  currentDdtIndex.value = -1
+  ddtForm.desc = ''
+  ddtForm.vars = [{ key: '', value: '' }]
+  ddtEditorVisible.value = true
+}
+
+// 编辑数据驱动
+const handleEditDdt = (row, index) => {
+  isEditDdt.value = true
+  currentDdtIndex.value = index
+  ddtForm.desc = row.desc || ''
+  // 将对象转换为数组格式
+  ddtForm.vars = Object.entries(row)
+    .filter(([key]) => key !== 'desc')
+    .map(([key, value]) => ({ key, value: String(value) }))
+  if (ddtForm.vars.length === 0) {
+    ddtForm.vars = [{ key: '', value: '' }]
+  }
+  ddtEditorVisible.value = true
+}
+
+// 确认 DDT 编辑
+const handleDdtConfirm = () => {
+  // 将数组格式转换回对象
+  const ddtData = { desc: ddtForm.desc }
+  ddtForm.vars.forEach(item => {
+    if (item.key.trim()) {
+      ddtData[item.key.trim()] = item.value
+    }
+  })
+  
+  if (isEditDdt.value) {
+    ddtsList.value[currentDdtIndex.value] = ddtData
+  } else {
+    ddtsList.value.push(ddtData)
+  }
+  ddtEditorVisible.value = false
+}
+
 // 提交表单
 const handleSubmit = async () => {
   if (!formRef.value) return
@@ -277,6 +568,8 @@ const handleSubmit = async () => {
     
     const data = {
       ...caseForm,
+      context_config: Object.keys(contextConfig).length > 0 ? { ...contextConfig } : null,
+      ddts: ddtsList.value,
       steps: stepsList.value.map(step => ({
         run_order: step.run_order,
         step_desc: step.step_desc,
@@ -386,6 +679,17 @@ const loadCaseData = async (id) => {
       keyword_id: step.keyword_id,
       step_data: step.step_data || {}
     }))
+    
+    // 加载数据驱动
+    ddtsList.value = data.ddts || []
+    
+    // 加载全局配置
+    if (data.context_config) {
+      Object.keys(contextConfig).forEach(key => delete contextConfig[key])
+      Object.entries(data.context_config).forEach(([key, value]) => {
+        contextConfig[key] = value
+      })
+    }
   }
 }
 
@@ -502,6 +806,11 @@ onMounted(async () => {
   margin-bottom: 0;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 /* 表单微调 */
 :deep(.el-form-item__label) {
   font-weight: 500;
@@ -549,6 +858,55 @@ onMounted(async () => {
   background: #fff;
   border: 1px solid #ebeef5;
   border-top: none;
+}
+
+/* 数据驱动卡片 */
+.ddts-card {
+  margin-top: 20px;
+}
+
+.ddts-var-tag {
+  margin: 2px 4px 2px 0;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* DDT 编辑器样式 */
+.ddt-var-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ddt-var-eq {
+  color: #909399;
+  font-weight: bold;
+}
+
+/* 全局配置卡片 */
+.config-card {
+  margin-top: 20px;
+}
+
+.config-key {
+  font-family: 'Consolas', 'Monaco', monospace;
+  color: #409eff;
+  font-weight: 500;
+}
+
+.config-value {
+  font-family: 'Consolas', 'Monaco', monospace;
+  color: #606266;
+}
+
+.config-empty {
+  padding: 20px;
+  text-align: center;
+}
+
+.config-hint {
+  color: #909399;
+  font-size: 13px;
 }
 </style>
 

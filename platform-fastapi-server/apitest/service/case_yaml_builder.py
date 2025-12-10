@@ -33,7 +33,7 @@ class CaseYamlBuilder:
         
         Args:
             case_id: 用例ID
-            context_vars: 上下文变量
+            context_vars: 上下文变量（会与用例自身的 ddts 合并）
             
         Returns:
             {"yaml_data": dict, "yaml_content": str, "case_name": str}
@@ -46,7 +46,14 @@ class CaseYamlBuilder:
         if not steps:
             raise ValueError(f"用例没有步骤: {case_id}")
         
-        yaml_data = self._build_yaml_data(case_info.case_name, steps, context_vars)
+        # 加载用例自身的 ddts 数据
+        case_ddts = self._parse_ddts(case_info.ddts)
+        
+        # 加载用例的全局配置
+        case_context = self._parse_context_config(case_info.context_config)
+        
+        # 构建 YAML 数据，包含 ddts 和全局配置
+        yaml_data = self._build_yaml_data_with_ddts(case_info.case_name, steps, case_ddts, context_vars, case_context)
         yaml_content = yaml.dump(yaml_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
         
         return {
@@ -55,6 +62,86 @@ class CaseYamlBuilder:
             "case_name": case_info.case_name,
             "project_id": case_info.project_id
         }
+    
+    def _parse_ddts(self, ddts_str: Optional[str]) -> List[Dict[str, Any]]:
+        """解析用例的 ddts 字段"""
+        if not ddts_str:
+            return []
+        try:
+            data = json.loads(ddts_str)
+            return data if isinstance(data, list) else [data]
+        except json.JSONDecodeError:
+            return []
+    
+    def _parse_context_config(self, config_str: Optional[str]) -> Dict[str, Any]:
+        """解析用例的全局配置"""
+        if not config_str:
+            return {}
+        try:
+            return json.loads(config_str)
+        except json.JSONDecodeError:
+            return {}
+    
+    def _build_yaml_data_with_ddts(
+        self,
+        case_name: str,
+        steps: List[ApiInfoCaseStep],
+        case_ddts: List[Dict[str, Any]],
+        context_vars: Optional[Dict[str, Any]] = None,
+        case_context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """构建包含 ddts 和全局配置的 YAML 数据"""
+        yaml_data = {'desc': case_name}
+        
+        # 添加全局配置（放在最前面）
+        if case_context:
+            for key, value in case_context.items():
+                yaml_data[key] = value
+        
+        yaml_data['steps'] = []
+        
+        for step in steps:
+            step_data = self._parse_step_data(step.step_data)
+            keyword_name = self._get_keyword_name(step.keyword_id)
+            
+            # 预先替换全局配置变量（如 {{URL}} -> 实际值）
+            if case_context:
+                step_data = self._replace_context_vars(step_data, case_context)
+            
+            # 只对 HTTP 请求类关键字进行转换，其他关键字保持原样
+            final_keyword, final_data = self._normalize_step(keyword_name, step_data)
+            
+            step_item = {
+                step.step_desc or f"步骤{step.run_order}": {
+                    '关键字': final_keyword,
+                    **final_data
+                }
+            }
+            yaml_data['steps'].append(step_item)
+        
+        # 添加 ddts 数据
+        if case_ddts:
+            yaml_data['ddts'] = case_ddts
+        elif context_vars:
+            yaml_data['ddts'] = [{'desc': f'{case_name}_数据', **context_vars}]
+        
+        return yaml_data
+    
+    def _replace_context_vars(self, data: Any, context: Dict[str, Any]) -> Any:
+        """递归替换数据中的全局配置变量 {{VAR}}"""
+        if isinstance(data, dict):
+            return {k: self._replace_context_vars(v, context) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [self._replace_context_vars(item, context) for item in data]
+        elif isinstance(data, str):
+            result = data
+            for key, value in context.items():
+                placeholder = '{{' + key + '}}'
+                if placeholder in result:
+                    result = result.replace(placeholder, str(value))
+            return result
+        else:
+            return data
     
     def build_plan_cases(self, plan_id: int) -> Dict[str, Any]:
         """
@@ -220,13 +307,37 @@ class CaseYamlBuilder:
         return yaml_data
     
     def _parse_step_data(self, step_data_str: Optional[str]) -> Dict[str, Any]:
-        """解析步骤数据 JSON"""
+        """解析步骤数据 JSON，并递归解析嵌套的 JSON 字符串"""
         if not step_data_str:
             return {}
         try:
-            return json.loads(step_data_str)
+            data = json.loads(step_data_str)
+            # 递归解析嵌套的 JSON 字符串
+            return self._deep_parse_json_strings(data)
         except json.JSONDecodeError:
             return {}
+    
+    def _deep_parse_json_strings(self, obj: Any) -> Any:
+        """递归解析对象中的 JSON 字符串"""
+        if isinstance(obj, dict):
+            result = {}
+            for key, value in obj.items():
+                result[key] = self._deep_parse_json_strings(value)
+            return result
+        elif isinstance(obj, list):
+            return [self._deep_parse_json_strings(item) for item in obj]
+        elif isinstance(obj, str):
+            # 尝试解析看起来像 JSON 的字符串
+            stripped = obj.strip()
+            if stripped.startswith('{') or stripped.startswith('['):
+                try:
+                    parsed = json.loads(obj)
+                    return self._deep_parse_json_strings(parsed)
+                except json.JSONDecodeError:
+                    pass
+            return obj
+        else:
+            return obj
     
     def _get_keyword_name(self, keyword_id: Optional[int]) -> str:
         """获取关键字名称"""
@@ -258,6 +369,9 @@ class CaseYamlBuilder:
         # 其他关键字（如 assert_text_comparators）保持原样
         return keyword_name, step_data
     
+    # send_request 支持的有效参数
+    _VALID_REQUEST_PARAMS = {'url', 'method', 'params', 'data', 'json', 'headers', 'files', 'timeout', 'cookies', 'auth'}
+    
     def _convert_to_send_request(self, step_data: Dict[str, Any], keyword_name: str) -> Dict[str, Any]:
         """
         将旧格式 HTTP 请求参数转换为 send_request 统一格式
@@ -272,7 +386,8 @@ class CaseYamlBuilder:
             'URL': 'url',
             'PARAMS': 'params',
             'HEADERS': 'headers',
-            'DATA': 'json',  # JSON 数据用 json 参数
+            'DATA': 'data',
+            'JSON': 'json',
             'FILES': 'files'
         }
         
@@ -290,10 +405,17 @@ class CaseYamlBuilder:
         
         result['method'] = method
         
-        # 转换参数
+        # 转换参数，过滤空值和无效参数
         for key, value in step_data.items():
+            # 跳过空值
+            if value is None or value == '' or value == {}:
+                continue
+            
             new_key = param_map.get(key, key.lower())
-            result[new_key] = value
+            
+            # 只保留有效的请求参数
+            if new_key in self._VALID_REQUEST_PARAMS:
+                result[new_key] = value
         
         return result
     

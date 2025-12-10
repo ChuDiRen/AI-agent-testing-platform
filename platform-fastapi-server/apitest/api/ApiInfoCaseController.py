@@ -93,12 +93,32 @@ async def queryById(id: int = Query(...), session: Session = Depends(get_session
             except:
                 return {}
         
+        # 解析ddts
+        def parse_ddts(ddts_str):
+            if not ddts_str:
+                return []
+            try:
+                return json.loads(ddts_str)
+            except:
+                return []
+        
+        # 解析context_config
+        def parse_context_config(config_str):
+            if not config_str:
+                return {}
+            try:
+                return json.loads(config_str)
+            except:
+                return {}
+        
         # 构建响应
         result = {
             "id": case_info.id,
             "project_id": case_info.project_id,
             "case_name": case_info.case_name,
             "case_desc": case_info.case_desc,
+            "context_config": parse_context_config(case_info.context_config),
+            "ddts": parse_ddts(case_info.ddts),
             "create_time": TimeFormatter.format_datetime(case_info.create_time),
             "modify_time": TimeFormatter.format_datetime(case_info.modify_time),
             "steps": [
@@ -129,6 +149,8 @@ async def insert(data: ApiInfoCaseCreate, session: Session = Depends(get_session
             project_id=data.project_id,
             case_name=data.case_name,
             case_desc=data.case_desc,
+            context_config=json.dumps(data.context_config, ensure_ascii=False) if data.context_config else None,
+            ddts=json.dumps(data.ddts, ensure_ascii=False) if data.ddts else None,
             create_time=datetime.now(),
             modify_time=datetime.now()
         )
@@ -171,6 +193,10 @@ async def update(data: ApiInfoCaseUpdate, session: Session = Depends(get_session
             case_info.case_name = data.case_name
         if data.case_desc is not None:
             case_info.case_desc = data.case_desc
+        if data.context_config is not None:
+            case_info.context_config = json.dumps(data.context_config, ensure_ascii=False) if data.context_config else None
+        if data.ddts is not None:
+            case_info.ddts = json.dumps(data.ddts, ensure_ascii=False) if data.ddts else None
         case_info.modify_time = datetime.now()
         
         # 更新步骤：先删除旧步骤，再创建新步骤

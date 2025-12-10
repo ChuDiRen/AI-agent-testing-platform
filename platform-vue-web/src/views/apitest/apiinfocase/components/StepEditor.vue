@@ -6,6 +6,20 @@
     @close="handleClose"
   >
     <el-form ref="formRef" :model="stepForm" :rules="rules" label-width="120px">
+      <!-- 快捷模板区域 -->
+      <div v-if="!isEdit" class="quick-templates">
+        <span class="template-label">快捷模板：</span>
+        <el-button size="small" @click="applyTemplate('send_request')">
+          <el-icon><Connection /></el-icon> HTTP请求
+        </el-button>
+        <el-button size="small" @click="applyTemplate('ex_jsonData')">
+          <el-icon><Aim /></el-icon> 提取JSON
+        </el-button>
+        <el-button size="small" @click="applyTemplate('assert_text')">
+          <el-icon><Check /></el-icon> 断言
+        </el-button>
+      </div>
+
       <el-form-item label="运行序号" prop="run_order">
         <el-input-number v-model="stepForm.run_order" :min="1" :step="1" />
       </el-form-item>
@@ -116,6 +130,7 @@
 <script setup>
 import { ref, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Connection, Aim, Check } from '@element-plus/icons-vue'
 import { queryKeywordsByType, getKeywordFields } from '../apiCase.js'
 import { queryById as queryKeywordById } from '../../keyword/apiKeyWord.js'
 import { queryAll as queryOperationType } from '../../keyword/operationType.js'
@@ -171,13 +186,101 @@ const dynamicFields = ref([])
 const apiInfoList = ref([])
 const dbList = ref([])
 
+// 快捷模板定义
+const QUICK_TEMPLATES = {
+  send_request: {
+    step_desc: 'HTTP请求',
+    keyword_name: 'send_request',
+    fields: [
+      { name: 'method', placeholder: '请求方法', default: 'GET' },
+      { name: 'url', placeholder: '请求URL' },
+      { name: 'params', placeholder: 'URL参数 (JSON)' },
+      { name: 'headers', placeholder: '请求头 (JSON)' },
+      { name: 'data', placeholder: '请求体 (JSON)' }
+    ]
+  },
+  ex_jsonData: {
+    step_desc: '提取响应数据',
+    keyword_name: 'ex_jsonData',
+    fields: [
+      { name: 'EXVALUE', placeholder: 'JSONPath表达式', default: '$.data' },
+      { name: 'VARNAME', placeholder: '变量名' },
+      { name: 'INDEX', placeholder: '索引', default: '0' }
+    ]
+  },
+  assert_text: {
+    step_desc: '断言验证',
+    keyword_name: 'assert_text_comparators',
+    fields: [
+      { name: 'VALUE', placeholder: '实际值' },
+      { name: 'EXPECTED', placeholder: '期望值' },
+      { name: 'OP_STR', placeholder: '比较运算符', default: '==' }
+    ]
+  }
+}
+
+// 应用快捷模板
+const applyTemplate = async (templateName) => {
+  const template = QUICK_TEMPLATES[templateName]
+  if (!template) return
+  
+  // 设置步骤描述
+  stepForm.step_desc = template.step_desc
+  
+  // 查找关键字
+  try {
+    // 首先加载所有操作类型
+    if (operationTypeList.value.length === 0) {
+      await loadOperationTypes()
+    }
+    
+    // 遍历每个操作类型查找关键字
+    for (const opType of operationTypeList.value) {
+      const res = await queryKeywordsByType(opType.id)
+      if (res.data.code === 200) {
+        const keywords = res.data.data || []
+        const matchedKw = keywords.find(kw => kw.name === template.keyword_name)
+        if (matchedKw) {
+          // 找到了，设置操作类型和关键字
+          stepForm.operation_type_id = opType.id
+          keywordList.value = keywords
+          stepForm.keyword_id = matchedKw.id
+          
+          // 设置动态字段
+          dynamicFields.value = template.fields
+          
+          // 初始化 step_data
+          stepForm.step_data = {}
+          template.fields.forEach(field => {
+            stepForm.step_data[field.name] = field.default || ''
+          })
+          
+          ElMessage.success(`已应用模板: ${template.step_desc}`)
+          return
+        }
+      }
+    }
+    
+    // 未找到关键字，使用模板字段作为备用
+    ElMessage.warning(`未找到关键字 ${template.keyword_name}，请先同步关键字`)
+    dynamicFields.value = template.fields
+    stepForm.step_data = {}
+    template.fields.forEach(field => {
+      stepForm.step_data[field.name] = field.default || ''
+    })
+    
+  } catch (error) {
+    console.error('应用模板失败:', error)
+    ElMessage.error('应用模板失败')
+  }
+}
+
 // 加载操作类型列表
 const loadOperationTypes = async () => {
   try {
     const res = await queryOperationType()
     if (res.data.code === 200) {
       operationTypeList.value = res.data.data || []
-      console.log('【StepEditor】操作类型列表：', operationTypeList.value)
     }
   } catch (error) {
     console.error('加载操作类型失败:', error)
@@ -225,7 +328,6 @@ const handleOperationTypeChange = async (value) => {
     const res = await queryKeywordsByType(value)
     if (res.data.code === 200) {
       keywordList.value = res.data.data || []
-      console.log('【StepEditor】操作类型', value, '关键字列表：', keywordList.value)
     }
   } catch (error) {
     console.error('加载关键字列表失败:', error)
@@ -265,7 +367,6 @@ const handleKeywordChange = async (value, keepExisting = false) => {
               { name: 'PARAMS', placeholder: '查询参数 (JSON/String)' },
               { name: 'HEADERS', placeholder: '请求头 (JSON)' }
             )
-            console.log('【StepEditor】启用兜底字段 (GET/DELETE)')
           } else if (name.includes('POST请求') || name.includes('PUT请求') || name.includes('PATCH请求')) {
              fields.push(
               { name: 'URL', placeholder: '请求地址' },
@@ -273,13 +374,11 @@ const handleKeywordChange = async (value, keepExisting = false) => {
               { name: 'HEADERS', placeholder: '请求头 (JSON)' },
               { name: 'DATA', placeholder: '请求体 (JSON)' }
             )
-            console.log('【StepEditor】启用兜底字段 (POST/PUT/PATCH)')
           }
         }
       }
 
       dynamicFields.value = fields
-      console.log('【StepEditor】关键字', value, '字段描述：', dynamicFields.value)
       
       // 确保step_data是对象
       if (!stepForm.step_data) {
@@ -324,7 +423,6 @@ watch(() => props.modelValue, (val) => {
   loadOperationTypes()
   
   if (props.stepData) {
-    console.log('【StepEditor】接收到的步骤数据:', JSON.parse(JSON.stringify(props.stepData)))
     // 编辑模式：加载步骤数据
     const rawStepData = props.stepData.step_data ? JSON.parse(JSON.stringify(props.stepData.step_data)) : {}
     
@@ -359,7 +457,6 @@ watch(() => props.modelValue, (val) => {
               const kwRes = await queryKeywordById(stepForm.keyword_id)
               if (kwRes.data.code === 200 && kwRes.data.data) {
                 keywordList.value.push(kwRes.data.data)
-                console.log('【StepEditor】手动补全关键字:', kwRes.data.data)
               }
             } catch (e) {
               console.error('补全关键字失败:', e)
@@ -401,19 +498,30 @@ const handleConfirm = async () => {
       return
     }
     
-    // 处理数据：尝试解析JSON字符串
-    const processedStepData = { ...stepForm.step_data }
-    for (const key in processedStepData) {
-      const val = processedStepData[key]
-      if (['HEADERS', 'PARAMS', 'DATA', 'JSON'].includes(key) && typeof val === 'string') {
+    // 处理数据：尝试解析JSON字符串，并过滤空值
+    const processedStepData = {}
+    for (const key in stepForm.step_data) {
+      const val = stepForm.step_data[key]
+      
+      // 跳过空值和无效字段
+      if (val === null || val === undefined || val === '' || key === 'response') {
+        continue
+      }
+      
+      if (typeof val === 'string' && val.trim()) {
         try {
           // 只有当看起来像JSON对象或数组时才解析
-          if ((val.trim().startsWith('{') || val.trim().startsWith('['))) {
-             processedStepData[key] = JSON.parse(val)
+          if (val.trim().startsWith('{') || val.trim().startsWith('[')) {
+            processedStepData[key] = JSON.parse(val)
+          } else {
+            processedStepData[key] = val
           }
         } catch (e) {
           // 解析失败保持原样
+          processedStepData[key] = val
         }
+      } else if (val !== '') {
+        processedStepData[key] = val
       }
     }
 
@@ -433,11 +541,44 @@ const handleConfirm = async () => {
 </script>
 
 <style scoped>
+.quick-templates {
+  background: linear-gradient(135deg, #f0f9eb 0%, #e8f5e9 100%);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.template-label {
+  color: #67c23a;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.quick-templates .el-button {
+  border-color: #c2e7b0;
+}
+
+.quick-templates .el-button:hover {
+  background: #67c23a;
+  border-color: #67c23a;
+  color: #fff;
+}
+
 .dynamic-fields {
   background: #f5f7fa;
   padding: 15px;
   border-radius: 4px;
   margin-top: 10px;
+}
+
+/* 确保输入框中下划线正常显示 */
+.dynamic-fields :deep(.el-input__inner),
+.dynamic-fields :deep(.el-textarea__inner) {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
 :deep(.el-divider) {
