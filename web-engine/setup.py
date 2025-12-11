@@ -9,7 +9,7 @@ with open("requirements.txt", "r", encoding="utf-8") as f:
 setup(
     name="web-engine",
     version="1.0.0",
-    description="基于 Selenium 的 Web 自动化测试引擎，支持关键字驱动和数据驱动",
+    description="基于 Playwright 的 Web 自动化测试引擎，支持关键字驱动和数据驱动",
     author="Your Name",
     author_email="your.email@example.com",
     url="https://github.com/yourusername/web-engine",
@@ -31,7 +31,7 @@ setup(
             "webrun=webrun.cli:run",
         ],
     },
-    keywords="selenium web automation testing keyword-driven data-driven",
+    keywords="playwright web automation testing keyword-driven data-driven",
     project_urls={
         "Documentation": "https://github.com/yourusername/web-engine/wiki",
         "Source": "https://github.com/yourusername/web-engine",

@@ -314,7 +314,28 @@ class PluginInstaller:
             
             install_log.append(f"[{datetime.now().isoformat()}] 安装完成，命令路径: {cmd_path}")
             
-            # 6. 更新状态：安装成功
+            # 6. 清理源码目录（安装成功后删除解压的源码，只保留 venv）
+            if use_venv and source_dir != install_dir:
+                try:
+                    shutil.rmtree(source_dir, ignore_errors=True)
+                    install_log.append(f"[{datetime.now().isoformat()}] 已清理源码目录: {source_dir}")
+                except Exception as cleanup_err:
+                    install_log.append(f"[{datetime.now().isoformat()}] 清理源码目录失败: {cleanup_err}")
+            elif use_venv:
+                # source_dir == install_dir 的情况，删除除 venv 外的所有文件
+                try:
+                    venv_dir = PluginInstaller.get_venv_dir(plugin_code)
+                    for item in install_dir.iterdir():
+                        if item != venv_dir and item.name != "venv":
+                            if item.is_dir():
+                                shutil.rmtree(item, ignore_errors=True)
+                            else:
+                                item.unlink(missing_ok=True)
+                    install_log.append(f"[{datetime.now().isoformat()}] 已清理源码文件，保留 venv 目录")
+                except Exception as cleanup_err:
+                    install_log.append(f"[{datetime.now().isoformat()}] 清理源码文件失败: {cleanup_err}")
+            
+            # 7. 更新状态：安装成功
             PluginInstaller.update_install_status(
                 plugin_id, "completed",
                 f"安装成功，命令: {command}",

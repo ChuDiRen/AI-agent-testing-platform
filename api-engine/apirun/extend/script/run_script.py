@@ -13,8 +13,4 @@ def exec_script(script: str | None, context: dict[str, Any]) -> None:
     :param context: 上下文字典
     """
     if script is None: return
-
-    # script = "from apirunner.extend.functions import * \n" + script
-    # print(script)
     exec(script, {"context": context})
-    print(context)

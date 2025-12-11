@@ -31,7 +31,7 @@ class CasesPlugin:
             "--browser", action="store", default="chrome", help="浏览器类型: chrome/firefox/edge"
         )
         parser.addoption(
-            "--headless", action="store", default="false", help="是否无头模式: true/false"
+            "--headless", action="store", default="true", help="是否无头模式: true/false（默认 true）"
         )
     
     def pytest_generate_tests(self, metafunc):
@@ -70,14 +70,6 @@ class CasesPlugin:
         # 把测试用例作为参数化，交给 runner 执行
         if "caseinfo" in metafunc.fixturenames:
             metafunc.parametrize("caseinfo", data['case_infos'], ids=data['case_names'])
-    
-    # def pytest_collection_modifyitems(self, items):
-    #     """
-    #     用例收集完毕之后被调用，可以用来调整测试用例执行顺序；
-    #     """
-    #     for item in items:
-    #         item.name = item.name.encode("utf-8").decode("unicode_escape")
-    #         item._nodeid = item.callspec.id
 
     def pytest_collection_modifyitems(self, items):
         """

@@ -81,7 +81,6 @@ def load_excel_files(config_path):
                     excel_caseInfos.append(current_test_case)
                     # 初始化一个新的测试用例字典
                 current_test_case = {
-                    # "编号": int(row['编号']),
                     "desc": row['测试用例标题'],
                     "用例等级": "" if pd.isna(row['用例等级']) else str(row['用例等级']),
                     "steps": []
@@ -118,8 +117,6 @@ def load_excel_files(config_path):
         if current_test_case is not None:
             excel_caseInfos.append(current_test_case)
 
-        # 把当前的excel的数据加到所有的数据当中去
-        # excel_caseInfos.append(result)
     return excel_caseInfos
 
 

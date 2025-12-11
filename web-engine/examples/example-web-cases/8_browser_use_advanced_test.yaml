@@ -1,0 +1,64 @@
+desc: Browser-Use 高级功能测试 - 表单填写、登录、多步骤任务
+
+pre_script:
+  - 'print("=== 开始执行 Browser-Use 高级功能测试 ===")'
+
+steps:
+  # ========== 步骤1：启动浏览器 ==========
+  # 默认使用硬基流动 + 无头模式，无需配置
+  - 启动AI浏览器:
+      关键字: bu_open_browser
+
+  # ========== 步骤2：智能搜索 ==========
+  - AI智能搜索:
+      关键字: bu_search
+      keyword: Python 自动化测试框架
+      search_box: 搜索输入框
+      search_button: 搜索按钮
+
+  # ========== 步骤3：等待搜索结果 ==========
+  - 等待搜索结果:
+      关键字: sleep
+      time: 3
+
+  # ========== 步骤4：滚动操作 ==========
+  - AI滚动到底部:
+      关键字: bu_scroll
+      direction: bottom
+
+  - 等待:
+      关键字: sleep
+      time: 2
+
+  - AI滚动到顶部:
+      关键字: bu_scroll
+      direction: top
+
+  # ========== 步骤5：复杂多步骤任务 ==========
+  - AI执行复杂任务:
+      关键字: bu_run_task
+      task: |
+        执行以下步骤:
+        1. 找到页面上的分页导航
+        2. 点击第2页
+        3. 等待页面加载
+        4. 返回第1页
+      max_steps: 30
+
+  # ========== 步骤6：断言验证 ==========
+  - AI断言文本包含:
+      关键字: bu_assert_text_contains
+      element_desc: 页面
+      expected_text: 搜索
+
+  # ========== 步骤7：截图保存 ==========
+  - AI截图:
+      关键字: bu_screenshot
+      filename: browser_use_advanced_result
+
+  # ========== 步骤8：关闭浏览器 ==========
+  - 关闭AI浏览器:
+      关键字: bu_close_browser
+
+post_script:
+  - 'print("=== Browser-Use 高级功能测试执行完成 ===")'

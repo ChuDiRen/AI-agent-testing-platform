@@ -11,9 +11,9 @@ from ..utils.VarRender import refresh
 
 
 def _safe_copy_context(context_dict):
-    """安全拷贝上下文，过滤不可序列化对象（如WebDriver实例）"""
+    """安全拷贝上下文，过滤不可序列化对象（如 Playwright Page 实例）"""
     # 不可序列化对象的键名列表
-    exclude_keys = ['current_driver']  # WebDriver对象无法被deepcopy
+    exclude_keys = ['current_page', 'current_driver', 'current_frame']  # Playwright 对象无法被 deepcopy
     
     # 浅拷贝字典，排除不可序列化对象
     safe_dict = {}
@@ -27,10 +27,10 @@ def _safe_copy_context(context_dict):
     return safe_dict
 
 
-class TestRunner:
-    """Web 测试用例执行器"""
+class WebTestRunner:
+    """Web 测试用例执行器（内部实现类）"""
     
-    def test_case_execute(self, caseinfo):
+    def execute(self, caseinfo):
         # allure 用例标题title
         dynamicTitle(caseinfo)
         
@@ -82,13 +82,24 @@ class TestRunner:
         
         finally:
             print("========执行完毕========")
-            # 确保测试结束时关闭浏览器
-            driver = g_context().get_dict("current_driver")
-            if driver:
+            # 确保测试结束时关闭浏览器 (Playwright)
+            page = g_context().get_dict("current_page")
+            if page:
                 try:
-                    driver.quit()
-                    g_context().set_dict("current_driver", None)
+                    from ..utils.PlaywrightManager import PlaywrightManager
+                    PlaywrightManager.close()
+                    g_context().set_dict("current_page", None)
                     print("浏览器已自动关闭")
                 except Exception as e:
                     print(f"关闭浏览器失败: {e}")
+
+
+# pytest 测试函数 - 接收 caseinfo 参数化 fixture
+def test_web_case(caseinfo):
+    """
+    pytest 测试入口函数
+    通过 CasesPlugin 的 pytest_generate_tests 钩子接收参数化的 caseinfo
+    """
+    runner = WebTestRunner()
+    runner.execute(caseinfo)
 

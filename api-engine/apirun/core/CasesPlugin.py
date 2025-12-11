@@ -52,14 +52,6 @@ class CasesPlugin:
         if "caseinfo" in metafunc.fixturenames:
             metafunc.parametrize("caseinfo", data['case_infos'], ids=data['case_names'])
 
-    # def pytest_collection_modifyitems(self, items):
-    #     """
-    #     用例收集完毕之后被调用，可以用来调整测试用例执行顺序；
-    #     """
-    #     for item in items:
-    #         item.name = item.name.encode("utf-8").decode("unicode_escape")
-    #         item._nodeid = item.callspec.id
-
     def pytest_collection_modifyitems(self, items):
         """
         用例收集完毕之后被调用，可以用来调整测试用例执行顺序；同时可以解决测试用例标题的显示问题

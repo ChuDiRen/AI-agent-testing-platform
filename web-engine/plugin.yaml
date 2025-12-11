@@ -1,7 +1,7 @@
 # Web Engine 插件配置
 name: web-engine
 version: "1.0.0"
-description: 基于 Selenium 的 Web 自动化测试引擎，支持关键字驱动和数据驱动
+description: 基于 Playwright 的 Web 自动化测试引擎，支持关键字驱动和数据驱动
 command: webrun
 type: executor
 
@@ -33,8 +33,8 @@ params:
   - name: headless
     label: 无头模式
     type: boolean
-    default: false
-    help: 是否使用无头模式运行浏览器
+    default: true
+    help: 是否使用无头模式运行浏览器（默认 true，用户无感知）
 
   - name: keyDir
     label: 扩展关键字目录

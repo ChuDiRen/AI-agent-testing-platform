@@ -29,6 +29,7 @@ setuptools.setup(
     # 需要安装的依赖 -- 工具依赖
     install_requires=[
         "allure-pytest==2.13.5",
+        "allure-combine>=1.0.11",
         "Jinja2",
         "jsonpath",
         "pluggy",

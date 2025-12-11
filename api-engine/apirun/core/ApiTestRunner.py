@@ -61,12 +61,5 @@ class TestRunner:
             if post_script:
                 for script in eval(post_script):
                     run_script.exec_script(script, g_context().show_dict())
-        # except  Exception as e: # 要抛出异常不然平台都不知道出现什么错误信息
-        #     print("-----------engine_error------------")
-        #     print(e)
-        #     print("----------end engine_error-------------")
-        #     raise e
         finally:
             print("========执行完毕========")
-            # if driver is not None:
-            #     driver.quit()

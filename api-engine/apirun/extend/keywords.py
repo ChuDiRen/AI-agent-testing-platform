@@ -11,16 +11,12 @@ import jsonpath
 import requests
 
 from ..core.globalContext import g_context
+from .ai_keywords import AIKeywords
 
 
-# 移除过时的selenium devtools导入，这个模块在新版本selenium中已不存在
-# from selenium.webdriver.common.devtools.v85.indexed_db import request_data
-
-class Keywords:
+class Keywords(AIKeywords):
+    """API 测试关键字类，继承 AIKeywords 获得 AI 能力"""
     request = None
-
-    # def __init__(self, request: requests):
-    #     self.request = requests.Session()
 
     @allure.step(">>>>>>参数数据：")
     def send_request(self, **kwargs):
@@ -135,56 +131,6 @@ class Keywords:
             print("-----------current_response_data------------")
             print(request_data)
             print("----------end current_response_data-------------")
-
-
-
-    # @allure.step(">>>>>>参数数据：")
-    # def send_request_and_download(self, **kwargs):
-    #     self.request = requests.Session()
-    #     # 剔除不需要的字段，例如 EXVALUE
-    #     kwargs.pop("关键字", None)  # 如果存在 关键字 字段则删除，否则不操作
-    #
-    #     files = kwargs.get("files", [])
-    #
-    #     if files:
-    #         files = self.process_upload_files(files)
-    #         kwargs.update(files=files)
-    #
-    #     response = self.request.request(**kwargs)
-    #     g_context().set_dict("current_response", response)  # 默认设置成全局变量
-    #
-    #     # 进行上传文件，固定命名：response_时间.文件扩展名
-    #     # 判断response.text的格式，如果是文件，则下载到本地，并返回下载后的文件路径
-    #     # 如果是json，则返回 json，则下载到本地，并返回下载后的文件路径
-    #     # 调用对应的方法，并且返回对应的路径
-    #     file_path = self.save_response_content(response)
-    #
-    #     g_context().set_dict("current_response_file_path", file_path)  # 默认设置成全局变量
-    #     print("-----------------------")
-    #     print(response.text)
-    #     print("-----------------------")
-    #     print("-----------------------")
-    #     print(g_context().show_dict())  # 一定要，不然影响测试平台；需要提取这个地址的字段进行下载
-    #     print("-----------------------")
-
-    # def process_upload_files(self, file_list):
-    #     """
-    #     处理上传文件，返回 requests 支持的 files 列表格式
-    #     :param file_list: 文件列表，格式如 [{'file': 'path'}, {'avatar': 'path2'}]
-    #     :return: 处理后的 files 列表
-    #     """
-    #     processed_files = []
-    #     for item in file_list:
-    #         for field_name, file_path in item.items():
-    #             import os
-    #             file_name = os.path.basename(file_path)
-    #             mime_type, _ = mimetypes.guess_type(file_path)
-    #             if not mime_type:
-    #                 mime_type = 'application/octet-stream'
-    #             processed_files.append(
-    #                 (field_name, (file_name, open(file_path, 'rb'), mime_type))
-    #             )
-    #     return processed_files
 
 
     def save_response_content(self,response, download_dir="/downloads"):

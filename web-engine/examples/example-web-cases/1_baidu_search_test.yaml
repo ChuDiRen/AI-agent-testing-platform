@@ -9,26 +9,26 @@ steps:
       关键字: open_browser
       browser: "{{BROWSER}}"
       headless: "{{HEADLESS}}"
-      implicit_wait: "{{IMPLICIT_WAIT}}"
+      timeout: "{{TIMEOUT}}"
       window_size: "{{WINDOW_SIZE}}"
-  
+
   # ========== 步骤2：访问百度首页 ==========
   - 导航到百度首页:
       关键字: navigate_to
       url: "{{BASE_URL}}"
-  
+
   # ========== 步骤3：验证页面标题 ==========
   - 断言页面标题包含百度:
       关键字: assert_title_contains
       expected_text: 百度
-  
+
   # ========== 步骤3.5：等待搜索框出现 ==========
   - 等待搜索框加载:
       关键字: wait_for_element_visible
       locator_type: id
       element: "{{BAIDU_SEARCH_INPUT}}"
       timeout: "{{DEFAULT_TIMEOUT}}"
-  
+
   # ========== 步骤4：输入搜索关键词 ==========
   - 输入搜索关键词:
       关键字: input_text
@@ -36,44 +36,44 @@ steps:
       element: "{{BAIDU_SEARCH_INPUT}}"
       text: Selenium WebDriver
       clear: false
-  
+
   # ========== 步骤5：等待搜索按钮可点击 ==========
   - 等待搜索按钮可点击:
       关键字: wait_for_element_clickable
       locator_type: id
       element: "{{BAIDU_SEARCH_BUTTON}}"
       timeout: "{{DEFAULT_TIMEOUT}}"
-  
+
   # ========== 步骤6：点击搜索按钮 ==========
   - 点击搜索按钮:
       关键字: click_element
       locator_type: id
       element: "{{BAIDU_SEARCH_BUTTON}}"
-  
+
   # ========== 步骤7：等待搜索结果加载 ==========
   - 等待搜索结果出现:
       关键字: wait_for_element_visible
       locator_type: id
       element: "{{BAIDU_RESULT_CONTAINER}}"
       timeout: 15
-  
+
   # ========== 步骤8：截图保存证据 ==========
   - 截图保存搜索结果:
       关键字: take_screenshot
       filename: baidu_search_selenium_result
-  
+
   # ========== 步骤9：断言搜索结果 ==========
   - 断言搜索结果包含关键词:
       关键字: assert_text_contains
       locator_type: id
       element: "{{BAIDU_RESULT_CONTAINER}}"
       expected_text: Selenium
-  
+
   # ========== 步骤10：获取当前URL ==========
   - 获取当前URL:
       关键字: get_current_url
       variable_name: search_result_url
-  
+
   # ========== 步骤11：清理环境 ==========
   - 关闭browser:
       关键字: close_browser
@@ -81,5 +81,3 @@ steps:
 post_script:
   - 'print("=== 百度搜索测试执行完成 ===")'
   - 'url = g_context().get_dict("search_result_url"); print(f"搜索结果URL: {url}")'
-
-

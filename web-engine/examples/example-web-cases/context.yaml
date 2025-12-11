@@ -1,28 +1,27 @@
-# Web 测试全局配置文件 - Selenium WebDriver 版本
+# Web 测试全局配置文件 - Playwright 版本
 
 # ==================== 基础配置 ====================
-BASE_URL: https://www.baidu.com  # 默认测试URL
+BASE_URL: https://www.baidu.com # 默认测试URL
 
 # ==================== 浏览器配置 ====================
-BROWSER: chrome  # 浏览器类型：chrome/firefox/edge
-HEADLESS: false  # 是否无头模式：true/false
-IMPLICIT_WAIT: 10  # 隐式等待时间（秒）
-WINDOW_SIZE: maximize  # 窗口大小：maximize 或 1920x1080
+BROWSER: chromium # 浏览器类型：chromium/firefox/webkit/edge
+HEADLESS: true # 是否无头模式：true/false（默认无头，用户无感知）
+TIMEOUT: 30 # 默认超时时间（秒）
+WINDOW_SIZE: 1920x1080 # 窗口大小：1920x1080 等
 
 # ==================== 超时配置 ====================
-DEFAULT_TIMEOUT: 15  # 默认超时时间（秒）- 增加到15秒以应对网络延迟
-PAGE_LOAD_TIMEOUT: 30  # 页面加载超时（秒）
-SCRIPT_TIMEOUT: 20  # 脚本执行超时（秒）
+DEFAULT_TIMEOUT: 15 # 默认超时时间（秒）- 增加到15秒以应对网络延迟
+PAGE_LOAD_TIMEOUT: 30 # 页面加载超时（秒）
+SCRIPT_TIMEOUT: 20 # 脚本执行超时（秒）
 
 # ==================== 测试账号配置 ====================
-TEST_USERNAME: testuser  # 测试用户名
-TEST_PASSWORD: testpass123  # 测试密码
+TEST_USERNAME: testuser # 测试用户名
+TEST_PASSWORD: testpass123 # 测试密码
 
 # ==================== 元素定位配置 ====================
 # 百度搜索页面元素
 # 注意：百度首页已更新为 AI 搜索界面（2025年1月更新）
-BAIDU_SEARCH_INPUT: chat-textarea  # 搜索输入框 ID（textarea元素，原kw已废弃）
-BAIDU_SEARCH_BUTTON: chat-submit-button  # 搜索按钮 ID（button元素，原su已废弃）
-BAIDU_RESULT_CONTAINER: content_left  # 搜索结果容器 ID（待验证）
-
+BAIDU_SEARCH_INPUT: chat-textarea # 搜索输入框 ID（textarea元素，原kw已废弃）
+BAIDU_SEARCH_BUTTON: chat-submit-button # 搜索按钮 ID（button元素，原su已废弃）
+BAIDU_RESULT_CONTAINER: content_left # 搜索结果容器 ID（待验证）
 

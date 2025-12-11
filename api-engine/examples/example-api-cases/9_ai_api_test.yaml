@@ -1,0 +1,50 @@
+desc: AI API 测试示例
+
+context:
+  base_url: https://jsonplaceholder.typicode.com
+
+steps:
+  # 1. 配置 AI 助手
+  - 配置AI助手:
+      关键字: ai_configure
+      llm_provider: siliconflow
+      llm_model: deepseek-ai/DeepSeek-V3
+
+  # 2. AI 发送请求 - 获取用户列表
+  - AI获取用户列表:
+      关键字: ai_send_request
+      task: "获取所有用户列表"
+      base_url: ${{base_url}}
+
+  # 3. AI 智能断言
+  - AI验证响应:
+      关键字: ai_assert_response
+      assertion: "状态码应该是 200，响应应该是一个包含多个用户的数组"
+
+  # 4. AI 提取数据
+  - AI提取第一个用户ID:
+      关键字: ai_extract_data
+      extraction: "提取第一个用户的 ID"
+      variable_name: first_user_id
+
+  # 5. AI 发送请求 - 获取单个用户
+  - AI获取用户详情:
+      关键字: ai_send_request
+      task: "获取 ID 为 1 的用户详细信息"
+      base_url: ${{base_url}}
+
+  # 6. AI 断言用户详情
+  - AI验证用户详情:
+      关键字: ai_assert_response
+      assertion: "响应应该包含 id、name、username、email 字段，且 id 等于 1"
+
+  # 7. AI 提取邮箱
+  - AI提取邮箱:
+      关键字: ai_extract_data
+      extraction: "提取用户的邮箱地址"
+      variable_name: user_email
+
+  # 8. AI 分析响应
+  - AI分析响应:
+      关键字: ai_analyze_response
+      focus: "数据完整性"

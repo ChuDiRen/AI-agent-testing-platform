@@ -87,6 +87,7 @@ def test_example(driver):
 ```
 
 **特性:**
+
 - 自动创建浏览器实例
 - 测试结束自动关闭浏览器
 - 失败时自动截图并附加到 Allure 报告
@@ -105,7 +106,7 @@ def test_example(web_keywords, driver):
 ## 命令行参数
 
 - `--browser`: 浏览器类型（chrome/firefox/edge），默认 chrome
-- `--headless`: 无头模式（true/false），默认 false
+- `--headless`: 无头模式（true/false），默认 true（无头模式，用户无感知）
 
 ## 特性支持
 
@@ -131,12 +132,14 @@ def test_example(web_keywords, driver):
 ## 最佳实践
 
 1. **使用 Allure 步骤记录**
+
    ```python
    with allure.step("打开页面"):
        web_keywords.navigate_to(url="...")
    ```
 
 2. **使用参数化提高效率**
+
    ```python
    @pytest.mark.parametrize("keyword", ["Python", "Java"])
    def test_search(web_keywords, driver, keyword):
@@ -144,11 +147,12 @@ def test_example(web_keywords, driver):
    ```
 
 3. **使用测试类组织相关测试**
+
    ```python
    class TestLogin:
        def test_valid_login(self, web_keywords, driver):
            pass
-       
+
        def test_invalid_login(self, web_keywords, driver):
            pass
    ```
@@ -161,4 +165,3 @@ def test_example(web_keywords, driver):
        yield
        # 清理逻辑
    ```
-

@@ -1,9 +1,5 @@
 # Web Engine 依赖包
 
-# Selenium 相关
-selenium>=4.19.0
-webdriver-manager>=4.0.0
-
 # 测试框架
 pytest>=8.1.1
 pytest-html>=4.1.1
@@ -12,6 +8,7 @@ pytest-metadata>=3.1.1
 # Allure 报告
 allure-pytest>=2.13.5
 allure-python-commons>=2.13.5
+allure-combine>=1.0.11
 
 # YAML 解析
 PyYAML>=6.0.1
@@ -29,11 +26,13 @@ PyMySQL>=1.1.0
 # 其他工具
 jsonpath>=0.82.2
 requests>=2.31.0
+python-dotenv>=1.0.0
 
-# AI 相关
-openai>=1.57.4  # 最新稳定版，完全支持 Pydantic V2
-pydantic>=2.10.6  # 最新稳定版，修复字段命名问题
+# Browser-Use AI 自动化
+browser-use>=0.1.40
+langchain-openai>=0.3.0
+langchain-anthropic>=0.3.0
+nest-asyncio>=1.6.0
+playwright>=1.49.0
+pydantic>=2.10.6
 Pillow>=10.2.0
-qwen-vl-utils>=0.0.3
-
-VV

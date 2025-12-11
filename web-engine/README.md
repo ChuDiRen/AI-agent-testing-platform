@@ -1,11 +1,11 @@
 # Web Engine - Web 自动化测试引擎
 
-基于 Selenium 的 Web 自动化测试引擎，采用关键字驱动和数据驱动的设计理念，参考 api-engine 的架构实现。
+基于 Playwright + Browser-Use 的 Web 自动化测试引擎，采用关键字驱动和数据驱动的设计理念。
 
 ## 特性
 
-- ✨ **关键字驱动**：丰富的 Selenium 关键字库，简化测试用例编写
-- 🤖 **AI驱动操作**：基于Qwen-VL视觉模型，使用自然语言描述定位和操作元素（新功能）
+- ✨ **关键字驱动**：丰富的 Playwright 关键字库，简化测试用例编写
+- 🚀 **Browser-Use AI**：基于 LLM 的智能浏览器自动化，支持复杂多步骤任务
 - 📝 **YAML 格式**：使用 YAML 编写测试用例，清晰易读
 - 🐍 **原生 Pytest**：支持使用 Python pytest 脚本编写测试
 - 🔄 **数据驱动**：支持 DDT 数据驱动测试，一个用例多组数据
@@ -34,13 +34,11 @@ web-engine/
 │   │   ├── WebTestRunner.py      # Web 测试执行器
 │   │   ├── CasesPlugin.py        # Pytest 插件
 │   │   ├── globalContext.py      # 全局上下文管理
-│   │   ├── models.py             # 数据模型定义
-│   │   ├── enums.py              # 枚举类型定义
 │   │   └── exceptions.py         # 自定义异常类
 │   │
 │   ├── extend/               # 关键字扩展模块
 │   │   ├── __init__.py
-│   │   ├── keywords.py           # Selenium 关键字库
+│   │   ├── keywords.py           # Playwright 关键字库
 │   │   └── script/              # 脚本执行器
 │   │       ├── __init__.py
 │   │       └── run_script.py    # Python 脚本运行器
@@ -172,90 +170,96 @@ allure generate -c -o reports/allure-report reports/allure-results
 
 ### 浏览器操作
 
-| 关键字 | 说明 | 参数 |
-|--------|------|------|
-| `open_browser` | 打开浏览器 | 浏览器, 无头模式, 隐式等待, 窗口大小 |
-| `close_browser` | 关闭浏览器 | - |
-| `navigate_to` | 导航到URL | url |
-| `refresh_page` | 刷新页面 | - |
-| `back` | 后退 | - |
-| `forward` | 前进 | - |
+| 关键字          | 说明       | 参数                                 |
+| --------------- | ---------- | ------------------------------------ |
+| `open_browser`  | 打开浏览器 | 浏览器, 无头模式, 隐式等待, 窗口大小 |
+| `close_browser` | 关闭浏览器 | -                                    |
+| `navigate_to`   | 导航到 URL | url                                  |
+| `refresh_page`  | 刷新页面   | -                                    |
+| `back`          | 后退       | -                                    |
+| `forward`       | 前进       | -                                    |
 
 ### 元素操作
 
-| 关键字 | 说明 | 参数 |
-|--------|------|------|
-| `click_element` | 点击元素 | 定位方式, 元素, 等待时间 |
-| `input_text` | 输入文本 | 定位方式, 元素, 文本, 清空, 等待时间 |
-| `clear_text` | 清空文本 | 定位方式, 元素, 等待时间 |
-| `get_text` | 获取文本 | 定位方式, 元素, 变量名, 等待时间 |
-| `get_attribute` | 获取属性 | 定位方式, 元素, 属性名, 变量名, 等待时间 |
+| 关键字            | 说明       | 参数                                       |
+| ----------------- | ---------- | ------------------------------------------ |
+| `click_element`   | 点击元素   | 定位方式, 元素, 等待时间                   |
+| `input_text`      | 输入文本   | 定位方式, 元素, 文本, 清空, 等待时间       |
+| `clear_text`      | 清空文本   | 定位方式, 元素, 等待时间                   |
+| `get_text`        | 获取文本   | 定位方式, 元素, 变量名, 等待时间           |
+| `get_attribute`   | 获取属性   | 定位方式, 元素, 属性名, 变量名, 等待时间   |
 | `select_dropdown` | 下拉框选择 | 定位方式, 元素, 选择方式, 选项值, 等待时间 |
 
 ### 等待操作
 
-| 关键字 | 说明 | 参数 |
-|--------|------|------|
-| `wait_for_element` | 等待元素出现 | 定位方式, 元素, 超时时间 |
-| `wait_for_element_visible` | 等待元素可见 | 定位方式, 元素, 超时时间 |
+| 关键字                       | 说明           | 参数                     |
+| ---------------------------- | -------------- | ------------------------ |
+| `wait_for_element`           | 等待元素出现   | 定位方式, 元素, 超时时间 |
+| `wait_for_element_visible`   | 等待元素可见   | 定位方式, 元素, 超时时间 |
 | `wait_for_element_clickable` | 等待元素可点击 | 定位方式, 元素, 超时时间 |
-| `sleep` | 强制等待 | 时间 |
+| `sleep`                      | 强制等待       | 时间                     |
 
 ### 断言操作
 
-| 关键字 | 说明 | 参数 |
-|--------|------|------|
-| `assert_element_visible` | 断言元素可见 | 定位方式, 元素, 超时时间 |
-| `assert_element_not_visible` | 断言元素不可见 | 定位方式, 元素, 超时时间 |
-| `assert_text_equals` | 断言文本相等 | 定位方式, 元素, 期望文本, 等待时间 |
-| `assert_text_contains` | 断言文本包含 | 定位方式, 元素, 期望文本, 等待时间 |
-| `assert_title_equals` | 断言标题相等 | 期望标题 |
-| `assert_title_contains` | 断言标题包含 | 期望文本 |
+| 关键字                       | 说明           | 参数                               |
+| ---------------------------- | -------------- | ---------------------------------- |
+| `assert_element_visible`     | 断言元素可见   | 定位方式, 元素, 超时时间           |
+| `assert_element_not_visible` | 断言元素不可见 | 定位方式, 元素, 超时时间           |
+| `assert_text_equals`         | 断言文本相等   | 定位方式, 元素, 期望文本, 等待时间 |
+| `assert_text_contains`       | 断言文本包含   | 定位方式, 元素, 期望文本, 等待时间 |
+| `assert_title_equals`        | 断言标题相等   | 期望标题                           |
+| `assert_title_contains`      | 断言标题包含   | 期望文本                           |
 
 ### 高级操作
 
-| 关键字 | 说明 | 参数 |
-|--------|------|------|
-| `switch_to_frame` | 切换到frame | 定位方式, 元素, 索引 |
-| `switch_to_window` | 切换到窗口 | 索引, 句柄 |
-| `execute_script` | 执行JavaScript | 脚本, 变量名 |
-| `take_screenshot` | 截图 | 文件名 |
-| `scroll_to_element` | 滚动到元素 | 定位方式, 元素, 等待时间 |
-| `hover_element` | 鼠标悬停 | 定位方式, 元素, 等待时间 |
-| `get_current_url` | 获取当前URL | 变量名 |
+| 关键字              | 说明            | 参数                     |
+| ------------------- | --------------- | ------------------------ |
+| `switch_to_frame`   | 切换到 frame    | 定位方式, 元素, 索引     |
+| `switch_to_window`  | 切换到窗口      | 索引, 句柄               |
+| `execute_script`    | 执行 JavaScript | 脚本, 变量名             |
+| `take_screenshot`   | 截图            | 文件名                   |
+| `scroll_to_element` | 滚动到元素      | 定位方式, 元素, 等待时间 |
+| `hover_element`     | 鼠标悬停        | 定位方式, 元素, 等待时间 |
+| `get_current_url`   | 获取当前 URL    | 变量名                   |
 
-### AI 驱动操作 🤖 NEW
+### Browser-Use AI 操作 🚀
 
-| 关键字 | 说明 | 参数 |
-|--------|------|------|
-| `ai_operation` | AI通用操作 | 操作描述 |
-| `ai_click` | AI点击元素 | 元素描述 |
-| `ai_input` | AI输入文本 | 元素描述, 文本 |
-| `ai_extract_text` | AI提取文本 | 文本描述, 变量名 |
-| `ai_scroll` | AI滚动到元素 | 元素描述 |
-| `ai_hover` | AI鼠标悬停 | 元素描述 |
-| `ai_drag` | AI拖拽元素 | 源元素描述, 目标元素描述 |
-| `ai_assert_visible` | AI断言可见 | 元素描述 |
+| 关键字             | 说明             | 参数                            |
+| ------------------ | ---------------- | ------------------------------- |
+| `bu_configure`     | 配置 Browser-Use | llm_provider, headless, timeout |
+| `bu_open_browser`  | 启动 AI 浏览器   | headless, llm_provider          |
+| `bu_close_browser` | 关闭浏览器       | -                               |
+| `bu_run_task`      | 执行复杂 AI 任务 | task (自然语言描述)             |
+| `bu_click`         | AI 点击元素      | element_desc                    |
+| `bu_input`         | AI 输入文本      | element_desc, text              |
+| `bu_login`         | AI 智能登录      | username, password              |
+| `bu_search`        | AI 智能搜索      | keyword                         |
+| `bu_fill_form`     | AI 表单填写      | form_data                       |
 
-**AI操作特点**：
+**Browser-Use 特点**：
 
-- ✅ 使用自然语言描述元素，无需编写XPath或CSS选择器
-- ✅ 基于Qwen-VL视觉模型，智能识别页面元素
-- ✅ 适用于元素定位困难或动态变化的场景
-- ⚠️ 需要配置阿里云百炼API Key
-- 📖 详细文档请参考：[AI_OPERATIONS_README.md](AI_OPERATIONS_README.md)
+- ✅ 使用 LLM 驱动，支持复杂多步骤任务
+- ✅ 支持多种 LLM：OpenAI、DeepSeek、Qwen、Claude
+- ✅ 自然语言描述任务，AI 自动规划执行
+- ✅ 与 Playwright 关键字可混合使用
+- 📖 详细文档请参考：[BROWSER_USE_README.md](BROWSER_USE_README.md)
 
 **快速示例**：
 
 ```yaml
-- AI点击登录按钮:
-    关键字: ai_click
-    元素描述: 蓝色的登录按钮
+- 配置AI引擎:
+    关键字: bu_configure
+    llm_provider: deepseek
 
-- AI输入用户名:
-    关键字: ai_input
-    元素描述: 用户名输入框
-    文本: admin
+- 启动浏览器:
+    关键字: bu_open_browser
+
+- AI执行复杂任务:
+    关键字: bu_run_task
+    task: "打开百度，搜索 Python，点击第一个结果"
+
+- 关闭浏览器:
+    关键字: bu_close_browser
 ```
 
 ## 定位方式
@@ -299,10 +303,10 @@ def test_baidu_search(web_keywords, driver):
     """测试百度搜索"""
     with allure.step("打开百度"):
         web_keywords.navigate_to(url="https://www.baidu.com")
-    
+
     with allure.step("输入搜索词"):
         web_keywords.input_text(定位方式="id", 元素="kw", 文本="Selenium")
-    
+
     with allure.step("点击搜索"):
         web_keywords.click_element(定位方式="id", 元素="su")
 
@@ -392,28 +396,28 @@ steps:
       关键字: open_browser
       浏览器: chrome
       无头模式: false
-  
+
   - 导航到百度:
       关键字: navigate_to
       url: https://www.baidu.com
-  
+
   - 输入搜索关键词:
       关键字: input_text
       定位方式: id
       元素: kw
       文本: Selenium
-  
+
   - 点击搜索:
       关键字: click_element
       定位方式: id
       元素: su
-  
+
   - 断言搜索结果:
       关键字: assert_text_contains
       定位方式: id
       元素: content_left
       期望文本: Selenium
-  
+
   - 关闭浏览器:
       关键字: close_browser
 ```
@@ -426,20 +430,20 @@ steps:
   - 打开浏览器:
       关键字: open_browser
       浏览器: chrome
-  
+
   - 搜索:
       关键字: input_text
       定位方式: id
       元素: kw
       文本: "{{keyword}}"
-  
+
   - 关闭浏览器:
       关键字: close_browser
 
 ddts:
   - desc: 搜索Python
     keyword: Python
-  
+
   - desc: 搜索Java
     keyword: Java
 ```
@@ -456,11 +460,11 @@ context:
 steps:
   - 打开浏览器:
       关键字: open_browser
-  
+
   - 导航:
       关键字: navigate_to
       url: "{{BASE_URL}}/login"
-  
+
   - 输入用户名:
       关键字: input_text
       定位方式: id
@@ -511,14 +515,14 @@ class MyCustomKeyword:
 
 ## 与 api-engine 的对比
 
-| 特性 | api-engine | web-engine |
-|------|-----------|-----------|
-| 测试类型 | API 接口测试 | Web UI 测试 |
-| 核心库 | requests | selenium |
-| 关键字 | HTTP 请求、JSON 提取 | 元素操作、断言 |
-| 驱动管理 | - | webdriver-manager |
-| 截图功能 | ❌ | ✅ |
-| 等待策略 | - | 隐式/显式等待 |
+| 特性     | api-engine           | web-engine     |
+| -------- | -------------------- | -------------- |
+| 测试类型 | API 接口测试         | Web UI 测试    |
+| 核心库   | requests             | playwright     |
+| 关键字   | HTTP 请求、JSON 提取 | 元素操作、断言 |
+| 驱动管理 | -                    | playwright     |
+| 截图功能 | ❌                   | ✅             |
+| 等待策略 | -                    | 隐式/显式等待  |
 
 ## Excel 用例编写指南
 
@@ -532,11 +536,11 @@ Web Engine 支持使用 Excel 文件编写测试用例，适合非技术人员�
 
 **表格格式**:
 
-| 类型 | 变量描述 | 变量值 |
-|------|---------|--------|
-| 变量 | BASE_URL | <https://www.baidu.com> |
-| 变量 | TEST_USERNAME | testuser |
-| 变量 | TEST_PASSWORD | test123456 |
+| 类型 | 变量描述      | 变量值                  |
+| ---- | ------------- | ----------------------- |
+| 变量 | BASE_URL      | <https://www.baidu.com> |
+| 变量 | TEST_USERNAME | testuser                |
+| 变量 | TEST_PASSWORD | test123456              |
 
 #### 2. 测试用例文件
 
@@ -544,17 +548,17 @@ Web Engine 支持使用 Excel 文件编写测试用例，适合非技术人员�
 
 **表格格式**:
 
-| 编号 | 测试用例标题 | 用例等级 | 步骤描述 | 关键字 | 参数_1 | 参数_2 | 参数_3 | 参数_4 |
-|-----|-------------|---------|---------|--------|--------|--------|--------|--------|
-| 1 | 百度搜索测试 | P0 | 打开浏览器 | open_browser | chrome | false | 10 | maximize |
-| 2 |  |  | 导航到百度 | navigate_to | <https://www.baidu.com> |  |  |  |
-| 3 |  |  | 等待搜索框 | wait_for_element_visible | id | kw | 15 |  |
-| 4 |  |  | 输入关键词 | input_text | id | kw | Selenium | true |
-| 5 |  |  | 点击搜索 | click_element | id | su |  |  |
-| 6 |  |  | 等待结果 | wait_for_element_visible | id | content_left | 15 |  |
-| 7 |  |  | 断言包含 | assert_text_contains | id | content_left | Selenium |  |
-| 8 |  |  | 截图 | take_screenshot | search_result |  |  |  |
-| 9 |  |  | 关闭浏览器 | close_browser |  |  |  |  |
+| 编号 | 测试用例标题 | 用例等级 | 步骤描述   | 关键字                   | 参数\_1                 | 参数\_2      | 参数\_3  | 参数\_4  |
+| ---- | ------------ | -------- | ---------- | ------------------------ | ----------------------- | ------------ | -------- | -------- |
+| 1    | 百度搜索测试 | P0       | 打开浏览器 | open_browser             | chrome                  | false        | 10       | maximize |
+| 2    |              |          | 导航到百度 | navigate_to              | <https://www.baidu.com> |              |          |          |
+| 3    |              |          | 等待搜索框 | wait_for_element_visible | id                      | kw           | 15       |          |
+| 4    |              |          | 输入关键词 | input_text               | id                      | kw           | Selenium | true     |
+| 5    |              |          | 点击搜索   | click_element            | id                      | su           |          |          |
+| 6    |              |          | 等待结果   | wait_for_element_visible | id                      | content_left | 15       |          |
+| 7    |              |          | 断言包含   | assert_text_contains     | id                      | content_left | Selenium |          |
+| 8    |              |          | 截图       | take_screenshot          | search_result           |              |          |          |
+| 9    |              |          | 关闭浏览器 | close_browser            |                         |              |          |          |
 
 ### Excel 用例说明
 

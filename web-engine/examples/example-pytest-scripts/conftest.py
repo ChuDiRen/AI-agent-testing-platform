@@ -20,7 +20,7 @@ def driver(request):
     """
     # 从命令行获取参数
     browser = request.config.getoption("--browser", default="chrome")
-    headless = request.config.getoption("--headless", default="false")
+    headless = request.config.getoption("--headless", default="true")
     
     # 创建浏览器实例
     drv = DriverManager.create_driver(
@@ -91,8 +91,8 @@ def pytest_addoption(parser):
     parser.addoption(
         "--headless",
         action="store",
-        default="false",
-        help="是否无头模式: true/false"
+        default="true",
+        help="是否无头模式: true/false（默认 true）"
     )
 
 
