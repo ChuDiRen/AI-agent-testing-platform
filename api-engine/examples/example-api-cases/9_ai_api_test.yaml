@@ -14,7 +14,7 @@ steps:
   - AI获取用户列表:
       关键字: ai_send_request
       task: "获取所有用户列表"
-      base_url: ${{base_url}}
+      base_url: "{{base_url}}"
 
   # 3. AI 智能断言
   - AI验证响应:
@@ -31,7 +31,7 @@ steps:
   - AI获取用户详情:
       关键字: ai_send_request
       task: "获取 ID 为 1 的用户详细信息"
-      base_url: ${{base_url}}
+      base_url: "{{base_url}}"
 
   # 6. AI 断言用户详情
   - AI验证用户详情:

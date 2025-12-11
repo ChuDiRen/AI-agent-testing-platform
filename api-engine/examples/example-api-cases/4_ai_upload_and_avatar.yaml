@@ -1,0 +1,69 @@
+desc: AI版-上传图片并修改头像
+
+# 使用AI关键字进行文件上传和头像修改测试
+# 与传统关键字版本(4_upload_image_and_update_avatar.yaml)对比，AI版本更智能地处理文件操作
+
+pre_script:
+  - 'print("AI版文件上传测试开始...")'
+
+steps:
+  # 1. 配置 AI 助手
+  - 配置AI助手:
+      关键字: ai_configure
+      llm_provider: siliconflow
+      llm_model: deepseek-ai/DeepSeek-V3
+
+  # 2. AI 发送登录请求
+  - AI登录小说网站:
+      关键字: ai_send_request
+      task: "登录小说网站，手机号15096268001，密码123456"
+      base_url: "{{DSWURL}}"
+
+  # 3. AI 验证登录
+  - AI验证登录成功:
+      关键字: ai_assert_response
+      assertion: "登录应该成功，响应应该包含用户token"
+
+  # 4. AI 提取Token
+  - AI提取登录Token:
+      关键字: ai_extract_data
+      extraction: "提取响应中的token"
+      variable_name: msg_token
+
+  # 5. 传统方式上传图片（文件上传暂不支持AI关键字）
+  - 上传图片:
+      关键字: send_request
+      method: POST
+      url: "{{DSWURL}}/file/picUpload"
+      files:
+        - file: ..\examples\example-api-cases\P1.png
+
+  # 6. AI 验证上传结果
+  - AI验证上传成功:
+      关键字: ai_assert_response
+      assertion: "图片上传应该成功，响应应该包含图片路径"
+
+  # 7. AI 提取图片路径
+  - AI提取图片路径:
+      关键字: ai_extract_data
+      extraction: "提取上传后的图片路径(data字段)"
+      variable_name: msg_pic_path
+
+  # 8. AI 发送修改头像请求
+  - AI修改用户头像:
+      关键字: ai_send_request
+      task: "修改用户头像为刚上传的图片"
+      base_url: "{{DSWURL}}"
+
+  # 9. AI 验证头像修改
+  - AI验证头像修改成功:
+      关键字: ai_assert_response
+      assertion: "头像修改应该成功"
+
+  # 10. AI 分析整体流程
+  - AI分析文件上传流程:
+      关键字: ai_analyze_response
+      focus: "文件上传和用户信息更新的完整性"
+
+post_script:
+  - 'print("AI版文件上传测试完成...")'

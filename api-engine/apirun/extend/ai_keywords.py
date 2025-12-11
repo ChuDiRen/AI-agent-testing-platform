@@ -218,7 +218,7 @@ API 基础 URL: {base_url}
             
             # 保存到全局上下文
             g_context().set_dict(variable_name, request_params)
-            print(f"✓ AI 生成请求参数已保存到 {variable_name}")
+            print(f"[OK] AI 生成请求参数已保存到 {variable_name}")
             print(f"  请求参数: {json.dumps(request_params, ensure_ascii=False, indent=2)}")
             
             return request_params
@@ -256,7 +256,10 @@ API 基础 URL: {base_url}
         method = request_params.pop("method", "GET")
         url = request_params.pop("url", base_url)
         
-        print(f"🚀 发送 {method} 请求到 {url}")
+        # 清理 None 值的参数，避免请求失败
+        request_params = {k: v for k, v in request_params.items() if v is not None}
+        
+        print(f"[REQUEST] 发送 {method} 请求到 {url}")
         
         response = self._session.request(method=method, url=url, **request_params)
         
@@ -272,7 +275,7 @@ API 基础 URL: {base_url}
         }
         g_context().set_dict("current_response_data", response_data)
         
-        print(f"✓ 响应状态码: {response.status_code}")
+        print(f"[OK] 响应状态码: {response.status_code}")
         
         return response
     
@@ -338,9 +341,9 @@ API 基础 URL: {base_url}
             reason = assertion_result.get("reason", "")
             
             if passed:
-                print(f"✓ 断言通过: {reason}")
+                print(f"[PASS] 断言通过: {reason}")
             else:
-                print(f"✗ 断言失败: {reason}")
+                print(f"[FAIL] 断言失败: {reason}")
                 raise AssertionError(f"AI 断言失败: {assertion}\n原因: {reason}")
             
             return assertion_result
@@ -413,7 +416,7 @@ API 基础 URL: {base_url}
             # 保存到全局上下文
             g_context().set_dict(variable_name, extracted_data)
             
-            print(f"✓ 已提取数据并保存到 {variable_name}")
+            print(f"[OK] 已提取数据并保存到 {variable_name}")
             print(f"  提取的数据: {extracted_data}")
             if jsonpath_expr:
                 print(f"  JSONPath: {jsonpath_expr}")
@@ -488,7 +491,7 @@ API 基础 URL: {base_url}
             # 保存到全局上下文
             g_context().set_dict(variable_name, test_cases)
             
-            print(f"✓ 已生成 {len(test_cases)} 个测试用例并保存到 {variable_name}")
+            print(f"[OK] 已生成 {len(test_cases)} 个测试用例并保存到 {variable_name}")
             for i, tc in enumerate(test_cases, 1):
                 print(f"  {i}. {tc.get('name', '未命名')}")
             
@@ -553,7 +556,7 @@ API 基础 URL: {base_url}
             else:
                 analysis = {"summary": result}
             
-            print(f"📊 响应分析:")
+            print(f"[ANALYSIS] 响应分析:")
             print(f"  摘要: {analysis.get('summary', 'N/A')}")
             if analysis.get('potential_issues'):
                 print(f"  潜在问题: {', '.join(analysis['potential_issues'])}")
