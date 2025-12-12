@@ -1,0 +1,25 @@
+name: 压力测试
+description: 测试系统在高负载下的极限性能
+
+config:
+  stages:
+    - duration: 10s
+      target: 10
+    - duration: 20s
+      target: 20
+    - duration: 10s
+      target: 0
+
+  thresholds:
+    http_req_duration:
+      - p(95) < 3000
+    http_req_failed:
+      - rate < 0.2
+
+scenarios:
+  - name: 延迟测试
+    method: GET
+    url: "{{BASE_URL}}/delay/1"
+    checks:
+      - status == 200
+    sleep: 0.5s

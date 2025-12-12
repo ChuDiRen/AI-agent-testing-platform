@@ -58,20 +58,12 @@ api-engine/
 ├── examples/                 # 示例用例目录
 │   ├── example-api-cases/        # YAML 格式用例示例
 │   │   ├── context.yaml              # 全局配置（URL、数据库等）
-│   │   ├── 1_login_success.yaml      # 登录成功用例（传统关键字）
-│   │   ├── 1_ai_login_success.yaml   # 登录成功用例（AI关键字版）
-│   │   ├── 1_login_test_cases.yaml   # 登录测试用例集
-│   │   ├── 2_database_keyword_call.yaml  # 数据库操作用例（传统关键字）
-│   │   ├── 2_ai_database_query.yaml      # 数据库查询用例（AI关键字版）
-│   │   ├── 2_interface_association.yaml  # 接口关联用例（传统关键字）
-│   │   ├── 2_ai_interface_association.yaml  # 接口关联用例（AI关键字版）
-│   │   ├── 3_json_login.yaml         # JSON 登录用例（传统关键字）
-│   │   ├── 3_ai_json_login.yaml      # JSON 登录用例（AI关键字版）
-│   │   ├── 4_upload_image_and_update_avatar.yaml  # 文件上传用例（传统关键字）
-│   │   ├── 4_ai_upload_and_avatar.yaml            # 文件上传用例（AI关键字版）
-│   │   ├── 5_download_image_comparison.yaml       # 文件下载用例（传统关键字）
-│   │   ├── 5_ai_download_comparison.yaml          # 文件下载用例（AI关键字版）
-│   │   ├── 9_ai_api_test.yaml        # AI API 综合测试示例
+│   │   ├── 1_login_success.yaml      # 登录成功用例
+│   │   ├── 2_database_keyword_call.yaml  # 数据库操作用例
+│   │   ├── 2_interface_association.yaml  # 接口关联用例
+│   │   ├── 3_json_login.yaml         # JSON 登录用例
+│   │   ├── 4_upload_image_and_update_avatar.yaml  # 文件上传用例
+│   │   ├── 5_download_image_comparison.yaml       # 文件下载用例
 │   │   └── P1.png                    # 测试图片资源
 │   │
 │   └── example-pytest-scripts/   # Pytest 脚本示例
@@ -272,22 +264,23 @@ allure serve allure-results
 
 ## 关键字说明
 
-### AI 关键字（智能测试）
+### HTTP 请求
 
-| 关键字                | 说明            | 参数                      |
-| --------------------- | --------------- | ------------------------- |
-| `ai_configure`        | 配置 AI 助手    | llm_provider, llm_model   |
-| `ai_send_request`     | AI 智能发送请求 | task, base_url, hint      |
-| `ai_assert_response`  | AI 智能断言     | assertion                 |
-| `ai_extract_data`     | AI 智能提取数据 | extraction, variable_name |
-| `ai_analyze_response` | AI 分析响应     | focus                     |
+| 关键字         | 说明           | 参数                                                               |
+| -------------- | -------------- | ------------------------------------------------------------------ |
+| `send_request` | 发送 HTTP 请求 | method, url, params, headers, data, json, files, download, timeout |
 
-### HTTP 请求（传统关键字）
+**参数说明**：
 
-| 关键字                      | 说明               | 参数                                            |
-| --------------------------- | ------------------ | ----------------------------------------------- |
-| `send_request`              | 发送 HTTP 请求     | method, url, params, headers, data, json, files |
-| `send_request_and_download` | 发送请求并下载文件 | 同上                                            |
+- `method`: 请求方法 (GET, POST, PUT, DELETE, PATCH 等)
+- `url`: 请求地址
+- `headers`: 请求头
+- `params`: URL 参数
+- `data`: 表单数据 (form-urlencoded)
+- `json`: JSON 数据
+- `files`: 上传文件
+- `download`: 是否下载响应内容到文件 (True/False)
+- `timeout`: 超时时间
 
 ### 数据提取
 
@@ -305,54 +298,6 @@ allure serve allure-results
 | `assert_files_by_md5_comparators` | 文件 MD5 比较 | value, expected                  |
 
 ## YAML 用例编写
-
-### AI 关键字用例（推荐）
-
-AI 关键字版本使用自然语言描述测试意图，由 AI 自动理解并执行：
-
-```yaml
-desc: AI版-登录接口测试
-steps:
-  # 1. 配置 AI 助手
-  - 配置AI助手:
-      关键字: ai_configure
-      llm_provider: siliconflow
-      llm_model: deepseek-ai/DeepSeek-V3
-
-  # 2. AI 智能发送请求
-  - AI发送登录请求:
-      关键字: ai_send_request
-      task: "发送POST请求到登录接口，使用用户名admin和密码123456进行登录"
-      base_url: "{{URL}}"
-      hint: |
-        接口路径: /api/user/login
-        请求方式: POST
-
-  # 3. AI 智能断言
-  - AI验证登录成功:
-      关键字: ai_assert_response
-      assertion: "响应中的msg字段应该等于'登录成功'"
-
-  # 4. AI 提取数据
-  - AI提取Token:
-      关键字: ai_extract_data
-      extraction: "从响应中提取token字段的值"
-      variable_name: ai_token
-
-  # 5. AI 分析响应
-  - AI分析响应:
-      关键字: ai_analyze_response
-      focus: "登录响应的完整性和安全性"
-```
-
-**AI 关键字 vs 传统关键字对比**：
-
-| 特性     | AI 关键字            | 传统关键字       |
-| -------- | -------------------- | ---------------- |
-| 学习成本 | 低（自然语言）       | 中（需了解参数） |
-| 灵活性   | 高（AI 理解意图）    | 中（固定参数）   |
-| 精确控制 | 中                   | 高               |
-| 适用场景 | 快速原型、探索性测试 | 精确回归测试     |
 
 ### 基础用例
 

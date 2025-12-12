@@ -50,6 +50,9 @@ def load_yaml_files(config_path: Path) -> CaseList:
     """
     load_context_from_yaml(config_path)
     
+    # 保存用例目录路径到全局上下文，供文件上传等功能使用
+    g_context().set_dict("_cases_dir", str(config_path.resolve()))
+    
     # 一步完成：筛选、排序 YAML 文件
     sorted_files = sorted(
         [f for f in config_path.iterdir() 

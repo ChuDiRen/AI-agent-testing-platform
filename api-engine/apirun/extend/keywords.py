@@ -11,61 +11,109 @@ import jsonpath
 import requests
 
 from ..core.globalContext import g_context
-from .ai_keywords import AIKeywords
 
-
-class Keywords(AIKeywords):
-    """API 测试关键字类，继承 AIKeywords 获得 AI 能力"""
+class Keywords:
+    """
+    API 测试关键字类
+    
+    能力:
+    - 传统关键字: send_request, ex_jsonData, assert_text_comparators 等
+    """
+    
     request = None
 
     @allure.step(">>>>>>参数数据：")
     def send_request(self, **kwargs):
+        """
+        统一的 HTTP 请求关键字
+        
+        支持的参数:
+        - method: 请求方法 (GET, POST, PUT, DELETE 等)
+        - url/URL: 请求地址
+        - headers/HEADERS: 请求头
+        - params/PARAMS: URL 参数
+        - data/DATA: 表单数据 (form-urlencoded)
+        - json: JSON 数据
+        - files/FILES: 上传文件
+        - download: 是否下载响应内容到文件 (True/False)
+        - timeout: 超时时间
+        """
         self.request = requests.Session()
-        # 剔除不需要的字段，例如 EXVALUE
-        kwargs.pop("关键字", None)  # 如果存在 关键字 字段则删除，否则不操作
+        
+        # 剔除不需要的字段
+        kwargs.pop("关键字", None)
+        download = kwargs.pop("download", False)  # 是否下载响应
+        
+        # 兼容大写参数名
+        url = kwargs.pop("URL", None) or kwargs.get("url")
+        if url and "url" not in kwargs:
+            kwargs["url"] = url
+        
+        headers = kwargs.pop("HEADERS", None)
+        if headers and "headers" not in kwargs:
+            kwargs["headers"] = headers
+            
+        params = kwargs.pop("PARAMS", None)
+        if params and "params" not in kwargs:
+            kwargs["params"] = params
+            
+        data = kwargs.pop("DATA", None)
+        if data and "data" not in kwargs:
+            kwargs["data"] = data
+            
+        files_param = kwargs.pop("FILES", None)
+        if files_param and "files" not in kwargs:
+            kwargs["files"] = files_param
 
+        # 处理文件上传
         files = kwargs.get("files", [])
-
         if files:
             files = self.process_upload_files(files)
-            kwargs.update(files=files)
+            kwargs["files"] = files
 
-        #  先初始化请求数据，避免接口请求不通过，前端没有请求数据显示
+        # 初始化请求数据（用于错误时显示）
+        params_val = kwargs.get("params") or {}
+        params_str = urlencode(params_val) if params_val else ""
+        url_with_params = f'{kwargs.get("url", "")}?{params_str}' if params_str else kwargs.get("url", "")
         request_data = {
-            "url": unquote(f'{kwargs.get("url", "")}?{urlencode(kwargs.get("params", ""))}'),
-            "method": kwargs.get("method", ""),
+            "url": unquote(url_with_params),
+            "method": kwargs.get("method", "GET"),
             "headers": kwargs.get("headers", ""),
             "body": kwargs.get("data", "") or kwargs.get("json", "") or kwargs.get("files", ""),
-            "response": kwargs.get("response", "")
+            "response": ""
         }
 
         try:
-            #  可能报错
             response = self.request.request(**kwargs)
+            g_context().set_dict("current_response", response)
 
-            g_context().set_dict("current_response", response)  # 默认设置成全局变量-- 对象
-
-            #  组装请求数据到全局变量，从response进行获取。方便平台进行显示, 可能请求出错，所以结合请求数据进行填写
-            # 从 URL 中解析出 params
+            # 解析 URL 参数
             from urllib.parse import urlparse, parse_qs
             parsed_url = urlparse(response.url)
             url_params = parse_qs(parsed_url.query)
-            # 将列表值转换为单个值（如果只有一个元素）
             params_dict = {k: v[0] if len(v) == 1 else v for k, v in url_params.items()}
             
+            # 组装请求数据
             request_data = {
                 "url": unquote(response.url),
                 "method": response.request.method,
                 "headers": dict(response.request.headers),
                 "params": params_dict,
-                "body": str(response.request.body), # 避免返回的是二进制数据 接口端报错。
+                "body": str(response.request.body) if response.request.body else "",
                 "response": response.text,
                 "status_code": response.status_code,
                 "response_headers": dict(response.headers)
             }
-            g_context().set_dict("current_response_data", request_data)  # 默认设置成全局变量
+            
+            # 如果需要下载响应内容
+            if download:
+                file_path = self.save_response_content(response)
+                request_data["download_path"] = file_path
+                
+            g_context().set_dict("current_response_data", request_data)
+            
         except Exception as e:
-            request_data.update({"response":str(e)})
+            request_data["response"] = str(e)
             raise e
         finally:
             print("-----------current_response_data------------")
@@ -73,67 +121,7 @@ class Keywords(AIKeywords):
             print("----------end current_response_data-------------")
 
 
-    @allure.step(">>>>>>参数数据：")
-    def send_request_and_download(self, **kwargs):
-        self.request = requests.Session()
-        # 剔除不需要的字段，例如 EXVALUE
-        kwargs.pop("关键字", None)  # 如果存在 关键字 字段则删除，否则不操作
-
-        files = kwargs.get("files", [])
-
-        if files:
-            files = self.process_upload_files(files)
-            kwargs.update(files=files)
-
-        #  先初始化请求数据，避免接口请求不通过，前端没有请求数据显示
-        request_data = {
-            "url": unquote(f'{kwargs.get("url", "")}?{urlencode(kwargs.get("params", ""))}'),
-            "method": kwargs.get("method", ""),
-            "headers": kwargs.get("headers", ""),
-            "body": kwargs.get("data", "") or kwargs.get("json", "") or kwargs.get("files", ""),
-            "response": kwargs.get("response", ""),
-            "current_response_file_path": ""
-        }
-
-        try:
-            #  可能报错
-            response = self.request.request(**kwargs)
-
-            g_context().set_dict("current_response", response)  # 默认设置成全局变量-- 对象
-
-            # 进行上传文件，固定命名：response_时间.文件扩展名
-            # 判断response.text的格式，如果是文件，则下载到本地，并返回下载后的文件路径
-            # 如果是json，则返回 json，则下载到本地，并返回下载后的文件路径
-            # 调用对应的方法，并且返回对应的路径
-            file_path = self.save_response_content(response)
-
-            print("-----------------------")
-            print(response.text)
-            print("-----------------------")
-
-            #  组装请求数据到全局变量，从response进行获取。方便平台进行显示, 可能请求出错，所以结合请求数据进行填写
-            request_data = {
-                "url": unquote(response.url),
-                "method": response.request.method,
-                "headers": dict(response.request.headers),
-                "body": response.request.body,
-                "response": response.text,
-                "current_response_file_path": file_path,
-                "status_code": response.status_code,
-                "response_headers": dict(response.headers)
-            }
-            g_context().set_dict("current_response_data", request_data)  # 默认设置成全局变量
-
-        except Exception as e:
-            request_data.update({"response":str(e)})
-            raise e
-        finally:
-            print("-----------current_response_data------------")
-            print(request_data)
-            print("----------end current_response_data-------------")
-
-
-    def save_response_content(self,response, download_dir="/downloads"):
+    def save_response_content(self, response, download_dir="/downloads"):
         # 创建下载目录（如果不存在）
         if not os.path.exists(download_dir):
             os.makedirs(download_dir)
@@ -180,13 +168,14 @@ class Keywords(AIKeywords):
         :param file_list: 文件列表，格式如 [{'file': 'path_or_url'}, {'avatar': 'path2'}]
         :return: 处理后的 files 列表
         """
-
-        import os
-        import requests as req
         from urllib.parse import urlparse
 
         processed_files = []
-        download_dir = r'/img'  # 本地保存路径
+        # 使用临时目录存储下载的文件
+        download_dir = os.path.join(os.path.dirname(__file__), 'downloads')
+        
+        # 获取用例目录路径（用于解析相对路径）
+        cases_dir = g_context().get_dict("_cases_dir")
 
         # 创建目录（如果不存在）
         if not os.path.exists(download_dir):
@@ -197,7 +186,7 @@ class Keywords(AIKeywords):
                 # 判断是否是 URL
                 if file_path.startswith(('http://', 'https://')):
                     try:
-                        response = req.get(file_path, stream=True)
+                        response = requests.get(file_path, stream=True)
                         response.raise_for_status()
 
                         # 提取文件名（从URL）
@@ -217,6 +206,15 @@ class Keywords(AIKeywords):
                         file_path = local_path  # 替换为本地路径
                     except Exception as e:
                         raise RuntimeError(f"文件下载失败: {file_path}, 错误: {e}")
+                else:
+                    # 本地文件路径处理
+                    if not os.path.isabs(file_path):
+                        # 相对路径：先尝试相对于用例目录
+                        if cases_dir:
+                            candidate_path = os.path.join(cases_dir, file_path)
+                            if os.path.exists(candidate_path):
+                                file_path = candidate_path
+                        # 如果用例目录下找不到，保持原路径（可能是相对于当前工作目录）
 
                 # 获取文件名和 MIME 类型
                 file_name = os.path.basename(file_path)
@@ -230,98 +228,6 @@ class Keywords(AIKeywords):
                 )
 
         return processed_files
-
-
-    @allure.step(">>>>>>参数数据：")
-    def request_post_form_urlencoded(self, **kwargs):
-        """
-        发送Post请求
-        """
-        url = kwargs.get("URL", None)
-        params = kwargs.get("PARAMS", None)
-        headers = kwargs.get("HEADERS", None)
-        data = kwargs.get("DATA", None)
-
-        request_data = {
-            "url": url,
-            "params": params,
-            "headers": headers,
-            "data": data,
-        }
-
-        response = requests.post(**request_data)
-        g_context().set_dict("current_response", response)  # 默认设置成全局变量
-        print("-----------------------")
-        print(response.text)
-        print("-----------------------")
-
-    @allure.step(">>>>>>参数数据：")
-    def request_post_row_json(self, **kwargs):
-        """
-        发送Post请求
-        """
-        url = kwargs.get("URL", None)
-        params = kwargs.get("PARAMS", None)
-        headers = kwargs.get("HEADERS", None)
-        data = kwargs.get("DATA", None)
-
-        request_data = {
-            "url": url,
-            "params": params,
-            "headers": headers,
-            "json": data,
-        }
-
-        response = requests.post(**request_data)
-        g_context().set_dict("current_response", response)  # 默认设置成全局变量
-        print("-----------------------")
-        print(response.text)
-        print("-----------------------")
-
-    @allure.step(">>>>>>参数数据：")
-    def request_post_form_data(self, **kwargs):
-        """
-        发送Post请求
-        """
-        url = kwargs.get("URL", None)
-        params = kwargs.get("PARAMS", None)
-        headers = kwargs.get("HEADERS", None)
-        data = kwargs.get("DATA", None)
-        files = kwargs.get("FILES", None)
-
-        request_data = {
-            "url": url,
-            "params": params,
-            "headers": headers,
-            "files": files,
-            "data": data,
-        }
-
-        response = requests.post(**request_data)
-        g_context().set_dict("current_response", response)  # 默认设置成全局变量
-        print("-----------------------")
-        print(response.text)
-        print("-----------------------")
-
-    @allure.step(">>>>>>参数数据：")
-    def request_get(self, **kwargs):
-        """
-        发送GET请求
-        """
-        url = kwargs.get("URL", None)
-        params = kwargs.get("PARAMS", None)
-        headers = kwargs.get("HEADERS", None)
-
-        request_data = {
-            "url": url,
-            "params": params,
-            "headers": headers,
-        }
-        response = requests.get(**request_data)
-        g_context().set_dict("current_response", response)  # 默认设置成全局变量
-        print("-----------------------")
-        print(response.json())
-        print("-----------------------")
 
     @allure.step(">>>>>>参数数据：")
     def ex_jsonData(self, **kwargs):
@@ -491,10 +397,12 @@ class Keywords(AIKeywords):
                       f"    本地文件 MD5：{value_md5}\n"
                       f"    远程文件 MD5：{remote_md5}")
         else:
-            raise AssertionError(f"请求失败，状态码: {response.status_code}")
             print(f"请求失败，状态码: {response.status_code}")
+            raise AssertionError(f"请求失败，状态码: {response.status_code}")
         print("-----------------------")
         print(g_context().show_dict())
         print("-----------------------")
+
+
 
 
