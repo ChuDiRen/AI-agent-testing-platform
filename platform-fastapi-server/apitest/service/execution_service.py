@@ -11,7 +11,7 @@ import uuid
 import asyncio
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
@@ -22,6 +22,8 @@ from plugin.model.PluginModel import Plugin
 from plugin.service.TaskScheduler import task_scheduler
 
 from ..model.ApiHistoryModel import ApiHistory
+from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
+from ..model.ApiKeyWordModel import ApiKeyWord
 from .case_yaml_builder import CaseYamlBuilder
 from .result_collector import ResultCollector
 
@@ -61,19 +63,108 @@ class ExecutionService:
         
         return plugin
     
+    def detect_executor_for_case(self, case_id: int) -> str:
+        """
+        根据用例步骤中的关键字自动检测应使用的执行器
+        
+        规则：
+        1. 查询用例所有步骤的关键字
+        2. 统计各引擎关键字数量
+        3. 返回使用最多的引擎（如果有多个引擎，返回第一个步骤的引擎）
+        4. 如果没有关键字或无法识别，返回默认的 api_engine
+        """
+        # 查询用例步骤
+        steps = self.session.exec(
+            select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == case_id)
+        ).all()
+        
+        if not steps:
+            return "api_engine"
+        
+        # 收集所有关键字ID
+        keyword_ids = [step.keyword_id for step in steps if step.keyword_id]
+        if not keyword_ids:
+            return "api_engine"
+        
+        # 查询关键字的引擎归属
+        keywords = self.session.exec(
+            select(ApiKeyWord).where(ApiKeyWord.id.in_(keyword_ids))
+        ).all()
+        
+        # 统计各引擎的关键字数量
+        engine_count: Dict[str, int] = {}
+        first_engine = None
+        
+        for step in steps:
+            if not step.keyword_id:
+                continue
+            kw = next((k for k in keywords if k.id == step.keyword_id), None)
+            if kw and kw.plugin_code:
+                if first_engine is None:
+                    first_engine = kw.plugin_code
+                engine_count[kw.plugin_code] = engine_count.get(kw.plugin_code, 0) + 1
+        
+        if not engine_count:
+            return "api_engine"
+        
+        # 如果只有一个引擎，直接返回
+        if len(engine_count) == 1:
+            return list(engine_count.keys())[0]
+        
+        # 多个引擎时，返回第一个步骤使用的引擎（保持执行顺序一致性）
+        return first_engine or "api_engine"
+    
+    def get_case_engines(self, case_id: int) -> List[str]:
+        """
+        获取用例使用的所有引擎列表
+        用于前端显示用例使用了哪些引擎
+        """
+        steps = self.session.exec(
+            select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == case_id)
+        ).all()
+        
+        keyword_ids = [step.keyword_id for step in steps if step.keyword_id]
+        if not keyword_ids:
+            return []
+        
+        keywords = self.session.exec(
+            select(ApiKeyWord).where(ApiKeyWord.id.in_(keyword_ids))
+        ).all()
+        
+        engines = set()
+        for kw in keywords:
+            if kw.plugin_code:
+                engines.add(kw.plugin_code)
+        
+        return list(engines)
+    
     def execute_case(
         self,
         case_id: int,
-        executor_code: str,
+        executor_code: str = None,
         test_name: Optional[str] = None,
         context_vars: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         执行单个用例（异步提交）
         
+        Args:
+            case_id: 用例ID
+            executor_code: 执行器代码，为空时自动检测
+            test_name: 测试名称
+            context_vars: 上下文变量
+        
         Returns:
-            {"test_id": int, "status": "running"}
+            {"test_id": int, "status": "running", "executor": str}
         """
+        # 自动检测执行器
+        if not executor_code:
+            executor_code = self.detect_executor_for_case(case_id)
+            logger.info(f"自动检测执行器: case_id={case_id}, executor={executor_code}")
+        
+        # 验证执行器
+        self.validate_executor(executor_code)
+        
         # 1. 构建 YAML
         build_result = self.yaml_builder.build_single_case(case_id, context_vars)
         
@@ -102,7 +193,7 @@ class ExecutionService:
             case_names=[build_result["case_name"]]
         )
         
-        return {"test_id": history.id, "status": "running"}
+        return {"test_id": history.id, "status": "running", "executor": executor_code}
     
     def execute_plan(
         self,

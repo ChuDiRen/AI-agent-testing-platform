@@ -49,10 +49,18 @@ export function getSteps(caseId) {
     return axios.get(`/${module_name}/getSteps?case_id=${caseId}&_alias=case-steps`)
 }
 
+/**
+ * 获取用例使用的引擎列表
+ */
+export function getCaseEngines(caseId) {
+    return axios.get(`/${module_name}/getCaseEngines?case_id=${caseId}&_alias=case-engines`)
+}
+
 // ==================== 执行相关接口 ====================
 
 /**
  * 执行单个用例（后端统一处理 YAML 构建）
+ * executor_code 可为空，后端会自动检测
  */
 export function executeCase(data) {
     return axios.post(`/${module_name}/executeCase?_alias=case-execute`, data)
@@ -79,5 +87,12 @@ export function queryKeywordsByType(operationTypeId) {
  */
 export function getKeywordFields(keywordId) {
     return axios.get(`/ApiKeyWord/getKeywordFields?keyword_id=${keywordId}&_alias=keyword-fields`)
+}
+
+/**
+ * 按执行引擎分组查询所有关键字
+ */
+export function queryKeywordsGroupedByEngine() {
+    return axios.get(`/ApiKeyWord/queryGroupedByEngine?_alias=keyword-grouped`)
 }
 

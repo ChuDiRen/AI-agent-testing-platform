@@ -1,4 +1,0 @@
-base_url: https://httpbin.org
-variables:
-  username: testuser
-  password: testpass123

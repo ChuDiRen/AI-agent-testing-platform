@@ -1,0 +1,80 @@
+# Perf Engine 关键字配置文件
+# 基于 Locust 的性能测试专用关键字
+
+# ================================
+# HTTP 请求关键字
+# ================================
+get:
+  - url         # 请求路径
+  - name        # 请求名称 (报告分组)
+  - params      # URL 参数
+  - headers     # 请求头
+
+post:
+  - url         # 请求路径
+  - name        # 请求名称
+  - json        # JSON 数据
+  - data        # 表单数据
+  - headers     # 请求头
+
+put:
+  - url         # 请求路径
+  - name        # 请求名称
+  - json        # JSON 数据
+  - data        # 表单数据
+  - headers     # 请求头
+
+delete:
+  - url         # 请求路径
+  - name        # 请求名称
+  - headers     # 请求头
+
+# ================================
+# 思考时间关键字
+# ================================
+think_time:
+  - seconds     # 固定等待秒数
+  - min         # 最小秒数 (随机)
+  - max         # 最大秒数 (随机)
+
+constant_pacing:
+  - seconds     # 固定间隔秒数
+
+# ================================
+# 响应验证关键字
+# ================================
+check_status:
+  - expected    # 期望状态码 (默认 200)
+
+check_response_time:
+  - max_ms      # 最大响应时间 (毫秒)
+
+check_contains:
+  - text        # 期望包含的文本
+
+validate_json:
+  - path        # JSONPath 表达式
+  - expected    # 期望值
+
+# ================================
+# 事务控制关键字
+# ================================
+start_transaction:
+  - name        # 事务名称
+
+end_transaction:
+  - success     # 是否成功 (默认 True)
+
+# ================================
+# 数据操作关键字
+# ================================
+set_var:
+  - name        # 变量名
+  - value       # 变量值
+
+extract_json:
+  - path        # JSONPath 表达式
+  - var         # 存储的变量名
+
+log:
+  - message     # 日志消息

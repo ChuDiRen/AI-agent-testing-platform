@@ -1,0 +1,4 @@
+# 全局上下文配置
+host: https://httpbin.org
+username: testuser
+password: testpass

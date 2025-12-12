@@ -1,0 +1,44 @@
+# 基础 API 性能测试
+# 使用 Locust 性能测试关键字
+
+name: 基础API负载测试
+desc: 测试 API 在并发负载下的性能表现
+
+steps:
+  # GET 请求 - 获取数据
+  - 获取数据:
+      关键字: get
+      url: /get
+      name: GET /get
+      params:
+        user: "{{username}}"
+
+  # 检查响应
+  - 验证状态码:
+      关键字: check_status
+      expected: 200
+
+  # 检查响应时间
+  - 验证响应时间:
+      关键字: check_response_time
+      max_ms: 2000
+
+  # 思考时间 - 模拟用户行为
+  - 用户思考:
+      关键字: think_time
+      min: 1
+      max: 3
+
+  # POST 请求 - 提交数据
+  - 提交数据:
+      关键字: post
+      url: /post
+      name: POST /post
+      json:
+        username: "{{username}}"
+        action: load_test
+
+  # 验证响应包含内容
+  - 验证响应内容:
+      关键字: check_contains
+      text: "{{username}}"

@@ -10,16 +10,6 @@
       <el-form-item label="用例名称" prop="case_name">
         <el-input v-model="queryForm.case_name" placeholder="用例名称" clearable style="width: 180px" />
       </el-form-item>
-      <el-form-item label="执行器" prop="executor">
-        <el-select v-model="currentExecutorCode" placeholder="选择执行器" clearable style="width: 200px">
-          <el-option
-            v-for="exe in executorList"
-            :key="exe.plugin_code"
-            :label="exe.plugin_name"
-            :value="exe.plugin_code"
-          />
-        </el-select>
-      </el-form-item>
       <template #actions>
         <el-button type="warning" :disabled="selectedRows.length === 0" @click="handleBatchAddToPlan">
           <el-icon><FolderAdd /></el-icon>
@@ -34,7 +24,7 @@
 
     <!-- 表格区域 -->
     <BaseTable 
-      title="用例管理"
+      title="测试用例"
       :data="tableData" 
       :total="total" 
       :loading="loading"
@@ -51,11 +41,29 @@
           {{ getProjectName(scope.row.project_id) }}
         </template>
       </el-table-column>
+      <el-table-column label="使用引擎" width="150">
+        <template #default="scope">
+          <div class="engine-tags">
+            <el-tag 
+              v-for="engine in (scope.row.engines || [])" 
+              :key="engine"
+              size="small"
+              :type="getEngineTagType(engine)"
+              style="margin-right: 4px"
+            >
+              {{ getEngineIcon(engine) }} {{ getEngineShortName(engine) }}
+            </el-tag>
+            <span v-if="!scope.row.engines || scope.row.engines.length === 0" class="no-engine">-</span>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column prop="create_time" label="创建时间" width="170" />
       <el-table-column label="操作" width="180" fixed="right">
         <template #default="scope">
           <el-button link type="primary" @click="handleEdit(scope.row)">编辑</el-button>
-          <el-button link type="success" @click="handleExecute(scope.row)">执行</el-button>
+          <el-button link type="success" @click="handleExecute(scope.row)" :loading="scope.row.executing">
+            执行
+          </el-button>
           <el-button link type="danger" @click="handleDelete(scope.row)">删除</el-button>
         </template>
       </el-table-column>
@@ -94,15 +102,12 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, FolderAdd } from '@element-plus/icons-vue'
-import { queryByPage, deleteData, queryById } from './apiInfoCase.js'
+import { queryByPage, deleteData, getCaseEngines, executeCase } from './apiInfoCase.js'
 import { queryAll as queryProjects } from '../project/apiProject.js'
-import { queryAll as queryKeywords } from '../keyword/apiKeyWord.js'
 import { useRouter } from 'vue-router'
 import BaseSearch from '~/components/BaseSearch/index.vue'
 import BaseTable from '~/components/BaseTable/index.vue'
-import { listExecutors } from '../task/apiTask.js'
 import { queryByPage as queryPlans, batchAddCases } from '../testplan/testPlan.js'
-import { executeCase } from './apiInfoCase.js'
 
 const router = useRouter()
 
@@ -117,18 +122,11 @@ const queryForm = reactive({
   case_name: ''
 })
 
-// 执行器列表与当前选择
-const executorList = ref([])
-const currentExecutorCode = ref('')
-
 // 表格数据
 const tableData = ref([])
 
 // 项目列表
 const projectList = ref([])
-
-// 关键字列表
-const keywordList = ref([])
 
 // 批量添加到计划相关
 const selectedRows = ref([])
@@ -137,23 +135,34 @@ const selectedPlanId = ref(null)
 const planList = ref([])
 const batchAdding = ref(false)
 
-// 加载执行器列表
-const loadExecutors = async () => {
-  try {
-    const res = await listExecutors()
-    if (res.data.code === 200) {
-      executorList.value = res.data.data || []
-      // 如未选择且有可用执行器，默认选第一个
-      if (!currentExecutorCode.value && executorList.value.length > 0) {
-        currentExecutorCode.value = executorList.value[0].plugin_code
-      }
-    } else {
-      ElMessage.error(res.data.msg || '加载执行器列表失败')
-    }
-  } catch (error) {
-    console.error('加载执行器列表失败:', error)
-    ElMessage.error('加载执行器列表失败，请稍后重试')
+// 获取引擎图标
+const getEngineIcon = (pluginCode) => {
+  const icons = {
+    'api_engine': '📡',
+    'web_engine': '🌐',
+    'perf_engine': '⚡'
   }
+  return icons[pluginCode] || '🔧'
+}
+
+// 获取引擎简称
+const getEngineShortName = (pluginCode) => {
+  const names = {
+    'api_engine': 'API',
+    'web_engine': 'Web',
+    'perf_engine': 'Perf'
+  }
+  return names[pluginCode] || pluginCode
+}
+
+// 获取引擎标签类型
+const getEngineTagType = (pluginCode) => {
+  const types = {
+    'api_engine': '',
+    'web_engine': 'success',
+    'perf_engine': 'warning'
+  }
+  return types[pluginCode] || 'info'
 }
 
 // 加载项目列表
@@ -165,18 +174,6 @@ const loadProjects = async () => {
     }
   } catch (error) {
     console.error('加载项目列表失败:', error)
-  }
-}
-
-// 加载关键字列表
-const loadKeywords = async () => {
-  try {
-    const res = await queryKeywords()
-    if (res.data.code === 200) {
-      keywordList.value = res.data.data || []
-    }
-  } catch (error) {
-    console.error('加载关键字列表失败:', error)
   }
 }
 
@@ -243,6 +240,19 @@ const getProjectName = (projectId) => {
   return project ? project.project_name : '-'
 }
 
+// 加载用例使用的引擎
+const loadCaseEngines = async (caseId) => {
+  try {
+    const res = await getCaseEngines(caseId)
+    if (res.data.code === 200 && res.data.data) {
+      return res.data.data.engines?.map(e => e.plugin_code) || []
+    }
+  } catch (error) {
+    console.error('加载用例引擎失败:', error)
+  }
+  return []
+}
+
 // 查询数据
 const handleQuery = async () => {
   loading.value = true
@@ -255,6 +265,11 @@ const handleQuery = async () => {
     if (res.data.code === 200) {
       tableData.value = res.data.data || []
       total.value = res.data.total || 0
+      
+      // 异步加载每个用例的引擎信息
+      tableData.value.forEach(async (row) => {
+        row.engines = await loadCaseEngines(row.id)
+      })
     } else {
       ElMessage.error(res.data.msg || '查询失败')
     }
@@ -287,27 +302,25 @@ const handleEdit = (row) => {
   })
 }
 
-// 执行用例（调用后端统一接口，后端负责 YAML 构建）
+// 执行用例（自动检测引擎）
 const handleExecute = async (row) => {
   try {
-    await ElMessageBox.confirm(`确定执行用例 "${row.case_name}" 吗？`, '提示', {
+    await ElMessageBox.confirm(`确定执行用例 "${row.case_name}" 吗？\n系统将自动识别执行引擎`, '提示', {
       type: 'warning'
     })
 
-    if (!currentExecutorCode.value) {
-      ElMessage.warning('请先选择执行器')
-      return
-    }
+    row.executing = true
 
-    // 调用后端统一执行接口，只传 case_id，后端负责构建 YAML
+    // 调用后端统一执行接口，不传 executor_code，后端自动检测
     const res = await executeCase({
       case_id: row.id,
-      executor_code: currentExecutorCode.value,
       test_name: row.case_name
+      // executor_code 不传，后端自动检测
     })
 
     if (res.data.code === 200) {
-      ElMessage.success('用例已提交执行')
+      const executor = res.data.data?.executor || '自动检测'
+      ElMessage.success(`用例已提交执行 (引擎: ${executor})`)
       // 跳转到测试历史页面查看执行结果
       setTimeout(() => {
         router.push('/ApiHistoryList')
@@ -320,6 +333,8 @@ const handleExecute = async (row) => {
       console.error('执行失败:', error)
       ElMessage.error('执行失败，请稍后重试')
     }
+  } finally {
+    row.executing = false
   }
 }
 
@@ -347,8 +362,6 @@ const handleDelete = async (row) => {
 
 onMounted(() => {
   loadProjects()
-  loadExecutors()
-  loadKeywords()
   loadPlans()
   handleQuery()
 })
@@ -356,5 +369,16 @@ onMounted(() => {
 
 <style scoped>
 @import '~/styles/common-list.css';
+
+.engine-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.no-engine {
+  color: #909399;
+  font-size: 12px;
+}
 </style>
 

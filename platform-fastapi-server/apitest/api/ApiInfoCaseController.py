@@ -353,6 +353,11 @@ async def executeCase(
     支持两种模式：
     - 单用例执行：提供 case_id
     - 批量执行计划：提供 plan_id
+    
+    执行器自动检测：
+    - 如果不提供 executor_code，系统会根据用例步骤中的关键字自动检测应使用的引擎
+    - 如果提供了 executor_code，则使用指定的引擎
+    
     接口立即返回 test_id，前端通过 /executionStatus 接口轮询结果
     """
     from ..service.execution_service import ExecutionService
@@ -363,13 +368,16 @@ async def executeCase(
             return respModel.error_resp("请提供 case_id 或 plan_id")
         
         exec_service = ExecutionService(session)
-        plugin_code = request.executor_code or "api_engine"
         
-        # 验证执行器
-        exec_service.validate_executor(plugin_code)
+        # 执行器代码（可为空，由服务层自动检测）
+        plugin_code = request.executor_code
         
         # 执行（内部自动提交后台任务）
         if request.plan_id:
+            # 计划执行需要指定执行器
+            if not plugin_code:
+                plugin_code = "api_engine"
+            exec_service.validate_executor(plugin_code)
             result = exec_service.execute_plan(
                 plan_id=request.plan_id,
                 executor_code=plugin_code,
@@ -377,9 +385,10 @@ async def executeCase(
             )
             return respModel.ok_resp(dic_t=result, msg="测试计划已提交，请通过 executionStatus 接口查询结果")
         
+        # 单用例执行（支持自动检测引擎）
         result = exec_service.execute_case(
             case_id=request.case_id,
-            executor_code=plugin_code,
+            executor_code=plugin_code,  # 可为空，服务层自动检测
             test_name=request.test_name,
             context_vars=request.context_vars
         )
@@ -422,6 +431,47 @@ async def executionStatus(test_id: int = Query(..., description="测试ID"), ses
             dic_t={"data": result, "finished": is_finished},
             msg="查询成功"
         )
+    except Exception as e:
+        logger.error(f"查询失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误: {str(e)}")
+
+
+@module_route.get("/getCaseEngines", summary="获取用例使用的引擎列表", dependencies=[Depends(check_permission("apitest:case:query"))])
+async def getCaseEngines(case_id: int = Query(..., description="用例ID"), session: Session = Depends(get_session)):
+    """
+    获取用例使用的所有引擎列表
+    用于前端显示用例使用了哪些引擎
+    """
+    from ..service.execution_service import ExecutionService
+    
+    try:
+        exec_service = ExecutionService(session)
+        engines = exec_service.get_case_engines(case_id)
+        
+        # 查询引擎详细信息
+        from plugin.model.PluginModel import Plugin
+        engine_details = []
+        for engine_code in engines:
+            plugin = session.exec(
+                select(Plugin).where(Plugin.plugin_code == engine_code)
+            ).first()
+            if plugin:
+                engine_details.append({
+                    "plugin_code": plugin.plugin_code,
+                    "plugin_name": plugin.plugin_name,
+                    "plugin_id": plugin.id
+                })
+            else:
+                engine_details.append({
+                    "plugin_code": engine_code,
+                    "plugin_name": engine_code,
+                    "plugin_id": None
+                })
+        
+        return respModel.ok_resp(obj={
+            "engines": engine_details,
+            "count": len(engine_details)
+        })
     except Exception as e:
         logger.error(f"查询失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误: {str(e)}")

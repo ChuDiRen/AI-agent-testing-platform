@@ -29,31 +29,41 @@
 
     <!-- 表格区域 -->
     <BaseTable 
-      title="关键字管理"
+      title="关键字库"
       :data="tableData" 
       :total="total" 
       :loading="loading"
       v-model:pagination="pagination"
       @refresh="loadData"
     >
-      <el-table-column prop="id" label="关键字编号" width="100" />
-      <el-table-column prop="name" label="关键字名称" show-overflow-tooltip />
-      <el-table-column prop="keyword_fun_name" label="关键字函数名" show-overflow-tooltip />
-      <el-table-column prop="plugin_name" label="执行引擎" width="120">
+      <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="name" label="关键字名称" show-overflow-tooltip>
         <template #default="scope">
-          <el-tag v-if="scope.row.plugin_name" type="success" size="small">{{ scope.row.plugin_name }}</el-tag>
-          <span v-else class="text-gray">-</span>
+          <span class="keyword-name">{{ scope.row.name }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="keyword_fun_name" label="函数名" show-overflow-tooltip>
+        <template #default="scope">
+          <code class="func-name">{{ scope.row.keyword_fun_name }}</code>
+        </template>
+      </el-table-column>
+      <el-table-column prop="plugin_name" label="执行引擎" width="130">
+        <template #default="scope">
+          <el-tag v-if="scope.row.plugin_code" :type="getEngineTagType(scope.row.plugin_code)" size="small">
+            {{ getEngineIcon(scope.row.plugin_code) }} {{ scope.row.plugin_name || scope.row.plugin_code }}
+          </el-tag>
+          <span v-else class="text-gray">未分配</span>
         </template>
       </el-table-column>
       <el-table-column prop="category" label="分类" width="120" show-overflow-tooltip />
-      <el-table-column prop="is_enabled" label="是否启用" width="100">
+      <el-table-column prop="is_enabled" label="状态" width="80">
         <template #default="scope">
-          <el-tag :type="scope.row.is_enabled === '1' ? 'success' : 'info'">
-            {{ scope.row.is_enabled === '1' ? '是' : '否' }}
+          <el-tag :type="scope.row.is_enabled === '1' ? 'success' : 'info'" size="small">
+            {{ scope.row.is_enabled === '1' ? '启用' : '禁用' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="create_time" label="创建时间" width="180">
+      <el-table-column prop="create_time" label="创建时间" width="170">
         <template #default="scope">
           {{ formatDateTime(scope.row.create_time) }}
         </template>
@@ -118,6 +128,26 @@ const pluginList = ref<Array<{id: number, plugin_name: string, plugin_code: stri
 const syncDialogVisible = ref(false);
 const syncLoading = ref(false);
 const syncForm = reactive({ plugin_id: null });
+
+// 获取引擎图标
+const getEngineIcon = (pluginCode: string) => {
+  const icons: Record<string, string> = {
+    'api_engine': '📡',
+    'web_engine': '🌐',
+    'perf_engine': '⚡'
+  };
+  return icons[pluginCode] || '🔧';
+};
+
+// 获取引擎标签类型
+const getEngineTagType = (pluginCode: string) => {
+  const types: Record<string, string> = {
+    'api_engine': '',
+    'web_engine': 'success',
+    'perf_engine': 'warning'
+  };
+  return types[pluginCode] || 'info';
+};
 
 // 加载页面数据
 const loadData = () => {
@@ -254,5 +284,17 @@ onMounted(() => {
 
 .text-gray {
   color: #909399;
+}
+
+.keyword-name {
+  font-weight: 500;
+}
+
+.func-name {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  background: #f5f7fa;
+  padding: 2px 6px;
+  border-radius: 3px;
 }
 </style>

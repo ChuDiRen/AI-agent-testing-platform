@@ -470,3 +470,93 @@ async def queryByPlugin(
     except Exception as e:
         logger.error(f"查询失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误: {e}")
+
+
+@module_route.get("/queryGroupedByEngine", summary="按执行引擎分组查询所有关键字", dependencies=[Depends(check_permission("apitest:keyword:query"))])
+async def queryGroupedByEngine(session: Session = Depends(get_session)):
+    """
+    按执行引擎分组查询所有关键字
+    返回格式：
+    {
+        "engines": [
+            {
+                "plugin_code": "api_engine",
+                "plugin_name": "API引擎",
+                "plugin_id": 1,
+                "keywords": [
+                    {"id": 1, "name": "send_request", "keyword_desc": "...", "category": "HTTP请求"},
+                    ...
+                ]
+            },
+            ...
+        ]
+    }
+    """
+    try:
+        # 查询所有启用的关键字
+        statement = select(module_model).where(module_model.is_enabled == "1")
+        keywords = session.exec(statement).all()
+        
+        # 查询所有插件
+        plugins = session.exec(select(Plugin).where(Plugin.is_enabled == 1)).all()
+        plugin_map = {p.plugin_code: {"id": p.id, "name": p.plugin_name, "code": p.plugin_code} for p in plugins}
+        
+        # 按引擎分组
+        engine_keywords = {}
+        uncategorized = []
+        
+        for kw in keywords:
+            plugin_code = kw.plugin_code or "uncategorized"
+            
+            if plugin_code not in engine_keywords:
+                if plugin_code in plugin_map:
+                    engine_keywords[plugin_code] = {
+                        "plugin_code": plugin_code,
+                        "plugin_name": plugin_map[plugin_code]["name"],
+                        "plugin_id": plugin_map[plugin_code]["id"],
+                        "keywords": []
+                    }
+                elif plugin_code == "uncategorized":
+                    engine_keywords[plugin_code] = {
+                        "plugin_code": "uncategorized",
+                        "plugin_name": "未分类",
+                        "plugin_id": None,
+                        "keywords": []
+                    }
+                else:
+                    # 插件不存在但有关键字关联
+                    engine_keywords[plugin_code] = {
+                        "plugin_code": plugin_code,
+                        "plugin_name": plugin_code,
+                        "plugin_id": kw.plugin_id,
+                        "keywords": []
+                    }
+            
+            # 解析关键字描述
+            try:
+                keyword_desc = json.loads(kw.keyword_desc) if kw.keyword_desc else []
+            except:
+                keyword_desc = []
+            
+            engine_keywords[plugin_code]["keywords"].append({
+                "id": kw.id,
+                "name": kw.name,
+                "keyword_fun_name": kw.keyword_fun_name,
+                "keyword_desc": keyword_desc,
+                "category": kw.category or "未分类",
+                "operation_type_id": kw.operation_type_id
+            })
+        
+        # 转换为列表并排序
+        engines = list(engine_keywords.values())
+        # 按插件名称排序，未分类放最后
+        engines.sort(key=lambda x: (x["plugin_code"] == "uncategorized", x["plugin_name"]))
+        
+        return respModel.ok_resp(obj={
+            "engines": engines,
+            "total_keywords": len(keywords),
+            "total_engines": len(engines)
+        })
+    except Exception as e:
+        logger.error(f"查询失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误: {e}")

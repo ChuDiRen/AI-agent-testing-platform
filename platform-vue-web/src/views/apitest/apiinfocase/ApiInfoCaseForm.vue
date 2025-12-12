@@ -266,7 +266,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { queryById, insertData, updateData, executeCase, getExecutionStatus } from './apiInfoCase.js'
+import { queryById, insertData, updateData, executeCase, getExecutionStatus, getCaseEngines } from './apiInfoCase.js'
 import { queryAll as queryProjects } from '../project/apiProject.js'
 import { queryAll as queryOperationType } from '../keyword/operationType.js'
 import { queryAll as queryKeywords } from '../keyword/apiKeyWord.js'
@@ -690,6 +690,28 @@ const loadCaseData = async (id) => {
         contextConfig[key] = value
       })
     }
+    
+    // 自动检测并设置执行器
+    await detectAndSetExecutor(id)
+  }
+}
+
+// 自动检测用例使用的引擎
+const detectAndSetExecutor = async (caseId) => {
+  try {
+    const res = await getCaseEngines(caseId)
+    if (res.data.code === 200 && res.data.data) {
+      const engines = res.data.data.engines || []
+      if (engines.length > 0) {
+        // 优先使用第一个检测到的引擎
+        const detectedEngine = engines[0].plugin_code
+        if (executorList.value.some(e => e.plugin_code === detectedEngine)) {
+          currentExecutorCode.value = detectedEngine
+        }
+      }
+    }
+  } catch (error) {
+    console.error('检测执行器失败:', error)
   }
 }
 

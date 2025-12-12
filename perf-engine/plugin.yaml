@@ -1,0 +1,61 @@
+# Perf Engine 插件配置
+# 基于 Locust 的性能测试引擎
+name: perf-engine
+version: "1.0.0"
+description: 基于 Locust 的性能测试引擎，支持关键字驱动和数据驱动
+command: perf-engine
+type: executor
+
+params:
+  - name: type
+    label: 用例格式
+    type: select
+    options:
+      - value: yaml
+        label: YAML 格式
+      - value: script
+        label: Locust 脚本
+    default: yaml
+    help: 测试用例的格式类型
+
+  - name: cases
+    label: 用例目录
+    type: string
+    default: ""
+    help: YAML 用例文件或目录路径
+
+  - name: users
+    label: 并发用户数
+    type: number
+    default: 10
+    help: 模拟的并发用户数量
+
+  - name: spawn_rate
+    label: 用户生成速率
+    type: number
+    default: 1
+    help: 每秒生成的用户数
+
+  - name: run_time
+    label: 运行时长
+    type: string
+    default: "60s"
+    help: 测试运行时长 (如 60s, 5m, 1h)
+
+  - name: host
+    label: 目标主机
+    type: string
+    default: ""
+    help: 被测系统的基础 URL
+
+  - name: headless
+    label: 无界面模式
+    type: boolean
+    default: true
+    help: 是否以无界面模式运行 (不启动 Web UI)
+
+  - name: html_report
+    label: HTML 报告
+    type: boolean
+    default: true
+    help: 是否生成 HTML 报告
