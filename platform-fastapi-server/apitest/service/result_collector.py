@@ -41,12 +41,28 @@ class ResultCollector:
             raise ValueError(f"测试记录不存在: {test_id}")
         
         if execute_result.get("success"):
-            history.test_status = "success"
-            
             # 保存执行结果数据
             result_data = execute_result.get("result")
             if result_data:
                 history.response_data = json.dumps(result_data, ensure_ascii=False)
+                
+                # 检查 test_cases 中是否有非通过的用例
+                test_cases = result_data.get("test_cases", [])
+                # Allure 状态: PASSED(通过), FAILED(失败), BROKEN(故障), SKIPPED(跳过), UNKNOWN(未知)
+                # 只有 PASSED 才算成功，其他状态都算失败
+                if test_cases:
+                    has_failed = any(tc.get("status") != "PASSED" for tc in test_cases)
+                    history.test_status = "failed" if has_failed else "success"
+                else:
+                    # test_cases 为空时，检查 returncode 或 stdout 中的失败信息
+                    returncode = result_data.get("returncode", 0)
+                    stdout = result_data.get("stdout", "")
+                    if returncode != 0 or "FAILED" in stdout or "failed" in stdout.lower():
+                        history.test_status = "failed"
+                    else:
+                        history.test_status = "success"
+            else:
+                history.test_status = "success"
             
             # 更新报告路径
             temp_dir = execute_result.get("temp_dir")
@@ -158,6 +174,8 @@ class ResultCollector:
             for tc in test_cases:
                 tc_name = tc.get("name", "")
                 if case_name in tc_name or tc_name in case_name:
+                    # Allure 状态: PASSED(通过), FAILED(失败), BROKEN(故障), SKIPPED(跳过), UNKNOWN(未知)
+                    # 只有 PASSED 才算成功
                     case_status = "success" if tc.get("status") == "PASSED" else "failed"
                     break
             

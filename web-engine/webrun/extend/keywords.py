@@ -60,18 +60,29 @@ class Keywords(BrowserUseKeywords):
             # 默认当作 CSS 选择器
             return element
 
-    def _find_element(self, locator_type: str, element: str, wait_time: int = None):
+    def _find_element(self, locator_type: str, element: str, wait_time: int = None, **kwargs):
         """
         查找元素
         
         :param locator_type: 定位方式
         :param element: 元素标识
         :param wait_time: 等待时间（秒）
+        :param kwargs: 额外参数（如 role 定位的 name）
         :return: Locator
         """
         page = self._get_page()
-        selector = self._get_selector(locator_type, element)
-        locator = page.locator(selector)
+        locator_type_lower = locator_type.lower() if locator_type else ""
+        
+        # 特殊处理 role 定位方式
+        if locator_type_lower == "role":
+            name = kwargs.get("name")
+            if name:
+                locator = page.get_by_role(element, name=name)
+            else:
+                locator = page.get_by_role(element)
+        else:
+            selector = self._get_selector(locator_type, element)
+            locator = page.locator(selector)
         
         if wait_time:
             locator.wait_for(timeout=wait_time * 1000)
@@ -203,9 +214,10 @@ class Keywords(BrowserUseKeywords):
         element = kwargs.get("element")
         wait_time = kwargs.get("wait_time")
         force = str(kwargs.get("force", "false")).lower() in ["true", "1", "yes"]
+        name = kwargs.get("name")  # role 定位的 name 参数
         
         try:
-            locator = self._find_element(locator_type, element, wait_time)
+            locator = self._find_element(locator_type, element, wait_time, name=name)
             locator.click(force=force)
             print(f"已点击元素: {locator_type}={element}")
         except Exception as e:
@@ -229,8 +241,9 @@ class Keywords(BrowserUseKeywords):
         text = str(kwargs.get("text", ""))
         clear = str(kwargs.get("clear", "true")).lower() in ["true", "1", "yes"]
         wait_time = kwargs.get("wait_time")
+        name = kwargs.get("name")  # role 定位的 name 参数
         
-        locator = self._find_element(locator_type, element, wait_time)
+        locator = self._find_element(locator_type, element, wait_time, name=name)
         
         if clear:
             locator.clear()

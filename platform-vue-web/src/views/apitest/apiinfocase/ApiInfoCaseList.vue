@@ -323,7 +323,7 @@ const handleExecute = async (row) => {
       ElMessage.success(`用例已提交执行 (引擎: ${executor})`)
       // 跳转到测试历史页面查看执行结果
       setTimeout(() => {
-        router.push('/ApiHistoryList')
+        router.push('/ApiTestHistory')
       }, 1000)
     } else {
       ElMessage.error(res.data.msg || '执行失败')

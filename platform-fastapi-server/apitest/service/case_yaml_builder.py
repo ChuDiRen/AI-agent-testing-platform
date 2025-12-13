@@ -100,13 +100,22 @@ class CaseYamlBuilder:
         
         yaml_data['steps'] = []
         
+        # 收集 ddts 中使用的变量名，这些变量不应该被预先替换
+        ddts_var_names = set()
+        for ddt_item in case_ddts:
+            if isinstance(ddt_item, dict):
+                ddts_var_names.update(k for k in ddt_item.keys() if k != 'desc')
+        
         for step in steps:
             step_data = self._parse_step_data(step.step_data)
             keyword_name = self._get_keyword_name(step.keyword_id)
             
-            # 预先替换全局配置变量（如 {{URL}} -> 实际值）
+            # 预先替换全局配置变量，但跳过 ddts 中定义的变量（让执行器在运行时替换）
             if case_context:
-                step_data = self._replace_context_vars(step_data, case_context)
+                # 过滤掉 ddts 中定义的变量
+                context_to_replace = {k: v for k, v in case_context.items() if k not in ddts_var_names}
+                if context_to_replace:
+                    step_data = self._replace_context_vars(step_data, context_to_replace)
             
             # 只对 HTTP 请求类关键字进行转换，其他关键字保持原样
             final_keyword, final_data = self._normalize_step(keyword_name, step_data)

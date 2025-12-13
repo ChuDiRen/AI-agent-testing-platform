@@ -234,7 +234,7 @@ def init_web_test_case(project_id: int):
                 "keyword_id": open_browser.id if open_browser else None,
                 "step_data": json.dumps({
                     "browser": "chrome",
-                    "headless": "false"
+                    "headless": "true"
                 }, ensure_ascii=False)
             },
             {
@@ -254,10 +254,10 @@ def init_web_test_case(project_id: int):
                 "operation_type_id": 11,
                 "keyword_id": input_text.id if input_text else None,
                 "step_data": json.dumps({
-                    "locator_type": "id",
-                    "element": "kw",
+                    "locator_type": "role",
+                    "element": "textbox",
                     "text": "{{KEYWORD}}",
-                    "clear": "true"
+                    "clear": "false"
                 }, ensure_ascii=False)
             },
             {
@@ -267,8 +267,9 @@ def init_web_test_case(project_id: int):
                 "operation_type_id": 11,
                 "keyword_id": click_element.id if click_element else None,
                 "step_data": json.dumps({
-                    "locator_type": "id",
-                    "element": "su"
+                    "locator_type": "role",
+                    "element": "button",
+                    "name": "百度一下"
                 }, ensure_ascii=False)
             },
             {
@@ -319,11 +320,11 @@ def init_ai_web_test_case(project_id: int):
     print("\n=== 初始化 AI Web 测试用例 ===")
     
     with Session(engine) as session:
-        # 获取关键字ID
-        open_browser = session.exec(select(ApiKeyWord).where(ApiKeyWord.keyword_fun_name == "open_browser")).first()
+        # 获取关键字ID - AI 用例需要使用 bu_open_browser 和 bu_close_browser
+        bu_open_browser = session.exec(select(ApiKeyWord).where(ApiKeyWord.keyword_fun_name == "bu_open_browser")).first()
         navigate_to = session.exec(select(ApiKeyWord).where(ApiKeyWord.keyword_fun_name == "navigate_to")).first()
         bu_run_task = session.exec(select(ApiKeyWord).where(ApiKeyWord.keyword_fun_name == "bu_run_task")).first()
-        close_browser = session.exec(select(ApiKeyWord).where(ApiKeyWord.keyword_fun_name == "close_browser")).first()
+        bu_close_browser = session.exec(select(ApiKeyWord).where(ApiKeyWord.keyword_fun_name == "bu_close_browser")).first()
         
         # 检查是否已存在
         existing = session.exec(
@@ -354,11 +355,11 @@ def init_ai_web_test_case(project_id: int):
                 "case_info_id": case.id,
                 "run_order": 1,
                 "step_desc": "打开浏览器",
-                "operation_type_id": 10,
-                "keyword_id": open_browser.id if open_browser else None,
+                "operation_type_id": 14,
+                "keyword_id": bu_open_browser.id if bu_open_browser else None,
                 "step_data": json.dumps({
                     "browser": "chrome",
-                    "headless": "false"
+                    "headless": "true"
                 }, ensure_ascii=False)
             },
             {
@@ -385,8 +386,8 @@ def init_ai_web_test_case(project_id: int):
                 "case_info_id": case.id,
                 "run_order": 4,
                 "step_desc": "关闭浏览器",
-                "operation_type_id": 10,
-                "keyword_id": close_browser.id if close_browser else None,
+                "operation_type_id": 14,
+                "keyword_id": bu_close_browser.id if bu_close_browser else None,
                 "step_data": json.dumps({}, ensure_ascii=False)
             }
         ]

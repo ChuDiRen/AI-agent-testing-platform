@@ -28,7 +28,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "web-engine=webrun.cli:run",
+            "webrun=webrun.cli:run",
         ],
     },
     keywords="playwright web automation testing keyword-driven data-driven",

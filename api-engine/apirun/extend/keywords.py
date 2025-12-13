@@ -22,7 +22,7 @@ class Keywords:
     
     request = None
 
-    @allure.step(">>>>>>参数数据：")
+    @allure.step("参数数据")
     def send_request(self, **kwargs):
         """
         统一的 HTTP 请求关键字
@@ -84,8 +84,12 @@ class Keywords:
         }
 
         try:
+            # 禁用 SSL 验证以避免网络环境问题
+            kwargs.setdefault("verify", False)
             response = self.request.request(**kwargs)
             g_context().set_dict("current_response", response)
+            # 设置 status_code 变量供断言使用
+            g_context().set_dict("status_code", str(response.status_code))
 
             # 解析 URL 参数
             from urllib.parse import urlparse, parse_qs
@@ -229,7 +233,7 @@ class Keywords:
 
         return processed_files
 
-    @allure.step(">>>>>>参数数据：")
+    @allure.step("参数数据")
     def ex_jsonData(self, **kwargs):
         """
         提取json数据
@@ -252,7 +256,7 @@ class Keywords:
         print(g_context().show_dict())
         print("-----------------------")
 
-    @allure.step(">>>>>>参数数据：")
+    @allure.step("参数数据")
     def ex_reData(self, **kwargs):
         """
         提取正则数据
@@ -272,7 +276,7 @@ class Keywords:
         print(g_context().show_dict())
         print("-----------------------")
 
-    @allure.step(">>>>>>参数数据：")
+    @allure.step("参数数据")
     def ex_mysqlData(self, **kwargs):
         """
         数据库: 数据库的名称
@@ -319,7 +323,7 @@ class Keywords:
                     result[f"{var_names[col_idx]}_{idx}"] = item[key]
         g_context().set_by_dict(result)
 
-    @allure.step(">>>>>>参数数据：")
+    @allure.step("参数数据")
     def assert_text_comparators(self, **kwargs):
         """
         封装断言以进行不同的比较操作。
@@ -368,7 +372,7 @@ class Keywords:
         hash_md5.update(data)
         return hash_md5.hexdigest()
 
-    @allure.step(">>>>>>参数数据：")
+    @allure.step("参数数据")
     def assert_files_by_md5_comparators(self, **kwargs):
         """
         value (Any): 要比较的值。

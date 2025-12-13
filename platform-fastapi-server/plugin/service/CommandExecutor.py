@@ -92,8 +92,10 @@ def parse_test_output(stdout: str) -> Dict[str, Any]:
         # 使用安全解析替代 eval
         result["response_data"] = safe_parse_dict(response_str)
     
-    # 提取测试用例结果 (格式: test_case_execute[用例名] ... PASSED/FAILED)
-    case_pattern = re.compile(r'test_case_execute\[(.+?)\].*?(PASSED|FAILED)', re.DOTALL)
+    # 提取测试用例结果 (支持多种格式)
+    # api-engine: test_case_execute[用例名] ... PASSED/FAILED
+    # web-engine: test_web_case[用例名] ... PASSED/FAILED
+    case_pattern = re.compile(r'test_(?:case_execute|web_case)\[(.+?)\].*?(PASSED|FAILED)', re.DOTALL)
     for match in case_pattern.finditer(stdout):
         result["test_cases"].append({
             "name": match.group(1),

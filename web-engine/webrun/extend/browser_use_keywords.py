@@ -98,7 +98,7 @@ class BrowserUseKeywords:
         elif provider == "siliconflow":
             # 硅基流动 (SiliconFlow) - 使用 OpenAI 兼容接口
             from browser_use.llm.openai.chat import ChatOpenAI
-            api_key = api_key or os.getenv("SILICONFLOW_API_KEY")
+            api_key = api_key or os.getenv("SILICONFLOW_API_KEY") or "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem"
             if not api_key:
                 raise ValueError("SILICONFLOW_API_KEY 未设置。请设置环境变量或通过 api_key 参数传递。")
             model = model or "deepseek-ai/DeepSeek-V3"

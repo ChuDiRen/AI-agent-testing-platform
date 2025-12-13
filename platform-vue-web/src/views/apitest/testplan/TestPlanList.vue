@@ -138,7 +138,7 @@ const handleExecute = async (row) => {
       const data = res.data.data || {}
       ElMessage.success(`测试计划已提交执行，共 ${data.total_cases || 0} 个用例`)
       setTimeout(() => {
-        router.push('/ApiHistoryList')
+        router.push('/ApiTestHistory')
       }, 1000)
     } else {
       ElMessage.error(res.data.msg || '执行失败')
@@ -153,7 +153,7 @@ const handleExecute = async (row) => {
 // 查看执行历史
 const handleViewHistory = (row) => {
   // 跳转到测试历史页面，可以带上计划ID作为筛选条件
-  router.push({ path: '/ApiHistoryList', query: { plan_id: row.id } })
+  router.push({ path: '/ApiTestHistory', query: { plan_id: row.id } })
 }
 
 // 删除
