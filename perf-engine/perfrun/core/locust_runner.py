@@ -168,55 +168,280 @@ class LocustRunner:
         
         total, fail = si(agg.get('Request Count')), si(agg.get('Failure Count'))
         rate = (fail/total*100) if total > 0 else 0
-        
+        success_rate = 100 - rate
+
         # Helper to colorize HTTP methods
         def method_cls(m):
             m = m.upper().split()[0] if ' ' in m else m.upper()
-            if m == 'GET': return 'm-get'
-            if m == 'POST': return 'm-post'
-            if m == 'PUT': return 'm-put'
-            if m == 'DELETE': return 'm-del'
-            return ''
+            return f"method-{m.lower()}" if m in ['GET','POST','PUT','DELETE'] else 'method-other'
 
-        rows = "".join([f"<tr><td><span class='badge {method_cls(r.get('Type','-'))}'>{r.get('Type','-')}</span></td><td>{r.get('Name','-')}</td><td>{si(r.get('Request Count'))}</td><td class='{'f' if si(r.get('Failure Count'))>0 else ''}'>{si(r.get('Failure Count'))}</td><td>{sf(r.get('Average Response Time')):.0f}</td><td>{sf(r.get('Min Response Time')):.0f}</td><td>{sf(r.get('Max Response Time')):.0f}</td><td>{sf(r.get('50%')):.0f}</td><td>{sf(r.get('90%')):.0f}</td><td>{sf(r.get('95%')):.0f}</td><td>{sf(r.get('99%')):.0f}</td><td>{sf(r.get('Requests/s')):.2f}</td></tr>" for r in reqs])
+        def p_bar(percent, color_class):
+            return f'<div class="progress-bar"><div class="fill {color_class}" style="width: {percent}%"></div></div>'
+
+        rows = "".join([f"""
+        <tr>
+            <td><span class='badge {method_cls(r.get('Type','-'))}'>{r.get('Type','-')}</span></td>
+            <td class='name-cell' title='{r.get('Name','-')}'>{r.get('Name','-')}</td>
+            <td class='text-right'>{si(r.get('Request Count'))}</td>
+            <td class='text-right'>{si(r.get('Failure Count'))}</td>
+            <td class='text-right'>{sf(r.get('Average Response Time')):.0f}</td>
+            <td class='text-right'>{sf(r.get('Min Response Time')):.0f}</td>
+            <td class='text-right'>{sf(r.get('Max Response Time')):.0f}</td>
+            <td class='text-right font-medium'>{sf(r.get('95%')):.0f}</td>
+            <td class='text-right font-medium'>{sf(r.get('99%')):.0f}</td>
+            <td class='text-right'>{sf(r.get('Requests/s')):.2f}</td>
+        </tr>""" for r in reqs])
         
-        frows = "".join([f"<tr><td><span class='badge {method_cls(f.get('Method','-'))}'>{f.get('Method','-')}</span></td><td>{f.get('Name','-')}</td><td>{f.get('Occurrences','-')}</td><td><code>{str(f.get('Error','-'))[:120]}</code></td></tr>" for f in fails])
-        fsec = f"<div class='c'><h2>Failures</h2><div class='table-responsive'><table><tr><th>Method</th><th>Name</th><th>Count</th><th>Error</th></tr>{frows}</table></div></div>" if fails else ""
+        frows = "".join([f"""
+        <tr>
+            <td><span class='badge {method_cls(f.get('Method','-'))}'>{f.get('Method','-')}</span></td>
+            <td class='name-cell'>{f.get('Name','-')}</td>
+            <td class='text-right'>{f.get('Occurrences','-')}</td>
+            <td class='error-cell'>{str(f.get('Error','-'))[:120]}</td>
+        </tr>""" for f in fails])
         
-        return f'''<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Locust Report</title>
-<style>
-:root {{ --bg: #0d1117; --card-bg: #161b22; --border: #30363d; --text: #c9d1d9; --text-muted: #8b949e; --accent: #58a6ff; --success: #238636; --danger: #da3633; --warning: #d29922; }}
-*{{margin:0;padding:0;box-sizing:border-box}}
-body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);padding:20px;line-height:1.5}}
-.w{{max-width:1400px;margin:0 auto;animation:fadeIn 0.5s ease-out}}
-@keyframes fadeIn {{ from {{opacity:0;transform:translateY(10px)}} to {{opacity:1;transform:translateY(0)}} }}
-.h{{background:linear-gradient(135deg,#1f6feb,#238636);padding:32px;border-radius:12px;margin-bottom:24px;box-shadow:0 8px 24px rgba(0,0,0,0.2)}}
-.h h1{{color:#fff;font-size:28px;font-weight:700;margin-bottom:8px}}
-.h .m{{color:rgba(255,255,255,0.9);font-size:14px;font-family:ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace}}
-.c{{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:0 4px 12px rgba(0,0,0,0.1)}}
-.c h2{{font-size:18px;color:var(--accent);margin-bottom:20px;display:flex;align-items:center;gap:8px}}
-.c h2::before{{content:'';display:block;width:4px;height:18px;background:var(--accent);border-radius:2px}}
-.s{{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px}}
-.st{{background:#21262d;padding:20px;border-radius:8px;text-align:center;border:1px solid var(--border);transition:transform 0.2s}}
-.st:hover{{transform:translateY(-2px);border-color:var(--accent)}}
-.st .v{{font-size:32px;font-weight:700;color:var(--text);line-height:1.2}}
-.st .l{{font-size:13px;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px}}
-.st.g .v{{color:#3fb950}} .st.r .v{{color:#f85149}}
-table{{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}}
-th,td{{padding:12px 16px;text-align:left;border-bottom:1px solid var(--border)}}
-th{{background:#21262d;color:var(--text-muted);font-weight:600;position:sticky;top:0}}
-tr:last-child td{{border-bottom:none}}
-tr:nth-child(even){{background-color:rgba(255,255,255,0.02)}}
-tr:hover{{background-color:rgba(110,118,129,0.1)}}
-.f{{color:#f85149;font-weight:bold}}
-code{{background:rgba(110,118,129,0.2);padding:4px 8px;border-radius:4px;font-family:ui-monospace,monospace;font-size:12px;color:#e1e4e8;word-break:break-all}}
-.badge{{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;background:#30363d;color:var(--text-muted)}}
-.m-get{{background:rgba(56,139,253,0.15);color:#58a6ff}}
-.m-post{{background:rgba(63,185,80,0.15);color:#3fb950}}
-.m-put{{background:rgba(210,153,34,0.15);color:#d29922}}
-.m-del{{background:rgba(248,81,73,0.15);color:#f85149}}
-.table-responsive{{overflow-x:auto}}
-</style></head>
-<body><div class="w"><div class="h"><h1>Locust Performance Report</h1><div class="m">Host: {self.host} &bull; Users: {self.users} &bull; Rate: {self.spawn_rate}/s &bull; Duration: {self.run_time} &bull; {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div></div>
-<div class="c"><h2>Summary</h2><div class="s"><div class="st"><div class="v">{total}</div><div class="l">Requests</div></div><div class="st {'r' if fail>0 else 'g'}"><div class="v">{fail}</div><div class="l">Failures</div></div><div class="st {'r' if rate>1 else 'g'}"><div class="v">{rate:.1f}%</div><div class="l">Fail Rate</div></div><div class="st"><div class="v">{sf(agg.get('Requests/s')):.1f}</div><div class="l">RPS</div></div><div class="st"><div class="v">{sf(agg.get('Average Response Time')):.0f}</div><div class="l">Avg(ms)</div></div><div class="st"><div class="v">{sf(agg.get('Min Response Time')):.0f}</div><div class="l">Min(ms)</div></div><div class="st"><div class="v">{sf(agg.get('Max Response Time')):.0f}</div><div class="l">Max(ms)</div></div><div class="st"><div class="v">{sf(agg.get('95%')):.0f}</div><div class="l">P95(ms)</div></div></div></div>
-<div class="c"><h2>Requests Details</h2><div class="table-responsive"><table><tr><th>Type</th><th>Name</th><th>Reqs</th><th>Fails</th><th>Avg</th><th>Min</th><th>Max</th><th>P50</th><th>P90</th><th>P95</th><th>P99</th><th>RPS</th></tr>{rows}</table></div></div>{fsec}</div></body></html>'''
+        fsec = f"""
+        <div class='section-card danger-border'>
+            <div class='card-header'>
+                <div class='card-icon icon-danger'>!</div>
+                <h2>Failures Details</h2>
+            </div>
+            <div class='table-container'>
+                <table>
+                    <thead><tr><th width="80">Method</th><th>Name</th><th width="100" class='text-right'>Count</th><th>Error</th></tr></thead>
+                    <tbody>{frows}</tbody>
+                </table>
+            </div>
+        </div>""" if fails else ""
+        
+        return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {{
+            --bg-body: #f4f6f8;
+            --bg-card: #ffffff;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --primary: #3b82f6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }}
+        
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        
+        body {{
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding: 40px 20px;
+        }}
+
+        .container {{ max-width: 1400px; margin: 0 auto; }}
+
+        /* Header */
+        .header {{
+            background: var(--bg-card);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+
+        .brand h1 {{ font-size: 24px; font-weight: 700; color: var(--text-primary); }}
+        .brand .subtitle {{ font-size: 14px; color: var(--text-secondary); margin-top: 4px; }}
+        
+        .meta-grid {{ display: flex; gap: 40px; }}
+        .meta-item label {{ display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }}
+        .meta-item value {{ display: block; font-size: 15px; font-weight: 500; color: var(--text-primary); margin-top: 2px; }}
+
+        /* Stats Cards */
+        .stats-grid {{
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }}
+
+        .stat-card {{
+            background: var(--bg-card);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }}
+
+        .stat-label {{ font-size: 14px; color: var(--text-secondary); font-weight: 500; }}
+        .stat-value {{ font-size: 32px; font-weight: 700; color: var(--text-primary); margin: 8px 0; letter-spacing: -0.02em; }}
+        .stat-desc {{ font-size: 13px; color: var(--success); font-weight: 500; display: flex; align-items: center; gap: 4px; }}
+        .stat-desc.bad {{ color: var(--danger); }}
+
+        /* Main Content */
+        .section-card {{
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }}
+        
+        .danger-border {{ border-left: 4px solid var(--danger); }}
+
+        .card-header {{
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f9fafb;
+        }}
+
+        .card-header h2 {{ font-size: 18px; font-weight: 600; color: var(--text-primary); }}
+        
+        .table-container {{ overflow-x: auto; }}
+        
+        table {{ width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }}
+        
+        th {{
+            background: #f9fafb;
+            padding: 12px 24px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }}
+        
+        td {{
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }}
+        
+        tr:last-child td {{ border-bottom: none; }}
+        tr:hover td {{ background: #f9fafb; }}
+
+        /* Utils */
+        .text-right {{ text-align: right; }}
+        .font-medium {{ font-weight: 600; color: var(--text-primary); }}
+        .name-cell {{ font-weight: 500; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+        .error-cell {{ color: var(--danger); font-family: monospace; font-size: 13px; }}
+        
+        /* Badges & Progress */
+        .badge {{
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }}
+        
+        .method-get {{ background: #eff6ff; color: #3b82f6; }}
+        .method-post {{ background: #ecfdf5; color: #10b981; }}
+        .method-put {{ background: #fffbeb; color: #f59e0b; }}
+        .method-delete {{ background: #fef2f2; color: #ef4444; }}
+        .method-other {{ background: #f3f4f6; color: #6b7280; }}
+
+        .progress-bar {{
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 6px;
+        }}
+        
+        .fill {{ height: 100%; border-radius: 3px; }}
+        .bg-success {{ background: var(--success); }}
+        .bg-danger {{ background: var(--danger); }}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="brand">
+                <h1>Performance Test Report</h1>
+                <div class="subtitle">Generated by Perf-Engine</div>
+            </div>
+            <div class="meta-grid">
+                <div class="meta-item"><label>Target Host</label><value>{self.host}</value></div>
+                <div class="meta-item"><label>Concurrency</label><value>{self.users} Users</value></div>
+                <div class="meta-item"><label>Duration</label><value>{self.run_time}</value></div>
+                <div class="meta-item"><label>Date</label><value>{datetime.now().strftime('%Y-%m-%d %H:%M')}</value></div>
+            </div>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Requests</div>
+                <div class="stat-value">{total:,}</div>
+                <div class="stat-desc">Samples collected</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Success Rate</div>
+                <div class="stat-value">{success_rate:.1f}%</div>
+                <div class="stat-desc {'bad' if success_rate < 99 else ''}">
+                    {fail} failures recorded
+                </div>
+                {p_bar(success_rate, 'bg-success' if success_rate >= 99 else 'bg-danger')}
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">RPS (Throughput)</div>
+                <div class="stat-value">{sf(agg.get('Requests/s')):.1f}</div>
+                <div class="stat-desc">Requests per second</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Response Time (P95)</div>
+                <div class="stat-value">{sf(agg.get('95%')):.0f} ms</div>
+                <div class="stat-desc">Avg: {sf(agg.get('Average Response Time')):.0f} ms / Max: {sf(agg.get('Max Response Time')):.0f} ms</div>
+            </div>
+        </div>
+
+        <!-- Main Table -->
+        <div class="section-card">
+            <div class="card-header">
+                <h2>Request Statistics</h2>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th width="80">Method</th>
+                            <th>Info / Name</th>
+                            <th class="text-right">Requests</th>
+                            <th class="text-right">Fails</th>
+                            <th class="text-right">Avg (ms)</th>
+                            <th class="text-right">Min (ms)</th>
+                            <th class="text-right">Max (ms)</th>
+                            <th class="text-right">P95 (ms)</th>
+                            <th class="text-right">P99 (ms)</th>
+                            <th class="text-right">RPS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Failures -->
+        {fsec}
+    </div>
+</body>
+</html>'''

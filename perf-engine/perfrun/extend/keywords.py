@@ -6,6 +6,9 @@ import time
 import random
 from typing import Dict, Any, Optional
 
+from ..core.globalContext import g_context
+from ..utils.VarRender import refresh
+
 
 class PerfKeywords:
     """
@@ -28,21 +31,26 @@ class PerfKeywords:
         self.client = client
     
     def set_context(self, context: Dict[str, Any]):
-        """设置上下文变量"""
+        """设置上下文变量（同时同步到 g_context）"""
         self.context.update(context)
+        # 同步到全局上下文
+        g_context().set_by_dict(context)
     
     def _render(self, value: Any) -> Any:
-        """渲染变量 {{var}}"""
+        """渲染变量 {{var}}（使用 VarRender.refresh）"""
+        # 合并全局上下文和本地上下文
+        merged_context = g_context().show_dict().copy()
+        merged_context.update(self.context)
+        
         if isinstance(value, str):
-            import re
-            def replace(m):
-                return str(self.context.get(m.group(1), m.group(0)))
-            return re.sub(r'\{\{(\w+)\}\}', replace, value)
+            result = refresh(value, merged_context)
+            return result if result is not None else value
         elif isinstance(value, dict):
             return {k: self._render(v) for k, v in value.items()}
         elif isinstance(value, list):
             return [self._render(i) for i in value]
         return value
+
     
     # ==================== HTTP 请求 ====================
     
