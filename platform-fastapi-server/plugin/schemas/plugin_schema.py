@@ -65,7 +65,6 @@ class PluginResponse(PluginBase):
     content_hash: Optional[str] = Field(None, description="插件包SHA256哈希值")
     install_status: str = Field(default="not_installed", description="安装状态")
     install_path: Optional[str] = Field(None, description="安装目录路径")
-    venv_path: Optional[str] = Field(None, description="虚拟环境路径")
     install_time: Optional[datetime] = Field(None, description="安装时间")
     
     # 健康检查
@@ -104,7 +103,6 @@ class PluginHealthCheck(BaseModel):
     response_time_ms: Optional[float] = None
     error_message: Optional[str] = None
     install_status: Optional[str] = None
-    venv_path: Optional[str] = None
     command_path: Optional[str] = None
     dependencies_check: Optional[Dict[str, Any]] = None  # 依赖检查结果
 

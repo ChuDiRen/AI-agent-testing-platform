@@ -1,7 +1,6 @@
 """
 命令行执行器
 用于调用插件命令行的执行器
-支持独立 venv 和全局安装两种模式
 """
 import subprocess
 import asyncio
@@ -14,7 +13,6 @@ import logging
 import re
 import shutil
 import ast
-import platform
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from pathlib import Path
@@ -124,44 +122,25 @@ def get_current_task_count() -> int:
 class CommandExecutor:
     """
     命令行执行器
-    支持独立 venv 和全局安装两种模式
     """
     
-    def __init__(self, command: str, venv_path: Optional[str] = None, plugin_code: Optional[str] = None):
+    def __init__(self, command: str, plugin_code: Optional[str] = None):
         """
         初始化命令行执行器
         
         Args:
             command: 执行命令（如: webrun, apirun）
-            venv_path: 虚拟环境路径（可选，不提供则使用全局命令）
-            plugin_code: 插件代码（用于查找 venv）
+            plugin_code: 插件代码
         """
         self.command = command
-        self.venv_path = venv_path
         self.plugin_code = plugin_code
         self._running_tasks: Dict[str, subprocess.Popen] = {}
     
     def _get_command_path(self) -> str:
         """
         获取实际执行的命令路径
-        如果有 venv_path，使用 venv 中的命令；否则使用全局命令
         """
         cmd_name = self.command.split()[0]
-        
-        if self.venv_path:
-            venv_dir = Path(self.venv_path)
-            if platform.system() == "Windows":
-                cmd_path = venv_dir / "Scripts" / f"{cmd_name}.exe"
-            else:
-                cmd_path = venv_dir / "bin" / cmd_name
-            
-            if cmd_path.exists():
-                return str(cmd_path)
-            else:
-                # 尝试通过 python -m 方式调用
-                logger.warning(f"命令 {cmd_path} 不存在，尝试使用全局命令")
-        
-        # 使用全局命令
         return cmd_name
     
     async def execute_test(

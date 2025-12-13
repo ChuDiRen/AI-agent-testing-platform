@@ -1,5 +1,5 @@
 """
-测试任务调度器（命令行调用版本）
+测试任务调度器
 负责接收测试任务、选择合适的执行器插件并通过命令行调度执行
 """
 from typing import Dict, Any, Optional
@@ -15,33 +15,29 @@ logger = logging.getLogger(__name__)
 
 class TaskScheduler:
     """
-    测试任务调度器（命令行版本）
-    支持独立 venv 和全局安装两种模式
+    测试任务调度器
     """
     
     def __init__(self):
         """初始化调度器"""
         self._executors: Dict[str, CommandExecutor] = {}
     
-    def _get_executor(self, command: str, venv_path: str = None, plugin_code: str = None) -> CommandExecutor:
+    def _get_executor(self, command: str, plugin_code: str = None) -> CommandExecutor:
         """
         获取或创建命令行执行器
         
         Args:
             command: 执行命令
-            venv_path: 虚拟环境路径（可选）
             plugin_code: 插件代码（可选）
         
         Returns:
             CommandExecutor实例
         """
-        # 使用 command + venv_path 作为缓存键
-        cache_key = f"{command}:{venv_path or 'global'}"
+        cache_key = f"{command}:global"
         
         if cache_key not in self._executors:
             self._executors[cache_key] = CommandExecutor(
                 command=command,
-                venv_path=venv_path,
                 plugin_code=plugin_code
             )
         
@@ -94,11 +90,10 @@ class TaskScheduler:
                     "error": f"Plugin '{plugin_code}' is not an executor type"
                 }
             
-            # 4. 获取命令行执行器（支持 venv 模式）
-            logger.info(f"Executing test on plugin: {plugin_code}, venv: {plugin.venv_path}")
+            # 4. 获取命令行执行器
+            logger.info(f"Executing test on plugin: {plugin_code}")
             executor = self._get_executor(
                 command=plugin.command,
-                venv_path=plugin.venv_path,
                 plugin_code=plugin.plugin_code
             )
             

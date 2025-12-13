@@ -1,6 +1,6 @@
 """
 插件安装服务
-提供独立 venv 安装、卸载、状态管理等功能
+安装到后端服务运行环境
 """
 import subprocess
 import sys
@@ -9,11 +9,10 @@ import zipfile
 import io
 import shutil
 import logging
-import platform
+import os
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
 
 from core.temp_manager import get_temp_subdir
 
@@ -22,8 +21,8 @@ logger = logging.getLogger(__name__)
 # 安装任务状态存储（内存中，生产环境可用 Redis）
 _install_tasks: Dict[int, Dict[str, Any]] = {}
 
-# 全局线程池
-_installer_executor = ThreadPoolExecutor(max_workers=3)
+# 获取当前后端服务运行的 Python 解释器
+CURRENT_PYTHON = sys.executable
 
 
 class PluginInstaller:
@@ -37,28 +36,6 @@ class PluginInstaller:
         """获取插件安装目录"""
         return get_temp_subdir("executor") / f"plugin_{plugin_code}"
     
-    @staticmethod
-    def get_venv_dir(plugin_code: str) -> Path:
-        """获取插件虚拟环境目录"""
-        return PluginInstaller.get_install_dir(plugin_code) / "venv"
-    
-    @staticmethod
-    def get_venv_python(plugin_code: str) -> Path:
-        """获取虚拟环境中的 Python 解释器路径"""
-        venv_dir = PluginInstaller.get_venv_dir(plugin_code)
-        if platform.system() == "Windows":
-            return venv_dir / "Scripts" / "python.exe"
-        else:
-            return venv_dir / "bin" / "python"
-    
-    @staticmethod
-    def get_venv_command(plugin_code: str, command: str) -> Path:
-        """获取虚拟环境中的命令路径"""
-        venv_dir = PluginInstaller.get_venv_dir(plugin_code)
-        if platform.system() == "Windows":
-            return venv_dir / "Scripts" / f"{command}.exe"
-        else:
-            return venv_dir / "bin" / command
     
     @staticmethod
     def get_install_status(plugin_id: int) -> Dict[str, Any]:
@@ -80,131 +57,63 @@ class PluginInstaller:
         }
     
     @staticmethod
-    def create_venv(plugin_code: str) -> Tuple[bool, str]:
-        """
-        创建独立虚拟环境
-        
-        Args:
-            plugin_code: 插件代码
-        
-        Returns:
-            (是否成功, 消息/错误)
-        """
-        venv_dir = PluginInstaller.get_venv_dir(plugin_code)
-        
-        try:
-            # 如果已存在，先删除
-            if venv_dir.exists():
-                shutil.rmtree(venv_dir)
-            
-            # 创建虚拟环境（使用 --without-pip 跳过 pip 安装，大幅加速）
-            logger.info(f"创建虚拟环境（无pip）: {venv_dir}")
-            result = subprocess.run(
-                [sys.executable, "-m", "venv", "--without-pip", str(venv_dir)],
-                capture_output=True,
-                text=True,
-                timeout=60
-            )
-            
-            if result.returncode != 0:
-                return False, f"创建虚拟环境失败: {result.stderr or result.stdout}"
-            
-            # 检查 Python 解释器
-            venv_python = PluginInstaller.get_venv_python(plugin_code)
-            if not venv_python.exists():
-                return False, f"虚拟环境 Python 不存在: {venv_python}"
-            
-            logger.info(f"虚拟环境创建成功: {venv_dir}")
-            
-            # 使用 ensurepip 安装 pip（比默认方式快）
-            logger.info("正在安装 pip...")
-            pip_result = subprocess.run(
-                [str(venv_python), "-m", "ensurepip", "--default-pip"],
-                capture_output=True,
-                text=True,
-                timeout=120
-            )
-            
-            if pip_result.returncode != 0:
-                logger.warning(f"ensurepip 失败: {pip_result.stderr}，尝试使用 get-pip.py")
-                # 备用方案：直接复制系统 pip
-                # 大多数情况下 ensurepip 会成功
-            
-            return True, str(venv_dir)
-        
-        except subprocess.TimeoutExpired:
-            return False, "创建虚拟环境超时"
-        except Exception as e:
-            return False, f"创建虚拟环境异常: {str(e)}"
-    
-    @staticmethod
     def install_plugin(
         plugin_id: int,
         plugin_code: str,
         plugin_content: str,
-        command: str,
-        use_venv: bool = True
+        command: str
     ) -> Dict[str, Any]:
         """
         安装插件（同步执行，供线程池调用）
-        
+
+        安装到后端服务运行的环境
+
         Args:
             plugin_id: 插件ID
             plugin_code: 插件代码
             plugin_content: Base64 编码的 ZIP 内容
             command: 主命令
-            use_venv: 是否使用独立虚拟环境
-        
+
         Returns:
             安装结果
         """
         install_dir = None
-        venv_path = None
         install_log = []
-        
+
         try:
             # 1. 更新状态：开始安装
             PluginInstaller.update_install_status(
                 plugin_id, "installing", "正在解压插件包...", 10
             )
+
+            # 使用后端服务运行的 Python 解释器
+            python_exe = CURRENT_PYTHON
             install_log.append(f"[{datetime.now().isoformat()}] 开始安装插件 {plugin_code}")
-            
+            install_log.append(f"[{datetime.now().isoformat()}] Python 环境: {python_exe}")
+
             # 2. 解码并解压
             zip_bytes = base64.b64decode(plugin_content)
             install_dir = PluginInstaller.get_install_dir(plugin_code)
-            
+
             if install_dir.exists():
                 shutil.rmtree(install_dir)
             install_dir.mkdir(parents=True, exist_ok=True)
-            
+
             with zipfile.ZipFile(io.BytesIO(zip_bytes), 'r') as zip_ref:
                 zip_ref.extractall(install_dir)
-            
+
             # 查找解压后的根目录（可能有一层包装目录）
             items = list(install_dir.iterdir())
             if len(items) == 1 and items[0].is_dir():
                 source_dir = items[0]
             else:
                 source_dir = install_dir
-            
+
             install_log.append(f"[{datetime.now().isoformat()}] 解压完成: {source_dir}")
-            
-            # 3. 创建虚拟环境（如果需要）
-            if use_venv:
-                PluginInstaller.update_install_status(
-                    plugin_id, "installing", "正在创建虚拟环境...", 30
-                )
-                
-                success, msg = PluginInstaller.create_venv(plugin_code)
-                if not success:
-                    raise Exception(msg)
-                
-                venv_path = str(PluginInstaller.get_venv_dir(plugin_code))
-                install_log.append(f"[{datetime.now().isoformat()}] 虚拟环境创建成功: {venv_path}")
-                
-                python_exe = str(PluginInstaller.get_venv_python(plugin_code))
-            else:
-                python_exe = sys.executable
+
+            # 3. 使用后端服务的环境
+            logger.info("使用后端服务环境安装插件")
+            install_log.append(f"[{datetime.now().isoformat()}] 使用后端服务环境")
             
             # 4. 安装插件依赖（使用国内镜像加速）
             PluginInstaller.update_install_status(
@@ -294,10 +203,7 @@ class PluginInstaller:
                 plugin_id, "installing", "正在验证安装...", 80
             )
             
-            if use_venv:
-                cmd_path = PluginInstaller.get_venv_command(plugin_code, command)
-            else:
-                cmd_path = Path(shutil.which(command) or "")
+            cmd_path = Path(shutil.which(command) or "")
             
             if not cmd_path.exists():
                 # 尝试用 --help 验证
@@ -314,41 +220,18 @@ class PluginInstaller:
             
             install_log.append(f"[{datetime.now().isoformat()}] 安装完成，命令路径: {cmd_path}")
             
-            # 6. 清理源码目录（安装成功后删除解压的源码，只保留 venv）
-            if use_venv and source_dir != install_dir:
-                try:
-                    shutil.rmtree(source_dir, ignore_errors=True)
-                    install_log.append(f"[{datetime.now().isoformat()}] 已清理源码目录: {source_dir}")
-                except Exception as cleanup_err:
-                    install_log.append(f"[{datetime.now().isoformat()}] 清理源码目录失败: {cleanup_err}")
-            elif use_venv:
-                # source_dir == install_dir 的情况，删除除 venv 外的所有文件
-                try:
-                    venv_dir = PluginInstaller.get_venv_dir(plugin_code)
-                    for item in install_dir.iterdir():
-                        if item != venv_dir and item.name != "venv":
-                            if item.is_dir():
-                                shutil.rmtree(item, ignore_errors=True)
-                            else:
-                                item.unlink(missing_ok=True)
-                    install_log.append(f"[{datetime.now().isoformat()}] 已清理源码文件，保留 venv 目录")
-                except Exception as cleanup_err:
-                    install_log.append(f"[{datetime.now().isoformat()}] 清理源码文件失败: {cleanup_err}")
-            
-            # 7. 更新状态：安装成功
+            # 6. 更新状态：安装成功
             PluginInstaller.update_install_status(
                 plugin_id, "completed",
                 f"安装成功，命令: {command}",
                 100,
                 install_path=str(install_dir),
-                venv_path=venv_path,
                 command_path=str(cmd_path) if cmd_path.exists() else None
             )
             
             return {
                 "success": True,
                 "install_path": str(install_dir),
-                "venv_path": venv_path,
                 "command_path": str(cmd_path) if cmd_path.exists() else None,
                 "install_log": "\n".join(install_log)
             }
@@ -386,53 +269,41 @@ class PluginInstaller:
             }
     
     @staticmethod
-    def uninstall_plugin(plugin_code: str, use_venv: bool = True) -> Tuple[bool, str]:
+    def uninstall_plugin(plugin_code: str) -> Tuple[bool, str]:
         """
         卸载插件
         
         Args:
             plugin_code: 插件代码
-            use_venv: 是否使用独立虚拟环境
         
         Returns:
             (是否成功, 消息)
         """
         try:
-            install_dir = PluginInstaller.get_install_dir(plugin_code)
+            # 使用 pip uninstall
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "uninstall", "-y", plugin_code],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
             
-            if use_venv:
-                # 直接删除整个安装目录（包含 venv）
-                if install_dir.exists():
-                    shutil.rmtree(install_dir)
-                    return True, f"已删除插件目录: {install_dir}"
-                else:
-                    return True, "插件目录不存在，无需卸载"
+            if result.returncode == 0:
+                return True, f"卸载成功: {result.stdout}"
             else:
-                # 使用 pip uninstall
-                result = subprocess.run(
-                    [sys.executable, "-m", "pip", "uninstall", "-y", plugin_code],
-                    capture_output=True,
-                    text=True,
-                    timeout=60
-                )
-                
-                if result.returncode == 0:
-                    return True, f"卸载成功: {result.stdout}"
-                else:
-                    return False, f"卸载失败: {result.stderr or result.stdout}"
+                return False, f"卸载失败: {result.stderr or result.stdout}"
         
         except Exception as e:
             return False, f"卸载异常: {str(e)}"
     
     @staticmethod
-    def check_health(plugin_code: str, command: str, use_venv: bool = True) -> Dict[str, Any]:
+    def check_health(plugin_code: str, command: str) -> Dict[str, Any]:
         """
         检查插件健康状态
         
         Args:
             plugin_code: 插件代码
             command: 主命令
-            use_venv: 是否使用独立虚拟环境
         
         Returns:
             健康检查结果
@@ -441,72 +312,19 @@ class PluginInstaller:
             "status": "unknown",
             "message": "",
             "command_path": None,
-            "venv_path": None,
             "dependencies_check": {}
         }
         
         try:
-            if use_venv:
-                venv_dir = PluginInstaller.get_venv_dir(plugin_code)
-                cmd_path = PluginInstaller.get_venv_command(plugin_code, command)
-                python_exe = PluginInstaller.get_venv_python(plugin_code)
-                
-                # 检查 venv 是否存在
-                if not venv_dir.exists():
-                    result["status"] = "not_installed"
-                    result["message"] = "虚拟环境不存在，请先安装插件"
-                    return result
-                
-                result["venv_path"] = str(venv_dir)
-                
-                # 检查命令是否存在
-                if cmd_path.exists():
-                    result["command_path"] = str(cmd_path)
-                    
-                    # 尝试执行 --help 验证
-                    try:
-                        verify = subprocess.run(
-                            [str(cmd_path), "--help"],
-                            capture_output=True,
-                            timeout=10
-                        )
-                        if verify.returncode == 0:
-                            result["status"] = "healthy"
-                            result["message"] = f"命令 {command} 可用"
-                        else:
-                            result["status"] = "degraded"
-                            result["message"] = f"命令存在但执行异常"
-                    except Exception as e:
-                        result["status"] = "degraded"
-                        result["message"] = f"命令验证失败: {str(e)}"
-                else:
-                    # 尝试通过 python -m 方式验证
-                    try:
-                        module_name = command.replace("-", "_")
-                        verify = subprocess.run(
-                            [str(python_exe), "-m", module_name, "--help"],
-                            capture_output=True,
-                            timeout=10
-                        )
-                        if verify.returncode == 0:
-                            result["status"] = "healthy"
-                            result["message"] = f"模块 {module_name} 可用"
-                        else:
-                            result["status"] = "unhealthy"
-                            result["message"] = f"命令 {command} 不可用"
-                    except Exception:
-                        result["status"] = "unhealthy"
-                        result["message"] = f"命令 {command} 不可用"
+            # 检查全局命令
+            cmd_path = shutil.which(command)
+            if cmd_path:
+                result["command_path"] = cmd_path
+                result["status"] = "healthy"
+                result["message"] = f"命令 {command} 可用"
             else:
-                # 检查全局命令
-                cmd_path = shutil.which(command)
-                if cmd_path:
-                    result["command_path"] = cmd_path
-                    result["status"] = "healthy"
-                    result["message"] = f"命令 {command} 可用"
-                else:
-                    result["status"] = "unhealthy"
-                    result["message"] = f"命令 {command} 不在 PATH 中"
+                result["status"] = "unhealthy"
+                result["message"] = f"命令 {command} 不在 PATH 中"
         
         except Exception as e:
             result["status"] = "unknown"

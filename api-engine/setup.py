@@ -55,7 +55,7 @@ setuptools.setup(
     # 生成一个可执行文件
     entry_points={
         'console_scripts': [
-            'api-engine=apirun.cli:run'
+            'apirun=apirun.cli:run'
         ]
     },
     zip_safe=False

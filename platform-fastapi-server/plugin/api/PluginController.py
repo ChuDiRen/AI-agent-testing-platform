@@ -2,7 +2,7 @@
 插件管理 API 控制器
 提供插件注册、查询、启用/禁用等功能
 """
-from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File, BackgroundTasks
 from sqlmodel import Session, select, or_, func
 from typing import List, Dict, Any
 import httpx
@@ -314,7 +314,6 @@ async def health_check_plugin(
 ):
     """
     检查插件健康状态
-    支持独立 venv 和全局安装两种模式
     """
     from ..service.PluginInstaller import plugin_installer
     from ..model.PluginModel import HealthStatus, InstallStatus
@@ -334,24 +333,13 @@ async def health_check_plugin(
             health_result = {
                 "status": status,
                 "message": msg,
-                "command_path": None,
-                "venv_path": None
+                "command_path": None
             }
-        elif plugin.venv_path:
-            # 使用独立 venv 安装的插件
-            health_result = plugin_installer.check_health(
-                plugin_code=plugin.plugin_code,
-                command=plugin.command,
-                use_venv=True
-            )
-            status = health_result.get("status", "unknown")
-            msg = health_result.get("message", "")
         else:
-            # 全局安装的插件（兼容旧版本）
+            # 检查全局安装的插件
             health_result = plugin_installer.check_health(
                 plugin_code=plugin.plugin_code,
-                command=plugin.command,
-                use_venv=False
+                command=plugin.command
             )
             status = health_result.get("status", "unknown")
             msg = health_result.get("message", "")
@@ -374,7 +362,6 @@ async def health_check_plugin(
             response_time_ms=response_time,
             error_message=msg if status != HealthStatus.HEALTHY.value else None,
             install_status=plugin.install_status,
-            venv_path=health_result.get("venv_path"),
             command_path=health_result.get("command_path"),
             dependencies_check=health_result.get("dependencies_check")
         ), msg=msg)
@@ -1611,8 +1598,7 @@ async def upload_executor(
             existing.install_status = InstallStatus.NOT_INSTALLED.value
             existing.health_status = HealthStatus.NOT_INSTALLED.value
             existing.install_path = None
-            existing.venv_path = None
-            existing.install_time = None
+
             existing.install_log = None
             session.add(existing)
             session.commit()
@@ -1673,21 +1659,25 @@ async def upload_executor(
 
 def _run_venv_install(plugin_id: int, plugin_code: str, plugin_content: str, command: str, session_maker):
     """
-    后台执行独立 venv 安装（在线程中运行）
+    后台执行插件安装（在线程中运行）
+    安装到后端服务运行环境
     安装完成后更新数据库中的安装状态
     """
+    import logging
+    logger = logging.getLogger(__name__)
     from ..service.PluginInstaller import plugin_installer
     from ..model.PluginModel import InstallStatus, HealthStatus
-    
+
     try:
-        # 执行安装
+        logger.info(f"开始安装插件: {plugin_code}")
+        # 安装到后端服务环境
         result = plugin_installer.install_plugin(
             plugin_id=plugin_id,
             plugin_code=plugin_code,
             plugin_content=plugin_content,
-            command=command,
-            use_venv=True
+            command=command
         )
+        logger.info(f"插件安装结果: {result.get('success')}")
         
         # 更新数据库中的安装状态
         try:
@@ -1698,38 +1688,42 @@ def _run_venv_install(plugin_id: int, plugin_code: str, plugin_content: str, com
                     plugin.install_status = InstallStatus.INSTALLED.value
                     plugin.health_status = HealthStatus.HEALTHY.value
                     plugin.install_path = result.get("install_path")
-                    plugin.venv_path = result.get("venv_path")
                     plugin.install_time = datetime.now()
-                    plugin.install_log = result.get("install_log", "")[:5000]  # 截断日志
+                    plugin.install_log = result.get("install_log", "")[:5000]
+                    logger.info(f"插件 {plugin_code} 安装成功")
                 else:
                     plugin.install_status = InstallStatus.INSTALL_FAILED.value
                     plugin.health_status = HealthStatus.UNHEALTHY.value
                     plugin.install_log = result.get("install_log", result.get("error", ""))[:5000]
+                    logger.error(f"插件 {plugin_code} 安装失败: {result.get('error')}")
                 
                 plugin.modify_time = datetime.now()
                 session.add(plugin)
                 session.commit()
             session.close()
         except Exception as db_err:
-            print(f"更新数据库失败: {db_err}")
+            logger.error(f"更新数据库失败: {db_err}")
     
     except Exception as e:
-        print(f"安装异常: {e}")
+        logger.error(f"安装异常: {e}", exc_info=True)
 
 
-@module_route.post("/installExecutor", summary="安装执行器到本地（异步，独立venv）")
+@module_route.post("/installExecutor", summary="安装执行器到本地（异步）")
 async def install_executor(
     id: int = Query(..., description="执行器插件ID"),
+    background_tasks: BackgroundTasks = None,
     session: Session = Depends(get_session)
 ):
     """
-    异步安装执行器：
-    1. 创建独立虚拟环境
-    2. 在 venv 中执行 pip install
+    异步安装执行器（使用 FastAPI BackgroundTasks）
+    
+    安装流程：
+    1. 解压插件包到临时目录
+    2. 在后端环境中执行 pip install
     3. 更新数据库中的安装状态
+
     通过 /installStatus 接口查询安装进度
     """
-    import asyncio
     from ..service.PluginInstaller import plugin_installer
     from ..model.PluginModel import InstallStatus
     from core.database import get_session_maker
@@ -1761,11 +1755,8 @@ async def install_executor(
             id, "installing", "安装任务已启动...", 0
         )
         
-        # 在后台线程中执行安装
-        loop = asyncio.get_event_loop()
-        from ..service.PluginInstaller import _installer_executor
-        loop.run_in_executor(
-            _installer_executor,
+        # 使用 FastAPI BackgroundTasks 执行安装
+        background_tasks.add_task(
             _run_venv_install,
             id,
             plugin.plugin_code,
@@ -1776,7 +1767,7 @@ async def install_executor(
         
         return respModel.ok_resp(
             obj={"status": "installing", "plugin_id": id},
-            msg="安装任务已启动（独立 venv 模式），请通过 /installStatus 查询进度"
+            msg="安装任务已启动，请通过 /installStatus 查询进度"
         )
     
     except Exception as e:
@@ -1816,7 +1807,6 @@ async def get_install_status(
     
     result = status_map.get(plugin.install_status, {"status": "unknown", "message": "未知状态", "progress": 0})
     result["install_path"] = plugin.install_path
-    result["venv_path"] = plugin.venv_path
     result["install_time"] = plugin.install_time.isoformat() if plugin.install_time else None
     
     return respModel.ok_resp(obj=result, msg=result.get("message", ""))
@@ -1913,13 +1903,9 @@ async def uninstall_executor(
         if not plugin.plugin_code:
             return respModel.error_resp(msg="插件代码为空")
         
-        # 判断是否使用 venv 模式
-        use_venv = bool(plugin.venv_path)
-        
         if delete_files:
             success, msg = plugin_installer.uninstall_plugin(
-                plugin_code=plugin.plugin_code,
-                use_venv=use_venv
+                plugin_code=plugin.plugin_code
             )
         else:
             success = True
@@ -1930,7 +1916,6 @@ async def uninstall_executor(
             plugin.install_status = InstallStatus.NOT_INSTALLED.value
             plugin.health_status = HealthStatus.NOT_INSTALLED.value
             plugin.install_path = None
-            plugin.venv_path = None
             plugin.install_time = None
             plugin.install_log = None
             plugin.modify_time = datetime.now()

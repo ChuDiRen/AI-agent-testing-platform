@@ -53,8 +53,7 @@ class Plugin(SQLModel, table=True):
     # 安装与版本管理
     content_hash: Optional[str] = Field(default=None, max_length=64, description="插件包SHA256哈希值，用于校验和去重")
     install_status: str = Field(default="not_installed", max_length=20, description="安装状态: not_installed/installing/installed/install_failed/upgrading")
-    install_path: Optional[str] = Field(default=None, max_length=500, description="安装目录路径（venv所在目录）")
-    venv_path: Optional[str] = Field(default=None, max_length=500, description="虚拟环境路径（独立venv）")
+    install_path: Optional[str] = Field(default=None, max_length=500, description="安装目录路径")
     install_time: Optional[datetime] = Field(default=None, description="安装时间")
     install_log: Optional[str] = Field(default=None, description="安装日志（成功/失败信息）")
     

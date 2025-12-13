@@ -14,9 +14,11 @@ if __name__ == "__main__":
         logger.info("正在启动服务器...")
         uvicorn.run(
             "app:application",
-            host="0.0.0.0",  # 改为本地地址
+            host="0.0.0.0",
             port=5000,
-            reload=True, # 开发环境启用热重载
+            reload=True,
+            reload_excludes=["temp", "data", "*.log", "*.pyc", "__pycache__"],
+            reload_dirs=["plugin", "core", "apitest", "login", "sysmanage", "generator", "aiassistant", "msgmanage"],
             log_level="info"
         )
     except Exception as e:
