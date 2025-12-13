@@ -46,6 +46,10 @@ import ApiInfoCaseForm from '~/views/apitest/apiinfocase/ApiInfoCaseForm.vue'
 import TestPlanList from '~/views/apitest/testplan/TestPlanList.vue'
 import TestPlanForm from '~/views/apitest/testplan/TestPlanForm.vue'
 
+// 测试任务相关导入
+import TestTaskList from '~/views/apitest/task/TestTaskList.vue'
+import TestTaskForm from '~/views/apitest/task/TestTaskForm.vue'
+
 // 测试历史相关导入（已重命名）
 import ApiHistoryList from '~/views/apitest/history/ApiHistoryList.vue'
 import ApiHistoryDetail from '~/views/apitest/history/ApiHistoryDetail.vue'
@@ -364,6 +368,27 @@ const routes = [
             meta: {
                 title: "测试计划",
                 permission: "apitest:plan:list"
+            }
+        }, {
+            path: "/TestTaskList",
+            component: TestTaskList,
+            meta: {
+                title: "测试任务",
+                permission: "apitest:task:query"
+            }
+        }, {
+            path: "/TestTaskForm",
+            component: TestTaskForm,
+            meta: {
+                title: "测试任务表单",
+                permission: "apitest:task:add"
+            }
+        }, {
+            path: "/apitest/task",
+            component: TestTaskList,
+            meta: {
+                title: "测试任务",
+                permission: "apitest:task:list"
             }
         }, {
             path: "/RobotConfigList",

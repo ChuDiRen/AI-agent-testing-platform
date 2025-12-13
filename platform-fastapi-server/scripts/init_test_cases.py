@@ -320,9 +320,9 @@ def init_ai_web_test_case(project_id: int):
     print("\n=== 初始化 AI Web 测试用例 ===")
     
     with Session(engine) as session:
-        # 获取关键字ID - AI 用例需要使用 bu_open_browser 和 bu_close_browser
+        # 获取关键字ID - AI 用例需要使用 bu_ 系列关键字
         bu_open_browser = session.exec(select(ApiKeyWord).where(ApiKeyWord.keyword_fun_name == "bu_open_browser")).first()
-        navigate_to = session.exec(select(ApiKeyWord).where(ApiKeyWord.keyword_fun_name == "navigate_to")).first()
+        bu_navigate = session.exec(select(ApiKeyWord).where(ApiKeyWord.keyword_fun_name == "bu_navigate")).first()
         bu_run_task = session.exec(select(ApiKeyWord).where(ApiKeyWord.keyword_fun_name == "bu_run_task")).first()
         bu_close_browser = session.exec(select(ApiKeyWord).where(ApiKeyWord.keyword_fun_name == "bu_close_browser")).first()
         
@@ -366,8 +366,8 @@ def init_ai_web_test_case(project_id: int):
                 "case_info_id": case.id,
                 "run_order": 2,
                 "step_desc": "导航到百度",
-                "operation_type_id": 10,
-                "keyword_id": navigate_to.id if navigate_to else None,
+                "operation_type_id": 14,
+                "keyword_id": bu_navigate.id if bu_navigate else None,
                 "step_data": json.dumps({
                     "url": "{{SEARCH_URL}}"
                 }, ensure_ascii=False)

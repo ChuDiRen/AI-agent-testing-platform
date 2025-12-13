@@ -226,7 +226,13 @@ class BrowserUseKeywords:
         
         async def init_browser():
             # browser-use 0.11.0+ 新 API
-            self._browser = Browser(headless=headless)
+            # 增加超时时间，避免 AI 任务执行时超时
+            from browser_use.browser.config import BrowserConfig
+            config = BrowserConfig(
+                headless=headless,
+                disable_security=True,  # 禁用安全限制，避免跨域问题
+            )
+            self._browser = Browser(config=config)
             # 初始化 LLM
             self._llm = self._get_llm(
                 provider=self._config.get("llm_provider"),

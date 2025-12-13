@@ -84,6 +84,11 @@ class Settings(BaseSettings): # 开发环境配置
     ROBOT_RETRY_COUNT: int = 3  # 消息推送重试次数
     ROBOT_TIMEOUT: int = 10  # 消息推送超时时间（秒）
     
+    # ==================== AI模型API配置 ====================
+    SILICONFLOW_API_KEY: Optional[str] = None  # SiliconFlow API密钥
+    OPENAI_API_KEY: Optional[str] = None  # OpenAI API密钥
+    DEEPSEEK_API_KEY: Optional[str] = None  # DeepSeek API密钥
+    
     def __init__(self, **kwargs):
         """初始化配置,设置派生路径"""
         super().__init__(**kwargs)

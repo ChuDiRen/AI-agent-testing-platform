@@ -184,10 +184,32 @@ def create_initial_menus():
                 {"id": 2074, "parent_id": 207, "menu_name": "计划删除", "path": None, "component": None, "query": None, "perms": "apitest:plan:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
                 {"id": 2075, "parent_id": 207, "menu_name": "计划执行", "path": None, "component": None, "query": None, "perms": "apitest:plan:execute", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": None},
 
-                # 2.7 测试历史（菜单 C）
-                {"id": 205, "parent_id": 200, "menu_name": "测试历史", "path": "/apitest/testhistory", "component": "ApiTestHistory", "query": None, "perms": "apitest:history:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 7, "remark": "测试历史记录"},
+                # 2.7 测试任务（菜单 C）
+                {"id": 208, "parent_id": 200, "menu_name": "测试任务", "path": "/apitest/task", "component": "TestTaskList", "query": None, "perms": "apitest:task:list", "icon": "Timer", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 7, "remark": "测试任务管理"},
+                {"id": 2081, "parent_id": 208, "menu_name": "任务查询", "path": None, "component": None, "query": None, "perms": "apitest:task:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
+                {"id": 2082, "parent_id": 208, "menu_name": "任务新增", "path": None, "component": None, "query": None, "perms": "apitest:task:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
+                {"id": 2083, "parent_id": 208, "menu_name": "任务修改", "path": None, "component": None, "query": None, "perms": "apitest:task:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
+                {"id": 2084, "parent_id": 208, "menu_name": "任务删除", "path": None, "component": None, "query": None, "perms": "apitest:task:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
+                {"id": 2085, "parent_id": 208, "menu_name": "任务执行", "path": None, "component": None, "query": None, "perms": "apitest:task:execute", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": None},
+
+                # 2.8 测试历史（菜单 C）
+                {"id": 205, "parent_id": 200, "menu_name": "测试历史", "path": "/apitest/testhistory", "component": "ApiTestHistory", "query": None, "perms": "apitest:history:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 8, "remark": "测试历史记录"},
                 {"id": 2051, "parent_id": 205, "menu_name": "历史查询", "path": None, "component": None, "query": None, "perms": "apitest:history:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 2052, "parent_id": 205, "menu_name": "历史删除", "path": None, "component": None, "query": None, "perms": "apitest:history:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
+
+                # 2.9 机器人配置（菜单 C）
+                {"id": 501, "parent_id": 200, "menu_name": "机器人配置", "path": "/apitest/robot", "component": "RobotConfigList", "query": None, "perms": "msgmanage:robot:list", "icon": "Cpu", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 9, "remark": "机器人配置"},
+                {"id": 5011, "parent_id": 501, "menu_name": "机器人查询", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
+                {"id": 5012, "parent_id": 501, "menu_name": "机器人新增", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
+                {"id": 5013, "parent_id": 501, "menu_name": "机器人修改", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
+                {"id": 5014, "parent_id": 501, "menu_name": "机器人删除", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
+
+                # 2.10 消息模板（菜单 C）
+                {"id": 502, "parent_id": 200, "menu_name": "消息模板", "path": "/apitest/msgtemplate", "component": "RobotMsgConfigList", "query": None, "perms": "msgmanage:template:list", "icon": "Message", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 10, "remark": "消息模板管理"},
+                {"id": 5021, "parent_id": 502, "menu_name": "模板查询", "path": None, "component": None, "query": None, "perms": "msgmanage:template:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
+                {"id": 5022, "parent_id": 502, "menu_name": "模板新增", "path": None, "component": None, "query": None, "perms": "msgmanage:template:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
+                {"id": 5023, "parent_id": 502, "menu_name": "模板修改", "path": None, "component": None, "query": None, "perms": "msgmanage:template:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
+                {"id": 5024, "parent_id": 502, "menu_name": "模板删除", "path": None, "component": None, "query": None, "perms": "msgmanage:template:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
                 # ================================
                 # AI配置模块
@@ -243,26 +265,6 @@ def create_initial_menus():
                 {"id": 4031, "parent_id": 403, "menu_name": "历史查询", "path": None, "component": None, "query": None, "perms": "generator:history:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 4032, "parent_id": 403, "menu_name": "历史删除", "path": None, "component": None, "query": None, "perms": "generator:history:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
 
-                # ================================
-                # 消息管理模块
-                # ================================
-                # 5. 消息管理（目录 M）
-                {"id": 500, "parent_id": 0, "menu_name": "消息管理", "path": "/msgmanage", "component": None, "query": None, "perms": None, "icon": "Message", "menu_type": "M", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": "消息管理模块"},
-
-                # 5.1 机器人配置（菜单 C）
-                {"id": 501, "parent_id": 500, "menu_name": "机器人配置", "path": "/RobotConfigList", "component": "RobotConfigList", "query": None, "perms": "msgmanage:robot:list", "icon": "Cpu", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "机器人配置"},
-                {"id": 5011, "parent_id": 501, "menu_name": "机器人查询", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
-                {"id": 5012, "parent_id": 501, "menu_name": "机器人新增", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
-                {"id": 5013, "parent_id": 501, "menu_name": "机器人修改", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
-                {"id": 5014, "parent_id": 501, "menu_name": "机器人删除", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
-
-                # 5.2 消息模板管理（菜单 C）
-                {"id": 502, "parent_id": 500, "menu_name": "消息模板", "path": "/RobotMsgConfigList", "component": "RobotMsgConfigList", "query": None, "perms": "msgmanage:template:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": "消息模板管理"},
-                {"id": 5021, "parent_id": 502, "menu_name": "模板查询", "path": None, "component": None, "query": None, "perms": "msgmanage:template:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
-                {"id": 5022, "parent_id": 502, "menu_name": "模板新增", "path": None, "component": None, "query": None, "perms": "msgmanage:template:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
-                {"id": 5023, "parent_id": 502, "menu_name": "模板修改", "path": None, "component": None, "query": None, "perms": "msgmanage:template:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
-                {" id": 5024, "parent_id": 502, "menu_name": "模板删除", "path": None, "component": None, "query": None, "perms": "msgmanage:template:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
-                
                 # ================================
                 # 插件管理模块
                 # ================================

@@ -185,6 +185,9 @@ application.include_router(ApiHistoryController.module_route)
 from apitest.api import ApiReportViewerController
 application.include_router(ApiReportViewerController.module_route)
 
+from apitest.api import TestTaskController
+application.include_router(TestTaskController.module_route)
+
 # 消息管理模块路由
 from msgmanage.api import RobotConfigController
 application.include_router(RobotConfigController.module_route)
