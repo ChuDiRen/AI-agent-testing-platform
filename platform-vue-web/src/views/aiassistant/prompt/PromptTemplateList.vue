@@ -59,7 +59,16 @@
           <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column prop="content" label="模板内容" min-width="300" show-overflow-tooltip />
+      <el-table-column prop="content" label="模板内容" min-width="300">
+        <template #default="{ row }">
+          <el-tooltip placement="top-start" :show-after="300" effect="light">
+            <template #content>
+              <div class="tooltip-content">{{ row.content }}</div>
+            </template>
+            <span class="content-text">{{ truncateContent(row.content) }}</span>
+          </el-tooltip>
+        </template>
+      </el-table-column>
       <el-table-column prop="is_active" label="状态" width="100" align="center">
         <template #default="{ row }">
           <el-tag :type="row.is_active ? 'success' : 'info'">
@@ -136,9 +145,22 @@ const getTemplateTypeColor = (type) => {
   const colorMap = {
     'system': '',
     'user': 'success',
-    'assistant': 'warning'
+    'assistant': 'warning',
+    'analyzer': 'primary',
+    'designer': 'success',
+    'writer': 'warning',
+    'reviewer': 'danger'
   }
   return colorMap[type] || 'info'
+}
+
+// 截断内容显示
+const truncateContent = (content) => {
+  if (!content) return '-'
+  // 移除多余空白和换行，只显示前100个字符
+  const cleaned = content.replace(/\s+/g, ' ').trim()
+  if (cleaned.length <= 100) return cleaned
+  return cleaned.substring(0, 100) + '...'
 }
 
 // 加载数据
@@ -251,5 +273,23 @@ onMounted(() => {
 <style scoped>
 @import '~/styles/common-list.css';
 @import '~/styles/common-form.css';
+
+.content-text {
+  color: #606266;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-all;
+  cursor: pointer;
+}
+
+.tooltip-content {
+  max-width: 500px;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 13px;
+  line-height: 1.6;
+}
 </style>
 

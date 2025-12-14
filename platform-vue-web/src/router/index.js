@@ -461,6 +461,20 @@ const routes = [
                 permission: "ai:agent:chat"
             }
         }, {
+            path: "/AgentChatEnhanced",
+            component: AgentChatIntegrated,
+            meta: {
+                title: "LangGraph测试用例生成",
+                permission: "ai:agent:chat"
+            }
+        }, {
+            path: "/ai/langgraph",
+            component: AgentChatIntegrated,
+            meta: {
+                title: "LangGraph智能生成",
+                permission: "ai:agent:chat"
+            }
+        }, {
             path: "/TestCaseList",
             component: TestCaseList,
             meta: {

@@ -9,9 +9,15 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
 if __name__ == "__main__":
     try:
         logger.info("正在启动服务器...")
+        logger.info("=" * 60)
+        logger.info("📡 FastAPI服务器: http://localhost:5000")
+        logger.info("📖 API文档: http://localhost:5000/docs")
+        logger.info("🤖 LangGraph API: http://localhost:5000/api/langgraph")
+        logger.info("=" * 60)
         uvicorn.run(
             "app:application",
             host="0.0.0.0",

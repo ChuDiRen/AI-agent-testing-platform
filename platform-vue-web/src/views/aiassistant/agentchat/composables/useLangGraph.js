@@ -70,3 +70,67 @@ export function useLangGraph() {
             isGenerating.value = false
         }
     }
+
+    const handleEvent = (event) => {
+        switch (event.type) {
+            case 'stage_start':
+                currentStage.value = event.data.stage
+                message.value = event.data.message
+                break
+            case 'stage_progress':
+                currentStage.value = event.data.stage
+                message.value = event.data.message
+                progress.value = event.data.progress
+                if (event.data.progress === 100) {
+                    if (!completedStages.value.includes(event.data.stage)) {
+                        completedStages.value.push(event.data.stage)
+                    }
+                }
+                break
+            case 'testcase':
+                try {
+                     let cases = event.data
+                     if (typeof cases === 'string') {
+                         const jsonMatch = cases.match(/```json\s*([\s\S]*?)\s*```/)
+                         if (jsonMatch) {
+                             cases = JSON.parse(jsonMatch[1])
+                         } else {
+                             try {
+                                 cases = JSON.parse(cases)
+                             } catch (e) {
+                                 console.warn('Raw parse failed', e)
+                             }
+                         }
+                     }
+                     if (cases && cases.test_cases) {
+                         testCases.value = cases.test_cases
+                     } else if (Array.isArray(cases)) {
+                         testCases.value = cases
+                     }
+                } catch (e) {
+                    console.error('Failed to parse test cases:', e)
+                }
+                break
+            case 'done':
+                qualityScore.value = event.data.quality_score
+                isGenerating.value = false
+                break
+            case 'error':
+                error.value = event.data.error
+                isGenerating.value = false
+                break
+        }
+    }
+
+    return {
+        isGenerating,
+        currentStage,
+        progress,
+        message,
+        completedStages,
+        testCases,
+        error,
+        qualityScore,
+        startGeneration
+    }
+}

@@ -11,7 +11,7 @@ from typing import Optional, List, Callable, Any, Dict
 from .state import TestCaseState
 from .supervisor import TestCaseSupervisor
 from .services import ModelService, CacheService, ContextCompressor
-from .agents.base import ProgressCallback
+from .agents.base import ProgressCallback, ErrorCallback
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,8 @@ class TestCaseGenerator:
         test_type: str = "API",
         max_iterations: int = 2,
         progress_callback: Optional[ProgressCallback] = None,
+        error_callback: Optional[ErrorCallback] = None,
+        db_session = None,
     ) -> TestCaseState:
         """生成测试用例"""
         logger.info(f"Generating test cases for: {requirement[:50]}...")
@@ -75,6 +77,9 @@ class TestCaseGenerator:
             writer_model=self.writer_model,
             reviewer_model=self.reviewer_model,
             progress_callback=progress_callback,
+            error_callback=error_callback,
+            db_session=db_session,
+            test_type=test_type,
         )
         state = await supervisor.run(state)
         # 缓存结果

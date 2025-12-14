@@ -10,7 +10,7 @@ from langchain_openai import ChatOpenAI
 
 from .state import TestCaseState, GenerationStage
 from .agents import AnalyzerAgent, TestPointDesignerAgent, WriterAgent, ReviewerAgent
-from .agents.base import ProgressCallback
+from .agents.base import ProgressCallback, ErrorCallback
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +24,19 @@ class TestCaseSupervisor:
         writer_model: ChatOpenAI,
         reviewer_model: ChatOpenAI,
         progress_callback: Optional[ProgressCallback] = None,
+        error_callback: Optional[ErrorCallback] = None,
+        db_session = None,
+        test_type: str = "API",
     ):
         self.progress_callback = progress_callback
-        # 初始化各智能体
-        self.analyzer = AnalyzerAgent(reader_model, progress_callback)
-        self.designer = TestPointDesignerAgent(reader_model, progress_callback)
-        self.writer = WriterAgent(writer_model, progress_callback)
-        self.reviewer = ReviewerAgent(reviewer_model, progress_callback)
+        self.error_callback = error_callback
+        self.db_session = db_session
+        self.test_type = test_type
+        # 初始化各智能体，传递db_session和test_type以支持从数据库加载提示词
+        self.analyzer = AnalyzerAgent(reader_model, progress_callback, error_callback, db_session, test_type)
+        self.designer = TestPointDesignerAgent(reader_model, progress_callback, error_callback, db_session, test_type)
+        self.writer = WriterAgent(writer_model, progress_callback, error_callback, db_session, test_type)
+        self.reviewer = ReviewerAgent(reviewer_model, progress_callback, error_callback, db_session, test_type)
 
     def emit_progress(self, stage: str, message: str, progress: float = 0.0):
         """发送进度事件"""

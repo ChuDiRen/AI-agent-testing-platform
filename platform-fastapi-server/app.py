@@ -204,7 +204,9 @@ application.include_router(TestCaseController.module_route)  # 测试用例管�
 
 # 注册LangGraph测试用例生成模块路由
 from aiassistant.api import LangGraphController
+from aiassistant.api.LangGraphServerController import langgraph_server_router
 application.include_router(LangGraphController.router)  # LangGraph多智能体生成
+application.include_router(langgraph_server_router, prefix="/api/langgraph")  # LangGraph Server兼容API
 
 # 注册插件管理模块路由
 from plugin.api import PluginController

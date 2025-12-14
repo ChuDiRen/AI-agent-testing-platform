@@ -161,50 +161,98 @@ async def testConnection(id: int = Query(...), session: Session = Depends(get_se
         if not model:
             return respModel.error_resp(msg="AI模型不存在")
         
-        # 发送测试请求
-        test_message = [{"role": "user", "content": "测试连接"}]
+        if not model.api_key:
+            return respModel.error_resp(msg="请先配置API Key")
         
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            if "deepseek" in model.model_code.lower():
+        # 发送测试请求
+        test_message = [{"role": "user", "content": "Hi"}]
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # SiliconFlow平台 - 使用OpenAI兼容接口
+            if model.provider == "siliconflow" or "siliconflow" in model.api_url:
+                api_url = model.api_url.rstrip('/') + "/chat/completions"
                 response = await client.post(
-                    "https://api.deepseek.com/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {model.api_key}"},
+                    api_url,
+                    headers={
+                        "Authorization": f"Bearer {model.api_key}",
+                        "Content-Type": "application/json"
+                    },
                     json={
-                        "model": "deepseek-chat",
+                        "model": model.model_code,
                         "messages": test_message,
-                        "max_tokens": 10
+                        "max_tokens": 5
                     }
                 )
-            elif "qwen" in model.model_code.lower():
+            elif model.provider == "deepseek" or "deepseek" in model.api_url:
+                api_url = model.api_url.rstrip('/') + "/chat/completions"
                 response = await client.post(
-                    model.api_url or "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
+                    api_url,
                     headers={"Authorization": f"Bearer {model.api_key}"},
                     json={
-                        "model": "qwen-max",
-                        "input": {"messages": test_message},
-                        "parameters": {"max_tokens": 10}
+                        "model": model.model_code,
+                        "messages": test_message,
+                        "max_tokens": 5
+                    }
+                )
+            elif model.provider == "qwen" or "dashscope" in model.api_url:
+                api_url = model.api_url.rstrip('/') + "/chat/completions"
+                response = await client.post(
+                    api_url,
+                    headers={"Authorization": f"Bearer {model.api_key}"},
+                    json={
+                        "model": model.model_code,
+                        "messages": test_message,
+                        "max_tokens": 5
+                    }
+                )
+            elif model.provider == "openai" or "openai" in model.api_url:
+                api_url = model.api_url.rstrip('/') + "/chat/completions"
+                response = await client.post(
+                    api_url,
+                    headers={"Authorization": f"Bearer {model.api_key}"},
+                    json={
+                        "model": model.model_code,
+                        "messages": test_message,
+                        "max_tokens": 5
                     }
                 )
             else:
-                # 通用API测试
+                # 通用OpenAI兼容接口
+                api_url = model.api_url.rstrip('/') + "/chat/completions"
                 response = await client.post(
-                    model.api_url,
-                    headers={"Authorization": f"Bearer {model.api_key}"},
-                    json={"messages": test_message, "max_tokens": 10}
+                    api_url,
+                    headers={
+                        "Authorization": f"Bearer {model.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": model.model_code,
+                        "messages": test_message,
+                        "max_tokens": 5
+                    }
                 )
             
             if response.status_code == 200:
                 logger.info(f"连接测试成功: {model.model_name}")
                 return respModel.ok_resp(msg="连接测试成功")
             else:
-                logger.warning(f"连接测试失败: {model.model_name}, status: {response.status_code}")
-                return respModel.error_resp(msg=f"连接失败，状态码: {response.status_code}")
+                error_detail = ""
+                try:
+                    error_data = response.json()
+                    error_detail = error_data.get("error", {}).get("message", "") or str(error_data)
+                except:
+                    error_detail = response.text[:200]
+                logger.warning(f"连接测试失败: {model.model_name}, status: {response.status_code}, detail: {error_detail}")
+                return respModel.error_resp(msg=f"连接失败({response.status_code}): {error_detail}")
     
     except httpx.TimeoutException:
         logger.error(f"连接超时: {model.model_name}")
-        return respModel.error_resp(msg="连接超时")
+        return respModel.error_resp(msg="连接超时，请检查网络或API地址")
+    except httpx.ConnectError as e:
+        logger.error(f"连接错误: {model.model_name}, {e}")
+        return respModel.error_resp(msg="无法连接到API服务器，请检查API地址")
     except Exception as e:
         logger.error(f"测试失败: {e}", exc_info=True)
-        return respModel.error_resp(msg=f"测试失败:{e}")
+        return respModel.error_resp(msg=f"测试失败: {str(e)}")
 
 

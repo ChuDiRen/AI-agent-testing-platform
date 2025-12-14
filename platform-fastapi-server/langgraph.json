@@ -1,0 +1,9 @@
+{
+    "dependencies": [
+        "."
+    ],
+    "graphs": {
+        "testcase": "./aiassistant/langgraph/graph.py:graph"
+    },
+    "env": ".env"
+}

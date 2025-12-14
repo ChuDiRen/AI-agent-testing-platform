@@ -26,7 +26,10 @@
         </el-select>
       </el-form-item>
       <el-form-item label="模板内容" prop="content">
-        <el-input v-model="form.content" type="textarea" :rows="10" placeholder="请输入模板内容，支持变量如{case_count}" :disabled="viewMode" />
+        <div v-if="viewMode" class="content-view">
+          <pre class="content-pre">{{ form.content }}</pre>
+        </div>
+        <el-input v-else v-model="form.content" type="textarea" :rows="10" placeholder="请输入模板内容，支持变量如{case_count}" />
       </el-form-item>
       <el-form-item label="变量说明">
         <el-input v-model="form.variables" placeholder='如:["case_count", "test_type"]' :disabled="viewMode" />
@@ -177,6 +180,26 @@ const handleClose = () => {
 <style scoped>
 :deep(.el-form-item__label) {
   font-weight: 500;
+}
+
+.content-view {
+  width: 100%;
+  max-height: 400px;
+  overflow-y: auto;
+  background-color: #f5f7fa;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.content-pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #303133;
 }
 </style>
 

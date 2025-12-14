@@ -10,10 +10,12 @@ LangGraph Services Module
 from .model_service import ModelService, PROVIDER_CONFIGS
 from .cache_service import CacheService
 from .context_compressor import ContextCompressor
+from .db_model_service import DatabaseModelService
 
 __all__ = [
     "ModelService",
     "PROVIDER_CONFIGS",
     "CacheService",
     "ContextCompressor",
+    "DatabaseModelService",
 ]

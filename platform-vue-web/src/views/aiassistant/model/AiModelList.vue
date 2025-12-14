@@ -70,7 +70,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { queryByPage, deleteData, testConnection, toggleStatus } from './aimodel'
 import AiModelForm from './AiModelForm.vue'
@@ -169,18 +169,22 @@ const handleFormSuccess = () => {
 
 // 测试连接
 const handleTest = async (row) => {
-  const loading = ElMessage.loading('正在测试连接...')
+  const loadingInstance = ElLoading.service({
+    lock: true,
+    text: '正在测试连接...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
   try {
     const res = await testConnection(row.id)
-    loading.close()
+    loadingInstance.close()
     if (res.data.code === 200) {
       ElMessage.success('连接测试成功！')
     } else {
-      ElMessage.error(res.data.message || '连接测试失败')
+      ElMessage.error(res.data.message || res.data.msg || '连接测试失败')
     }
   } catch (error) {
-    loading.close()
-    ElMessage.error('连接测试失败')
+    loadingInstance.close()
+    ElMessage.error('连接测试失败: ' + (error.message || '网络错误'))
   }
 }
 
