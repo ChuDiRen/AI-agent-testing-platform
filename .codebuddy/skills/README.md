@@ -8,7 +8,6 @@
 skills/
 ├── README.md                           # 本文件
 ├── workflows/                          # 工作流类
-│   ├── fullstack-workflow.md           # 前后端分离工作流
 │   ├── project-bootstrap.md            # 项目启动工作流
 │   ├── riper5-workflow.md              # RIPER-5 开发模式
 │   └── task-splitting.md               # 任务拆分方法论
@@ -18,7 +17,8 @@ skills/
 │   └── code-review-checklist.md        # 代码复用检查
 ├── design/                             # 设计类
 │   ├── prototype-design.md             # 原型设计
-│   └── api-documentation.md            # API 文档规范
+│   ├── api-documentation.md            # API 文档规范
+│   └── database-design.md              # 数据库设计规范
 └── testing/                            # 测试类
     ├── api-testing/                    # API 接口测试
     └── webapp-testing/                 # Web 应用测试
@@ -30,10 +30,9 @@ skills/
 
 | Skill 名称 | 文件 | 描述 |
 |-----------|------|------|
-| 前后端分离工作流 | `workflows/fullstack-workflow.md` | 完整的前后端分离项目开发工作流 |
-| 项目启动工作流 | `workflows/project-bootstrap.md` | 从零开始启动项目的标准化工作流 |
-| RIPER-5 开发模式 | `workflows/riper5-workflow.md` | 严格的五阶段开发协议 |
-| 任务拆分 | `workflows/task-splitting.md` | 需求拆分为可执行任务的方法 |
+| 项目启动工作流 | `project-bootstrap.md` | 从零开始启动项目的标准化工作流（6阶段） |
+| RIPER-5 开发模式 | `riper5-workflow.md` | 严格的五阶段开发协议 |
+| 任务拆分 | `task-splitting.md` | 需求拆分为可执行任务的方法 |
 
 ---
 
@@ -41,9 +40,9 @@ skills/
 
 | Skill 名称 | 文件 | 描述 |
 |-----------|------|------|
-| 前端开发规范 | `development/frontend-development.md` | 通用前端开发规范和最佳实践 |
-| 后端开发规范 | `development/backend-development.md` | 通用后端开发规范和最佳实践 |
-| 代码复用检查 | `development/code-review-checklist.md` | 代码生成前的复用检查流程 |
+| 前端开发规范 | `frontend-development.md` | 通用前端开发规范和最佳实践 |
+| 后端开发规范 | `backend-development.md` | 通用后端开发规范和最佳实践 |
+| 代码复用检查 | `code-review-checklist.md` | 代码生成前的复用检查流程 |
 
 ---
 
@@ -51,8 +50,16 @@ skills/
 
 | Skill 名称 | 文件 | 描述 |
 |-----------|------|------|
-| 原型设计 | `design/prototype-design.md` | 高保真原型界面生成指导 |
-| API 文档生成 | `design/api-documentation.md` | API 接口文档生成和维护规范 |
+| 原型设计 | `prototype-design.md` | 高保真原型界面生成（整合 UI/UX Pro Max 设计规范） |
+| API 文档生成 | `api-documentation.md` | API 接口文档生成和维护规范 |
+| 数据库设计 | `database-design.md` | 数据库表结构设计规范 |
+
+### 原型设计资源（来自 UI/UX Pro Max）
+- **57 种 UI 样式**：Glassmorphism、Neumorphism、Minimalism、Brutalism 等
+- **95 种配色方案**：按行业分类（SaaS、电商、医疗、金融科技等）
+- **56 种字体配对**：精选 Google Fonts 组合，附带导入代码
+- **98 条 UX 指南**：最佳实践、反模式、可访问性规则
+- **参考来源**：[UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill)
 
 ---
 
@@ -60,34 +67,27 @@ skills/
 
 | Skill 名称 | 目录 | 描述 |
 |-----------|------|------|
-| API 测试 | `testing/api-testing/` | 使用 pytest + httpx 进行 API 接口自动化测试 |
-| Web 应用测试 | `testing/webapp-testing/` | 使用 Playwright 进行 Web 应用交互测试 |
+| API 测试 | `api-testing/` | 使用 pytest + httpx 进行 API 接口自动化测试 |
+| Web 应用测试 | `webapp-testing/` | 使用 Playwright 进行 Web 应用交互测试 |
 
 ---
 
-## 工作流概览
+## 架构关系
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    前后端分离项目开发工作流                      │
+│                    Skills (知识库)                           │
+│  定义"怎么做"的规范、模板和最佳实践                            │
 ├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  1. 需求分析 ──────► 2. 原型设计 ──────► 3. 任务拆分          │
-│       │                   │                   │             │
-│       ▼                   ▼                   ▼             │
-│  产品需求文档        高保真原型界面        前后端任务清单        │
-│                                                             │
+│                          ↑ 被引用                            │
 ├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  4. 前端开发 ◄─────────────────────────► 5. 后端开发         │
-│       │                                       │             │
-│       ▼                                       ▼             │
-│  任意前端框架                           任意后端框架           │
-│                                                             │
+│                    Agents (智能体)                           │
+│  定义"谁来做"，引用 Skills 中的规范                           │
 ├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  6. API 文档同步 ──────► 7. 前后端联调 ──────► 8. 测试部署    │
-│                                                             │
+│                          ↑ 被调用                            │
+├─────────────────────────────────────────────────────────────┤
+│                    Commands (命令)                           │
+│  定义"做什么"，调用 Agents 执行任务                           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -96,25 +96,32 @@ skills/
 ## 快速开始
 
 ### 1. 项目初始化
+
 使用 `workflows/project-bootstrap.md` 启动新项目
 
 ### 2. 原型设计
+
 使用 `design/prototype-design.md` 快速生成原型界面
 
 ### 3. 任务拆分
+
 使用 `workflows/task-splitting.md` 将需求拆分为可执行任务
 
 ### 4. 开发实施
+
 - 前端：使用 `development/frontend-development.md`
 - 后端：使用 `development/backend-development.md`
 
 ### 5. 复杂任务
+
 使用 `workflows/riper5-workflow.md` 进行严格的变更控制
 
 ### 6. 代码检查
+
 使用 `development/code-review-checklist.md` 避免重复开发
 
 ### 7. 测试验证
+
 - API 测试：使用 `testing/api-testing/`
 - E2E 测试：使用 `testing/webapp-testing/`
 
