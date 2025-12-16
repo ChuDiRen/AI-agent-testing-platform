@@ -15,6 +15,10 @@
           <el-icon><FolderAdd /></el-icon>
           添加到计划 ({{ selectedRows.length }})
         </el-button>
+        <el-button type="success" @click="showXMindImport">
+          <el-icon><Upload /></el-icon>
+          导入XMind
+        </el-button>
         <el-button type="primary" @click="handleCreate">
           <el-icon><Plus /></el-icon>
           新增用例
@@ -95,14 +99,58 @@
         <el-button type="primary" :loading="batchAdding" @click="confirmBatchAdd">确定添加</el-button>
       </template>
     </el-dialog>
+
+    <!-- XMind导入弹窗 -->
+    <el-dialog v-model="xmindDialogVisible" title="导入XMind测试用例" width="600px">
+      <el-form label-width="100px">
+        <el-form-item label="选择项目" required>
+          <el-select v-model="xmindProjectId" placeholder="请选择项目" filterable style="width: 100%">
+            <el-option
+              v-for="project in projectList"
+              :key="project.id"
+              :label="project.project_name"
+              :value="project.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="XMind文件" required>
+          <el-upload
+            ref="xmindUploadRef"
+            :auto-upload="false"
+            :limit="1"
+            accept=".xmind"
+            :on-change="handleXMindFileChange"
+            :on-remove="handleXMindFileRemove"
+          >
+            <el-button type="primary">选择文件</el-button>
+            <template #tip>
+              <div class="el-upload__tip">只能上传.xmind文件，支持XMind 8及以上版本</div>
+            </template>
+          </el-upload>
+        </el-form-item>
+        <el-form-item>
+          <el-alert type="info" :closable="false">
+            <template #title><strong>XMind结构说明</strong></template>
+            <p>• 中心主题：项目/模块名称（忽略）</p>
+            <p>• 一级子主题：测试用例名称</p>
+            <p>• 二级子主题：测试步骤描述</p>
+            <p>• 三级子主题：步骤参数（key:value格式）</p>
+          </el-alert>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="xmindDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="xmindImporting" @click="confirmXMindImport">开始导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, FolderAdd } from '@element-plus/icons-vue'
-import { queryByPage, deleteData, getCaseEngines, executeCase } from './apiInfoCase.js'
+import { Plus, FolderAdd, Upload } from '@element-plus/icons-vue'
+import { queryByPage, deleteData, getCaseEngines, executeCase, importXMind } from './apiInfoCase.js'
 import { queryAll as queryProjects } from '../project/apiProject.js'
 import { useRouter } from 'vue-router'
 import BaseSearch from '~/components/BaseSearch/index.vue'
@@ -134,6 +182,62 @@ const batchAddDialogVisible = ref(false)
 const selectedPlanId = ref(null)
 const planList = ref([])
 const batchAdding = ref(false)
+
+// XMind导入相关
+const xmindDialogVisible = ref(false)
+const xmindProjectId = ref(null)
+const xmindFile = ref(null)
+const xmindImporting = ref(false)
+const xmindUploadRef = ref(null)
+
+// XMind导入相关方法
+const showXMindImport = () => {
+  xmindProjectId.value = queryForm.project_id
+  xmindFile.value = null
+  xmindDialogVisible.value = true
+}
+
+const handleXMindFileChange = (file) => {
+  xmindFile.value = file.raw
+}
+
+const handleXMindFileRemove = () => {
+  xmindFile.value = null
+}
+
+const confirmXMindImport = async () => {
+  if (!xmindProjectId.value) {
+    ElMessage.warning('请选择项目')
+    return
+  }
+  if (!xmindFile.value) {
+    ElMessage.warning('请选择XMind文件')
+    return
+  }
+  
+  xmindImporting.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', xmindFile.value)
+    formData.append('project_id', xmindProjectId.value)
+    
+    const res = await importXMind(formData)
+    
+    if (res.data.code === 200) {
+      const data = res.data.data || {}
+      ElMessage.success(`导入完成：成功${data.imported_count}个，失败${data.failed_count}个`)
+      xmindDialogVisible.value = false
+      handleQuery()
+    } else {
+      ElMessage.error(res.data.msg || '导入失败')
+    }
+  } catch (error) {
+    console.error('导入失败:', error)
+    ElMessage.error('导入失败，请检查文件格式')
+  } finally {
+    xmindImporting.value = false
+  }
+}
 
 // 获取引擎图标
 const getEngineIcon = (pluginCode) => {
@@ -323,7 +427,7 @@ const handleExecute = async (row) => {
       ElMessage.success(`用例已提交执行 (引擎: ${executor})`)
       // 跳转到测试历史页面查看执行结果
       setTimeout(() => {
-        router.push('/ApiTestHistory')
+        router.push('/ApiHistoryList')
       }, 1000)
     } else {
       ElMessage.error(res.data.msg || '执行失败')

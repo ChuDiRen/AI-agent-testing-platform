@@ -48,9 +48,10 @@
       <el-table-column prop="webhook_url" label="Webhook地址" min-width="200" show-overflow-tooltip />
       <el-table-column prop="is_enabled" label="状态" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.is_enabled ? 'success' : 'info'">
-            {{ row.is_enabled ? '已启用' : '已禁用' }}
-          </el-tag>
+          <el-switch
+            v-model="row.is_enabled"
+            @change="handleToggleEnabled(row)"
+          />
         </template>
       </el-table-column>
       <el-table-column prop="last_test_time" label="最后测试时间" width="180">
@@ -79,7 +80,7 @@ import { ref, reactive, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
-import { queryByPage, deleteData, testConnection } from './robotConfig.js';
+import { queryByPage, deleteData, testConnection, toggleEnabled } from './robotConfig.js';
 import { formatDateTime } from '@/utils/timeFormatter.js';
 import BaseSearch from '@/components/BaseSearch/index.vue';
 import BaseTable from '@/components/BaseTable/index.vue';
@@ -234,6 +235,22 @@ const getRobotTypeTag = (type) => {
     feishu: 'warning'
   };
   return map[type] || '';
+};
+
+// 启用/禁用机器人
+const handleToggleEnabled = async (row) => {
+  try {
+    const res = await toggleEnabled(row.id, row.is_enabled);
+    if (res.data.code === 200) {
+      ElMessage.success(res.data.msg || '操作成功');
+    } else {
+      ElMessage.error(res.data.msg || '操作失败');
+      row.is_enabled = !row.is_enabled;
+    }
+  } catch (error) {
+    ElMessage.error('操作失败: ' + error.message);
+    row.is_enabled = !row.is_enabled;
+  }
 };
 </script>
 

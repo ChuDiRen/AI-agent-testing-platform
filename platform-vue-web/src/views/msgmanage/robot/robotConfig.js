@@ -32,3 +32,8 @@ export function queryAll() {
 export function testConnection(data) {
     return axios.post(`/${module_name}/testConnection?_alias=robot-test`, data)
 }
+
+// 启用/禁用机器人
+export function toggleEnabled(id, is_enabled) {
+    return axios.put(`/${module_name}/toggleEnabled?id=${id}&is_enabled=${is_enabled}&_alias=robot-toggle`)
+}

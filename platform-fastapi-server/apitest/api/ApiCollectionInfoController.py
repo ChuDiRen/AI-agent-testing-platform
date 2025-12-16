@@ -15,8 +15,10 @@ from ..model.ApiInfoCaseModel import ApiInfoCase
 from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
 from ..schemas.api_collection_schema import (
     ApiCollectionInfoQuery, ApiCollectionInfoCreate, ApiCollectionInfoUpdate,
-    ApiCollectionDetailCreate, BatchAddCasesRequest, UpdateDdtDataRequest
+    ApiCollectionDetailCreate, BatchAddCasesRequest, UpdateDdtDataRequest,
+    PlanRobotCreate, PlanRobotUpdate
 )
+from ..model.ApiPlanRobotModel import ApiPlanRobot
 
 logger = get_logger(__name__)
 
@@ -299,7 +301,226 @@ async def updateDdtData(data: UpdateDdtDataRequest, session: Session = Depends(g
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
+# ==================== 复制测试计划 ====================
+
+@module_route.post("/copy", summary="复制测试计划", dependencies=[Depends(check_permission("apitest:collection:add"))])
+async def copyPlan(id: int = Query(..., description="要复制的计划ID"), session: Session = Depends(get_session)):
+    """
+    复制测试计划及其关联的用例
+    - 复制计划基本信息（名称添加"_副本"后缀）
+    - 复制所有关联的用例配置（包括DDT数据）
+    """
+    try:
+        # 1. 查询原计划
+        original_plan = session.get(module_model, id)
+        if not original_plan:
+            return respModel.error_resp("测试计划不存在")
+        
+        # 2. 创建新计划
+        new_plan = module_model(
+            project_id=original_plan.project_id,
+            plan_name=f"{original_plan.plan_name}_副本",
+            plan_desc=original_plan.plan_desc,
+            plugin_code=original_plan.plugin_code,
+            create_time=datetime.now(),
+            modify_time=datetime.now()
+        )
+        session.add(new_plan)
+        session.flush()  # 获取新计划ID
+        
+        # 3. 复制关联的用例
+        statement = select(ApiCollectionDetail).where(
+            ApiCollectionDetail.collection_info_id == id
+        ).order_by(ApiCollectionDetail.run_order)
+        original_details = session.exec(statement).all()
+        
+        copied_count = 0
+        for detail in original_details:
+            new_detail = ApiCollectionDetail(
+                collection_info_id=new_plan.id,
+                case_info_id=detail.case_info_id,
+                ddt_data=detail.ddt_data,
+                run_order=detail.run_order,
+                create_time=datetime.now()
+            )
+            session.add(new_detail)
+            copied_count += 1
+        
+        session.commit()
+        
+        return respModel.ok_resp(
+            obj={"new_plan_id": new_plan.id, "copied_cases": copied_count},
+            msg=f"复制成功，新计划ID: {new_plan.id}，复制了{copied_count}个用例"
+        )
+    except Exception as e:
+        session.rollback()
+        logger.error(f"复制测试计划失败: {e}", exc_info=True)
+        return respModel.error_resp(f"复制失败: {e}")
+
+# ==================== Jenkins配置接口 ====================
+
+@module_route.get("/getJenkinsConfig", summary="获取Jenkins配置信息")
+async def getJenkinsConfig(id: int = Query(..., description="测试计划ID"), session: Session = Depends(get_session)):
+    """
+    获取测试计划的Jenkins CI/CD集成配置信息
+    返回可用于Jenkins Pipeline的配置
+    """
+    try:
+        plan = session.get(module_model, id)
+        if not plan:
+            return respModel.error_resp("测试计划不存在")
+        
+        # 查询关联用例数量
+        statement = select(ApiCollectionDetail).where(ApiCollectionDetail.collection_info_id == id)
+        details = session.exec(statement).all()
+        
+        # 生成Jenkins配置信息
+        jenkins_config = {
+            "plan_id": plan.id,
+            "plan_name": plan.plan_name,
+            "project_id": plan.project_id,
+            "case_count": len(details),
+            "api_endpoint": f"/api/ApiInfoCase/executeCase",
+            "request_method": "POST",
+            "request_body": {
+                "plan_id": plan.id,
+                "executor_code": "api-engine"  # 默认执行器
+            },
+            "curl_command": f'curl -X POST "{{BASE_URL}}/api/ApiInfoCase/executeCase" -H "Content-Type: application/json" -H "Authorization: Bearer {{TOKEN}}" -d \'{{"plan_id": {plan.id}}}\'',
+            "pipeline_script": f'''pipeline {{
+    agent any
+    environment {{
+        BASE_URL = 'http://your-server:5000'
+        TOKEN = credentials('api-test-token')
+    }}
+    stages {{
+        stage('Execute Test Plan') {{
+            steps {{
+                script {{
+                    def response = httpRequest(
+                        url: "${{BASE_URL}}/api/ApiInfoCase/executeCase",
+                        httpMode: 'POST',
+                        contentType: 'APPLICATION_JSON',
+                        customHeaders: [[name: 'Authorization', value: "Bearer ${{TOKEN}}"]],
+                        requestBody: '{{"plan_id": {plan.id}}}'
+                    )
+                    echo "Response: ${{response.content}}"
+                }}
+            }}
+        }}
+    }}
+}}'''
+        }
+        
+        return respModel.ok_resp(obj=jenkins_config, msg="获取成功")
+    except Exception as e:
+        logger.error(f"获取Jenkins配置失败: {e}", exc_info=True)
+        return respModel.error_resp(f"获取失败: {e}")
+
 # ==================== 批量执行测试计划（已废弃，请使用 /ApiInfoCase/executeCase 接口） ====================
 # 注意：executePlan 接口已合并到 /ApiInfoCase/executeCase 接口
 # 前端调用 executeCase 时传入 plan_id 即可实现批量执行
+
+# ==================== 机器人关联管理 ====================
+
+@module_route.get("/getRobots", summary="获取测试计划关联的机器人", dependencies=[Depends(check_permission("apitest:collection:query"))])
+async def getRobots(plan_id: int = Query(..., description="测试计划ID"), session: Session = Depends(get_session)):
+    """获取测试计划关联的所有机器人配置"""
+    try:
+        from msgmanage.model.RobotConfigModel import RobotConfig
+        
+        # 查询关联关系
+        statement = select(ApiPlanRobot).where(ApiPlanRobot.plan_id == plan_id)
+        plan_robots = session.exec(statement).all()
+        
+        result = []
+        for pr in plan_robots:
+            # 查询机器人详情
+            robot = session.get(RobotConfig, pr.robot_id)
+            if robot:
+                result.append({
+                    "id": pr.id,
+                    "plan_id": pr.plan_id,
+                    "robot_id": pr.robot_id,
+                    "robot_name": robot.robot_name,
+                    "robot_type": robot.robot_type,
+                    "is_enabled": pr.is_enabled,
+                    "notify_on_success": pr.notify_on_success,
+                    "notify_on_failure": pr.notify_on_failure,
+                    "create_time": TimeFormatter.format_datetime(pr.create_time)
+                })
+        
+        return respModel.ok_resp_list(lst=result, msg="查询成功")
+    except Exception as e:
+        logger.error(f"获取计划机器人失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误: {e}")
+
+
+@module_route.post("/addRobot", summary="为测试计划添加机器人通知", dependencies=[Depends(check_permission("apitest:collection:edit"))])
+async def addRobot(data: PlanRobotCreate, session: Session = Depends(get_session)):
+    """为测试计划添加机器人通知配置"""
+    try:
+        # 检查是否已存在
+        check_stmt = select(ApiPlanRobot).where(
+            ApiPlanRobot.plan_id == data.plan_id,
+            ApiPlanRobot.robot_id == data.robot_id
+        )
+        existing = session.exec(check_stmt).first()
+        if existing:
+            return respModel.error_resp("该机器人已关联到此计划")
+        
+        plan_robot = ApiPlanRobot(
+            plan_id=data.plan_id,
+            robot_id=data.robot_id,
+            is_enabled=data.is_enabled,
+            notify_on_success=data.notify_on_success,
+            notify_on_failure=data.notify_on_failure,
+            create_time=datetime.now()
+        )
+        session.add(plan_robot)
+        session.commit()
+        return respModel.ok_resp_text(msg="添加成功")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"添加计划机器人失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误: {e}")
+
+
+@module_route.put("/updateRobot", summary="更新测试计划机器人配置", dependencies=[Depends(check_permission("apitest:collection:edit"))])
+async def updateRobot(data: PlanRobotUpdate, session: Session = Depends(get_session)):
+    """更新测试计划机器人通知配置"""
+    try:
+        plan_robot = session.get(ApiPlanRobot, data.id)
+        if not plan_robot:
+            return respModel.error_resp("关联配置不存在")
+        
+        if data.is_enabled is not None:
+            plan_robot.is_enabled = data.is_enabled
+        if data.notify_on_success is not None:
+            plan_robot.notify_on_success = data.notify_on_success
+        if data.notify_on_failure is not None:
+            plan_robot.notify_on_failure = data.notify_on_failure
+        
+        session.commit()
+        return respModel.ok_resp_text(msg="更新成功")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"更新计划机器人失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误: {e}")
+
+
+@module_route.delete("/removeRobot", summary="移除测试计划机器人关联", dependencies=[Depends(check_permission("apitest:collection:edit"))])
+async def removeRobot(id: int = Query(..., description="关联ID"), session: Session = Depends(get_session)):
+    """移除测试计划的机器人关联"""
+    try:
+        plan_robot = session.get(ApiPlanRobot, id)
+        if plan_robot:
+            session.delete(plan_robot)
+            session.commit()
+            return respModel.ok_resp_text(msg="移除成功")
+        return respModel.error_resp("关联配置不存在")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"移除计划机器人失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误: {e}")
 

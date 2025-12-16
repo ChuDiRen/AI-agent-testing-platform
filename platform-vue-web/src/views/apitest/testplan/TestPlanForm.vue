@@ -82,6 +82,86 @@
         <el-button type="primary" @click="handleSaveDdt">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 机器人通知配置（仅编辑模式） -->
+    <el-card v-if="formData.id" style="margin-top: 20px">
+      <template #header>
+        <div class="card-header">
+          <span>
+            <el-icon><Bell /></el-icon>
+            消息通知配置
+          </span>
+          <el-button type="primary" size="small" @click="robotDialogVisible = true">
+            <el-icon><Plus /></el-icon>
+            添加机器人
+          </el-button>
+        </div>
+      </template>
+
+      <el-empty v-if="robotList.length === 0" description="暂未配置通知机器人" :image-size="60" />
+      
+      <el-table v-else :data="robotList" border>
+        <el-table-column prop="robot_name" label="机器人名称" min-width="150" />
+        <el-table-column prop="robot_type" label="类型" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="getRobotTypeTag(row.robot_type)" size="small">
+              {{ getRobotTypeName(row.robot_type) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="is_enabled" label="启用通知" width="100" align="center">
+          <template #default="{ row }">
+            <el-switch v-model="row.is_enabled" @change="handleUpdateRobot(row)" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="notify_on_success" label="成功通知" width="100" align="center">
+          <template #default="{ row }">
+            <el-switch v-model="row.notify_on_success" @change="handleUpdateRobot(row)" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="notify_on_failure" label="失败通知" width="100" align="center">
+          <template #default="{ row }">
+            <el-switch v-model="row.notify_on_failure" @change="handleUpdateRobot(row)" />
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100" align="center">
+          <template #default="{ row }">
+            <el-button link type="danger" @click="handleRemoveRobot(row)">移除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <!-- 添加机器人对话框 -->
+    <el-dialog v-model="robotDialogVisible" title="添加通知机器人" width="500px">
+      <el-form :model="robotForm" label-width="100px">
+        <el-form-item label="选择机器人" required>
+          <el-select v-model="robotForm.robot_id" placeholder="请选择机器人" style="width: 100%">
+            <el-option
+              v-for="robot in availableRobots"
+              :key="robot.id"
+              :label="robot.robot_name"
+              :value="robot.id"
+            >
+              <span>{{ robot.robot_name }}</span>
+              <el-tag :type="getRobotTypeTag(robot.robot_type)" size="small" style="margin-left: 8px">
+                {{ getRobotTypeName(robot.robot_type) }}
+              </el-tag>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="成功时通知">
+          <el-switch v-model="robotForm.notify_on_success" />
+        </el-form-item>
+        <el-form-item label="失败时通知">
+          <el-switch v-model="robotForm.notify_on_failure" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="robotDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleAddRobot" :disabled="!robotForm.robot_id">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -89,9 +169,11 @@
 import { ref, onMounted, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { insertData, updateData, queryById, removeCase, updateDdtData, getDdtTemplate } from './testPlan'
+import { Plus, Bell } from '@element-plus/icons-vue'
+import { insertData, updateData, queryById, removeCase, updateDdtData, getDdtTemplate, getPlanRobots, addPlanRobot, updatePlanRobot, removePlanRobot } from './testPlan'
 import JsonEditor from '@/components/JsonEditor.vue'
 import { queryAllExecutors } from '@/views/plugin/plugin.js'
+import { queryAll as queryAllRobots } from '@/views/msgmanage/robot/robotConfig.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -118,7 +200,23 @@ const ddtDialogVisible = ref(false)
 const currentDdtData = ref('')
 const currentEditingCase = ref(null)
 
+// 机器人相关
+const robotList = ref([])
+const allRobots = ref([])
+const robotDialogVisible = ref(false)
+const robotForm = ref({
+  robot_id: null,
+  notify_on_success: true,
+  notify_on_failure: true
+})
+
 const formTitle = computed(() => formData.value.id ? '编辑测试计划' : '新增测试计划')
+
+// 可选的机器人（排除已关联的）
+const availableRobots = computed(() => {
+  const linkedIds = robotList.value.map(r => r.robot_id)
+  return allRobots.value.filter(r => !linkedIds.includes(r.id))
+})
 
 // 判断是否有有效的数据驱动配置
 const hasDdtData = (ddtData) => {
@@ -350,10 +448,117 @@ const goBack = () => {
   router.back()
 }
 
+// ==================== 机器人相关方法 ====================
+
+// 加载所有可用机器人
+const loadAllRobots = async () => {
+  try {
+    const res = await queryAllRobots()
+    if (res.data.code === 200) {
+      allRobots.value = res.data.data || []
+    }
+  } catch (error) {
+    console.error('加载机器人列表失败:', error)
+  }
+}
+
+// 加载计划关联的机器人
+const loadPlanRobots = async (planId) => {
+  try {
+    const res = await getPlanRobots(planId)
+    if (res.data.code === 200) {
+      robotList.value = res.data.data || []
+    }
+  } catch (error) {
+    console.error('加载计划机器人失败:', error)
+  }
+}
+
+// 添加机器人
+const handleAddRobot = async () => {
+  if (!robotForm.value.robot_id) {
+    ElMessage.warning('请选择机器人')
+    return
+  }
+  
+  try {
+    const res = await addPlanRobot({
+      plan_id: formData.value.id,
+      robot_id: robotForm.value.robot_id,
+      is_enabled: true,
+      notify_on_success: robotForm.value.notify_on_success,
+      notify_on_failure: robotForm.value.notify_on_failure
+    })
+    
+    if (res.data.code === 200) {
+      ElMessage.success('添加成功')
+      robotDialogVisible.value = false
+      robotForm.value = { robot_id: null, notify_on_success: true, notify_on_failure: true }
+      loadPlanRobots(formData.value.id)
+    } else {
+      ElMessage.error(res.data.msg || '添加失败')
+    }
+  } catch (error) {
+    ElMessage.error('添加失败: ' + error.message)
+  }
+}
+
+// 更新机器人配置
+const handleUpdateRobot = async (row) => {
+  try {
+    const res = await updatePlanRobot({
+      id: row.id,
+      is_enabled: row.is_enabled,
+      notify_on_success: row.notify_on_success,
+      notify_on_failure: row.notify_on_failure
+    })
+    
+    if (res.data.code === 200) {
+      ElMessage.success('更新成功')
+    } else {
+      ElMessage.error(res.data.msg || '更新失败')
+    }
+  } catch (error) {
+    ElMessage.error('更新失败: ' + error.message)
+  }
+}
+
+// 移除机器人
+const handleRemoveRobot = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确定移除机器人"${row.robot_name}"吗？`, '提示', { type: 'warning' })
+    
+    const res = await removePlanRobot(row.id)
+    if (res.data.code === 200) {
+      ElMessage.success('移除成功')
+      loadPlanRobots(formData.value.id)
+    } else {
+      ElMessage.error(res.data.msg || '移除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('移除失败: ' + error.message)
+    }
+  }
+}
+
+// 辅助方法
+const getRobotTypeName = (type) => {
+  const map = { wechat: '企业微信', dingtalk: '钉钉', feishu: '飞书' }
+  return map[type] || type
+}
+
+const getRobotTypeTag = (type) => {
+  const map = { wechat: 'success', dingtalk: 'primary', feishu: 'warning' }
+  return map[type] || ''
+}
+
 onMounted(() => {
   loadPluginList()
+  loadAllRobots()
   if (route.query.id) {
     loadDetail(route.query.id)
+    loadPlanRobots(route.query.id)
   }
 })
 </script>

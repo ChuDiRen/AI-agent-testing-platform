@@ -139,6 +139,26 @@ async def delete(id: int = Query(...), session: Session = Depends(get_session)):
         return respModel.error_resp(msg=f"删除失败: {e}")
 
 
+@module_route.put("/toggleEnabled", summary="启用/禁用机器人", dependencies=[Depends(check_permission("msgmanage:robot:edit"))])
+async def toggleEnabled(id: int = Query(...), is_enabled: bool = Query(...), session: Session = Depends(get_session)):
+    """启用或禁用机器人配置"""
+    try:
+        statement = select(module_model).where(module_model.id == id)
+        robot = session.exec(statement).first()
+        if robot:
+            robot.is_enabled = is_enabled
+            robot.update_time = datetime.now()
+            session.commit()
+            status_text = "启用" if is_enabled else "禁用"
+            return respModel.ok_resp(msg=f"已{status_text}该机器人")
+        else:
+            return respModel.error_resp(msg="机器人配置不存在")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(msg=f"操作失败: {e}")
+
+
 @module_route.post("/testConnection", summary="测试机器人连接", dependencies=[Depends(check_permission("msgmanage:robot:test"))])
 async def testConnection(request: RobotTestRequest, session: Session = Depends(get_session)):
     """测试机器人连接"""

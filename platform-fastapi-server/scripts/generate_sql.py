@@ -37,6 +37,7 @@ def generate_sqlite_sql():
     from apitest.model.ApiCollectionDetailModel import ApiCollectionDetail
     from apitest.model.ApiHistoryModel import ApiHistory
     from apitest.model.ApiInfoGroupModel import ApiInfoGroup
+    from apitest.model.ApiPlanRobotModel import ApiPlanRobot
     
     from msgmanage.model.RobotConfigModel import RobotConfig
     from msgmanage.model.RobotMsgConfigModel import RobotMsgConfig
@@ -68,7 +69,7 @@ def generate_sqlite_sql():
         "API测试模块": [
             ApiProject, ApiDbBase, ApiKeyWord, OperationType,
             ApiMeta, ApiInfo, ApiInfoGroup, ApiInfoCase, ApiInfoCaseStep,
-            ApiCollectionInfo, ApiCollectionDetail, ApiHistory
+            ApiCollectionInfo, ApiCollectionDetail, ApiHistory, ApiPlanRobot
         ],
         "消息管理模块": [RobotConfig, RobotMsgConfig],
         "AI助手模块": [AiModel, AiConversation, AiMessage, PromptTemplate, TestCase]
@@ -129,6 +130,7 @@ def generate_mysql_sql():
     from apitest.model.ApiCollectionDetailModel import ApiCollectionDetail
     from apitest.model.ApiHistoryModel import ApiHistory
     from apitest.model.ApiInfoGroupModel import ApiInfoGroup
+    from apitest.model.ApiPlanRobotModel import ApiPlanRobot
     
     from msgmanage.model.RobotConfigModel import RobotConfig
     from msgmanage.model.RobotMsgConfigModel import RobotMsgConfig
@@ -172,7 +174,7 @@ def generate_mysql_sql():
         "API测试模块": [
             ApiProject, ApiDbBase, ApiKeyWord, OperationType,
             ApiMeta, ApiInfo, ApiInfoGroup, ApiInfoCase, ApiInfoCaseStep,
-            ApiCollectionInfo, ApiCollectionDetail, ApiHistory
+            ApiCollectionInfo, ApiCollectionDetail, ApiHistory, ApiPlanRobot
         ],
         "消息管理模块": [RobotConfig, RobotMsgConfig],
         "AI助手模块": [AiModel, AiConversation, AiMessage, PromptTemplate, TestCase]

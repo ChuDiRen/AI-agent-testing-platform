@@ -87,3 +87,21 @@ class ApiCollectionInfoExecuteResponse(BaseModel):
     message: str = Field(description="执行消息")
     total_cases: int = Field(description="总用例数")
 
+
+# ==================== 机器人关联相关 ====================
+class PlanRobotCreate(BaseModel):
+    """测试计划关联机器人请求"""
+    plan_id: int = Field(description="测试计划ID")
+    robot_id: int = Field(description="机器人ID")
+    is_enabled: bool = Field(default=True, description="是否启用通知")
+    notify_on_success: bool = Field(default=True, description="成功时是否通知")
+    notify_on_failure: bool = Field(default=True, description="失败时是否通知")
+
+
+class PlanRobotUpdate(BaseModel):
+    """更新测试计划机器人关联"""
+    id: int = Field(description="关联ID")
+    is_enabled: Optional[bool] = Field(default=None, description="是否启用通知")
+    notify_on_success: Optional[bool] = Field(default=None, description="成功时是否通知")
+    notify_on_failure: Optional[bool] = Field(default=None, description="失败时是否通知")
+

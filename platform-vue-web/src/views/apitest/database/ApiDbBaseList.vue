@@ -18,9 +18,20 @@
 
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="name" label="配置名称" show-overflow-tooltip />
+      <el-table-column prop="ref_name" label="引用名称" width="120" show-overflow-tooltip />
       <el-table-column prop="db_type" label="数据库类型" width="120">
         <template #default="{ row }">
           <el-tag>{{ row.db_type }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="is_enabled" label="状态" width="100">
+        <template #default="{ row }">
+          <el-switch 
+            v-model="row.is_enabled" 
+            active-value="1" 
+            inactive-value="0"
+            @change="handleToggleEnabled(row)"
+          />
         </template>
       </el-table-column>
       <el-table-column prop="project_name" label="所属项目" show-overflow-tooltip />
@@ -43,7 +54,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { queryByPage, deleteData, testConnection } from '../project/dbBase'
+import { queryByPage, deleteData, testConnection, toggleEnabled } from '../project/dbBase'
 import ApiDbBaseForm from './ApiDbBaseForm.vue'
 import BaseTable from '~/components/BaseTable/index.vue'
 
@@ -122,6 +133,22 @@ const handleDelete = (row) => {
 const handleSuccess = () => {
   dialogVisible.value = false
   loadData()
+}
+
+const handleToggleEnabled = async (row) => {
+  try {
+    const { data } = await toggleEnabled(row.id, row.is_enabled)
+    if (data.code === 200) {
+      ElMessage.success(data.msg || '操作成功')
+    } else {
+      ElMessage.error(data.msg || '操作失败')
+      // 恢复原状态
+      row.is_enabled = row.is_enabled === '1' ? '0' : '1'
+    }
+  } catch (error) {
+    ElMessage.error('操作失败: ' + error.message)
+    row.is_enabled = row.is_enabled === '1' ? '0' : '1'
+  }
 }
 
 onMounted(() => {

@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 
 from ..model.ApiInfoModel import ApiInfo
-from ..schemas.api_info_schema import ApiInfoQuery, ApiInfoCreate, ApiInfoUpdate
+from ..schemas.api_info_schema import ApiInfoQuery, ApiInfoCreate, ApiInfoUpdate, ApiDebugRequest
 from ..schemas.swagger_import_schema import SwaggerImportRequest, SwaggerImportResponse
 
 module_name = "ApiInfo" # 模块名称
@@ -223,3 +223,231 @@ async def import_swagger(request: SwaggerImportRequest, session: Session = Depen
         session.rollback()
         logger.error(f"导入Swagger失败: {e}", exc_info=True)
         return respModel.error_resp(f"导入失败: {str(e)}")
+
+@module_route.post("/debug", summary="接口调试", dependencies=[Depends(check_permission("apitest:api:debug"))])
+async def debug(request: ApiDebugRequest):
+    """
+    接口调试功能
+    支持多种请求方式：GET、POST、PUT、DELETE、PATCH、HEAD、OPTIONS
+    支持多种请求体格式：form-data、x-www-form-urlencoded、JSON、文件上传
+    支持变量定义和引用
+    """
+    import httpx
+    import time
+    import re
+    
+    try:
+        # 1. 处理调试变量替换
+        def replace_vars(text, vars_list):
+            if not text or not vars_list:
+                return text
+            for var in vars_list:
+                key = var.get('key', '')
+                value = var.get('value', '')
+                if key:
+                    # 支持 {{var}} 和 ${var} 两种格式
+                    text = text.replace(f'{{{{{key}}}}}', str(value))
+                    text = text.replace(f'${{{key}}}', str(value))
+            return text
+        
+        # 2. 构建请求URL
+        url = request.request_url
+        if request.debug_vars:
+            url = replace_vars(url, request.debug_vars)
+        
+        # 3. 处理URL参数
+        params = {}
+        if request.request_params:
+            for param in request.request_params:
+                key = param.get('key', '')
+                value = param.get('value', '')
+                if key:
+                    if request.debug_vars:
+                        value = replace_vars(str(value), request.debug_vars)
+                    params[key] = value
+        
+        # 4. 处理请求头
+        headers = {}
+        if request.request_headers:
+            for header in request.request_headers:
+                key = header.get('key', '')
+                value = header.get('value', '')
+                if key:
+                    if request.debug_vars:
+                        value = replace_vars(str(value), request.debug_vars)
+                    headers[key] = value
+        
+        # 5. 处理请求体
+        data = None
+        json_data = None
+        files = None
+        actual_body = None
+        
+        if request.request_method.upper() in ['POST', 'PUT', 'PATCH']:
+            # JSON请求体
+            if request.requests_json_data:
+                import json
+                json_str = request.requests_json_data
+                if request.debug_vars:
+                    json_str = replace_vars(json_str, request.debug_vars)
+                try:
+                    json_data = json.loads(json_str)
+                    actual_body = json_str
+                except json.JSONDecodeError:
+                    return respModel.error_resp("JSON格式错误")
+            
+            # form-data
+            elif request.request_form_datas:
+                data = {}
+                for item in request.request_form_datas:
+                    key = item.get('key', '')
+                    value = item.get('value', '')
+                    if key:
+                        if request.debug_vars:
+                            value = replace_vars(str(value), request.debug_vars)
+                        data[key] = value
+                actual_body = str(data)
+            
+            # x-www-form-urlencoded
+            elif request.request_www_form_datas:
+                data = {}
+                for item in request.request_www_form_datas:
+                    key = item.get('key', '')
+                    value = item.get('value', '')
+                    if key:
+                        if request.debug_vars:
+                            value = replace_vars(str(value), request.debug_vars)
+                        data[key] = value
+                actual_body = str(data)
+        
+        # 6. 发送请求
+        start_time = time.time()
+        
+        async with httpx.AsyncClient(timeout=request.timeout, verify=False) as client:
+            response = await client.request(
+                method=request.request_method.upper(),
+                url=url,
+                params=params if params else None,
+                headers=headers if headers else None,
+                data=data,
+                json=json_data
+            )
+        
+        end_time = time.time()
+        response_time = (end_time - start_time) * 1000  # 转换为毫秒
+        
+        # 7. 处理响应
+        try:
+            response_body = response.text
+        except:
+            response_body = str(response.content)
+        
+        result = {
+            "success": True,
+            "status_code": response.status_code,
+            "response_time": round(response_time, 2),
+            "response_headers": dict(response.headers),
+            "response_body": response_body,
+            "request_url": str(response.url),
+            "request_method": request.request_method.upper(),
+            "request_headers": headers,
+            "request_body": actual_body
+        }
+        
+        return respModel.ok_resp(obj=result, msg="请求成功")
+        
+    except httpx.TimeoutException:
+        return respModel.ok_resp(obj={
+            "success": False,
+            "error_message": f"请求超时（{request.timeout}秒）",
+            "request_url": request.request_url,
+            "request_method": request.request_method.upper()
+        }, msg="请求超时")
+    except httpx.ConnectError as e:
+        return respModel.ok_resp(obj={
+            "success": False,
+            "error_message": f"连接失败: {str(e)}",
+            "request_url": request.request_url,
+            "request_method": request.request_method.upper()
+        }, msg="连接失败")
+    except Exception as e:
+        logger.error(f"接口调试失败: {e}", exc_info=True)
+        return respModel.ok_resp(obj={
+            "success": False,
+            "error_message": str(e),
+            "request_url": request.request_url,
+            "request_method": request.request_method.upper()
+        }, msg=f"请求失败: {str(e)}")
+
+@module_route.post("/debugAndDownload", summary="发送请求并下载响应", dependencies=[Depends(check_permission("apitest:api:debug"))])
+async def debugAndDownload(request: ApiDebugRequest):
+    """
+    发送请求并下载响应文件
+    用于下载文件类型的响应
+    """
+    import httpx
+    import time
+    import base64
+    
+    try:
+        # 构建请求（复用debug逻辑）
+        url = request.request_url
+        
+        # 处理URL参数
+        params = {}
+        if request.request_params:
+            for param in request.request_params:
+                key = param.get('key', '')
+                value = param.get('value', '')
+                if key:
+                    params[key] = value
+        
+        # 处理请求头
+        headers = {}
+        if request.request_headers:
+            for header in request.request_headers:
+                key = header.get('key', '')
+                value = header.get('value', '')
+                if key:
+                    headers[key] = value
+        
+        # 发送请求
+        start_time = time.time()
+        
+        async with httpx.AsyncClient(timeout=request.timeout, verify=False) as client:
+            response = await client.request(
+                method=request.request_method.upper(),
+                url=url,
+                params=params if params else None,
+                headers=headers if headers else None
+            )
+        
+        end_time = time.time()
+        response_time = (end_time - start_time) * 1000
+        
+        # 获取文件名
+        content_disposition = response.headers.get('content-disposition', '')
+        filename = 'download'
+        if 'filename=' in content_disposition:
+            import re
+            match = re.search(r'filename[^;=\n]*=(([\'"]).*?\2|[^;\n]*)', content_disposition)
+            if match:
+                filename = match.group(1).strip('"\'')
+        
+        # 返回文件内容（base64编码）
+        result = {
+            "success": True,
+            "status_code": response.status_code,
+            "response_time": round(response_time, 2),
+            "response_headers": dict(response.headers),
+            "filename": filename,
+            "content_type": response.headers.get('content-type', ''),
+            "file_content": base64.b64encode(response.content).decode('utf-8'),
+            "file_size": len(response.content)
+        }
+        
+        return respModel.ok_resp(obj=result, msg="下载成功")
+        
+    except Exception as e:
+        logger.error(f"下载失败: {e}", exc_info=True)
+        return respModel.error_resp(f"下载失败: {str(e)}")

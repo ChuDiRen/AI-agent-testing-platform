@@ -297,18 +297,21 @@ async def execute(request: TestTaskExecuteRequest, session: Session = Depends(ge
             result = exec_service.execute_plan(
                 plan_id=task.plan_id,
                 executor_code=task.executor_code,
-                test_name=f"{task.task_name}_{execution_uuid[:8]}"
+                test_name=f"{task.task_name}_{execution_uuid[:8]}",
+                task_execution_id=execution.id
             )
             total_cases = result.get('total_cases', 0)
         elif task.case_ids:
             # 执行指定用例
             case_ids = json.loads(task.case_ids) if task.case_ids else []
-            for case_id in case_ids:
+            for idx, case_id in enumerate(case_ids):
+                # 只有第一个用例传递 task_execution_id，避免重复更新
                 exec_service.execute_case(
                     case_id=case_id,
                     executor_code=task.executor_code,
                     test_name=f"{task.task_name}_{case_id}_{execution_uuid[:8]}",
-                    context_vars=request.context_vars
+                    context_vars=request.context_vars,
+                    task_execution_id=execution.id if idx == len(case_ids) - 1 else None
                 )
             total_cases = len(case_ids)
         else:

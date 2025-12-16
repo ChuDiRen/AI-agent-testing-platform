@@ -104,3 +104,35 @@ async def delete(id: int = Query(...), session: Session = Depends(get_session)):
         session.rollback()
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"服务器错误,删除失败：{e}")
+
+@module_route.put("/toggleEnabled", summary="启用/禁用数据库配置", dependencies=[Depends(check_permission("apitest:database:edit"))]) # 启用/禁用数据库配置
+async def toggleEnabled(id: int = Query(...), is_enabled: str = Query(...), session: Session = Depends(get_session)):
+    """启用或禁用数据库配置"""
+    try:
+        statement = select(module_model).where(module_model.id == id)
+        data = session.exec(statement).first()
+        if data:
+            data.is_enabled = is_enabled
+            session.commit()
+            status_text = "启用" if is_enabled == "1" else "禁用"
+            return respModel.ok_resp(msg=f"已{status_text}该配置")
+        else:
+            return respModel.error_resp(msg="数据库配置不存在")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(msg=f"操作失败：{e}")
+
+@module_route.get("/queryByProject", summary="根据项目ID查询数据库配置") # 根据项目ID查询数据库配置
+async def queryByProject(project_id: int = Query(...), session: Session = Depends(get_session)):
+    """根据项目ID查询启用的数据库配置列表"""
+    try:
+        statement = select(module_model).where(
+            module_model.project_id == project_id,
+            module_model.is_enabled == "1"
+        )
+        datas = session.exec(statement).all()
+        return respModel.ok_resp_list(lst=datas, msg="查询成功")
+    except Exception as e:
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")

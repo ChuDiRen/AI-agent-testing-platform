@@ -231,6 +231,7 @@ class DatabaseManager:
         from apitest.model.ApiCollectionDetailModel import ApiCollectionDetail
         from apitest.model.ApiHistoryModel import ApiHistory
         from apitest.model.ApiInfoGroupModel import ApiInfoGroup
+        from apitest.model.ApiPlanRobotModel import ApiPlanRobot
         
         # 消息管理模块
         from msgmanage.model.RobotConfigModel import RobotConfig

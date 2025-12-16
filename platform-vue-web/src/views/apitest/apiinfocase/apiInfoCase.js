@@ -96,3 +96,14 @@ export function queryKeywordsGroupedByEngine() {
     return axios.get(`/ApiKeyWord/queryGroupedByEngine?_alias=keyword-grouped`)
 }
 
+/**
+ * 从XMind文件导入测试用例
+ */
+export function importXMind(formData) {
+    return axios.post(`/${module_name}/importXMind?_alias=case-import-xmind`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
+}
+

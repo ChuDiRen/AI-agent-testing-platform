@@ -475,3 +475,154 @@ async def getCaseEngines(case_id: int = Query(..., description="用例ID"), sess
     except Exception as e:
         logger.error(f"查询失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误: {str(e)}")
+
+
+# ==================== XMind导入功能 ====================
+
+from fastapi import UploadFile, File
+
+@module_route.post("/importXMind", summary="从XMind文件导入测试用例", dependencies=[Depends(check_permission("apitest:case:add"))])
+async def importXMind(
+    file: UploadFile = File(..., description="XMind文件"),
+    project_id: int = Query(..., description="项目ID"),
+    session: Session = Depends(get_session)
+):
+    """
+    从XMind文件批量导入测试用例和步骤
+    
+    XMind结构约定：
+    - 中心主题：项目/模块名称（忽略）
+    - 一级子主题：测试用例名称
+    - 二级子主题：测试步骤描述
+    - 三级子主题：步骤参数（key:value格式）
+    
+    支持的XMind格式：.xmind（XMind 8及以上版本）
+    """
+    import zipfile
+    import json
+    import tempfile
+    import os
+    
+    try:
+        # 1. 验证文件类型
+        if not file.filename.endswith('.xmind'):
+            return respModel.error_resp("请上传.xmind格式的文件")
+        
+        # 2. 保存上传的文件到临时目录
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xmind') as tmp_file:
+            content = await file.read()
+            tmp_file.write(content)
+            tmp_path = tmp_file.name
+        
+        try:
+            # 3. 解析XMind文件（XMind文件本质是ZIP压缩包）
+            xmind_data = None
+            with zipfile.ZipFile(tmp_path, 'r') as zf:
+                # XMind 8+ 使用 content.json
+                if 'content.json' in zf.namelist():
+                    with zf.open('content.json') as f:
+                        xmind_data = json.load(f)
+                # 旧版本使用 content.xml
+                elif 'content.xml' in zf.namelist():
+                    return respModel.error_resp("暂不支持旧版XMind格式，请使用XMind 8及以上版本")
+                else:
+                    return respModel.error_resp("无法解析XMind文件，请检查文件格式")
+            
+            if not xmind_data:
+                return respModel.error_resp("XMind文件内容为空")
+            
+            # 4. 解析XMind结构
+            imported_cases = []
+            failed_cases = []
+            
+            # 获取根主题
+            root_topic = xmind_data[0].get('rootTopic', {}) if isinstance(xmind_data, list) else xmind_data.get('rootTopic', {})
+            
+            # 遍历一级子主题（测试用例）
+            case_topics = root_topic.get('children', {}).get('attached', [])
+            
+            for case_topic in case_topics:
+                try:
+                    case_name = case_topic.get('title', '').strip()
+                    if not case_name:
+                        continue
+                    
+                    # 创建测试用例
+                    new_case = module_model(
+                        project_id=project_id,
+                        case_name=case_name,
+                        case_desc=case_topic.get('notes', {}).get('plain', {}).get('content', ''),
+                        create_time=datetime.now()
+                    )
+                    session.add(new_case)
+                    session.flush()
+                    
+                    # 遍历二级子主题（测试步骤）
+                    step_topics = case_topic.get('children', {}).get('attached', [])
+                    step_order = 1
+                    
+                    for step_topic in step_topics:
+                        step_desc = step_topic.get('title', '').strip()
+                        if not step_desc:
+                            continue
+                        
+                        # 解析三级子主题（步骤参数）
+                        step_data = {}
+                        param_topics = step_topic.get('children', {}).get('attached', [])
+                        for param_topic in param_topics:
+                            param_text = param_topic.get('title', '').strip()
+                            if ':' in param_text:
+                                key, value = param_text.split(':', 1)
+                                step_data[key.strip()] = value.strip()
+                            elif '：' in param_text:  # 支持中文冒号
+                                key, value = param_text.split('：', 1)
+                                step_data[key.strip()] = value.strip()
+                        
+                        # 创建测试步骤
+                        new_step = ApiInfoCaseStep(
+                            case_info_id=new_case.id,
+                            step_desc=step_desc,
+                            step_data=json.dumps(step_data, ensure_ascii=False) if step_data else None,
+                            run_order=step_order,
+                            create_time=datetime.now()
+                        )
+                        session.add(new_step)
+                        step_order += 1
+                    
+                    imported_cases.append({
+                        "case_id": new_case.id,
+                        "case_name": case_name,
+                        "step_count": step_order - 1
+                    })
+                    
+                except Exception as e:
+                    failed_cases.append({
+                        "case_name": case_topic.get('title', 'Unknown'),
+                        "error": str(e)
+                    })
+            
+            session.commit()
+            
+            result = {
+                "imported_count": len(imported_cases),
+                "failed_count": len(failed_cases),
+                "imported_cases": imported_cases,
+                "failed_cases": failed_cases
+            }
+            
+            return respModel.ok_resp(
+                obj=result,
+                msg=f"导入完成：成功{len(imported_cases)}个，失败{len(failed_cases)}个"
+            )
+            
+        finally:
+            # 清理临时文件
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+                
+    except zipfile.BadZipFile:
+        return respModel.error_resp("无效的XMind文件，请检查文件是否损坏")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"导入XMind失败: {e}", exc_info=True)
+        return respModel.error_resp(f"导入失败: {str(e)}")

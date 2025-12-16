@@ -118,13 +118,6 @@ const routes = [
                 permission: "system:user:query"
             }
         }, {
-            path: "/system/user",
-            component: userList,
-            meta: {
-                title: "用户管理",
-                permission: "system:user:list"
-            }
-        }, {
             path: "/userForm",
             component: userForm,
             meta: {
@@ -137,13 +130,6 @@ const routes = [
             meta: {
                 title: "角色管理",
                 permission: "system:role:query"
-            }
-        }, {
-            path: "/system/role",
-            component: roleList,
-            meta: {
-                title: "角色管理",
-                permission: "system:role:list"
             }
         }, {
             path: "/roleForm",
@@ -160,13 +146,6 @@ const routes = [
                 permission: "system:menu:query"
             }
         }, {
-            path: "/system/menu",
-            component: menuList,
-            meta: {
-                title: "菜单管理",
-                permission: "system:menu:list"
-            }
-        }, {
             path: "/menuForm",
             component: menuForm,
             meta: {
@@ -181,13 +160,6 @@ const routes = [
                 permission: "system:dept:query"
             }
         }, {
-            path: "/system/dept",
-            component: deptList,
-            meta: {
-                title: "部门管理",
-                permission: "system:dept:list"
-            }
-        }, {
             path: "/deptForm",
             component: deptForm,
             meta: {
@@ -200,13 +172,6 @@ const routes = [
             meta: {
                 title: "项目列表",
                 permission: "apitest:project:query"
-            }
-        }, {
-            path: "/apitest/project",
-            component: ApiProjectList,
-            meta: {
-                title: "项目管理",
-                permission: "apitest:project:list"
             }
         }, {
             path: "/ApiProjectForm",
@@ -230,13 +195,6 @@ const routes = [
                 permission: "apitest:keyword:query"
             }
         }, {
-            path: "/apitest/keyword",
-            component: ApiKeyWordList,
-            meta: {
-                title: "关键字管理",
-                permission: "apitest:keyword:list"
-            }
-        }, {
             path: "/ApiMetaForm",
             component: ApiMetaForm,
             meta: {
@@ -251,25 +209,11 @@ const routes = [
                 permission: "apitest:meta:query"
             }
         }, {
-            path: "/apitest/meta",
-            component: ApiMetaList,
-            meta: {
-                title: "素材管理",
-                permission: "apitest:meta:list"
-            }
-        }, {
             path: "/ApiInfoList",
             component: ApiInfoList,
             meta: {
                 title: "接口信息管理",
                 permission: "apitest:api:query"
-            }
-        }, {
-            path: "/apitest/apiinfo",
-            component: ApiInfoList,
-            meta: {
-                title: "接口信息",
-                permission: "apitest:apiinfo:list"
             }
         }, {
             path: "/ApiInfoForm",
@@ -291,20 +235,6 @@ const routes = [
             meta: {
                 title: "测试历史记录",
                 permission: "apitest:history:query"
-            }
-        }, {
-            path: "/apitest/testhistory",
-            component: ApiHistoryList,
-            meta: {
-                title: "测试历史",
-                permission: "apitest:testhistory:list"
-            }
-        }, {
-            path: "/ApiTestHistory",
-            component: ApiHistoryList,
-            meta: {
-                title: "测试历史",
-                permission: "apitest:testhistory:list"
             }
         }, {
             path: "/ApiHistoryDetail/:id",
@@ -363,13 +293,6 @@ const routes = [
                 permission: "apitest:plan:add"
             }
         }, {
-            path: "/apitest/plan",
-            component: TestPlanList,
-            meta: {
-                title: "测试计划",
-                permission: "apitest:plan:list"
-            }
-        }, {
             path: "/TestTaskList",
             component: TestTaskList,
             meta: {
@@ -382,13 +305,6 @@ const routes = [
             meta: {
                 title: "测试任务表单",
                 permission: "apitest:task:add"
-            }
-        }, {
-            path: "/apitest/task",
-            component: TestTaskList,
-            meta: {
-                title: "测试任务",
-                permission: "apitest:task:list"
             }
         }, {
             path: "/RobotConfigList",
@@ -461,20 +377,6 @@ const routes = [
                 permission: "ai:agent:chat"
             }
         }, {
-            path: "/AgentChatEnhanced",
-            component: AgentChatIntegrated,
-            meta: {
-                title: "LangGraph测试用例生成",
-                permission: "ai:agent:chat"
-            }
-        }, {
-            path: "/ai/langgraph",
-            component: AgentChatIntegrated,
-            meta: {
-                title: "LangGraph智能生成",
-                permission: "ai:agent:chat"
-            }
-        }, {
             path: "/TestCaseList",
             component: TestCaseList,
             meta: {
@@ -496,25 +398,11 @@ const routes = [
                 permission: "generator:table:list"
             }
         }, {
-            path: "/generator/table",
-            component: GenTableList,
-            meta: {
-                title: "表配置",
-                permission: "generator:table:list"
-            }
-        }, {
             path: "/GeneratorCode",
             component: GeneratorCode,
             meta: {
                 title: "代码生成",
                 permission: "generator:code:generate"
-            }
-        }, {
-            path: "/generator/code",
-            component: GeneratorCode,
-            meta: {
-                title: "代码生成",
-                permission: "generator:code:list"
             }
         }, {
             path: "/GenHistory",
@@ -524,28 +412,7 @@ const routes = [
                 permission: "generator:history:list"
             }
         }, {
-            path: "/generator/history",
-            component: GenHistory,
-            meta: {
-                title: "生成历史",
-                permission: "generator:history:list"
-            }
-        }, {
             path: "/PluginMarket",
-            component: PluginMarket,
-            meta: {
-                title: "插件市场",
-                permission: "plugin:market:list"
-            }
-        }, {
-            path: "/plugin/market",
-            component: PluginMarket,
-            meta: {
-                title: "插件市场",
-                permission: "plugin:market:list"
-            }
-        }, {
-            path: "/plugin/PluginMarket",
             component: PluginMarket,
             meta: {
                 title: "插件市场",

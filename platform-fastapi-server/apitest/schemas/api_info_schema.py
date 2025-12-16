@@ -69,3 +69,31 @@ class ApiInfoResponse(BaseModel):
     request_files: Optional[str] = None
     executor_code: Optional[str] = None  # 执行器插件代码
     create_time: Optional[datetime] = None
+
+# 接口调试请求Schema
+class ApiDebugRequest(BaseModel):
+    """接口调试请求"""
+    request_method: str  # 请求方法
+    request_url: str  # 请求URL
+    request_params: Optional[list] = None  # URL参数 [{"key": "name", "value": "test"}]
+    request_headers: Optional[list] = None  # 请求头 [{"key": "Content-Type", "value": "application/json"}]
+    request_form_datas: Optional[list] = None  # form-data参数
+    request_www_form_datas: Optional[list] = None  # x-www-form-urlencoded参数
+    requests_json_data: Optional[str] = None  # JSON请求体
+    request_files: Optional[list] = None  # 文件上传参数
+    debug_vars: Optional[list] = None  # 调试变量 [{"key": "base_url", "value": "http://localhost"}]
+    timeout: Optional[int] = 30  # 超时时间（秒）
+
+# 接口调试响应Schema
+class ApiDebugResponse(BaseModel):
+    """接口调试响应"""
+    success: bool
+    status_code: Optional[int] = None
+    response_time: Optional[float] = None  # 响应时间（毫秒）
+    response_headers: Optional[dict] = None
+    response_body: Optional[str] = None
+    request_url: Optional[str] = None  # 实际请求URL
+    request_method: Optional[str] = None
+    request_headers: Optional[dict] = None  # 实际请求头
+    request_body: Optional[str] = None  # 实际请求体
+    error_message: Optional[str] = None

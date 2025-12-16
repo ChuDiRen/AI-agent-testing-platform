@@ -35,3 +35,13 @@ export function queryAll() {
 export function testConnection(data) {
     return axios.post(`/${module_name}/testConnection?_alias=dbbase-test`, data)
 }
+
+// 启用/禁用配置
+export function toggleEnabled(id, is_enabled) {
+    return axios.put(`/${module_name}/toggleEnabled?id=${id}&is_enabled=${is_enabled}&_alias=dbbase-toggle`)
+}
+
+// 根据项目ID查询数据库配置
+export function queryByProject(project_id) {
+    return axios.get(`/${module_name}/queryByProject?project_id=${project_id}&_alias=dbbase-project`)
+}

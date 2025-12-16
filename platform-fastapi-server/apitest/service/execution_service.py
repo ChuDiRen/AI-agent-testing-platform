@@ -143,7 +143,8 @@ class ExecutionService:
         case_id: int,
         executor_code: str = None,
         test_name: Optional[str] = None,
-        context_vars: Optional[Dict[str, Any]] = None
+        context_vars: Optional[Dict[str, Any]] = None,
+        task_execution_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         执行单个用例（异步提交）
@@ -190,7 +191,8 @@ class ExecutionService:
             test_id=history.id,
             executor_code=executor_code,
             workspace=workspace,
-            case_names=[build_result["case_name"]]
+            case_names=[build_result["case_name"]],
+            task_execution_id=task_execution_id
         )
         
         return {"test_id": history.id, "status": "running", "executor": executor_code}
@@ -199,7 +201,8 @@ class ExecutionService:
         self,
         plan_id: int,
         executor_code: str,
-        test_name: Optional[str] = None
+        test_name: Optional[str] = None,
+        task_execution_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         执行测试计划（异步提交）
@@ -233,7 +236,8 @@ class ExecutionService:
             test_id=history.id,
             executor_code=executor_code,
             workspace=workspace,
-            case_names=case_names
+            case_names=case_names,
+            task_execution_id=task_execution_id
         )
         
         logger.info(f"计划已提交: workspace={workspace}, 用例数={len(case_names)}")
@@ -290,7 +294,8 @@ class ExecutionService:
         test_id: int,
         executor_code: str,
         workspace: Path,
-        case_names: list
+        case_names: list,
+        task_execution_id: Optional[int] = None
     ):
         """提交后台执行任务"""
         _bg_executor.submit(
@@ -298,7 +303,8 @@ class ExecutionService:
             test_id=test_id,
             executor_code=executor_code,
             workspace=str(workspace),
-            case_names=case_names
+            case_names=case_names,
+            task_execution_id=task_execution_id
         )
 
 
@@ -308,7 +314,8 @@ def _run_execution(
     test_id: int,
     executor_code: str,
     workspace: str,
-    case_names: list
+    case_names: list,
+    task_execution_id: int = None
 ):
     """
     后台执行测试（在线程池中运行）
@@ -318,6 +325,8 @@ def _run_execution(
     from sqlmodel import Session as DBSession
     
     db = DBSession(engine)
+    passed_count = 0
+    failed_count = 0
     try:
         logger.info(f"开始执行: test_id={test_id}, workspace={workspace}, 用例数={len(case_names)}")
         
@@ -340,9 +349,31 @@ def _run_execution(
         # 更新结果
         collector = ResultCollector(db)
         if len(case_names) == 1:
-            collector.update_single_case_result(test_id, result)
+            history = collector.update_single_case_result(test_id, result)
+            passed_count = 1 if history and history.test_status == 'success' else 0
+            failed_count = 0 if passed_count else 1
         else:
-            collector.update_plan_result(test_id, result, case_names, len(case_names))
+            history = collector.update_plan_result(test_id, result, case_names, len(case_names))
+            # 从 response_data 中提取统计信息
+            if history and history.response_data:
+                import json
+                try:
+                    resp_data = json.loads(history.response_data)
+                    passed_count = resp_data.get('passed', 0)
+                    failed_count = resp_data.get('failed', 0)
+                except:
+                    pass
+        
+        # 更新 TestTaskExecution 记录（如果有）
+        if task_execution_id:
+            exec_status = 'completed' if result.get('success') else 'failed'
+            collector.update_task_execution(
+                execution_id=task_execution_id,
+                status=exec_status,
+                passed_cases=passed_count,
+                failed_cases=failed_count,
+                report_path=workspace
+            )
         
         logger.info(f"执行完成: test_id={test_id}, success={result.get('success')}")
         
@@ -351,6 +382,14 @@ def _run_execution(
         try:
             collector = ResultCollector(db)
             collector.mark_failed(test_id, str(e))
+            # 更新 TestTaskExecution 记录为失败
+            if task_execution_id:
+                collector.update_task_execution(
+                    execution_id=task_execution_id,
+                    status='failed',
+                    failed_cases=len(case_names),
+                    error_message=str(e)
+                )
         except:
             pass
     finally:

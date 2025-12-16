@@ -46,3 +46,13 @@ export function queryAll() {
 export function importSwagger(data) {
     return axios.post(`/${module_name}/importSwagger?_alias=apiinfo-import`, data)
 }
+
+// 接口调试
+export function debugApi(data) {
+    return axios.post(`/${module_name}/debug?_alias=apiinfo-debug`, data)
+}
+
+// 发送请求并下载
+export function debugAndDownload(data) {
+    return axios.post(`/${module_name}/debugAndDownload?_alias=apiinfo-download`, data)
+}

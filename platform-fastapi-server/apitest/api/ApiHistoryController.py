@@ -1,5 +1,4 @@
 import json
-import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Any
@@ -71,14 +70,30 @@ async def queryById(id: int = Query(...), session: Session = Depends(get_session
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.post("/execute", summary="执行API接口测试")
-async def execute_test(request: ApiTestExecuteRequest, background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
-    """执行接口测试"""
+async def execute_test(request: ApiTestExecuteRequest, session: Session = Depends(get_session)):
+    """
+    执行接口测试（基于 ApiInfo 模型）
+    
+    注意：此接口用于接口级别的快速测试，会自动生成 YAML 并通过统一的 TaskScheduler 执行。
+    如需执行用例级别测试，请使用 /ApiInfoCase/executeCase 接口。
+    """
+    from plugin.service.TaskScheduler import task_scheduler
+    from ..service.result_collector import ResultCollector
+    from core.temp_manager import get_temp_subdir
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+    
     try:
-        # 创建测试历史记录
+        # 1. 获取接口信息
+        api_info = session.get(ApiInfo, request.api_info_id)
+        if not api_info:
+            return respModel.error_resp("接口信息不存在")
+        
+        # 2. 创建测试历史记录
         test_name = request.test_name or f"接口测试_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         test_history = module_model(
             api_info_id=request.api_info_id,
-            project_id=0,
+            project_id=api_info.project_id or 0,
             test_name=test_name,
             test_status="running",
             create_time=datetime.now(),
@@ -87,168 +102,116 @@ async def execute_test(request: ApiTestExecuteRequest, background_tasks: Backgro
         session.add(test_history)
         session.commit()
         session.refresh(test_history)
-
-        # 定义后台任务（内联函数）
-        def _execute_background():
-            from core.database import SessionLocal
-            db = SessionLocal()
-            test_hist = None
+        
+        # 3. 生成 YAML 测试用例
+        def _parse_json(field_value):
+            if not field_value:
+                return None
             try:
-                # 1. 获取测试历史记录
-                test_hist = db.get(ApiHistory, test_history.id)
-                if not test_hist:
-                    logger.warning(f"测试记录不存在: {test_history.id}")
-                    return
-
-                # 2. 获取接口信息
-                api_info = db.get(ApiInfo, request.api_info_id)
-                if not api_info:
-                    test_hist.test_status = "failed"
-                    test_hist.error_message = "接口信息不存在"
-                    db.commit()
-                    return
-
-                # 3. 创建工作空间
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                workspace_name = f"test_{test_history.id}_{timestamp}"
-                yaml_dir = YAML_DIR / workspace_name
-                report_dir = REPORT_DIR / workspace_name
-                log_file = LOG_DIR / f"{workspace_name}.log"
-                for directory in [TEMP_DIR, YAML_DIR, REPORT_DIR, LOG_DIR, yaml_dir, report_dir]:
-                    directory.mkdir(exist_ok=True)
-
-                # 4. 生成YAML测试用例
-                def _parse_json(field_value: Optional[str]) -> Optional[Dict]:
-                    if not field_value:
-                        return None
-                    try:
-                        return json.loads(field_value) if isinstance(field_value, str) else field_value
-                    except (json.JSONDecodeError, TypeError):
-                        return None
-
-                def _build_request_step(api: ApiInfo) -> Dict[str, Any]:
-                    step_data = {'关键字': 'send_request', 'method': api.request_method or 'GET', 'url': api.request_url or ''}
-                    optional_fields = {'params': _parse_json(api.request_params), 'headers': _parse_json(api.request_headers)}
-                    step_data.update({k: v for k, v in optional_fields.items() if v})
-                    if api.request_method in ['POST', 'PUT', 'PATCH']:
-                        body_data = _parse_json(api.request_form_datas) or _parse_json(api.request_www_form_datas)
-                        if body_data:
-                            step_data['data'] = body_data
-                        json_data = _parse_json(api.requests_json_data)
-                        if json_data:
-                            step_data['json'] = json_data
-                        files = _parse_json(api.request_files)
-                        if files:
-                            step_data['files'] = files
-                    return {api.api_name or '发送请求': step_data}
-
-                def _build_extract_step(extract_cfg: Dict[str, Any]) -> Dict[str, Any]:
-                    var_name = extract_cfg.get('var_name', '')
-                    step_name = extract_cfg.get('description') or f"提取_{var_name}"
-                    return {step_name: {'关键字': 'ex_jsonData', 'EXVALUE': extract_cfg.get('extract_path', ''), 'VARNAME': var_name, 'INDEX': str(extract_cfg.get('index', 0))}}
-
-                def _build_assertion_step(assert_cfg: Dict[str, Any]) -> Dict[str, Any]:
-                    step_name = assert_cfg.get('description') or '断言验证'
-                    assert_type = assert_cfg.get('type', 'assert_text_comparators')
-                    builders = {
-                        'assert_text_comparators': lambda: {'关键字': 'assert_text_comparators', 'VALUE': assert_cfg.get('actual_value', ''), 'EXPECTED': assert_cfg.get('expected_value', ''), 'OP_STR': assert_cfg.get('operator', '==')},
-                        'assert_json_path': lambda: {'关键字': 'ex_jsonData', 'EXVALUE': assert_cfg.get('extract_path', ''), 'VARNAME': f"temp_{assert_cfg.get('description', 'value')}", 'INDEX': '0'}
-                    }
-                    return {step_name: builders.get(assert_type, builders['assert_text_comparators'])()}
-
-                # 生成YAML内容
-                test_case = {'desc': request.test_name or f'{api_info.api_name}_测试', 'steps': []}
-                test_case['steps'].append(_build_request_step(api_info))
-                test_case['steps'].extend([_build_extract_step(e) for e in (request.variable_extracts or [])])
-                test_case['steps'].extend([_build_assertion_step(a) for a in (request.assertions or [])])
-                if request.pre_script:
-                    test_case['pre_script'] = request.pre_script
-                if request.post_script:
-                    test_case['post_script'] = request.post_script
-                if request.context_vars:
-                    test_case['ddts'] = [{'desc': f'{request.test_name}_数据', **request.context_vars}]
-                yaml_content = yaml.dump(test_case, allow_unicode=True, default_flow_style=False, sort_keys=False)
-
-                # 5. 写入YAML文件
-                yaml_filename = f"{api_info.api_name or 'test'}_{test_history.id}.yaml"
-                (yaml_dir / yaml_filename).write_text(yaml_content, encoding='utf-8')
-
-                # 6. 执行测试
-                command = ['huace-apirun', '--cases', str(yaml_dir), '--alluredir', str(report_dir)]
-                exec_success = False
-                exec_error = None
-                exec_start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                return json.loads(field_value) if isinstance(field_value, str) else field_value
+            except (json.JSONDecodeError, TypeError):
+                return None
+        
+        # 构建请求步骤
+        step_data = {'关键字': 'send_request', 'method': api_info.request_method or 'GET', 'url': api_info.request_url or ''}
+        if _parse_json(api_info.request_params):
+            step_data['params'] = _parse_json(api_info.request_params)
+        if _parse_json(api_info.request_headers):
+            step_data['headers'] = _parse_json(api_info.request_headers)
+        if api_info.request_method in ['POST', 'PUT', 'PATCH']:
+            body_data = _parse_json(api_info.request_form_datas) or _parse_json(api_info.request_www_form_datas)
+            if body_data:
+                step_data['data'] = body_data
+            json_data = _parse_json(api_info.requests_json_data)
+            if json_data:
+                step_data['json'] = json_data
+        
+        test_case = {'desc': test_name, 'steps': [{api_info.api_name or '发送请求': step_data}]}
+        
+        # 添加变量提取步骤
+        for extract in (request.variable_extracts or []):
+            var_name = extract.get('var_name', '')
+            step_name = extract.get('description') or f"提取_{var_name}"
+            test_case['steps'].append({step_name: {
+                '关键字': 'ex_jsonData',
+                'EXVALUE': extract.get('extract_path', ''),
+                'VARNAME': var_name,
+                'INDEX': str(extract.get('index', 0))
+            }})
+        
+        # 添加断言步骤
+        for assertion in (request.assertions or []):
+            step_name = assertion.get('description') or '断言验证'
+            test_case['steps'].append({step_name: {
+                '关键字': 'assert_text_comparators',
+                'VALUE': assertion.get('actual_value', ''),
+                'EXPECTED': assertion.get('expected_value', ''),
+                'OP_STR': assertion.get('operator', '==')
+            }})
+        
+        # 添加数据驱动
+        if request.context_vars:
+            test_case['ddts'] = [{'desc': f'{test_name}_数据', **request.context_vars}]
+        
+        yaml_content = yaml.dump(test_case, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        
+        # 4. 创建工作空间并写入 YAML 文件
+        workspace = get_temp_subdir("executor") / f"api_{test_history.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        workspace.mkdir(parents=True, exist_ok=True)
+        yaml_filename = f"{api_info.api_name or 'test'}_{test_history.id}.yaml"
+        (workspace / yaml_filename).write_text(yaml_content, encoding='utf-8')
+        
+        # 更新历史记录的 YAML 内容
+        test_history.yaml_content = yaml_content
+        test_history.allure_report_path = str(workspace)
+        test_history.request_url = api_info.request_url
+        test_history.request_method = api_info.request_method
+        test_history.request_headers = api_info.request_headers
+        test_history.request_params = api_info.request_params
+        test_history.request_body = api_info.requests_json_data or api_info.request_form_datas
+        session.commit()
+        
+        # 5. 提交后台执行任务
+        def _run_api_test(test_id: int, workspace_path: str):
+            from core.database import engine
+            from sqlmodel import Session as DBSession
+            
+            db = DBSession(engine)
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
                 try:
-                    start_time = datetime.now()
-                    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
-                    stdout, stderr = process.communicate(timeout=300)
-                    end_time = datetime.now()
-                    exec_success = process.returncode == 0
-
-                    # 写入日志
-                    log_content = f"=== 执行命令 ===\n{' '.join(command)}\n\n=== 开始时间 ===\n{exec_start_time}\n\n=== 结束时间 ===\n{end_time.strftime('%Y-%m-%d %H:%M:%S')}\n\n=== 执行时长 ===\n{(end_time - start_time).total_seconds()}秒\n\n=== 返回码 ===\n{process.returncode}\n\n=== 标准输出 ===\n{stdout}\n\n=== 错误输出 ===\n{stderr}\n"
-                    log_file.write_text(log_content, encoding='utf-8')
-                except subprocess.TimeoutExpired:
-                    exec_error = '测试执行超时（300秒）'
-                    process.kill()
-                except FileNotFoundError:
-                    exec_error = 'huace-apirun命令不存在，请确认api-engine已正确安装'
-                except Exception as e:
-                    exec_error = f'执行失败: {str(e)}'
-
-                # 7. 解析测试结果
-                response_data = None
-                if exec_success:
-                    try:
-                        result_files = list(report_dir.glob("*-result.json"))
-                        if result_files:
-                            all_results = [json.loads(f.read_text(encoding='utf-8')) for f in result_files]
-                            if all_results:
-                                first_result = all_results[0]
-                                response_data = {
-                                    'status': first_result.get('status'),
-                                    'status_code': None,
-                                    'response_time': first_result.get('stop', 0) - first_result.get('start', 0),
-                                    'response_body': None,
-                                    'response_headers': None,
-                                    'error_message': first_result.get('statusDetails', {}).get('message') if first_result.get('status') in ['failed', 'broken'] else None
-                                }
-                    except Exception as e:
-                        logger.error(f"解析Allure结果失败: {e}", exc_info=True)
-
-                # 8. 更新测试历史记录
-                test_hist.test_status = "success" if exec_success else "failed"
-                test_hist.request_url = api_info.request_url
-                test_hist.request_method = api_info.request_method
-                test_hist.request_headers = api_info.request_headers
-                test_hist.request_params = api_info.request_params
-                test_hist.request_body = api_info.requests_json_data or api_info.request_form_datas
-                test_hist.response_time = int(response_data.get('response_time', 0)) if response_data else None
-                test_hist.status_code = response_data.get('status_code') if response_data else None
-                test_hist.response_headers = response_data.get('response_headers') if response_data else None
-                test_hist.response_body = response_data.get('response_body') if response_data else None
-                test_hist.error_message = exec_error or (response_data.get('error_message') if response_data else None)
-                test_hist.allure_report_path = str(report_dir)
-                test_hist.yaml_content = yaml_content
-                test_hist.finish_time = datetime.now()
-                test_hist.modify_time = datetime.now()
-                db.commit()
-
-                logger.info(f"测试任务执行完成: {test_history.id}, 结果: {test_hist.test_status}")
-
+                    result = loop.run_until_complete(
+                        task_scheduler.execute_test(
+                            session=db,
+                            plugin_code="api_engine",
+                            test_case_id=test_id,
+                            test_case_content=workspace_path,
+                            config={"is_directory": True}
+                        )
+                    )
+                finally:
+                    loop.close()
+                
+                # 更新结果
+                collector = ResultCollector(db)
+                collector.update_single_case_result(test_id, result)
+                logger.info(f"接口测试完成: test_id={test_id}, success={result.get('success')}")
+                
             except Exception as e:
-                logger.error(f"测试任务执行失败: {test_history.id}, 错误: {e}", exc_info=True)
-                if test_hist:
-                    test_hist.test_status = "failed"
-                    test_hist.error_message = str(e)
-                    test_hist.finish_time = datetime.now()
-                    test_hist.modify_time = datetime.now()
-                    db.commit()
+                logger.error(f"接口测试失败: test_id={test_id}, 错误: {e}", exc_info=True)
+                try:
+                    collector = ResultCollector(db)
+                    collector.mark_failed(test_id, str(e))
+                except:
+                    pass
             finally:
                 db.close()
-
-        # 添加后台任务
-        background_tasks.add_task(_execute_background)
+        
+        # 使用线程池执行
+        executor = ThreadPoolExecutor(max_workers=1)
+        executor.submit(_run_api_test, test_history.id, str(workspace))
+        
         return respModel.ok_resp(dic_t={"test_id": test_history.id, "status": "running"}, msg="测试已开始执行")
     except Exception as e:
         session.rollback()

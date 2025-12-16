@@ -248,7 +248,7 @@ const onDataForm = (index) => {
 // 查看历史
 const onViewHistory = (index) => {
   const item = tableData.value[index];
-  router.push(`/ApiTestHistory?api_info_id=${item.id}`);
+  router.push(`/ApiHistoryList?api_info_id=${item.id}`);
 };
 
 // 删除数据

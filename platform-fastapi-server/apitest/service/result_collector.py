@@ -11,6 +11,7 @@ from pathlib import Path
 from sqlmodel import Session
 
 from ..model.ApiHistoryModel import ApiHistory
+from ..model.TestTaskModel import TestTask, TestTaskExecution
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +150,60 @@ class ResultCollector:
             history.modify_time = datetime.now()
             self.session.commit()
         return history
+    
+    def update_task_execution(
+        self,
+        execution_id: int,
+        status: str,
+        passed_cases: int = 0,
+        failed_cases: int = 0,
+        report_path: str = None,
+        error_message: str = None
+    ) -> Optional[TestTaskExecution]:
+        """
+        更新测试任务执行记录状态
+        
+        Args:
+            execution_id: 执行记录ID
+            status: 执行状态 (completed/failed)
+            passed_cases: 通过用例数
+            failed_cases: 失败用例数
+            report_path: 报告路径
+            error_message: 错误信息
+        """
+        execution = self.session.get(TestTaskExecution, execution_id)
+        if not execution:
+            logger.warning(f"执行记录不存在: {execution_id}")
+            return None
+        
+        execution.status = status
+        execution.passed_cases = passed_cases
+        execution.failed_cases = failed_cases
+        execution.end_time = datetime.now()
+        
+        # 计算执行耗时
+        if execution.start_time:
+            duration = (execution.end_time - execution.start_time).total_seconds()
+            execution.duration = int(duration)
+        
+        if report_path:
+            execution.report_path = report_path
+        if error_message:
+            execution.error_message = error_message
+        
+        # 同时更新关联的 TestTask 状态
+        task = self.session.get(TestTask, execution.task_id)
+        if task:
+            task.task_status = 'pending'  # 执行完成后恢复为待执行状态
+            if status == 'completed' and failed_cases == 0:
+                task.success_count += 1
+            else:
+                task.fail_count += 1
+            task.modify_time = datetime.now()
+        
+        self.session.commit()
+        logger.info(f"任务执行记录已更新: execution_id={execution_id}, status={status}")
+        return execution
     
     # ==================== 私有方法 ====================
     

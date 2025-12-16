@@ -90,13 +90,57 @@ export function executePlan(data) {
  * 根据测试计划ID查询历史记录
  */
 export function queryHistoryByPlanId(planId) {
-    return axios.get(`/ApiTest/queryByPlanId?plan_id=${planId}&_alias=test-by-plan`)
+    return axios.get(`/ApiHistory/queryByPlanId?plan_id=${planId}&_alias=test-by-plan`)
 }
 
 /**
  * 根据执行UUID查询历史记录
  */
 export function queryHistoryByUuid(executionUuid) {
-    return axios.get(`/ApiTest/queryByExecutionUuid?execution_uuid=${executionUuid}&_alias=test-by-uuid`)
+    return axios.get(`/ApiHistory/queryByExecutionUuid?execution_uuid=${executionUuid}&_alias=test-by-uuid`)
+}
+
+/**
+ * 复制测试计划
+ */
+export function copyPlan(id) {
+    return axios.post(`/${module_name}/copy?id=${id}&_alias=collection-copy`)
+}
+
+/**
+ * 获取Jenkins配置信息
+ */
+export function getJenkinsConfig(id) {
+    return axios.get(`/${module_name}/getJenkinsConfig?id=${id}&_alias=collection-jenkins`)
+}
+
+// ==================== 扩展接口 - 机器人通知 ====================
+
+/**
+ * 获取测试计划关联的机器人
+ */
+export function getPlanRobots(planId) {
+    return axios.get(`/${module_name}/getRobots?plan_id=${planId}&_alias=plan-robots`)
+}
+
+/**
+ * 为测试计划添加机器人通知
+ */
+export function addPlanRobot(data) {
+    return axios.post(`/${module_name}/addRobot?_alias=plan-add-robot`, data)
+}
+
+/**
+ * 更新测试计划机器人配置
+ */
+export function updatePlanRobot(data) {
+    return axios.put(`/${module_name}/updateRobot?_alias=plan-update-robot`, data)
+}
+
+/**
+ * 移除测试计划机器人关联
+ */
+export function removePlanRobot(id) {
+    return axios.delete(`/${module_name}/removeRobot?id=${id}&_alias=plan-remove-robot`)
 }
 
