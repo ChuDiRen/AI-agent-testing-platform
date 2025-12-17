@@ -68,8 +68,9 @@ platform-fastapi-server/
 │   └── service/              # 业务服务 (执行器、YAML生成)
 │
 ├── aiassistant/              # AI 测试助手模块 ⭐
-│   ├── api/                  # AiConversation, AiModel, PromptTemplate, TestCase
+│   ├── api/                  # AiModel, PromptTemplate, TestCase, LangGraph
 │   ├── model/                # AI 相关数据模型
+│   ├── langgraph/            # LangGraph 多智能体实现
 │   └── schemas/              # Schema 定义
 │
 ├── generator/                # 代码生成器模块
@@ -353,7 +354,7 @@ OPENAI_API_KEY=sk-xxx
 - AI 模型管理: `/AiModel/*`
 - 提示词模板: `/PromptTemplate/*`
 - 测试用例: `/TestCase/*`
-- **流式对话**: `POST /AiConversation/stream` (SSE)
+- **LangGraph多智能体**: `/langgraph/*`, `/api/langgraph/*`
 
 ### 5. 代码生成器 (generator)
 

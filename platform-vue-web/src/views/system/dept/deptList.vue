@@ -50,10 +50,10 @@
 <script lang="ts" setup>
 import { ref } from "vue"
 import { getDeptTree, deleteData } from './dept'
-import { formatDateTime } from '@/utils/timeFormatter'
+import { formatDateTime } from '~/utils/timeFormatter'
 import { useRouter } from "vue-router"
 import { ElMessage, ElMessageBox } from 'element-plus'
-import BaseTable from '@/components/BaseTable/index.vue'
+import BaseTable from '~/components/BaseTable/index.vue'
 
 const router = useRouter()
 

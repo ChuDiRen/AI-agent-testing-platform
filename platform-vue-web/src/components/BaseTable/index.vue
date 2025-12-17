@@ -40,7 +40,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import BasePagination from '@/components/BasePagination/index.vue'
+import BasePagination from '~/components/BasePagination/index.vue'
 
 const props = defineProps({
   title: {

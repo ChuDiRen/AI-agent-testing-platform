@@ -52,7 +52,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { Connection, Close } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { useWebSocket } from '@/composables/useWebSocket'
+import { useWebSocket } from '~/composables/useWebSocket'
 
 const props = defineProps({
   executionId: {

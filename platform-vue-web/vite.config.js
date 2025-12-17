@@ -84,9 +84,9 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
     alias: {
-      // ~ 别名指向 src（Vue 组件和 CSS 导入使用）
+      // ~ 别名指向 src（Vue 组件统一使用此别名）
       '~': path.resolve(__dirname, 'src'),
-      // @ 别名完全由 resolveAgentReactAlias 插件智能处理
+      // @ 别名仅用于 agent-react 目录（React 组件），由 resolveAgentReactAlias 插件智能处理
       // 修复 vue-element-plus-x CSS 导入问题
       'vue-element-plus-x/dist/style.css': path.resolve(__dirname, 'node_modules/vue-element-plus-x/dist/index.css'),
       'vue-element-plus-x/dist/index.css': path.resolve(__dirname, 'node_modules/vue-element-plus-x/dist/index.css')

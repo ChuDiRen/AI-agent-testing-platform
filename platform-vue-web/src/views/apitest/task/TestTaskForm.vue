@@ -119,9 +119,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { QuestionFilled } from '@element-plus/icons-vue'
 import { queryById, insertData, updateData } from './testTask.js'
-import { queryAll as queryProjects } from '../project/apiProject.js'
-import { queryByPage as queryPlans } from '../testplan/testPlan.js'
-import { queryByPage as queryCases } from '../apiinfocase/apiInfoCase.js'
+import { queryAll as queryProjects } from '~/views/apitest/project/apiProject.js'
+import { queryByPage as queryPlans } from '~/views/apitest/testplan/testPlan.js'
+import { queryByPage as queryCases } from '~/views/apitest/apiinfocase/apiInfoCase.js'
 import { listExecutors } from './apiTask.js'
 
 const router = useRouter()

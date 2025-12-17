@@ -191,6 +191,22 @@ application.include_router(TestTaskController.module_route)
 from apitest.api import ApiStatisticsController
 application.include_router(ApiStatisticsController.module_route)
 
+from apitest.api import ApiEnvironmentController
+application.include_router(ApiEnvironmentController.module_route)
+
+from apitest.api import ApiFolderController
+application.include_router(ApiFolderController.module_route)
+
+from apitest.api import ApiRequestHistoryController
+application.include_router(ApiRequestHistoryController.module_route)
+
+from apitest.api import ApiMockController
+application.include_router(ApiMockController.module_route)
+application.include_router(ApiMockController.mock_service_route)
+
+from apitest.api import ApiDocController
+application.include_router(ApiDocController.module_route)
+
 # 消息管理模块路由
 from msgmanage.api import RobotConfigController
 application.include_router(RobotConfigController.module_route)
@@ -199,9 +215,8 @@ from msgmanage.api import RobotMsgConfigController
 application.include_router(RobotMsgConfigController.module_route)
 
 # 注册AI测试助手模块路由
-from aiassistant.api import AiConversationController, AiModelController, PromptTemplateController, TestCaseController
-application.include_router(AiConversationController.router)  # AI对话流式接口
-application.include_router(AiModelController.module_route)  # AI模型管理
+from aiassistant.api import AiModelController, PromptTemplateController, TestCaseController
+application.include_router(AiModelController.module_route)  # AI模型管理（含同步功能）
 application.include_router(PromptTemplateController.module_route)  # 提示词模板管理
 application.include_router(TestCaseController.module_route)  # 测试用例管理
 

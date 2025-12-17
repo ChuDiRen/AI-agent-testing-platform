@@ -27,6 +27,10 @@
       @refresh="loadData"
     >
       <template #header>
+        <el-button type="success" @click="handleSync">
+          <el-icon><Refresh /></el-icon>
+          同步模型
+        </el-button>
         <el-button type="primary" @click="handleAdd">
           <el-icon><Plus /></el-icon>
           新增模型
@@ -65,17 +69,88 @@
       :formData="formData"
       @success="handleFormSuccess"
     />
+
+    <!-- 同步模型对话框 -->
+    <el-dialog
+      v-model="syncDialogVisible"
+      title="同步AI模型"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="syncForm" label-width="100px">
+        <el-form-item label="同步方式">
+          <el-radio-group v-model="syncForm.syncType">
+            <el-radio value="single">单个提供商</el-radio>
+            <el-radio value="all">全部提供商</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        
+        <el-form-item v-if="syncForm.syncType === 'single'" label="提供商">
+          <el-select v-model="syncForm.provider" placeholder="请选择提供商" style="width: 100%">
+            <el-option 
+              v-for="p in syncProviders" 
+              :key="p.name" 
+              :label="p.display_name" 
+              :value="p.name"
+            />
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="API密钥">
+          <el-input 
+            v-model="syncForm.api_key" 
+            type="password" 
+            placeholder="留空则使用环境变量配置"
+            show-password
+          />
+          <div class="form-tip">如果服务器已配置环境变量，可以留空</div>
+        </el-form-item>
+        
+        <el-form-item label="更新选项">
+          <el-checkbox v-model="syncForm.update_existing">更新已存在的模型</el-checkbox>
+        </el-form-item>
+      </el-form>
+      
+      <!-- 同步结果显示 -->
+      <div v-if="syncResult" class="sync-result">
+        <el-divider content-position="left">同步结果</el-divider>
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="新增模型">
+            <el-tag type="success">{{ syncResult.added || 0 }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="更新模型">
+            <el-tag type="warning">{{ syncResult.updated || 0 }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="跳过模型">
+            <el-tag type="info">{{ syncResult.skipped || 0 }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="总计">
+            <el-tag>{{ syncResult.total || 0 }}</el-tag>
+          </el-descriptions-item>
+        </el-descriptions>
+        <p class="sync-message" :class="{ 'success': syncResult.success, 'error': !syncResult.success }">
+          {{ syncResult.message }}
+        </p>
+      </div>
+      
+      <template #footer>
+        <el-button @click="syncDialogVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="syncLoading" @click="handleDoSync">
+          {{ syncLoading ? '同步中...' : '开始同步' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
-import { queryByPage, deleteData, testConnection, toggleStatus } from './aimodel'
+import { Plus, Refresh } from '@element-plus/icons-vue'
+import { queryByPage, deleteData, testConnection, toggleStatus, getSyncProviders, syncProvider, syncAllProviders } from './aimodel'
 import AiModelForm from './AiModelForm.vue'
-import BaseSearch from '@/components/BaseSearch/index.vue'
-import BaseTable from '@/components/BaseTable/index.vue'
+import BaseSearch from '~/components/BaseSearch/index.vue'
+import BaseTable from '~/components/BaseTable/index.vue'
 
 // 搜索表单
 const searchForm = reactive({
@@ -109,6 +184,18 @@ const providers = ref([])
 // 对话框控制
 const dialogVisible = ref(false)
 const formData = ref({})
+
+// 同步相关
+const syncDialogVisible = ref(false)
+const syncLoading = ref(false)
+const syncProviders = ref([])
+const syncResult = ref(null)
+const syncForm = reactive({
+  syncType: 'single',
+  provider: 'siliconflow',
+  api_key: '',
+  update_existing: true
+})
 
 // 加载数据
 const loadData = async () => {
@@ -224,6 +311,85 @@ const handleDelete = (row) => {
   })
 }
 
+// ==================== 同步相关方法 ====================
+
+// 打开同步对话框
+const handleSync = async () => {
+  syncResult.value = null
+  syncDialogVisible.value = true
+  
+  // 加载提供商列表
+  try {
+    const res = await getSyncProviders()
+    if (res.data.code === 200) {
+      syncProviders.value = res.data.data || []
+      if (syncProviders.value.length > 0 && !syncForm.provider) {
+        syncForm.provider = syncProviders.value[0].name
+      }
+    }
+  } catch (error) {
+    console.error('获取提供商列表失败:', error)
+  }
+}
+
+// 执行同步
+const handleDoSync = async () => {
+  syncLoading.value = true
+  syncResult.value = null
+  
+  try {
+    let res
+    if (syncForm.syncType === 'single') {
+      // 单个提供商同步
+      if (!syncForm.provider) {
+        ElMessage.warning('请选择提供商')
+        syncLoading.value = false
+        return
+      }
+      
+      res = await syncProvider({
+        provider: syncForm.provider,
+        api_key: syncForm.api_key || undefined,
+        update_existing: syncForm.update_existing
+      })
+    } else {
+      // 全部提供商同步
+      const apiKeys = {}
+      if (syncForm.api_key) {
+        // 如果提供了API密钥，应用到当前选择的提供商
+        apiKeys[syncForm.provider] = syncForm.api_key
+      }
+      
+      res = await syncAllProviders({
+        api_keys: Object.keys(apiKeys).length > 0 ? apiKeys : undefined,
+        update_existing: syncForm.update_existing
+      })
+    }
+    
+    if (res.data.code === 200) {
+      syncResult.value = res.data.data
+      ElMessage.success('同步完成')
+      // 刷新列表
+      loadData()
+    } else {
+      syncResult.value = {
+        success: false,
+        message: res.data.message || res.data.msg || '同步失败'
+      }
+      ElMessage.error(res.data.message || res.data.msg || '同步失败')
+    }
+  } catch (error) {
+    console.error('同步失败:', error)
+    syncResult.value = {
+      success: false,
+      message: error.message || '网络错误'
+    }
+    ElMessage.error('同步失败: ' + (error.message || '网络错误'))
+  } finally {
+    syncLoading.value = false
+  }
+}
+
 
 
 // 初始化
@@ -235,5 +401,32 @@ onMounted(() => {
 <style scoped>
 @import '~/styles/common-list.css';
 @import '~/styles/common-form.css';
+
+.form-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+}
+
+.sync-result {
+  margin-top: 16px;
+}
+
+.sync-message {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.sync-message.success {
+  background-color: #f0f9eb;
+  color: #67c23a;
+}
+
+.sync-message.error {
+  background-color: #fef0f0;
+  color: #f56c6c;
+}
 </style>
 

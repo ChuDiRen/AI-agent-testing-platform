@@ -49,8 +49,8 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { queryAll as queryAllProjects } from '../project/apiProject'
-import { queryById, insertData, updateData } from '../project/dbBase'
+import { queryAll as queryAllProjects } from '~/views/apitest/project/apiProject'
+import { queryById, insertData, updateData } from '~/views/apitest/project/dbBase'
 
 const props = defineProps({
   id: Number

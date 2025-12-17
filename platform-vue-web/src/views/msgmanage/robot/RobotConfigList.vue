@@ -81,9 +81,9 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
 import { queryByPage, deleteData, testConnection, toggleEnabled } from './robotConfig.js';
-import { formatDateTime } from '@/utils/timeFormatter.js';
-import BaseSearch from '@/components/BaseSearch/index.vue';
-import BaseTable from '@/components/BaseTable/index.vue';
+import { formatDateTime } from '~/utils/timeFormatter.js';
+import BaseSearch from '~/components/BaseSearch/index.vue';
+import BaseTable from '~/components/BaseTable/index.vue';
 
 const router = useRouter();
 

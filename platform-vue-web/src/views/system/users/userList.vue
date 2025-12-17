@@ -74,7 +74,7 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from "vue"
 import { queryByPage, deleteData } from './user'
-import { getDeptTree } from '../dept/dept'
+import { getDeptTree } from '~/views/system/dept/dept'
 import { useRouter } from "vue-router";
 import { formatDateTime } from '~/utils/timeFormatter'
 import { ElMessage, ElMessageBox } from 'element-plus'

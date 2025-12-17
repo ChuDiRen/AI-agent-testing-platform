@@ -65,7 +65,7 @@ import { login, getUserInfo } from "./login.js";
 import { ElNotification } from "element-plus";
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
-import { getUserMenus, getMenuTree } from "@/views/system/menu/menu";
+import { getUserMenus, getMenuTree } from "~/views/system/menu/menu";
 
 const router = useRouter();
 const store = useStore();

@@ -137,8 +137,8 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { SuccessFilled, CircleCloseFilled, Loading } from '@element-plus/icons-vue'
-import JsonViewer from '@/components/JsonViewer.vue'
-import YamlViewer from '@/components/YamlViewer.vue'
+import JsonViewer from '~/components/JsonViewer.vue'
+import YamlViewer from '~/components/YamlViewer.vue'
 
 const props = defineProps({
   modelValue: {

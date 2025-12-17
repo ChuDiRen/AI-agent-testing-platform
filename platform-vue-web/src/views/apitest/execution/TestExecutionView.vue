@@ -90,12 +90,12 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { VideoPlay, VideoPause } from '@element-plus/icons-vue'
-import TestExecutionProgress from '@/components/TestExecutionProgress.vue'
-import RealtimeLog from '@/components/RealtimeLog.vue'
-import ExecutorConfigForm from '@/components/ExecutorConfigForm.vue'
-import { executeCase } from '@/views/apitest/apiinfocase/apiInfoCase.js'
-import { executePlan } from '@/views/apitest/testplan/testPlan.js'
-import { listExecutors } from '@/views/apitest/task/apiTask.js'
+import TestExecutionProgress from '~/components/TestExecutionProgress.vue'
+import RealtimeLog from '~/components/RealtimeLog.vue'
+import ExecutorConfigForm from '~/components/ExecutorConfigForm.vue'
+import { executeCase } from '~/views/apitest/apiinfocase/apiInfoCase.js'
+import { executePlan } from '~/views/apitest/testplan/testPlan.js'
+import { listExecutors } from '~/views/apitest/task/apiTask.js'
 
 // 状态
 const executionId = ref('')

@@ -128,7 +128,7 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { Connection, Close, Loading } from '@element-plus/icons-vue'
-import { useWebSocket } from '@/composables/useWebSocket'
+import { useWebSocket } from '~/composables/useWebSocket'
 
 const props = defineProps({
   executionId: {

@@ -99,10 +99,10 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Download } from '@element-plus/icons-vue'
 import { queryByPage, deleteData, exportYaml, exportBatchYaml } from './testcase'
-import { queryAllProject as getProjects } from '../../apitest/project/apiProject.js'
+import { queryAllProject as getProjects } from '~/views/apitest/project/apiProject.js'
 import TestCaseForm from './TestCaseForm.vue'
-import BaseSearch from '@/components/BaseSearch/index.vue'
-import BaseTable from '@/components/BaseTable/index.vue'
+import BaseSearch from '~/components/BaseSearch/index.vue'
+import BaseTable from '~/components/BaseTable/index.vue'
 
 // 搜索表单
 const searchForm = reactive({

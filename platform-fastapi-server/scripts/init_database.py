@@ -240,8 +240,6 @@ class DatabaseManager:
         # AI助手模块
         from aiassistant.model.AiModel import AiModel
         from aiassistant.model.TestCaseModel import TestCase
-        from aiassistant.model.AiConversation import AiConversation
-        from aiassistant.model.AiMessage import AiMessage
         from aiassistant.model.PromptTemplate import PromptTemplate
         
         # 插件模块

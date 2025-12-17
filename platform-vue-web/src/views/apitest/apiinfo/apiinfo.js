@@ -1,4 +1,4 @@
-import axios from '@/axios'
+import axios from '~/axios'
 
 const module_name = "ApiInfo" // 模块名称
 

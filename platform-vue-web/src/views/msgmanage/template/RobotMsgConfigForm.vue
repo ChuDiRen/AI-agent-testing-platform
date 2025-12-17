@@ -159,7 +159,7 @@ import { ElMessage } from 'element-plus';
 import { InfoFilled, Check, View, RefreshLeft, Back } from '@element-plus/icons-vue';
 import { useRouter, useRoute } from 'vue-router';
 import { queryById, insertData, updateData } from './robotMsgConfig.js';
-import { queryAll as queryAllRobots } from '../robot/robotConfig.js';
+import { queryAll as queryAllRobots } from '~/views/msgmanage/robot/robotConfig.js';
 
 const router = useRouter();
 const route = useRoute();

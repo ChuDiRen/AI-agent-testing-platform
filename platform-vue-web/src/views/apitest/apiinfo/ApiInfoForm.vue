@@ -387,13 +387,13 @@
 import { ref, reactive, onMounted } from "vue";
 import { Connection, ArrowDown } from '@element-plus/icons-vue';
 import { queryById, insertData, updateData, getMethods } from './apiinfo.js';
-import { queryByPage as getProjectList } from '../project/apiProject.js';
-import { listExecutors, executeTask } from '../task/apiTask.js';
-import { insertData as insertCaseData, updateData as updateCaseData, queryByPage as queryCaseList, queryKeywordsByType } from '../apiinfocase/apiInfoCase.js';
-import { queryAll as queryOperationTypes } from '../keyword/operationType.js';
+import { queryByPage as getProjectList } from '~/views/apitest/project/apiProject.js';
+import { listExecutors, executeTask } from '~/views/apitest/task/apiTask.js';
+import { insertData as insertCaseData, updateData as updateCaseData, queryByPage as queryCaseList, queryKeywordsByType } from '~/views/apitest/apiinfocase/apiInfoCase.js';
+import { queryAll as queryOperationTypes } from '~/views/apitest/keyword/operationType.js';
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
-import JsonViewer from '@/components/JsonViewer.vue';
+import JsonViewer from '~/components/JsonViewer.vue';
 
 const router = useRouter();
 const route = useRoute();

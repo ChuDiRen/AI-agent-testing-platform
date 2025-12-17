@@ -1,258 +1,220 @@
 import logging
 from datetime import datetime
+from typing import Dict, List, Optional
 
-import httpx
 from core.database import get_session
 from core.resp_model import respModel
 from fastapi import APIRouter, Depends, Query
-from sqlmodel import select, Session, func
+from pydantic import BaseModel, Field
+from sqlmodel import Session, select, func
 
 from ..model.AiModel import AiModel
 from ..schemas.ai_model_schema import AiModelQuery, AiModelCreate, AiModelUpdate
+from ..services.AiModelService import AiModelService
+from ..services.ModelSyncService import ModelSyncService
 
 logger = logging.getLogger(__name__)
 
-module_name = "AiModel" # 模块名称
-module_model = AiModel
+module_name = "AiModel"
 module_route = APIRouter(prefix=f"/{module_name}", tags=["AI模型管理"])
 
 
-@module_route.post("/queryByPage", summary="分页查询AI模型") # 分页查询AI模型
+# ==================== 模型同步请求模型 ====================
+class SyncProviderRequest(BaseModel):
+    """同步单个提供商模型请求"""
+    provider: str = Field(..., description="提供商名称 (siliconflow, deepseek, openai, qwen, zhipuai)")
+    api_key: Optional[str] = Field(default=None, description="API密钥，如果为空则从环境变量获取")
+    update_existing: bool = Field(default=True, description="是否更新已存在的模型")
+
+
+class SyncAllRequest(BaseModel):
+    """同步所有提供商模型请求"""
+    api_keys: Optional[Dict[str, str]] = Field(default=None, description="各提供商的API密钥字典")
+    update_existing: bool = Field(default=True, description="是否更新已存在的模型")
+
+
+# ==================== 基础CRUD接口 ====================
+@module_route.post("/queryByPage", summary="分页查询AI模型")
 async def queryByPage(query: AiModelQuery, session: Session = Depends(get_session)):
-    try:
-        offset = (query.page - 1) * query.pageSize
-        statement = select(module_model)
-        
-        # 按提供商过滤
-        if query.provider:
-            statement = statement.where(module_model.provider == query.provider)
-        
-        # 按状态过滤
-        if query.is_enabled is not None:
-            statement = statement.where(module_model.is_enabled == query.is_enabled)
-        
-        statement = statement.order_by(module_model.create_time.desc()).limit(query.pageSize).offset(offset)
-        datas = session.exec(statement).all()
-        
-        # 统计总数
-        count_statement = select(func.count(module_model.id))
-        if query.provider:
-            count_statement = count_statement.where(module_model.provider == query.provider)
-        if query.is_enabled is not None:
-            count_statement = count_statement.where(module_model.is_enabled == query.is_enabled)
-        total = session.exec(count_statement).one()
-        
-        return respModel.ok_resp_list(lst=datas, total=total)
-    except Exception as e:
-        logger.error(f"查询失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+    datas, total, error = AiModelService.query_by_page(session, query)
+    if error:
+        return respModel.error_resp(error)
+    return respModel.ok_resp_list(lst=datas, total=total)
 
 
-@module_route.get("/queryById", summary="根据ID查询AI模型") # 根据ID查询AI模型
+@module_route.get("/queryById", summary="根据ID查询AI模型")
 async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
-    try:
-        statement = select(module_model).where(module_model.id == id)
-        data = session.exec(statement).first()
-        if data:
-            return respModel.ok_resp(obj=data)
-        else:
-            return respModel.ok_resp(msg="查询成功,但是没有数据")
-    except Exception as e:
-        logger.error(f"查询失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+    data, error = AiModelService.query_by_id(session, id)
+    if error:
+        return respModel.error_resp(error)
+    if data:
+        return respModel.ok_resp(obj=data)
+    else:
+        return respModel.ok_resp(msg="查询成功,但是没有数据")
 
 
-@module_route.get("/queryEnabled", summary="查询所有已启用的模型") # 查询所有已启用的模型
+@module_route.get("/queryEnabled", summary="查询所有已启用的模型")
 async def queryEnabled(session: Session = Depends(get_session)):
-    try:
-        statement = select(module_model).where(module_model.is_enabled == True).order_by(module_model.create_time)
-        datas = session.exec(statement).all()
-        return respModel.ok_resp_list(lst=datas, total=len(datas))
-    except Exception as e:
-        logger.error(f"查询失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+    datas, error = AiModelService.query_enabled(session)
+    if error:
+        return respModel.error_resp(error)
+    return respModel.ok_resp_list(lst=datas, total=len(datas))
 
 
-@module_route.post("/insert", summary="新增AI模型") # 新增AI模型
+@module_route.post("/insert", summary="新增AI模型")
 async def insert(model: AiModelCreate, session: Session = Depends(get_session)):
-    try:
-        # 检查模型代码是否重复
-        existing = session.exec(
-            select(module_model).where(module_model.model_code == model.model_code)
-        ).first()
-        if existing:
-            return respModel.error_resp(msg="模型代码已存在")
-        
-        data = module_model(**model.model_dump(), create_time=datetime.now(), modify_time=datetime.now())
-        session.add(data)
-        session.commit()
-        session.refresh(data)
-        logger.info(f"新增AI模型成功: {data.model_name}")
-        return respModel.ok_resp(msg="添加成功", dic_t={"id": data.id})
-    except Exception as e:
-        session.rollback()
-        logger.error(f"新增失败: {e}", exc_info=True)
-        return respModel.error_resp(msg=f"添加失败:{e}")
+    model_id, error = AiModelService.insert(session, model)
+    if error:
+        return respModel.error_resp(msg=error)
+    return respModel.ok_resp(msg="添加成功", dic_t={"id": model_id})
 
 
-@module_route.put("/update", summary="更新AI模型") # 更新AI模型
+@module_route.put("/update", summary="更新AI模型")
 async def update(model: AiModelUpdate, session: Session = Depends(get_session)):
-    try:
-        statement = select(module_model).where(module_model.id == model.id)
-        db_model = session.exec(statement).first()
-        if db_model:
-            update_data = model.model_dump(exclude_unset=True, exclude={'id'})
-            for key, value in update_data.items():
-                setattr(db_model, key, value)
-            db_model.modify_time = datetime.now()
-            session.commit()
-            logger.info(f"更新AI模型成功: {db_model.model_name}")
-            return respModel.ok_resp(msg="修改成功")
-        else:
-            return respModel.error_resp(msg="AI模型不存在")
-    except Exception as e:
-        session.rollback()
-        logger.error(f"更新失败: {e}", exc_info=True)
-        return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
+    success, message = AiModelService.update(session, model)
+    if success:
+        return respModel.ok_resp(msg=message)
+    return respModel.error_resp(msg=message)
 
 
-@module_route.delete("/delete", summary="删除AI模型") # 删除AI模型
+@module_route.delete("/delete", summary="删除AI模型")
 async def delete(id: int = Query(...), session: Session = Depends(get_session)):
-    try:
-        statement = select(module_model).where(module_model.id == id)
-        data = session.exec(statement).first()
-        if data:
-            session.delete(data)
-            session.commit()
-            logger.info(f"删除AI模型成功: {data.model_name}")
-            return respModel.ok_resp(msg="删除成功")
-        else:
-            return respModel.error_resp(msg="AI模型不存在")
-    except Exception as e:
-        session.rollback()
-        logger.error(f"删除失败: {e}", exc_info=True)
-        return respModel.error_resp(msg=f"删除失败，请联系管理员:{e}")
+    success, message = AiModelService.delete(session, id)
+    if success:
+        return respModel.ok_resp(msg=message)
+    return respModel.error_resp(msg=message)
 
 
-@module_route.post("/toggleStatus", summary="切换模型启用/禁用状态") # 切换模型启用/禁用状态
+@module_route.post("/toggleStatus", summary="切换模型启用/禁用状态")
 async def toggleStatus(id: int = Query(...), session: Session = Depends(get_session)):
-    try:
-        model = session.get(module_model, id)
-        if not model:
-            return respModel.error_resp(msg="AI模型不存在")
-        
-        model.is_enabled = not model.is_enabled
-        model.modify_time = datetime.now()
-        session.commit()
-        
-        status = "启用" if model.is_enabled else "禁用"
-        logger.info(f"{status}AI模型成功: {model.model_name}")
-        return respModel.ok_resp(msg=f"已{status}")
-    except Exception as e:
-        session.rollback()
-        logger.error(f"切换状态失败: {e}", exc_info=True)
-        return respModel.error_resp(msg=f"操作失败:{e}")
+    success, message = AiModelService.toggle_status(session, id)
+    if success:
+        return respModel.ok_resp(msg=message)
+    return respModel.error_resp(msg=message)
 
 
-@module_route.post("/testConnection", summary="测试模型API连接") # 测试模型API连接
+@module_route.post("/testConnection", summary="测试模型API连接")
 async def testConnection(id: int = Query(...), session: Session = Depends(get_session)):
+    success, message = await AiModelService.test_connection(session, id)
+    if success:
+        return respModel.ok_resp(msg=message)
+    return respModel.error_resp(msg=message)
+
+
+# ==================== 模型同步接口 ====================
+@module_route.get("/sync/providers", summary="获取支持的提供商列表")
+async def get_providers():
+    """获取所有支持的模型提供商列表"""
     try:
-        model = session.get(module_model, id)
-        if not model:
-            return respModel.error_resp(msg="AI模型不存在")
-        
-        if not model.api_key:
-            return respModel.error_resp(msg="请先配置API Key")
-        
-        # 发送测试请求
-        test_message = [{"role": "user", "content": "Hi"}]
-        
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            # SiliconFlow平台 - 使用OpenAI兼容接口
-            if model.provider == "siliconflow" or "siliconflow" in model.api_url:
-                api_url = model.api_url.rstrip('/') + "/chat/completions"
-                response = await client.post(
-                    api_url,
-                    headers={
-                        "Authorization": f"Bearer {model.api_key}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": model.model_code,
-                        "messages": test_message,
-                        "max_tokens": 5
-                    }
-                )
-            elif model.provider == "deepseek" or "deepseek" in model.api_url:
-                api_url = model.api_url.rstrip('/') + "/chat/completions"
-                response = await client.post(
-                    api_url,
-                    headers={"Authorization": f"Bearer {model.api_key}"},
-                    json={
-                        "model": model.model_code,
-                        "messages": test_message,
-                        "max_tokens": 5
-                    }
-                )
-            elif model.provider == "qwen" or "dashscope" in model.api_url:
-                api_url = model.api_url.rstrip('/') + "/chat/completions"
-                response = await client.post(
-                    api_url,
-                    headers={"Authorization": f"Bearer {model.api_key}"},
-                    json={
-                        "model": model.model_code,
-                        "messages": test_message,
-                        "max_tokens": 5
-                    }
-                )
-            elif model.provider == "openai" or "openai" in model.api_url:
-                api_url = model.api_url.rstrip('/') + "/chat/completions"
-                response = await client.post(
-                    api_url,
-                    headers={"Authorization": f"Bearer {model.api_key}"},
-                    json={
-                        "model": model.model_code,
-                        "messages": test_message,
-                        "max_tokens": 5
-                    }
-                )
-            else:
-                # 通用OpenAI兼容接口
-                api_url = model.api_url.rstrip('/') + "/chat/completions"
-                response = await client.post(
-                    api_url,
-                    headers={
-                        "Authorization": f"Bearer {model.api_key}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": model.model_code,
-                        "messages": test_message,
-                        "max_tokens": 5
-                    }
-                )
-            
-            if response.status_code == 200:
-                logger.info(f"连接测试成功: {model.model_name}")
-                return respModel.ok_resp(msg="连接测试成功")
-            else:
-                error_detail = ""
-                try:
-                    error_data = response.json()
-                    error_detail = error_data.get("error", {}).get("message", "") or str(error_data)
-                except:
-                    error_detail = response.text[:200]
-                logger.warning(f"连接测试失败: {model.model_name}, status: {response.status_code}, detail: {error_detail}")
-                return respModel.error_resp(msg=f"连接失败({response.status_code}): {error_detail}")
-    
-    except httpx.TimeoutException:
-        logger.error(f"连接超时: {model.model_name}")
-        return respModel.error_resp(msg="连接超时，请检查网络或API地址")
-    except httpx.ConnectError as e:
-        logger.error(f"连接错误: {model.model_name}, {e}")
-        return respModel.error_resp(msg="无法连接到API服务器，请检查API地址")
+        providers = []
+        for provider, config in ModelSyncService.PROVIDER_CONFIGS.items():
+            providers.append({
+                "name": provider,
+                "display_name": provider.title(),
+                "api_url": config["api_url"],
+                "api_key_env": config["api_key_env"],
+                "default_api_url": config["default_api_url"]
+            })
+        return respModel.ok_resp(data=providers)
     except Exception as e:
-        logger.error(f"测试失败: {e}", exc_info=True)
-        return respModel.error_resp(msg=f"测试失败: {str(e)}")
+        logger.error(f"获取提供商列表失败: {e}")
+        return respModel.error_resp(f"获取提供商列表失败: {str(e)}")
 
 
+@module_route.post("/sync/provider", summary="同步单个提供商的模型")
+async def sync_provider(
+    request: SyncProviderRequest, 
+    session: Session = Depends(get_session)
+):
+    """
+    从指定提供商同步模型列表
+    
+    **支持的提供商:**
+    - siliconflow: SiliconFlow平台
+    - deepseek: DeepSeek AI
+    - openai: OpenAI
+    - qwen: 阿里云通义千问
+    - zhipuai: 智谱AI
+    """
+    try:
+        result = await ModelSyncService.sync_models_from_provider(
+            provider=request.provider,
+            api_key=request.api_key,
+            session=session,
+            update_existing=request.update_existing
+        )
+        
+        if result["success"]:
+            logger.info(f"模型同步成功: {request.provider}, 新增 {result['added']} 个，更新 {result['updated']} 个")
+            return respModel.ok_resp(data=result)
+        else:
+            logger.warning(f"模型同步失败: {request.provider}, {result['message']}")
+            return respModel.error_resp(result["message"])
+            
+    except Exception as e:
+        logger.error(f"同步模型失败: {request.provider}, {str(e)}")
+        return respModel.error_resp(f"同步失败: {str(e)}")
+
+
+@module_route.post("/sync/all", summary="同步所有提供商的模型")
+async def sync_all_providers(
+    request: SyncAllRequest,
+    session: Session = Depends(get_session)
+):
+    """同步所有支持的提供商模型"""
+    try:
+        result = await ModelSyncService.sync_all_providers(
+            api_keys=request.api_keys,
+            session=session
+        )
+        
+        if result["success"]:
+            logger.info(f"全部模型同步完成: 新增 {result['total_added']} 个，更新 {result['total_updated']} 个")
+            return respModel.ok_resp(data=result)
+        else:
+            logger.warning(f"全部模型同步失败: {result['message']}")
+            return respModel.error_resp(result["message"])
+            
+    except Exception as e:
+        logger.error(f"全部模型同步失败: {str(e)}")
+        return respModel.error_resp(f"同步失败: {str(e)}")
+
+
+@module_route.get("/sync/status", summary="获取同步状态")
+async def get_sync_status(session: Session = Depends(get_session)):
+    """获取模型同步状态和统计信息"""
+    try:
+        provider_stats = {}
+        total_count = 0
+        enabled_count = 0
+        
+        for provider in ModelSyncService.PROVIDER_CONFIGS.keys():
+            count = session.exec(
+                select(func.count(AiModel.id)).where(AiModel.provider == provider)
+            ).one()
+            
+            enabled = session.exec(
+                select(func.count(AiModel.id)).where(
+                    (AiModel.provider == provider) & 
+                    (AiModel.is_enabled == True)
+                )
+            ).one()
+            
+            provider_stats[provider] = {"total": count, "enabled": enabled}
+            total_count += count
+            enabled_count += enabled
+        
+        latest_sync = session.exec(
+            select(AiModel.create_time).order_by(AiModel.create_time.desc())
+        ).first()
+        
+        return respModel.ok_resp({
+            "total_models": total_count,
+            "enabled_models": enabled_count,
+            "providers": provider_stats,
+            "latest_sync": latest_sync.isoformat() if latest_sync else None
+        })
+        
+    except Exception as e:
+        logger.error(f"获取同步状态失败: {e}")
+        return respModel.error_resp(f"获取状态失败: {str(e)}")

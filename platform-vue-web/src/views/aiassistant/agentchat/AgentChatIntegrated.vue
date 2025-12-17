@@ -133,7 +133,7 @@ import {
   WarningFilled
 } from '@element-plus/icons-vue'
 import { applyReactInVue } from 'veaury'
-import AgentChatApp from '@/agent-react/AgentChatApp'
+import AgentChatApp from '~/agent-react/AgentChatApp'
 // 导入完整的 Agent Chat 样式
 import '~/agent-react/globals.css'
 // 导入 markdown 样式
@@ -164,8 +164,9 @@ const loadConfig = () => {
       config.assistantId = parsed.assistantId || ''
       config.langsmithApiKey = parsed.langsmithApiKey || ''
     } else {
-      // 从环境变量读取默认配置，默认使用后端FastAPI的LangGraph兼容API
-      config.deploymentUrl = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:5000/api/langgraph'
+      // 从环境变量读取默认配置，默认使用LangGraph本地服务器（端口2024）
+      // 参考: https://docs.langchain.com/oss/python/langgraph/local-server
+      config.deploymentUrl = import.meta.env.VITE_AGENT_API_URL || 'http://localhost:2024'
       config.assistantId = import.meta.env.VITE_AGENT_ASSISTANT_ID || 'testcase'
       config.langsmithApiKey = import.meta.env.VITE_AGENT_LANGSMITH_API_KEY || ''
     }

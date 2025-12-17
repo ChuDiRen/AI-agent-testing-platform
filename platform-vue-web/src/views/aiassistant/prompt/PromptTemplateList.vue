@@ -105,8 +105,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { queryByPage, deleteData, toggleActive } from './prompttemplate'
 import PromptTemplateForm from './PromptTemplateForm.vue'
-import BaseSearch from '@/components/BaseSearch/index.vue'
-import BaseTable from '@/components/BaseTable/index.vue'
+import BaseSearch from '~/components/BaseSearch/index.vue'
+import BaseTable from '~/components/BaseTable/index.vue'
 
 // 搜索表单
 const searchForm = reactive({

@@ -239,8 +239,8 @@ import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { Upload, UploadFilled, Folder, Loading } from '@element-plus/icons-vue'
 import JSZip from 'jszip'
 import { queryByPage, togglePlugin, unregisterPlugin, healthCheck, uploadExecutor, installExecutor, getInstallStatus, uninstallExecutor } from './plugin.js'
-import BaseSearch from '@/components/BaseSearch/index.vue'
-import BaseTable from '@/components/BaseTable/index.vue'
+import BaseSearch from '~/components/BaseSearch/index.vue'
+import BaseTable from '~/components/BaseTable/index.vue'
 
 // 搜索表单
 const searchForm = reactive({

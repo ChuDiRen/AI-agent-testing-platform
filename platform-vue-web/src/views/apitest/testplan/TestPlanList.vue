@@ -88,7 +88,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { queryByPage, deleteData, executePlan, copyPlan, getJenkinsConfig } from './testPlan'
-import { queryAllProject } from '../project/apiProject.js'
+import { queryAllProject } from '~/views/apitest/project/apiProject.js'
 import BaseSearch from '~/components/BaseSearch/index.vue'
 import BaseTable from '~/components/BaseTable/index.vue'
 

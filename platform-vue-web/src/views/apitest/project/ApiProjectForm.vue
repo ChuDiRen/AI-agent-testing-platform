@@ -25,7 +25,7 @@ import type { FormRules } from 'element-plus';
 import { useRouter } from "vue-router";
 import { ElMessage } from 'element-plus';
 import { queryById, insertData, updateData } from './apiProject.js';
-import BaseForm from '@/components/BaseForm/index.vue';
+import BaseForm from '~/components/BaseForm/index.vue';
 
 const router = useRouter();
 

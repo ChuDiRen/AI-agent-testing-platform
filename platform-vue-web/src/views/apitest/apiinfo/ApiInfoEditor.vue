@@ -248,9 +248,9 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { queryById, insertData, updateData } from './apiinfo.js'
-import { queryByPage as getProjectList } from '../project/apiProject.js'
-import { executeTest as executeApiTest } from '../apitest/apiTest.js'
-import { listEnabledPlugins } from '../../plugin/plugin.js'
+import { queryByPage as getProjectList } from '~/views/apitest/project/apiProject.js'
+import { executeTest as executeApiTest } from '~/views/apitest/apitest/apiTest.js'
+import { listEnabledPlugins } from '~/views/plugin/plugin.js'
 
 const router = useRouter()
 const route = useRoute()

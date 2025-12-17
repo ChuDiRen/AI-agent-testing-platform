@@ -171,9 +171,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Bell } from '@element-plus/icons-vue'
 import { insertData, updateData, queryById, removeCase, updateDdtData, getDdtTemplate, getPlanRobots, addPlanRobot, updatePlanRobot, removePlanRobot } from './testPlan'
-import JsonEditor from '@/components/JsonEditor.vue'
-import { queryAllExecutors } from '@/views/plugin/plugin.js'
-import { queryAll as queryAllRobots } from '@/views/msgmanage/robot/robotConfig.js'
+import JsonEditor from '~/components/JsonEditor.vue'
+import { queryAllExecutors } from '~/views/plugin/plugin.js'
+import { queryAll as queryAllRobots } from '~/views/msgmanage/robot/robotConfig.js'
 
 const router = useRouter()
 const route = useRoute()

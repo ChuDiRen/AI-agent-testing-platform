@@ -74,7 +74,7 @@
 <script lang="ts" setup>
 import { ref, reactive } from "vue"
 import { queryByPage, deleteData, assignMenus, getRoleMenus } from './role'
-import { getMenuTree } from '../menu/menu'
+import { getMenuTree } from '~/views/system/menu/menu'
 import { formatDateTime } from '~/utils/timeFormatter'
 import { useRouter } from "vue-router"
 import { ElMessage, ElMessageBox } from 'element-plus'

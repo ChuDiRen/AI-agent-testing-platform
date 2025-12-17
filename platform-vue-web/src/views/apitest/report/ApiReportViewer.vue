@@ -34,7 +34,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Download, Refresh } from '@element-plus/icons-vue'
-import { queryById } from '../history/apiHistory'
+import { queryById } from '~/views/apitest/history/apiHistory'
 
 const route = useRoute()
 const router = useRouter()

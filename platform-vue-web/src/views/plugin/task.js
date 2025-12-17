@@ -1,7 +1,7 @@
 /**
  * 任务执行 API
  */
-import axios from '@/axios'
+import axios from '~/axios'
 
 // 执行测试任务
 export function executeTest(data) {

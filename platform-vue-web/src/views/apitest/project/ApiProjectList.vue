@@ -173,12 +173,12 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from "vue";
 import { queryByPage, deleteData } from "./apiProject.js";
-import { formatDateTime } from '@/utils/timeFormatter';
+import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
-import BaseTable from '@/components/BaseTable/index.vue';
-import BaseSearch from '@/components/BaseSearch/index.vue';
+import BaseTable from '~/components/BaseTable/index.vue';
+import BaseSearch from '~/components/BaseSearch/index.vue';
 
 const router = useRouter(); 
 

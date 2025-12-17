@@ -120,7 +120,7 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from "vue";
 import { queryByPage, deleteData, getMethods, importSwagger } from './apiinfo.js';
-import { queryByPage as getProjectList } from '../project/apiProject.js';
+import { queryByPage as getProjectList } from '~/views/apitest/project/apiProject.js';
 import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';

@@ -62,7 +62,7 @@
 <script lang="ts" setup>
 import { ref, reactive, computed } from "vue"
 import { queryById, insertData, updateData } from './user'
-import { getDeptTree } from '../dept/dept'
+import { getDeptTree } from '~/views/system/dept/dept'
 import { useRouter } from "vue-router"
 import { useStore } from 'vuex'
 import { ElMessage } from 'element-plus'

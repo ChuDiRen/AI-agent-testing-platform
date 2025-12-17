@@ -5,5 +5,10 @@
     "graphs": {
         "testcase": "./aiassistant/langgraph/graph.py:graph"
     },
-    "env": ".env"
+    "env": ".env",
+    "checkpointer": {
+        "type": "database",
+        "auto_migrate": true,
+        "cleanup_days": 30
+    }
 }

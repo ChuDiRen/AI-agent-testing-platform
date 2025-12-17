@@ -151,11 +151,11 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, FolderAdd, Upload } from '@element-plus/icons-vue'
 import { queryByPage, deleteData, getCaseEngines, executeCase, importXMind } from './apiInfoCase.js'
-import { queryAll as queryProjects } from '../project/apiProject.js'
+import { queryAll as queryProjects } from '~/views/apitest/project/apiProject.js'
 import { useRouter } from 'vue-router'
 import BaseSearch from '~/components/BaseSearch/index.vue'
 import BaseTable from '~/components/BaseTable/index.vue'
-import { queryByPage as queryPlans, batchAddCases } from '../testplan/testPlan.js'
+import { queryByPage as queryPlans, batchAddCases } from '~/views/apitest/testplan/testPlan.js'
 
 const router = useRouter()
 

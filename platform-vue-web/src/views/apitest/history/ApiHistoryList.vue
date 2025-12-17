@@ -179,11 +179,11 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { queryByPage, deleteData } from './apiHistory.js'
-import { formatDateTime } from '@/utils/timeFormatter'
-import BaseSearch from '@/components/BaseSearch/index.vue'
-import BaseTable from '@/components/BaseTable/index.vue'
-import JsonViewer from '@/components/JsonViewer.vue'
-import YamlViewer from '@/components/YamlViewer.vue'
+import { formatDateTime } from '~/utils/timeFormatter'
+import BaseSearch from '~/components/BaseSearch/index.vue'
+import BaseTable from '~/components/BaseTable/index.vue'
+import JsonViewer from '~/components/JsonViewer.vue'
+import YamlViewer from '~/components/YamlViewer.vue'
 
 const route = useRoute()
 

@@ -42,7 +42,7 @@ import { computed, onMounted } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useRouter } from "vue-router"
 import { useStore } from 'vuex'
-import { getUserInfo } from '@/views/login/login'
+import { getUserInfo } from '~/views/login/login'
 
 const router = useRouter()
 const store = useStore()

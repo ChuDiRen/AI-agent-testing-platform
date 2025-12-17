@@ -157,9 +157,9 @@
 <script setup>
 import { ref, reactive, watch, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { queryKeywordsGroupedByEngine, getKeywordFields } from '../apiInfoCase.js'
-import { queryAll as queryApiInfo } from '../../apiinfo/apiinfo.js'
-import { queryAll as queryDbBase } from '../../project/dbBase.js'
+import { queryKeywordsGroupedByEngine, getKeywordFields } from '~/views/apitest/apiinfocase/apiInfoCase.js'
+import { queryAll as queryApiInfo } from '~/views/apitest/apiinfo/apiinfo.js'
+import { queryAll as queryDbBase } from '~/views/apitest/project/dbBase.js'
 
 const props = defineProps({
   modelValue: {

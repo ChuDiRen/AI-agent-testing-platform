@@ -90,21 +90,19 @@ platform-fastapi-server/
     ├── model/            # 数据模型
     │   ├── AiModel.py            # AI模型配置
     │   ├── PromptTemplate.py     # 提示词模板
-    │   ├── AiConversation.py     # AI对话会话
-    │   ├── AiMessage.py          # AI对话消息
     │   ├── AiGenerateHistory.py  # 生成历史记录
-    │   └── TestCaseModel.py      # AI生成的测试用例
+    │   ├── TestCaseModel.py      # AI生成的测试用例
+    │   └── LangGraphCheckpointModel.py  # LangGraph检查点
     ├── api/              # 接口控制器
     │   ├── AiModelController.py          # AI模型管理
     │   ├── PromptTemplateController.py   # 提示词模板管理
     │   ├── TestCaseController.py         # 测试用例管理
-    │   └── AiConversationController.py   # AI对话接口（SSE流式）
+    │   ├── LangGraphController.py        # LangGraph多智能体
+    │   └── LangGraphServerController.py  # LangGraph Server API
     └── schemas/          # Schema定义
         ├── ai_model_schema.py
         ├── prompt_template_schema.py
-        ├── test_case_schema.py
-        ├── ai_conversation_schema.py
-        └── ai_message_schema.py
+        └── test_case_schema.py
 ```
 
 ## 安装依赖
@@ -256,27 +254,20 @@ uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
 - `expected_result`: 预期结果
 - `tags`: 标签
 - `project_id`: 所属项目
-- `conversation_id`: 来源对话会话
 
-#### 2.4 AI对话接口（核心功能）
+#### 2.4 LangGraph多智能体接口（核心功能）
 
-- `POST /AiConversation/create` - 创建新对话会话
-- `GET /AiConversation/list` - 获取用户的对话列表
-- `GET /AiConversation/detail/{id}` - 获取对话详情（包含消息历史）
-- `POST /AiConversation/stream` - **流式对话接口（SSE）** ⭐核心
-- `DELETE /AiConversation/delete/{id}` - 删除对话会话
+- `POST /langgraph/generate` - 多智能体测试用例生成
+- `GET /api/langgraph/threads` - 获取对话线程列表
+- `POST /api/langgraph/threads` - 创建新对话线程
+- `POST /api/langgraph/threads/{thread_id}/runs/stream` - 流式对话接口
 
-**流式对话特性**：
-- ✅ Server-Sent Events (SSE) 实时流式输出
-- ✅ 支持多轮对话，自动管理上下文
-- ✅ 实时解析AI输出中的JSON测试用例
-- ✅ 支持文件上传（TXT/Word/PDF需求文档）
-- ✅ 可配置AI模型和提示词模板
-- ✅ 自动保存对话历史和生成的测试用例
-
-**流式输出事件类型**：
-- `message`: 普通文本消息
-- `testcase`: 完整测试用例JSON
+**LangGraph特性**：
+- ✅ 基于LangGraph的多智能体协作
+- ✅ 支持流式输出（SSE）
+- ✅ 对话状态持久化（数据库checkpointer）
+- ✅ 支持多种AI模型配置
+- ✅ 自动生成测试用例
 - `error`: 错误信息
 - `done`: 生成完成
 

@@ -54,7 +54,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { queryByPage, deleteData, testConnection, toggleEnabled } from '../project/dbBase'
+import { queryByPage, deleteData, testConnection, toggleEnabled } from '~/views/apitest/project/dbBase'
 import ApiDbBaseForm from './ApiDbBaseForm.vue'
 import BaseTable from '~/components/BaseTable/index.vue'
 

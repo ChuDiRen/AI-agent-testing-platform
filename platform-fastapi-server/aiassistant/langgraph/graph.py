@@ -38,10 +38,8 @@ class GraphState(TypedDict):
 
 def get_model():
     """获取模型实例"""
-    api_key = os.getenv("SILICONFLOW_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("DEEPSEEK_API_KEY")
-    if not api_key:
-        raise ValueError("请设置 SILICONFLOW_API_KEY 或 OPENAI_API_KEY 环境变量")
-    
+    # 默认使用 SiliconFlow API（写死配置，避免环境变量问题）
+    api_key = os.getenv("SILICONFLOW_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("DEEPSEEK_API_KEY") or "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem"
     base_url = os.getenv("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1")
     model_name = os.getenv("SILICONFLOW_MODEL", "deepseek-ai/DeepSeek-V3")
     
@@ -284,7 +282,7 @@ def should_continue(state: GraphState) -> str:
 
 # ==================== Build Graph ====================
 
-def build_graph():
+def build_graph(checkpointer=None):
     """构建LangGraph图"""
     workflow = StateGraph(GraphState)
     
@@ -310,7 +308,11 @@ def build_graph():
         }
     )
     
-    return workflow.compile()
+    # 使用checkpointer编译图
+    if checkpointer:
+        return workflow.compile(checkpointer=checkpointer)
+    else:
+        return workflow.compile()
 
 
 # 导出graph实例供langgraph dev使用

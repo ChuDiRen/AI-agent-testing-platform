@@ -43,7 +43,8 @@
 import { computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router';
 import {useStore} from 'vuex'
-import { getUserMenus, getMenuTree } from '@/views/system/menu/menu'
+import { getUserMenus, getMenuTree } from '~/views/system/menu/menu'
+import { addDynamicRoutes } from '~/router'
 
 const router = useRouter()
 const route = useRoute()
@@ -76,20 +77,37 @@ const deletedRoutes = [
   '/ai-chat'
 ]
 
-// 根据菜单类型和component字段生成前端路由路径
+// 根据菜单类型和path/component字段生成前端路由路径
 function getRoutePath(node) {
-  // 如果是目录类型(M)且没有component，返回空字符串（不跳转）
-  if (node.menu_type === 'M' && !node.component) {
+  // 如果是目录类型(M)且没有component和path，返回空字符串（不跳转）
+  if (node.menu_type === 'M' && !node.component && !node.path) {
     return ''
   }
   
-  // 如果有component字段，使用component作为路由路径
+  // 判断path是否为前端路由格式（以/Api或/Test等大写字母开头）
+  // 新增的菜单使用这种格式，如 /ApiMockList, /ApiEnvironmentList
+  const isRouterPath = node.path && /^\/[A-Z]/.test(node.path)
+  
+  if (isRouterPath) {
+    // 过滤已删除的路由
+    if (deletedRoutes.includes(node.path)) {
+      return ''
+    }
+    return node.path
+  }
+  
+  // 使用component字段生成路由路径
+  // 与router/index.js保持一致：提取组件名作为路径
   if (node.component) {
-    // 如果component不是以/开头，添加/前缀
-    const path = node.component.startsWith('/') ? node.component : `/${node.component}`
+    // component格式可能是 "userList" 或 "system/users/userList"
+    // 提取最后的组件名作为路径
+    const parts = node.component.split('/')
+    const componentName = parts[parts.length - 1]
+    const path = `/${componentName}`
+    
     // 过滤已删除的路由
     if (deletedRoutes.includes(path)) {
-      return '' // 返回空字符串，这样菜单项会被过滤掉
+      return ''
     }
     return path
   }
@@ -143,6 +161,8 @@ onMounted(async ()=>{
 async function loadMenuData() {
   // 如果已有菜单数据，不重复加载
   if(store.state.menuTree && store.state.menuTree.length > 0){
+    // 确保动态路由已注册
+    addDynamicRoutes(store.state.menuTree)
     return
   }
   
@@ -156,6 +176,8 @@ async function loadMenuData() {
       if(allRes?.data?.code === 200){
         const menuData = allRes.data.data || []
         store.commit('setMenuTree', menuData)
+        // 动态注册路由
+        addDynamicRoutes(menuData)
       }
     }catch(e){
       console.error('加载菜单失败:', e)
@@ -170,6 +192,8 @@ async function loadMenuData() {
       const tree = res.data.data || []
       if(tree.length > 0){
         store.commit('setMenuTree', tree)
+        // 动态注册路由
+        addDynamicRoutes(tree)
         return
       }
     }
@@ -179,6 +203,8 @@ async function loadMenuData() {
     if(allRes?.data?.code === 200){
       const menuData = allRes.data.data || []
       store.commit('setMenuTree', menuData)
+      // 动态注册路由
+      addDynamicRoutes(menuData)
     }
   }catch(e){
     console.error('加载菜单失败:', e)
@@ -186,7 +212,10 @@ async function loadMenuData() {
     try{
       const allRes = await getMenuTree()
       if(allRes?.data?.code === 200){
-        store.commit('setMenuTree', allRes.data.data || [])
+        const menuData = allRes.data.data || []
+        store.commit('setMenuTree', menuData)
+        // 动态注册路由
+        addDynamicRoutes(menuData)
       }
     }catch(err){
       console.error('加载全量菜单也失败:', err)

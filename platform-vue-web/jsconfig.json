@@ -2,11 +2,11 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
       "~/*": [
         "src/*"
+      ],
+      "@/*": [
+        "src/agent-react/*"
       ]
     },
     "jsx": "preserve",

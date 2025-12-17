@@ -29,8 +29,8 @@ import { reactive, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { insertData, queryById } from "./apiMeta.js";
-import { queryAllProject } from "../project/apiProject.js";
-import BaseForm from '@/components/BaseForm/index.vue';
+import { queryAllProject } from "~/views/apitest/project/apiProject.js";
+import BaseForm from '~/components/BaseForm/index.vue';
 
 const router = useRouter();
 

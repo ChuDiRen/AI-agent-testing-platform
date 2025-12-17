@@ -88,7 +88,7 @@ import { queryById, insertData, updateData } from './apiKeyWord.js'; // 不同�
 import type { FormInstance, FormRules } from 'element-plus';
 import { useRouter } from "vue-router";
 import { ElMessage } from 'element-plus';
-import CodeEditor from '@/components/CodeEditor.vue';
+import CodeEditor from '~/components/CodeEditor.vue';
   
   const router = useRouter();
   

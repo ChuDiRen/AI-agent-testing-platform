@@ -95,15 +95,15 @@
   
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from "vue";
-import { formatDateTime } from '@/utils/timeFormatter';
+import { formatDateTime } from '~/utils/timeFormatter';
 import { queryByPage, deleteData, syncFromPlugin } from "./apiKeyWord.js";
 import { queryAll } from "./operationType.js";
-import { listEnabledPlugins } from "@/views/plugin/plugin.js";
+import { listEnabledPlugins } from "~/views/plugin/plugin.js";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Refresh } from '@element-plus/icons-vue';
-import BaseSearch from '@/components/BaseSearch/index.vue';
-import BaseTable from '@/components/BaseTable/index.vue';
+import BaseSearch from '~/components/BaseSearch/index.vue';
+import BaseTable from '~/components/BaseTable/index.vue';
 
 const router = useRouter();
 

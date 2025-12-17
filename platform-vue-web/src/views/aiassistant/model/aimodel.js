@@ -64,3 +64,35 @@ export function testConnection(id) {
     return axios.post(`/${module_name}/testConnection?id=${id}&_alias=aimodel-test`)
 }
 
+// ==================== 模型同步相关接口 ====================
+
+/**
+ * 获取支持的提供商列表
+ */
+export function getSyncProviders() {
+    return axios.get(`/${module_name}/sync/providers?_alias=modelsync-providers`)
+}
+
+/**
+ * 同步单个提供商的模型
+ * @param {Object} data - { provider: string, api_key?: string, update_existing?: boolean }
+ */
+export function syncProvider(data) {
+    return axios.post(`/${module_name}/sync/provider?_alias=modelsync-provider`, data)
+}
+
+/**
+ * 同步所有提供商的模型
+ * @param {Object} data - { api_keys?: object, update_existing?: boolean }
+ */
+export function syncAllProviders(data = {}) {
+    return axios.post(`/${module_name}/sync/all?_alias=modelsync-all`, data)
+}
+
+/**
+ * 获取同步状态
+ */
+export function getSyncStatus() {
+    return axios.get(`/${module_name}/sync/status?_alias=modelsync-status`)
+}
+

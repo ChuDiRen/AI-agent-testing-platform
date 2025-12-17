@@ -9,9 +9,10 @@ export interface AgentChatConfig {
   LANGSMITH_API_KEY?: string;
 }
 
-// 从环境变量读取默认配置，默认使用后端FastAPI的LangGraph兼容API
+// 从环境变量读取默认配置，默认使用LangGraph本地服务器（端口2024）
+// 参考: https://docs.langchain.com/oss/python/langgraph/local-server
 const DEFAULT_CONFIG: AgentChatConfig = {
-  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/langgraph',
+  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2024',
   NEXT_PUBLIC_ASSISTANT_ID: process.env.NEXT_PUBLIC_ASSISTANT_ID || 'testcase',
   LANGSMITH_API_KEY: undefined,
 };

@@ -50,13 +50,13 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from "vue";
 import { queryByPage, deleteData, downloadFile } from "./apiMeta.js";
-import { queryAllProject } from "../project/apiProject.js";
-import { formatDateTime } from '@/utils/timeFormatter';
+import { queryAllProject } from "~/views/apitest/project/apiProject.js";
+import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
-import BaseSearch from '@/components/BaseSearch/index.vue';
-import BaseTable from '@/components/BaseTable/index.vue';
+import BaseSearch from '~/components/BaseSearch/index.vue';
+import BaseTable from '~/components/BaseTable/index.vue';
 
 const router = useRouter();
 

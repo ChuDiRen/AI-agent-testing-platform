@@ -1,7 +1,7 @@
 /**
  * 插件管理 API
  */
-import axios from '@/axios'
+import axios from '~/axios'
 
 // 分页查询插件
 export function queryByPage(data) {

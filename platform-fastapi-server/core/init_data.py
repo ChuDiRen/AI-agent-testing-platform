@@ -87,7 +87,7 @@ def create_initial_menus():
                 # 系统总览（首页）
                 # ================================
                 # 0. 系统总览（菜单 C）
-                {"id": 0, "parent_id": 0, "menu_name": "系统总览", "path": "/Statistics", "component": "Statistics", "query": None, "perms": "system:statistics:view", "icon": "DataLine", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 0, "remark": "系统总览首页"},
+                {"id": 0, "parent_id": 0, "menu_name": "系统总览", "path": "/Statistics", "component": "statistics/statistics", "query": None, "perms": "system:statistics:view", "icon": "DataLine", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 0, "remark": "系统总览首页"},
                 
                 # ================================
                 # 系统管理模块
@@ -96,7 +96,7 @@ def create_initial_menus():
                 {"id": 1, "parent_id": 0, "menu_name": "系统管理", "path": "/system", "component": None, "query": None, "perms": None, "icon": "Setting", "menu_type": "M", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "系统管理目录"},
 
                 # 1.1 用户管理（菜单 C）
-                {"id": 100, "parent_id": 1, "menu_name": "用户管理", "path": "/system/user", "component": "userList", "query": None, "perms": "system:user:list", "icon": "User", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "用户管理菜单"},
+                {"id": 100, "parent_id": 1, "menu_name": "用户管理", "path": "/system/user", "component": "system/users/userList", "query": None, "perms": "system:user:list", "icon": "User", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "用户管理菜单"},
                 {"id": 1001, "parent_id": 100, "menu_name": "用户查询", "path": None, "component": None, "query": None, "perms": "system:user:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 1002, "parent_id": 100, "menu_name": "用户新增", "path": None, "component": None, "query": None, "perms": "system:user:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 1003, "parent_id": 100, "menu_name": "用户修改", "path": None, "component": None, "query": None, "perms": "system:user:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
@@ -104,21 +104,21 @@ def create_initial_menus():
                 {"id": 1005, "parent_id": 100, "menu_name": "用户导出", "path": None, "component": None, "query": None, "perms": "system:user:export", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": None},
 
                 # 1.2 角色管理（菜单 C）
-                {"id": 101, "parent_id": 1, "menu_name": "角色管理", "path": "/system/role", "component": "roleList", "query": None, "perms": "system:role:list", "icon": "UserFilled", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": "角色管理菜单"},
+                {"id": 101, "parent_id": 1, "menu_name": "角色管理", "path": "/system/role", "component": "system/role/roleList", "query": None, "perms": "system:role:list", "icon": "UserFilled", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": "角色管理菜单"},
                 {"id": 1011, "parent_id": 101, "menu_name": "角色查询", "path": None, "component": None, "query": None, "perms": "system:role:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 1012, "parent_id": 101, "menu_name": "角色新增", "path": None, "component": None, "query": None, "perms": "system:role:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 1013, "parent_id": 101, "menu_name": "角色修改", "path": None, "component": None, "query": None, "perms": "system:role:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 1014, "parent_id": 101, "menu_name": "角色删除", "path": None, "component": None, "query": None, "perms": "system:role:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
                 # 1.3 菜单管理（菜单 C）
-                {"id": 102, "parent_id": 1, "menu_name": "菜单管理", "path": "/system/menu", "component": "menuList", "query": None, "perms": "system:menu:list", "icon": "Menu", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "菜单管理菜单"},
+                {"id": 102, "parent_id": 1, "menu_name": "菜单管理", "path": "/system/menu", "component": "system/menu/menuList", "query": None, "perms": "system:menu:list", "icon": "Menu", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "菜单管理菜单"},
                 {"id": 1021, "parent_id": 102, "menu_name": "菜单查询", "path": None, "component": None, "query": None, "perms": "system:menu:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 1022, "parent_id": 102, "menu_name": "菜单新增", "path": None, "component": None, "query": None, "perms": "system:menu:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 1023, "parent_id": 102, "menu_name": "菜单修改", "path": None, "component": None, "query": None, "perms": "system:menu:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 1024, "parent_id": 102, "menu_name": "菜单删除", "path": None, "component": None, "query": None, "perms": "system:menu:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
                 # 1.4 部门管理（菜单 C）
-                {"id": 103, "parent_id": 1, "menu_name": "部门管理", "path": "/system/dept", "component": "deptList", "query": None, "perms": "system:dept:list", "icon": "OfficeBuilding", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": "部门管理菜单"},
+                {"id": 103, "parent_id": 1, "menu_name": "部门管理", "path": "/system/dept", "component": "system/dept/deptList", "query": None, "perms": "system:dept:list", "icon": "OfficeBuilding", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": "部门管理菜单"},
                 {"id": 1031, "parent_id": 103, "menu_name": "部门查询", "path": None, "component": None, "query": None, "perms": "system:dept:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 1032, "parent_id": 103, "menu_name": "部门新增", "path": None, "component": None, "query": None, "perms": "system:dept:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 1033, "parent_id": 103, "menu_name": "部门修改", "path": None, "component": None, "query": None, "perms": "system:dept:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
@@ -141,35 +141,35 @@ def create_initial_menus():
                 {"id": 200, "parent_id": 0, "menu_name": "API自动化", "path": "/apitest", "component": None, "query": None, "perms": None, "icon": "Promotion", "menu_type": "M", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": "API自动化测试模块"},
 
                 # 2.1 项目管理（菜单 C）
-                {"id": 2000, "parent_id": 200, "menu_name": "项目管理", "path": "/apitest/project", "component": "ApiProjectList", "query": None, "perms": "apitest:project:list", "icon": "Folder", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "API项目管理"},
+                {"id": 2000, "parent_id": 200, "menu_name": "项目管理", "path": "/apitest/project", "component": "apitest/project/ApiProjectList", "query": None, "perms": "apitest:project:list", "icon": "Folder", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "API项目管理"},
                 {"id": 2001, "parent_id": 2000, "menu_name": "项目查询", "path": None, "component": None, "query": None, "perms": "apitest:project:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 2002, "parent_id": 2000, "menu_name": "项目新增", "path": None, "component": None, "query": None, "perms": "apitest:project:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 2003, "parent_id": 2000, "menu_name": "项目修改", "path": None, "component": None, "query": None, "perms": "apitest:project:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 2004, "parent_id": 2000, "menu_name": "项目删除", "path": None, "component": None, "query": None, "perms": "apitest:project:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
                 # 2.2 接口信息管理（菜单 C）
-                {"id": 201, "parent_id": 200, "menu_name": "接口信息", "path": "/apitest/apiinfo", "component": "ApiInfoList", "query": None, "perms": "apitest:api:list", "icon": "Monitor", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": "接口信息管理"},
+                {"id": 201, "parent_id": 200, "menu_name": "接口信息", "path": "/apitest/apiinfo", "component": "apitest/apiinfo/ApiInfoList", "query": None, "perms": "apitest:api:list", "icon": "Monitor", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": "接口信息管理"},
                 {"id": 2011, "parent_id": 201, "menu_name": "接口查询", "path": None, "component": None, "query": None, "perms": "apitest:api:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 2012, "parent_id": 201, "menu_name": "接口新增", "path": None, "component": None, "query": None, "perms": "apitest:api:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 2013, "parent_id": 201, "menu_name": "接口修改", "path": None, "component": None, "query": None, "perms": "apitest:api:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 2014, "parent_id": 201, "menu_name": "接口删除", "path": None, "component": None, "query": None, "perms": "apitest:api:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
                 # 2.3 关键字管理（菜单 C）
-                {"id": 203, "parent_id": 200, "menu_name": "关键字管理", "path": "/apitest/keyword", "component": "ApiKeyWordList", "query": None, "perms": "apitest:keyword:list", "icon": "Key", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "关键字管理"},
+                {"id": 203, "parent_id": 200, "menu_name": "关键字管理", "path": "/apitest/keyword", "component": "apitest/keyword/ApiKeyWordList", "query": None, "perms": "apitest:keyword:list", "icon": "Key", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "关键字管理"},
                 {"id": 2031, "parent_id": 203, "menu_name": "关键字查询", "path": None, "component": None, "query": None, "perms": "apitest:keyword:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 2032, "parent_id": 203, "menu_name": "关键字新增", "path": None, "component": None, "query": None, "perms": "apitest:keyword:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 2033, "parent_id": 203, "menu_name": "关键字修改", "path": None, "component": None, "query": None, "perms": "apitest:keyword:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 2034, "parent_id": 203, "menu_name": "关键字删除", "path": None, "component": None, "query": None, "perms": "apitest:keyword:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
                 # 2.4 素材管理（菜单 C）- 权限码统一使用 meta（与后端 ApiMeta 一致）
-                {"id": 204, "parent_id": 200, "menu_name": "素材管理", "path": "/apitest/meta", "component": "ApiMetaList", "query": None, "perms": "apitest:meta:list", "icon": "Picture", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": "素材管理"},
+                {"id": 204, "parent_id": 200, "menu_name": "素材管理", "path": "/apitest/meta", "component": "apitest/apimeta/ApiMetaList", "query": None, "perms": "apitest:meta:list", "icon": "Picture", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": "素材管理"},
                 {"id": 2041, "parent_id": 204, "menu_name": "素材查询", "path": None, "component": None, "query": None, "perms": "apitest:meta:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 2042, "parent_id": 204, "menu_name": "素材新增", "path": None, "component": None, "query": None, "perms": "apitest:meta:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 2043, "parent_id": 204, "menu_name": "素材修改", "path": None, "component": None, "query": None, "perms": "apitest:meta:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 2044, "parent_id": 204, "menu_name": "素材删除", "path": None, "component": None, "query": None, "perms": "apitest:meta:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
                 # 2.5 用例管理（菜单 C）
-                {"id": 206, "parent_id": 200, "menu_name": "用例管理", "path": "/ApiInfoCaseList", "component": "ApiInfoCaseList", "query": None, "perms": "apitest:case:list", "icon": "Document", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": "API用例管理"},
+                {"id": 206, "parent_id": 200, "menu_name": "用例管理", "path": "/ApiInfoCaseList", "component": "apitest/apiinfocase/ApiInfoCaseList", "query": None, "perms": "apitest:case:list", "icon": "Document", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": "API用例管理"},
                 {"id": 2061, "parent_id": 206, "menu_name": "用例查询", "path": None, "component": None, "query": None, "perms": "apitest:case:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 2062, "parent_id": 206, "menu_name": "用例新增", "path": None, "component": None, "query": None, "perms": "apitest:case:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 2063, "parent_id": 206, "menu_name": "用例修改", "path": None, "component": None, "query": None, "perms": "apitest:case:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
@@ -177,7 +177,7 @@ def create_initial_menus():
                 {"id": 2065, "parent_id": 206, "menu_name": "用例执行", "path": None, "component": None, "query": None, "perms": "apitest:case:execute", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": None},
 
                 # 2.6 测试计划（菜单 C）
-                {"id": 207, "parent_id": 200, "menu_name": "测试计划", "path": "/apitest/plan", "component": "TestPlanList", "query": None, "perms": "apitest:plan:list", "icon": "DataAnalysis", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 6, "remark": "API测试计划管理"},
+                {"id": 207, "parent_id": 200, "menu_name": "测试计划", "path": "/apitest/plan", "component": "apitest/testplan/TestPlanList", "query": None, "perms": "apitest:plan:list", "icon": "DataAnalysis", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 6, "remark": "API测试计划管理"},
                 {"id": 2071, "parent_id": 207, "menu_name": "计划查询", "path": None, "component": None, "query": None, "perms": "apitest:plan:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 2072, "parent_id": 207, "menu_name": "计划新增", "path": None, "component": None, "query": None, "perms": "apitest:plan:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 2073, "parent_id": 207, "menu_name": "计划修改", "path": None, "component": None, "query": None, "perms": "apitest:plan:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
@@ -185,7 +185,7 @@ def create_initial_menus():
                 {"id": 2075, "parent_id": 207, "menu_name": "计划执行", "path": None, "component": None, "query": None, "perms": "apitest:plan:execute", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": None},
 
                 # 2.7 测试任务（菜单 C）
-                {"id": 208, "parent_id": 200, "menu_name": "测试任务", "path": "/apitest/task", "component": "TestTaskList", "query": None, "perms": "apitest:task:list", "icon": "Timer", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 7, "remark": "测试任务管理"},
+                {"id": 208, "parent_id": 200, "menu_name": "测试任务", "path": "/apitest/task", "component": "apitest/task/TestTaskList", "query": None, "perms": "apitest:task:list", "icon": "Timer", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 7, "remark": "测试任务管理"},
                 {"id": 2081, "parent_id": 208, "menu_name": "任务查询", "path": None, "component": None, "query": None, "perms": "apitest:task:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 2082, "parent_id": 208, "menu_name": "任务新增", "path": None, "component": None, "query": None, "perms": "apitest:task:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 2083, "parent_id": 208, "menu_name": "任务修改", "path": None, "component": None, "query": None, "perms": "apitest:task:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
@@ -193,19 +193,19 @@ def create_initial_menus():
                 {"id": 2085, "parent_id": 208, "menu_name": "任务执行", "path": None, "component": None, "query": None, "perms": "apitest:task:execute", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": None},
 
                 # 2.8 测试历史（菜单 C）
-                {"id": 205, "parent_id": 200, "menu_name": "测试历史", "path": "/apitest/testhistory", "component": "ApiTestHistory", "query": None, "perms": "apitest:history:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 8, "remark": "测试历史记录"},
+                {"id": 205, "parent_id": 200, "menu_name": "测试历史", "path": "/apitest/testhistory", "component": "apitest/history/ApiHistoryList", "query": None, "perms": "apitest:history:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 8, "remark": "测试历史记录"},
                 {"id": 2051, "parent_id": 205, "menu_name": "历史查询", "path": None, "component": None, "query": None, "perms": "apitest:history:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 2052, "parent_id": 205, "menu_name": "历史删除", "path": None, "component": None, "query": None, "perms": "apitest:history:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
 
                 # 2.9 机器人配置（菜单 C）
-                {"id": 501, "parent_id": 200, "menu_name": "机器人配置", "path": "/apitest/robot", "component": "RobotConfigList", "query": None, "perms": "msgmanage:robot:list", "icon": "Cpu", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 9, "remark": "机器人配置"},
+                {"id": 501, "parent_id": 200, "menu_name": "机器人配置", "path": "/apitest/robot", "component": "msgmanage/robot/RobotConfigList", "query": None, "perms": "msgmanage:robot:list", "icon": "Cpu", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 9, "remark": "机器人配置"},
                 {"id": 5011, "parent_id": 501, "menu_name": "机器人查询", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 5012, "parent_id": 501, "menu_name": "机器人新增", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 5013, "parent_id": 501, "menu_name": "机器人修改", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 5014, "parent_id": 501, "menu_name": "机器人删除", "path": None, "component": None, "query": None, "perms": "msgmanage:robot:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
                 # 2.10 消息模板（菜单 C）
-                {"id": 502, "parent_id": 200, "menu_name": "消息模板", "path": "/apitest/msgtemplate", "component": "RobotMsgConfigList", "query": None, "perms": "msgmanage:template:list", "icon": "Message", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 10, "remark": "消息模板管理"},
+                {"id": 502, "parent_id": 200, "menu_name": "消息模板", "path": "/apitest/msgtemplate", "component": "msgmanage/template/RobotMsgConfigList", "query": None, "perms": "msgmanage:template:list", "icon": "Message", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 10, "remark": "消息模板管理"},
                 {"id": 5021, "parent_id": 502, "menu_name": "模板查询", "path": None, "component": None, "query": None, "perms": "msgmanage:template:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 5022, "parent_id": 502, "menu_name": "模板新增", "path": None, "component": None, "query": None, "perms": "msgmanage:template:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 5023, "parent_id": 502, "menu_name": "模板修改", "path": None, "component": None, "query": None, "perms": "msgmanage:template:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
@@ -218,24 +218,24 @@ def create_initial_menus():
                 {"id": 300, "parent_id": 0, "menu_name": "AI配置", "path": "/ai-config", "component": None, "query": None, "perms": None, "icon": "Setting", "menu_type": "M", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "AI配置管理模块"},
 
                 # 3.1 AI模型管理（菜单 C）
-                {"id": 301, "parent_id": 300, "menu_name": "AI模型", "path": "/ai-models", "component": "AiModelList", "query": None, "perms": "ai:model:list", "icon": "Cpu", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "AI模型管理"},
+                {"id": 301, "parent_id": 300, "menu_name": "AI模型", "path": "/ai-models", "component": "aiassistant/model/AiModelList", "query": None, "perms": "ai:model:list", "icon": "Cpu", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "AI模型管理"},
                 {"id": 3011, "parent_id": 301, "menu_name": "模型查询", "path": None, "component": None, "query": None, "perms": "ai:model:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 3012, "parent_id": 301, "menu_name": "模型新增", "path": None, "component": None, "query": None, "perms": "ai:model:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 3013, "parent_id": 301, "menu_name": "模型修改", "path": None, "component": None, "query": None, "perms": "ai:model:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 3014, "parent_id": 301, "menu_name": "模型删除", "path": None, "component": None, "query": None, "perms": "ai:model:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
                 # 3.2 提示词模板管理（菜单 C）
-                {"id": 302, "parent_id": 300, "menu_name": "提示词", "path": "/ai-prompts", "component": "PromptTemplateList", "query": None, "perms": "ai:prompt:list", "icon": "Edit", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": "提示词模板管理"},
+                {"id": 302, "parent_id": 300, "menu_name": "提示词", "path": "/ai-prompts", "component": "aiassistant/prompt/PromptTemplateList", "query": None, "perms": "ai:prompt:list", "icon": "Edit", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": "提示词模板管理"},
                 {"id": 3021, "parent_id": 302, "menu_name": "模板查询", "path": None, "component": None, "query": None, "perms": "ai:prompt:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 3022, "parent_id": 302, "menu_name": "模板新增", "path": None, "component": None, "query": None, "perms": "ai:prompt:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 3023, "parent_id": 302, "menu_name": "模板修改", "path": None, "component": None, "query": None, "perms": "ai:prompt:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 3024, "parent_id": 302, "menu_name": "模板删除", "path": None, "component": None, "query": None, "perms": "ai:prompt:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
                 # 3.3 智能体聊天（菜单 C）
-                {"id": 304, "parent_id": 300, "menu_name": "智能体聊天", "path": "/agent-chat", "component": "AgentChatIntegrated", "query": None, "perms": "ai:agent:chat", "icon": "ChatDotRound", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "智能体聊天"},
+                {"id": 304, "parent_id": 300, "menu_name": "智能体聊天", "path": "/agent-chat", "component": "aiassistant/agentchat/AgentChatIntegrated", "query": None, "perms": "ai:agent:chat", "icon": "ChatDotRound", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "智能体聊天"},
                 
                 # 3.4 测试用例管理（菜单 C）
-                {"id": 305, "parent_id": 300, "menu_name": "测试用例", "path": "/test-cases", "component": "TestCaseList", "query": None, "perms": "ai:testcase:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": "测试用例管理"},
+                {"id": 305, "parent_id": 300, "menu_name": "测试用例", "path": "/test-cases", "component": "aiassistant/testcase/TestCaseList", "query": None, "perms": "ai:testcase:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": "测试用例管理"},
                 {"id": 3051, "parent_id": 305, "menu_name": "用例查询", "path": None, "component": None, "query": None, "perms": "ai:testcase:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 3052, "parent_id": 305, "menu_name": "用例新增", "path": None, "component": None, "query": None, "perms": "ai:testcase:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 3053, "parent_id": 305, "menu_name": "用例修改", "path": None, "component": None, "query": None, "perms": "ai:testcase:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
@@ -248,20 +248,20 @@ def create_initial_menus():
                 {"id": 400, "parent_id": 0, "menu_name": "代码生成", "path": "/generator", "component": None, "query": None, "perms": None, "icon": "Document", "menu_type": "M", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": "代码生成器模块"},
 
                 # 4.1 表配置管理（菜单 C）
-                {"id": 401, "parent_id": 400, "menu_name": "表配置", "path": "/generator/table", "component": "GenTableList", "query": None, "perms": "generator:table:list", "icon": "Grid", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "代码生成器表配置管理"},
+                {"id": 401, "parent_id": 400, "menu_name": "表配置", "path": "/generator/table", "component": "generator/table/GenTableList", "query": None, "perms": "generator:table:list", "icon": "Grid", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "代码生成器表配置管理"},
                 {"id": 4011, "parent_id": 401, "menu_name": "表配置查询", "path": None, "component": None, "query": None, "perms": "generator:table:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 4012, "parent_id": 401, "menu_name": "导入表", "path": None, "component": None, "query": None, "perms": "generator:table:import", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 4013, "parent_id": 401, "menu_name": "表配置修改", "path": None, "component": None, "query": None, "perms": "generator:table:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 4014, "parent_id": 401, "menu_name": "表配置删除", "path": None, "component": None, "query": None, "perms": "generator:table:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
 
                 # 4.2 代码生成（菜单 C）
-                {"id": 402, "parent_id": 400, "menu_name": "代码生成", "path": "/generator/code", "component": "GeneratorCode", "query": None, "perms": "generator:code:list", "icon": "EditPen", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": "代码生成器"},
+                {"id": 402, "parent_id": 400, "menu_name": "代码生成", "path": "/generator/code", "component": "generator/code/GeneratorCode", "query": None, "perms": "generator:code:list", "icon": "EditPen", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": "代码生成器"},
                 {"id": 4021, "parent_id": 402, "menu_name": "代码预览", "path": None, "component": None, "query": None, "perms": "generator:code:preview", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 4022, "parent_id": 402, "menu_name": "代码下载", "path": None, "component": None, "query": None, "perms": "generator:code:download", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
                 {"id": 4023, "parent_id": 402, "menu_name": "批量下载", "path": None, "component": None, "query": None, "perms": "generator:code:batchDownload", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 
                 # 4.3 生成历史（菜单 C）
-                {"id": 403, "parent_id": 400, "menu_name": "生成历史", "path": "/generator/history", "component": "GenHistory", "query": None, "perms": "generator:history:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "生成历史记录"},
+                {"id": 403, "parent_id": 400, "menu_name": "生成历史", "path": "/generator/history", "component": "generator/history/GenHistory", "query": None, "perms": "generator:history:list", "icon": "Tickets", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": "生成历史记录"},
                 {"id": 4031, "parent_id": 403, "menu_name": "历史查询", "path": None, "component": None, "query": None, "perms": "generator:history:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 4032, "parent_id": 403, "menu_name": "历史删除", "path": None, "component": None, "query": None, "perms": "generator:history:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
 
@@ -278,6 +278,24 @@ def create_initial_menus():
                 {"id": 6013, "parent_id": 601, "menu_name": "插件修改", "path": None, "component": None, "query": None, "perms": "plugin:market:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
                 {"id": 6014, "parent_id": 601, "menu_name": "插件删除", "path": None, "component": None, "query": None, "perms": "plugin:market:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
                 {"id": 6015, "parent_id": 601, "menu_name": "插件启用/禁用", "path": None, "component": None, "query": None, "perms": "plugin:market:toggle", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": None},
+
+                # ================================
+                # Postcat功能融合模块（环境管理、Mock服务、API文档）
+                # ================================
+                # 2.11 环境管理（菜单 C）
+                {"id": 209, "parent_id": 200, "menu_name": "环境管理", "path": "/ApiEnvironmentList", "component": "apitest/environment/ApiEnvironmentList", "query": None, "perms": "apitest:environment:query", "icon": "Setting", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 11, "remark": "环境变量管理"},
+                {"id": 2091, "parent_id": 209, "menu_name": "环境新增", "path": None, "component": None, "query": None, "perms": "apitest:environment:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
+                {"id": 2092, "parent_id": 209, "menu_name": "环境编辑", "path": None, "component": None, "query": None, "perms": "apitest:environment:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
+                {"id": 2093, "parent_id": 209, "menu_name": "环境删除", "path": None, "component": None, "query": None, "perms": "apitest:environment:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
+
+                # 2.12 Mock服务（菜单 C）
+                {"id": 210, "parent_id": 200, "menu_name": "Mock服务", "path": "/ApiMockList", "component": "apitest/mock/ApiMockList", "query": None, "perms": "apitest:mock:query", "icon": "Connection", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 12, "remark": "Mock服务管理"},
+                {"id": 2101, "parent_id": 210, "menu_name": "Mock新增", "path": None, "component": None, "query": None, "perms": "apitest:mock:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
+                {"id": 2102, "parent_id": 210, "menu_name": "Mock编辑", "path": None, "component": None, "query": None, "perms": "apitest:mock:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
+                {"id": 2103, "parent_id": 210, "menu_name": "Mock删除", "path": None, "component": None, "query": None, "perms": "apitest:mock:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
+
+                # 2.13 API文档（菜单 C）
+                {"id": 211, "parent_id": 200, "menu_name": "API文档", "path": "/ApiDocView", "component": "apitest/apidoc/ApiDocView", "query": None, "perms": "apitest:api:query", "icon": "Document", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 13, "remark": "API文档生成与预览"},
             ]
 
             for menu_data in api_menus:

@@ -128,8 +128,8 @@ import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Upload, Warning } from '@element-plus/icons-vue'
 import yaml from 'js-yaml'
-import { queryAll as queryKeywords } from '../../keyword/apiKeyWord.js'
-import { queryAll as queryOperationType } from '../../keyword/operationType.js'
+import { queryAll as queryKeywords } from '~/views/apitest/keyword/apiKeyWord.js'
+import { queryAll as queryOperationType } from '~/views/apitest/keyword/operationType.js'
 
 const props = defineProps({
   modelValue: {

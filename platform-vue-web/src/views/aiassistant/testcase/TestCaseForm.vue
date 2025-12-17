@@ -84,7 +84,7 @@
 import { ref, reactive, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { insertData, updateData } from './testcase'
-import JsonEditor from '@/components/JsonEditor.vue'
+import JsonEditor from '~/components/JsonEditor.vue'
 
 // Props
 const props = defineProps({
