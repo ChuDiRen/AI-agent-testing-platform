@@ -2,30 +2,28 @@
 插件管理 API 控制器
 提供插件注册、查询、启用/禁用等功能
 """
-from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File, BackgroundTasks
-from sqlmodel import Session, select, or_, func
-from typing import List, Dict, Any
-import httpx
-import json
-import time
-import os
-import shutil
-import zipfile
-import uuid
-import re
 import base64
 import io
-from pathlib import Path
-from core.temp_manager import get_temp_subdir, remove_temp_dir
+import json
+import re
+import shutil
+import time
+import uuid
+import zipfile
 from datetime import datetime
+from pathlib import Path
+
+from core.database import get_session
+from core.resp_model import respModel
+from core.temp_manager import get_temp_subdir
+from fastapi import APIRouter, Depends, Query, UploadFile, File, BackgroundTasks
+from sqlmodel import Session, select, func
 
 from ..model.PluginModel import Plugin
 from ..schemas.plugin_schema import (
-    PluginCreate, PluginUpdate, PluginQuery, PluginResponse,
+    PluginUpdate, PluginQuery, PluginResponse,
     PluginRegisterRequest, PluginHealthCheck
 )
-from core.database import get_session
-from core.resp_model import respModel
 
 # 创建路由
 module_route = APIRouter(prefix="/Plugin", tags=["插件管理"])

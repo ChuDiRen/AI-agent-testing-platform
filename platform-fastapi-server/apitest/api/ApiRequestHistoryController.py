@@ -3,13 +3,6 @@
 提供请求历史的查询、收藏、回放等功能
 """
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session, select, and_, or_
-from typing import Optional
-
-from core.database import get_session
-from core.dependencies import check_permission
-from core.resp_model import respModel
 
 from apitest.model.ApiRequestHistoryModel import ApiRequestHistory
 from apitest.schemas.api_request_history_schema import (
@@ -18,6 +11,11 @@ from apitest.schemas.api_request_history_schema import (
     ApiRequestHistoryBatchDelete,
     ApiRequestHistoryClearParams
 )
+from core.database import get_session
+from core.dependencies import check_permission
+from core.resp_model import respModel
+from fastapi import APIRouter, Depends, Query
+from sqlmodel import Session, select, and_
 
 module_name = "ApiRequestHistory"
 module_model = ApiRequestHistory

@@ -8,7 +8,6 @@ API项目管理 E2E 端到端测试
 - 搜索项目流程
 """
 import pytest
-from datetime import datetime
 from playwright.sync_api import sync_playwright, expect
 
 WEB_BASE_URL = "http://localhost:5173"

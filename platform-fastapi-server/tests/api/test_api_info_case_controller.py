@@ -11,8 +11,9 @@ API用例管理 接口测试
 - POST /ApiInfoCase/executeCase - 执行用例测试
 - GET /ApiInfoCase/executionStatus - 查询用例执行状态
 """
-import pytest
 from datetime import datetime
+
+import pytest
 from tests.conftest import APIClient, API_BASE_URL
 
 

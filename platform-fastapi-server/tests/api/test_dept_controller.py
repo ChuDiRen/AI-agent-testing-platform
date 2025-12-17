@@ -7,8 +7,9 @@
 - PUT /dept/update - 更新部门
 - DELETE /dept/delete - 删除部门
 """
-import pytest
 from datetime import datetime
+
+import pytest
 from tests.conftest import APIClient, API_BASE_URL
 
 

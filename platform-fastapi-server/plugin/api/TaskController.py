@@ -2,21 +2,22 @@
 任务调度API控制器
 提供测试任务的执行、查询、取消等接口
 """
-from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session, select
-from typing import Optional, Dict, Any
-from pydantic import BaseModel, Field
-
-from datetime import datetime
-from core.database import get_session
-from core.resp_model import respModel
-from core.logger import get_logger
-from ..service.TaskScheduler import task_scheduler
-from ..model.PluginModel import Plugin
-from apitest.model.ApiHistoryModel import ApiHistory
-from apitest.model.ApiInfoCaseModel import ApiInfoCase
 import json
 import re
+from datetime import datetime
+from typing import Optional, Dict, Any
+
+from apitest.model.ApiHistoryModel import ApiHistory
+from apitest.model.ApiInfoCaseModel import ApiInfoCase
+from core.database import get_session
+from core.logger import get_logger
+from core.resp_model import respModel
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, Field
+from sqlmodel import Session, select
+
+from ..model.PluginModel import Plugin
+from ..service.TaskScheduler import task_scheduler
 
 logger = get_logger(__name__)
 

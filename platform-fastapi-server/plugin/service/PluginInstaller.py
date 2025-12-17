@@ -2,17 +2,16 @@
 插件安装服务
 安装到后端服务运行环境
 """
+import base64
+import io
+import logging
+import shutil
 import subprocess
 import sys
-import base64
 import zipfile
-import io
-import shutil
-import logging
-import os
-from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, Any, Tuple
 
 from core.temp_manager import get_temp_subdir
 

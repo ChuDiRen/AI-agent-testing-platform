@@ -11,8 +11,9 @@ API关键字管理 接口测试
 - GET /ApiKeyWord/getKeywordFields - 获取关键字字段描述
 - GET /ApiKeyWord/queryGroupedByEngine - 按执行引擎分组查询
 """
-import pytest
 from datetime import datetime
+
+import pytest
 from tests.conftest import APIClient, API_BASE_URL
 
 

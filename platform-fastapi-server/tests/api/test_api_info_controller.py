@@ -10,8 +10,9 @@ API接口信息管理 接口测试
 - GET /ApiInfo/getMethods - 获取所有请求方法
 - POST /ApiInfo/importSwagger - 导入Swagger文档
 """
-import pytest
 from datetime import datetime
+
+import pytest
 from tests.conftest import APIClient, API_BASE_URL
 
 

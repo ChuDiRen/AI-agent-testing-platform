@@ -2,12 +2,11 @@
 插件校验服务
 提供 config_schema 校验、用例格式校验等功能
 """
-import json
 import hashlib
-import re
-from typing import Dict, Any, List, Optional, Tuple
-from pathlib import Path
+import json
 import logging
+from pathlib import Path
+from typing import Dict, Any, List, Tuple
 
 logger = logging.getLogger(__name__)
 

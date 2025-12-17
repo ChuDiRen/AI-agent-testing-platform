@@ -10,8 +10,9 @@ AI测试用例管理 接口测试
 - GET /TestCase/exportYaml - 导出单个测试用例为YAML
 - POST /TestCase/exportBatchYaml - 批量导出测试用例为YAML
 """
-import pytest
 from datetime import datetime
+
+import pytest
 from tests.conftest import APIClient, API_BASE_URL
 
 

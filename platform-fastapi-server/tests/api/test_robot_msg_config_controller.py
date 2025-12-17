@@ -9,8 +9,9 @@
 - DELETE /RobotMsgConfig/delete - 删除消息模板
 - POST /RobotMsgConfig/send - 发送消息
 """
-import pytest
 from datetime import datetime
+
+import pytest
 from tests.conftest import APIClient, API_BASE_URL
 
 

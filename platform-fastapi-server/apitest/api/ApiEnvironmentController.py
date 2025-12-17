@@ -3,13 +3,6 @@
 提供环境的CRUD、切换、复制等功能
 """
 from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session, select, and_
-from typing import Optional
-
-from core.database import get_session
-from core.dependencies import check_permission
-from core.resp_model import respModel
 
 from apitest.model.ApiEnvironmentModel import ApiEnvironment
 from apitest.schemas.api_environment_schema import (
@@ -18,6 +11,11 @@ from apitest.schemas.api_environment_schema import (
     ApiEnvironmentUpdate,
     ApiEnvironmentCopy
 )
+from core.database import get_session
+from core.dependencies import check_permission
+from core.resp_model import respModel
+from fastapi import APIRouter, Depends, Query
+from sqlmodel import Session, select, and_
 
 module_name = "ApiEnvironment"
 module_model = ApiEnvironment

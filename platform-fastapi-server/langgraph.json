@@ -3,9 +3,9 @@
         "."
     ],
     "graphs": {
-        "text2case": "./aiassistant/langgraph/graphs/text2case.py:graph",
-        "text2sql": "./aiassistant/langgraph/graphs/text2sql.py:graph",
-        "text2api": "./aiassistant/langgraph/graphs/text2api.py:graph"
+        "text2case": "./agent_langgraph/tasks/text2case/multi_agent_graph.py:text2case_graph",
+        "text2sql": "./agent_langgraph/tasks/text2sql/graph.py:graph",
+        "text2api": "./agent_langgraph/tasks/text2api/graph.py:graph"
     },
     "env": ".env",
     "checkpointer": {

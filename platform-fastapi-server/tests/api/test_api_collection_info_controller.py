@@ -2,7 +2,6 @@
 API测试计划管理 - API测试用例
 测试 ApiCollectionInfoController 的所有接口
 """
-import pytest
 
 
 class TestApiCollectionInfoQueryByPage:

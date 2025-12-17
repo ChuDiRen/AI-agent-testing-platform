@@ -10,8 +10,9 @@ AI模型管理 API 接口测试
 - POST /AiModel/toggleStatus - 切换模型启用/禁用状态
 - POST /AiModel/testConnection - 测试模型API连接
 """
-import pytest
 from datetime import datetime
+
+import pytest
 from tests.conftest import APIClient, API_BASE_URL
 
 

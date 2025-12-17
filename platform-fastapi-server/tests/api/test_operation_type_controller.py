@@ -2,7 +2,6 @@
 操作类型管理 - API测试用例
 测试 ApiOperationTypeController 的所有接口
 """
-import pytest
 
 
 class TestOperationTypeQueryAll:

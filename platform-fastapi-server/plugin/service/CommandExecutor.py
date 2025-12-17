@@ -2,22 +2,21 @@
 命令行执行器
 用于调用插件命令行的执行器
 """
-import subprocess
+import ast
 import asyncio
-import uuid
-import os
-import sys
 import json
-import yaml
 import logging
 import re
 import shutil
-import ast
-from typing import Dict, Any, Optional, List
+import subprocess
+import threading
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
-import threading
+from typing import Dict, Any, Optional
+
+import yaml
 from core.temp_manager import get_temp_subdir
 
 logger = logging.getLogger(__name__)

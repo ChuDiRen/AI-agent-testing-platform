@@ -10,8 +10,8 @@ from pathlib import Path
 
 # 在启动前设置checkpointer
 try:
-    from aiassistant.langgraph.checkpointer import create_database_checkpointer
-    from aiassistant.langgraph.graph import build_graph
+    from aiassistant.agent_langgraph.checkpointer import create_database_checkpointer
+    from aiassistant.agent_langgraph.graph import build_graph
     
     # 创建数据库checkpointer
     db_checkpointer = create_database_checkpointer()

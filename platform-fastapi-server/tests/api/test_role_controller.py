@@ -9,8 +9,9 @@
 - POST /role/assignMenus - 为角色分配菜单权限
 - GET /role/menus/{role_id} - 获取角色的菜单权限
 """
-import pytest
 from datetime import datetime
+
+import pytest
 from tests.conftest import APIClient, API_BASE_URL
 
 

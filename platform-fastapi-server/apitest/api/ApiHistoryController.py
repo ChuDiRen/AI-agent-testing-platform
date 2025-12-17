@@ -1,7 +1,5 @@
 import json
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, Optional, Any
 
 import yaml
 from core.database import get_session
@@ -9,7 +7,7 @@ from core.dependencies import check_permission
 from core.logger import get_logger
 from core.resp_model import respModel
 from core.time_utils import TimeFormatter
-from fastapi import APIRouter, Depends, Query, BackgroundTasks
+from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 
 from ..model.ApiHistoryModel import ApiHistory

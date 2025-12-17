@@ -8,8 +8,9 @@
 - DELETE /menu/delete - 删除菜单
 - GET /menu/user/{user_id} - 获取用户菜单权限
 """
-import pytest
 from datetime import datetime
+
+import pytest
 from tests.conftest import APIClient, API_BASE_URL
 
 

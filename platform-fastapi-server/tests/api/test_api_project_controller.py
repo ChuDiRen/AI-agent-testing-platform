@@ -8,8 +8,9 @@ API项目管理 接口测试
 - DELETE /ApiProject/delete - 删除API项目
 - GET /ApiProject/queryAll - 查询所有API项目
 """
-import pytest
 from datetime import datetime
+
+import pytest
 from tests.conftest import APIClient, API_BASE_URL
 
 

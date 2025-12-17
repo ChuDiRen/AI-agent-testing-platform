@@ -3,10 +3,11 @@ LangGraph Property Tests - 独立测试
 
 这些测试不依赖langchain等外部库，只测试核心逻辑
 """
-import pytest
-import json
 import asyncio
+import json
 from datetime import datetime
+
+import pytest
 
 
 class TestTestCaseJSONStructure:

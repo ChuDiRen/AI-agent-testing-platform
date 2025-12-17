@@ -13,12 +13,12 @@ from ..model.ApiCollectionDetailModel import ApiCollectionDetail
 from ..model.ApiCollectionInfoModel import ApiCollectionInfo
 from ..model.ApiInfoCaseModel import ApiInfoCase
 from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
+from ..model.ApiPlanRobotModel import ApiPlanRobot
 from ..schemas.api_collection_schema import (
     ApiCollectionInfoQuery, ApiCollectionInfoCreate, ApiCollectionInfoUpdate,
     ApiCollectionDetailCreate, BatchAddCasesRequest, UpdateDdtDataRequest,
     PlanRobotCreate, PlanRobotUpdate
 )
-from ..model.ApiPlanRobotModel import ApiPlanRobot
 
 logger = get_logger(__name__)
 

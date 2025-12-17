@@ -3,13 +3,7 @@
 提供目录的CRUD、树形结构查询、拖拽排序等功能
 """
 from datetime import datetime
-from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session, select, and_
 from typing import List, Optional
-
-from core.database import get_session
-from core.dependencies import check_permission
-from core.resp_model import respModel
 
 from apitest.model.ApiFolderModel import ApiFolder
 from apitest.model.ApiInfoModel import ApiInfo
@@ -21,6 +15,11 @@ from apitest.schemas.api_folder_schema import (
     ApiMoveToFolder,
     ApiFolderBatchSort
 )
+from core.database import get_session
+from core.dependencies import check_permission
+from core.resp_model import respModel
+from fastapi import APIRouter, Depends, Query
+from sqlmodel import Session, select, and_
 
 module_name = "ApiFolder"
 module_model = ApiFolder

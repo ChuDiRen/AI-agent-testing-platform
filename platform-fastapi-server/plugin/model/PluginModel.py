@@ -3,9 +3,10 @@
 支持执行引擎插件化架构（命令行调用方式）
 """
 from datetime import datetime
-from typing import Optional
-from sqlmodel import SQLModel, Field, Column, JSON
 from enum import Enum
+from typing import Optional
+
+from sqlmodel import SQLModel, Field, Column, JSON
 
 
 class InstallStatus(str, Enum):

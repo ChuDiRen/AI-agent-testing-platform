@@ -1,11 +1,12 @@
+from typing import Optional
+
 from core.JwtUtil import JwtUtils
 from core.database import get_session
-from core.resp_model import respModel
 from core.logger import get_logger
+from core.resp_model import respModel
 from fastapi import APIRouter, Depends, Header
 from sqlmodel import Session, select
 from sysmanage.model.user import User
-from typing import Optional
 
 from ..schemas.login_schema import LoginRequest
 

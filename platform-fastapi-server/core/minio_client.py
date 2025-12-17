@@ -1,7 +1,7 @@
-from minio import Minio
 from typing import BinaryIO
 
 from config.dev_settings import settings
+from minio import Minio
 
 
 class MinioClientWrapper:

@@ -2,19 +2,17 @@ import json
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session, select
-
 from core.database import get_session
 from core.dependencies import check_permission
 from core.logger import get_logger
 from core.resp_model import respModel
 from core.time_utils import TimeFormatter
+from fastapi import APIRouter, Depends, Query
+from sqlmodel import Session, select
 
-from ..model.TestTaskModel import TestTask, TestTaskExecution
 from ..model.ApiCollectionInfoModel import ApiCollectionInfo
-from ..model.ApiCollectionDetailModel import ApiCollectionDetail
 from ..model.ApiInfoCaseModel import ApiInfoCase
+from ..model.TestTaskModel import TestTask, TestTaskExecution
 from ..schemas.test_task_schema import (
     TestTaskQuery, TestTaskCreate, TestTaskUpdate,
     TestTaskExecuteRequest, TestTaskExecutionQuery

@@ -10,9 +10,10 @@
 - GET /user/roles/{user_id} - 获取用户的角色
 - PUT /user/updateStatus - 更新用户状态
 """
-import pytest
 from datetime import datetime
-from tests.conftest import APIClient, API_BASE_URL, TEST_USERNAME, TEST_PASSWORD
+
+import pytest
+from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestUserAPI:

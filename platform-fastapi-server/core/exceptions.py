@@ -4,8 +4,8 @@
 
 ✅ P2修复: 规范化异常处理,避免过于宽泛的Exception捕获
 """
-from typing import Optional, Any
 import logging
+from typing import Optional, Any
 
 logger = logging.getLogger(__name__)
 

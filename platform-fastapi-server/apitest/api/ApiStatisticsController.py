@@ -11,17 +11,16 @@ API测试统计图表Controller
 from datetime import datetime, timedelta
 
 from core.database import get_session
-from core.dependencies import check_permission
 from core.logger import get_logger
 from core.resp_model import respModel
 from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session, select, func
+from sqlmodel import Session, select
 
-from ..model.ApiProjectModel import ApiProject
-from ..model.ApiInfoModel import ApiInfo
-from ..model.ApiInfoCaseModel import ApiInfoCase
 from ..model.ApiCollectionInfoModel import ApiCollectionInfo
 from ..model.ApiHistoryModel import ApiHistory
+from ..model.ApiInfoCaseModel import ApiInfoCase
+from ..model.ApiInfoModel import ApiInfo
+from ..model.ApiProjectModel import ApiProject
 
 module_name = "ApiStatistics"
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API测试统计"])

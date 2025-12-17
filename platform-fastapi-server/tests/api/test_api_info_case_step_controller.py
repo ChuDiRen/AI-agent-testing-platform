@@ -7,8 +7,9 @@ API用例步骤管理 接口测试
 - DELETE /ApiInfoCaseStep/delete - 删除用例步骤
 - POST /ApiInfoCaseStep/batchUpdateOrder - 批量更新步骤顺序
 """
-import pytest
 from datetime import datetime
+
+import pytest
 from tests.conftest import APIClient, API_BASE_URL
 
 

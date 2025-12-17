@@ -7,8 +7,9 @@ API数据库配置管理 接口测试
 - PUT /ApiDbBase/update - 更新数据库配置
 - DELETE /ApiDbBase/delete - 删除数据库配置
 """
-import pytest
 from datetime import datetime
+
+import pytest
 from tests.conftest import APIClient, API_BASE_URL
 
 

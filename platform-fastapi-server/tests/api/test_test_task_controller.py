@@ -11,8 +11,9 @@
 - POST /TestTask/queryExecutions - 查询任务执行记录
 - GET /TestTask/getExecutionDetail - 获取执行记录详情
 """
-import pytest
 from datetime import datetime
+
+import pytest
 from tests.conftest import APIClient, API_BASE_URL
 
 

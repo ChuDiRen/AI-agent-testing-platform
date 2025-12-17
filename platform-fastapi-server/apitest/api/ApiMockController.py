@@ -3,29 +3,26 @@ Mock服务Controller
 提供Mock规则的CRUD、智能生成、Mock服务等功能
 """
 import json
-import time
 import re
+import time
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, Query, Request, Response
-from fastapi.responses import JSONResponse
-from sqlmodel import Session, select, and_
-from typing import Optional
 
-from core.database import get_session
-from core.dependencies import check_permission
-from core.resp_model import respModel
-from core.logger import get_logger
-
-from apitest.model.ApiMockModel import ApiMock, ApiMockLog
 from apitest.model.ApiInfoModel import ApiInfo
+from apitest.model.ApiMockModel import ApiMock, ApiMockLog
 from apitest.schemas.api_mock_schema import (
     ApiMockQuery,
     ApiMockCreate,
     ApiMockUpdate,
     ApiMockLogQuery,
-    ApiMockGenerate,
     ApiMockFromApi
 )
+from core.database import get_session
+from core.dependencies import check_permission
+from core.logger import get_logger
+from core.resp_model import respModel
+from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi.responses import JSONResponse
+from sqlmodel import Session, select, and_
 
 logger = get_logger(__name__)
 

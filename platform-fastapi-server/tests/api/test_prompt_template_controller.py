@@ -2,7 +2,6 @@
 提示词模板管理 - API测试用例
 测试 PromptTemplateController 的所有接口
 """
-import pytest
 
 
 class TestPromptTemplateQueryByPage:

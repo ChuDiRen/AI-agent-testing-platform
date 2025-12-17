@@ -10,7 +10,6 @@ API测试历史管理 接口测试
 - GET /ApiHistory/queryByExecutionUuid - 根据批量执行UUID查询历史记录
 """
 import pytest
-from datetime import datetime
 from tests.conftest import APIClient, API_BASE_URL
 
 

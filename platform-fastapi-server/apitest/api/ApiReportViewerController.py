@@ -2,13 +2,10 @@
 API测试报告查看器Controller
 提供公共访问的测试报告查看功能,无需认证
 """
-import os
 from pathlib import Path
 from typing import Optional
 
-from core.database import get_session
 from core.logger import get_logger
-from core.resp_model import respModel
 from core.temp_manager import get_temp_subdir
 from fastapi import APIRouter, Query, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse

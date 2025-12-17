@@ -10,7 +10,6 @@ API测试集合详情管理 接口测试
 - GET /ApiCollectionDetail/getDdtTemplate - 获取用例数据驱动模板
 """
 import pytest
-from datetime import datetime
 from tests.conftest import APIClient, API_BASE_URL
 
 
