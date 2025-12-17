@@ -3,7 +3,9 @@
         "."
     ],
     "graphs": {
-        "testcase": "./aiassistant/langgraph/graph.py:graph"
+        "text2case": "./aiassistant/langgraph/graphs/text2case.py:graph",
+        "text2sql": "./aiassistant/langgraph/graphs/text2sql.py:graph",
+        "text2api": "./aiassistant/langgraph/graphs/text2api.py:graph"
     },
     "env": ".env",
     "checkpointer": {

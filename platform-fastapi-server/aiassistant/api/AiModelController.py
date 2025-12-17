@@ -11,7 +11,6 @@ from sqlmodel import Session, select, func
 from ..model.AiModel import AiModel
 from ..schemas.ai_model_schema import AiModelQuery, AiModelCreate, AiModelUpdate
 from ..services.AiModelService import AiModelService
-from ..services.ModelSyncService import ModelSyncService
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +106,7 @@ async def get_providers():
     """获取所有支持的模型提供商列表"""
     try:
         providers = []
-        for provider, config in ModelSyncService.PROVIDER_CONFIGS.items():
+        for provider, config in AiModelService.PROVIDER_CONFIGS.items():
             providers.append({
                 "name": provider,
                 "display_name": provider.title(),
@@ -137,7 +136,7 @@ async def sync_provider(
     - zhipuai: 智谱AI
     """
     try:
-        result = await ModelSyncService.sync_models_from_provider(
+        result = await AiModelService.sync_models_from_provider(
             provider=request.provider,
             api_key=request.api_key,
             session=session,
@@ -163,7 +162,7 @@ async def sync_all_providers(
 ):
     """同步所有支持的提供商模型"""
     try:
-        result = await ModelSyncService.sync_all_providers(
+        result = await AiModelService.sync_all_providers(
             api_keys=request.api_keys,
             session=session
         )
@@ -188,7 +187,7 @@ async def get_sync_status(session: Session = Depends(get_session)):
         total_count = 0
         enabled_count = 0
         
-        for provider in ModelSyncService.PROVIDER_CONFIGS.keys():
+        for provider in AiModelService.PROVIDER_CONFIGS.keys():
             count = session.exec(
                 select(func.count(AiModel.id)).where(AiModel.provider == provider)
             ).one()

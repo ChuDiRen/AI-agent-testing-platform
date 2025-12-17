@@ -1,9 +1,11 @@
 """
 AI模型服务层
+包含模型CRUD和从提供商同步模型功能
 """
+import os
 import logging
 from datetime import datetime
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict, Any
 
 import httpx
 from sqlmodel import select, Session, func
@@ -297,3 +299,298 @@ class AiModelService:
         except Exception as e:
             logger.error(f"测试失败: {e}", exc_info=True)
             return False, f"测试失败: {str(e)}"
+
+    # ==================== 模型同步功能 ====================
+    
+    # 各提供商的API配置
+    PROVIDER_CONFIGS = {
+        "siliconflow": {
+            "api_url": "https://api.siliconflow.cn/v1/models",
+            "api_key_env": "SILICONFLOW_API_KEY",
+            "default_base_url": "https://api.siliconflow.cn/v1",
+            "default_api_url": "https://api.siliconflow.cn/v1/chat/completions"
+        },
+        "deepseek": {
+            "api_url": "https://api.deepseek.com/v1/models",
+            "api_key_env": "DEEPSEEK_API_KEY",
+            "default_base_url": "https://api.deepseek.com/v1",
+            "default_api_url": "https://api.deepseek.com/v1/chat/completions"
+        },
+        "openai": {
+            "api_url": "https://api.openai.com/v1/models",
+            "api_key_env": "OPENAI_API_KEY",
+            "default_base_url": "https://api.openai.com/v1",
+            "default_api_url": "https://api.openai.com/v1/chat/completions"
+        },
+        "qwen": {
+            "api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1/models",
+            "api_key_env": "QWEN_API_KEY",
+            "default_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "default_api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+        },
+        "zhipuai": {
+            "api_url": "https://open.bigmodel.cn/api/paas/v4/models",
+            "api_key_env": "ZHIPUAI_API_KEY",
+            "default_base_url": "https://open.bigmodel.cn/api/paas/v4",
+            "default_api_url": "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+        }
+    }
+    
+    # 模型类型映射
+    MODEL_TYPE_MAPPING = {
+        "text": ["chat", "completion", "generation", "instruct"],
+        "image": ["image", "vision", "multimodal"],
+        "audio": ["audio", "speech", "tts", "stt"],
+        "embedding": ["embedding", "vector"],
+        "reranker": ["rerank", "reranker"]
+    }
+    
+    # 模型描述模板
+    MODEL_DESCRIPTIONS = {
+        "text": "文本生成模型，支持对话和文本生成任务",
+        "image": "图像处理模型，支持图像生成和理解",
+        "audio": "音频处理模型，支持语音转文本和文本转语音",
+        "embedding": "文本嵌入模型，用于向量化和语义搜索",
+        "reranker": "重排序模型，用于优化搜索结果排序"
+    }
+    
+    @classmethod
+    async def sync_models_from_provider(
+        cls, 
+        provider: str, 
+        api_key: Optional[str] = None,
+        session: Optional[Session] = None,
+        update_existing: bool = True
+    ) -> Dict[str, Any]:
+        """从指定提供商同步模型列表"""
+        result = {
+            "success": False,
+            "message": "",
+            "added": 0,
+            "updated": 0,
+            "skipped": 0,
+            "total": 0,
+            "models": []
+        }
+        
+        if provider not in cls.PROVIDER_CONFIGS:
+            result["message"] = f"不支持的提供商: {provider}"
+            return result
+        
+        provider_config = cls.PROVIDER_CONFIGS[provider]
+        
+        if not api_key:
+            api_key = os.getenv(provider_config["api_key_env"])
+            if not api_key:
+                result["message"] = f"未找到API密钥，请设置环境变量 {provider_config['api_key_env']}"
+                return result
+        
+        try:
+            models = await cls._fetch_models_from_api(
+                provider_config["api_url"], 
+                api_key,
+                provider
+            )
+            
+            if not models:
+                result["message"] = "未获取到任何模型"
+                return result
+            
+            result["total"] = len(models)
+            
+            close_session = False
+            if not session:
+                from core.database import engine
+                session = Session(engine)
+                close_session = True
+            
+            try:
+                for model_data in models:
+                    model_result = cls._process_model(
+                        model_data, provider, provider_config, session, update_existing
+                    )
+                    
+                    if model_result["action"] == "added":
+                        result["added"] += 1
+                    elif model_result["action"] == "updated":
+                        result["updated"] += 1
+                    else:
+                        result["skipped"] += 1
+                    
+                    result["models"].append(model_result)
+                
+                session.commit()
+                result["success"] = True
+                result["message"] = f"同步完成: 新增 {result['added']} 个，更新 {result['updated']} 个，跳过 {result['skipped']} 个"
+                
+            except Exception as e:
+                session.rollback()
+                result["message"] = f"数据库操作失败: {str(e)}"
+                raise
+            finally:
+                if close_session:
+                    session.close()
+                    
+        except Exception as e:
+            logger.error(f"同步模型失败: {provider}, {str(e)}")
+            result["message"] = f"同步失败: {str(e)}"
+        
+        return result
+    
+    @classmethod
+    async def _fetch_models_from_api(cls, api_url: str, api_key: str, provider: str) -> List[Dict[str, Any]]:
+        """从API获取模型列表"""
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(api_url, headers=headers)
+                response.raise_for_status()
+                data = response.json()
+                return data.get("data", [])
+                    
+        except httpx.HTTPStatusError as e:
+            error_msg = f"API请求失败: {e.response.status_code}"
+            try:
+                error_data = e.response.json()
+                error_msg += f", {error_data.get('error', {}).get('message', '')}"
+            except:
+                pass
+            raise Exception(error_msg)
+        except Exception as e:
+            raise Exception(f"获取模型列表失败: {str(e)}")
+    
+    @classmethod
+    def _process_model(
+        cls, 
+        model_data: Dict[str, Any], 
+        provider: str, 
+        provider_config: Dict[str, Any],
+        session: Session,
+        update_existing: bool
+    ) -> Dict[str, Any]:
+        """处理单个模型数据"""
+        model_id = model_data.get("id", "")
+        
+        existing_model = session.exec(
+            select(AiModel).where(
+                (AiModel.model_code == model_id) & 
+                (AiModel.provider == provider)
+            )
+        ).first()
+        
+        model_type = cls._determine_model_type(model_id)
+        model_name = cls._generate_model_name(model_id, provider)
+        description = cls.MODEL_DESCRIPTIONS.get(model_type, f"{provider} 模型")
+        
+        model_info = {
+            "model_name": model_name,
+            "model_code": model_id,
+            "provider": provider,
+            "api_url": provider_config["default_api_url"],
+            "is_enabled": True,
+            "description": description,
+            "modify_time": datetime.now()
+        }
+        
+        result = {
+            "model_id": model_id,
+            "model_name": model_name,
+            "provider": provider,
+            "action": "skipped",
+            "message": ""
+        }
+        
+        if existing_model:
+            if update_existing:
+                for key, value in model_info.items():
+                    if key != "api_key":
+                        setattr(existing_model, key, value)
+                result["action"] = "updated"
+                result["message"] = "已更新现有模型"
+            else:
+                result["message"] = "模型已存在，跳过更新"
+        else:
+            new_model = AiModel(**model_info)
+            session.add(new_model)
+            result["action"] = "added"
+            result["message"] = "已添加新模型"
+        
+        return result
+    
+    @classmethod
+    def _determine_model_type(cls, model_id: str) -> str:
+        """根据模型ID确定模型类型"""
+        model_id_lower = model_id.lower()
+        for model_type, keywords in cls.MODEL_TYPE_MAPPING.items():
+            for keyword in keywords:
+                if keyword in model_id_lower:
+                    return model_type
+        return "text"
+    
+    @classmethod
+    def _generate_model_name(cls, model_id: str, provider: str) -> str:
+        """生成模型名称"""
+        provider_prefixes = {
+            "siliconflow": "siliconflow/",
+            "deepseek": "deepseek-",
+            "openai": "gpt-",
+            "qwen": "qwen",
+            "zhipuai": "glm-"
+        }
+        
+        prefix = provider_prefixes.get(provider, "")
+        if prefix and model_id.startswith(prefix):
+            model_name = model_id[len(prefix):].replace("-", " ").replace("_", " ")
+        else:
+            if "/" in model_id:
+                parts = model_id.split("/")
+                model_name = parts[-1].replace("-", " ").replace("_", " ")
+            else:
+                model_name = model_id.replace("-", " ").replace("_", " ")
+        
+        return f"{provider.title()} {model_name.title()}"
+    
+    @classmethod
+    async def sync_all_providers(
+        cls, 
+        api_keys: Optional[Dict[str, str]] = None,
+        session: Optional[Session] = None
+    ) -> Dict[str, Any]:
+        """同步所有支持的提供商模型"""
+        results = {
+            "success": True,
+            "message": "",
+            "total_added": 0,
+            "total_updated": 0,
+            "total_skipped": 0,
+            "providers": {}
+        }
+        
+        for provider in cls.PROVIDER_CONFIGS.keys():
+            api_key = api_keys.get(provider) if api_keys else None
+            
+            logger.info(f"开始同步 {provider} 模型...")
+            provider_result = await cls.sync_models_from_provider(
+                provider, api_key, session
+            )
+            
+            results["providers"][provider] = provider_result
+            results["total_added"] += provider_result["added"]
+            results["total_updated"] += provider_result["updated"]
+            results["total_skipped"] += provider_result["skipped"]
+            
+            if not provider_result["success"]:
+                results["success"] = False
+                if not results["message"]:
+                    results["message"] = f"{provider} 同步失败: {provider_result['message']}"
+                else:
+                    results["message"] += f"\n{provider} 同步失败: {provider_result['message']}"
+        
+        if results["success"]:
+            results["message"] = f"全部同步完成: 新增 {results['total_added']} 个，更新 {results['total_updated']} 个，跳过 {results['total_skipped']} 个"
+        
+        return results
