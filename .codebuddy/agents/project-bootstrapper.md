@@ -48,11 +48,11 @@ model: inherit
 
 ### 阶段2：需求分析
 
-**调用 Skill：** `@skills/workflows/project-bootstrap.md` 阶段2 部分
+**参考 Skill：** `project-bootstrap`
 
 **输出物：**
 - `doc/PRD.md` - 产品需求文档
-- `doc/database-design.md` - 数据库设计文档（参考 `@skills/design/database-design.md`）
+- `doc/database-design.md` - 数据库设计文档（参考 `database-design` skill）
 - `sql/schema.sql` - 建表脚本
 - `sql/init-data.sql` - 初始化数据
 
@@ -62,7 +62,7 @@ model: inherit
 
 ### 阶段3：原型设计（关键阶段）
 
-**调用 Skill：** `@skills/design/prototype-design.md`
+**调用 Skill：** `prototype-design`
 
 **执行步骤：**
 1. 展示设计风格选项，等待用户选择
@@ -83,7 +83,7 @@ model: inherit
 
 ### 阶段4：任务拆分
 
-**调用 Skill：** `@skills/workflows/task-splitting.md`
+**参考规则：** `@rules/task-splitting.mdc`
 
 **核心原则：** 任务越小越细，代码质量越高（每个任务 2-8 小时）
 
@@ -97,7 +97,7 @@ model: inherit
 
 ### 阶段5：API 接口设计
 
-**调用 Skill：** `@skills/design/api-documentation.md`
+**调用 Skill：** `api-documentation`
 
 **输出物：**
 - `doc/api/*.md` - 各模块 API 文档
@@ -111,7 +111,7 @@ model: inherit
 
 **任务：** 完善功能清单文档，确认开发规范
 
-**更新 `doc/func.md`**，补充完整内容（参考 `@skills/workflows/project-bootstrap.md` 阶段6 模板）
+**更新 `doc/func.md`**，补充完整内容（参考 `project-bootstrap` skill）
 
 **检查点6（最终验证）**：验证所有输出物完整
 

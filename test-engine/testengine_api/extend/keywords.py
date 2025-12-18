@@ -4,7 +4,7 @@ import mimetypes
 import os
 import re
 import time
-from urllib.parse import unquote, urlparse, urlencode
+from urllib.parse import unquote, urlparse, urlencode, parse_qs
 
 import allure
 import jsonpath
@@ -15,12 +15,19 @@ from ..utils.async_client import AsyncClientManager  # 异步客户端管理器
 logger = logging.getLogger(__name__) # 配置日志
 
 class Keywords:
+    """
+    API 测试关键字类
+    
+    能力:
+    - 统一请求: send_request (支持所有 HTTP 方法)
+    - 数据提取: ex_jsonData, ex_reData, ex_mysqlData
+    - 断言: assert_text_comparators, assert_json_comparators, assert_json_DeepDiff
+    """
+    
     request = None
 
     def _clean_url(self, url):
-        """
-        清理 URL，去除前后空格
-        """
+        """清理 URL，去除前后空格"""
         if url and isinstance(url, str):
             return url.strip()
         return url
@@ -44,7 +51,6 @@ class Keywords:
             
             # 尝试编码为 ASCII（HTTP header 标准）
             try:
-                # 测试是否可以用 ASCII 编码
                 value.encode('ascii')
                 encoded_headers[key] = value
             except UnicodeEncodeError:
@@ -56,75 +62,67 @@ class Keywords:
         
         return encoded_headers
 
-    @allure.step(">>>>>>参数数据：")
-    async def send_request(self, **kwargs): # 改为异步方法
-        kwargs.pop("关键字", None) # 剔除不需要的字段
+    @allure.step("参数数据")
+    async def send_request(self, **kwargs):
+        """
+        统一的 HTTP 请求关键字 (异步版本)
+        
+        支持的参数:
+        - method: 请求方法 (GET, POST, PUT, DELETE 等)
+        - url/URL: 请求地址
+        - headers/HEADERS: 请求头
+        - params/PARAMS: URL 参数
+        - data/DATA: 表单数据 (form-urlencoded)
+        - json: JSON 数据
+        - files/FILES: 上传文件
+        - download: 是否下载响应内容到文件 (True/False)
+        - timeout: 超时时间
+        """
+        # 剔除不需要的字段
+        kwargs.pop("关键字", None)
+        download = kwargs.pop("download", False)  # 是否下载响应
+        
+        # 兼容大写参数名
+        url = kwargs.pop("URL", None) or kwargs.get("url")
+        if url and "url" not in kwargs:
+            kwargs["url"] = self._clean_url(url)
+        elif "url" in kwargs:
+            kwargs["url"] = self._clean_url(kwargs["url"])
+        
+        headers = kwargs.pop("HEADERS", None)
+        if headers and "headers" not in kwargs:
+            kwargs["headers"] = self._encode_headers(headers)
+        elif "headers" in kwargs:
+            kwargs["headers"] = self._encode_headers(kwargs["headers"])
+            
+        params = kwargs.pop("PARAMS", None)
+        if params and "params" not in kwargs:
+            kwargs["params"] = params
+            
+        data = kwargs.pop("DATA", None)
+        if data and "data" not in kwargs:
+            kwargs["data"] = data
+            
+        files_param = kwargs.pop("FILES", None)
+        if files_param and "files" not in kwargs:
+            kwargs["files"] = files_param
+
+        # 处理文件上传
         files = kwargs.get("files", [])
-
         if files:
-            files = await self.process_upload_files(files) # 异步处理文件上传
-            kwargs.update(files=files)
+            files = await self.process_upload_files(files)
+            kwargs["files"] = files
 
-        # 初始化请求数据
-        params = kwargs.get("params")
-        url_with_params = kwargs.get("url", "")
-        if params:
-            url_with_params = f'{url_with_params}?{urlencode(params)}'
-
+        # 初始化请求数据（用于错误时显示）
+        params_val = kwargs.get("params") or {}
+        params_str = urlencode(params_val) if params_val else ""
+        url_with_params = f'{kwargs.get("url", "")}?{params_str}' if params_str else kwargs.get("url", "")
         request_data = {
             "url": unquote(url_with_params),
-            "method": kwargs.get("method", ""),
+            "method": kwargs.get("method", "GET"),
             "headers": kwargs.get("headers", ""),
             "body": kwargs.get("data", "") or kwargs.get("json", "") or kwargs.get("files", ""),
-            "response": kwargs.get("response", "")
-        }
-
-        client = None
-        try:
-            client = await AsyncClientManager.get_client() # 获取异步客户端
-            response = await client.request(**kwargs) # 执行异步请求
-            self.request = response
-            g_context().set_dict("current_response", response)
-
-            # 组装请求数据
-            request_data = {
-                "url": unquote(str(response.url)),
-                "method": response.request.method,
-                "headers": dict(response.request.headers),
-                "body": str(response.request.content),
-                "response": response.text
-            }
-            g_context().set_dict("current_response_data", request_data)
-            logger.debug(f"请求成功: {response.status_code} {kwargs.get('url', '')}") # 简化日志
-
-        except Exception as e:
-            request_data.update({"response": str(e)})
-            logger.error(f"请求失败: {kwargs.get('method', 'GET')} {kwargs.get('url', '')} - {str(e)}") # 移除 emoji
-            raise e
-        finally:
-            if client:
-                await client.aclose() # 关闭客户端,释放连接回连接池
-            print("-----------current_response_data------------")
-            print(request_data)
-            print("----------end current_response_data-------------")
-
-
-    @allure.step(">>>>>>参数数据：")
-    async def send_request_and_download(self, **kwargs): # 改为异步方法
-        kwargs.pop("关键字", None)
-        files = kwargs.get("files", [])
-
-        if files:
-            files = await self.process_upload_files(files) # 异步处理文件
-            kwargs.update(files=files)
-
-        request_data = {
-            "url": unquote(f'{kwargs.get("url", "")}?{urlencode(kwargs.get("params", ""))}'),
-            "method": kwargs.get("method", ""),
-            "headers": kwargs.get("headers", ""),
-            "body": kwargs.get("data", "") or kwargs.get("json", "") or kwargs.get("files", ""),
-            "response": kwargs.get("response", ""),
-            "current_response_file_path": ""
+            "response": ""
         }
 
         client = None
@@ -133,81 +131,45 @@ class Keywords:
             response = await client.request(**kwargs)
             self.request = response
             g_context().set_dict("current_response", response)
+            # 设置 status_code 变量供断言使用
+            g_context().set_dict("status_code", str(response.status_code))
 
-            file_path = self.save_response_content(response) # 保存响应内容
-            print("-----------------------")
-            print(response.text)
-            print("-----------------------")
-
+            # 解析 URL 参数
+            parsed_url = urlparse(str(response.url))
+            url_params = parse_qs(parsed_url.query)
+            params_dict = {k: v[0] if len(v) == 1 else v for k, v in url_params.items()}
+            
+            # 组装请求数据
             request_data = {
                 "url": unquote(str(response.url)),
                 "method": response.request.method,
                 "headers": dict(response.request.headers),
-                "body": str(response.request.content),
+                "params": params_dict,
+                "body": str(response.request.content) if response.request.content else "",
                 "response": response.text,
-                "current_response_file_path": file_path
+                "status_code": response.status_code,
+                "response_headers": dict(response.headers)
             }
+            
+            # 如果需要下载响应内容
+            if download:
+                file_path = self.save_response_content(response)
+                request_data["download_path"] = file_path
+                g_context().set_dict("current_response_file_path", file_path)
+                
             g_context().set_dict("current_response_data", request_data)
+            logger.debug(f"请求成功: {response.status_code} {kwargs.get('url', '')}")
 
         except Exception as e:
-            request_data.update({"response": str(e)})
+            request_data["response"] = str(e)
+            logger.error(f"请求失败: {kwargs.get('method', 'GET')} {kwargs.get('url', '')} - {str(e)}")
             raise e
         finally:
             if client:
-                await client.aclose() # 关闭客户端
+                await client.aclose()
             print("-----------current_response_data------------")
             print(request_data)
             print("----------end current_response_data-------------")
-
-
-
-    # @allure.step(">>>>>>参数数据：")
-    # def send_request_and_download(self, **kwargs):
-    #     self.request = requests.Session()
-    #     # 剔除不需要的字段，例如 EXVALUE
-    #     kwargs.pop("关键字", None)  # 如果存在 关键字 字段则删除，否则不操作
-    #
-    #     files = kwargs.get("files", [])
-    #
-    #     if files:
-    #         files = self.process_upload_files(files)
-    #         kwargs.update(files=files)
-    #
-    #     response = self.request.request(**kwargs)
-    #     g_context().set_dict("current_response", response)  # 默认设置成全局变量
-    #
-    #     # 进行上传文件，固定命名：response_时间.文件扩展名
-    #     # 判断response.text的格式，如果是文件，则下载到本地，并返回下载后的文件路径
-    #     # 如果是json，则返回 json，则下载到本地，并返回下载后的文件路径
-    #     # 调用对应的方法，并且返回对应的路径
-    #     file_path = self.save_response_content(response)
-    #
-    #     g_context().set_dict("current_response_file_path", file_path)  # 默认设置成全局变量
-    #     print("-----------------------")
-    #     print(response.text)
-    #     print("-----------------------")
-    #     print("-----------------------")
-    #     print(g_context().show_dict())  # 一定要，不然影响测试平台；需要提取这个地址的字段进行下载
-    #     print("-----------------------")
-
-    # def process_upload_files(self, file_list):
-    #     """
-    #     处理上传文件，返回 requests 支持的 files 列表格式
-    #     :param file_list: 文件列表，格式如 [{'file': 'path'}, {'avatar': 'path2'}]
-    #     :return: 处理后的 files 列表
-    #     """
-    #     processed_files = []
-    #     for item in file_list:
-    #         for field_name, file_path in item.items():
-    #             import os
-    #             file_name = os.path.basename(file_path)
-    #             mime_type, _ = mimetypes.guess_type(file_path)
-    #             if not mime_type:
-    #                 mime_type = 'application/octet-stream'
-    #             processed_files.append(
-    #                 (field_name, (file_name, open(file_path, 'rb'), mime_type))
-    #             )
-    #     return processed_files
 
 
     def save_response_content(self,response, download_dir="/downloads"):
@@ -292,107 +254,7 @@ class Keywords:
         return processed_files
 
 
-    @allure.step(">>>>>>参数数据：")
-    async def request_post_form_urlencoded(self, **kwargs): # 改为异步方法
-        """发送Post请求"""
-        request_data = {
-            "url": self._clean_url(kwargs.get("URL", None)),
-            "params": kwargs.get("PARAMS", None),
-            "headers": self._encode_headers(kwargs.get("HEADERS", None)),
-            "data": kwargs.get("DATA", None),
-        }
-
-        client = await AsyncClientManager.get_client()
-        response = await client.post(**request_data)
-        g_context().set_dict("current_response", response)
-        print("-----------------------")
-        print(response.text)
-        print("-----------------------")
-
-    @allure.step(">>>>>>参数数据：")
-    async def request_post_row_json(self, **kwargs): # 改为异步方法
-        """发送Post请求"""
-        request_data = {
-            "url": self._clean_url(kwargs.get("URL", None)),
-            "params": kwargs.get("PARAMS", None),
-            "headers": self._encode_headers(kwargs.get("HEADERS", None)),
-            "json": kwargs.get("DATA", None),
-        }
-
-        client = await AsyncClientManager.get_client()
-        response = await client.post(**request_data)
-        g_context().set_dict("current_response", response)
-        print("-----------------------")
-        print(response.text)
-        print("-----------------------")
-
-    @allure.step(">>>>>>参数数据：")
-    async def request_post_form_data(self, **kwargs): # 改为异步方法
-        """发送Post请求"""
-        request_data = {
-            "url": self._clean_url(kwargs.get("URL", None)),
-            "params": kwargs.get("PARAMS", None),
-            "headers": self._encode_headers(kwargs.get("HEADERS", None)),
-            "files": kwargs.get("FILES", None),
-            "data": kwargs.get("DATA", None),
-        }
-
-        client = await AsyncClientManager.get_client()
-        response = await client.post(**request_data)
-        g_context().set_dict("current_response", response)
-        print("-----------------------")
-        print(response.text)
-        print("-----------------------")
-
-    @allure.step(">>>>>>参数数据：")
-    async def request_get(self, **kwargs): # 改为异步方法
-        """发送GET请求"""
-        request_data = {
-            "url": self._clean_url(kwargs.get("URL", None)),
-            "params": kwargs.get("PARAMS", None),
-            "headers": self._encode_headers(kwargs.get("HEADERS", None)),
-        }
-
-        client = await AsyncClientManager.get_client()
-        response = await client.get(**request_data)
-        g_context().set_dict("current_response", response)
-        print("-----------------------")
-        print(response.json())
-        print("-----------------------")
-
-    @allure.step(">>>>>>参数数据：")
-    async def request_get_row(self, **kwargs):
-        """发送GET请求 - 异步版本"""
-        client = await AsyncClientManager.get_client()
-        response = await client.get(**kwargs)
-        g_context().set_dict("current_response", response)
-        return response
-
-    @allure.step(">>>>>>参数数据：")
-    async def request_post_row(self, **kwargs):
-        """发送POST请求 - 异步版本"""
-        client = await AsyncClientManager.get_client()
-        response = await client.post(**kwargs)
-        g_context().set_dict("current_response", response)
-        return response
-
-    @allure.step(">>>>>>参数数据：")
-    async def request_put_row(self, **kwargs):
-        """发送PUT请求 - 异步版本"""
-        client = await AsyncClientManager.get_client()
-        response = await client.put(**kwargs)
-        g_context().set_dict("current_response", response)
-        return response
-
-    @allure.step(">>>>>>参数数据：")
-    async def request_delete_row(self, **kwargs):
-        """发送DELETE请求 - 异步版本"""
-        client = await AsyncClientManager.get_client()
-        response = await client.delete(**kwargs)
-        g_context().set_dict("current_response", response)
-        return response
-
-    @allure.step(">>>>>>参数数据：")
+    @allure.step("参数数据")
     def ex_jsonData(self, **kwargs):
         """
         提取json数据
@@ -437,7 +299,7 @@ class Keywords:
         print(g_context().show_dict())
         print("-----------------------")
 
-    @allure.step(">>>>>>参数数据：")
+    @allure.step("参数数据")
     def ex_reData(self, **kwargs):
         """
         提取正则数据
@@ -457,7 +319,7 @@ class Keywords:
         print(g_context().show_dict())
         print("-----------------------")
 
-    @allure.step(">>>>>>参数数据：")
+    @allure.step("参数数据")
     def ex_mysqlData(self, **kwargs):
         """
         数据库: 数据库的名称
@@ -516,7 +378,7 @@ class Keywords:
                     result[f"{var_names[col_idx]}_{idx}"] = item[key]
         g_context().set_by_dict(result)
 
-    @allure.step(">>>>>>参数数据：")
+    @allure.step("参数数据")
     def assert_text_comparators(self, **kwargs):
         """
         封装断言以进行不同的比较操作。
@@ -553,7 +415,7 @@ class Keywords:
             else:
                 raise AssertionError(f"{kwargs['VALUE']} {kwargs['OP_STR']} {kwargs['EXPECTED']} 失败")
 
-    @allure.step(">>>>>>JSON断言：")
+    @allure.step("JSON断言")
     def assert_json_comparators(self, **kwargs):
         """
         JSON 断言比较 - 从响应中提取 JSON 数据并与期望值比较
@@ -643,7 +505,7 @@ class Keywords:
         hash_md5.update(data)
         return hash_md5.hexdigest()
 
-    @allure.step(">>>>>>参数数据：")
+    @allure.step("参数数据")
     def assert_files_by_md5_comparators(self, **kwargs):
         """
         value (Any): 要比较的值。
@@ -678,7 +540,7 @@ class Keywords:
         print(g_context().show_dict())
         print("-----------------------")
 
-    @allure.step(">>>>>>参数数据：")
+    @allure.step("参数数据")
     def generate_name_new(self, **kwargs):
         """
         生成随机用户名
@@ -699,7 +561,7 @@ class Keywords:
         print(g_context().show_dict())
         print("-----------------------")
 
-    @allure.step(">>>>>>参数数据：")
+    @allure.step("参数数据")
     def assert_json_DeepDiff(self, **kwargs):
         """
         JSON深度对比断言
@@ -768,7 +630,7 @@ class Keywords:
         else:
             print("✅ JSON对比一致")
 
-    @allure.step(">>>>>>参数数据：")
+    @allure.step("参数数据")
     def encrypt_aes(self, **kwargs):
         """
         AES加密
