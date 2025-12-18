@@ -1,0 +1,54 @@
+desc: 断言测试
+featureName: 断言验证
+storyName: 各种断言
+rank: normal
+steps:
+  - 启动应用:
+      关键字: open_app
+
+  - 等待页面加载:
+      关键字: sleep
+      time: 3
+
+  - 断言元素可见:
+      关键字: assert_element_visible
+      locator_type: accessibility_id
+      element: main_content
+      timeout: 10
+
+  - 断言元素存在:
+      关键字: assert_element_exists
+      locator_type: id
+      element: "com.example:id/header"
+      timeout: 5
+
+  - 断言文本相等:
+      关键字: assert_text_equals
+      locator_type: id
+      element: "com.example:id/title"
+      expected_text: "欢迎"
+
+  - 断言文本包含:
+      关键字: assert_text_contains
+      locator_type: id
+      element: "com.example:id/description"
+      expected_text: "测试"
+
+  - 断言元素启用:
+      关键字: assert_element_enabled
+      locator_type: accessibility_id
+      element: submit_button
+      timeout: 5
+
+  - 设置变量:
+      关键字: set_variable
+      variable_name: test_value
+      value: "hello"
+
+  - 断言变量相等:
+      关键字: assert_variable_equals
+      variable_name: test_value
+      expected_value: "hello"
+
+  - 关闭应用:
+      关键字: close_app

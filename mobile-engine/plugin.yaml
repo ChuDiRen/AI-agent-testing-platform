@@ -1,0 +1,71 @@
+# Mobile Engine 插件配置
+name: mobile-engine
+version: "1.0.0"
+description: 基于 Appium 的移动端自动化测试引擎，支持关键字驱动和数据驱动
+command: mobilerun
+type: executor
+
+params:
+  - name: type
+    label: 用例格式
+    type: select
+    options:
+      - value: yaml
+        label: YAML 格式
+      - value: excel
+        label: Excel 格式
+    default: yaml
+    help: 测试用例的格式类型
+
+  - name: platform
+    label: 平台
+    type: select
+    options:
+      - value: android
+        label: Android
+      - value: ios
+        label: iOS
+    default: android
+    help: 目标平台
+
+  - name: server
+    label: Appium Server
+    type: string
+    default: "http://127.0.0.1:4723"
+    help: Appium Server 地址
+
+  - name: deviceName
+    label: 设备名称
+    type: string
+    default: ""
+    help: deviceName capability（可选）
+
+  - name: udid
+    label: UDID
+    type: string
+    default: ""
+    help: udid capability（可选）
+
+  - name: app
+    label: App 路径
+    type: string
+    default: ""
+    help: Android 使用 apk 路径；iOS 可使用 ipa 路径（可选）
+
+  - name: bundleId
+    label: iOS BundleId
+    type: string
+    default: ""
+    help: iOS bundleId（可选）
+
+  - name: noReset
+    label: 不重置
+    type: boolean
+    default: true
+    help: noReset capability
+
+  - name: keyDir
+    label: 扩展关键字目录
+    type: string
+    default: ""
+    help: 自定义关键字目录路径（可选）

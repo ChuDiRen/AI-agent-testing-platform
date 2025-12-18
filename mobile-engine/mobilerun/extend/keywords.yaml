@@ -1,0 +1,408 @@
+# Mobile 自动化测试关键字参数配置
+# 用来维护关键字对应的参数列表
+
+# ================================
+# App 启动与关闭
+# ================================
+open_app:
+  - platform
+  - server
+  - deviceName
+  - udid
+  - app
+  - bundleId
+  - noReset
+  - automationName
+  - newCommandTimeout
+
+close_app: []
+
+# ================================
+# 元素操作类关键字
+# ================================
+tap_element:
+  - locator_type
+  - element
+  - wait_time
+
+input_text:
+  - locator_type
+  - element
+  - text
+  - clear
+  - wait_time
+
+clear_text:
+  - locator_type
+  - element
+  - wait_time
+
+get_text:
+  - locator_type
+  - element
+  - variable_name
+  - wait_time
+
+get_attribute:
+  - locator_type
+  - element
+  - attribute_name
+  - variable_name
+  - wait_time
+
+long_press:
+  - locator_type
+  - element
+  - duration
+  - wait_time
+
+double_tap:
+  - locator_type
+  - element
+  - wait_time
+
+scroll_to_element:
+  - locator_type
+  - element
+  - max_swipes
+  - direction
+
+drag_and_drop:
+  - source_locator_type
+  - source_element
+  - target_locator_type
+  - target_element
+
+tap_coordinates:
+  - x
+  - y
+
+swipe_coordinates:
+  - start_x
+  - start_y
+  - end_x
+  - end_y
+  - duration
+
+pinch:
+  - locator_type
+  - element
+  - percent
+  - steps
+
+zoom:
+  - locator_type
+  - element
+  - percent
+  - steps
+
+# ================================
+# 滑动与导航
+# ================================
+swipe:
+  - direction
+  - percent
+  - duration
+
+back: []
+
+# ================================
+# 等待操作类关键字
+# ================================
+wait_for_element:
+  - locator_type
+  - element
+  - timeout
+
+wait_for_element_visible:
+  - locator_type
+  - element
+  - timeout
+
+wait_for_element_gone:
+  - locator_type
+  - element
+  - timeout
+
+wait_for_element_clickable:
+  - locator_type
+  - element
+  - timeout
+
+sleep:
+  - time
+
+# ================================
+# 断言操作类关键字
+# ================================
+assert_element_visible:
+  - locator_type
+  - element
+  - timeout
+
+assert_element_not_visible:
+  - locator_type
+  - element
+  - timeout
+
+assert_text_equals:
+  - locator_type
+  - element
+  - expected_text
+  - wait_time
+
+assert_text_contains:
+  - locator_type
+  - element
+  - expected_text
+  - wait_time
+
+assert_element_exists:
+  - locator_type
+  - element
+  - timeout
+
+assert_element_not_exists:
+  - locator_type
+  - element
+  - timeout
+
+assert_element_enabled:
+  - locator_type
+  - element
+  - timeout
+
+assert_element_selected:
+  - locator_type
+  - element
+  - timeout
+
+assert_variable_equals:
+  - variable_name
+  - expected_value
+
+# ================================
+# 截图与页面源码
+# ================================
+take_screenshot:
+  - filename
+
+take_full_screenshot:
+  - filename
+
+get_page_source:
+  - variable_name
+  - save_to_file
+
+# ================================
+# 设备操作
+# ================================
+press_home: []
+
+lock_device:
+  - duration
+
+unlock_device: []
+
+shake_device: []
+
+rotate_screen:
+  - orientation
+
+get_orientation:
+  - variable_name
+
+hide_keyboard: []
+
+is_keyboard_shown:
+  - variable_name
+
+press_keycode:
+  - keycode
+  - metastate
+
+long_press_keycode:
+  - keycode
+  - metastate
+
+# ================================
+# App 操作
+# ================================
+start_activity:
+  - app_package
+  - app_activity
+
+get_current_activity:
+  - variable_name
+
+get_current_package:
+  - variable_name
+
+background_app:
+  - duration
+
+reset_app: []
+
+install_app:
+  - app_path
+
+remove_app:
+  - app_id
+
+is_app_installed:
+  - app_id
+  - variable_name
+
+terminate_app:
+  - app_id
+
+activate_app:
+  - app_id
+
+query_app_state:
+  - app_id
+  - variable_name
+
+# ================================
+# Context 切换
+# ================================
+get_contexts:
+  - variable_name
+
+switch_context:
+  - context_name
+
+get_current_context:
+  - variable_name
+
+# ================================
+# 通知与剪贴板
+# ================================
+open_notifications: []
+
+get_clipboard:
+  - variable_name
+
+set_clipboard:
+  - content
+
+# ================================
+# 文件操作
+# ================================
+push_file:
+  - remote_path
+  - local_path
+
+pull_file:
+  - remote_path
+  - local_path
+
+# ================================
+# 变量操作
+# ================================
+set_variable:
+  - variable_name
+  - value
+
+get_variable:
+  - variable_name
+
+# ================================
+# Mobile-Use AI 关键字
+# 基于 LLM 驱动的智能移动端自动化
+# ================================
+
+# 配置与初始化
+mu_configure:
+  - llm_provider
+  - llm_model
+  - api_key
+  - base_url
+  - platform
+  - device_id
+  - timeout
+  - max_steps
+  - minitap_api_key
+
+mu_init_agent:
+  - platform
+  - device_id
+  - llm_provider
+  - llm_model
+
+mu_close_agent: []
+
+# 核心 AI 任务
+mu_run_task:
+  - goal
+  - output_description
+  - max_steps
+  - save_result
+  - variable_name
+
+mu_analyze_screen:
+  - prompt
+  - variable_name
+
+mu_tap:
+  - element_desc
+
+mu_input:
+  - element_desc
+  - text
+  - clear_first
+
+mu_swipe:
+  - direction
+  - element_desc
+
+mu_back: []
+
+mu_home: []
+
+mu_open_app:
+  - app_name
+
+mu_close_app:
+  - app_name
+
+# 数据抓取
+mu_extract_data:
+  - data_desc
+  - output_format
+  - variable_name
+
+mu_get_text:
+  - element_desc
+  - variable_name
+
+# AI 断言
+mu_assert_visible:
+  - element_desc
+
+mu_assert_text_contains:
+  - expected_text
+  - element_desc
+
+# 高级功能
+mu_login:
+  - username
+  - password
+  - app_name
+
+mu_search:
+  - keyword
+  - app_name
+
+mu_send_message:
+  - recipient
+  - message
+  - app_name
+
+mu_screenshot:
+  - filename
+  - description
+
+mu_wait:
+  - condition
+  - timeout

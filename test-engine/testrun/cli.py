@@ -81,7 +81,7 @@ def get_engine_type_from_config(cases_dir: str) -> Optional[str]:
             config = yaml.safe_load(f)
             if config and (engine_type := config.get('ENGINE_TYPE')):
                 engine_type = engine_type.lower()
-                if engine_type in ['api', 'web']:
+                if engine_type in ['api', 'web', 'mobile', 'perf']:
                     return engine_type
     except Exception as e:
         print(f"警告: 读取配置文件失败: {e}")
@@ -249,6 +249,136 @@ def run_web_engine() -> int:
         sys.exit(1)
 
 
+def run_mobile_engine() -> int:
+    """运行 Mobile 测试引擎"""
+    try:
+        project_root = Path(__file__).parent.parent
+        reports_dir = project_root / "reports"
+        reports_dir.mkdir(exist_ok=True)
+        
+        # 创建 screenshots 目录
+        screenshots_dir = reports_dir / "screenshots"
+        screenshots_dir.mkdir(exist_ok=True)
+        
+        # 从 plugin_config 获取参数
+        case_type = plugin_config.get_arg("type", "yaml")
+        cases_dir = plugin_config.get_arg("cases") or "examples/mobile-cases_yaml"
+        
+        if case_type == 'pytest':
+            print(f"检测到 pytest 模式，直接运行测试脚本")
+            return run_pytest_tests('mobile', project_root, reports_dir, cases_dir)
+        else:
+            from testengine_mobile.core.CasesPlugin import CasesPlugin
+            print(f"检测到 {case_type} 模式，使用 CasesPlugin 运行")
+            mobile_runner_path = project_root / "testengine_mobile" / "core" / "MobileTestRunner.py"
+            return run_with_plugin('mobile', project_root, reports_dir, mobile_runner_path, CasesPlugin)
+
+    except ImportError as e:
+        print(f"错误: 无法导入 Mobile 引擎模块: {e}")
+        sys.exit(1)
+
+
+def run_perf_engine() -> int:
+    """运行性能测试引擎"""
+    try:
+        project_root = Path(__file__).parent.parent
+        reports_dir = project_root / "reports"
+        reports_dir.mkdir(exist_ok=True)
+        
+        # 从 plugin_config 获取参数
+        cases_dir = plugin_config.get_arg("cases") or "examples/perf-cases_yaml"
+        host = plugin_config.get_arg("host", "")
+        users = int(plugin_config.get_arg("users", 10))
+        spawn_rate = float(plugin_config.get_arg("spawn_rate", 1))
+        run_time = plugin_config.get_arg("run_time", "60s")
+        headless = plugin_config.get_arg("headless", True)
+        
+        # 解析用例路径
+        cases_path = Path(cases_dir)
+        if not cases_path.is_absolute():
+            cases_path = project_root / cases_dir
+        
+        if not cases_path.exists():
+            print(f"错误: 用例目录不存在: {cases_path}")
+            sys.exit(1)
+        
+        # 导入性能测试模块
+        from testengine_perf.parse.yaml_parser import PerfCaseParser
+        from testengine_perf.core.locust_runner import LocustRunner
+        from testengine_perf.core.globalContext import g_context
+        
+        # 保存用例目录到全局上下文
+        g_context().set_dict("_cases_dir", str(cases_path.resolve()))
+        
+        print(f"用例目录: {cases_path}")
+        print(f"目标主机: {host or '从用例读取'}")
+        print(f"并发用户: {users}")
+        print(f"生成速率: {spawn_rate}/s")
+        print(f"运行时长: {run_time}")
+        print(f"无界面模式: {headless}")
+        print("=" * 60)
+        
+        # 解析用例
+        print("\n📂 加载测试用例...")
+        parser = PerfCaseParser()
+        cases = parser.load_cases(cases_path)
+        
+        if not cases:
+            print("错误: 未找到任何测试用例")
+            sys.exit(1)
+        
+        print(f"✅ 加载了 {len(cases)} 个测试用例")
+        
+        # 从用例中获取 host（如果未指定）
+        if not host:
+            for case in cases:
+                case_host = case.get("host") or case.get("context", {}).get("host")
+                if case_host:
+                    host = case_host
+                    print(f"📌 从用例获取目标主机: {host}")
+                    break
+        
+        if not host:
+            print("错误: 请指定 --host 或在用例中配置 host")
+            sys.exit(1)
+        
+        # 合并全局上下文
+        g_context().set_by_dict(parser.context)
+        for case in cases:
+            case_context = case.get("context", {})
+            g_context().set_by_dict(case_context)
+        
+        g_context().set_dict("host", host)
+        
+        # 创建运行器
+        runner = LocustRunner(
+            host=host,
+            users=users,
+            spawn_rate=spawn_rate,
+            run_time=run_time,
+            headless=headless
+        )
+        
+        runner.set_test_cases(cases)
+        runner.set_context(g_context().show_dict())
+        
+        # 执行测试
+        results = runner.run(output_dir=str(reports_dir))
+        
+        print("\n" + "=" * 60)
+        print(f"Reports: {reports_dir}")
+        print("=" * 60)
+        
+        return results.get("exit_code", 0)
+        
+    except ImportError as e:
+        print(f"错误: 无法导入性能测试引擎模块: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"错误: 性能测试执行失败: {e}")
+        sys.exit(1)
+
+
 def run() -> None:
     """
     统一入口函数
@@ -280,6 +410,11 @@ def run() -> None:
             if engine_type:
                 print(f"从配置文件读取 ENGINE_TYPE: {engine_type}")
     
+    # 打印 Mobile 专属参数
+    if engine_type == 'mobile':
+        print(f"平台: {args.get('platform', 'android')}")
+        print(f"Appium Server: {args.get('server', 'http://127.0.0.1:4723')}")
+    
     # 3. 验证参数
     if not engine_type:
         print("\n错误: 未指定测试引擎类型!")
@@ -306,7 +441,9 @@ def run() -> None:
     # 4. 运行对应引擎
     engine_runners = {
         'api': run_api_engine,
-        'web': run_web_engine
+        'web': run_web_engine,
+        'mobile': run_mobile_engine,
+        'perf': run_perf_engine
     }
     
     if runner := engine_runners.get(engine_type):

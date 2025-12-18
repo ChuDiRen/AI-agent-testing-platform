@@ -2,8 +2,8 @@
 # 平台上传插件时会读取此文件，获取参数定义
 
 name: test-engine
-version: "1.0.0"
-description: 统一的自动化测试引擎，支持 API 测试和 Web UI 测试
+version: "1.2.0"
+description: 统一的自动化测试引擎，支持 API 测试、Web UI 测试、移动端测试和性能测试
 command: testrun
 type: executor
 
@@ -20,6 +20,10 @@ params:
         label: API 测试
       - value: web
         label: Web UI 测试
+      - value: mobile
+        label: 移动端测试
+      - value: perf
+        label: 性能测试
     required: true
     help: 选择要运行的测试引擎类型
 
@@ -71,11 +75,123 @@ params:
       engine_type: web
     help: 是否使用无头模式运行浏览器
 
+# Mobile 专属参数
+  - name: platform
+    label: 目标平台
+    type: select
+    options:
+      - value: android
+        label: Android
+      - value: ios
+        label: iOS
+    default: android
+    group: mobile
+    show_when:
+      engine_type: mobile
+    help: 移动端测试目标平台
+
+  - name: server
+    label: Appium Server
+    type: string
+    default: "http://127.0.0.1:4723"
+    group: mobile
+    show_when:
+      engine_type: mobile
+    help: Appium Server 地址
+
+  - name: deviceName
+    label: 设备名称
+    type: string
+    default: ""
+    group: mobile
+    show_when:
+      engine_type: mobile
+    help: 设备名称 (deviceName capability)
+
+  - name: udid
+    label: 设备 UDID
+    type: string
+    default: ""
+    group: mobile
+    show_when:
+      engine_type: mobile
+    help: 设备唯一标识符
+
+  - name: app
+    label: App 路径
+    type: string
+    default: ""
+    group: mobile
+    show_when:
+      engine_type: mobile
+    help: APK/IPA 文件路径
+
+  - name: bundleId
+    label: iOS Bundle ID
+    type: string
+    default: ""
+    group: mobile
+    show_when:
+      engine_type: mobile
+    help: iOS 应用 Bundle ID
+
+  - name: noReset
+    label: 不重置 App
+    type: boolean
+    default: true
+    group: mobile
+    show_when:
+      engine_type: mobile
+    help: 是否保留 App 数据
+
+# Perf 专属参数
+  - name: users
+    label: 并发用户数
+    type: number
+    default: 10
+    group: perf
+    show_when:
+      engine_type: perf
+    help: 模拟的并发用户数量
+
+  - name: spawn_rate
+    label: 用户生成速率
+    type: number
+    default: 1
+    group: perf
+    show_when:
+      engine_type: perf
+    help: 每秒生成的用户数
+
+  - name: run_time
+    label: 运行时长
+    type: string
+    default: "60s"
+    group: perf
+    show_when:
+      engine_type: perf
+    help: 测试运行时长 (如 60s, 5m, 1h)
+
+  - name: host
+    label: 目标主机
+    type: string
+    default: ""
+    group: perf
+    show_when:
+      engine_type: perf
+    help: 被测系统的基础 URL
+
 # 参数分组定义（供前端渲染使用）
 param_groups:
   - id: common
     label: 通用配置
-    engines: [api, web]
+    engines: [api, web, mobile, perf]
   - id: web
     label: Web 测试配置
     engines: [web]
+  - id: mobile
+    label: 移动端测试配置
+    engines: [mobile]
+  - id: perf
+    label: 性能测试配置
+    engines: [perf]

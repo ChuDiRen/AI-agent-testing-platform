@@ -1,0 +1,47 @@
+desc: 设备操作测试
+featureName: 设备控制
+storyName: 设备操作
+rank: normal
+steps:
+  - 启动应用:
+      关键字: open_app
+
+  - 获取屏幕方向:
+      关键字: get_orientation
+      variable_name: current_orientation
+
+  - 旋转到横屏:
+      关键字: rotate_screen
+      orientation: LANDSCAPE
+
+  - 等待:
+      关键字: sleep
+      time: 2
+
+  - 截图横屏:
+      关键字: take_screenshot
+      filename: landscape_mode
+
+  - 旋转回竖屏:
+      关键字: rotate_screen
+      orientation: PORTRAIT
+
+  - 检查键盘状态:
+      关键字: is_keyboard_shown
+      variable_name: keyboard_shown
+
+  - 隐藏键盘:
+      关键字: hide_keyboard
+
+  - 按返回键:
+      关键字: back
+
+  - 按Home键:
+      关键字: press_home
+
+  - 等待:
+      关键字: sleep
+      time: 2
+
+  - 关闭应用:
+      关键字: close_app

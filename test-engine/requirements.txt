@@ -28,6 +28,15 @@ pycryptodome>=3.18.0
 playwright>=1.35.0
 Pillow>=10.0.0
 
+# Mobile Testing (Appium)
+Appium-Python-Client>=3.2.1
+selenium>=4.20.0
+nest-asyncio>=1.5.0
+
+# Performance Testing (Locust)
+locust>=2.20.0
+gevent>=23.0.0
+
 # Utilities
 loguru>=0.7.0
 python-dotenv>=1.0.0

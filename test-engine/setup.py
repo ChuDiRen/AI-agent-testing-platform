@@ -12,8 +12,8 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 setup(
     name="test-engine",
-    version="1.0.0",
-    description="统一的自动化测试引擎，支持 API 测试和 Web UI 测试，采用关键字驱动和数据驱动设计",
+    version="1.2.0",
+    description="统一的自动化测试引擎，支持 API 测试、Web UI 测试、移动端测试和性能测试，采用关键字驱动和数据驱动设计",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Test Engine Team",
@@ -28,6 +28,8 @@ setup(
     package_data={
         'testengine_api': ['*.yaml', '*.ini'],
         'testengine_web': ['*.yaml', '*.ini'],
+        'testengine_mobile': ['*.yaml', '*.ini'],
+        'testengine_perf': ['*.yaml', '*.ini'],
     },
     
     # 安装依赖
@@ -56,7 +58,7 @@ setup(
         ],
     },
     
-    keywords="automation testing api web selenium requests keyword-driven data-driven",
+    keywords="automation testing api web mobile appium selenium locust performance requests keyword-driven data-driven",
     
     project_urls={
         "Documentation": "https://github.com/yourusername/test-engine/wiki",

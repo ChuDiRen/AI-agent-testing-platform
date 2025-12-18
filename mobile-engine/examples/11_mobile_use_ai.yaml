@@ -1,0 +1,39 @@
+desc: Mobile-Use AI 自动化测试
+featureName: AI 驱动自动化
+storyName: 自然语言控制
+rank: critical
+context:
+  llm_provider: "openai"
+  llm_model: "gpt-4o"
+steps:
+  - 配置 Mobile-Use:
+      关键字: mu_configure
+      llm_provider: "{{llm_provider}}"
+      llm_model: "{{llm_model}}"
+      timeout: 60
+      max_steps: 30
+
+  - 启动应用:
+      关键字: open_app
+
+  - AI 分析当前屏幕:
+      关键字: mu_analyze_screen
+      prompt: "当前屏幕显示的是什么应用？有哪些主要元素？"
+      variable_name: screen_info
+
+  - AI 执行任务:
+      关键字: mu_run_task
+      goal: "打开设置应用"
+      max_steps: 10
+
+  - AI 断言元素可见:
+      关键字: mu_assert_visible
+      element_desc: "设置页面标题"
+
+  - AI 截图:
+      关键字: mu_screenshot
+      filename: "ai_test_result"
+      description: "AI 测试完成截图"
+
+  - 关闭应用:
+      关键字: close_app

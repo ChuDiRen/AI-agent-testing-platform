@@ -1,12 +1,12 @@
 # Test Engine - 统一自动化测试引擎
 
-统一的自动化测试引擎，支持 **API 测试** 和 **Web UI 测试**，采用关键字驱动和数据驱动的设计理念。
+统一的自动化测试引擎，支持 **API 测试**、**Web UI 测试**、**移动端测试** 和 **性能测试**，采用关键字驱动和数据驱动的设计理念。
 
 ## ✨ 特性
 
 ### 核心特性
 
-- 🔄 **统一入口**：一个命令支持 API 和 Web 两种测试类型
+- 🔄 **统一入口**：一个命令支持 API、Web、移动端和性能四种测试类型
 - ✨ **关键字驱动**：丰富的测试关键字库，简化用例编写
 - 📝 **YAML 格式**：使用 YAML 编写测试用例，清晰易读
 - 🐍 **原生 Pytest**：支持使用 Python pytest 脚本编写测试
@@ -37,6 +37,29 @@
 - 📊 内置追踪功能（trace viewer）
 - 🚀 更快的执行速度和更好的稳定性
 
+### 移动端测试特性
+
+- 📱 基于 Appium - 支持 Android 和 iOS 双平台
+- 🤖 AI驱动操作 - 基于 mobile-use，支持自然语言控制移动设备
+- 🎯 多种定位方式（id、accessibility_id、xpath、uiautomator、ios_predicate 等）
+- 📸 失败自动截图 + 页面源码附加
+- 👆 丰富的手势操作（点击、长按、滑动、捏合、拖拽等）
+- 📊 70+ 内置关键字，覆盖移动端全部操作场景
+- 🔄 App 生命周期管理（安装、卸载、启动、终止等）
+- 📋 剪贴板、通知栏、Context 切换等高级功能
+- 🗣️ 自然语言数据抓取和智能断言
+
+### 性能测试特性
+
+- ⚡ 基于 Locust - 高性能分布式负载测试框架
+- 📈 实时监控 - Web UI 实时查看测试指标
+- 🔄 关键字驱动 - 使用 YAML 编写性能测试用例
+- 📊 丰富指标 - RPS、响应时间、失败率等
+- 🎯 灵活配置 - 并发用户数、生成速率、运行时长
+- 📝 HTML 报告 - 自动生成详细的测试报告
+- 🔗 接口关联 - 支持接口间数据传递
+- 🧩 可扩展 - 支持自定义 Locust 脚本
+
 ## 📁 目录结构
 
 ```
@@ -56,9 +79,22 @@ test-engine/
 │   ├── parse/             # 用例解析器
 │   ├── utils/             # 工具类
 │   └── pytest.ini         # Pytest 配置文件
+├── testengine_mobile/     # 移动端测试引擎
+│   ├── core/              # 核心运行器
+│   ├── extend/            # 关键字扩展
+│   ├── parse/             # 用例解析器
+│   ├── utils/             # 工具类
+│   └── pytest.ini         # Pytest 配置文件
+├── testengine_perf/       # 性能测试引擎
+│   ├── core/              # 核心运行器 (Locust)
+│   ├── extend/            # 关键字扩展
+│   ├── parse/             # 用例解析器
+│   └── utils/             # 工具类
 ├── examples/              # 示例用例
 │   ├── api-cases/         # API测试示例
-│   └── web-cases/         # Web测试示例
+│   ├── web-cases/         # Web测试示例
+│   ├── mobile-cases_yaml/ # 移动端测试示例
+│   └── perf-cases_yaml/   # 性能测试示例
 ├── reports/               # 测试报告目录（运行时自动生成）
 │   ├── allure-results/    # Allure 原始测试数据（JSON）
 │   ├── allure-report/     # Allure HTML 可视化报告
@@ -108,9 +144,18 @@ python -m testrun.cli --engine-type=web --type=yaml --cases=examples/web-cases -
 # Web 测试（无头模式 - 适用于 CI/CD）
 python -m testrun.cli --engine-type=web --type=yaml --cases=examples/web-cases --browser=chromium --headless=true
 
+# 移动端测试（需要先启动 Appium Server）
+python -m testrun.cli --engine-type=mobile --type=yaml --cases=examples/mobile-cases_yaml --platform=android --app=/path/to/app.apk
+
 # 安装后可直接使用 testrun 命令
 testrun --engine-type=api --type=yaml --cases=examples/api-cases
 testrun --engine-type=web --type=yaml --cases=examples/web-cases --browser=chromium --headless=true
+testrun --engine-type=mobile --type=yaml --cases=examples/mobile-cases_yaml --platform=android
+
+# 性能测试
+python -m testrun.cli --engine-type=perf --cases=examples/perf-cases_yaml --host=https://api.example.com --users=100 --run_time=60s
+
+testrun --engine-type=perf --cases=examples/perf-cases_yaml --host=https://api.example.com --users=50 --spawn_rate=5
 ```
 
 #### 方式二：通过配置文件指定
@@ -119,7 +164,7 @@ testrun --engine-type=web --type=yaml --cases=examples/web-cases --browser=chrom
 
 ```yaml
 # context.yaml
-ENGINE_TYPE: api  # 或 web
+ENGINE_TYPE: api  # 或 web 或 mobile 或 perf
 ```
 
 然后运行：

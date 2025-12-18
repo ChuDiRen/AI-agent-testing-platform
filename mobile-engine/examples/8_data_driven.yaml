@@ -1,0 +1,54 @@
+desc: 数据驱动测试
+featureName: 搜索功能
+storyName: 多关键词搜索
+rank: normal
+ddts:
+  - desc: 搜索苹果
+    search_keyword: "苹果"
+    expected_result: "Apple"
+  - desc: 搜索香蕉
+    search_keyword: "香蕉"
+    expected_result: "Banana"
+  - desc: 搜索橙子
+    search_keyword: "橙子"
+    expected_result: "Orange"
+steps:
+  - 启动应用:
+      关键字: open_app
+
+  - 等待搜索框:
+      关键字: wait_for_element_visible
+      locator_type: accessibility_id
+      element: search_input
+      timeout: 10
+
+  - 输入搜索关键词:
+      关键字: input_text
+      locator_type: accessibility_id
+      element: search_input
+      text: "{{search_keyword}}"
+      clear: true
+
+  - 点击搜索按钮:
+      关键字: tap_element
+      locator_type: accessibility_id
+      element: search_button
+
+  - 等待结果:
+      关键字: wait_for_element_visible
+      locator_type: accessibility_id
+      element: search_result
+      timeout: 10
+
+  - 断言结果包含预期:
+      关键字: assert_text_contains
+      locator_type: accessibility_id
+      element: search_result
+      expected_text: "{{expected_result}}"
+
+  - 截图:
+      关键字: take_screenshot
+      filename: "search_{{search_keyword}}"
+
+  - 关闭应用:
+      关键字: close_app

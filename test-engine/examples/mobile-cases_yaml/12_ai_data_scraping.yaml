@@ -1,0 +1,43 @@
+desc: AI 数据抓取测试
+featureName: AI 驱动自动化
+storyName: 数据抓取
+rank: normal
+context:
+  app_name: "淘宝"
+  search_keyword: "iPhone"
+steps:
+  - 配置 Mobile-Use:
+      关键字: mu_configure
+      llm_provider: "openai"
+      timeout: 120
+      max_steps: 50
+
+  - 启动应用:
+      关键字: open_app
+
+  - AI 打开应用:
+      关键字: mu_open_app
+      app_name: "{{app_name}}"
+
+  - AI 搜索:
+      关键字: mu_search
+      keyword: "{{search_keyword}}"
+      app_name: "{{app_name}}"
+
+  - 等待搜索结果:
+      关键字: mu_wait
+      condition: "搜索结果加载完成"
+      timeout: 15
+
+  - AI 提取商品数据:
+      关键字: mu_extract_data
+      data_desc: "获取前3个商品的名称和价格"
+      output_format: "JSON 数组，每个对象包含 name 和 price 字段"
+      variable_name: products
+
+  - AI 截图:
+      关键字: mu_screenshot
+      filename: "data_scraping_result"
+
+  - 关闭应用:
+      关键字: close_app

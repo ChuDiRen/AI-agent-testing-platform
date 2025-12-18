@@ -1,0 +1,36 @@
+# Mobile Engine 依赖包
+
+# 测试框架
+pytest>=8.1.1
+pytest-html>=4.1.1
+pytest-metadata>=3.1.1
+
+# Allure 报告
+allure-pytest>=2.13.0
+allure-python-commons>=2.13.0
+
+# Mobile-Use AI 自动化 (可选)
+# pip install mobile-use
+# 或从源码安装: git clone https://github.com/minitap-ai/mobile-use.git
+nest-asyncio>=1.5.0
+python-dotenv>=1.0.0
+allure-combine>=1.0.11
+
+# YAML 解析
+PyYAML>=6.0.1
+
+# Excel 解析（可选，与 web-engine 对齐）
+pandas>=2.2.3
+openpyxl>=3.1.2
+
+# 模板引擎
+Jinja2>=3.1.3
+
+# 其他工具
+requests>=2.31.0
+python-dotenv>=1.0.0
+Pillow>=10.2.0
+
+# Appium
+Appium-Python-Client>=3.2.1
+selenium>=4.20.0

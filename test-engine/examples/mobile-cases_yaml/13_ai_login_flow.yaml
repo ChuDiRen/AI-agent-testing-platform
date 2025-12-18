@@ -1,0 +1,40 @@
+desc: AI 智能登录测试
+featureName: AI 驱动自动化
+storyName: 智能登录
+rank: critical
+context:
+  app_name: "测试应用"
+  username: "testuser"
+  password: "123456"
+steps:
+  - 配置 Mobile-Use:
+      关键字: mu_configure
+      llm_provider: "siliconflow"
+      llm_model: "deepseek-ai/DeepSeek-V3"
+      timeout: 90
+      max_steps: 30
+
+  - 启动应用:
+      关键字: open_app
+
+  - AI 智能登录:
+      关键字: mu_login
+      username: "{{username}}"
+      password: "{{password}}"
+      app_name: "{{app_name}}"
+
+  - AI 断言登录成功:
+      关键字: mu_assert_visible
+      element_desc: "首页或欢迎页面"
+
+  - AI 断言文本:
+      关键字: mu_assert_text_contains
+      expected_text: "欢迎"
+      element_desc: "屏幕"
+
+  - AI 截图:
+      关键字: mu_screenshot
+      filename: "ai_login_success"
+
+  - 关闭应用:
+      关键字: close_app
