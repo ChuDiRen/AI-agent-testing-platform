@@ -221,3 +221,92 @@ pytest tests/api/ -v --reruns 2
   - `auth_test.py` - 认证授权测试
   - `parametrize_test.py` - 参数化测试示例
   - `data_driven_test.py` - 数据驱动测试
+
+## 完整教程
+
+**`examples/tutorial/`** - 9个渐进式示例，从入门到高级：
+
+### 入门级（1小时）
+| 示例 | 目录 | 学习内容 |
+|-----|------|---------|
+| 01 | `beginner/01_basic_request/` | GET/POST 请求、响应获取 |
+| 02 | `beginner/02_response_validation/` | 状态码、JSON 结构验证 |
+| 03 | `beginner/03_authentication/` | 登录、Token 认证 |
+
+### 中级（1.5小时）
+| 示例 | 目录 | 学习内容 |
+|-----|------|---------|
+| 04 | `intermediate/04_crud_testing/` | CRUD 接口测试、数据清理 |
+| 05 ⭐ | `intermediate/05_parametrize/` | **参数化测试（重点）** |
+| 06 ⭐ | `intermediate/06_data_driven/` | **数据驱动测试（重点）** |
+
+### 高级（2小时）
+| 示例 | 目录 | 学习内容 |
+|-----|------|---------|
+| 07 | `advanced/07_contract_testing/` | OpenAPI 契约验证 |
+| 08 | `advanced/08_performance/` | 响应时间、并发测试 |
+| 09 ⭐ | `advanced/09_comprehensive/` | **完整测试套件（重点）** |
+
+### 运行教程
+
+```bash
+cd examples/tutorial
+
+# 查看所有命令
+make help
+
+# 运行特定示例
+make 01  # 基础请求
+make 05  # 参数化测试（重点）
+make 09  # 综合套件（重点）
+
+# 运行所有示例
+make all
+```
+
+### 核心知识点速查
+
+**参数化测试（重要）：**
+```python
+@pytest.mark.parametrize("username,password,expected", [
+    ("admin", "admin123", True),   # 正确凭证
+    ("admin", "wrong", False),      # 错误密码
+    ("", "admin123", False),        # 空用户名
+])
+def test_login(self, username, password, expected):
+    response = client.post("/login", json={
+        "username": username,
+        "password": password
+    })
+    actual = response.json()["code"] == 200
+    assert actual == expected
+```
+
+**数据驱动测试（重要）：**
+```python
+TEST_DATA = [
+    {"case_id": "TC_001", "username": "admin", "password": "admin123", "expected": True},
+    {"case_id": "TC_002", "username": "admin", "password": "wrong", "expected": False},
+]
+
+@pytest.mark.parametrize("case", TEST_DATA, ids=lambda x: x["case_id"])
+def test_login(self, case):
+    response = client.post("/login", json={
+        "username": case["username"],
+        "password": case["password"]
+    })
+    assert (response.json()["code"] == 200) == case["expected"]
+```
+
+**Fixture 数据清理：**
+```python
+@pytest.fixture
+def cleanup_users(api_client):
+    created_ids = []
+    yield created_ids
+    # 测试结束后自动清理
+    for id in created_ids:
+        api_client.delete(f"/user/delete", params={"id": id})
+```
+
+详细内容请查看 `examples/tutorial/README.md`。

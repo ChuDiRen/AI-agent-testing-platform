@@ -11,18 +11,19 @@
 │   ├── code-reviewer.md           # 代码审查专家
 │   ├── debugger.md                # 调试专家
 │   ├── data-scientist.md          # 数据分析专家
-│   └── test-automator.md          # 测试自动化专家（自动识别技术栈）
+│   └── test-automator.md          # 测试自动化专家（调用测试 Skills）
 │
-├── commands/                  # 快捷命令（3个，自动识别技术栈）
+├── commands/                  # 快捷命令（3个，调用对应 Skills）
 │   ├── code-review.md             # 代码审查
-│   ├── generate-api-doc.md        # API 文档生成
-│   └── generate-tests.md          # 测试生成
+│   ├── generate-api-doc.md        # API 文档生成（调用 api-documentation）
+│   └── generate-tests.md          # 测试生成（调用 api-testing/webapp-testing）
 │
-├── rules/                     # 规则（2个）
+├── rules/                     # 规则（3个）
 │   ├── code-reuse-check.mdc       # always: 代码复用检查
+│   ├── file-naming.mdc            # always: 文件命名规范
 │   └── task-splitting.mdc         # requested: 任务拆分
 │
-└── skills/                    # 技能知识库（9个）
+└── skills/                    # 技能知识库（8个）
     ├── design/                    # 设计规范
     │   ├── api-documentation/     # API 文档规范
     │   ├── database-design/       # 数据库设计
@@ -42,8 +43,8 @@
 
 ```
 Rules (规则)       →  自动/按需生效的约束
-Commands (命令)    →  快捷操作入口（自动识别技术栈）
-Agents (智能体)    →  定义"谁来做"（自动识别技术栈）
+Commands (命令)    →  快捷操作入口 → 调用 Skills
+Agents (智能体)    →  定义"谁来做" → 调用 Skills
 Skills (技能)      →  定义"怎么做"的规范和工具
 ```
 
@@ -51,21 +52,22 @@ Skills (技能)      →  定义"怎么做"的规范和工具
 
 ### 方式一：使用 Commands（推荐）
 
-在 Chat 中直接输入命令（自动识别 Python/Go/JS）：
+在 Chat 中直接输入命令：
 
 ```bash
-# 代码审查（自动识别技术栈）
+# 代码审查
 /code-review app/routes/user.py
 /code-review internal/handler/
 /code-review src/components/
 
-# API 文档生成（自动识别技术栈）
+# API 文档生成（调用 api-documentation skill）
 /generate-api-doc api/
 /generate-api-doc internal/handler/
 
-# 测试生成（自动识别技术栈）
-/generate-tests services/user_service.py
-/generate-tests pkg/service/
+# 测试生成（根据类型调用对应 skill）
+/generate-tests unit services/user_service.py
+/generate-tests api app/api/user.py
+/generate-tests e2e src/views/login.vue
 ```
 
 ### 方式二：调用 Agent
@@ -117,7 +119,9 @@ use skill prototype-design
 
 ### 测试生成
 ```
-/generate-tests [文件/目录]
+/generate-tests unit [文件/目录]
+/generate-tests api [API文件]
+/generate-tests e2e [页面文件]
 ```
 
 ### 调试
@@ -127,30 +131,31 @@ use skill prototype-design
 
 ## 📚 Commands 说明
 
-| Command | 用途 | 特点 |
-|---------|------|------|
-| `/code-review` | 代码审查 | 自动识别 Python/Go/JS |
-| `/generate-api-doc` | API 文档生成 | 自动识别 FastAPI/Gin 等 |
-| `/generate-tests` | 测试生成 | 自动识别 pytest/go test/Jest |
+| Command | 用途 | 调用 Skill |
+|---------|------|-----------|
+| `/code-review` | 代码审查 | - |
+| `/generate-api-doc` | API 文档生成 | `api-documentation` |
+| `/generate-tests` | 测试生成 | `api-testing` / `webapp-testing` |
 
 ## 📚 Agents 说明
 
-| Agent | 用途 | 特点 |
-|-------|------|------|
-| project-bootstrapper | 项目启动 | 含原型设计、任务拆分 |
-| frontend-developer | 前端开发 | React/Vue 专家 |
-| backend-developer | 后端开发 | 自动识别 Go/Python/Java |
-| code-reviewer | 代码审查 | 质量、安全、可维护性 |
-| test-automator | 测试自动化 | 自动识别测试框架 |
-| debugger | 调试 | 错误分析专家 |
-| data-scientist | 数据分析 | SQL 和数据洞察 |
+| Agent | 用途 | 调用 Skill |
+|-------|------|-----------|
+| project-bootstrapper | 项目启动 | `project-bootstrap` |
+| frontend-developer | 前端开发 | - |
+| backend-developer | 后端开发 | - |
+| code-reviewer | 代码审查 | - |
+| test-automator | 测试自动化 | `api-testing` / `webapp-testing` |
+| debugger | 调试 | - |
+| data-scientist | 数据分析 | - |
 
 ## 📚 Rules 说明
 
 | Rule | 类型 | 用途 |
 |------|------|------|
 | code-reuse-check | always | 开发前自动检查可复用代码 |
-| task-splitting | requested | 按需进行任务拆分 |
+| file-naming | always | 生成文件使用"文件名+时间戳"命名 |
+| task-splitting | requested | 按需进行任务拆分（前后端分离） |
 
 ## 🎯 最佳实践
 
@@ -169,6 +174,6 @@ use skill prototype-design
 ```
 第一步: @backend-developer 设计 API
 第二步: 实现代码
-第三步: /generate-tests services/
+第三步: /generate-tests api services/
 第四步: /code-review services/
 ```

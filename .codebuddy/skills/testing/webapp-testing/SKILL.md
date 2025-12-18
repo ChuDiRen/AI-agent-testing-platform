@@ -93,3 +93,80 @@ with sync_playwright() as p:
   - `element_discovery.py` - 发现页面上的按钮、链接和输入框
   - `static_html_automation.py` - 使用 file:// URL 操作本地 HTML
   - `console_logging.py` - 在自动化过程中捕获控制台日志
+
+## 完整教程
+
+**`examples/tutorial/`** - 9个渐进式示例，从入门到高级：
+
+### 入门级（1小时）
+| 示例 | 目录 | 学习内容 |
+|-----|------|---------|
+| 01 | `beginner/01_static_html/` | 加载本地 HTML、提取页面内容 |
+| 02 | `beginner/02_element_discovery/` | 选择器策略、元素遍历 |
+| 03 | `beginner/03_screenshots/` | 截图、视口设置 |
+
+### 中级（1.5小时）
+| 示例 | 目录 | 学习内容 |
+|-----|------|---------|
+| 04 | `intermediate/04_form_automation/` | 表单填写、下拉框、复选框 |
+| 05 ⭐ | `intermediate/05_dynamic_content/` | **动态内容等待策略（重点）** |
+| 06 | `intermediate/06_console_debugging/` | 控制台日志捕获和分析 |
+
+### 高级（2小时）
+| 示例 | 目录 | 学习内容 |
+|-----|------|---------|
+| 07 | `advanced/07_spa_testing/` | SPA 路由测试、状态验证 |
+| 08 | `advanced/08_server_integration/` | 前后端集成测试 |
+| 09 ⭐ | `advanced/09_comprehensive/` | **完整 E2E 测试套件（重点）** |
+
+### 运行教程
+
+```bash
+cd examples/tutorial
+
+# 查看所有命令
+make help
+
+# 运行特定示例
+make 01  # 静态 HTML
+make 05  # 动态内容（重点）
+make 09  # 综合套件（重点）
+
+# 运行所有示例
+make all
+```
+
+### 核心知识点速查
+
+**等待策略（重要）：**
+```python
+# ✅ 动态应用必须等待
+page.goto('http://localhost:3000')
+page.wait_for_load_state('networkidle')  # 等待 JS 执行完毕
+
+# ✅ 等待特定元素
+page.wait_for_selector('.data-loaded')
+
+# ❌ 避免固定等待
+page.wait_for_timeout(2000)  # 不稳定
+```
+
+**选择器优先级：**
+```python
+# 1. ARIA 角色（最佳）
+page.locator('role=button[name="提交"]')
+
+# 2. 文本内容
+page.locator('text=提交')
+
+# 3. 测试 ID
+page.locator('[data-testid="submit"]')
+
+# 4. ID
+page.locator('#submit-btn')
+
+# 5. CSS 类（最不稳定）
+page.locator('.btn-primary')
+```
+
+详细内容请查看 `examples/tutorial/README.md`。

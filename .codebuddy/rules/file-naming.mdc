@@ -1,0 +1,60 @@
+---
+description: 文件命名规则。所有生成的输出文件必须使用"文件名+时间戳"格式命名。
+globs:
+alwaysApply: true
+---
+
+# 文件命名规则
+
+## 核心原则
+
+> **所有生成的输出文件必须使用"文件名+时间戳"格式命名，确保版本可追溯。**
+
+## 命名格式
+
+```
+{filename}-{timestamp}.{ext}
+```
+
+| 组成部分 | 说明 | 示例 |
+|---------|------|------|
+| `filename` | 文件名（不含扩展名） | `frontend-tasks`、`api-doc` |
+| `timestamp` | 时间戳 `YYYYMMDD-HHmmss` | `20251218-143052` |
+| `ext` | 文件扩展名 | `md`、`json`、`yaml` |
+
+## 适用范围
+
+| 文件类型 | 命名示例 |
+|---------|---------|
+| 前端任务清单 | `doc/frontend-tasks-20251218-143052.md` |
+| 后端任务清单 | `doc/backend-tasks-20251218-143052.md` |
+| API 文档 | `doc/api-doc-20251218-143052.md` |
+| 测试报告 | `doc/test-report-20251218-143052.md` |
+| 代码审查报告 | `doc/code-review-20251218-143052.md` |
+| 数据库设计文档 | `doc/database-design-20251218-143052.md` |
+| 原型设计文档 | `doc/prototype-design-20251218-143052.md` |
+
+## 不适用范围
+
+以下文件**不使用**时间戳命名：
+
+- 配置文件（如 `SKILL.md`、`README.md`）
+- 规则文件（如 `*.mdc`）
+- 代码源文件（如 `*.py`、`*.vue`、`*.ts`）
+- Agent 定义文件
+- Command 定义文件
+
+## 实现说明
+
+生成文件时，使用当前时间生成时间戳：
+
+```python
+from datetime import datetime
+timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+filename = f"frontend-tasks-{timestamp}.md"
+```
+
+```javascript
+const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15).replace(/(\d{8})(\d{6})/, '$1-$2');
+const filename = `frontend-tasks-${timestamp}.md`;
+```
