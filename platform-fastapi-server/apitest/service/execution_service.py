@@ -207,6 +207,15 @@ class ExecutionService:
         """
         执行测试计划（异步提交）
         
+        执行流程：
+        1. 生成测试用例YAML文件
+           - context.yaml（环境变量、数据库配置）
+           - {order}_{uuid}.yaml（测试用例）
+        2. 调用执行器执行测试
+        3. 生成Allure报告
+        4. 保存执行记录到历史记录表
+        5. 发送机器人通知
+        
         Returns:
             {"test_id": int, "execution_uuid": str, "status": "running", "total_cases": int}
         """
@@ -217,6 +226,13 @@ class ExecutionService:
         execution_uuid = str(uuid.uuid4())
         workspace = get_temp_subdir("executor") / execution_uuid
         workspace.mkdir(parents=True, exist_ok=True)
+        
+        # 写入 context.yaml（环境变量、数据库配置）
+        context_yaml = build_result.get("context_yaml")
+        if context_yaml:
+            (workspace / "context.yaml").write_text(context_yaml, encoding='utf-8')
+        
+        # 写入测试用例文件
         self.yaml_builder.save_cases_to_dir(build_result["cases"], workspace)
         
         case_names = [c["case_name"] for c in build_result["cases"]]
@@ -237,7 +253,8 @@ class ExecutionService:
             executor_code=executor_code,
             workspace=workspace,
             case_names=case_names,
-            task_execution_id=task_execution_id
+            task_execution_id=task_execution_id,
+            plan_id=plan_id  # 传递 plan_id 用于机器人通知
         )
         
         logger.info(f"计划已提交: workspace={workspace}, 用例数={len(case_names)}")
@@ -295,7 +312,8 @@ class ExecutionService:
         executor_code: str,
         workspace: Path,
         case_names: list,
-        task_execution_id: Optional[int] = None
+        task_execution_id: Optional[int] = None,
+        plan_id: Optional[int] = None
     ):
         """提交后台执行任务"""
         _bg_executor.submit(
@@ -304,7 +322,8 @@ class ExecutionService:
             executor_code=executor_code,
             workspace=str(workspace),
             case_names=case_names,
-            task_execution_id=task_execution_id
+            task_execution_id=task_execution_id,
+            plan_id=plan_id
         )
 
 
@@ -315,11 +334,18 @@ def _run_execution(
     executor_code: str,
     workspace: str,
     case_names: list,
-    task_execution_id: int = None
+    task_execution_id: int = None,
+    plan_id: int = None
 ):
     """
     后台执行测试（在线程池中运行）
     统一处理单用例和计划执行
+    
+    执行流程：
+    1. 执行测试用例
+    2. 生成Allure报告
+    3. 保存执行记录
+    4. 发送机器人通知（计划执行时）
     """
     from core.database import engine
     from sqlmodel import Session as DBSession
@@ -353,7 +379,10 @@ def _run_execution(
             passed_count = 1 if history and history.test_status == 'success' else 0
             failed_count = 0 if passed_count else 1
         else:
-            history = collector.update_plan_result(test_id, result, case_names, len(case_names))
+            # 计划执行，传递 plan_id 用于机器人通知
+            history = collector.update_plan_result(
+                test_id, result, case_names, len(case_names), plan_id=plan_id
+            )
             # 从 response_data 中提取统计信息
             if history and history.response_data:
                 import json

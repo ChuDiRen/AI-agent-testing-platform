@@ -113,10 +113,14 @@ async def queryById(id: int = Query(...), session: Session = Depends(get_session
         result = {
             "id": case_info.id,
             "project_id": case_info.project_id,
+            "module_id": case_info.module_id,
             "case_name": case_info.case_name,
             "case_desc": case_info.case_desc,
             "context_config": parse_context_config(case_info.context_config),
             "ddts": parse_ddts(case_info.ddts),
+            "pre_request": case_info.pre_request,
+            "post_request": case_info.post_request,
+            "debug_info": case_info.debug_info,
             "create_time": TimeFormatter.format_datetime(case_info.create_time),
             "modify_time": TimeFormatter.format_datetime(case_info.modify_time),
             "steps": [
@@ -145,10 +149,13 @@ async def insert(data: ApiInfoCaseCreate, session: Session = Depends(get_session
         # 创建用例基本信息
         case_info = module_model(
             project_id=data.project_id,
+            module_id=data.module_id,
             case_name=data.case_name,
             case_desc=data.case_desc,
             context_config=json.dumps(data.context_config, ensure_ascii=False) if data.context_config else None,
             ddts=json.dumps(data.ddts, ensure_ascii=False) if data.ddts else None,
+            pre_request=data.pre_request,
+            post_request=data.post_request,
             create_time=datetime.now(),
             modify_time=datetime.now()
         )
@@ -187,6 +194,8 @@ async def update(data: ApiInfoCaseUpdate, session: Session = Depends(get_session
         
         if data.project_id is not None:
             case_info.project_id = data.project_id
+        if data.module_id is not None:
+            case_info.module_id = data.module_id
         if data.case_name is not None:
             case_info.case_name = data.case_name
         if data.case_desc is not None:
@@ -195,6 +204,10 @@ async def update(data: ApiInfoCaseUpdate, session: Session = Depends(get_session
             case_info.context_config = json.dumps(data.context_config, ensure_ascii=False) if data.context_config else None
         if data.ddts is not None:
             case_info.ddts = json.dumps(data.ddts, ensure_ascii=False) if data.ddts else None
+        if data.pre_request is not None:
+            case_info.pre_request = data.pre_request
+        if data.post_request is not None:
+            case_info.post_request = data.post_request
         case_info.modify_time = datetime.now()
         
         # 更新步骤：先删除旧步骤，再创建新步骤
