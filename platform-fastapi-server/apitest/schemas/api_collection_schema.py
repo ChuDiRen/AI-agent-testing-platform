@@ -17,6 +17,8 @@ class ApiCollectionInfoCreate(BaseModel):
     project_id: Optional[int] = Field(default=None, description="项目ID")
     plan_name: str = Field(description="计划名称")
     plan_desc: Optional[str] = Field(default=None, description="计划描述")
+    collection_env: Optional[List[Dict[str, Any]]] = Field(default=None, description="全局环境变量（JSON数组）")
+    plugin_code: Optional[str] = Field(default='api_engine', description="执行引擎插件代码")
 
 class ApiCollectionInfoUpdate(BaseModel):
     """测试集合更新请求"""
@@ -24,6 +26,8 @@ class ApiCollectionInfoUpdate(BaseModel):
     project_id: Optional[int] = Field(default=None, description="项目ID")
     plan_name: Optional[str] = Field(default=None, description="计划名称")
     plan_desc: Optional[str] = Field(default=None, description="计划描述")
+    collection_env: Optional[List[Dict[str, Any]]] = Field(default=None, description="全局环境变量（JSON数组）")
+    plugin_code: Optional[str] = Field(default=None, description="执行引擎插件代码")
 
 # ==================== 计划用例关联相关 ====================
 class ApiCollectionDetailCreate(BaseModel):

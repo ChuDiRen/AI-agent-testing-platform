@@ -1,6 +1,6 @@
 """
 执行结果收集器
-负责解析执行结果、更新历史记录、持久化报告
+负责解析执行结果、更新历史记录、持久化报告、发送机器人通知
 """
 import json
 import logging
@@ -8,10 +8,11 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from ..model.ApiHistoryModel import ApiHistory
 from ..model.TestTaskModel import TestTask, TestTaskExecution
+from ..model.ApiPlanRobotModel import ApiPlanRobot
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +87,8 @@ class ResultCollector:
         test_id: int,
         execute_result: Dict[str, Any],
         case_names: List[str],
-        total_cases: int
+        total_cases: int,
+        plan_id: Optional[int] = None
     ) -> ApiHistory:
         """
         更新计划批量执行结果
@@ -96,6 +98,7 @@ class ResultCollector:
             execute_result: 执行器返回的结果
             case_names: 用例名称列表
             total_cases: 总用例数
+            plan_id: 测试计划ID（用于发送机器人通知）
             
         Returns:
             更新后的历史记录
@@ -103,6 +106,10 @@ class ResultCollector:
         history = self.session.get(ApiHistory, test_id)
         if not history:
             raise ValueError(f"测试记录不存在: {test_id}")
+        
+        passed_count = 0
+        failed_count = 0
+        report_path = history.allure_report_path
         
         if execute_result.get("success"):
             exec_data = execute_result.get("result", {}) or {}
@@ -132,12 +139,28 @@ class ResultCollector:
         else:
             history.test_status = "failed"
             history.error_message = execute_result.get("error")
+            failed_count = total_cases
         
         history.finish_time = datetime.now()
         history.modify_time = datetime.now()
         self.session.commit()
         
         logger.info(f"计划批量执行完成: {test_id}, 状态: {history.test_status}")
+        
+        # 发送机器人通知
+        actual_plan_id = plan_id or history.plan_id
+        if actual_plan_id:
+            self._send_robot_notification(
+                plan_id=actual_plan_id,
+                test_name=history.test_name,
+                status=history.test_status,
+                total=total_cases,
+                passed=passed_count,
+                failed=failed_count,
+                report_path=report_path,
+                execution_time=history.finish_time
+            )
+        
         return history
     
     def mark_failed(self, test_id: int, error_message: str) -> Optional[ApiHistory]:
@@ -206,6 +229,172 @@ class ResultCollector:
         return execution
     
     # ==================== 私有方法 ====================
+    
+    def _send_robot_notification(
+        self,
+        plan_id: int,
+        test_name: str,
+        status: str,
+        total: int,
+        passed: int,
+        failed: int,
+        report_path: str,
+        execution_time: datetime
+    ):
+        """
+        发送机器人通知
+        
+        Args:
+            plan_id: 测试计划ID
+            test_name: 测试名称
+            status: 执行状态
+            total: 总用例数
+            passed: 通过数
+            failed: 失败数
+            report_path: 报告路径
+            execution_time: 执行时间
+        """
+        try:
+            from msgmanage.model.RobotConfigModel import RobotConfig
+            
+            # 查询计划关联的机器人
+            stmt = select(ApiPlanRobot).where(
+                ApiPlanRobot.plan_id == plan_id,
+                ApiPlanRobot.is_enabled == True
+            )
+            plan_robots = self.session.exec(stmt).all()
+            
+            if not plan_robots:
+                logger.debug(f"计划 {plan_id} 没有启用的机器人通知")
+                return
+            
+            # 判断是否需要发送通知
+            is_success = status == "success"
+            
+            for pr in plan_robots:
+                # 检查通知条件
+                if is_success and not pr.notify_on_success:
+                    continue
+                if not is_success and not pr.notify_on_failure:
+                    continue
+                
+                # 获取机器人配置
+                robot = self.session.get(RobotConfig, pr.robot_id)
+                if not robot or not robot.is_enabled:
+                    continue
+                
+                # 构建通知消息
+                pass_rate = round(passed / total * 100, 2) if total > 0 else 0
+                message = self._build_notification_message(
+                    test_name=test_name,
+                    status=status,
+                    total=total,
+                    passed=passed,
+                    failed=failed,
+                    pass_rate=pass_rate,
+                    report_path=report_path,
+                    execution_time=execution_time
+                )
+                
+                # 发送通知
+                self._send_to_robot(robot, message)
+                
+        except Exception as e:
+            logger.error(f"发送机器人通知失败: {e}", exc_info=True)
+    
+    def _build_notification_message(
+        self,
+        test_name: str,
+        status: str,
+        total: int,
+        passed: int,
+        failed: int,
+        pass_rate: float,
+        report_path: str,
+        execution_time: datetime
+    ) -> Dict[str, Any]:
+        """构建通知消息内容"""
+        status_text = "✅ 通过" if status == "success" else "❌ 失败"
+        time_str = execution_time.strftime("%Y-%m-%d %H:%M:%S") if execution_time else ""
+        
+        return {
+            "title": f"测试执行通知 - {test_name}",
+            "content": f"""
+**测试计划**: {test_name}
+**执行状态**: {status_text}
+**执行时间**: {time_str}
+
+**测试统计**:
+- 总用例数: {total}
+- 通过: {passed}
+- 失败: {failed}
+- 通过率: {pass_rate}%
+
+**报告路径**: {report_path}
+""".strip(),
+            "status": status,
+            "total": total,
+            "passed": passed,
+            "failed": failed,
+            "pass_rate": pass_rate
+        }
+    
+    def _send_to_robot(self, robot, message: Dict[str, Any]):
+        """发送消息到机器人"""
+        import httpx
+        
+        try:
+            if robot.robot_type == "wechat":
+                # 企业微信机器人
+                payload = {
+                    "msgtype": "markdown",
+                    "markdown": {
+                        "content": message["content"]
+                    }
+                }
+            elif robot.robot_type == "dingtalk":
+                # 钉钉机器人
+                payload = {
+                    "msgtype": "markdown",
+                    "markdown": {
+                        "title": message["title"],
+                        "text": message["content"]
+                    }
+                }
+            elif robot.robot_type == "feishu":
+                # 飞书机器人
+                payload = {
+                    "msg_type": "interactive",
+                    "card": {
+                        "header": {
+                            "title": {
+                                "tag": "plain_text",
+                                "content": message["title"]
+                            },
+                            "template": "green" if message["status"] == "success" else "red"
+                        },
+                        "elements": [
+                            {
+                                "tag": "markdown",
+                                "content": message["content"]
+                            }
+                        ]
+                    }
+                }
+            else:
+                logger.warning(f"不支持的机器人类型: {robot.robot_type}")
+                return
+            
+            # 发送请求
+            with httpx.Client(timeout=10.0) as client:
+                response = client.post(robot.webhook_url, json=payload)
+                if response.status_code == 200:
+                    logger.info(f"机器人通知发送成功: {robot.robot_name}")
+                else:
+                    logger.warning(f"机器人通知发送失败: {robot.robot_name}, status={response.status_code}")
+                    
+        except Exception as e:
+            logger.error(f"发送机器人消息失败: {robot.robot_name}, error={e}")
     
     def _build_case_results(
         self,

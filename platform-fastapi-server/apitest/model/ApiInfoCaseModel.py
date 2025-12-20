@@ -12,8 +12,11 @@ class ApiInfoCase(SQLModel, table=True):
     project_id: Optional[int] = Field(default=None, description='项目ID')
     case_name: str = Field(max_length=255, description='用例名称')
     case_desc: Optional[str] = Field(default=None, description='用例描述')
-    context_config: Optional[str] = Field(default=None, description='全局配置JSON')
+    context_config: Optional[str] = Field(default=None, description='全局配置JSON（调试变量）')
     ddts: Optional[str] = Field(default=None, description='数据驱动JSON')
+    pre_request: Optional[str] = Field(default=None, description='执行前事件脚本（Python代码）')
+    post_request: Optional[str] = Field(default=None, description='执行后事件脚本（Python代码）')
+    debug_info: Optional[str] = Field(default=None, description='调试信息')
     create_time: Optional[datetime] = Field(default_factory=datetime.now, description='创建时间')
     modify_time: Optional[datetime] = Field(default_factory=datetime.now, description='修改时间')
 

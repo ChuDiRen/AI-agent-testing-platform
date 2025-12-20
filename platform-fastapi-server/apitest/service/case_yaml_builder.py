@@ -1,6 +1,13 @@
 """
 用例 YAML 构建器
 负责将数据库用例转换为执行器可识别的 YAML 格式
+
+支持的YAML格式：
+- desc: 用例名称
+- pre_script: 前置Python脚本列表
+- steps: 测试步骤列表
+- post_script: 后置Python脚本列表
+- ddts: 数据驱动数据
 """
 import json
 import copy
@@ -15,6 +22,7 @@ from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
 from ..model.ApiKeyWordModel import ApiKeyWord
 from ..model.ApiCollectionInfoModel import ApiCollectionInfo
 from ..model.ApiCollectionDetailModel import ApiCollectionDetail
+from ..model.ApiDbBaseModel import ApiDbBase
 
 
 class CaseYamlBuilder:
@@ -36,7 +44,7 @@ class CaseYamlBuilder:
             context_vars: 上下文变量（会与用例自身的 ddts 合并）
             
         Returns:
-            {"yaml_data": dict, "yaml_content": str, "case_name": str}
+            {"yaml_data": dict, "yaml_content": str, "case_name": str, "project_id": int}
         """
         case_info = self.session.get(ApiInfoCase, case_id)
         if not case_info:
@@ -52,8 +60,16 @@ class CaseYamlBuilder:
         # 加载用例的全局配置
         case_context = self._parse_context_config(case_info.context_config)
         
-        # 构建 YAML 数据，包含 ddts 和全局配置
-        yaml_data = self._build_yaml_data_with_ddts(case_info.case_name, steps, case_ddts, context_vars, case_context)
+        # 构建 YAML 数据，包含 ddts、全局配置、前置/后置脚本
+        yaml_data = self._build_yaml_data_with_ddts(
+            case_name=case_info.case_name,
+            steps=steps,
+            case_ddts=case_ddts,
+            context_vars=context_vars,
+            case_context=case_context,
+            pre_request=case_info.pre_request,
+            post_request=case_info.post_request
+        )
         yaml_content = yaml.dump(yaml_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
         
         return {
@@ -62,6 +78,71 @@ class CaseYamlBuilder:
             "case_name": case_info.case_name,
             "project_id": case_info.project_id
         }
+    
+    def build_context_yaml(self, project_id: int, plan_env: Optional[str] = None) -> str:
+        """
+        构建 context.yaml 文件内容
+        包含环境变量和数据库配置
+        
+        Args:
+            project_id: 项目ID
+            plan_env: 测试计划的全局环境变量（JSON字符串）
+            
+        Returns:
+            context.yaml 内容字符串
+        """
+        context_data = {}
+        
+        # 1. 加载测试计划的全局环境变量
+        if plan_env:
+            try:
+                env_list = json.loads(plan_env)
+                if isinstance(env_list, list):
+                    for item in env_list:
+                        if isinstance(item, dict):
+                            for key, value in item.items():
+                                if key != 'desc':
+                                    context_data[key] = value
+                elif isinstance(env_list, dict):
+                    context_data.update(env_list)
+            except json.JSONDecodeError:
+                pass
+        
+        # 2. 加载项目的数据库配置
+        db_configs = self._get_db_configs(project_id)
+        if db_configs:
+            context_data['databases'] = db_configs
+        
+        if not context_data:
+            return ""
+        
+        return yaml.dump(context_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
+    
+    def _get_db_configs(self, project_id: int) -> Dict[str, Any]:
+        """获取项目的数据库配置"""
+        stmt = select(ApiDbBase).where(
+            ApiDbBase.project_id == project_id,
+            ApiDbBase.is_enabled == '1'
+        )
+        db_list = self.session.exec(stmt).all()
+        
+        configs = {}
+        for db in db_list:
+            try:
+                db_info = json.loads(db.db_info) if db.db_info else {}
+                configs[db.ref_name] = {
+                    'type': db.db_type,
+                    'name': db.name,
+                    **db_info
+                }
+            except json.JSONDecodeError:
+                configs[db.ref_name] = {
+                    'type': db.db_type,
+                    'name': db.name,
+                    'connection': db.db_info
+                }
+        
+        return configs
     
     def _parse_ddts(self, ddts_str: Optional[str]) -> List[Dict[str, Any]]:
         """解析用例的 ddts 字段"""
@@ -88,15 +169,23 @@ class CaseYamlBuilder:
         steps: List[ApiInfoCaseStep],
         case_ddts: List[Dict[str, Any]],
         context_vars: Optional[Dict[str, Any]] = None,
-        case_context: Optional[Dict[str, Any]] = None
+        case_context: Optional[Dict[str, Any]] = None,
+        pre_request: Optional[str] = None,
+        post_request: Optional[str] = None
     ) -> Dict[str, Any]:
-        """构建包含 ddts 和全局配置的 YAML 数据"""
+        """构建包含 ddts、全局配置和前置/后置脚本的 YAML 数据"""
         yaml_data = {'desc': case_name}
         
         # 添加全局配置（放在最前面）
         if case_context:
             for key, value in case_context.items():
                 yaml_data[key] = value
+        
+        # 添加前置脚本
+        if pre_request:
+            pre_scripts = self._parse_script(pre_request)
+            if pre_scripts:
+                yaml_data['pre_script'] = pre_scripts
         
         yaml_data['steps'] = []
         
@@ -128,6 +217,12 @@ class CaseYamlBuilder:
             }
             yaml_data['steps'].append(step_item)
         
+        # 添加后置脚本
+        if post_request:
+            post_scripts = self._parse_script(post_request)
+            if post_scripts:
+                yaml_data['post_script'] = post_scripts
+        
         # 添加 ddts 数据
         if case_ddts:
             yaml_data['ddts'] = case_ddts
@@ -135,6 +230,27 @@ class CaseYamlBuilder:
             yaml_data['ddts'] = [{'desc': f'{case_name}_数据', **context_vars}]
         
         return yaml_data
+    
+    def _parse_script(self, script_str: Optional[str]) -> List[str]:
+        """解析脚本字符串为脚本列表"""
+        if not script_str:
+            return []
+        
+        # 尝试解析为JSON数组
+        try:
+            scripts = json.loads(script_str)
+            if isinstance(scripts, list):
+                return [s for s in scripts if s and isinstance(s, str)]
+            elif isinstance(scripts, str):
+                return [scripts] if scripts.strip() else []
+        except json.JSONDecodeError:
+            pass
+        
+        # 如果不是JSON，直接作为单个脚本
+        script_str = script_str.strip()
+        if script_str:
+            return [script_str]
+        return []
     
     def _replace_context_vars(self, data: Any, context: Dict[str, Any]) -> Any:
         """递归替换数据中的全局配置变量 {{VAR}}"""
@@ -161,10 +277,11 @@ class CaseYamlBuilder:
             
         Returns:
             {
-                "cases": [{"yaml_data": dict, "case_name": str}, ...],
+                "cases": [{"yaml_data": dict, "case_name": str, "yaml_content": str}, ...],
                 "combined_yaml": str,
                 "plan_name": str,
-                "project_id": int
+                "project_id": int,
+                "context_yaml": str  # context.yaml 内容
             }
         """
         plan = self.session.get(ApiCollectionInfo, plan_id)
@@ -179,6 +296,12 @@ class CaseYamlBuilder:
         
         if not plan_cases:
             raise ValueError(f"测试计划中没有用例: {plan_id}")
+        
+        # 构建 context.yaml（包含环境变量和数据库配置）
+        context_yaml = self.build_context_yaml(
+            project_id=plan.project_id or 0,
+            plan_env=plan.collection_env
+        )
         
         all_cases = []
         combined_parts = []
@@ -200,8 +323,14 @@ class CaseYamlBuilder:
                 ddt_desc = ddt_item.get('desc', f'数据{ddt_idx + 1}') if isinstance(ddt_item, dict) else f'数据{ddt_idx + 1}'
                 case_name = f"{case_info.case_name}_{ddt_desc}" if len(ddt_list) > 1 else case_info.case_name
                 
-                # 构建 YAML，合并 DDT 数据
-                yaml_data = self._build_yaml_data_with_ddt(case_name, steps, ddt_item)
+                # 构建 YAML，合并 DDT 数据和前置/后置脚本
+                yaml_data = self._build_yaml_data_with_ddt(
+                    case_name=case_name,
+                    steps=steps,
+                    ddt_item=ddt_item,
+                    pre_request=case_info.pre_request,
+                    post_request=case_info.post_request
+                )
                 yaml_content = yaml.dump(yaml_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
                 
                 all_cases.append({
@@ -218,7 +347,8 @@ class CaseYamlBuilder:
             "cases": all_cases,
             "combined_yaml": "---\n".join(combined_parts),
             "plan_name": plan.plan_name,
-            "project_id": plan.project_id or 0
+            "project_id": plan.project_id or 0,
+            "context_yaml": context_yaml
         }
     
     def save_cases_to_dir(self, cases: List[Dict], target_dir: Path) -> List[str]:
@@ -288,10 +418,20 @@ class CaseYamlBuilder:
         self,
         case_name: str,
         steps: List[ApiInfoCaseStep],
-        ddt_item: Dict[str, Any]
+        ddt_item: Dict[str, Any],
+        pre_request: Optional[str] = None,
+        post_request: Optional[str] = None
     ) -> Dict[str, Any]:
-        """构建带 DDT 数据合并的 YAML"""
-        yaml_data = {'desc': case_name, 'steps': []}
+        """构建带 DDT 数据合并和前置/后置脚本的 YAML"""
+        yaml_data = {'desc': case_name}
+        
+        # 添加前置脚本
+        if pre_request:
+            pre_scripts = self._parse_script(pre_request)
+            if pre_scripts:
+                yaml_data['pre_script'] = pre_scripts
+        
+        yaml_data['steps'] = []
         
         for step in steps:
             step_data = self._parse_step_data(step.step_data)
@@ -312,6 +452,12 @@ class CaseYamlBuilder:
                 }
             }
             yaml_data['steps'].append(step_item)
+        
+        # 添加后置脚本
+        if post_request:
+            post_scripts = self._parse_script(post_request)
+            if post_scripts:
+                yaml_data['post_script'] = post_scripts
         
         return yaml_data
     
