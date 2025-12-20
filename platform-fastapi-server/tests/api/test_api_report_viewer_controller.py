@@ -6,18 +6,16 @@ API测试报告查看器 接口测试
 - GET /ApiReportViewer/list - 列出所有测试报告
 """
 import pytest
-from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestApiReportViewerAPI:
     """API测试报告查看器接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
-        self.client.login()
+    def setup(self, api_client):
+        """使用全局 api_client fixture"""
+        self.client = api_client
         yield
-        self.client.close()
     
     # ==================== GET /ApiReportViewer/view 查看报告测试 ====================
     

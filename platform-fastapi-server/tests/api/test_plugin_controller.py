@@ -11,16 +11,15 @@
 - GET /Plugin/list/enabled - 获取所有已启用的插件
 """
 import pytest
-from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestPluginAPI:
     """插件管理接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
-        self.client.login()
+    def setup(self, api_client):
+        """使用全局 api_client fixture"""
+        self.client = api_client
         self.created_ids = []
         yield
         for plugin_id in self.created_ids:

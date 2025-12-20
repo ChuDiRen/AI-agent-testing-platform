@@ -12,24 +12,22 @@
 from datetime import datetime
 
 import pytest
-from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestRobotMsgConfigAPI:
     """机器人消息模板管理接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
-        self.client.login()
+    def setup(self, api_client):
+        """使用全局 api_client fixture"""
+        self.client = api_client
         self.created_ids = []
         yield
-        for template_id in self.created_ids:
+        for config_id in self.created_ids:
             try:
-                self.client.delete("/RobotMsgConfig/delete", params={"id": template_id})
+                self.client.delete("/RobotMsgConfig/delete", params={"id": config_id})
             except:
                 pass
-        self.client.close()
     
     def _create_test_template(self, robot_id=1):
         """创建测试消息模板"""

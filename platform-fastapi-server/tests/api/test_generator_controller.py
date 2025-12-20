@@ -7,18 +7,16 @@
 - GET /Generator/history - 获取代码生成历史
 """
 import pytest
-from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestGeneratorAPI:
     """代码生成器接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
-        self.client.login()
+    def setup(self, api_client):
+        """使用全局 api_client fixture"""
+        self.client = api_client
         yield
-        self.client.close()
     
     # ==================== POST /Generator/preview 预览代码测试 ====================
     

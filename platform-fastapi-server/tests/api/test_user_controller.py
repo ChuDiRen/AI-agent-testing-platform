@@ -13,16 +13,15 @@
 from datetime import datetime
 
 import pytest
-from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestUserAPI:
     """用户管理接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
-        self.client.login()
+    def setup(self, api_client):
+        """使用全局 api_client fixture"""
+        self.client = api_client
         self.created_ids = []
         yield
         # 清理测试数据
@@ -31,7 +30,6 @@ class TestUserAPI:
                 self.client.delete("/user/delete", params={"id": user_id})
             except:
                 pass
-        self.client.close()
     
     def _create_test_user(self):
         """创建测试用户"""
@@ -114,6 +112,13 @@ class TestUserAPI:
         response = self.client.get("/user/queryById", params={"id": "abc"})
         assert response.status_code == 422
     
+    def test_query_by_id_unauthorized(self):
+        """ID查询 - 未授权"""
+        client = APIClient(base_url=API_BASE_URL)
+        response = client.get("/user/queryById", params={"id": 1})
+        assert response.status_code in [401, 403] or response.json().get("code") != 200
+        client.close()
+    
     # ==================== POST /user/insert 新增用户测试 ====================
     
     def test_insert_success(self):
@@ -185,6 +190,16 @@ class TestUserAPI:
             })
             self.client.assert_success(response)
     
+    def test_update_unauthorized(self):
+        """更新用户 - 未授权"""
+        client = APIClient(base_url=API_BASE_URL)
+        response = client.put("/user/update", json={
+            "id": 1,
+            "email": "unauth@test.com"
+        })
+        assert response.status_code in [401, 403] or response.json().get("code") != 200
+        client.close()
+    
     # ==================== DELETE /user/delete 删除用户测试 ====================
     
     def test_delete_success(self):
@@ -199,6 +214,13 @@ class TestUserAPI:
         """删除用户 - 数据不存在"""
         response = self.client.delete("/user/delete", params={"id": 99999})
         assert response.json()["code"] == -1 or "不存在" in response.json().get("msg", "")
+    
+    def test_delete_unauthorized(self):
+        """删除用户 - 未授权"""
+        client = APIClient(base_url=API_BASE_URL)
+        response = client.delete("/user/delete", params={"id": 1})
+        assert response.status_code in [401, 403] or response.json().get("code") != 200
+        client.close()
     
     # ==================== POST /user/assignRoles 分配角色测试 ====================
     
@@ -220,6 +242,16 @@ class TestUserAPI:
         })
         assert response.json()["code"] == -1 or "不存在" in response.json().get("msg", "")
     
+    def test_assign_roles_unauthorized(self):
+        """分配角色 - 未授权"""
+        client = APIClient(base_url=API_BASE_URL)
+        response = client.post("/user/assignRoles", json={
+            "id": 1,
+            "role_ids": [1]
+        })
+        assert response.status_code in [401, 403] or response.json().get("code") != 200
+        client.close()
+    
     # ==================== GET /user/roles/{user_id} 获取用户角色测试 ====================
     
     def test_get_roles_success(self):
@@ -228,6 +260,13 @@ class TestUserAPI:
         if user_id:
             response = self.client.get(f"/user/roles/{user_id}")
             self.client.assert_success(response)
+    
+    def test_get_roles_unauthorized(self):
+        """获取用户角色 - 未授权"""
+        client = APIClient(base_url=API_BASE_URL)
+        response = client.get("/user/roles/1")
+        assert response.status_code in [401, 403] or response.json().get("code") != 200
+        client.close()
     
     # ==================== PUT /user/updateStatus 更新状态测试 ====================
     
@@ -248,6 +287,16 @@ class TestUserAPI:
             "status": "0"
         })
         assert response.json()["code"] == -1 or "不存在" in response.json().get("msg", "")
+    
+    def test_update_status_unauthorized(self):
+        """更新状态 - 未授权"""
+        client = APIClient(base_url=API_BASE_URL)
+        response = client.put("/user/updateStatus", json={
+            "id": 1,
+            "status": "0"
+        })
+        assert response.status_code in [401, 403] or response.json().get("code") != 200
+        client.close()
     
     # ==================== 参数化测试 ====================
     

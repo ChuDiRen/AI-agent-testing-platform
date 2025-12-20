@@ -10,16 +10,15 @@
 from datetime import datetime
 
 import pytest
-from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestDeptAPI:
     """部门管理接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
-        self.client.login()
+    def setup(self, api_client):
+        """使用全局 api_client fixture"""
+        self.client = api_client
         self.created_ids = []
         yield
         for dept_id in self.created_ids:
@@ -27,7 +26,6 @@ class TestDeptAPI:
                 self.client.delete("/dept/delete", params={"id": dept_id})
             except:
                 pass
-        self.client.close()
     
     def _create_test_dept(self, parent_id=0):
         """创建测试部门"""
@@ -50,7 +48,7 @@ class TestDeptAPI:
         """获取部门树 - 正常请求"""
         response = self.client.get("/dept/tree")
         data = self.client.assert_success(response)
-        assert "treeData" in data
+        assert "data" in data
     
     def test_get_tree_unauthorized(self):
         """获取部门树 - 未授权"""

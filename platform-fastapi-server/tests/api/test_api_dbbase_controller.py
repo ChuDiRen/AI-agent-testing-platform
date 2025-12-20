@@ -10,16 +10,15 @@ API数据库配置管理 接口测试
 from datetime import datetime
 
 import pytest
-from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestApiDbBaseAPI:
     """API数据库配置管理接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
-        self.client.login()
+    def setup(self, api_client):
+        """使用全局 api_client fixture"""
+        self.client = api_client
         self.created_ids = []
         yield
         for db_id in self.created_ids:
@@ -27,7 +26,6 @@ class TestApiDbBaseAPI:
                 self.client.delete("/ApiDbBase/delete", params={"id": db_id})
             except:
                 pass
-        self.client.close()
     
     def _create_test_db_config(self):
         """创建测试数据库配置"""

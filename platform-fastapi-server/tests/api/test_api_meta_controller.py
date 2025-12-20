@@ -10,16 +10,15 @@ API元数据管理 接口测试
 - GET /ApiMeta/downloadFile - 获取文件下载地址
 """
 import pytest
-from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestApiMetaAPI:
     """API元数据管理接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
-        self.client.login()
+    def setup(self, api_client):
+        """使用全局 api_client fixture"""
+        self.client = api_client
         self.created_ids = []
         yield
         for meta_id in self.created_ids:
@@ -27,7 +26,6 @@ class TestApiMetaAPI:
                 self.client.delete("/ApiMeta/delete", params={"id": meta_id})
             except:
                 pass
-        self.client.close()
     
     # ==================== GET /ApiMeta/queryAll 查询所有测试 ====================
     

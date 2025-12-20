@@ -14,16 +14,15 @@ API关键字管理 接口测试
 from datetime import datetime
 
 import pytest
-from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestApiKeyWordAPI:
     """API关键字管理接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
-        self.client.login()
+    def setup(self, api_client):
+        """使用全局 api_client fixture"""
+        self.client = api_client
         self.created_ids = []
         yield
         for keyword_id in self.created_ids:
@@ -31,7 +30,6 @@ class TestApiKeyWordAPI:
                 self.client.delete("/ApiKeyWord/delete", params={"id": keyword_id})
             except:
                 pass
-        self.client.close()
     
     def _create_test_keyword(self):
         """创建测试关键字"""

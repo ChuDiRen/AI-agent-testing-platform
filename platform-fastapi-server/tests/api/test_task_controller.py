@@ -8,24 +8,28 @@
 - GET /Task/executors - 获取可用执行器列表
 """
 import pytest
-from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestTaskAPI:
     """任务调度接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
-        self.client.login()
+    def setup(self, api_client):
+        """使用全局 api_client fixture"""
+        self.client = api_client
+        self.created_ids = []
         yield
-        self.client.close()
+        for task_id in self.created_ids:
+            try:
+                self.client.delete("/Task/delete", params={"id": task_id})
+            except:
+                pass
     
     # ==================== POST /Task/execute 执行任务测试 ====================
     
-    def test_execute_missing_plugin_code(self):
+    def test_execute_missing_plugin_code(self, api_client):
         """执行任务 - 缺少插件代码"""
-        response = self.client.post("/Task/execute", json={
+        response = api_client.post("/Task/execute", json={
             "test_case_id": 1,
             "test_case_content": "desc: 测试"
         })

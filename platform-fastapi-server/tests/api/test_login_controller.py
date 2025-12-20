@@ -6,18 +6,18 @@
 - POST /refreshToken - 刷新Token
 """
 import pytest
-from tests.conftest import APIClient, API_BASE_URL, TEST_USERNAME, TEST_PASSWORD
+from tests.conftest import TEST_USERNAME, TEST_PASSWORD
 
 
 class TestLoginAPI:
     """登录接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
+    def setup(self, api_client_no_auth):
+        """使用未登录的 api_client fixture"""
+        self.client = api_client_no_auth
         yield
-        self.client.close()
-    
+            
     # ==================== POST /login 登录接口测试 ====================
     
     def test_login_success(self):

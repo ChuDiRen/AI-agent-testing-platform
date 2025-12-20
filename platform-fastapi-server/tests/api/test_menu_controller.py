@@ -11,16 +11,15 @@
 from datetime import datetime
 
 import pytest
-from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestMenuAPI:
     """菜单管理接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
-        self.client.login()
+    def setup(self, api_client):
+        """使用全局 api_client fixture"""
+        self.client = api_client
         self.created_ids = []
         yield
         for menu_id in self.created_ids:
@@ -28,7 +27,6 @@ class TestMenuAPI:
                 self.client.delete("/menu/delete", params={"id": menu_id})
             except:
                 pass
-        self.client.close()
     
     def _create_test_menu(self, parent_id=0):
         """创建测试菜单"""
@@ -55,7 +53,7 @@ class TestMenuAPI:
         """获取菜单树 - 正常请求"""
         response = self.client.get("/menu/tree")
         data = self.client.assert_success(response)
-        assert "treeData" in data
+        assert "data" in data
     
     def test_get_tree_unauthorized(self):
         """获取菜单树 - 未授权"""
@@ -155,4 +153,11 @@ class TestMenuAPI:
         """获取用户菜单 - 正常请求"""
         response = self.client.get("/menu/user/1")
         data = self.client.assert_success(response)
-        assert "treeData" in data
+        assert "data" in data
+    
+    def test_get_user_menus_unauthorized(self):
+        """获取用户菜单 - 未授权"""
+        client = APIClient(base_url=API_BASE_URL)
+        response = client.get("/menu/user/1")
+        assert response.status_code in [401, 403] or response.json().get("code") != 200
+        client.close()

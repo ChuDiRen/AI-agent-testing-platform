@@ -2,6 +2,7 @@ import {
     createRouter,
     createWebHashHistory
 } from 'vue-router'
+import axios from '~/axios'
 
 import NotFound from '~/views/404.vue'
 import Forbidden from '~/views/403.vue'
@@ -80,6 +81,9 @@ const deletedRoutes = ['/ai-chat', '/langgraph-chat']
 
 // 标记动态路由是否已加载
 let dynamicRoutesLoaded = false
+
+// 标记是否正在加载动态路由（防止重复请求）
+let isLoadingRoutes = false
 
 /**
  * 根据后端菜单数据动态添加路由
@@ -225,6 +229,28 @@ function checkPermission(permission) {
     }
 }
 
+/**
+ * 从后端加载菜单并注册动态路由
+ */
+async function loadAndRegisterRoutes() {
+    if (dynamicRoutesLoaded || isLoadingRoutes) return
+    
+    isLoadingRoutes = true
+    try {
+        // 获取全量菜单树
+        const res = await axios.get('/menu/tree?_alias=menu-tree')
+        if (res?.data?.code === 200) {
+            const menuData = res.data.data || []
+            addDynamicRoutes(menuData)
+            console.log('动态路由加载完成')
+        }
+    } catch (e) {
+        console.error('加载动态路由失败:', e)
+    } finally {
+        isLoadingRoutes = false
+    }
+}
+
 // 导航守卫
 router.beforeEach(async (to, from, next) => {
     const token = getToken()
@@ -239,22 +265,15 @@ router.beforeEach(async (to, from, next) => {
         next()
     } else {
         if (token) {
-            // 如果路由匹配到404且动态路由未加载，等待一下再重试
-            if (to.name === 'NotFound' && !dynamicRoutesLoaded) {
-                // 等待动态路由加载（最多等待2秒）
-                let waitCount = 0
-                while (!dynamicRoutesLoaded && waitCount < 20) {
-                    await new Promise(resolve => setTimeout(resolve, 100))
-                    waitCount++
-                }
+            // 如果动态路由未加载，先加载
+            if (!dynamicRoutesLoaded) {
+                await loadAndRegisterRoutes()
                 
                 // 重新尝试匹配路由
-                if (dynamicRoutesLoaded) {
-                    const matched = router.resolve(to.path)
-                    if (matched.name !== 'NotFound') {
-                        next(to.path)
-                        return
-                    }
+                const matched = router.resolve(to.path)
+                if (matched.name !== 'NotFound') {
+                    next(to.path)
+                    return
                 }
             }
             

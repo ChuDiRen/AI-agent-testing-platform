@@ -10,16 +10,15 @@ API用例步骤管理 接口测试
 from datetime import datetime
 
 import pytest
-from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestApiInfoCaseStepAPI:
     """API用例步骤管理接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
-        self.client.login()
+    def setup(self, api_client):
+        """使用全局 api_client fixture"""
+        self.client = api_client
         self.created_ids = []
         yield
         for step_id in self.created_ids:
@@ -27,7 +26,6 @@ class TestApiInfoCaseStepAPI:
                 self.client.delete("/ApiInfoCaseStep/delete", params={"id": step_id})
             except:
                 pass
-        self.client.close()
     
     def _create_test_step(self, case_info_id=1):
         """创建测试步骤"""

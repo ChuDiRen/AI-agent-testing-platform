@@ -89,3 +89,40 @@ def api_client_no_auth():
 def unique_name():
     """生成唯一名称"""
     return f"test_{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+
+
+# ==================== Playwright E2E 测试 Fixtures ====================
+
+@pytest.fixture(scope="function")
+def browser():
+    """提供 Playwright 浏览器实例（非无头模式）"""
+    from playwright.sync_api import sync_playwright
+    
+    playwright = sync_playwright().start()
+    browser = playwright.chromium.launch(headless=False)
+    yield browser
+    browser.close()
+    playwright.stop()
+
+
+@pytest.fixture(scope="function")
+def page(browser):
+    """提供 Playwright 页面实例"""
+    page = browser.new_page()
+    yield page
+    page.close()
+
+
+@pytest.fixture(scope="function")
+def authenticated_page(page):
+    """提供已登录的 Playwright 页面实例"""
+    # 执行登录
+    page.goto(f"{WEB_BASE_URL}/login")
+    page.fill('input[placeholder*="用户名"]', TEST_USERNAME)
+    page.fill('input[type="password"]', TEST_PASSWORD)
+    page.click('button:has-text("登录")')
+    try:
+        page.wait_for_url("**/home**", timeout=10000)
+    except:
+        pass
+    yield page

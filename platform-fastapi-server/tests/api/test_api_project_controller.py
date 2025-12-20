@@ -11,16 +11,15 @@ API项目管理 接口测试
 from datetime import datetime
 
 import pytest
-from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestApiProjectAPI:
     """API项目管理接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
-        self.client.login()
+    def setup(self, api_client):
+        """使用全局 api_client fixture"""
+        self.client = api_client
         self.created_ids = []
         yield
         for project_id in self.created_ids:
@@ -28,8 +27,7 @@ class TestApiProjectAPI:
                 self.client.delete("/ApiProject/delete", params={"id": project_id})
             except:
                 pass
-        self.client.close()
-    
+            
     def _create_test_project(self):
         """创建测试项目"""
         unique = datetime.now().strftime('%Y%m%d%H%M%S%f')

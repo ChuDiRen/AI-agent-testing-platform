@@ -9,16 +9,15 @@
 - DELETE /GenTable/delete - 删除表配置
 """
 import pytest
-from tests.conftest import APIClient, API_BASE_URL
 
 
 class TestGenTableAPI:
     """代码生成器-表配置管理接口测试"""
     
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient(base_url=API_BASE_URL)
-        self.client.login()
+    def setup(self, api_client):
+        """使用全局 api_client fixture"""
+        self.client = api_client
         self.created_ids = []
         yield
         for table_id in self.created_ids:
