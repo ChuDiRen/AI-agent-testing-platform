@@ -9,6 +9,7 @@
 - DELETE /GenTable/delete - 删除表配置
 """
 import pytest
+from ..conftest import APIClient, API_BASE_URL
 
 
 class TestGenTableAPI:

@@ -14,8 +14,12 @@ class ApiDbBaseCreate(BaseModel): # API数据库配置创建请求
     name: str
     ref_name: str
     db_type: str
-    db_info: str
-    is_enabled: str
+    host: str
+    port: int
+    database: str
+    username: str
+    password: str
+    is_enabled: Optional[str] = "1"
 
 class ApiDbBaseUpdate(BaseModel): # API数据库配置更新请求
     id: int

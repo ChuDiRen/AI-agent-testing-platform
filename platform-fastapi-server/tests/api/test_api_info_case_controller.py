@@ -14,6 +14,7 @@ API用例管理 接口测试
 from datetime import datetime
 
 import pytest
+from ..conftest import APIClient, API_BASE_URL
 
 
 class TestApiInfoCaseAPI:

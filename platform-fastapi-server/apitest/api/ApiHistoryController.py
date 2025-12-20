@@ -1,25 +1,26 @@
+"""
+接口历史Controller - 已重构为使用Service层
+"""
 import json
 from datetime import datetime
 
 import yaml
+from apitest.service.api_history_service import HistoryService
+from config.dev_settings import settings
 from core.database import get_session
 from core.dependencies import check_permission
 from core.logger import get_logger
 from core.resp_model import respModel
 from core.time_utils import TimeFormatter
 from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from ..model.ApiHistoryModel import ApiHistory
-from ..model.ApiInfoModel import ApiInfo
 from ..schemas.api_history_schema import ApiTestHistoryQuery, ApiTestExecuteRequest
 
 logger = get_logger(__name__)
 
 # ==================== 配置常量 ====================
-# ✅ P2修复: 使用配置管理的路径,避免硬编码
-from config.dev_settings import settings
-
 BASE_DIR = settings.BASE_DIR
 TEMP_DIR = settings.TEMP_DIR
 YAML_DIR = settings.YAML_DIR
@@ -31,41 +32,133 @@ module_model = ApiHistory
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API测试历史管理"])
 
 # ==================== 路由处理函数 ====================
+
 @module_route.post("/queryByPage", summary="分页查询API测试历史", dependencies=[Depends(check_permission("apitest:history:query"))])
 async def queryByPage(query: ApiTestHistoryQuery, session: Session = Depends(get_session)):
     """分页查询测试历史"""
     try:
-        statement = select(module_model)
-        if query.api_info_id:
-            statement = statement.where(module_model.api_info_id == query.api_info_id)
-        if query.project_id:
-            statement = statement.where(module_model.project_id == query.project_id)
-        if query.plan_id:
-            statement = statement.where(module_model.plan_id == query.plan_id)
-        if query.test_status:
-            statement = statement.where(module_model.test_status == query.test_status)
-        if query.start_date:
-            statement = statement.where(module_model.create_time >= query.start_date)
-        if query.end_date:
-            statement = statement.where(module_model.create_time <= query.end_date)
-
-        offset = (query.page - 1) * query.pageSize
-        datas = session.exec(statement.order_by(module_model.create_time.desc()).limit(query.pageSize).offset(offset)).all()
-        total = len(session.exec(statement).all())
+        service = HistoryService(session)
+        datas, total = service.query_by_page(
+            page=query.page,
+            page_size=query.pageSize,
+            project_id=query.project_id,
+            api_id=query.api_info_id,
+            case_id=query.plan_id,
+            execution_status=query.test_status,
+            start_time=query.start_date,
+            end_time=query.end_date
+        )
         return respModel.ok_resp_list(lst=datas, total=total)
     except Exception as e:
-        logger.error(f"操作失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+        logger.error(f"查询失败: {e}", exc_info=True)
+        return respModel.error_resp(f"查询失败: {e}")
 
-@module_route.get("/queryById", summary="根据ID查询API测试历史")
+@module_route.get("/queryById", summary="根据ID查询测试历史")
 async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询测试历史"""
     try:
-        data = session.get(module_model, id)
-        return respModel.ok_resp(obj=data) if data else respModel.ok_resp(msg="查询成功,但是没有数据")
+        service = HistoryService(session)
+        data = service.get_by_id(id)
+        if data:
+            return respModel.ok_resp(obj=data)
+        else:
+            return respModel.error_resp("测试历史不存在")
     except Exception as e:
-        logger.error(f"操作失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+        logger.error(f"查询失败: {e}", exc_info=True)
+        return respModel.error_resp(f"查询失败: {e}")
+
+@module_route.post("/create", summary="创建测试历史记录", dependencies=[Depends(check_permission("apitest:history:add"))])
+async def create(history_data: dict, session: Session = Depends(get_session)):
+    """创建测试历史记录"""
+    try:
+        service = HistoryService(session)
+        data = service.create(**history_data)
+        return respModel.ok_resp(msg="创建成功", dic_t={"id": data.id})
+    except Exception as e:
+        return respModel.error_resp(msg=f"创建失败: {e}")
+
+@module_route.put("/update", summary="更新测试历史记录", dependencies=[Depends(check_permission("apitest:history:edit"))])
+async def update(history_id: int, update_data: dict, session: Session = Depends(get_session)):
+    """更新测试历史记录"""
+    try:
+        service = HistoryService(session)
+        updated = service.update(history_id, update_data)
+        if not updated:
+            return respModel.error_resp("测试历史不存在")
+        return respModel.ok_resp(msg="更新成功")
+    except Exception as e:
+        return respModel.error_resp(msg=f"更新失败: {e}")
+
+@module_route.delete("/delete", summary="删除测试历史记录", dependencies=[Depends(check_permission("apitest:history:delete"))])
+async def delete(id: int = Query(...), session: Session = Depends(get_session)):
+    """删除测试历史记录"""
+    try:
+        service = HistoryService(session)
+        if not service.delete(id):
+            return respModel.error_resp("测试历史不存在")
+        return respModel.ok_resp_text(msg="删除成功")
+    except Exception as e:
+        return respModel.error_resp(msg=f"删除失败: {e}")
+
+@module_route.get("/getByProject", summary="根据项目ID获取测试历史")
+async def getByProject(project_id: int = Query(...), limit: int = Query(100), session: Session = Depends(get_session)):
+    """根据项目ID获取测试历史"""
+    try:
+        service = HistoryService(session)
+        datas = service.query_by_project(project_id, limit)
+        return respModel.ok_resp_list(lst=datas, total=len(datas))
+    except Exception as e:
+        return respModel.error_resp(f"查询失败: {e}")
+
+@module_route.get("/getByApi", summary="根据接口ID获取测试历史")
+async def getByApi(api_id: int = Query(...), limit: int = Query(50), session: Session = Depends(get_session)):
+    """根据接口ID获取测试历史"""
+    try:
+        service = HistoryService(session)
+        datas = service.query_by_api(api_id, limit)
+        return respModel.ok_resp_list(lst=datas, total=len(datas))
+    except Exception as e:
+        return respModel.error_resp(f"查询失败: {e}")
+
+@module_route.get("/getByCase", summary="根据用例ID获取测试历史")
+async def getByCase(case_id: int = Query(...), limit: int = Query(50), session: Session = Depends(get_session)):
+    """根据用例ID获取测试历史"""
+    try:
+        service = HistoryService(session)
+        datas = service.query_by_case(case_id, limit)
+        return respModel.ok_resp_list(lst=datas, total=len(datas))
+    except Exception as e:
+        return respModel.error_resp(f"查询失败: {e}")
+
+@module_route.delete("/batchDelete", summary="批量删除测试历史", dependencies=[Depends(check_permission("apitest:history:delete"))])
+async def batch_delete(history_ids: list[int], session: Session = Depends(get_session)):
+    """批量删除测试历史"""
+    try:
+        service = HistoryService(session)
+        deleted_count = service.batch_delete(history_ids)
+        return respModel.ok_resp(msg=f"成功删除 {deleted_count} 条记录")
+    except Exception as e:
+        return respModel.error_resp(msg=f"批量删除失败: {e}")
+
+@module_route.delete("/clean", summary="清理旧的历史记录", dependencies=[Depends(check_permission("apitest:history:delete"))])
+async def clean_old_records(project_id: int = Query(...), days: int = Query(30), session: Session = Depends(get_session)):
+    """清理旧的历史记录"""
+    try:
+        service = HistoryService(session)
+        deleted_count = service.clean_old_records(project_id, days)
+        return respModel.ok_resp(msg=f"成功清理 {deleted_count} 条旧记录")
+    except Exception as e:
+        return respModel.error_resp(msg=f"清理失败: {e}")
+
+@module_route.get("/getStatistics", summary="获取测试历史统计信息")
+async def getStatistics(project_id: int = Query(...), days: int = Query(7), session: Session = Depends(get_session)):
+    """获取测试历史统计信息"""
+    try:
+        service = HistoryService(session)
+        stats = service.get_statistics(project_id, days)
+        return respModel.ok_resp(obj=stats)
+    except Exception as e:
+        return respModel.error_resp(f"查询失败: {e}")
 
 @module_route.post("/execute", summary="执行API接口测试")
 async def execute_test(request: ApiTestExecuteRequest, session: Session = Depends(get_session)):
@@ -75,12 +168,6 @@ async def execute_test(request: ApiTestExecuteRequest, session: Session = Depend
     注意：此接口用于接口级别的快速测试，会自动生成 YAML 并通过统一的 TaskScheduler 执行。
     如需执行用例级别测试，请使用 /ApiInfoCase/executeCase 接口。
     """
-    from plugin.service.TaskScheduler import task_scheduler
-    from ..service.result_collector import ResultCollector
-    from core.temp_manager import get_temp_subdir
-    import asyncio
-    from concurrent.futures import ThreadPoolExecutor
-    
     try:
         # 1. 获取接口信息
         api_info = session.get(ApiInfo, request.api_info_id)

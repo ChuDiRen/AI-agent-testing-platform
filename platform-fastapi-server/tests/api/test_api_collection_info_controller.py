@@ -143,7 +143,7 @@ class TestApiCollectionInfoAddCase:
     def test_add_case_success(self, api_client):
         """成功添加用例"""
         response = api_client.post("/ApiCollectionInfo/addCase", json={
-            "plan_id": 1,
+            "collection_info_id": 1,
             "case_info_id": 1,
             "run_order": 1
         })
@@ -153,11 +153,11 @@ class TestApiCollectionInfoAddCase:
         """重复添加用例"""
         # 先添加一次
         api_client.post("/ApiCollectionInfo/addCase", json={
-            "plan_id": 1, "case_info_id": 1, "run_order": 1
+            "collection_info_id": 1, "case_info_id": 1, "run_order": 1
         })
         # 再次添加
         response = api_client.post("/ApiCollectionInfo/addCase", json={
-            "plan_id": 1, "case_info_id": 1, "run_order": 2
+            "collection_info_id": 1, "case_info_id": 1, "run_order": 2
         })
         assert response.status_code == 200
 

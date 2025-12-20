@@ -32,7 +32,7 @@ class ApiCollectionInfoUpdate(BaseModel):
 # ==================== 计划用例关联相关 ====================
 class ApiCollectionDetailCreate(BaseModel):
     """集合详情创建请求"""
-    plan_id: int = Field(description="测试计划ID")
+    collection_info_id: int = Field(description="测试集合ID")
     case_info_id: int = Field(description="用例ID")
     run_order: int = Field(default=0, description="执行顺序")
     ddt_data: Optional[List[Dict[str, Any]]] = Field(default=None, description="数据驱动数据（数组）")

@@ -8,6 +8,7 @@
 - GET /Task/executors - 获取可用执行器列表
 """
 import pytest
+from ..conftest import APIClient, API_BASE_URL
 
 
 class TestTaskAPI:

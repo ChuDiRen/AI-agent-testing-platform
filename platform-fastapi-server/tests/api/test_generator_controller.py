@@ -7,6 +7,7 @@
 - GET /Generator/history - 获取代码生成历史
 """
 import pytest
+from ..conftest import APIClient, API_BASE_URL
 
 
 class TestGeneratorAPI:

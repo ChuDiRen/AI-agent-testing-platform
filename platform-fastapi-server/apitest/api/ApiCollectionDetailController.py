@@ -15,6 +15,7 @@ from sqlmodel import Session, select
 from ..model.ApiCollectionDetailModel import ApiCollectionDetail
 from ..model.ApiInfoCaseModel import ApiInfoCase
 from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
+from ..service.api_collection_detail_service import ApiCollectionDetailService
 from ..schemas.api_collection_schema import ApiCollectionDetailCreate, ApiCollectionDetailUpdate
 
 module_name = "ApiCollectionDetail"
@@ -27,10 +28,8 @@ logger = get_logger(__name__)
 async def queryByCollectionId(collection_info_id: int = Query(...), session: Session = Depends(get_session)):
     """根据集合ID查询所有关联用例"""
     try:
-        statement = select(module_model).where(
-            module_model.collection_info_id == collection_info_id
-        ).order_by(module_model.run_order)
-        details = session.exec(statement).all()
+        service = ApiCollectionDetailService(session)
+        details = service.query_by_collection_id(collection_info_id)
         return respModel.ok_resp_list(lst=details, msg="查询成功")
     except Exception as e:
         logger.error(f"查询集合详情失败: {e}", exc_info=True)
@@ -41,15 +40,13 @@ async def queryByCollectionId(collection_info_id: int = Query(...), session: Ses
 async def insert(detail: ApiCollectionDetailCreate, session: Session = Depends(get_session)):
     """新增集合详情"""
     try:
-        # 将字典转换为JSON字符串
-        detail_data = detail.model_dump()
-        if detail_data.get('ddt_data'):
-            detail_data['ddt_data'] = json.dumps(detail_data['ddt_data'], ensure_ascii=False)
-        
-        data = module_model(**detail_data, create_time=datetime.now())
-        session.add(data)
-        session.commit()
-        session.refresh(data)
+        service = ApiCollectionDetailService(session)
+        data = service.create(
+            collection_info_id=detail.collection_info_id,
+            case_info_id=detail.case_info_id,
+            run_order=detail.run_order,
+            ddt_data=detail.ddt_data
+        )
         return respModel.ok_resp(msg="添加成功", dic_t={"id": data.id})
     except Exception as e:
         session.rollback()
@@ -61,17 +58,10 @@ async def insert(detail: ApiCollectionDetailCreate, session: Session = Depends(g
 async def update(detail: ApiCollectionDetailUpdate, session: Session = Depends(get_session)):
     """更新集合详情"""
     try:
-        statement = select(module_model).where(module_model.id == detail.id)
-        db_detail = session.exec(statement).first()
-        if db_detail:
-            update_data = detail.model_dump(exclude_unset=True, exclude={'id'})
-            # 处理ddt_data
-            if 'ddt_data' in update_data and update_data['ddt_data']:
-                update_data['ddt_data'] = json.dumps(update_data['ddt_data'], ensure_ascii=False)
-            
-            for key, value in update_data.items():
-                setattr(db_detail, key, value)
-            session.commit()
+        service = ApiCollectionDetailService(session)
+        update_data = detail.model_dump(exclude_unset=True, exclude={'id'})
+        updated = service.update(detail.id, update_data)
+        if updated:
             return respModel.ok_resp(msg="修改成功")
         else:
             return respModel.error_resp(msg="集合详情不存在")
@@ -85,11 +75,8 @@ async def update(detail: ApiCollectionDetailUpdate, session: Session = Depends(g
 async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除集合详情"""
     try:
-        statement = select(module_model).where(module_model.id == id)
-        data = session.exec(statement).first()
-        if data:
-            session.delete(data)
-            session.commit()
+        service = ApiCollectionDetailService(session)
+        if service.delete(id):
             return respModel.ok_resp(msg="删除成功")
         else:
             return respModel.error_resp(msg="集合详情不存在")

@@ -1,19 +1,11 @@
-import json
-from datetime import datetime
-
 from core.database import get_session
 from core.dependencies import check_permission
 from core.logger import get_logger
 from core.resp_model import respModel
-from core.time_utils import TimeFormatter
 from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session, select
+from sqlmodel import Session
 
-from ..model.ApiCollectionDetailModel import ApiCollectionDetail
-from ..model.ApiCollectionInfoModel import ApiCollectionInfo
-from ..model.ApiInfoCaseModel import ApiInfoCase
-from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
-from ..model.ApiPlanRobotModel import ApiPlanRobot
+from ..service.api_collection_info_service import ApiCollectionInfoService
 from ..schemas.api_collection_schema import (
     ApiCollectionInfoQuery, ApiCollectionInfoCreate, ApiCollectionInfoUpdate,
     ApiCollectionDetailCreate, BatchAddCasesRequest, UpdateDdtDataRequest,
@@ -23,7 +15,6 @@ from ..schemas.api_collection_schema import (
 logger = get_logger(__name__)
 
 module_name = "ApiCollectionInfo"
-module_model = ApiCollectionInfo
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API测试计划管理"])
 
 # ==================== 测试计划CRUD ====================
@@ -32,33 +23,13 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["API测试计划管理"
 async def queryByPage(query: ApiCollectionInfoQuery, session: Session = Depends(get_session)):
     """分页查询测试计划"""
     try:
-        statement = select(module_model)
-        if query.project_id:
-            statement = statement.where(module_model.project_id == query.project_id)
-        if query.plan_name:
-            statement = statement.where(module_model.plan_name.like(f"%{query.plan_name}%"))
-
-        offset = (query.page - 1) * query.pageSize
-        datas = session.exec(statement.order_by(module_model.create_time.desc()).limit(query.pageSize).offset(offset)).all()
-        total = len(session.exec(statement).all())
-        
-        result_list = []
-        for data in datas:
-            # 统计用例数量
-            case_count_stmt = select(ApiCollectionDetail).where(ApiCollectionDetail.collection_info_id == data.id)
-            case_count = len(session.exec(case_count_stmt).all())
-            
-            item = {
-                "id": data.id,
-                "project_id": data.project_id,
-                "plan_name": data.plan_name,
-                "plan_desc": data.plan_desc,
-                "case_count": case_count,
-                "create_time": TimeFormatter.format_datetime(data.create_time),
-                "modify_time": TimeFormatter.format_datetime(data.modify_time)
-            }
-            result_list.append(item)
-        
+        service = ApiCollectionInfoService(session)
+        result_list, total = service.query_by_page(
+            page=query.page,
+            page_size=query.pageSize,
+            project_id=query.project_id,
+            plan_name=query.plan_name
+        )
         return respModel.ok_resp_list(lst=result_list, total=total)
     except Exception as e:
         logger.error(f"操作失败: {e}", exc_info=True)
@@ -68,39 +39,10 @@ async def queryByPage(query: ApiCollectionInfoQuery, session: Session = Depends(
 async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询测试计划（含关联用例）"""
     try:
-        plan = session.get(module_model, id)
-        if not plan:
+        service = ApiCollectionInfoService(session)
+        result = service.get_by_id(id)
+        if not result:
             return respModel.ok_resp(msg="查询成功,但是没有数据")
-        
-        # 查询关联的用例
-        case_stmt = select(ApiCollectionDetail).where(ApiCollectionDetail.collection_info_id == id).order_by(ApiCollectionDetail.run_order)
-        plan_cases = session.exec(case_stmt).all()
-        
-        cases = []
-        for pc in plan_cases:
-            # 查询用例信息
-            case_info = session.get(ApiInfoCase, pc.case_info_id)
-            cases.append({
-                "id": pc.id,
-                "plan_id": pc.collection_info_id,
-                "case_info_id": pc.case_info_id,
-                "case_name": case_info.case_name if case_info else "",
-                "case_desc": case_info.case_desc if case_info else "",
-                "run_order": pc.run_order,
-                "ddt_data": pc.ddt_data,
-                "create_time": TimeFormatter.format_datetime(pc.create_time)
-            })
-        
-        result = {
-            "id": plan.id,
-            "project_id": plan.project_id,
-            "plan_name": plan.plan_name,
-            "plan_desc": plan.plan_desc,
-            "create_time": TimeFormatter.format_datetime(plan.create_time),
-            "modify_time": TimeFormatter.format_datetime(plan.modify_time),
-            "cases": cases
-        }
-        
         return respModel.ok_resp(obj=result)
     except Exception as e:
         logger.error(f"操作失败: {e}", exc_info=True)
@@ -110,15 +52,12 @@ async def queryById(id: int = Query(...), session: Session = Depends(get_session
 async def insert(data: ApiCollectionInfoCreate, session: Session = Depends(get_session)):
     """新增测试计划"""
     try:
-        plan = module_model(
+        service = ApiCollectionInfoService(session)
+        service.create(
             project_id=data.project_id,
             plan_name=data.plan_name,
-            plan_desc=data.plan_desc,
-            create_time=datetime.now(),
-            modify_time=datetime.now()
+            plan_desc=data.plan_desc
         )
-        session.add(plan)
-        session.commit()
         return respModel.ok_resp_text(msg="新增成功")
     except Exception as e:
         session.rollback()
@@ -129,19 +68,11 @@ async def insert(data: ApiCollectionInfoCreate, session: Session = Depends(get_s
 async def update(data: ApiCollectionInfoUpdate, session: Session = Depends(get_session)):
     """更新测试计划"""
     try:
-        plan = session.get(module_model, data.id)
-        if not plan:
+        service = ApiCollectionInfoService(session)
+        update_data = data.model_dump(exclude_unset=True, exclude={'id'})
+        updated = service.update(data.id, update_data)
+        if not updated:
             return respModel.error_resp("测试计划不存在")
-        
-        if data.project_id is not None:
-            plan.project_id = data.project_id
-        if data.plan_name is not None:
-            plan.plan_name = data.plan_name
-        if data.plan_desc is not None:
-            plan.plan_desc = data.plan_desc
-        plan.modify_time = datetime.now()
-        
-        session.commit()
         return respModel.ok_resp_text(msg="更新成功")
     except Exception as e:
         session.rollback()
@@ -152,10 +83,8 @@ async def update(data: ApiCollectionInfoUpdate, session: Session = Depends(get_s
 async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除测试计划"""
     try:
-        obj = session.get(module_model, id)
-        if obj:
-            session.delete(obj)
-            session.commit()
+        service = ApiCollectionInfoService(session)
+        if service.delete(id):
             return respModel.ok_resp_text(msg="删除成功")
         return respModel.error_resp("数据不存在")
     except Exception as e:
@@ -169,24 +98,15 @@ async def delete(id: int = Query(...), session: Session = Depends(get_session)):
 async def addCase(data: ApiCollectionDetailCreate, session: Session = Depends(get_session)):
     """添加用例到计划"""
     try:
-        # 检查是否已存在
-        check_stmt = select(ApiCollectionDetail).where(
-            ApiCollectionDetail.collection_info_id == data.plan_id,
-            ApiCollectionDetail.case_info_id == data.case_info_id
-        )
-        existing = session.exec(check_stmt).first()
-        if existing:
-            return respModel.error_resp("该用例已添加到计划中")
-        
-        plan_case = ApiCollectionDetail(
-            collection_info_id=data.plan_id,
+        service = ApiCollectionInfoService(session)
+        result = service.add_case(
+            plan_id=data.collection_info_id,
             case_info_id=data.case_info_id,
             run_order=data.run_order,
-            ddt_data=json.dumps(data.ddt_data, ensure_ascii=False) if data.ddt_data else None,
-            create_time=datetime.now()
+            ddt_data=data.ddt_data
         )
-        session.add(plan_case)
-        session.commit()
+        if not result:
+            return respModel.error_resp("该用例已添加到计划中")
         return respModel.ok_resp_text(msg="添加成功")
     except Exception as e:
         session.rollback()
@@ -197,87 +117,21 @@ async def addCase(data: ApiCollectionDetailCreate, session: Session = Depends(ge
 async def batchAddCases(data: BatchAddCasesRequest, session: Session = Depends(get_session)):
     """批量添加用例到计划，自动提取数据驱动配置"""
     try:
-        # 不需要参数化的字段
-        skip_fields = {'URL', 'url', 'METHOD', 'method', 'Content-Type', 'content-type'}
-        
-        def extract_ddt_from_case(case_id: int) -> str:
-            """从用例步骤中提取数据驱动配置"""
-            variables = {}
-            
-            def extract_all_fields(data_dict):
-                if isinstance(data_dict, dict):
-                    for key, value in data_dict.items():
-                        if key in skip_fields:
-                            continue
-                        if isinstance(value, dict):
-                            extract_all_fields(value)
-                        elif isinstance(value, list):
-                            for item in value:
-                                extract_all_fields(item)
-                        elif isinstance(value, (str, int, float, bool)):
-                            variables[key] = value if isinstance(value, str) else str(value)
-                elif isinstance(data_dict, list):
-                    for item in data_dict:
-                        extract_all_fields(item)
-            
-            # 获取用例步骤
-            steps = session.exec(
-                select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == case_id)
-            ).all()
-            
-            for step in steps:
-                if step.step_data:
-                    try:
-                        step_dict = json.loads(step.step_data)
-                        extract_all_fields(step_dict)
-                    except:
-                        pass
-            
-            # 获取用例名称
-            case_info = session.get(ApiInfoCase, case_id)
-            case_name = case_info.case_name if case_info else f"用例{case_id}"
-            
-            if variables:
-                template = [{"desc": f"{case_name}_数据1", **variables}]
-                return json.dumps(template, ensure_ascii=False)
-            return None
-        
-        added_count = 0
-        for idx, case_id in enumerate(data.case_ids):
-            # 检查是否已存在
-            check_stmt = select(ApiCollectionDetail).where(
-                ApiCollectionDetail.collection_info_id == data.plan_id,
-                ApiCollectionDetail.case_info_id == case_id
-            )
-            existing = session.exec(check_stmt).first()
-            if not existing:
-                # 自动提取数据驱动配置
-                ddt_data = extract_ddt_from_case(case_id)
-                plan_case = ApiCollectionDetail(
-                    collection_info_id=data.plan_id,
-                    case_info_id=case_id,
-                    run_order=idx + 1,
-                    ddt_data=ddt_data,
-                    create_time=datetime.now()
-                )
-                session.add(plan_case)
-                added_count += 1
-        
-        session.commit()
+        service = ApiCollectionInfoService(session)
+        added_count = service.batch_add_cases(plan_id=data.plan_id, case_ids=data.case_ids)
         return respModel.ok_resp_text(msg=f"成功添加{added_count}个用例")
     except Exception as e:
         session.rollback()
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
+
 @module_route.delete("/removeCase", summary="从测试计划移除用例", dependencies=[Depends(check_permission("apitest:collection:edit"))])
 async def removeCase(plan_case_id: int = Query(...), session: Session = Depends(get_session)):
     """从计划中移除用例"""
     try:
-        obj = session.get(ApiCollectionDetail, plan_case_id)
-        if obj:
-            session.delete(obj)
-            session.commit()
+        service = ApiCollectionInfoService(session)
+        if service.remove_case(plan_case_id):
             return respModel.ok_resp_text(msg="移除成功")
         return respModel.error_resp("数据不存在")
     except Exception as e:
@@ -289,12 +143,10 @@ async def removeCase(plan_case_id: int = Query(...), session: Session = Depends(
 async def updateDdtData(data: UpdateDdtDataRequest, session: Session = Depends(get_session)):
     """更新用例的数据驱动数据"""
     try:
-        plan_case = session.get(ApiCollectionDetail, data.plan_case_id)
-        if not plan_case:
+        service = ApiCollectionInfoService(session)
+        updated = service.update_ddt_data(data.plan_case_id, data.ddt_data)
+        if not updated:
             return respModel.error_resp("关联数据不存在")
-        
-        plan_case.ddt_data = json.dumps(data.ddt_data, ensure_ascii=False) if data.ddt_data else None
-        session.commit()
         return respModel.ok_resp_text(msg="更新成功")
     except Exception as e:
         session.rollback()
@@ -307,50 +159,17 @@ async def updateDdtData(data: UpdateDdtDataRequest, session: Session = Depends(g
 async def copyPlan(id: int = Query(..., description="要复制的计划ID"), session: Session = Depends(get_session)):
     """
     复制测试计划及其关联的用例
-    - 复制计划基本信息（名称添加"_副本"后缀）
+    - 复制计划基本信息（名称添加“_副本”后缀）
     - 复制所有关联的用例配置（包括DDT数据）
     """
     try:
-        # 1. 查询原计划
-        original_plan = session.get(module_model, id)
-        if not original_plan:
+        service = ApiCollectionInfoService(session)
+        result = service.copy_plan(id)
+        if not result:
             return respModel.error_resp("测试计划不存在")
-        
-        # 2. 创建新计划
-        new_plan = module_model(
-            project_id=original_plan.project_id,
-            plan_name=f"{original_plan.plan_name}_副本",
-            plan_desc=original_plan.plan_desc,
-            plugin_code=original_plan.plugin_code,
-            create_time=datetime.now(),
-            modify_time=datetime.now()
-        )
-        session.add(new_plan)
-        session.flush()  # 获取新计划ID
-        
-        # 3. 复制关联的用例
-        statement = select(ApiCollectionDetail).where(
-            ApiCollectionDetail.collection_info_id == id
-        ).order_by(ApiCollectionDetail.run_order)
-        original_details = session.exec(statement).all()
-        
-        copied_count = 0
-        for detail in original_details:
-            new_detail = ApiCollectionDetail(
-                collection_info_id=new_plan.id,
-                case_info_id=detail.case_info_id,
-                ddt_data=detail.ddt_data,
-                run_order=detail.run_order,
-                create_time=datetime.now()
-            )
-            session.add(new_detail)
-            copied_count += 1
-        
-        session.commit()
-        
         return respModel.ok_resp(
-            obj={"new_plan_id": new_plan.id, "copied_cases": copied_count},
-            msg=f"复制成功，新计划ID: {new_plan.id}，复制了{copied_count}个用例"
+            obj=result,
+            msg=f"复制成功，新计划ID: {result['new_plan_id']}，复制了{result['copied_cases']}个用例"
         )
     except Exception as e:
         session.rollback()
@@ -366,52 +185,10 @@ async def getJenkinsConfig(id: int = Query(..., description="测试计划ID"), s
     返回可用于Jenkins Pipeline的配置
     """
     try:
-        plan = session.get(module_model, id)
-        if not plan:
+        service = ApiCollectionInfoService(session)
+        jenkins_config = service.get_jenkins_config(id)
+        if not jenkins_config:
             return respModel.error_resp("测试计划不存在")
-        
-        # 查询关联用例数量
-        statement = select(ApiCollectionDetail).where(ApiCollectionDetail.collection_info_id == id)
-        details = session.exec(statement).all()
-        
-        # 生成Jenkins配置信息
-        jenkins_config = {
-            "plan_id": plan.id,
-            "plan_name": plan.plan_name,
-            "project_id": plan.project_id,
-            "case_count": len(details),
-            "api_endpoint": f"/api/ApiInfoCase/executeCase",
-            "request_method": "POST",
-            "request_body": {
-                "plan_id": plan.id,
-                "executor_code": "api-engine"  # 默认执行器
-            },
-            "curl_command": f'curl -X POST "{{BASE_URL}}/api/ApiInfoCase/executeCase" -H "Content-Type: application/json" -H "Authorization: Bearer {{TOKEN}}" -d \'{{"plan_id": {plan.id}}}\'',
-            "pipeline_script": f'''pipeline {{
-    agent any
-    environment {{
-        BASE_URL = 'http://your-server:5000'
-        TOKEN = credentials('api-test-token')
-    }}
-    stages {{
-        stage('Execute Test Plan') {{
-            steps {{
-                script {{
-                    def response = httpRequest(
-                        url: "${{BASE_URL}}/api/ApiInfoCase/executeCase",
-                        httpMode: 'POST',
-                        contentType: 'APPLICATION_JSON',
-                        customHeaders: [[name: 'Authorization', value: "Bearer ${{TOKEN}}"]],
-                        requestBody: '{{"plan_id": {plan.id}}}'
-                    )
-                    echo "Response: ${{response.content}}"
-                }}
-            }}
-        }}
-    }}
-}}'''
-        }
-        
         return respModel.ok_resp(obj=jenkins_config, msg="获取成功")
     except Exception as e:
         logger.error(f"获取Jenkins配置失败: {e}", exc_info=True)
@@ -427,29 +204,8 @@ async def getJenkinsConfig(id: int = Query(..., description="测试计划ID"), s
 async def getRobots(plan_id: int = Query(..., description="测试计划ID"), session: Session = Depends(get_session)):
     """获取测试计划关联的所有机器人配置"""
     try:
-        from msgmanage.model.RobotConfigModel import RobotConfig
-        
-        # 查询关联关系
-        statement = select(ApiPlanRobot).where(ApiPlanRobot.plan_id == plan_id)
-        plan_robots = session.exec(statement).all()
-        
-        result = []
-        for pr in plan_robots:
-            # 查询机器人详情
-            robot = session.get(RobotConfig, pr.robot_id)
-            if robot:
-                result.append({
-                    "id": pr.id,
-                    "plan_id": pr.plan_id,
-                    "robot_id": pr.robot_id,
-                    "robot_name": robot.robot_name,
-                    "robot_type": robot.robot_type,
-                    "is_enabled": pr.is_enabled,
-                    "notify_on_success": pr.notify_on_success,
-                    "notify_on_failure": pr.notify_on_failure,
-                    "create_time": TimeFormatter.format_datetime(pr.create_time)
-                })
-        
+        service = ApiCollectionInfoService(session)
+        result = service.get_robots(plan_id)
         return respModel.ok_resp_list(lst=result, msg="查询成功")
     except Exception as e:
         logger.error(f"获取计划机器人失败: {e}", exc_info=True)
@@ -460,25 +216,16 @@ async def getRobots(plan_id: int = Query(..., description="测试计划ID"), ses
 async def addRobot(data: PlanRobotCreate, session: Session = Depends(get_session)):
     """为测试计划添加机器人通知配置"""
     try:
-        # 检查是否已存在
-        check_stmt = select(ApiPlanRobot).where(
-            ApiPlanRobot.plan_id == data.plan_id,
-            ApiPlanRobot.robot_id == data.robot_id
-        )
-        existing = session.exec(check_stmt).first()
-        if existing:
-            return respModel.error_resp("该机器人已关联到此计划")
-        
-        plan_robot = ApiPlanRobot(
+        service = ApiCollectionInfoService(session)
+        result = service.add_robot(
             plan_id=data.plan_id,
             robot_id=data.robot_id,
             is_enabled=data.is_enabled,
             notify_on_success=data.notify_on_success,
-            notify_on_failure=data.notify_on_failure,
-            create_time=datetime.now()
+            notify_on_failure=data.notify_on_failure
         )
-        session.add(plan_robot)
-        session.commit()
+        if not result:
+            return respModel.error_resp("该机器人已关联到此计划")
         return respModel.ok_resp_text(msg="添加成功")
     except Exception as e:
         session.rollback()
@@ -490,18 +237,11 @@ async def addRobot(data: PlanRobotCreate, session: Session = Depends(get_session
 async def updateRobot(data: PlanRobotUpdate, session: Session = Depends(get_session)):
     """更新测试计划机器人通知配置"""
     try:
-        plan_robot = session.get(ApiPlanRobot, data.id)
-        if not plan_robot:
+        service = ApiCollectionInfoService(session)
+        update_data = data.model_dump(exclude_unset=True, exclude={'id'})
+        updated = service.update_robot(data.id, update_data)
+        if not updated:
             return respModel.error_resp("关联配置不存在")
-        
-        if data.is_enabled is not None:
-            plan_robot.is_enabled = data.is_enabled
-        if data.notify_on_success is not None:
-            plan_robot.notify_on_success = data.notify_on_success
-        if data.notify_on_failure is not None:
-            plan_robot.notify_on_failure = data.notify_on_failure
-        
-        session.commit()
         return respModel.ok_resp_text(msg="更新成功")
     except Exception as e:
         session.rollback()
@@ -513,10 +253,8 @@ async def updateRobot(data: PlanRobotUpdate, session: Session = Depends(get_sess
 async def removeRobot(id: int = Query(..., description="关联ID"), session: Session = Depends(get_session)):
     """移除测试计划的机器人关联"""
     try:
-        plan_robot = session.get(ApiPlanRobot, id)
-        if plan_robot:
-            session.delete(plan_robot)
-            session.commit()
+        service = ApiCollectionInfoService(session)
+        if service.remove_robot(id):
             return respModel.ok_resp_text(msg="移除成功")
         return respModel.error_resp("关联配置不存在")
     except Exception as e:

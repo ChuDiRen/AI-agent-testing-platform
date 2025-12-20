@@ -1,7 +1,11 @@
+"""
+关键字Controller - 已重构为使用Service层
+"""
 import json
 import os
 from datetime import datetime
 
+from apitest.service.api_keyword_service import KeyWordService
 from config.dev_settings import settings
 from core.database import get_session
 from core.dependencies import check_permission
@@ -9,116 +13,74 @@ from core.logger import get_logger
 from core.resp_model import respModel
 from core.time_utils import TimeFormatter
 from fastapi import APIRouter, Depends, Query
-from plugin.model.PluginModel import Plugin
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from ..model.ApiKeyWordModel import ApiKeyWord
 from ..model.ApiOperationTypeModel import OperationType
 from ..schemas.api_keyword_schema import ApiKeyWordQuery, ApiKeyWordCreate, ApiKeyWordUpdate, KeywordFileRequest
 
-module_name = "ApiKeyWord" # 模块名称
-module_model = ApiKeyWord
-module_route = APIRouter(prefix=f"/{module_name}", tags=["API关键字管理"])
 logger = get_logger(__name__)
 
-@module_route.get("/queryAll", summary="查询所有关键字", dependencies=[Depends(check_permission("apitest:keyword:query"))]) # 查询所有关键字
+# ==================== 配置常量 ====================
+BASE_DIR = settings.BASE_DIR
+TEMP_DIR = settings.TEMP_DIR
+YAML_DIR = settings.YAML_DIR
+REPORT_DIR = settings.REPORT_DIR
+LOG_DIR = settings.LOG_DIR
+
+module_name = "ApiKeyWord"
+module_route = APIRouter(prefix=f"/{module_name}", tags=["API关键字管理"])
+
+# ==================== 路由处理函数 ====================
+
+@module_route.get("/queryAll", summary="查询所有关键字", dependencies=[Depends(check_permission("apitest:keyword:query"))])
 async def queryAll(session: Session = Depends(get_session)):
-    statement = select(module_model)
-    datas = session.exec(statement).all()
-    return respModel.ok_resp_list(lst=datas, msg="查询成功")
-
-@module_route.post("/queryByPage", summary="分页查询关键字", dependencies=[Depends(check_permission("apitest:keyword:query"))]) # 分页查询关键字
-async def queryByPage(query: ApiKeyWordQuery, session: Session = Depends(get_session)):
+    """查询所有关键字"""
     try:
-        offset = (query.page - 1) * query.pageSize
-        statement = select(module_model)
-        # 添加关键字名称模糊搜索条件
-        if query.name:
-            statement = statement.where(module_model.name.like(f'%{query.name}%'))
-        # 添加操作类型筛选条件
-        if query.operation_type_id and query.operation_type_id > 0:
-            statement = statement.where(module_model.operation_type_id == query.operation_type_id)
-        # 添加页面筛选条件
-        if query.page_id and query.page_id > 0:
-            statement = statement.where(module_model.page_id == query.page_id)
-        # 添加插件筛选条件
-        if query.plugin_id and query.plugin_id > 0:
-            statement = statement.where(module_model.plugin_id == query.plugin_id)
-        if query.plugin_code:
-            statement = statement.where(module_model.plugin_code == query.plugin_code)
-        statement = statement.limit(query.pageSize).offset(offset)
-        datas = session.exec(statement).all()
-        count_statement = select(module_model)
-        if query.name:
-            count_statement = count_statement.where(module_model.name.like(f'%{query.name}%'))
-        if query.operation_type_id and query.operation_type_id > 0:
-            count_statement = count_statement.where(module_model.operation_type_id == query.operation_type_id)
-        if query.page_id and query.page_id > 0:
-            count_statement = count_statement.where(module_model.page_id == query.page_id)
-        if query.plugin_id and query.plugin_id > 0:
-            count_statement = count_statement.where(module_model.plugin_id == query.plugin_id)
-        if query.plugin_code:
-            count_statement = count_statement.where(module_model.plugin_code == query.plugin_code)
-        total = len(session.exec(count_statement).all())
-        
-        # 查询所有操作类型，构建ID到名称的映射
-        operation_types = session.exec(select(OperationType)).all()
-        op_type_map = {op.id: op.operation_type_name for op in operation_types}
-        
-        # 查询所有插件，构建ID到名称的映射
-        plugins = session.exec(select(Plugin)).all()
-        plugin_map = {p.id: p.plugin_name for p in plugins}
-        
-        # 构建返回结果，添加操作类型名称和插件信息
-        result = []
-        for data in datas:
-            item = {
-                "id": data.id,
-                "name": data.name,
-                "keyword_desc": data.keyword_desc,
-                "operation_type_id": data.operation_type_id,
-                "operation_type_name": op_type_map.get(data.operation_type_id, ""),
-                "keyword_fun_name": data.keyword_fun_name,
-                "keyword_value": data.keyword_value,
-                "is_enabled": data.is_enabled,
-                "plugin_id": data.plugin_id,
-                "plugin_code": data.plugin_code,
-                "plugin_name": plugin_map.get(data.plugin_id, "") if data.plugin_id else "",
-                "category": data.category,
-                "create_time": TimeFormatter.format_datetime(data.create_time) if data.create_time else None
-            }
-            result.append(item)
-        
-        return respModel.ok_resp_list(lst=result, total=total)
+        service = KeyWordService(session)
+        datas = service.query_by_project(project_id=None)
+        return respModel.ok_resp_list(lst=datas, msg="查询成功")
     except Exception as e:
-        logger.error(f"操作失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+        logger.error(f"查询失败: {e}", exc_info=True)
+        return respModel.error_resp(f"查询失败: {e}")
 
-@module_route.get("/queryById", summary="根据ID查询关键字", dependencies=[Depends(check_permission("apitest:keyword:query"))]) # 根据ID查询关键字
-async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+@module_route.post("/queryByPage", summary="分页查询关键字", dependencies=[Depends(check_permission("apitest:keyword:query"))])
+async def queryByPage(query: ApiKeyWordQuery, session: Session = Depends(get_session)):
+    """分页查询关键字"""
     try:
-        statement = select(module_model).where(module_model.id == id)
-        data = session.exec(statement).first()
+        service = KeyWordService(session)
+        datas, total = service.query_by_page(
+            page=query.page,
+            page_size=query.pageSize,
+            project_id=query.project_id,
+            keyword_name=query.name,
+            keyword_type=query.type
+        )
+        return respModel.ok_resp_list(lst=datas, total=total)
+    except Exception as e:
+        logger.error(f"查询失败: {e}", exc_info=True)
+        return respModel.error_resp(f"查询失败: {e}")
+
+@module_route.get("/queryById", summary="根据ID查询关键字")
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+    """根据ID查询关键字"""
+    try:
+        service = KeyWordService(session)
+        data = service.get_by_id(id)
         if data:
             return respModel.ok_resp(obj=data)
         else:
-            return respModel.ok_resp(msg="查询成功,但是没有数据")
+            return respModel.error_resp("关键字不存在")
     except Exception as e:
-        logger.error(f"操作失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+        logger.error(f"查询失败: {e}", exc_info=True)
+        return respModel.error_resp(f"查询失败: {e}")
 
-@module_route.post("/insert", summary="新增关键字", dependencies=[Depends(check_permission("apitest:keyword:add"))]) # 新增关键字
+@module_route.post("/insert", summary="新增关键字", dependencies=[Depends(check_permission("apitest:keyword:add"))])
 async def insert(keyword: ApiKeyWordCreate, session: Session = Depends(get_session)):
+    """新增关键字"""
     try:
-        # 检查关键字方法名是否重复
-        statement = select(module_model).where(module_model.keyword_fun_name == keyword.keyword_fun_name)
-        existing = session.exec(statement).first()
-        if existing:
-            return respModel.error_resp(msg="数据库已存在重复的关键字方法，请重新输入")
-        data = module_model(**keyword.model_dump(), create_time=datetime.now())
-        session.add(data)
-        session.commit()
-        session.refresh(data)
+        service = KeyWordService(session)
+        data = service.create(**keyword.model_dump())
         return respModel.ok_resp(msg="添加成功", dic_t={"id": data.id})
     except Exception as e:
         session.rollback()

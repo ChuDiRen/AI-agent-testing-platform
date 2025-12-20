@@ -1,7 +1,11 @@
+"""
+接口用例Controller - 已重构为使用Service层
+"""
 import json
 from datetime import datetime
 
 import yaml
+from apitest.service.api_info_case_service import InfoCaseService
 from config.dev_settings import settings
 from core.database import get_session
 from core.dependencies import check_permission
@@ -9,12 +13,9 @@ from core.logger import get_logger
 from core.resp_model import respModel
 from core.time_utils import TimeFormatter
 from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session, select
+from sqlmodel import Session
 
-from ..model.ApiHistoryModel import ApiHistory
 from ..model.ApiInfoCaseModel import ApiInfoCase
-from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
-from ..model.ApiKeyWordModel import ApiKeyWord
 from ..schemas.api_info_case_schema import (
     ApiInfoCaseQuery, ApiInfoCaseCreate, ApiInfoCaseUpdate,
     YamlGenerateRequest,
@@ -24,7 +25,6 @@ from ..schemas.api_info_case_schema import (
 logger = get_logger(__name__)
 
 # ==================== 配置常量 ====================
-# ✅ P2修复: 使用配置管理的路径,避免硬编码
 BASE_DIR = settings.BASE_DIR
 TEMP_DIR = settings.TEMP_DIR
 YAML_DIR = settings.YAML_DIR
@@ -41,163 +41,28 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["API用例管理"])
 async def queryByPage(query: ApiInfoCaseQuery, session: Session = Depends(get_session)):
     """分页查询用例"""
     try:
-        statement = select(module_model)
-        if query.project_id:
-            statement = statement.where(module_model.project_id == query.project_id)
-        if query.case_name:
-            statement = statement.where(module_model.case_name.like(f"%{query.case_name}%"))
-
-        offset = (query.page - 1) * query.pageSize
-        datas = session.exec(statement.order_by(module_model.create_time.desc()).limit(query.pageSize).offset(offset)).all()
-        total = len(session.exec(statement).all())
-        
-        # 转换时间格式
-        result_list = []
-        for data in datas:
-            item = {
-                "id": data.id,
-                "project_id": data.project_id,
-                "case_name": data.case_name,
-                "case_desc": data.case_desc,
-                "create_time": TimeFormatter.format_datetime(data.create_time),
-                "modify_time": TimeFormatter.format_datetime(data.modify_time)
-            }
-            result_list.append(item)
-        
-        return respModel.ok_resp_list(lst=result_list, total=total)
-    except Exception as e:
-        logger.error(f"操作失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
-
-@module_route.get("/queryById", summary="根据ID查询API用例（含步骤）", dependencies=[Depends(check_permission("apitest:case:query"))])
-async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
-    """根据ID查询用例（含步骤）"""
-    try:
-        # 查询用例基本信息
-        case_info = session.get(module_model, id)
-        if not case_info:
-            return respModel.ok_resp(msg="查询成功,但是没有数据")
-        
-        # 查询用例步骤
-        statement = select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == id).order_by(ApiInfoCaseStep.run_order)
-        steps = session.exec(statement).all()
-        
-        # 解析step_data为对象
-        def parse_step_data(step_data_str):
-            if not step_data_str:
-                return {}
-            try:
-                return json.loads(step_data_str)
-            except:
-                return {}
-        
-        # 解析ddts
-        def parse_ddts(ddts_str):
-            if not ddts_str:
-                return []
-            try:
-                return json.loads(ddts_str)
-            except:
-                return []
-        
-        # 解析context_config
-        def parse_context_config(config_str):
-            if not config_str:
-                return {}
-            try:
-                return json.loads(config_str)
-            except:
-                return {}
-        
-        # 构建响应
-        result = {
-            "id": case_info.id,
-            "project_id": case_info.project_id,
-            "module_id": case_info.module_id,
-            "case_name": case_info.case_name,
-            "case_desc": case_info.case_desc,
-            "context_config": parse_context_config(case_info.context_config),
-            "ddts": parse_ddts(case_info.ddts),
-            "pre_request": case_info.pre_request,
-            "post_request": case_info.post_request,
-            "debug_info": case_info.debug_info,
-            "create_time": TimeFormatter.format_datetime(case_info.create_time),
-            "modify_time": TimeFormatter.format_datetime(case_info.modify_time),
-            "steps": [
-                {
-                    "id": step.id,
-                    "case_info_id": step.case_info_id,
-                    "run_order": step.run_order,
-                    "step_desc": step.step_desc,
-                    "operation_type_id": step.operation_type_id,
-                    "keyword_id": step.keyword_id,
-                    "step_data": parse_step_data(step.step_data),
-                    "create_time": TimeFormatter.format_datetime(step.create_time)
-                } for step in steps
-            ]
-        }
-        
-        return respModel.ok_resp(obj=result)
-    except Exception as e:
-        logger.error(f"操作失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
-
-@module_route.post("/insert", summary="新增API用例（含步骤）", dependencies=[Depends(check_permission("apitest:case:add"))])
-async def insert(data: ApiInfoCaseCreate, session: Session = Depends(get_session)):
-    """新增用例（含步骤）"""
-    try:
-        # 创建用例基本信息
-        case_info = module_model(
-            project_id=data.project_id,
-            module_id=data.module_id,
-            case_name=data.case_name,
-            case_desc=data.case_desc,
-            context_config=json.dumps(data.context_config, ensure_ascii=False) if data.context_config else None,
-            ddts=json.dumps(data.ddts, ensure_ascii=False) if data.ddts else None,
-            pre_request=data.pre_request,
-            post_request=data.post_request,
-            create_time=datetime.now(),
-            modify_time=datetime.now()
+        service = InfoCaseService(session)
+        datas, total = service.query_by_page(
+            page=query.page,
+            page_size=query.pageSize,
+            project_id=query.project_id,
+            case_name=query.case_name
         )
-        session.add(case_info)
-        session.flush()  # 获取case_info.id
-        
-        # 创建步骤
-        if data.steps:
-            for step_data in data.steps:
-                step = ApiInfoCaseStep(
-                    case_info_id=case_info.id,
-                    run_order=step_data.run_order,
-                    step_desc=step_data.step_desc,
-                    operation_type_id=step_data.operation_type_id,
-                    keyword_id=step_data.keyword_id,
-                    step_data=json.dumps(step_data.step_data, ensure_ascii=False) if step_data.step_data else None,
-                    create_time=datetime.now()
-                )
-                session.add(step)
-        
-        session.commit()
-        return respModel.ok_resp_text(msg="新增成功")
+        return respModel.ok_resp_list(lst=datas, total=total)
     except Exception as e:
-        session.rollback()
-        logger.error(f"操作失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+        logger.error(f"查询失败: {e}", exc_info=True)
+        return respModel.error_resp(f"查询失败: {e}")
 
-@module_route.put("/update", summary="更新API用例（含步骤）", dependencies=[Depends(check_permission("apitest:case:edit"))])
-async def update(data: ApiInfoCaseUpdate, session: Session = Depends(get_session)):
-    """更新用例（含步骤）"""
+@module_route.get("/queryById", summary="根据ID查询用例")
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+    """根据ID查询用例"""
     try:
-        # 更新用例基本信息
-        case_info = session.get(module_model, data.id)
-        if not case_info:
+        service = InfoCaseService(session)
+        data = service.get_by_id(id)
+        if data:
+            return respModel.ok_resp(obj=data)
+        else:
             return respModel.error_resp("用例不存在")
-        
-        if data.project_id is not None:
-            case_info.project_id = data.project_id
-        if data.module_id is not None:
-            case_info.module_id = data.module_id
-        if data.case_name is not None:
-            case_info.case_name = data.case_name
         if data.case_desc is not None:
             case_info.case_desc = data.case_desc
         if data.context_config is not None:

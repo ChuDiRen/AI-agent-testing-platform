@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 from typing import List
 
+from apitest.service.api_doc_service import DocService
 from apitest.model.ApiFolderModel import ApiFolder
 from apitest.model.ApiInfoModel import ApiInfo
 from apitest.model.ApiProjectModel import ApiProject
@@ -134,7 +135,7 @@ def build_doc_data(project: ApiProject, folders: List[ApiFolder], apis: List[Api
     
     # 将接口分配到目录
     for api in apis:
-        folder_id = api.folder_id if hasattr(api, 'folder_id') and api.folder_id else 0
+        folder_id = api.folder_id if api.folder_id else 0
         if folder_id not in folder_map:
             folder_id = 0
         

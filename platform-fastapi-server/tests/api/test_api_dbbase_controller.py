@@ -10,6 +10,7 @@ API数据库配置管理 接口测试
 from datetime import datetime
 
 import pytest
+from ..conftest import APIClient, API_BASE_URL
 
 
 class TestApiDbBaseAPI:
@@ -133,9 +134,14 @@ class TestApiDbBaseAPI:
                 "name": "重复测试",
                 "ref_name": ref_name,
                 "db_type": "mysql",
-                "host": "localhost"
+                "host": "localhost",
+                "port": 3306,
+                "database": "test_db",
+                "username": "root",
+                "password": "test123"
             })
-            assert response.json()["code"] != 200 or "重复" in response.json().get("msg", "")
+            assert response.status_code == 200
+            assert response.json().get("code") != 200 or "重复" in response.json().get("msg", "")
     
     def test_insert_missing_required(self):
         """新增配置 - 缺少必填字段"""
