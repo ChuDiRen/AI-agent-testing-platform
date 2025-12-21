@@ -1685,7 +1685,7 @@ def _run_venv_install(plugin_id: int, plugin_code: str, plugin_content: str, com
                 if result.get("success"):
                     plugin.install_status = InstallStatus.INSTALLED.value
                     plugin.health_status = HealthStatus.HEALTHY.value
-                    plugin.install_path = result.get("install_path")
+                    plugin.install_path = None  # 临时目录已清理，不再保存路径
                     plugin.install_time = datetime.now()
                     plugin.install_log = result.get("install_log", "")[:5000]
                     logger.info(f"插件 {plugin_code} 安装成功")
@@ -1804,6 +1804,16 @@ async def get_install_status(
     }
     
     result = status_map.get(plugin.install_status, {"status": "unknown", "message": "未知状态", "progress": 0})
+    
+    # 如果数据库状态是 installing 但内存没有任务，可能是后台任务已完成但数据库还没更新
+    # 刷新数据库状态
+    if plugin.install_status == InstallStatus.INSTALLING.value:
+        session.refresh(plugin)
+        if plugin.install_status == InstallStatus.INSTALLED.value:
+            result = {"status": "completed", "message": f"已安装，命令: {plugin.command}", "progress": 100}
+        elif plugin.install_status == InstallStatus.INSTALL_FAILED.value:
+            result = {"status": "failed", "message": plugin.install_log or "安装失败", "progress": 100}
+    
     result["install_path"] = plugin.install_path
     result["install_time"] = plugin.install_time.isoformat() if plugin.install_time else None
     

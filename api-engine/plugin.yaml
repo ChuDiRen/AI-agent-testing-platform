@@ -1,8 +1,8 @@
 # API Engine 插件配置
 name: api-engine
 version: "0.0.1"
-description: 华测教育 API 自动化测试工具
-command: huace-apirun
+description: API 自动化测试引擎 - 基于关键字驱动和数据驱动的 API 测试框架
+command: apirun
 type: executor
 
 params:

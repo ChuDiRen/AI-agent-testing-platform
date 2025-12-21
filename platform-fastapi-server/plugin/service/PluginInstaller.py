@@ -29,6 +29,8 @@ class PluginInstaller:
     
     # 安装目录基础路径
     INSTALL_BASE = "plugins"
+    # 状态保留时间（秒）- 安装完成后保留状态5分钟
+    STATUS_RETAIN_SECONDS = 300
     
     @staticmethod
     def get_install_dir(plugin_code: str) -> Path:
@@ -39,11 +41,29 @@ class PluginInstaller:
     @staticmethod
     def get_install_status(plugin_id: int) -> Dict[str, Any]:
         """获取安装状态"""
-        return _install_tasks.get(plugin_id, {
-            "status": "unknown",
-            "message": "未找到安装任务",
-            "progress": 0
-        })
+        task_info = _install_tasks.get(plugin_id)
+        if not task_info:
+            return {
+                "status": "unknown",
+                "message": "未找到安装任务",
+                "progress": 0
+            }
+        
+        # 检查状态是否过期（仅对已完成/失败的状态检查）
+        if task_info.get("status") in ["completed", "failed"]:
+            updated_at = task_info.get("updated_at")
+            if updated_at:
+                elapsed = (datetime.now() - updated_at).total_seconds()
+                if elapsed > PluginInstaller.STATUS_RETAIN_SECONDS:
+                    # 状态已过期，清除并返回 unknown
+                    del _install_tasks[plugin_id]
+                    return {
+                        "status": "unknown",
+                        "message": "安装任务已过期",
+                        "progress": 0
+                    }
+        
+        return task_info
     
     @staticmethod
     def update_install_status(plugin_id: int, status: str, message: str, progress: int, **kwargs):
@@ -52,6 +72,7 @@ class PluginInstaller:
             "status": status,
             "message": message,
             "progress": progress,
+            "updated_at": datetime.now(),  # 添加时间戳
             **kwargs
         }
     
@@ -116,7 +137,7 @@ class PluginInstaller:
             
             # 4. 安装插件依赖（使用国内镜像加速）
             PluginInstaller.update_install_status(
-                plugin_id, "installing", "正在安装依赖...", 40
+                plugin_id, "installing", "正在检查依赖...", 30
             )
             
             # 4.1 先安装 requirements.txt（如果存在）
@@ -145,12 +166,20 @@ class PluginInstaller:
                 if skipped_reqs:
                     install_log.append(f"[{datetime.now().isoformat()}] 跳过本地包: {', '.join(skipped_reqs)}")
                 
-                # 逐个安装依赖，忽略失败的包
+                # 逐个安装依赖，更新进度（30% -> 50%）
                 installed_count = 0
                 failed_pkgs = []
-                for req in filtered_reqs:
+                total_reqs = len(filtered_reqs)
+                for idx, req in enumerate(filtered_reqs):
+                    pkg_name = req.split('==')[0].split('>=')[0].split('<=')[0]
+                    # 计算进度：30% + (idx / total) * 20%，范围 30-50%
+                    progress = 30 + int((idx / max(total_reqs, 1)) * 20)
+                    PluginInstaller.update_install_status(
+                        plugin_id, "installing", f"正在安装依赖 ({idx+1}/{total_reqs}): {pkg_name}...", progress
+                    )
+                    
                     req_args = [
-                        python_exe, "-m", "pip", "install", req,
+                        python_exe, "-m", "pip", "install", "--upgrade", req,
                         "-i", "https://pypi.tuna.tsinghua.edu.cn/simple",
                         "--trusted-host", "pypi.tuna.tsinghua.edu.cn",
                         "-q"  # 静默模式
@@ -165,37 +194,85 @@ class PluginInstaller:
                     if req_result.returncode == 0:
                         installed_count += 1
                     else:
-                        failed_pkgs.append(req.split('==')[0])
+                        failed_pkgs.append(pkg_name)
                 
                 install_log.append(f"[{datetime.now().isoformat()}] requirements.txt: 成功安装 {installed_count} 个包")
                 if failed_pkgs:
                     install_log.append(f"[{datetime.now().isoformat()}] 安装失败的包: {', '.join(failed_pkgs)}")
             
-            # 4.2 安装插件本身
+            # 4.2 安装插件本身（使用 Popen 实时更新进度）
             PluginInstaller.update_install_status(
-                plugin_id, "installing", "正在执行 pip install...", 60
+                plugin_id, "installing", f"正在安装插件 {plugin_code}...", 55
             )
             
             pip_args = [
-                python_exe, "-m", "pip", "install", ".",
+                python_exe, "-m", "pip", "install", "--upgrade", ".",
                 "-i", "https://pypi.tuna.tsinghua.edu.cn/simple",
                 "--trusted-host", "pypi.tuna.tsinghua.edu.cn"
             ]
             
-            result = subprocess.run(
+            # 使用 Popen 实时读取输出并更新进度
+            import time
+            process = subprocess.Popen(
                 pip_args,
                 cwd=str(source_dir),
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True,
-                timeout=600
+                bufsize=1
             )
             
-            install_log.append(f"[{datetime.now().isoformat()}] pip install 输出:\n{result.stdout}")
-            if result.stderr:
-                install_log.append(f"[{datetime.now().isoformat()}] pip install 错误:\n{result.stderr}")
+            stdout_lines = []
+            progress_base = 55
+            progress_increment = 0
+            install_start_time = time.time()
+            last_update_time = time.time()
             
-            if result.returncode != 0:
-                raise Exception(f"pip install 失败: {result.stderr or result.stdout}")
+            # 实时读取输出并更新进度
+            while True:
+                # 非阻塞读取（Windows 兼容）
+                try:
+                    line = process.stdout.readline()
+                except:
+                    line = ""
+                
+                if line:
+                    stdout_lines.append(line.strip())
+                    # 根据输出内容判断进度
+                    if "Collecting" in line or "Downloading" in line:
+                        progress_increment = min(progress_increment + 2, 20)
+                    elif "Installing" in line or "Successfully" in line:
+                        progress_increment = min(progress_increment + 5, 20)
+                
+                # 检查进程是否结束
+                if process.poll() is not None:
+                    break
+                
+                # 每2秒更新一次进度显示
+                current_time = time.time()
+                total_elapsed = int(current_time - install_start_time)
+                if current_time - last_update_time > 2:
+                    current_progress = min(progress_base + progress_increment, 75)
+                    PluginInstaller.update_install_status(
+                        plugin_id, "installing", f"正在安装插件 {plugin_code}... (已用时 {total_elapsed}秒)", current_progress
+                    )
+                    last_update_time = current_time
+                
+                # 超时检查（10分钟）
+                if total_elapsed > 600:
+                    process.kill()
+                    raise subprocess.TimeoutExpired(pip_args, 600)
+            
+            # 读取剩余输出
+            remaining = process.stdout.read()
+            if remaining:
+                stdout_lines.extend(remaining.strip().split('\n'))
+            
+            result_stdout = '\n'.join(stdout_lines)
+            install_log.append(f"[{datetime.now().isoformat()}] pip install 输出:\n{result_stdout}")
+            
+            if process.returncode != 0:
+                raise Exception(f"pip install 失败: {result_stdout}")
             
             # 5. 验证命令是否可用
             PluginInstaller.update_install_status(
@@ -219,18 +296,28 @@ class PluginInstaller:
             
             install_log.append(f"[{datetime.now().isoformat()}] 安装完成，命令路径: {cmd_path}")
             
-            # 6. 更新状态：安装成功
+            # 6. 清理临时安装目录（pip install 已将包安装到 Python 环境，源码不再需要）
+            PluginInstaller.update_install_status(
+                plugin_id, "installing", "正在清理临时文件...", 90
+            )
+            
+            if install_dir and install_dir.exists():
+                try:
+                    shutil.rmtree(install_dir, ignore_errors=True)
+                    install_log.append(f"[{datetime.now().isoformat()}] 已清理临时安装目录: {install_dir}")
+                except Exception as cleanup_err:
+                    install_log.append(f"[{datetime.now().isoformat()}] 清理临时目录失败: {cleanup_err}")
+            
+            # 7. 更新状态：安装成功
             PluginInstaller.update_install_status(
                 plugin_id, "completed",
                 f"安装成功，命令: {command}",
                 100,
-                install_path=str(install_dir),
                 command_path=str(cmd_path) if cmd_path.exists() else None
             )
             
             return {
                 "success": True,
-                "install_path": str(install_dir),
                 "command_path": str(cmd_path) if cmd_path.exists() else None,
                 "install_log": "\n".join(install_log)
             }

@@ -379,8 +379,11 @@ const handleInstall = async (row) => {
     
     // 轮询安装状态
     let pollRetryCount = 0
-    const maxPollRetries = 3
+    const maxPollRetries = 5  // 增加重试次数
     let pollTimer = null
+    let lastProgress = 0
+    let sameProgressCount = 0
+    const maxSameProgressCount = 30  // 进度卡住30次（约30秒）后刷新数据
     
     const stopPolling = () => {
       if (pollTimer) {
@@ -404,6 +407,22 @@ const handleInstall = async (row) => {
           
           if (status === 'installing') {
             pollRetryCount = 0 // 只在 installing 时重置
+            
+            // 检测进度是否卡住
+            if (progress === lastProgress) {
+              sameProgressCount++
+              // 进度卡住超过阈值，尝试刷新数据检查是否已完成
+              if (sameProgressCount >= maxSameProgressCount) {
+                sameProgressCount = 0
+                // 刷新列表数据检查实际状态
+                await loadData()
+                // 继续轮询
+              }
+            } else {
+              sameProgressCount = 0
+              lastProgress = progress
+            }
+            
             pollTimer = setTimeout(pollStatus, 1000)
           } else if (status === 'completed') {
             stopPolling()
@@ -417,11 +436,10 @@ const handleInstall = async (row) => {
             if (pollRetryCount < maxPollRetries) {
               pollTimer = setTimeout(pollStatus, 1000)
             } else {
-              // 多次查询都是 unknown，停止轮询
-              installMessage.value = '未找到安装任务，可能已完成或未启动'
-              installProgress.value = 0
+              // 多次查询都是 unknown，刷新数据检查实际状态
+              installMessage.value = '正在检查安装结果...'
+              await loadData()
               stopPolling()
-              loadData()
             }
           } else {
             stopPolling()
