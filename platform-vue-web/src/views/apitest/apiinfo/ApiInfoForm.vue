@@ -389,8 +389,7 @@ import { Connection, ArrowDown } from '@element-plus/icons-vue';
 import { queryById, insertData, updateData, getMethods } from './apiinfo.js';
 import { queryByPage as getProjectList } from '~/views/apitest/project/apiProject.js';
 import { listExecutors, executeTask } from '~/views/apitest/task/apiTask.js';
-import { insertData as insertCaseData, updateData as updateCaseData, queryByPage as queryCaseList, queryKeywordsByType } from '~/views/apitest/apiinfocase/apiInfoCase.js';
-import { queryAll as queryOperationTypes } from '~/views/apitest/keyword/operationType.js';
+import { insertData as insertCaseData, updateData as updateCaseData, queryByPage as queryCaseList, queryKeywordsGroupedByEngine } from '~/views/apitest/apiinfocase/apiInfoCase.js';
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import JsonViewer from '~/components/JsonViewer.vue';
@@ -1190,92 +1189,56 @@ const addToTestCase = async () => {
   addingCase.value = true;
 
   try {
-    // 1. 获取操作类型ID (HTTP请求)
-    let operationTypeId = 1; // 默认为1
-    try {
-      const opRes = await queryOperationTypes();
-      if (opRes.data.code === 200 && Array.isArray(opRes.data.data)) {
-        const op = opRes.data.data.find((item: any) => item.operation_type_name === 'HTTP请求');
-        if (op) operationTypeId = op.id;
-      }
-    } catch (e) {
-      console.warn('查询操作类型失败，使用默认ID=1', e);
-    }
-
-    // 2. 获取关键字列表并匹配ID
-    let keywordId = null;
-    const method = ruleForm.request_method || 'GET';
+    // 先序列化当前参数
+    serializeParams();
     
-    // 判断Body类型
+    const method = ruleForm.request_method || 'GET';
     const hasJsonBody = !!ruleForm.requests_json_data;
     const hasFormBody = !!ruleForm.request_form_datas || !!ruleForm.request_www_form_datas;
     
-    let targetName = 'GET请求';
-    if (method === 'GET') targetName = 'GET请求';
-    else if (method === 'POST') {
-      if (hasJsonBody) targetName = 'POST请求(JSON)';
-      else if (hasFormBody) targetName = 'POST请求(表单)';
-      else targetName = 'POST请求(JSON)';
-    }
-    else if (method === 'PUT') targetName = 'PUT请求';
-    else if (method === 'DELETE') targetName = 'DELETE请求';
-    else if (method === 'PATCH') targetName = 'PATCH请求';
-
+    // 动态查找 send_request 关键字（按名称精确匹配）
+    let keywordId = null;
+    let operationTypeId = 1; // 默认 HTTP请求 类型
+    
     try {
-      const kwRes = await queryKeywordsByType(operationTypeId);
-      if (kwRes.data.code === 200 && Array.isArray(kwRes.data.data)) {
-        const keywords = kwRes.data.data;
-        const kw = keywords.find((item: any) => item.name === targetName);
-        if (kw) {
-          keywordId = kw.id;
-        } else {
-          // 降级：如果找不到精确匹配，尝试找包含 method 的
-          const fuzzy = keywords.find((item: any) => item.name.includes(method));
-          if (fuzzy) keywordId = fuzzy.id;
+      const kwRes = await queryKeywordsGroupedByEngine();
+      console.log('关键字查询结果:', kwRes.data);
+      if (kwRes.data.code === 200 && kwRes.data.data?.engines) {
+        // 遍历所有引擎，查找名称为 send_request 的关键字
+        for (const engine of kwRes.data.data.engines) {
+          console.log(`检查引擎 ${engine.plugin_name}，关键字数量: ${engine.keywords?.length || 0}`);
+          const sendRequestKw = engine.keywords?.find(
+            (kw: any) => kw.name === 'send_request' || kw.keyword_fun_name === 'send_request'
+          );
+          if (sendRequestKw) {
+            keywordId = sendRequestKw.id;
+            operationTypeId = sendRequestKw.operation_type_id || 1;
+            console.log(`找到 send_request 关键字，ID=${keywordId}, operationTypeId=${operationTypeId}`);
+            break;
+          }
         }
       }
     } catch (e) {
-      console.warn('查询关键字列表失败，将尝试使用默认ID', e);
-    }
-    
-    // 3. 兜底策略：如果动态查找失败，使用标准初始化数据的ID
-    if (!keywordId) {
-      console.warn(`未动态匹配到关键字 '${targetName}'，使用默认ID兜底`);
-      if (method === 'GET') keywordId = 1;
-      else if (method === 'POST') {
-        if (targetName.includes('表单')) keywordId = 3;
-        else keywordId = 2;
-      }
-      else if (method === 'PUT') keywordId = 5;
-      else if (method === 'DELETE') keywordId = 6;
-      else if (method === 'PATCH') keywordId = 7;
-      else keywordId = 1; // 实在不行就GET
+      console.warn('查询关键字列表失败:', e);
     }
     
     if (!keywordId) {
-      ElMessage.warning('未找到对应的关键字定义，请检查关键字配置');
+      ElMessage.error('未找到 send_request 关键字，请先同步 api_engine 插件的关键字');
+      addingCase.value = false;
       return;
     }
-
-    // 先序列化当前参数
-    serializeParams();
-  
-    // 重新确定 stepDesc (为了保持一致性)
-    let stepDesc = `${method}请求`;
     
-    if (method === 'GET') stepDesc = 'GET请求';
-    else if (method === 'POST') {
-        if (hasJsonBody) stepDesc = 'POST请求(JSON)';
-        else if (hasFormBody) stepDesc = 'POST请求(表单)';
-        else stepDesc = 'POST请求(JSON)';
+    // 步骤描述
+    let stepDesc = `发送${method}请求`;
+    if (method === 'POST') {
+      if (hasJsonBody) stepDesc = '发送POST请求(JSON)';
+      else if (hasFormBody) stepDesc = '发送POST请求(表单)';
     }
-    else if (method === 'PUT') stepDesc = 'PUT请求';
-    else if (method === 'DELETE') stepDesc = 'DELETE请求';
-    else if (method === 'PATCH') stepDesc = 'PATCH请求';
     
-    // 构建步骤数据（符合关键字参数格式）
+    // 构建步骤数据（使用 send_request 关键字的小写参数格式）
     const stepData: Record<string, any> = {
-      URL: ruleForm.request_url.trim(),
+      method: method,
+      url: ruleForm.request_url.trim(),
     };
     
     // 添加请求头
@@ -1283,7 +1246,7 @@ const addToTestCase = async () => {
       try {
         const headers = JSON.parse(ruleForm.request_headers);
         if (Object.keys(headers).length > 0) {
-          stepData.HEADERS = headers;
+          stepData.headers = headers;
         }
       } catch (e) {
         console.warn('解析请求头失败:', e);
@@ -1295,31 +1258,31 @@ const addToTestCase = async () => {
       try {
         const params = JSON.parse(ruleForm.request_params);
         if (Object.keys(params).length > 0) {
-          stepData.PARAMS = params;
+          stepData.params = params;
         }
       } catch (e) {
         console.warn('解析查询参数失败:', e);
       }
     }
     
-    // 添加请求体（DATA字段）
+    // 添加请求体（json 或 data 字段）
     if (ruleForm.requests_json_data) {
       try {
-        stepData.DATA = JSON.parse(ruleForm.requests_json_data);
+        stepData.json = JSON.parse(ruleForm.requests_json_data);
       } catch (e) {
-        stepData.DATA = ruleForm.requests_json_data;
+        stepData.json = ruleForm.requests_json_data;
       }
     } else if (ruleForm.request_form_datas) {
       try {
-        stepData.DATA = JSON.parse(ruleForm.request_form_datas);
+        stepData.data = JSON.parse(ruleForm.request_form_datas);
       } catch (e) {
-        stepData.DATA = ruleForm.request_form_datas;
+        stepData.data = ruleForm.request_form_datas;
       }
     } else if (ruleForm.request_www_form_datas) {
       try {
-        stepData.DATA = JSON.parse(ruleForm.request_www_form_datas);
+        stepData.data = JSON.parse(ruleForm.request_www_form_datas);
       } catch (e) {
-        stepData.DATA = ruleForm.request_www_form_datas;
+        stepData.data = ruleForm.request_www_form_datas;
       }
     }
     
@@ -1338,6 +1301,7 @@ const addToTestCase = async () => {
         }
       ]
     };
+    console.log('准备提交的用例数据:', JSON.stringify(caseData, null, 2));
     
     // 1. 先查询是否存在同名用例
     let existingCaseId = null;

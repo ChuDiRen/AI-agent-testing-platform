@@ -56,14 +56,44 @@ async def queryByPage(query: ApiInfoCaseQuery, session: Session = Depends(get_se
 
 @module_route.get("/queryById", summary="根据ID查询用例")
 async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
-    """根据ID查询用例"""
+    """根据ID查询用例（含步骤）"""
     try:
         service = InfoCaseService(session)
-        data = service.get_by_id(id)
-        if data:
-            return respModel.ok_resp(obj=data)
-        else:
+        case = service.get_by_id(id)
+        if not case:
             return respModel.error_resp("用例不存在")
+        
+        # 查询步骤
+        steps = session.exec(
+            select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == id).order_by(ApiInfoCaseStep.run_order)
+        ).all()
+        
+        # 构建返回数据
+        result = {
+            "id": case.id,
+            "project_id": case.project_id,
+            "case_name": case.case_name,
+            "case_desc": case.case_desc,
+            "context_config": json.loads(case.context_config) if case.context_config else None,
+            "ddts": json.loads(case.ddts) if case.ddts else None,
+            "pre_request": case.pre_request,
+            "post_request": case.post_request,
+            "create_time": TimeFormatter.format_datetime(case.create_time),
+            "update_time": TimeFormatter.format_datetime(case.update_time),
+            "steps": [
+                {
+                    "id": step.id,
+                    "run_order": step.run_order,
+                    "step_desc": step.step_desc,
+                    "operation_type_id": step.operation_type_id,
+                    "keyword_id": step.keyword_id,
+                    "api_info_id": step.api_info_id,
+                    "step_data": json.loads(step.step_data) if step.step_data else {}
+                }
+                for step in steps
+            ]
+        }
+        return respModel.ok_resp(obj=result)
     except Exception as e:
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
