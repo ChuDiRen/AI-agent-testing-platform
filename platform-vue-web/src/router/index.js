@@ -1,6 +1,6 @@
 import {
     createRouter,
-    createWebHashHistory
+    createWebHistory
 } from 'vue-router'
 import axios from '~/axios'
 
@@ -69,7 +69,7 @@ const routes = [
 ]
 
 const router = createRouter({
-    history: createWebHashHistory(),
+    history: createWebHistory(),
     routes
 })
 

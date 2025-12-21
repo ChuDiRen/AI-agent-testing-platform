@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from core.database import init_db, init_data
 from core.logger import setup_logging, get_logger
-from core.middleware import TraceIDMiddleware, CORSHeaderMiddleware
+from core.middleware import trace_id_middleware, cors_header_middleware
 
 # 配置日志系统
 setup_logging()
@@ -116,21 +116,25 @@ application = FastAPI(
     lifespan=lifespan  # 使用新的生命周期管理
 )
 
-# 配置中间件
-# 1. 请求追踪中间件（必须在其他中间件之前）
-application.add_middleware(TraceIDMiddleware)
-
-# 2. CORS 头部中间件
-application.add_middleware(CORSHeaderMiddleware)
-
-# 3. CORS 中间件
+# 配置CORS中间件
 application.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # 生产环境应配置具体域名
+    allow_origins=["*"],  # 生产环境应配置具体域名
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# 注册自定义中间件
+@application.middleware("http")
+async def add_trace_id(request, call_next):
+    return await trace_id_middleware(request, call_next)
+
+
+@application.middleware("http")
+async def add_cors_headers(request, call_next):
+    return await cors_header_middleware(request, call_next)
 
 # 注册路由
 from login.api import LoginController

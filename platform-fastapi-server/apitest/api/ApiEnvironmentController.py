@@ -13,7 +13,7 @@ from core.database import get_session
 from core.dependencies import check_permission
 from core.resp_model import respModel
 from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session
+from sqlmodel import Session, select, and_
 
 module_name = "ApiEnvironment"
 module_route = APIRouter(prefix=f"/{module_name}", tags=["环境管理"])

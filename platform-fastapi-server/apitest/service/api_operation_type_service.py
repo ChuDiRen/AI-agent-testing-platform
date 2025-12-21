@@ -15,39 +15,30 @@ class OperationTypeService:
     
     def query_all(self) -> List[OperationType]:
         """查询所有操作类型"""
-        statement = select(OperationType).order_by(OperationType.sort_order, OperationType.id)
-        return self.session.exec(statement).all()
-    
-    def query_by_category(self, category: str) -> List[OperationType]:
-        """根据分类查询操作类型"""
-        statement = select(OperationType).where(
-            OperationType.operation_category == category
-        ).order_by(OperationType.sort_order, OperationType.id)
-        
+        statement = select(OperationType).order_by(OperationType.id)
         return self.session.exec(statement).all()
     
     def get_by_id(self, id: int) -> Optional[OperationType]:
         """根据ID查询操作类型"""
         return self.session.get(OperationType, id)
     
-    def get_by_code(self, operation_code: str) -> Optional[OperationType]:
-        """根据操作码查询"""
+    def get_by_name(self, operation_type_name: str) -> Optional[OperationType]:
+        """根据名称查询"""
         statement = select(OperationType).where(
-            OperationType.operation_code == operation_code
+            OperationType.operation_type_name == operation_type_name
         )
         return self.session.exec(statement).first()
     
     def create(self, **kwargs) -> OperationType:
         """创建操作类型"""
-        # 检查操作码是否已存在
-        existing = self.get_by_code(kwargs.get("operation_code"))
+        # 检查名称是否已存在
+        existing = self.get_by_name(kwargs.get("operation_type_name"))
         if existing:
-            raise ValueError(f"操作码已存在: {kwargs.get('operation_code')}")
+            raise ValueError(f"操作类型名称已存在: {kwargs.get('operation_type_name')}")
         
         data = OperationType(
             **kwargs,
-            create_time=datetime.now(),
-            update_time=datetime.now()
+            create_time=datetime.now()
         )
         self.session.add(data)
         self.session.commit()
@@ -63,7 +54,6 @@ class OperationTypeService:
         for key, value in update_data.items():
             if value is not None:
                 setattr(data, key, value)
-        data.update_time = datetime.now()
         
         self.session.add(data)
         self.session.commit()
@@ -79,24 +69,8 @@ class OperationTypeService:
         self.session.commit()
         return True
     
-    def batch_update_order(self, order_updates: List[Dict[str, int]]) -> bool:
-        """批量更新排序"""
-        for update in order_updates:
-            type_id = update.get("id")
-            new_order = update.get("sort_order")
-            
-            if type_id and new_order is not None:
-                op_type = self.get_by_id(type_id)
-                if op_type:
-                    op_type.sort_order = new_order
-                    op_type.update_time = datetime.now()
-                    self.session.add(op_type)
-        
-        self.session.commit()
-        return True
-    
-    def get_categories(self) -> List[str]:
-        """获取所有分类"""
-        statement = select(OperationType.operation_category).distinct()
+    def get_all_names(self) -> List[str]:
+        """获取所有操作类型名称"""
+        statement = select(OperationType.operation_type_name)
         results = self.session.exec(statement).all()
         return [r for r in results if r]

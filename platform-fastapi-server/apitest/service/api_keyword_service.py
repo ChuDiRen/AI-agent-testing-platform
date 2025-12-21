@@ -13,30 +13,35 @@ class KeyWordService:
     def __init__(self, session: Session):
         self.session = session
     
-    def query_by_page(self, page: int, page_size: int, project_id: Optional[int] = None,
-                     keyword_name: Optional[str] = None, keyword_type: Optional[str] = None) -> tuple[List[ApiKeyWord], int]:
+    def query_by_page(self, page: int, page_size: int,
+                     keyword_name: Optional[str] = None, operation_type_id: Optional[int] = None,
+                     plugin_id: Optional[int] = None, plugin_code: Optional[str] = None) -> tuple[List[ApiKeyWord], int]:
         """分页查询关键字"""
         statement = select(ApiKeyWord)
         
         # 条件筛选
-        if project_id:
-            statement = statement.where(ApiKeyWord.project_id == project_id)
         if keyword_name:
-            statement = statement.where(ApiKeyWord.keyword_name.contains(keyword_name))
-        if keyword_type:
-            statement = statement.where(ApiKeyWord.keyword_type == keyword_type)
+            statement = statement.where(ApiKeyWord.name.contains(keyword_name))
+        if operation_type_id:
+            statement = statement.where(ApiKeyWord.operation_type_id == operation_type_id)
+        if plugin_id:
+            statement = statement.where(ApiKeyWord.plugin_id == plugin_id)
+        if plugin_code:
+            statement = statement.where(ApiKeyWord.plugin_code == plugin_code)
         
         # 排序
-        statement = statement.order_by(ApiKeyWord.sort_order, ApiKeyWord.id)
+        statement = statement.order_by(ApiKeyWord.id.desc())
         
         # 查询总数
         total_statement = select(ApiKeyWord)
-        if project_id:
-            total_statement = total_statement.where(ApiKeyWord.project_id == project_id)
         if keyword_name:
-            total_statement = total_statement.where(ApiKeyWord.keyword_name.contains(keyword_name))
-        if keyword_type:
-            total_statement = total_statement.where(ApiKeyWord.keyword_type == keyword_type)
+            total_statement = total_statement.where(ApiKeyWord.name.contains(keyword_name))
+        if operation_type_id:
+            total_statement = total_statement.where(ApiKeyWord.operation_type_id == operation_type_id)
+        if plugin_id:
+            total_statement = total_statement.where(ApiKeyWord.plugin_id == plugin_id)
+        if plugin_code:
+            total_statement = total_statement.where(ApiKeyWord.plugin_code == plugin_code)
         
         total = len(self.session.exec(total_statement).all())
         
@@ -87,38 +92,28 @@ class KeyWordService:
         self.session.commit()
         return True
     
-    def query_by_project(self, project_id: int) -> List[ApiKeyWord]:
-        """查询项目的所有关键字"""
-        statement = select(ApiKeyWord).where(
-            ApiKeyWord.project_id == project_id
-        ).order_by(ApiKeyWord.sort_order, ApiKeyWord.id)
-        
+    def query_all(self) -> List[ApiKeyWord]:
+        """查询所有关键字"""
+        statement = select(ApiKeyWord).order_by(ApiKeyWord.id.desc())
         return self.session.exec(statement).all()
     
-    def search(self, keyword: str, project_id: Optional[int] = None) -> List[ApiKeyWord]:
+    def search(self, keyword: str) -> List[ApiKeyWord]:
         """搜索关键字"""
         statement = select(ApiKeyWord).where(
             or_(
-                ApiKeyWord.keyword_name.contains(keyword),
+                ApiKeyWord.name.contains(keyword),
                 ApiKeyWord.keyword_desc.contains(keyword)
             )
         )
-        
-        if project_id:
-            statement = statement.where(ApiKeyWord.project_id == project_id)
         
         statement = statement.order_by(ApiKeyWord.id.desc())
         
         return self.session.exec(statement).all()
     
-    def get_by_type(self, keyword_type: str, project_id: Optional[int] = None) -> List[ApiKeyWord]:
-        """根据类型获取关键字"""
-        statement = select(ApiKeyWord).where(ApiKeyWord.keyword_type == keyword_type)
-        
-        if project_id:
-            statement = statement.where(ApiKeyWord.project_id == project_id)
-        
-        statement = statement.order_by(ApiKeyWord.sort_order, ApiKeyWord.id)
+    def get_by_operation_type(self, operation_type_id: int) -> List[ApiKeyWord]:
+        """根据操作类型获取关键字"""
+        statement = select(ApiKeyWord).where(ApiKeyWord.operation_type_id == operation_type_id)
+        statement = statement.order_by(ApiKeyWord.id.desc())
         
         return self.session.exec(statement).all()
     

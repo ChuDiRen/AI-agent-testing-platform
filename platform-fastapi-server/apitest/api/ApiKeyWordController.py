@@ -13,7 +13,7 @@ from core.logger import get_logger
 from core.resp_model import respModel
 from core.time_utils import TimeFormatter
 from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from ..model.ApiKeyWordModel import ApiKeyWord
 from ..model.ApiOperationTypeModel import OperationType
@@ -38,7 +38,7 @@ async def queryAll(session: Session = Depends(get_session)):
     """查询所有关键字"""
     try:
         service = KeyWordService(session)
-        datas = service.query_by_project(project_id=None)
+        datas = service.query_all()
         return respModel.ok_resp_list(lst=datas, msg="查询成功")
     except Exception as e:
         logger.error(f"查询失败: {e}", exc_info=True)
@@ -52,9 +52,7 @@ async def queryByPage(query: ApiKeyWordQuery, session: Session = Depends(get_ses
         datas, total = service.query_by_page(
             page=query.page,
             page_size=query.pageSize,
-            project_id=query.project_id,
-            keyword_name=query.name,
-            keyword_type=query.type
+            keyword_name=query.name
         )
         return respModel.ok_resp_list(lst=datas, total=total)
     except Exception as e:

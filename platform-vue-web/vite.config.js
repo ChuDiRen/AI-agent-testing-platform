@@ -114,7 +114,9 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
-    }
+    },
+    // 支持 History 路由模式，所有路由都返回 index.html
+    historyApiFallback: true
   },
   plugins: [
     resolveAgentReactAlias(), // 必须在最前面，处理 agent-react 内部的 @/ 别名
