@@ -54,18 +54,8 @@
               </el-col>
               <el-col :span="6">
                 <el-form-item label="所属项目">
-                  <el-select v-model="ruleForm.project_id" placeholder="选择项目" style="width: 100%" @change="onProjectChange">
+                  <el-select v-model="ruleForm.project_id" placeholder="选择项目" style="width: 100%" >
                     <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="6">
-                <el-form-item label="运行环境">
-                  <el-select v-model="ruleForm.environment_id" placeholder="选择环境" style="width: 100%" clearable>
-                    <el-option v-for="env in environmentList" :key="env.id" :label="env.env_name" :value="env.id">
-                      <span>{{ env.env_name }}</span>
-                      <span style="color: #909399; font-size: 12px; margin-left: 8px;">{{ env.env_code }}</span>
-                    </el-option>
                   </el-select>
                 </el-form-item>
               </el-col>
@@ -398,7 +388,6 @@ import { ref, reactive, onMounted } from "vue";
 import { Connection, ArrowDown } from '@element-plus/icons-vue';
 import { queryById, insertData, updateData, getMethods } from './apiinfo.js';
 import { queryByPage as getProjectList } from '~/views/apitest/project/apiProject.js';
-import { queryByProject as getEnvironmentList } from '~/views/apitest/environment/apiEnvironment.js';
 import { listExecutors, executeTask } from '~/views/apitest/task/apiTask.js';
 import { insertData as insertCaseData, updateData as updateCaseData, queryByPage as queryCaseList, queryKeywordsByType } from '~/views/apitest/apiinfocase/apiInfoCase.js';
 import { queryAll as queryOperationTypes } from '~/views/apitest/keyword/operationType.js';
@@ -419,9 +408,6 @@ const addingCase = ref(false);
 
 // 项目列表
 const projectList = ref([]);
-
-// 环境列表
-const environmentList = ref([]);
 
 // 执行器列表与当前选择
 const executorList = ref([]);
@@ -456,7 +442,6 @@ const jsonError = ref('');
 const ruleForm = reactive({
   id: null,
   project_id: null,
-  environment_id: null,
   api_name: '',
   request_method: 'POST',
   request_url: '',
@@ -479,27 +464,6 @@ const loadProjectList = () => {
   }).catch((error) => {
     console.error('加载项目列表失败:', error);
   });
-};
-
-// 加载环境列表（根据项目ID）
-const loadEnvironmentList = (projectId) => {
-  if (!projectId) {
-    environmentList.value = [];
-    return;
-  }
-  getEnvironmentList(projectId).then((res) => {
-    if (res.data.code === 200) {
-      environmentList.value = res.data.data || [];
-    }
-  }).catch((error) => {
-    console.error('加载环境列表失败:', error);
-  });
-};
-
-// 项目变更时重新加载环境列表
-const onProjectChange = (projectId) => {
-  ruleForm.environment_id = null;
-  loadEnvironmentList(projectId);
 };
 
 // 加载执行器列表
@@ -531,11 +495,6 @@ const loadData = (id) => {
       // 恢复执行器选择
       if (data.executor_code) {
         currentExecutorCode.value = data.executor_code;
-      }
-      
-      // 加载环境列表（编辑模式下根据项目ID加载）
-      if (data.project_id) {
-        loadEnvironmentList(data.project_id);
       }
       
       // 解析参数

@@ -85,7 +85,7 @@ function getRoutePath(node) {
   }
   
   // 判断path是否为前端路由格式（以/Api或/Test等大写字母开头）
-  // 新增的菜单使用这种格式，如 /ApiMockList, /ApiEnvironmentList
+  // 新增的菜单使用这种格式，如 /ApiProjectList, /ApiInfoCaseList
   const isRouterPath = node.path && /^\/[A-Z]/.test(node.path)
   
   if (isRouterPath) {

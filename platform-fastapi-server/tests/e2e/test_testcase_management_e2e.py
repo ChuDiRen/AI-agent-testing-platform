@@ -171,46 +171,6 @@ class TestCaseManagementE2E:
         # 清理
         api_client.delete("/ApiProject/delete", params={"id": project_id})
     
-    def test_testcase_with_variables(self, api_client, unique_name):
-        """测试带变量的测试用例"""
-        # 创建项目和环境
-        project_response = api_client.post("/ApiProject/insert", json={
-            "project_name": f"变量测试_{unique_name}"
-        })
-        project_data = api_client.assert_success(project_response)
-        project_id = project_data["data"]["id"]
-        
-        env_response = api_client.post("/ApiEnvironment/insert", json={
-            "project_id": project_id,
-            "env_name": f"测试环境_{unique_name}",
-            "base_url": "http://test.example.com",
-            "variables": json.dumps({
-                "api_key": "test_key_123",
-                "user_id": "12345"
-            })
-        })
-        env_data = api_client.assert_success(env_response)
-        env_id = env_data["data"]["id"]
-        
-        # 创建使用变量的用例
-        case_response = api_client.post("/ApiInfoCase/insert", json={
-            "project_id": project_id,
-            "case_name": f"变量用例_{unique_name}",
-            "request_url": "/api/user/{{user_id}}",
-            "request_method": "GET",
-            "request_headers": json.dumps([
-                {"key": "X-API-Key", "value": "{{api_key}}"}
-            ])
-        })
-        case_data = api_client.assert_success(case_response)
-        case_id = case_data["data"]["id"]
-        
-        print(f"✓ 变量用例创建成功")
-        
-        # 清理
-        api_client.delete("/ApiProject/delete", params={"id": project_id})
-
-
 class TestCaseExecution:
     """测试用例执行测试"""
     

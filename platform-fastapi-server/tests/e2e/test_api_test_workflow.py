@@ -31,18 +31,7 @@ class TestApiTestWorkflow:
         project_id = project_data["data"]["id"]
         print(f"✓ 创建项目成功: ID={project_id}")
         
-        # 2. 创建环境
-        env_response = api_client.post("/ApiEnvironment/insert", json={
-            "project_id": project_id,
-            "env_name": f"测试环境_{unique_name}",
-            "base_url": "http://localhost:5000",
-            "env_desc": "测试环境"
-        })
-        env_data = api_client.assert_success(env_response)
-        env_id = env_data["data"]["id"]
-        print(f"✓ 创建环境成功: ID={env_id}")
-        
-        # 3. 创建目录
+        # 2. 创建目录
         folder_response = api_client.post("/ApiFolder/insert", json={
             "project_id": project_id,
             "folder_name": f"测试目录_{unique_name}",
@@ -214,62 +203,6 @@ class TestApiTestWorkflow:
         # 清理
         api_client.delete("/ApiProject/delete", params={"id": project_id})
     
-    def test_mock_service_workflow(self, api_client, unique_name):
-        """
-        测试Mock服务完整流程
-        """
-        # 创建项目
-        project_response = api_client.post("/ApiProject/insert", json={
-            "project_name": f"Mock测试_{unique_name}",
-            "project_desc": "Mock测试"
-        })
-        project_data = api_client.assert_success(project_response)
-        project_id = project_data["data"]["id"]
-        
-        # 创建接口
-        api_response = api_client.post("/ApiInfo/insert", json={
-            "project_id": project_id,
-            "api_name": f"Mock接口_{unique_name}",
-            "request_url": f"/api/mock/{unique_name}",
-            "request_method": "GET"
-        })
-        api_data = api_client.assert_success(api_response)
-        api_id = api_data["data"]["id"]
-        
-        # 创建Mock规则
-        mock_response = api_client.post("/ApiMock/insert", json={
-            "project_id": project_id,
-            "api_id": api_id,
-            "mock_name": f"Mock规则_{unique_name}",
-            "mock_path": f"/mock/{unique_name}",
-            "mock_method": "GET",
-            "response_status": 200,
-            "response_body": '{"code": 200, "msg": "mock success"}',
-            "response_body_type": "json",
-            "is_enabled": 1
-        })
-        mock_data = api_client.assert_success(mock_response)
-        mock_id = mock_data["data"]["id"]
-        
-        # 查询Mock规则
-        query_response = api_client.get("/ApiMock/queryById", params={"id": mock_id})
-        query_data = api_client.assert_success(query_response)
-        assert query_data["data"]["mock_name"] == f"Mock规则_{unique_name}"
-        
-        # 获取Mock URL
-        url_response = api_client.get("/ApiMock/getMockUrl", params={"id": mock_id})
-        url_data = api_client.assert_success(url_response)
-        assert "mock_url" in url_data["data"]
-        
-        # 禁用Mock
-        toggle_response = api_client.put("/ApiMock/toggleEnabled", params={"id": mock_id})
-        api_client.assert_success(toggle_response)
-        
-        # 清理
-        api_client.delete("/ApiMock/delete", params={"id": mock_id})
-        api_client.delete("/ApiProject/delete", params={"id": project_id})
-
-
 class TestStatisticsWorkflow:
     """统计功能工作流测试"""
     

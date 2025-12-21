@@ -66,43 +66,6 @@ class TestProjectManagementE2E:
         assert verify_delete_response.status_code in [200, 404]
         print(f"✓ 删除验证成功")
     
-    def test_project_with_environment(self, api_client, unique_name):
-        """测试项目与环境配置的关联"""
-        # 创建项目
-        project_response = api_client.post("/ApiProject/insert", json={
-            "project_name": f"环境测试项目_{unique_name}",
-            "project_desc": "测试环境配置"
-        })
-        project_data = api_client.assert_success(project_response)
-        project_id = project_data["data"]["id"]
-        
-        # 创建多个环境
-        environments = []
-        for env_name in ["开发环境", "测试环境", "生产环境"]:
-            env_response = api_client.post("/ApiEnvironment/insert", json={
-                "project_id": project_id,
-                "env_name": f"{env_name}_{unique_name}",
-                "base_url": f"http://{env_name.lower()}.example.com",
-                "env_desc": f"{env_name}描述"
-            })
-            env_data = api_client.assert_success(env_response)
-            environments.append(env_data["data"]["id"])
-        
-        print(f"✓ 创建了 {len(environments)} 个环境")
-        
-        # 查询项目的所有环境
-        env_list_response = api_client.post("/ApiEnvironment/queryByPage", json={
-            "page": 1,
-            "pageSize": 10,
-            "project_id": project_id
-        })
-        env_list_data = api_client.assert_success(env_list_response)
-        assert len(env_list_data["data"]) == 3
-        print(f"✓ 环境列表查询成功")
-        
-        # 清理
-        api_client.delete("/ApiProject/delete", params={"id": project_id})
-    
     def test_project_with_folders(self, api_client, unique_name):
         """测试项目与目录结构的关联"""
         # 创建项目

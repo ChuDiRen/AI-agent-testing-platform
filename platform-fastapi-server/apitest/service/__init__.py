@@ -6,16 +6,13 @@ from .api_project_service import ApiProjectService          # ApiProjectControll
 from .api_dbbase_service import ApiDbBaseService            # ApiDbBaseController  
 from .api_collection_detail_service import ApiCollectionDetailService  # ApiCollectionDetailController
 from .api_collection_info_service import ApiCollectionInfoService    # ApiCollectionInfoController
-from .api_environment_service import ApiEnvironmentService          # ApiEnvironmentController
 from .api_folder_service import ApiFolderService                    # ApiFolderController
 from .api_info_service import InfoService                           # ApiInfoController
 from .api_info_case_service import InfoCaseService                  # ApiInfoCaseController
 from .api_history_service import HistoryService                     # ApiHistoryController
 
-# 关键字和文档 Service
+# 关键字 Service
 from .api_keyword_service import KeyWordService                     # ApiKeyWordController
-from .api_doc_service import DocService                             # ApiDocController
-from .api_mock_service import ApiMockService                        # ApiMockController
 
 # 任务和执行 Service
 from .test_task_service import TestTaskService                      # TestTaskController
@@ -39,15 +36,12 @@ __all__ = [
     "ApiDbBaseService",
     "ApiCollectionDetailService",
     "ApiCollectionInfoService",
-    "ApiEnvironmentService",
     "ApiFolderService",
     "InfoService",
     "InfoCaseService",
     "HistoryService",
-    # 关键字和文档
+    # 关键字
     "KeyWordService",
-    "DocService",
-    "ApiMockService",
     # 任务和执行
     "TestTaskService",
     "ExecutionService",

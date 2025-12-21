@@ -309,23 +309,6 @@ def create_initial_menus():
                 {"id": 6014, "parent_id": 601, "menu_name": "插件删除", "path": None, "component": None, "query": None, "perms": "plugin:market:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
                 {"id": 6015, "parent_id": 601, "menu_name": "插件启用/禁用", "path": None, "component": None, "query": None, "perms": "plugin:market:toggle", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": None},
 
-                # ================================
-                # Postcat功能融合模块（环境管理、Mock服务、API文档）
-                # ================================
-                # 2.11 环境管理（菜单 C）
-                {"id": 209, "parent_id": 200, "menu_name": "环境管理", "path": "/ApiEnvironmentList", "component": "apitest/environment/ApiEnvironmentList", "query": None, "perms": "apitest:environment:query", "icon": "Setting", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 11, "remark": "环境变量管理"},
-                {"id": 2091, "parent_id": 209, "menu_name": "环境新增", "path": None, "component": None, "query": None, "perms": "apitest:environment:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
-                {"id": 2092, "parent_id": 209, "menu_name": "环境编辑", "path": None, "component": None, "query": None, "perms": "apitest:environment:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
-                {"id": 2093, "parent_id": 209, "menu_name": "环境删除", "path": None, "component": None, "query": None, "perms": "apitest:environment:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
-
-                # 2.12 Mock服务（菜单 C）
-                {"id": 210, "parent_id": 200, "menu_name": "Mock服务", "path": "/ApiMockList", "component": "apitest/mock/ApiMockList", "query": None, "perms": "apitest:mock:query", "icon": "Connection", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 12, "remark": "Mock服务管理"},
-                {"id": 2101, "parent_id": 210, "menu_name": "Mock新增", "path": None, "component": None, "query": None, "perms": "apitest:mock:add", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
-                {"id": 2102, "parent_id": 210, "menu_name": "Mock编辑", "path": None, "component": None, "query": None, "perms": "apitest:mock:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
-                {"id": 2103, "parent_id": 210, "menu_name": "Mock删除", "path": None, "component": None, "query": None, "perms": "apitest:mock:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
-
-                # 2.13 API文档（菜单 C）
-                {"id": 211, "parent_id": 200, "menu_name": "API文档", "path": "/ApiDocView", "component": "apitest/apidoc/ApiDocView", "query": None, "perms": "apitest:api:query", "icon": "Document", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 13, "remark": "API文档生成与预览"},
             ]
 
             for menu_data in api_menus:

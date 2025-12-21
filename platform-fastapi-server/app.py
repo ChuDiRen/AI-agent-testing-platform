@@ -195,21 +195,11 @@ application.include_router(TestTaskController.module_route)
 from apitest.api import ApiStatisticsController
 application.include_router(ApiStatisticsController.module_route)
 
-from apitest.api import ApiEnvironmentController
-application.include_router(ApiEnvironmentController.module_route)
-
 from apitest.api import ApiFolderController
 application.include_router(ApiFolderController.module_route)
 
 from apitest.api import ApiRequestHistoryController
 application.include_router(ApiRequestHistoryController.module_route)
-
-from apitest.api import ApiMockController
-application.include_router(ApiMockController.module_route)
-application.include_router(ApiMockController.mock_service_route)
-
-from apitest.api import ApiDocController
-application.include_router(ApiDocController.module_route)
 
 # 消息管理模块路由
 from msgmanage.api import RobotConfigController
