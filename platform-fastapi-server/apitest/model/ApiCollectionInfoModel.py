@@ -15,5 +15,5 @@ class ApiCollectionInfo(SQLModel, table=True):
     collection_env: Optional[str] = Field(default=None, description='全局环境变量（JSON数组）')
     plugin_code: Optional[str] = Field(default='api_engine', max_length=50, description='执行引擎插件代码')
     create_time: Optional[datetime] = Field(default_factory=datetime.now, description='创建时间')
-    modify_time: Optional[datetime] = Field(default_factory=datetime.now, description='修改时间')
+    update_time: Optional[datetime] = Field(default_factory=datetime.now, description='更新时间')
 

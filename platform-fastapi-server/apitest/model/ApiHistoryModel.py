@@ -31,5 +31,5 @@ class ApiHistory(SQLModel, table=True): # API测试历史记录表
     yaml_content: Optional[str] = Field(default=None, description='生成的YAML用例内容')
     execution_log: Optional[str] = Field(default=None, description='执行日志')
     create_time: Optional[datetime] = Field(default_factory=datetime.now, description='创建时间')
-    modify_time: Optional[datetime] = Field(default_factory=datetime.now, description='修改时间')
+    update_time: Optional[datetime] = Field(default_factory=datetime.now, description='更新时间')
     finish_time: Optional[datetime] = Field(default=None, description='完成时间')

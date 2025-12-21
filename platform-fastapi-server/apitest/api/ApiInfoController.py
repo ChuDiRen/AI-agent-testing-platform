@@ -130,13 +130,74 @@ async def import_swagger(request: SwaggerImportRequest, session: Session = Depen
         else:
             return respModel.error_resp("请提供swagger_url或swagger_json")
         
+        # 解析Swagger文档
+        parser = SwaggerParser(swagger_data)
+        apis = parser.parse()
+        
+        # 导入统计
+        total_apis = len(apis)
+        imported_apis = 0
+        skipped_apis = 0
+        failed_apis = 0
+        details = []
+        
+        # 逐个导入接口
+        for api in apis:
+            try:
+                # 检查是否已存在（根据URL和方法判断）
+                existing = service.find_by_url_method(
+                    project_id=request.project_id,
+                    url=api.get('url', ''),
+                    method=api.get('method', '')
+                )
+                
+                if existing and not request.overwrite:
+                    skipped_apis += 1
+                    details.append({
+                        "api_name": api.get('name', ''),
+                        "status": "skipped",
+                        "reason": "已存在"
+                    })
+                    continue
+                
+                # 创建或更新接口
+                api_data = {
+                    "project_id": request.project_id,
+                    "folder_id": request.folder_id or 0,
+                    "api_name": api.get('name', ''),
+                    "request_method": api.get('method', 'GET'),
+                    "request_url": api.get('url', ''),
+                    "request_headers": api.get('headers'),
+                    "request_params": api.get('params'),
+                    "requests_json_data": api.get('body')
+                }
+                
+                if existing:
+                    service.update(existing.id, api_data)
+                else:
+                    service.create(**api_data)
+                
+                imported_apis += 1
+                details.append({
+                    "api_name": api.get('name', ''),
+                    "status": "imported"
+                })
+                
+            except Exception as e:
+                failed_apis += 1
+                details.append({
+                    "api_name": api.get('name', ''),
+                    "status": "failed",
+                    "reason": str(e)
+                })
+        
         # 返回结果
         result = SwaggerImportResponse(
             total_apis=total_apis,
             imported_apis=imported_apis,
             skipped_apis=skipped_apis,
             failed_apis=failed_apis,
-            details=details[:100]  # 限制详情数量
+            details=details[:100]
         )
         
         msg = f"导入完成: 成功{imported_apis}个, 跳过{skipped_apis}个, 失败{failed_apis}个"

@@ -54,7 +54,7 @@ class ApiCollectionInfoService:
                 "plan_desc": data.plan_desc,
                 "case_count": case_count,
                 "create_time": TimeFormatter.format_datetime(data.create_time),
-                "modify_time": TimeFormatter.format_datetime(data.modify_time)
+                "update_time": TimeFormatter.format_datetime(data.update_time)
             })
         
         return result_list, total
@@ -90,7 +90,7 @@ class ApiCollectionInfoService:
             "plan_name": plan.plan_name,
             "plan_desc": plan.plan_desc,
             "create_time": TimeFormatter.format_datetime(plan.create_time),
-            "modify_time": TimeFormatter.format_datetime(plan.modify_time),
+            "update_time": TimeFormatter.format_datetime(plan.update_time),
             "cases": cases
         }
     
@@ -101,7 +101,7 @@ class ApiCollectionInfoService:
             plan_name=plan_name,
             plan_desc=plan_desc,
             create_time=datetime.now(),
-            modify_time=datetime.now()
+            update_time=datetime.now()
         )
         self.session.add(plan)
         self.session.commit()
@@ -118,7 +118,7 @@ class ApiCollectionInfoService:
             if value is not None:
                 setattr(plan, key, value)
         
-        plan.modify_time = datetime.now()
+        plan.update_time = datetime.now()
         self.session.commit()
         self.session.refresh(plan)
         return plan
@@ -254,7 +254,7 @@ class ApiCollectionInfoService:
             plan_desc=original_plan.plan_desc,
             plugin_code=original_plan.plugin_code,
             create_time=datetime.now(),
-            modify_time=datetime.now()
+            update_time=datetime.now()
         )
         self.session.add(new_plan)
         self.session.flush()

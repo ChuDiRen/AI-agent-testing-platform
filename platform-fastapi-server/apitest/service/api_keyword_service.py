@@ -59,8 +59,7 @@ class KeyWordService:
         """创建关键字"""
         data = ApiKeyWord(
             **kwargs,
-            create_time=datetime.now(),
-            update_time=datetime.now()
+            create_time=datetime.now()
         )
         self.session.add(data)
         self.session.commit()
@@ -76,7 +75,6 @@ class KeyWordService:
         for key, value in update_data.items():
             if value is not None:
                 setattr(data, key, value)
-        data.update_time = datetime.now()
         
         self.session.add(data)
         self.session.commit()

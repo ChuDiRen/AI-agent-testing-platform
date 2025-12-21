@@ -78,7 +78,7 @@ async def queryByPage(query: TestTaskQuery, session: Session = Depends(get_sessi
                 "success_count": data.success_count,
                 "fail_count": data.fail_count,
                 "create_time": TimeFormatter.format_datetime(data.create_time),
-                "modify_time": TimeFormatter.format_datetime(data.modify_time)
+                "update_time": TimeFormatter.format_datetime(data.update_time)
             }
             result_list.append(item)
         
@@ -162,7 +162,7 @@ async def queryById(id: int = Query(...), session: Session = Depends(get_session
             "extra_config": extra_config,
             "create_by": task.create_by,
             "create_time": TimeFormatter.format_datetime(task.create_time),
-            "modify_time": TimeFormatter.format_datetime(task.modify_time)
+            "update_time": TimeFormatter.format_datetime(task.update_time)
         }
         
         return respModel.ok_resp(obj=result)
@@ -188,7 +188,7 @@ async def insert(data: TestTaskCreate, session: Session = Depends(get_session)):
             notify_config=json.dumps(data.notify_config, ensure_ascii=False) if data.notify_config else None,
             extra_config=json.dumps(data.extra_config, ensure_ascii=False) if data.extra_config else None,
             create_time=datetime.now(),
-            modify_time=datetime.now()
+            update_time=datetime.now()
         )
         session.add(task)
         session.commit()
@@ -230,7 +230,7 @@ async def update(data: TestTaskUpdate, session: Session = Depends(get_session)):
         if data.extra_config is not None:
             task.extra_config = json.dumps(data.extra_config, ensure_ascii=False) if data.extra_config else None
         
-        task.modify_time = datetime.now()
+        task.update_time = datetime.now()
         session.commit()
         return respModel.ok_resp_text(msg="更新成功")
     except Exception as e:
@@ -344,7 +344,7 @@ async def updateStatus(id: int = Query(...), status: str = Query(...), session: 
             return respModel.error_resp("无效的状态值")
         
         task.task_status = status
-        task.modify_time = datetime.now()
+        task.update_time = datetime.now()
         session.commit()
         
         return respModel.ok_resp_text(msg="状态更新成功")

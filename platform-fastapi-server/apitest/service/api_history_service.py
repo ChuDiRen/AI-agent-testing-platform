@@ -25,11 +25,11 @@ class HistoryService:
         if project_id:
             statement = statement.where(ApiHistory.project_id == project_id)
         if api_id:
-            statement = statement.where(ApiHistory.api_id == api_id)
+            statement = statement.where(ApiHistory.api_info_id == api_id)
         if case_id:
-            statement = statement.where(ApiHistory.case_id == case_id)
+            statement = statement.where(ApiHistory.case_info_id == case_id)
         if execution_status:
-            statement = statement.where(ApiHistory.execution_status == execution_status)
+            statement = statement.where(ApiHistory.test_status == execution_status)
         if start_time:
             statement = statement.where(ApiHistory.create_time >= start_time)
         if end_time:
@@ -43,11 +43,11 @@ class HistoryService:
         if project_id:
             total_statement = total_statement.where(ApiHistory.project_id == project_id)
         if api_id:
-            total_statement = total_statement.where(ApiHistory.api_id == api_id)
+            total_statement = total_statement.where(ApiHistory.api_info_id == api_id)
         if case_id:
-            total_statement = total_statement.where(ApiHistory.case_id == case_id)
+            total_statement = total_statement.where(ApiHistory.case_info_id == case_id)
         if execution_status:
-            total_statement = total_statement.where(ApiHistory.execution_status == execution_status)
+            total_statement = total_statement.where(ApiHistory.test_status == execution_status)
         if start_time:
             total_statement = total_statement.where(ApiHistory.create_time >= start_time)
         if end_time:
@@ -111,7 +111,7 @@ class HistoryService:
     def query_by_api(self, api_id: int, limit: int = 50) -> List[ApiHistory]:
         """查询指定接口的历史记录"""
         statement = select(ApiHistory).where(
-            ApiHistory.api_id == api_id
+            ApiHistory.api_info_id == api_id
         ).order_by(desc(ApiHistory.create_time)).limit(limit)
         
         return self.session.exec(statement).all()
@@ -119,7 +119,7 @@ class HistoryService:
     def query_by_case(self, case_id: int, limit: int = 50) -> List[ApiHistory]:
         """查询指定用例的历史记录"""
         statement = select(ApiHistory).where(
-            ApiHistory.case_id == case_id
+            ApiHistory.case_info_id == case_id
         ).order_by(desc(ApiHistory.create_time)).limit(limit)
         
         return self.session.exec(statement).all()
@@ -175,7 +175,7 @@ class HistoryService:
                 and_(
                     ApiHistory.project_id == project_id,
                     ApiHistory.create_time >= start_date,
-                    ApiHistory.execution_status == 'success'
+                    ApiHistory.test_status == 'success'
                 )
             )
         ).all())
@@ -185,7 +185,7 @@ class HistoryService:
                 and_(
                     ApiHistory.project_id == project_id,
                     ApiHistory.create_time >= start_date,
-                    ApiHistory.execution_status == 'failure'
+                    ApiHistory.test_status == 'failed'
                 )
             )
         ).all())

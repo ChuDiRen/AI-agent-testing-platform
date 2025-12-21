@@ -63,7 +63,7 @@ class ApiCollectionInfoWithCases(BaseModel):
     plan_name: str
     plan_desc: Optional[str]
     create_time: Optional[str]
-    modify_time: Optional[str]
+    update_time: Optional[str]
     cases: List[ApiCollectionDetailResponse] = Field(default=[], description="关联的用例列表")
 
 # ==================== 批量添加用例 ====================

@@ -19,6 +19,7 @@ from sqlmodel import Session, select
 
 from ..model.ApiInfoCaseModel import ApiInfoCase
 from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
+from ..model.ApiInfoModel import ApiInfo
 from ..model.ApiKeyWordModel import ApiKeyWord
 from ..model.ApiCollectionInfoModel import ApiCollectionInfo
 from ..model.ApiCollectionDetailModel import ApiCollectionDetail
@@ -196,7 +197,7 @@ class CaseYamlBuilder:
                 ddts_var_names.update(k for k in ddt_item.keys() if k != 'desc')
         
         for step in steps:
-            step_data = self._parse_step_data(step.step_data)
+            step_data = self._merge_step_with_api(step)
             keyword_name = self._get_keyword_name(step.keyword_id)
             
             # 预先替换全局配置变量，但跳过 ddts 中定义的变量（让执行器在运行时替换）
@@ -395,7 +396,7 @@ class CaseYamlBuilder:
         yaml_data = {'desc': case_name, 'steps': []}
         
         for step in steps:
-            step_data = self._parse_step_data(step.step_data)
+            step_data = self._merge_step_with_api(step)
             keyword_name = self._get_keyword_name(step.keyword_id)
             
             # 只对 HTTP 请求类关键字进行转换，其他关键字保持原样
@@ -434,7 +435,7 @@ class CaseYamlBuilder:
         yaml_data['steps'] = []
         
         for step in steps:
-            step_data = self._parse_step_data(step.step_data)
+            step_data = self._merge_step_with_api(step)
             
             # 合并 DDT 数据到步骤
             if ddt_item and isinstance(ddt_item, dict):
@@ -500,6 +501,68 @@ class CaseYamlBuilder:
             return "send_request"
         keyword = self.session.get(ApiKeyWord, keyword_id)
         return keyword.keyword_fun_name if keyword else "send_request"
+    
+    def _get_step_data_from_api(self, api_info_id: int) -> Dict[str, Any]:
+        """从接口定义获取步骤数据"""
+        api_info = self.session.get(ApiInfo, api_info_id)
+        if not api_info:
+            return {}
+        
+        step_data = {
+            'url': api_info.request_url or '',
+            'method': api_info.request_method or 'GET'
+        }
+        
+        # 解析请求头
+        if api_info.request_headers:
+            try:
+                headers = json.loads(api_info.request_headers)
+                if headers:
+                    step_data['headers'] = headers
+            except json.JSONDecodeError:
+                pass
+        
+        # 解析URL参数
+        if api_info.request_params:
+            try:
+                params = json.loads(api_info.request_params)
+                if params:
+                    step_data['params'] = params
+            except json.JSONDecodeError:
+                pass
+        
+        # 解析JSON请求体
+        if api_info.requests_json_data:
+            try:
+                json_data = json.loads(api_info.requests_json_data)
+                if json_data:
+                    step_data['json'] = json_data
+            except json.JSONDecodeError:
+                pass
+        
+        # 解析form-data
+        if api_info.request_form_datas:
+            try:
+                form_data = json.loads(api_info.request_form_datas)
+                if form_data:
+                    step_data['data'] = form_data
+            except json.JSONDecodeError:
+                pass
+        
+        return step_data
+    
+    def _merge_step_with_api(self, step: ApiInfoCaseStep) -> Dict[str, Any]:
+        """合并步骤数据和接口定义"""
+        step_data = self._parse_step_data(step.step_data)
+        
+        # 如果步骤引用了接口定义，则合并接口数据
+        if step.api_info_id:
+            api_data = self._get_step_data_from_api(step.api_info_id)
+            # 接口定义作为基础，步骤数据覆盖
+            merged = {**api_data, **{k: v for k, v in step_data.items() if v}}
+            return merged
+        
+        return step_data
     
     # HTTP 请求类关键字（需要转换为 send_request 格式）
     _HTTP_REQUEST_KEYWORDS = {

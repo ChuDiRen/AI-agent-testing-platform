@@ -9,6 +9,7 @@ class ApiInfo(SQLModel, table=True): # API接口信息表
     
     id: Optional[int] = Field(default=None, primary_key=True, description='接口编号')
     project_id: Optional[int] = Field(default=None, description='项目ID')
+    environment_id: Optional[int] = Field(default=None, description='环境ID')
     folder_id: int = Field(default=0, description='所属目录ID，0表示根目录')
     api_name: Optional[str] = Field(default=None, max_length=255, description='接口名称')
     request_method: Optional[str] = Field(default=None, max_length=255, description='请求方法')

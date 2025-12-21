@@ -16,8 +16,8 @@ class InfoCaseStepService:
     def query_by_case_id(self, case_id: int) -> List[ApiInfoCaseStep]:
         """根据用例ID查询所有步骤"""
         statement = select(ApiInfoCaseStep).where(
-            ApiInfoCaseStep.case_id == case_id
-        ).order_by(ApiInfoCaseStep.step_order)
+            ApiInfoCaseStep.case_info_id == case_id
+        ).order_by(ApiInfoCaseStep.run_order)
         
         return self.session.exec(statement).all()
     
@@ -29,8 +29,7 @@ class InfoCaseStepService:
         """创建用例步骤"""
         data = ApiInfoCaseStep(
             **kwargs,
-            create_time=datetime.now(),
-            update_time=datetime.now()
+            create_time=datetime.now()
         )
         self.session.add(data)
         self.session.commit()
@@ -46,7 +45,6 @@ class InfoCaseStepService:
         for key, value in update_data.items():
             if value is not None:
                 setattr(data, key, value)
-        data.update_time = datetime.now()
         
         self.session.add(data)
         self.session.commit()
@@ -68,8 +66,7 @@ class InfoCaseStepService:
         for step_data in steps:
             step = ApiInfoCaseStep(
                 **step_data,
-                create_time=datetime.now(),
-                update_time=datetime.now()
+                create_time=datetime.now()
             )
             self.session.add(step)
             created_steps.append(step)
@@ -84,13 +81,12 @@ class InfoCaseStepService:
         """批量更新步骤顺序"""
         for update in order_updates:
             step_id = update.get("id")
-            new_order = update.get("step_order")
+            new_order = update.get("run_order") or update.get("step_order")
             
             if step_id and new_order is not None:
                 step = self.get_by_id(step_id)
                 if step:
-                    step.step_order = new_order
-                    step.update_time = datetime.now()
+                    step.run_order = new_order
                     self.session.add(step)
         
         self.session.commit()

@@ -86,7 +86,7 @@ async def batchUpdateOrder(steps: List[dict], session: Session = Depends(get_ses
     """批量更新步骤顺序"""
     try:
         service = InfoCaseStepService(session)
-        order_updates = [{"id": s.get('id'), "step_order": s.get('run_order')} for s in steps]
+        order_updates = [{"id": s.get('id'), "run_order": s.get('run_order')} for s in steps]
         service.batch_update_order(order_updates)
         return respModel.ok_resp(msg="更新顺序成功")
     except Exception as e:

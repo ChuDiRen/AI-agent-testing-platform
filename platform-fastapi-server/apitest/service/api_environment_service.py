@@ -79,8 +79,9 @@ class ApiEnvironmentService:
         
         return env
     
-    def create(self, project_id: int, env_name: str, env_code: str, base_url: str,
-               env_desc: Optional[str] = None, is_default: int = 0, is_enabled: int = 1,
+    def create(self, project_id: int, env_name: str, env_code: str, base_url: Optional[str] = None,
+               env_desc: Optional[str] = None, env_variables: Optional[str] = None,
+               env_headers: Optional[str] = None, is_default: int = 0, is_enabled: int = 1,
                sort_order: int = 0) -> ApiEnvironment:
         """新增环境"""
         env = ApiEnvironment(
@@ -89,6 +90,8 @@ class ApiEnvironmentService:
             env_code=env_code,
             base_url=base_url,
             env_desc=env_desc,
+            env_variables=env_variables,
+            env_headers=env_headers,
             is_default=is_default,
             is_enabled=is_enabled,
             sort_order=sort_order,

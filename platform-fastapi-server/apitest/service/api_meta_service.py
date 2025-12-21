@@ -44,8 +44,7 @@ class MetaService:
         
         data = ApiMeta(
             **kwargs,
-            create_time=datetime.now(),
-            update_time=datetime.now()
+            create_time=datetime.now()
         )
         self.session.add(data)
         self.session.commit()
@@ -61,8 +60,6 @@ class MetaService:
         for key, value in update_data.items():
             if value is not None:
                 setattr(data, key, value)
-        data.update_time = datetime.now()
-        
         self.session.add(data)
         self.session.commit()
         return True
@@ -90,7 +87,6 @@ class MetaService:
         
         if meta:
             meta.meta_value = meta_value
-            meta.update_time = datetime.now()
             self.session.add(meta)
             self.session.commit()
             self.session.refresh(meta)

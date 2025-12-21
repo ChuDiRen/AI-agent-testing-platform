@@ -13,9 +13,10 @@ from core.logger import get_logger
 from core.resp_model import respModel
 from core.time_utils import TimeFormatter
 from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from ..model.ApiInfoCaseModel import ApiInfoCase
+from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
 from ..schemas.api_info_case_schema import (
     ApiInfoCaseQuery, ApiInfoCaseCreate, ApiInfoCaseUpdate,
     YamlGenerateRequest,
@@ -63,37 +64,96 @@ async def queryById(id: int = Query(...), session: Session = Depends(get_session
             return respModel.ok_resp(obj=data)
         else:
             return respModel.error_resp("用例不存在")
-        if data.case_desc is not None:
-            case_info.case_desc = data.case_desc
-        if data.context_config is not None:
-            case_info.context_config = json.dumps(data.context_config, ensure_ascii=False) if data.context_config else None
-        if data.ddts is not None:
-            case_info.ddts = json.dumps(data.ddts, ensure_ascii=False) if data.ddts else None
-        if data.pre_request is not None:
-            case_info.pre_request = data.pre_request
-        if data.post_request is not None:
-            case_info.post_request = data.post_request
-        case_info.modify_time = datetime.now()
+    except Exception as e:
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
+@module_route.post("/insert", summary="新增API用例", dependencies=[Depends(check_permission("apitest:case:add"))])
+async def insert(case_data: ApiInfoCaseCreate, session: Session = Depends(get_session)):
+    """新增用例（含步骤）"""
+    try:
+        # 创建用例
+        new_case = ApiInfoCase(
+            project_id=case_data.project_id,
+            case_name=case_data.case_name,
+            case_desc=case_data.case_desc,
+            context_config=json.dumps(case_data.context_config, ensure_ascii=False) if case_data.context_config else None,
+            ddts=json.dumps(case_data.ddts, ensure_ascii=False) if case_data.ddts else None,
+            pre_request=case_data.pre_request,
+            post_request=case_data.post_request,
+            create_time=datetime.now(),
+            update_time=datetime.now()
+        )
+        session.add(new_case)
+        session.flush()
         
-        # 更新步骤：先删除旧步骤，再创建新步骤
-        if data.steps is not None:
+        # 创建步骤
+        if case_data.steps:
+            for step in case_data.steps:
+                new_step = ApiInfoCaseStep(
+                    case_info_id=new_case.id,
+                    run_order=step.run_order,
+                    step_desc=step.step_desc,
+                    operation_type_id=step.operation_type_id,
+                    keyword_id=step.keyword_id,
+                    api_info_id=step.api_info_id if hasattr(step, 'api_info_id') else None,
+                    step_data=json.dumps(step.step_data, ensure_ascii=False) if step.step_data else None,
+                    create_time=datetime.now()
+                )
+                session.add(new_step)
+        
+        session.commit()
+        return respModel.ok_resp(obj={"id": new_case.id}, msg="新增成功")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
+@module_route.put("/update", summary="更新API用例", dependencies=[Depends(check_permission("apitest:case:edit"))])
+async def update(case_data: ApiInfoCaseUpdate, session: Session = Depends(get_session)):
+    """更新用例（含步骤）"""
+    try:
+        case = session.get(ApiInfoCase, case_data.id)
+        if not case:
+            return respModel.error_resp("用例不存在")
+        
+        # 更新用例基本信息
+        if case_data.project_id is not None:
+            case.project_id = case_data.project_id
+        if case_data.case_name is not None:
+            case.case_name = case_data.case_name
+        if case_data.case_desc is not None:
+            case.case_desc = case_data.case_desc
+        if case_data.context_config is not None:
+            case.context_config = json.dumps(case_data.context_config, ensure_ascii=False)
+        if case_data.ddts is not None:
+            case.ddts = json.dumps(case_data.ddts, ensure_ascii=False)
+        if case_data.pre_request is not None:
+            case.pre_request = case_data.pre_request
+        if case_data.post_request is not None:
+            case.post_request = case_data.post_request
+        case.update_time = datetime.now()
+        
+        # 更新步骤（如果提供）
+        if case_data.steps is not None:
             # 删除旧步骤
-            old_steps = session.exec(select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == data.id)).all()
+            old_steps = session.exec(select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == case_data.id)).all()
             for old_step in old_steps:
                 session.delete(old_step)
             
             # 创建新步骤
-            for step_data in data.steps:
-                step = ApiInfoCaseStep(
-                    case_info_id=data.id,
-                    run_order=step_data.run_order,
-                    step_desc=step_data.step_desc,
-                    operation_type_id=step_data.operation_type_id,
-                    keyword_id=step_data.keyword_id,
-                    step_data=json.dumps(step_data.step_data, ensure_ascii=False) if step_data.step_data else None,
+            for step in case_data.steps:
+                new_step = ApiInfoCaseStep(
+                    case_info_id=case_data.id,
+                    run_order=step.run_order,
+                    step_desc=step.step_desc,
+                    operation_type_id=step.operation_type_id,
+                    keyword_id=step.keyword_id,
+                    api_info_id=step.api_info_id if hasattr(step, 'api_info_id') else None,
+                    step_data=json.dumps(step.step_data, ensure_ascii=False) if step.step_data else None,
                     create_time=datetime.now()
                 )
-                session.add(step)
+                session.add(new_step)
         
         session.commit()
         return respModel.ok_resp_text(msg="更新成功")

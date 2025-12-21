@@ -18,6 +18,7 @@ class ApiInfoCaseStepCreate(BaseModel):
     step_desc: Optional[str] = Field(default=None, description="步骤描述")
     operation_type_id: Optional[int] = Field(default=None, description="操作类型ID")
     keyword_id: Optional[int] = Field(default=None, description="关键字ID")
+    api_info_id: Optional[int] = Field(default=None, description="引用的接口ID（可选）")
     step_data: Optional[Dict[str, Any]] = Field(default=None, description="步骤数据（字典格式）")
 
 class ApiInfoCaseStepUpdate(BaseModel):
@@ -27,12 +28,14 @@ class ApiInfoCaseStepUpdate(BaseModel):
     step_desc: Optional[str] = Field(default=None, description="步骤描述")
     operation_type_id: Optional[int] = Field(default=None, description="操作类型ID")
     keyword_id: Optional[int] = Field(default=None, description="关键字ID")
+    api_info_id: Optional[int] = Field(default=None, description="引用的接口ID（可选）")
     step_data: Optional[Dict[str, Any]] = Field(default=None, description="步骤数据（字典格式）")
 
 class ApiInfoCaseStepResponse(BaseModel):
     """API用例步骤响应"""
     id: int
     case_info_id: int
+    api_info_id: Optional[int] = None
     run_order: int
     step_desc: Optional[str]
     operation_type_id: Optional[int]
@@ -72,7 +75,7 @@ class ApiInfoCaseResponse(BaseModel):
     case_name: str
     case_desc: Optional[str]
     create_time: Optional[str]
-    modify_time: Optional[str]
+    update_time: Optional[str]
 
 class ApiInfoCaseWithSteps(BaseModel):
     """API用例详情响应（含步骤）"""
@@ -81,7 +84,7 @@ class ApiInfoCaseWithSteps(BaseModel):
     case_name: str
     case_desc: Optional[str]
     create_time: Optional[str]
-    modify_time: Optional[str]
+    update_time: Optional[str]
     steps: List[ApiInfoCaseStepResponse] = Field(default=[], description="用例步骤列表")
 
 # ==================== YAML生成相关 ====================

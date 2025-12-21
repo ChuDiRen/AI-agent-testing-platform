@@ -17,6 +17,7 @@ from sqlmodel import Session, select
 
 from ..model.ApiKeyWordModel import ApiKeyWord
 from ..model.ApiOperationTypeModel import OperationType
+from plugin.model.PluginModel import Plugin
 from ..schemas.api_keyword_schema import ApiKeyWordQuery, ApiKeyWordCreate, ApiKeyWordUpdate, KeywordFileRequest
 
 logger = get_logger(__name__)
@@ -29,6 +30,7 @@ REPORT_DIR = settings.REPORT_DIR
 LOG_DIR = settings.LOG_DIR
 
 module_name = "ApiKeyWord"
+module_model = ApiKeyWord
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API关键字管理"])
 
 # ==================== 路由处理函数 ====================

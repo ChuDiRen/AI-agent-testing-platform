@@ -182,7 +182,7 @@ async def execute_test(request: ApiTestExecuteRequest, session: Session = Depend
             test_name=test_name,
             test_status="running",
             create_time=datetime.now(),
-            modify_time=datetime.now()
+            update_time=datetime.now()
         )
         session.add(test_history)
         session.commit()

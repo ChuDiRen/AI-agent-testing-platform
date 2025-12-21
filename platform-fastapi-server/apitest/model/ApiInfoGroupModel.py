@@ -14,4 +14,4 @@ class ApiInfoGroup(SQLModel, table=True): # API接口分组表
     parent_id: int = Field(default=0, description='父分组ID，0表示顶级分组')
     order_num: int = Field(default=0, description='排序')
     create_time: Optional[datetime] = Field(default_factory=datetime.now, description='创建时间')
-    modify_time: Optional[datetime] = Field(default_factory=datetime.now, description='修改时间')
+    update_time: Optional[datetime] = Field(default_factory=datetime.now, description='更新时间')

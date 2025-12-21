@@ -76,7 +76,7 @@ class ResultCollector:
             history.error_message = execute_result.get("error")
         
         history.finish_time = datetime.now()
-        history.modify_time = datetime.now()
+        history.update_time = datetime.now()
         self.session.commit()
         
         logger.info(f"用例测试完成: {test_id}, 状态: {history.test_status}")
@@ -142,7 +142,7 @@ class ResultCollector:
             failed_count = total_cases
         
         history.finish_time = datetime.now()
-        history.modify_time = datetime.now()
+        history.update_time = datetime.now()
         self.session.commit()
         
         logger.info(f"计划批量执行完成: {test_id}, 状态: {history.test_status}")
@@ -170,7 +170,7 @@ class ResultCollector:
             history.test_status = "failed"
             history.error_message = error_message
             history.finish_time = datetime.now()
-            history.modify_time = datetime.now()
+            history.update_time = datetime.now()
             self.session.commit()
         return history
     
@@ -222,7 +222,7 @@ class ResultCollector:
                 task.success_count += 1
             else:
                 task.fail_count += 1
-            task.modify_time = datetime.now()
+            task.update_time = datetime.now()
         
         self.session.commit()
         logger.info(f"任务执行记录已更新: execution_id={execution_id}, status={status}")

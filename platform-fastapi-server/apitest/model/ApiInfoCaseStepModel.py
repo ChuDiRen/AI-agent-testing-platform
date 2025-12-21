@@ -10,6 +10,7 @@ class ApiInfoCaseStep(SQLModel, table=True):
     
     id: Optional[int] = Field(default=None, primary_key=True, description='步骤ID')
     case_info_id: int = Field(description='用例ID')
+    api_info_id: Optional[int] = Field(default=None, description='引用的接口ID（可选，用于复用接口定义）')
     run_order: int = Field(default=0, description='运行序号')
     step_desc: Optional[str] = Field(default=None, max_length=255, description='步骤描述')
     operation_type_id: Optional[int] = Field(default=None, description='操作类型ID（一级分类）')

@@ -10,9 +10,10 @@ from pydantic import BaseModel
 class SwaggerImportRequest(BaseModel):
     """Swagger导入请求"""
     project_id: int  # 项目ID
+    folder_id: Optional[int] = None  # 目标目录ID
     swagger_url: Optional[str] = None  # Swagger JSON URL
     swagger_json: Optional[Dict[str, Any]] = None  # Swagger JSON内容
-    override_existing: bool = False  # 是否覆盖已存在的接口
+    overwrite: bool = False  # 是否覆盖已存在的接口
     
     class Config:
         json_schema_extra = {
@@ -30,4 +31,4 @@ class SwaggerImportResponse(BaseModel):
     imported_apis: int  # 成功导入数
     skipped_apis: int  # 跳过数
     failed_apis: int  # 失败数
-    details: list[str] = []  # 详细信息
+    details: list = []  # 详细信息（字典列表）

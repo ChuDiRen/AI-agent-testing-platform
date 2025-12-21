@@ -15,8 +15,7 @@ class InfoCaseService:
         self.session = session
     
     def query_by_page(self, page: int, page_size: int, project_id: Optional[int] = None,
-                     api_id: Optional[int] = None, case_name: Optional[str] = None,
-                     case_type: Optional[str] = None) -> tuple[List[ApiInfoCase], int]:
+                     api_id: Optional[int] = None, case_name: Optional[str] = None) -> tuple[List[ApiInfoCase], int]:
         """分页查询用例信息"""
         statement = select(ApiInfoCase)
         
@@ -27,8 +26,6 @@ class InfoCaseService:
             statement = statement.where(ApiInfoCase.api_id == api_id)
         if case_name:
             statement = statement.where(ApiInfoCase.case_name.contains(case_name))
-        if case_type:
-            statement = statement.where(ApiInfoCase.case_type == case_type)
         
         # 排序
         statement = statement.order_by(ApiInfoCase.id.desc())
@@ -41,8 +38,6 @@ class InfoCaseService:
             total_statement = total_statement.where(ApiInfoCase.api_id == api_id)
         if case_name:
             total_statement = total_statement.where(ApiInfoCase.case_name.contains(case_name))
-        if case_type:
-            total_statement = total_statement.where(ApiInfoCase.case_type == case_type)
         
         total = len(self.session.exec(total_statement).all())
         
@@ -97,7 +92,7 @@ class InfoCaseService:
         """查询指定接口的所有用例"""
         statement = select(ApiInfoCase).where(
             ApiInfoCase.api_id == api_id
-        ).order_by(ApiInfoCase.sort_order, ApiInfoCase.id)
+        ).order_by(ApiInfoCase.id)
         
         return self.session.exec(statement).all()
     
@@ -159,20 +154,6 @@ class InfoCaseService:
         total_statement = select(ApiInfoCase).where(ApiInfoCase.project_id == project_id)
         total_count = len(self.session.exec(total_statement).all())
         
-        # 按类型统计
-        type_stats = {}
-        for case_type in ['normal', 'ddt', 'performance', 'security']:
-            count = len(self.session.exec(
-                select(ApiInfoCase).where(
-                    and_(
-                        ApiInfoCase.project_id == project_id,
-                        ApiInfoCase.case_type == case_type
-                    )
-                )
-            ).all())
-            if count > 0:
-                type_stats[case_type] = count
-        
         # 按接口统计
         api_stats = []
         apis = self.session.exec(
@@ -197,6 +178,5 @@ class InfoCaseService:
         
         return {
             'total_count': total_count,
-            'type_stats': type_stats,
             'api_stats': api_stats
         }

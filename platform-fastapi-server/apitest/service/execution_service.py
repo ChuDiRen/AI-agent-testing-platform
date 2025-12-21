@@ -299,7 +299,7 @@ class ExecutionService:
             yaml_content=yaml_content,
             allure_report_path=str(workspace),
             create_time=datetime.now(),
-            modify_time=datetime.now()
+            update_time=datetime.now()
         )
         self.session.add(history)
         self.session.commit()

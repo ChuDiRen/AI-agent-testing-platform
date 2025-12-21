@@ -27,7 +27,7 @@ class TestTask(SQLModel, table=True):
     extra_config: Optional[str] = Field(default=None, description='额外配置JSON')
     create_by: Optional[str] = Field(default=None, max_length=64, description='创建人')
     create_time: Optional[datetime] = Field(default_factory=datetime.now, description='创建时间')
-    modify_time: Optional[datetime] = Field(default_factory=datetime.now, description='修改时间')
+    update_time: Optional[datetime] = Field(default_factory=datetime.now, description='更新时间')
 
 
 class TestTaskExecution(SQLModel, table=True):

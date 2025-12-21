@@ -60,8 +60,7 @@ class InfoService:
         """创建接口信息"""
         data = ApiInfo(
             **kwargs,
-            create_time=datetime.now(),
-            update_time=datetime.now()
+            create_time=datetime.now()
         )
         self.session.add(data)
         self.session.commit()
@@ -77,8 +76,6 @@ class InfoService:
         for key, value in update_data.items():
             if value is not None:
                 setattr(data, key, value)
-        data.update_time = datetime.now()
-        
         self.session.add(data)
         self.session.commit()
         return True
@@ -136,7 +133,6 @@ class InfoService:
             api = self.get_by_id(api_id)
             if api:
                 api.folder_id = folder_id
-                api.update_time = datetime.now()
                 self.session.add(api)
                 updated_count += 1
         
@@ -144,6 +140,17 @@ class InfoService:
             self.session.commit()
         
         return updated_count
+    
+    def find_by_url_method(self, project_id: int, url: str, method: str) -> Optional[ApiInfo]:
+        """根据URL和请求方法查找接口"""
+        statement = select(ApiInfo).where(
+            and_(
+                ApiInfo.project_id == project_id,
+                ApiInfo.request_url == url,
+                ApiInfo.request_method == method
+            )
+        )
+        return self.session.exec(statement).first()
     
     def get_statistics(self, project_id: int) -> Dict[str, Any]:
         """获取接口统计信息"""
