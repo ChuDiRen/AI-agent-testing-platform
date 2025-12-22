@@ -14,11 +14,11 @@ class CasesPlugin:
 
         parser.addoption("--platform", action="store", default="android", help="目标平台: android/ios")
         parser.addoption("--server", action="store", default="http://127.0.0.1:4723", help="Appium Server 地址")
-        parser.addoption("--deviceName", action="store", default="", help="deviceName capability")
-        parser.addoption("--udid", action="store", default="", help="udid capability")
+        parser.addoption("--device-name", action="store", default="", help="设备名称")
+        parser.addoption("--udid", action="store", default="", help="设备 UDID")
         parser.addoption("--app", action="store", default="", help="Android apk 路径 / iOS ipa 路径")
-        parser.addoption("--bundleId", action="store", default="", help="iOS bundleId")
-        parser.addoption("--noReset", action="store", default="true", help="noReset capability")
+        parser.addoption("--bundle-id", action="store", default="", help="iOS Bundle ID")
+        parser.addoption("--no-reset", action="store", default="true", help="是否不重置 App")
 
     def pytest_generate_tests(self, metafunc):
         from pathlib import Path
@@ -29,11 +29,11 @@ class CasesPlugin:
 
         platform = metafunc.config.getoption("platform")
         server = metafunc.config.getoption("server")
-        device_name = metafunc.config.getoption("deviceName")
+        device_name = metafunc.config.getoption("device_name")
         udid = metafunc.config.getoption("udid")
         app = metafunc.config.getoption("app")
-        bundle_id = metafunc.config.getoption("bundleId")
-        no_reset_str = metafunc.config.getoption("noReset")
+        bundle_id = metafunc.config.getoption("bundle_id")
+        no_reset_str = metafunc.config.getoption("no_reset")
         no_reset = str(no_reset_str).lower() in ["true", "1", "yes"]
 
         cases_path = Path(cases_dir).resolve()
@@ -41,17 +41,17 @@ class CasesPlugin:
 
         g_context().set_dict("key_dir", str(key_path) if key_path else key_dir)
 
-        g_context().set_dict("PLATFORM", platform)
-        g_context().set_dict("APPIUM_SERVER", server)
+        g_context().set_dict("platform", platform)
+        g_context().set_dict("server", server)
         if device_name:
-            g_context().set_dict("deviceName", device_name)
+            g_context().set_dict("device_name", device_name)
         if udid:
             g_context().set_dict("udid", udid)
         if app:
             g_context().set_dict("app", app)
         if bundle_id:
-            g_context().set_dict("bundleId", bundle_id)
-        g_context().set_dict("noReset", no_reset)
+            g_context().set_dict("bundle_id", bundle_id)
+        g_context().set_dict("no_reset", no_reset)
 
         data = case_parser(case_type, cases_path)
 

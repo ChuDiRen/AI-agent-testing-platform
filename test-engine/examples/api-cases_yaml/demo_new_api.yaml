@@ -1,0 +1,85 @@
+# API 测试示例 - 使用新版关键字 API
+# 所有参数使用小写下划线命名风格
+
+test_name: "新版 API 关键字示例"
+
+context:
+  base_url: "https://httpbin.org"
+
+test_cases:
+  - name: "GET 请求示例"
+    steps:
+      - 关键字: send_request
+        method: GET
+        url: "{{base_url}}/get"
+        params:
+          name: test
+          value: 123
+      
+      - 关键字: assert_status_code
+        expected_code: 200
+      
+      - 关键字: extract_json
+        expression: "$.args.name"
+        var_name: extracted_name
+
+  - name: "POST JSON 请求示例"
+    steps:
+      - 关键字: send_request
+        method: POST
+        url: "{{base_url}}/post"
+        headers:
+          Content-Type: application/json
+        json:
+          username: testuser
+          password: test123
+      
+      - 关键字: assert_status_code
+        expected_code: 200
+      
+      - 关键字: assert_json
+        json_path: "$.json.username"
+        expected: testuser
+        operator: "=="
+
+  - name: "数据提取和断言示例"
+    steps:
+      - 关键字: generate_random_string
+        length: 8
+        var_name: random_str
+      
+      - 关键字: get_timestamp
+        var_name: timestamp
+      
+      - 关键字: send_request
+        method: POST
+        url: "{{base_url}}/post"
+        json:
+          random: "{{random_str}}"
+          time: "{{timestamp}}"
+      
+      - 关键字: assert_contains
+        expected_text: "{{random_str}}"
+
+  - name: "响应时间断言示例"
+    steps:
+      - 关键字: send_request
+        method: GET
+        url: "{{base_url}}/delay/1"
+      
+      - 关键字: assert_response_time
+        max_time: 5
+
+  - name: "加密工具示例"
+    steps:
+      - 关键字: md5_encrypt
+        text: "hello world"
+        var_name: md5_result
+      
+      - 关键字: base64_encode
+        text: "test data"
+        var_name: base64_result
+      
+      - 关键字: aes_encrypt
+        data: "sensitive data"
+        var_name: aes_result

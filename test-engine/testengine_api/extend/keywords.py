@@ -1,127 +1,108 @@
+"""
+API 测试关键字模块
+基于 httpx 异步客户端实现
+"""
+import hashlib
 import json
 import logging
 import mimetypes
 import os
+import random
 import re
+import string
 import time
+import urllib.parse
+from typing import Any, Dict, List, Optional
 from urllib.parse import unquote, urlparse, urlencode, parse_qs
 
 import allure
 import jsonpath
 
-from ..core.globalContext import g_context  # 相对导入
-from ..utils.async_client import AsyncClientManager  # 异步客户端管理器
+from ..core.globalContext import g_context
+from ..utils.async_client import AsyncClientManager
 
-logger = logging.getLogger(__name__) # 配置日志
+logger = logging.getLogger(__name__)
+
 
 class Keywords:
     """
     API 测试关键字类
     
-    能力:
-    - 统一请求: send_request (支持所有 HTTP 方法)
-    - 数据提取: ex_jsonData, ex_reData, ex_mysqlData
-    - 断言: assert_text_comparators, assert_json_comparators, assert_json_DeepDiff
+    功能:
+    - HTTP 请求: send_request, request_get, request_post_json 等
+    - 数据提取: extract_json, extract_regex, extract_mysql
+    - 断言: assert_status_code, assert_json, assert_contains 等
+    - 工具: generate_random_string, md5_encrypt, base64_encode 等
     """
     
-    request = None
-
-    def _clean_url(self, url):
-        """清理 URL，去除前后空格"""
-        if url and isinstance(url, str):
-            return url.strip()
-        return url
+    def __init__(self):
+        self.last_response = None
     
-    def _encode_headers(self, headers):
-        """
-        处理 headers 中的值，确保所有值都是字符串类型
-        注意：HTTP headers 中不建议使用中文，建议将中文数据放在请求体中
-        """
+    def _clean_url(self, url: str) -> str:
+        """清理 URL"""
+        return url.strip() if url and isinstance(url, str) else url
+    
+    def _encode_headers(self, headers: Dict) -> Dict:
+        """处理 headers，确保值为字符串且 ASCII 兼容"""
         if not headers:
             return headers
         
-        encoded_headers = {}
+        encoded = {}
         for key, value in headers.items():
-            # 将所有值转为字符串（处理整数、浮点数等类型）
             if not isinstance(value, str):
                 value = str(value)
-            
-            # 去除前后空格
             value = value.strip()
             
-            # 尝试编码为 ASCII（HTTP header 标准）
             try:
                 value.encode('ascii')
-                encoded_headers[key] = value
+                encoded[key] = value
             except UnicodeEncodeError:
-                # 如果包含中文等非 ASCII 字符，使用 URL 编码
-                import urllib.parse
-                encoded_value = urllib.parse.quote(value, safe='')
-                encoded_headers[key] = encoded_value
-                logger.warning(f"Header '{key}' 包含非ASCII字符，已URL编码: {value} -> {encoded_value}")
+                encoded[key] = urllib.parse.quote(value, safe='')
+                logger.warning(f"Header '{key}' 包含非ASCII字符，已URL编码")
         
-        return encoded_headers
+        return encoded
 
-    @allure.step("参数数据")
-    async def send_request(self, **kwargs):
+    @allure.step("HTTP 请求")
+    async def send_request(self, **kwargs) -> None:
         """
-        统一的 HTTP 请求关键字 (异步版本)
+        统一 HTTP 请求关键字
         
-        支持的参数:
-        - method: 请求方法 (GET, POST, PUT, DELETE 等)
-        - url/URL: 请求地址
-        - headers/HEADERS: 请求头
-        - params/PARAMS: URL 参数
-        - data/DATA: 表单数据 (form-urlencoded)
-        - json: JSON 数据
-        - files/FILES: 上传文件
-        - download: 是否下载响应内容到文件 (True/False)
-        - timeout: 超时时间
+        参数:
+            method: 请求方法 (GET/POST/PUT/DELETE/PATCH)
+            url: 请求地址
+            headers: 请求头
+            params: URL 参数
+            data: 表单数据
+            json: JSON 数据
+            files: 上传文件
+            download: 是否下载响应
+            timeout: 超时时间
         """
-        # 剔除不需要的字段
         kwargs.pop("关键字", None)
-        download = kwargs.pop("download", False)  # 是否下载响应
+        download = kwargs.pop("download", False)
         
-        # 兼容大写参数名
-        url = kwargs.pop("URL", None) or kwargs.get("url")
-        if url and "url" not in kwargs:
-            kwargs["url"] = self._clean_url(url)
-        elif "url" in kwargs:
+        # 清理 URL
+        if "url" in kwargs:
             kwargs["url"] = self._clean_url(kwargs["url"])
         
-        headers = kwargs.pop("HEADERS", None)
-        if headers and "headers" not in kwargs:
-            kwargs["headers"] = self._encode_headers(headers)
-        elif "headers" in kwargs:
+        # 编码 headers
+        if "headers" in kwargs:
             kwargs["headers"] = self._encode_headers(kwargs["headers"])
-            
-        params = kwargs.pop("PARAMS", None)
-        if params and "params" not in kwargs:
-            kwargs["params"] = params
-            
-        data = kwargs.pop("DATA", None)
-        if data and "data" not in kwargs:
-            kwargs["data"] = data
-            
-        files_param = kwargs.pop("FILES", None)
-        if files_param and "files" not in kwargs:
-            kwargs["files"] = files_param
-
+        
         # 处理文件上传
-        files = kwargs.get("files", [])
-        if files:
-            files = await self.process_upload_files(files)
-            kwargs["files"] = files
-
-        # 初始化请求数据（用于错误时显示）
+        if kwargs.get("files"):
+            kwargs["files"] = await self._process_upload_files(kwargs["files"])
+        
+        # 构建请求数据（用于日志）
         params_val = kwargs.get("params") or {}
         params_str = urlencode(params_val) if params_val else ""
         url_with_params = f'{kwargs.get("url", "")}?{params_str}' if params_str else kwargs.get("url", "")
+        
         request_data = {
             "url": unquote(url_with_params),
             "method": kwargs.get("method", "GET"),
             "headers": kwargs.get("headers", ""),
-            "body": kwargs.get("data", "") or kwargs.get("json", "") or kwargs.get("files", ""),
+            "body": kwargs.get("data") or kwargs.get("json") or kwargs.get("files") or "",
             "response": ""
         }
 
@@ -129,17 +110,16 @@ class Keywords:
         try:
             client = await AsyncClientManager.get_client()
             response = await client.request(**kwargs)
-            self.request = response
+            self.last_response = response
+            
             g_context().set_dict("current_response", response)
-            # 设置 status_code 变量供断言使用
             g_context().set_dict("status_code", str(response.status_code))
 
-            # 解析 URL 参数
+            # 解析响应数据
             parsed_url = urlparse(str(response.url))
             url_params = parse_qs(parsed_url.query)
             params_dict = {k: v[0] if len(v) == 1 else v for k, v in url_params.items()}
             
-            # 组装请求数据
             request_data = {
                 "url": unquote(str(response.url)),
                 "method": response.request.method,
@@ -151,9 +131,8 @@ class Keywords:
                 "response_headers": dict(response.headers)
             }
             
-            # 如果需要下载响应内容
             if download:
-                file_path = self.save_response_content(response)
+                file_path = self._save_response_content(response)
                 request_data["download_path"] = file_path
                 g_context().set_dict("current_response_file_path", file_path)
                 
@@ -162,307 +141,318 @@ class Keywords:
 
         except Exception as e:
             request_data["response"] = str(e)
-            logger.error(f"请求失败: {kwargs.get('method', 'GET')} {kwargs.get('url', '')} - {str(e)}")
-            raise e
+            logger.error(f"请求失败: {kwargs.get('method', 'GET')} {kwargs.get('url', '')} - {e}")
+            raise
         finally:
             if client:
                 await client.aclose()
-            print("-----------current_response_data------------")
+            print("-----------request_data------------")
             print(request_data)
-            print("----------end current_response_data-------------")
+            print("-----------end request_data--------")
 
 
-    def save_response_content(self,response, download_dir="/downloads"):
-        # 创建下载目录（如果不存在）
-        if not os.path.exists(download_dir):
-            os.makedirs(download_dir)
+    def _get_temp_dir(self, subdir: str = "") -> str:
+        """获取临时目录路径"""
+        import tempfile
+        base_dir = g_context().get_dict("_temp_dir") or tempfile.gettempdir()
+        if subdir:
+            return os.path.join(base_dir, subdir)
+        return base_dir
 
+    def _save_response_content(self, response, download_dir: str = None) -> str:
+        """保存响应内容到文件"""
+        if download_dir is None:
+            download_dir = self._get_temp_dir("downloads")
+        os.makedirs(download_dir, exist_ok=True)
+        
         content_type = response.headers.get("Content-Type", "")
-        timestamp = int(time.time())  # 当前时间戳
+        timestamp = int(time.time())
 
         if "application/json" in content_type:
-            # 处理JSON数据
             file_path = os.path.join(download_dir, f"response_{timestamp}.json")
             with open(file_path, "w", encoding="utf-8") as f:
-                json_data = response.json()
-                f.write(json.dumps(json_data, ensure_ascii=False, indent=2))
-            return file_path
-
+                f.write(json.dumps(response.json(), ensure_ascii=False, indent=2))
         elif "application/octet-stream" in content_type:
-            # 处理二进制文件
-            # 从Content-Disposition获取文件名（如果有）
             content_disposition = response.headers.get("Content-Disposition")
             if content_disposition and "filename=" in content_disposition:
                 filename = content_disposition.split("filename=")[1].strip('";')
             else:
-                # 默认文件名
                 filename = f"file_{timestamp}.bin"
-
             file_path = os.path.join(download_dir, filename)
             with open(file_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=1024):
-                    if chunk:
-                        f.write(chunk)
-            return file_path
+                f.write(response.content)
         else:
-            # 不管是什么生成一个text文件
-            print("未知文件类型")
             file_path = os.path.join(download_dir, f"response_{timestamp}.txt")
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(response.text)
-            return file_path
+        
+        return file_path
 
-
-    async def process_upload_files(self, file_list): # 改为异步方法
-        """处理上传文件,返回 httpx 支持的 files 列表格式"""
+    async def _process_upload_files(self, file_list: List) -> List:
+        """处理上传文件，支持 URL 自动下载"""
         processed_files = []
-        download_dir = r'/img' # 本地保存路径
-
-        if not os.path.exists(download_dir):
-            os.makedirs(download_dir)
+        download_dir = self._get_temp_dir("uploads")
+        os.makedirs(download_dir, exist_ok=True)
 
         for item in file_list:
             for field_name, file_path in item.items():
-                if file_path.startswith(('http://', 'https://')): # 判断是否是 URL
+                if file_path.startswith(('http://', 'https://')):
                     try:
                         client = await AsyncClientManager.get_client()
-                        response = await client.get(file_path) # 异步下载文件
+                        response = await client.get(file_path)
                         response.raise_for_status()
 
                         parsed_url = urlparse(file_path)
-                        filename = os.path.basename(parsed_url.path)
-                        if not filename:
-                            filename = 'downloaded_file'
-
+                        filename = os.path.basename(parsed_url.path) or 'downloaded_file'
                         local_path = os.path.join(download_dir, filename)
+                        
                         with open(local_path, 'wb') as f:
                             f.write(response.content)
-
                         file_path = local_path
                     except Exception as e:
                         raise RuntimeError(f"文件下载失败: {file_path}, 错误: {e}")
 
                 file_name = os.path.basename(file_path)
-                mime_type, _ = mimetypes.guess_type(file_path)
-                if not mime_type:
-                    mime_type = 'application/octet-stream'
-
-                processed_files.append(
-                    (field_name, (file_name, open(file_path, 'rb'), mime_type))
-                )
+                mime_type = mimetypes.guess_type(file_path)[0] or 'application/octet-stream'
+                processed_files.append((field_name, (file_name, open(file_path, 'rb'), mime_type)))
 
         return processed_files
 
 
-    @allure.step("参数数据")
-    def ex_jsonData(self, **kwargs):
-        """
-        提取json数据
-        EXVALUE：提取josn的表达式
-        INDEX: 非必填，默认为0
-        VARNAME：存储的变量名（必填）
-        """
-        # 检查必填参数
-        if "VARNAME" not in kwargs or not kwargs["VARNAME"]:
-            raise ValueError(
-                "❌ ex_jsonData 缺少必填参数 VARNAME！\n"
-                "   请检查 Excel 测试用例中的参数设置：\n"
-                "   - 参数_1: EXVALUE (JsonPath表达式)\n"
-                "   - 参数_2: INDEX (索引，默认0)\n"
-                "   - 参数_3: VARNAME (变量名，必填)\n"
-                f"   当前参数: {kwargs}"
-            )
-        
-        # 获取JsonPath的值
-        EXPRESSION = kwargs.get("EXVALUE", None)
-        # 获取对应的下标，非必填，默认为0
-        INDEX = kwargs.get("INDEX", None)
-        # 如果 INDEX 为 None 或空字符串，使用默认值 0
-        if INDEX is None or INDEX == '':
-            INDEX = 0
-        else:
-            # 转为字符串后判断是否为数字
-            INDEX_str = str(INDEX)
-            INDEX = int(INDEX_str) if INDEX_str.isdigit() else 0
+    # ==================== 数据提取关键字 ====================
 
-        # 获取响应数据
+    @allure.step("提取 JSON 数据")
+    def extract_json(self, **kwargs) -> Any:
+        """
+        从响应中提取 JSON 数据
+        
+        参数:
+            expression: JSONPath 表达式
+            index: 下标（默认 0）
+            var_name: 存储的变量名（必填）
+        """
+        var_name = kwargs.get("var_name")
+        if not var_name:
+            raise ValueError("extract_json 缺少必填参数 var_name")
+        
+        expression = kwargs.get("expression")
+        index = int(kwargs.get("index", 0) or 0)
+        
         try:
             response = g_context().get_dict("current_response").json()
         except Exception as e:
-            print(f"JSON解析失败，响应内容: {g_context().get_dict('current_response').text[:500]}")
-            raise ValueError(f"响应不是有效的JSON格式: {str(e)}")
+            raise ValueError(f"响应不是有效的 JSON 格式: {e}")
         
-        ex_data = jsonpath.jsonpath(response, EXPRESSION)[INDEX]  # 通过JsonPath进行提取
-        g_context().set_dict(kwargs["VARNAME"], ex_data)  # 根据变量名设置成全局变量
-        print("-----------------------")
-        print(f"✅ 已保存变量: {kwargs['VARNAME']} = {ex_data}")
-        print(g_context().show_dict())
-        print("-----------------------")
+        result = jsonpath.jsonpath(response, expression)
+        if not result:
+            raise ValueError(f"JSONPath '{expression}' 未找到匹配数据")
+        
+        value = result[index]
+        g_context().set_dict(var_name, value)
+        print(f"已保存变量: {var_name} = {value}")
+        return value
 
-    @allure.step("参数数据")
-    def ex_reData(self, **kwargs):
+    @allure.step("提取正则数据")
+    def extract_regex(self, **kwargs) -> Any:
         """
-        提取正则数据
+        从响应中提取正则匹配数据
+        
+        参数:
+            expression: 正则表达式
+            index: 下标（默认 0）
+            var_name: 存储的变量名
         """
-        # 获取JsonPath的值
-        EXPRESSION = kwargs.get("EXVALUE", None)
-        # 获取对应的下标，非必填，默认为0
-        INDEX = kwargs.get("INDEX", 0)
-        if INDEX is None:
-            INDEX = 0
-        # 获取响应数据
+        expression = kwargs.get("expression")
+        index = int(kwargs.get("index", 0) or 0)
+        var_name = kwargs.get("var_name")
+        
         response = g_context().get_dict("current_response").text
-        # 使用findall方法找到所有匹配的结果，返回一个列表
-        ex_data = re.findall(EXPRESSION, response)[INDEX]  # 通过正则表达进行提取
-        g_context().set_dict(kwargs["VARNAME"], ex_data)  # 根据变量名设置成全局变量
-        print("-----------------------")
-        print(g_context().show_dict())
-        print("-----------------------")
+        result = re.findall(expression, response)
+        
+        if not result:
+            raise ValueError(f"正则 '{expression}' 未找到匹配数据")
+        
+        value = result[index]
+        if var_name:
+            g_context().set_dict(var_name, value)
+            print(f"已保存变量: {var_name} = {value}")
+        return value
 
-    @allure.step("参数数据")
-    def ex_mysqlData(self, **kwargs):
+    @allure.step("提取响应头")
+    def extract_header(self, **kwargs) -> str:
         """
-        数据库: 数据库的名称
-        SQL：查询的SQL
-        reference_variables：数据库要存储的变量名，支持字符串或列表格式
+        提取响应头
+        
+        参数:
+            header_name: 响应头名称
+            var_name: 存储的变量名
+        """
+        header_name = kwargs.get("header_name")
+        var_name = kwargs.get("var_name")
+        
+        response = g_context().get_dict("current_response")
+        value = response.headers.get(header_name, "")
+        
+        if var_name:
+            g_context().set_dict(var_name, value)
+            print(f"已保存变量: {var_name} = {value}")
+        return value
 
-        如果 reference_variables 为空，则默认使用数据库字段名生成变量。
-        如果 reference_variables 有数据，则检查其长度是否与每条记录中的字段数量一致，若一致则生成对应格式的数据；否则抛出错误提示。
+    @allure.step("提取 Cookie")
+    def extract_cookie(self, **kwargs) -> str:
+        """
+        提取 Cookie
+        
+        参数:
+            cookie_name: Cookie 名称
+            var_name: 存储的变量名
+        """
+        cookie_name = kwargs.get("cookie_name")
+        var_name = kwargs.get("var_name")
+        
+        response = g_context().get_dict("current_response")
+        value = response.cookies.get(cookie_name, "")
+        
+        if var_name:
+            g_context().set_dict(var_name, value)
+            print(f"已保存变量: {var_name} = {value}")
+        return value
 
-        存储到全局变量：{"变量名_下标":数据}
+    @allure.step("数据库查询")
+    def extract_mysql(self, **kwargs) -> Dict:
+        """
+        执行 MySQL 查询并提取数据
+        
+        参数:
+            db_name: 数据库名称
+            sql: SQL 查询语句
+            var_names: 变量名列表（可选）
         """
         import pymysql
         from pymysql import cursors
+        
+        db_name = kwargs.get("db_name")
+        sql = kwargs.get("sql")
+        var_names = kwargs.get("var_names", [])
+        
+        # 获取数据库配置
+        db_config = g_context().get_dict("_database")[db_name]
         config = {"cursorclass": cursors.DictCursor}
-        # 读取全局变量 - 根据选择的数据 读取指定的数据库配置 连接对应的数据库
-        db_config = g_context().get_dict("_database")[kwargs["数据库"]]
         config.update(db_config)
 
         con = pymysql.connect(**config)
         cur = con.cursor()
-        cur.execute(kwargs["SQL"])
+        cur.execute(sql)
         rs = cur.fetchall()
         cur.close()
         con.close()
-        print("数据库查询结果:", rs)
-
-        var_names = kwargs.get("reference_variables",  [])
         
-        # 处理 reference_variables 的不同格式
-        if var_names:
-            # 如果是字符串，转换为列表
-            if isinstance(var_names, str):
-                var_names = [var_names.strip()]
-            # 如果是其他可迭代对象，转换为列表
-            elif not isinstance(var_names, list):
-                var_names = list(var_names)
+        print(f"数据库查询结果: {rs}")
+        
+        # 处理变量名
+        if isinstance(var_names, str):
+            var_names = [var_names.strip()]
+        elif not isinstance(var_names, list):
+            var_names = list(var_names) if var_names else []
         
         result = {}
-
         if not var_names:
-            # var_names 为空，使用原始字段名
+            # 使用原始字段名
             for i, item in enumerate(rs, start=1):
                 for key, value in item.items():
                     result[f"{key}_{i}"] = value
         else:
-            # var_names 有数据，验证字段数量一致性
+            # 使用自定义变量名
             field_length = len(rs[0]) if rs else 0
             if len(var_names) != field_length:
-                print(f"❌ var_names 的长度({len(var_names)})与每条记录的字段数({field_length})不一致！")
-                print(f"   var_names: {var_names}")
-                print(f"   查询字段: {list(rs[0].keys()) if rs else []}")
-                raise ValueError(f"❌ var_names 的长度与每条记录的字段数不一致，请检查输入！")
-
+                raise ValueError(f"var_names 长度({len(var_names)})与字段数({field_length})不一致")
+            
             for idx, item in enumerate(rs, start=1):
                 for col_idx, key in enumerate(item):
                     result[f"{var_names[col_idx]}_{idx}"] = item[key]
+        
         g_context().set_by_dict(result)
+        return result
 
-    @allure.step("参数数据")
-    def assert_text_comparators(self, **kwargs):
+    # ==================== 断言关键字 ====================
+
+    @allure.step("断言状态码")
+    def assert_status_code(self, **kwargs) -> None:
         """
-        封装断言以进行不同的比较操作。
-
-        参数:
-        value (Any): 要比较的值。
-        expected (Any): 预期的值。
-        op_str (str): 操作符的字符串表示（如 '>', '<', '==' 等）。
-        message (str, optional): 自定义的错误消息。
-
-        返回:
-        None: 如果断言成功，则不返回任何内容。
-
-        引发:
-        AssertionError: 如果断言失败。
-        """
-        comparators = {
-            '>': lambda a, b: a > b,
-            '<': lambda a, b: a < b,
-            '==': lambda a, b: a == b,
-            '>=': lambda a, b: a >= b,
-            '<=': lambda a, b: a <= b,
-            '!=': lambda a, b: a != b,
-        }
-
-        message = kwargs.get("MESSAGE", None)
-
-        if kwargs["OP_STR"] not in comparators:
-            raise ValueError(f"没有该操作方式: {kwargs['OP_STR']}")
-
-        if not comparators[kwargs['OP_STR']](kwargs['VALUE'], kwargs["EXPECTED"]):
-            if message:
-                raise AssertionError(message)
-            else:
-                raise AssertionError(f"{kwargs['VALUE']} {kwargs['OP_STR']} {kwargs['EXPECTED']} 失败")
-
-    @allure.step("JSON断言")
-    def assert_json_comparators(self, **kwargs):
-        """
-        JSON 断言比较 - 从响应中提取 JSON 数据并与期望值比较
+        断言响应状态码
         
         参数:
-        JSON_PATH: JSONPath 表达式（如 '$..msg'）
-        EXPECTED: 期望的值
-        OP_STR: 操作符（如 '==', '!=', '>', '<', '>=', '<=', 'in', 'not in'）
+            expected_code: 期望的状态码
         """
-        import jsonpath
+        expected = int(kwargs.get("expected_code", 200))
+        response = g_context().get_dict("current_response")
+        actual = response.status_code
         
-        # 获取参数
-        json_path = kwargs.get("JSON_PATH", None)
-        expected = kwargs.get("EXPECTED", None)
-        op_str = kwargs.get("OP_STR", "==")
+        assert actual == expected, f"状态码断言失败: 期望 {expected}, 实际 {actual}"
+        print(f"断言成功: 状态码 = {actual}")
+
+    @allure.step("断言响应时间")
+    def assert_response_time(self, **kwargs) -> None:
+        """
+        断言响应时间
+        
+        参数:
+            max_time: 最大响应时间（秒）
+        """
+        max_time = float(kwargs.get("max_time", 5))
+        response = g_context().get_dict("current_response")
+        actual = response.elapsed.total_seconds()
+        
+        assert actual <= max_time, f"响应时间断言失败: 期望 <= {max_time}s, 实际 {actual:.3f}s"
+        print(f"断言成功: 响应时间 = {actual:.3f}s")
+
+    @allure.step("断言包含文本")
+    def assert_contains(self, **kwargs) -> None:
+        """
+        断言响应包含指定文本
+        
+        参数:
+            expected_text: 期望包含的文本
+        """
+        expected = kwargs.get("expected_text", "")
+        response = g_context().get_dict("current_response")
+        
+        assert expected in response.text, f"文本断言失败: 响应不包含 '{expected}'"
+        print(f"断言成功: 响应包含 '{expected}'")
+
+    @allure.step("JSON 断言")
+    def assert_json(self, **kwargs) -> None:
+        """
+        JSON 断言
+        
+        参数:
+            json_path: JSONPath 表达式
+            expected: 期望值
+            operator: 操作符（==, !=, >, <, >=, <=, in, not in）
+        """
+        json_path = kwargs.get("json_path")
+        expected = kwargs.get("expected")
+        operator = kwargs.get("operator", "==")
         
         if not json_path:
-            raise ValueError("❌ assert_json_comparators 缺少必填参数 JSON_PATH")
+            raise ValueError("assert_json 缺少必填参数 json_path")
         
-        # 获取响应数据
+        response = g_context().get_dict("current_response")
         try:
-            response = g_context().get_dict("current_response")
             response_json = response.json()
         except Exception as e:
-            print(f"JSON解析失败，响应内容: {response.text[:500]}")
-            raise ValueError(f"响应不是有效的JSON格式: {str(e)}")
+            raise ValueError(f"响应不是有效的 JSON: {e}")
         
-        # 使用 JSONPath 提取数据
-        try:
-            result = jsonpath.jsonpath(response_json, json_path)
-            if not result:
-                raise ValueError(f"JSONPath '{json_path}' 未找到匹配的数据")
-            
-            # 取第一个匹配的值
-            actual_value = result[0]
-        except Exception as e:
-            print(f"JSONPath 提取失败: {str(e)}")
-            print(f"响应数据: {response_json}")
-            raise
+        result = jsonpath.jsonpath(response_json, json_path)
+        if not result:
+            raise ValueError(f"JSONPath '{json_path}' 未找到匹配数据")
         
-        # 处理期望值（可能包含引号）
-        if isinstance(expected, str):
-            # 如果期望值是带引号的字符串（如 '"200"'），尝试解析
-            if expected.startswith('"') and expected.endswith('"'):
-                expected = expected[1:-1]  # 去除外层引号
+        actual = result[0]
         
-        # 定义操作符字典
+        # 处理期望值引号
+        if isinstance(expected, str) and expected.startswith('"') and expected.endswith('"'):
+            expected = expected[1:-1]
+        
         operators = {
             '>': lambda a, b: a > b,
             '<': lambda a, b: a < b,
@@ -474,199 +464,524 @@ class Keywords:
             'not in': lambda a, b: a not in b
         }
         
-        # 获取操作符函数
-        op_func = operators.get(op_str)
+        op_func = operators.get(operator)
         if not op_func:
-            raise ValueError(f"不支持的操作符: {op_str}")
+            raise ValueError(f"不支持的操作符: {operator}")
         
-        # 执行比较
-        try:
-            result_bool = op_func(actual_value, expected)
-            assert result_bool, f"JSON断言失败: {json_path} => {actual_value} {op_str} {expected}"
-            print(f"✅ JSON断言成功: {json_path} => {actual_value} {op_str} {expected}")
-            return True
-        except AssertionError as e:
-            print(f"❌ JSON断言失败: {str(e)}")
-            print(f"   JSONPath: {json_path}")
-            print(f"   实际值: {actual_value} (类型: {type(actual_value).__name__})")
-            print(f"   期望值: {expected} (类型: {type(expected).__name__})")
-            print(f"   操作符: {op_str}")
-            raise
+        assert op_func(actual, expected), f"JSON 断言失败: {json_path} => {actual} {operator} {expected}"
+        print(f"JSON 断言成功: {json_path} => {actual} {operator} {expected}")
 
-    def get_md5_from_bytes(self,data):
+    @allure.step("数值比较断言")
+    def assert_compare(self, **kwargs) -> None:
         """
-        从字节流中计算 MD5 值
-        :param data: bytes 数据
-        :return: MD5 字符串
+        数值比较断言
+        
+        参数:
+            value: 实际值
+            expected: 期望值
+            operator: 操作符（>, <, ==, >=, <=, !=）
         """
-        import hashlib
+        value = kwargs.get("value")
+        expected = kwargs.get("expected")
+        operator = kwargs.get("operator", "==")
+        message = kwargs.get("message")
+        
+        operators = {
+            '>': lambda a, b: a > b,
+            '<': lambda a, b: a < b,
+            '==': lambda a, b: a == b,
+            '>=': lambda a, b: a >= b,
+            '<=': lambda a, b: a <= b,
+            '!=': lambda a, b: a != b,
+        }
+        
+        if operator not in operators:
+            raise ValueError(f"不支持的操作符: {operator}")
+        
+        if not operators[operator](value, expected):
+            error_msg = message or f"{value} {operator} {expected} 失败"
+            raise AssertionError(error_msg)
+        
+        print(f"断言成功: {value} {operator} {expected}")
 
-        hash_md5 = hashlib.md5()
-        hash_md5.update(data)
-        return hash_md5.hexdigest()
-
-    @allure.step("参数数据")
-    def assert_files_by_md5_comparators(self, **kwargs):
+    @allure.step("文件 MD5 断言")
+    def assert_file_md5(self, **kwargs) -> None:
         """
-        value (Any): 要比较的值。
-        expected (Any): 预期的值。
+        断言响应文件 MD5 值
+        
+        参数:
+            expected_md5: 期望的 MD5 值
         """
-        # 获取: 预期的值
-        value_md5 = kwargs.get("value", None)
-        # 获取：实际数据
+        expected_md5 = kwargs.get("expected_md5")
         response = g_context().get_dict("current_response")
-
-        if response.status_code == 200:
-            # 获取响应的二进制内容
-            file_content = response.content
-
-            # 直接计算 MD5
-            remote_md5 = self.get_md5_from_bytes(file_content)
-
-            # 如果你还想和本地文件比对
-            if value_md5 == remote_md5:
-                print(f"✅ 本地与远程文件内容一致（MD5 值均为：{value_md5}）")
-            else:
-                print(f"❌ 本地与远程文件内容不一致\n"
-                      f"    本地文件 MD5：{value_md5}\n"
-                      f"    远程文件 MD5：{remote_md5}")
-                raise AssertionError(f"❌ 本地与远程文件内容不一致\n"
-                      f"    本地文件 MD5：{value_md5}\n"
-                      f"    远程文件 MD5：{remote_md5}")
-        else:
+        
+        if response.status_code != 200:
             raise AssertionError(f"请求失败，状态码: {response.status_code}")
-            print(f"请求失败，状态码: {response.status_code}")
-        print("-----------------------")
-        print(g_context().show_dict())
-        print("-----------------------")
-
-    @allure.step("参数数据")
-    def generate_name_new(self, **kwargs):
-        """
-        生成随机用户名
-        VARNAME：存储的变量名
-        """
-        import random
-        import string
-        import time
         
-        # 生成随机用户名：user + 时间戳 + 随机字符
-        timestamp = str(int(time.time()))[-6:]  # 取时间戳后6位
-        random_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
-        username = f"user{timestamp}{random_str}"
+        actual_md5 = hashlib.md5(response.content).hexdigest()
         
-        g_context().set_dict(kwargs["VARNAME"], username)
-        print(f"生成的用户名: {username}")
-        print("-----------------------")
-        print(g_context().show_dict())
-        print("-----------------------")
+        assert expected_md5 == actual_md5, f"MD5 不匹配: 期望 {expected_md5}, 实际 {actual_md5}"
+        print(f"MD5 断言成功: {actual_md5}")
 
-    @allure.step("参数数据")
-    def assert_json_DeepDiff(self, **kwargs):
+    @allure.step("JSON 深度对比")
+    def assert_json_deep(self, **kwargs) -> None:
         """
-        JSON深度对比断言
-        json1: 第一个JSON对象
-        json2: 第二个JSON对象
-        过滤字段: 需要过滤的字段（可选）- 格式可以是 {city} 或 ['city'] 或 'city'
-        忽略顺序: 是否忽略列表顺序（可选，默认False）
+        JSON 深度对比断言
+        
+        参数:
+            json1: 第一个 JSON 对象
+            json2: 第二个 JSON 对象
+            exclude_fields: 需要排除的字段
+            ignore_order: 是否忽略列表顺序
         """
         try:
             from deepdiff import DeepDiff
         except ImportError:
-            print("警告: deepdiff库未安装，将使用简单对比")
-            # 简单对比
             json1 = kwargs.get("json1")
             json2 = kwargs.get("json2")
             if json1 != json2:
-                raise AssertionError(f"JSON对比失败:\n期望: {json2}\n实际: {json1}")
+                raise AssertionError(f"JSON 对比失败:\n期望: {json2}\n实际: {json1}")
             return
 
         json1 = kwargs.get("json1")
         json2 = kwargs.get("json2")
-        exclude_paths = kwargs.get("过滤字段", None)
-        ignore_order = kwargs.get("忽略顺序", False)
+        exclude_fields = kwargs.get("exclude_fields")
+        ignore_order = kwargs.get("ignore_order", False)
         
-        print(f"调试信息 - exclude_paths类型: {type(exclude_paths)}, 值: {exclude_paths}")
-        
-        # 处理过滤字段 - 支持多种格式
         exclude_list = []
-        if exclude_paths:
-            # 情况1: 如果是set类型 {city}
-            if isinstance(exclude_paths, set):
-                for field in exclude_paths:
-                    field = str(field).strip()
-                    exclude_list.append(f"root['{field}']")
-            # 情况2: 如果是list类型 ['city']
-            elif isinstance(exclude_paths, list):
-                for field in exclude_paths:
-                    field = str(field).strip()
-                    exclude_list.append(f"root['{field}']")
-            # 情况3: 如果是字符串 "city" 或 "{city}"
-            elif isinstance(exclude_paths, str):
-                # 去除花括号和空格
-                exclude_str = exclude_paths.strip('{}').strip()
-                if exclude_str:
-                    # 支持逗号分隔的多个字段
-                    for field in exclude_str.split(','):
-                        field = field.strip()
-                        if field:
-                            exclude_list.append(f"root['{field}']")
+        if exclude_fields:
+            if isinstance(exclude_fields, (set, list)):
+                exclude_list = [f"root['{f}']" for f in exclude_fields]
+            elif isinstance(exclude_fields, str):
+                exclude_list = [f"root['{f.strip()}']" for f in exclude_fields.strip('{}').split(',') if f.strip()]
         
-        print(f"调试信息 - 最终的exclude_list: {exclude_list}")
-        
-        # 进行深度对比
-        diff_params = {
-            'ignore_order': ignore_order,
-        }
+        diff_params = {'ignore_order': ignore_order}
         if exclude_list:
             diff_params['exclude_paths'] = exclude_list
-            
-        print(f"调试信息 - DeepDiff参数: {diff_params}")
+        
         diff = DeepDiff(json1, json2, **diff_params)
         
         if diff:
-            print(f"❌ JSON对比发现差异: {diff}")
-            raise AssertionError(f"JSON对比失败: {diff}")
-        else:
-            print("✅ JSON对比一致")
+            raise AssertionError(f"JSON 对比失败: {diff}")
+        print("JSON 深度对比成功")
 
-    @allure.step("参数数据")
-    def encrypt_aes(self, **kwargs):
+    # ==================== 工具关键字 ====================
+
+    @allure.step("生成随机字符串")
+    def generate_random_string(self, **kwargs) -> str:
         """
-        AES加密
-        data: 要加密的数据
-        VARNAME: 存储加密结果的变量名
-        key: AES密钥（可选，默认使用固定密钥）
-        mode: 加密模式（可选，默认CBC）
+        生成随机字符串
+        
+        参数:
+            length: 字符串长度（默认 10）
+            var_name: 存储的变量名
+        """
+        length = int(kwargs.get("length", 10))
+        var_name = kwargs.get("var_name")
+        
+        chars = string.ascii_letters + string.digits
+        value = ''.join(random.choices(chars, k=length))
+        
+        if var_name:
+            g_context().set_dict(var_name, value)
+            print(f"已保存变量: {var_name} = {value}")
+        return value
+
+    @allure.step("生成随机数字")
+    def generate_random_number(self, **kwargs) -> int:
+        """
+        生成随机数字
+        
+        参数:
+            min_value: 最小值
+            max_value: 最大值
+            var_name: 存储的变量名
+        """
+        min_val = int(kwargs.get("min_value", 0))
+        max_val = int(kwargs.get("max_value", 100))
+        var_name = kwargs.get("var_name")
+        
+        value = random.randint(min_val, max_val)
+        
+        if var_name:
+            g_context().set_dict(var_name, value)
+            print(f"已保存变量: {var_name} = {value}")
+        return value
+
+    @allure.step("获取时间戳")
+    def get_timestamp(self, **kwargs) -> int:
+        """
+        获取当前时间戳
+        
+        参数:
+            var_name: 存储的变量名
+        """
+        var_name = kwargs.get("var_name")
+        value = int(time.time())
+        
+        if var_name:
+            g_context().set_dict(var_name, value)
+            print(f"已保存变量: {var_name} = {value}")
+        return value
+
+    @allure.step("格式化时间")
+    def format_datetime(self, **kwargs) -> str:
+        """
+        格式化当前时间
+        
+        参数:
+            format: 时间格式（默认 %Y-%m-%d %H:%M:%S）
+            var_name: 存储的变量名
+        """
+        fmt = kwargs.get("format", "%Y-%m-%d %H:%M:%S")
+        var_name = kwargs.get("var_name")
+        
+        value = time.strftime(fmt)
+        
+        if var_name:
+            g_context().set_dict(var_name, value)
+            print(f"已保存变量: {var_name} = {value}")
+        return value
+
+    @allure.step("MD5 加密")
+    def md5_encrypt(self, **kwargs) -> str:
+        """
+        MD5 加密
+        
+        参数:
+            text: 要加密的文本
+            var_name: 存储的变量名
+        """
+        text = kwargs.get("text", "")
+        var_name = kwargs.get("var_name")
+        
+        value = hashlib.md5(text.encode('utf-8')).hexdigest()
+        
+        if var_name:
+            g_context().set_dict(var_name, value)
+            print(f"已保存变量: {var_name} = {value}")
+        return value
+
+    @allure.step("Base64 编码")
+    def base64_encode(self, **kwargs) -> str:
+        """
+        Base64 编码
+        
+        参数:
+            text: 要编码的文本
+            var_name: 存储的变量名
+        """
+        import base64
+        text = kwargs.get("text", "")
+        var_name = kwargs.get("var_name")
+        
+        value = base64.b64encode(text.encode('utf-8')).decode('utf-8')
+        
+        if var_name:
+            g_context().set_dict(var_name, value)
+            print(f"已保存变量: {var_name} = {value}")
+        return value
+
+    @allure.step("Base64 解码")
+    def base64_decode(self, **kwargs) -> str:
+        """
+        Base64 解码
+        
+        参数:
+            encoded_text: 要解码的文本
+            var_name: 存储的变量名
+        """
+        import base64
+        encoded_text = kwargs.get("encoded_text", "")
+        var_name = kwargs.get("var_name")
+        
+        value = base64.b64decode(encoded_text).decode('utf-8')
+        
+        if var_name:
+            g_context().set_dict(var_name, value)
+            print(f"已保存变量: {var_name} = {value}")
+        return value
+
+    @allure.step("AES 加密")
+    def aes_encrypt(self, **kwargs) -> str:
+        """
+        AES 加密
+        
+        参数:
+            data: 要加密的数据
+            key: AES 密钥（默认 16 字节）
+            var_name: 存储的变量名
         """
         try:
             from Crypto.Cipher import AES
             from Crypto.Util.Padding import pad
             import base64
         except ImportError:
-            raise ImportError("请安装 pycryptodome 库: pip install pycryptodome")
+            raise ImportError("请安装 pycryptodome: pip install pycryptodome")
         
         data = kwargs.get("data", "")
-        var_name = kwargs.get("VARNAME")
-        # 默认密钥（16字节）
+        var_name = kwargs.get("var_name")
         key = kwargs.get("key", "1234567890123456").encode('utf-8')
+        
         if len(key) not in [16, 24, 32]:
-            key = (key + b'0' * 16)[:16]  # 填充到16字节
+            key = (key + b'0' * 16)[:16]
         
-        # 创建AES加密器
         cipher = AES.new(key, AES.MODE_ECB)
-        
-        # 对数据进行填充并加密
         padded_data = pad(data.encode('utf-8'), AES.block_size)
         encrypted = cipher.encrypt(padded_data)
+        value = base64.b64encode(encrypted).decode('utf-8')
         
-        # Base64编码
-        encrypted_base64 = base64.b64encode(encrypted).decode('utf-8')
+        if var_name:
+            g_context().set_dict(var_name, value)
+            print(f"已保存变量: {var_name} = {value}")
+        return value
+
+    @allure.step("等待")
+    def wait_time(self, **kwargs) -> None:
+        """
+        等待指定时间
         
-        g_context().set_dict(var_name, encrypted_base64)
-        print(f"AES加密结果: {encrypted_base64}")
-        print("-----------------------")
-        print(g_context().show_dict())
-        print("-----------------------")
+        参数:
+            seconds: 等待时间（秒）
+        """
+        seconds = float(kwargs.get("seconds", 1))
+        time.sleep(seconds)
+        print(f"已等待 {seconds} 秒")
+
+    # ==================== WebSocket 关键字 ====================
+
+    @allure.step("WebSocket 连接")
+    async def ws_connect(self, **kwargs) -> None:
+        """
+        建立 WebSocket 连接
+        
+        参数:
+            url: WebSocket 地址 (ws:// 或 wss://)
+            headers: 请求头（可选）
+            timeout: 连接超时（秒，默认 30）
+        """
+        try:
+            import websockets
+        except ImportError:
+            raise ImportError("请安装 websockets: pip install websockets")
+        
+        url = kwargs.get("url")
+        headers = kwargs.get("headers")
+        timeout = float(kwargs.get("timeout", 30))
+        
+        if not url:
+            raise ValueError("ws_connect 缺少必填参数 url")
+        
+        extra_headers = headers if headers else {}
+        
+        ws = await websockets.connect(
+            url,
+            extra_headers=extra_headers,
+            open_timeout=timeout
+        )
+        
+        g_context().set_dict("ws_connection", ws)
+        g_context().set_dict("ws_url", url)
+        print(f"WebSocket 已连接: {url}")
+
+    @allure.step("WebSocket 发送消息")
+    async def ws_send(self, **kwargs) -> None:
+        """
+        发送 WebSocket 消息
+        
+        参数:
+            message: 要发送的消息（字符串或 JSON 对象）
+        """
+        ws = g_context().get_dict("ws_connection")
+        if not ws:
+            raise RuntimeError("WebSocket 未连接，请先调用 ws_connect")
+        
+        message = kwargs.get("message", "")
+        
+        # 如果是字典，转为 JSON 字符串
+        if isinstance(message, dict):
+            message = json.dumps(message, ensure_ascii=False)
+        
+        await ws.send(message)
+        print(f"WebSocket 已发送: {message[:100]}...")
+
+    @allure.step("WebSocket 接收消息")
+    async def ws_receive(self, **kwargs) -> str:
+        """
+        接收 WebSocket 消息
+        
+        参数:
+            timeout: 接收超时（秒，默认 30）
+            var_name: 存储的变量名（可选）
+        """
+        import asyncio
+        
+        ws = g_context().get_dict("ws_connection")
+        if not ws:
+            raise RuntimeError("WebSocket 未连接，请先调用 ws_connect")
+        
+        timeout = float(kwargs.get("timeout", 30))
+        var_name = kwargs.get("var_name")
+        
+        try:
+            message = await asyncio.wait_for(ws.recv(), timeout=timeout)
+        except asyncio.TimeoutError:
+            raise TimeoutError(f"WebSocket 接收超时: {timeout}s")
+        
+        g_context().set_dict("ws_last_message", message)
+        
+        if var_name:
+            g_context().set_dict(var_name, message)
+            print(f"WebSocket 消息已保存到变量: {var_name}")
+        
+        print(f"WebSocket 已接收: {message[:100]}...")
+        return message
+
+    @allure.step("WebSocket 关闭连接")
+    async def ws_close(self, **kwargs) -> None:
+        """关闭 WebSocket 连接"""
+        ws = g_context().get_dict("ws_connection")
+        if ws:
+            await ws.close()
+            g_context().set_dict("ws_connection", None)
+            print("WebSocket 已关闭")
+
+    @allure.step("WebSocket 断言消息")
+    def ws_assert_message(self, **kwargs) -> None:
+        """
+        断言 WebSocket 消息
+        
+        参数:
+            expected: 期望值
+            operator: 操作符（==, contains, json_path）
+            json_path: JSONPath 表达式（当 operator 为 json_path 时）
+        """
+        message = g_context().get_dict("ws_last_message")
+        if not message:
+            raise RuntimeError("没有收到 WebSocket 消息")
+        
+        expected = kwargs.get("expected")
+        operator = kwargs.get("operator", "==")
+        json_path_expr = kwargs.get("json_path")
+        
+        if operator == "==":
+            assert message == expected, f"WebSocket 断言失败: '{message}' != '{expected}'"
+        elif operator == "contains":
+            assert expected in message, f"WebSocket 断言失败: 消息不包含 '{expected}'"
+        elif operator == "json_path":
+            try:
+                data = json.loads(message)
+                result = jsonpath.jsonpath(data, json_path_expr)
+                if not result:
+                    raise ValueError(f"JSONPath '{json_path_expr}' 未找到匹配数据")
+                actual = result[0]
+                assert actual == expected, f"WebSocket JSON 断言失败: {actual} != {expected}"
+            except json.JSONDecodeError:
+                raise ValueError("WebSocket 消息不是有效的 JSON")
+        else:
+            raise ValueError(f"不支持的操作符: {operator}")
+        
+        print(f"WebSocket 断言成功")
+
+    # ==================== HTTP 快捷方法 ====================
+
+    @allure.step("GET 请求")
+    async def request_get(self, **kwargs) -> None:
+        """
+        GET 请求快捷方法
+        
+        参数:
+            url: 请求地址
+            params: URL 参数
+            headers: 请求头
+        """
+        kwargs["method"] = "GET"
+        await self.send_request(**kwargs)
+
+    @allure.step("POST JSON 请求")
+    async def request_post_json(self, **kwargs) -> None:
+        """
+        POST JSON 请求快捷方法
+        
+        参数:
+            url: 请求地址
+            params: URL 参数
+            headers: 请求头
+            json: JSON 数据
+        """
+        kwargs["method"] = "POST"
+        await self.send_request(**kwargs)
+
+    @allure.step("POST 表单请求")
+    async def request_post_form(self, **kwargs) -> None:
+        """
+        POST 表单请求快捷方法
+        
+        参数:
+            url: 请求地址
+            params: URL 参数
+            headers: 请求头
+            data: 表单数据
+        """
+        kwargs["method"] = "POST"
+        await self.send_request(**kwargs)
+
+    @allure.step("POST 文件上传")
+    async def request_post_file(self, **kwargs) -> None:
+        """
+        POST 文件上传快捷方法
+        
+        参数:
+            url: 请求地址
+            params: URL 参数
+            headers: 请求头
+            data: 表单数据
+            files: 上传文件
+        """
+        kwargs["method"] = "POST"
+        await self.send_request(**kwargs)
+
+    @allure.step("PUT 请求")
+    async def request_put(self, **kwargs) -> None:
+        """
+        PUT 请求快捷方法
+        
+        参数:
+            url: 请求地址
+            params: URL 参数
+            headers: 请求头
+            json: JSON 数据
+        """
+        kwargs["method"] = "PUT"
+        await self.send_request(**kwargs)
+
+    @allure.step("DELETE 请求")
+    async def request_delete(self, **kwargs) -> None:
+        """
+        DELETE 请求快捷方法
+        
+        参数:
+            url: 请求地址
+            params: URL 参数
+            headers: 请求头
+        """
+        kwargs["method"] = "DELETE"
+        await self.send_request(**kwargs)
+
+    @allure.step("PATCH 请求")
+    async def request_patch(self, **kwargs) -> None:
+        """
+        PATCH 请求快捷方法
+        
+        参数:
+            url: 请求地址
+            params: URL 参数
+            headers: 请求头
+            json: JSON 数据
+        """
+        kwargs["method"] = "PATCH"
+        await self.send_request(**kwargs)
+
+
 
 

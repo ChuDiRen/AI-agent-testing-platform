@@ -12,7 +12,7 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 setup(
     name="test-engine",
-    version="1.2.0",
+    version="2.0.0",
     description="统一的自动化测试引擎，支持 API 测试、Web UI 测试、移动端测试和性能测试，采用关键字驱动和数据驱动设计",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -26,10 +26,12 @@ setup(
     # 包含非 Python 文件
     include_package_data=True,
     package_data={
+        'testengine_common': ['*.yaml', '*.ini'],
         'testengine_api': ['*.yaml', '*.ini'],
         'testengine_web': ['*.yaml', '*.ini'],
         'testengine_mobile': ['*.yaml', '*.ini'],
         'testengine_perf': ['*.yaml', '*.ini'],
+        'testengine_mcp': ['*.yaml', '*.ini'],
     },
     
     # 安装依赖

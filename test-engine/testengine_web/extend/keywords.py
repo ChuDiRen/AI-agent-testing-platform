@@ -1,19 +1,20 @@
 """
 Web 自动化测试关键字
-基于 Playwright 实现，提供现代化的 Web 自动化测试能力
+基于 Playwright 实现
 """
 import os
 import time
+from typing import Optional
 
 import allure
 from playwright.sync_api import expect, TimeoutError as PlaywrightTimeoutError
 
-from ..core.globalContext import g_context  # 相对导入: webrun内部模块
-from ..utils.PlaywrightManager import PlaywrightManager  # 相对导入: webrun内部模块
+from ..core.globalContext import g_context
+from ..utils.PlaywrightManager import PlaywrightManager
 
 
 class Keywords:
-    """Web 自动化测试关键字类 - Playwright 版本"""
+    """Web 自动化测试关键字类"""
 
     def _get_page(self):
         """获取当前页面实例"""
@@ -872,630 +873,348 @@ class Keywords:
 
     @allure.step("等待页面加载")
     def wait_for_page_load(self, **kwargs):
-        """等待页面加载完成"""
+        """
+        等待页面加载完成
+        
+        参数:
+            wait_until: load/domcontentloaded/networkidle
+            timeout: 超时时间（毫秒）
+        """
         kwargs.pop("关键字", None)
-
-        wait_until = kwargs.get("wait_until", "load")  # load, domcontentloaded, networkidle
+        wait_until = kwargs.get("wait_until", "load")
         timeout = int(kwargs.get("timeout", 30000))
 
         page = self._get_page()
 
         try:
-            if wait_until == "networkidle":
-                page.wait_for_load_state("networkidle", timeout=timeout)
-            elif wait_until == "domcontentloaded":
-                page.wait_for_load_state("domcontentloaded", timeout=timeout)
-            else:  # load
-                page.wait_for_load_state("load", timeout=timeout)
-
+            page.wait_for_load_state(wait_until, timeout=timeout)
             print(f"页面加载完成: {wait_until}")
         except PlaywrightTimeoutError as e:
             self._take_screenshot_on_error(f"等待页面加载超时_{wait_until}")
             raise PlaywrightTimeoutError(f"等待页面加载超时: {wait_until}") from e
 
-    # ==================== AI 驱动操作 ====================
+    # ==================== 多窗口/标签页操作 ====================
 
-    def _ai_click(self, bbox):
+    @allure.step("打开新标签页")
+    def open_new_tab(self, **kwargs) -> None:
         """
-        根据边界框坐标点击element中心（Playwright 适配版）
-        
-        :param bbox: 边界框坐标 [xmin, ymin, xmax, ymax]
-        """
-        # 计算中心点坐标
-        x_coordinate = (bbox[0] + bbox[2]) / 2
-        y_coordinate = (bbox[1] + bbox[3]) / 2
-        print(f"element中心点坐标信息: {x_coordinate}, {y_coordinate}")
-        
-        page = self._get_page()
-        # Playwright 坐标点击
-        page.mouse.click(x_coordinate, y_coordinate)
-
-    def _ai_input(self, bbox, text):
-        """
-        点击并在element位置输入text（Playwright 适配版）
-        
-        :param bbox: 边界框坐标 [xmin, ymin, xmax, ymax]
-        :param text: 要输入的text
-        """
-        self._ai_click(bbox)
-        # Playwright 输入text
-        page = self._get_page()
-        page.keyboard.type(text)
-
-    def _ai_extract_text(self, text):
-        """
-        将提取的text保存到全局上下文
-        
-        :param text: 提取的text内容
-        """
-        g_context().set_dict("ai_extracted_text", text)
-        print(f"已提取text到全局变量 ai_extracted_text: {text}")
-
-    def _load_ai_config(self):
-        """加载AI配置文件"""
-        import yaml
-        config_path = os.path.join(os.path.dirname(__file__), "ai_config.yaml")
-        try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                return yaml.safe_load(f)
-        except Exception as e:
-            print(f"⚠ 加载AI配置失败，使用默认配置: {e}")
-            return {
-                "AI_PROVIDER": "qwen-vl",
-                "QWEN_VL": {
-                    "API_KEY": "sk-aeb8d69039b14320b0fe58cb8285d8b1",
-                    "BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-                    "MODEL": "qwen-vl-max-latest",
-                    "MIN_PIXELS": 401408,
-                    "MAX_PIXELS": 1605632,
-                    "FACTOR": 28,
-                    "RETRY_COUNT": 2,
-                    "TIMEOUT": 60
-                },
-                "AI_ENABLED": True,
-                "AI_FALLBACK_TO_TRADITIONAL": True
-            }
-
-    def _call_ai_vision(self, user_description, actions):
-        """
-        调用 AI VL 模型进行截图分析（支持多模型配置）
-        
-        :param user_description: 用户的operation_desc
-        :param actions: 支持的操作类型列表
-        :return: AI 返回的结果字典
-        """
-        import base64
-        import json
-        import os
-        import re
-        import uuid
-        
-        # 延迟导入并添加详细错误处理
-        try:
-            from openai import OpenAI
-        except ImportError as e:
-            raise RuntimeError(
-                "AI 功能需要 openai 包，请运行: pip install openai\n"
-                f"详细错误: {e}"
-            )
-        except TypeError as e:
-            # 处理 importlib_metadata 的问题
-            raise RuntimeError(
-                "导入 openai 包时遇到环境问题，可能是 Python 环境配置错误。\n"
-                "建议解决方案：\n"
-                "1. 重新安装 openai: pip uninstall openai && pip install openai\n"
-                "2. 更新 importlib-metadata: pip install --upgrade importlib-metadata\n"
-                "3. 检查虚拟环境是否正常\n"
-                f"详细错误: {e}"
-            )
-        except Exception as e:
-            raise RuntimeError(f"导入 openai 包失败: {e}")
-        
-        try:
-            from PIL import Image
-        except ImportError:
-            raise RuntimeError("AI 功能需要 Pillow 包，请运行: pip install Pillow")
-        
-        try:
-            from qwen_vl_utils import smart_resize
-        except ImportError:
-            raise RuntimeError("AI 功能需要 qwen-vl-utils 包，请运行: pip install qwen-vl-utils")
-
-        # 加载配置
-        config = self._load_ai_config()
-        
-        # 检查AI功能是否启用
-        if not config.get("AI_ENABLED", True):
-            raise RuntimeError("AI 功能已禁用，请在 ai_config.yaml 中启用")
-        
-        # 获取当前使用的AI提供商配置
-        provider = config.get("AI_PROVIDER", "qwen-vl").upper().replace("-", "_")
-        provider_config = config.get(provider, config.get("QWEN_VL"))
-        
-        # 初始化 OpenAI 客户端
-        ai_client = OpenAI(
-            api_key=provider_config.get("API_KEY"),
-            base_url=provider_config.get("BASE_URL"),
-        )
-
-        # 优化后的提示词模板（避免触发内容审核）
-        prompt = """
-# 任务
-在网页截图中定位UI组件。
-
-# 输出
-```json
-{{
-  "bbox": [x1, y1, x2, y2],
-  "action": "{actions}",
-  "text": "组件内容",
-  "errors"?: "定位失败原因"
-}}
-```
-
-# 步骤
-1. 分析截图中的UI组件
-2. 根据描述定位目标组件
-3. 返回组件的边界框坐标
-
-# 目标组件
-{user_text}
-"""
-
-        ai_prompt = prompt.format(
-            user_text=user_description,
-            actions=", ".join(actions)
-        )
-
-        # Playwright 截图并转换为 base64
-        page = self._get_page()
-        screenshot_bytes = page.screenshot(type='png')
-        image_base64 = base64.b64encode(screenshot_bytes).decode('utf-8')
-
-        # 保存临时截图文件
-        image_path = os.path.join(
-            os.path.dirname(__file__),
-            f"{str(uuid.uuid4()).replace('-', '')}.png"
-        )
-        with open(image_path, 'wb') as f:
-            f.write(screenshot_bytes)
-
-        # 获取图片尺寸
-        width, height = Image.open(image_path).size
-        print(f"截图尺寸：{width}, {height}")
-
-        # 从配置读取图片处理参数
-        min_pixels = provider_config.get("MIN_PIXELS", 401408)
-        max_pixels = provider_config.get("MAX_PIXELS", 1605632)
-        factor = provider_config.get("FACTOR", 28)
-        
-        # 自适应调整：当截图超大时自动调整 factor
-        total_pixels = width * height
-        if total_pixels > 10_000_000:
-            factor = max(14, factor // 2)
-            print(f"⚠ 超大截图({total_pixels}px)，调整factor={factor}")
-        
-        input_height, input_width = smart_resize(
-            height, width,
-            factor=factor,
-            min_pixels=min_pixels,
-            max_pixels=max_pixels
-        )
-        print(f"输入尺寸：{input_height}, {input_width} (factor={factor})")
-
-        # 删除临时图片
-        os.remove(image_path)
-
-        if config.get("DEBUG", {}).get("VERBOSE", False):
-            print(f'AI提示词: {ai_prompt}')
-
-        # 调用 AI 模型（带重试）
-        retry_count = provider_config.get("RETRY_COUNT", 2)
-        last_error = None
-        
-        for attempt in range(retry_count + 1):
-            try:
-                completion = ai_client.chat.completions.create(
-                    model=provider_config.get("MODEL"),
-                    messages=[{
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image_url",
-                                "min_pixels": min_pixels,
-                                "max_pixels": max_pixels,
-                                "image_url": {"url": f"data:image/png;base64,{image_base64}"}
-                            },
-                            {
-                                "type": "text",
-                                "text": ai_prompt
-                            }
-                        ]
-                    }],
-                    timeout=provider_config.get("TIMEOUT", 60)
-                )
-                
-                if config.get("DEBUG", {}).get("PRINT_AI_RESPONSE", False):
-                    print("AI执行结果：", completion.model_dump_json())
-                
-                # 解析 AI 返回的 JSON 内容
-                ai_response = json.loads(completion.model_dump_json())['choices'][0]['message']['content']
-                pattern = r'```json\n(.*?)```'
-                match = re.search(pattern, ai_response, re.DOTALL)
-                
-                if not match:
-                    raise ValueError(f"AI 返回内容格式错误: {ai_response}")
-                
-                json_content = match.group(1)
-                result = json.loads(json_content)
-                print("AI识别结果：", result)
-
-                # Windows 平台坐标缩放
-                if os.name == 'nt':
-                    bbox = result['bbox']
-                    result['bbox'] = [
-                        bbox[0] / input_width * width,
-                        bbox[1] / input_height * height,
-                        bbox[2] / input_width * width,
-                        bbox[3] / input_height * height
-                    ]
-                    print(f"坐标缩放后：{result['bbox']}")
-
-                # 检查错误
-                if 'errors' in result and result['errors']:
-                    raise AssertionError(f"AI 无法完成操作: {result['errors']}")
-
-                return result
-                
-            except Exception as e:
-                last_error = e
-                error_msg = str(e)
-                
-                # 检查是否是内容审核错误
-                if "data_inspection_failed" in error_msg or "inappropriate content" in error_msg.lower():
-                    print(f"⚠ AI内容审核失败 (尝试 {attempt + 1}/{retry_count + 1})")
-                    if attempt < retry_count:
-                        print("  提示：可在 ai_config.yaml 中切换到 DeepSeek 等其他模型")
-                        continue
-                elif attempt < retry_count:
-                    print(f"⚠ AI调用失败 (尝试 {attempt + 1}/{retry_count + 1}): {error_msg}")
-                    continue
-                
-        # 所有重试都失败
-        print(f"✖ AI调用失败: {last_error}")
-        if config.get("AI_FALLBACK_TO_TRADITIONAL", True):
-            print("  建议：请使用传统定位方式（如 CSS选择器、XPath）代替AI定位")
-        raise last_error
-
-    @allure.step("AI操作: {operation_desc}")
-    def ai_operation(self, **kwargs):
-        """
-        AI 驱动的主操作调度器
+        打开新标签页
         
         参数:
-            operation_desc: 自然语言描述的操作，如"点击登录按钮"、"在用户名输入框输入admin"
-        
-        示例:
-            - operation_desc: "点击红色的提交按钮"
-            - operation_desc: "在密码框输入123456"
-            - operation_desc: "提取页面标题text"
+            url: 新标签页 URL（可选）
         """
         kwargs.pop("关键字", None)
-        operation_desc = kwargs.get("operation_desc")
+        url = kwargs.get("url")
         
-        if not operation_desc:
-            raise ValueError("operation_desc不能为空")
+        context = PlaywrightManager.get_context()
+        new_page = context.new_page()
+        
+        if url:
+            new_page.goto(url)
+        
+        # 保存新页面到上下文
+        pages = g_context().get_dict("all_pages") or []
+        pages.append(new_page)
+        g_context().set_dict("all_pages", pages)
+        g_context().set_dict("current_page", new_page)
+        
+        print(f"已打开新标签页，当前共 {len(pages)} 个标签页")
 
-        # 支持的操作类型
-        actions = ['点击', '输入', 'text提取', '滚动', '悬停', '拖拽']
+    @allure.step("切换到标签页: {index}")
+    def switch_to_tab(self, **kwargs) -> None:
+        """
+        切换到指定标签页
         
-        try:
-            # 调用 AI 视觉分析
-            result = self._call_ai_vision(operation_desc, actions)
-            
-            # 根据操作类型执行相应操作
-            action = result.get('action')
-            bbox = result.get('bbox')
-            text = result.get('text', '')
-            
-            page = self._get_page()
-            
-            if action == '点击':
-                self._ai_click(bbox)
-                print(f"✓ AI操作成功: 点击element")
-            elif action == '输入':
-                self._ai_input(bbox, text)
-                print(f"✓ AI操作成功: 输入text '{text}'")
-            elif action == 'text提取':
-                self._ai_extract_text(text)
-                print(f"✓ AI操作成功: 提取text '{text}'")
-            elif action == '滚动':
-                x = (bbox[0] + bbox[2]) / 2
-                y = (bbox[1] + bbox[3]) / 2
-                page.evaluate(f"window.scrollTo({x}, {y})")
-                print(f"✓ AI操作成功: 滚动到element")
-            elif action == '悬停':
-                x = (bbox[0] + bbox[2]) / 2
-                y = (bbox[1] + bbox[3]) / 2
-                page.mouse.move(x, y)
-                print(f"✓ AI操作成功: 鼠标悬停")
-            elif action == '拖拽':
-                # 拖拽需要两个element，这里简化处理
-                raise NotImplementedError("拖拽操作需要使用 ai_drag 方法")
+        参数:
+            index: 标签页索引（从 0 开始）
+        """
+        kwargs.pop("关键字", None)
+        index = int(kwargs.get("index", 0))
+        
+        pages = g_context().get_dict("all_pages") or []
+        if not pages:
+            context = PlaywrightManager.get_context()
+            pages = context.pages
+            g_context().set_dict("all_pages", pages)
+        
+        if index < 0 or index >= len(pages):
+            raise ValueError(f"标签页索引超出范围: {index}，当前共 {len(pages)} 个标签页")
+        
+        target_page = pages[index]
+        g_context().set_dict("current_page", target_page)
+        target_page.bring_to_front()
+        
+        print(f"已切换到标签页 {index}")
+
+    @allure.step("关闭当前标签页")
+    def close_current_tab(self, **kwargs) -> None:
+        """关闭当前标签页"""
+        kwargs.pop("关键字", None)
+        
+        page = self._get_page()
+        pages = g_context().get_dict("all_pages") or []
+        
+        if page in pages:
+            pages.remove(page)
+        
+        page.close()
+        
+        # 切换到最后一个标签页
+        if pages:
+            g_context().set_dict("current_page", pages[-1])
+            g_context().set_dict("all_pages", pages)
+        else:
+            g_context().set_dict("current_page", None)
+        
+        print(f"已关闭当前标签页，剩余 {len(pages)} 个标签页")
+
+    @allure.step("获取所有标签页数量")
+    def get_tab_count(self, **kwargs) -> int:
+        """
+        获取所有标签页数量
+        
+        参数:
+            variable_name: 存储变量名（可选）
+        """
+        kwargs.pop("关键字", None)
+        variable_name = kwargs.get("variable_name")
+        
+        context = PlaywrightManager.get_context()
+        count = len(context.pages)
+        
+        if variable_name:
+            g_context().set_dict(variable_name, count)
+            print(f"标签页数量已保存到变量: {variable_name} = {count}")
+        else:
+            print(f"当前标签页数量: {count}")
+        
+        return count
+
+    # ==================== Cookie 操作 ====================
+
+    @allure.step("设置 Cookie")
+    def set_cookie(self, **kwargs) -> None:
+        """
+        设置 Cookie
+        
+        参数:
+            name: Cookie 名称
+            value: Cookie 值
+            domain: 域名（可选）
+            path: 路径（可选，默认 /）
+        """
+        kwargs.pop("关键字", None)
+        
+        name = kwargs.get("name")
+        value = kwargs.get("value")
+        domain = kwargs.get("domain")
+        path = kwargs.get("path", "/")
+        
+        page = self._get_page()
+        context = page.context
+        
+        cookie = {
+            "name": name,
+            "value": value,
+            "path": path,
+            "url": page.url if not domain else None
+        }
+        if domain:
+            cookie["domain"] = domain
+        
+        context.add_cookies([cookie])
+        print(f"已设置 Cookie: {name}={value}")
+
+    @allure.step("获取 Cookie")
+    def get_cookie(self, **kwargs) -> Optional[str]:
+        """
+        获取 Cookie
+        
+        参数:
+            name: Cookie 名称
+            variable_name: 存储变量名（可选）
+        """
+        kwargs.pop("关键字", None)
+        
+        name = kwargs.get("name")
+        variable_name = kwargs.get("variable_name")
+        
+        page = self._get_page()
+        context = page.context
+        cookies = context.cookies()
+        
+        value = None
+        for cookie in cookies:
+            if cookie["name"] == name:
+                value = cookie["value"]
+                break
+        
+        if variable_name:
+            g_context().set_dict(variable_name, value)
+            print(f"Cookie 已保存到变量: {variable_name} = {value}")
+        else:
+            print(f"Cookie {name} = {value}")
+        
+        return value
+
+    @allure.step("删除 Cookie")
+    def delete_cookie(self, **kwargs) -> None:
+        """
+        删除 Cookie
+        
+        参数:
+            name: Cookie 名称（可选，不传则删除所有）
+        """
+        kwargs.pop("关键字", None)
+        
+        name = kwargs.get("name")
+        page = self._get_page()
+        context = page.context
+        
+        if name:
+            cookies = context.cookies()
+            remaining = [c for c in cookies if c["name"] != name]
+            context.clear_cookies()
+            if remaining:
+                context.add_cookies(remaining)
+            print(f"已删除 Cookie: {name}")
+        else:
+            context.clear_cookies()
+            print("已删除所有 Cookie")
+
+    # ==================== LocalStorage 操作 ====================
+
+    @allure.step("设置 LocalStorage")
+    def set_local_storage(self, **kwargs) -> None:
+        """
+        设置 LocalStorage
+        
+        参数:
+            key: 键名
+            value: 值
+        """
+        kwargs.pop("关键字", None)
+        
+        key = kwargs.get("key")
+        value = kwargs.get("value")
+        
+        page = self._get_page()
+        page.evaluate(f"localStorage.setItem('{key}', '{value}')")
+        print(f"已设置 LocalStorage: {key}={value}")
+
+    @allure.step("获取 LocalStorage")
+    def get_local_storage(self, **kwargs) -> Optional[str]:
+        """
+        获取 LocalStorage
+        
+        参数:
+            key: 键名
+            variable_name: 存储变量名（可选）
+        """
+        kwargs.pop("关键字", None)
+        
+        key = kwargs.get("key")
+        variable_name = kwargs.get("variable_name")
+        
+        page = self._get_page()
+        value = page.evaluate(f"localStorage.getItem('{key}')")
+        
+        if variable_name:
+            g_context().set_dict(variable_name, value)
+            print(f"LocalStorage 已保存到变量: {variable_name} = {value}")
+        else:
+            print(f"LocalStorage {key} = {value}")
+        
+        return value
+
+    @allure.step("删除 LocalStorage")
+    def delete_local_storage(self, **kwargs) -> None:
+        """
+        删除 LocalStorage
+        
+        参数:
+            key: 键名（可选，不传则清空所有）
+        """
+        kwargs.pop("关键字", None)
+        
+        key = kwargs.get("key")
+        page = self._get_page()
+        
+        if key:
+            page.evaluate(f"localStorage.removeItem('{key}')")
+            print(f"已删除 LocalStorage: {key}")
+        else:
+            page.evaluate("localStorage.clear()")
+            print("已清空所有 LocalStorage")
+
+    # ==================== 文件下载验证 ====================
+
+    @allure.step("等待文件下载")
+    def wait_for_download(self, **kwargs) -> str:
+        """
+        等待文件下载完成
+        
+        参数:
+            locator_type: 触发下载的元素定位方式
+            element: 元素标识
+            save_path: 保存路径（可选）
+            variable_name: 存储下载路径的变量名（可选）
+        """
+        kwargs.pop("关键字", None)
+        
+        locator_type = kwargs.get("locator_type")
+        element = kwargs.get("element")
+        save_path = kwargs.get("save_path")
+        variable_name = kwargs.get("variable_name")
+        
+        page = self._get_page()
+        
+        with page.expect_download() as download_info:
+            if locator_type and element:
+                locator = self._get_locator(locator_type, element)
+                locator.click()
             else:
-                raise ValueError(f"不支持的操作类型: {action}")
-                
-        except Exception as e:
-            self._take_screenshot_on_error(f"AI操作失败_{operation_desc}")
-            raise e
+                raise ValueError("需要指定触发下载的元素")
+        
+        download = download_info.value
+        
+        if save_path:
+            download.save_as(save_path)
+            file_path = save_path
+        else:
+            file_path = download.path()
+        
+        if variable_name:
+            g_context().set_dict(variable_name, file_path)
+            print(f"下载路径已保存到变量: {variable_name} = {file_path}")
+        else:
+            print(f"文件已下载: {file_path}")
+        
+        return file_path
 
-    @allure.step("AI点击: {element_desc}")
-    def ai_click(self, **kwargs):
+    @allure.step("断言文件已下载")
+    def assert_file_downloaded(self, **kwargs) -> None:
         """
-        AI 驱动的点击操作
+        断言文件已下载
         
         参数:
-            element描述: element的自然语言描述，如"红色的提交按钮"、"登录链接"
+            file_path: 文件路径
+            expected_size: 期望的最小文件大小（字节，可选）
         """
         kwargs.pop("关键字", None)
-        element_desc = kwargs.get("element_desc")
         
-        if not element_desc:
-            raise ValueError("element描述不能为空")
+        file_path = kwargs.get("file_path")
+        expected_size = kwargs.get("expected_size")
         
-        operation_desc = f"点击{element_desc}"
-        self.ai_operation(operation_desc=operation_desc)
-
-    @allure.step("AI输入: {text}")
-    def ai_input(self, **kwargs):
-        """
-        AI 驱动的输入操作
+        if not os.path.exists(file_path):
+            raise AssertionError(f"文件不存在: {file_path}")
         
-        参数:
-            element描述: 输入框的自然语言描述，如"用户名输入框"、"搜索框"
-            text: 要输入的text内容
-        """
-        kwargs.pop("关键字", None)
-        element_desc = kwargs.get("element_desc")
-        text = kwargs.get("text", "")
+        actual_size = os.path.getsize(file_path)
         
-        if not element_desc:
-            raise ValueError("element描述不能为空")
+        if expected_size and actual_size < int(expected_size):
+            raise AssertionError(f"文件大小不符: 期望 >= {expected_size} 字节, 实际 {actual_size} 字节")
         
-        operation_desc = f"在{element_desc}输入{text}"
-        
-        try:
-            actions = ['输入']
-            result = self._call_ai_vision(operation_desc, actions)
-            self._ai_input(result['bbox'], text)
-            print(f"✓ AI输入成功: 在{element_desc}输入 '{text}'")
-        except Exception as e:
-            self._take_screenshot_on_error(f"AI输入失败_{element_desc}")
-            raise e
-
-    @allure.step("AI提取text: {text_desc}")
-    def ai_extract_text(self, **kwargs):
-        """
-        AI 驱动的text提取
-        
-        参数:
-            text_desc: 要提取text的描述，如"页面标题"、"错误提示信息"
-            variable_name: 保存到的variable_name（可选，默认保存到 ai_extracted_text）
-        """
-        kwargs.pop("关键字", None)
-        text_desc = kwargs.get("text_desc")
-        variable_name = kwargs.get("variable_name", "ai_extracted_text")
-        
-        if not text_desc:
-            raise ValueError("text_desc不能为空")
-        
-        operation_desc = f"提取{text_desc}的text内容"
-        
-        try:
-            actions = ['text提取']
-            result = self._call_ai_vision(operation_desc, actions)
-            text = result.get('text', '')
-            g_context().set_dict(variable_name, text)
-            print(f"✓ AItext提取成功: 已提取 '{text}' 并保存到变量 {variable_name}")
-        except Exception as e:
-            self._take_screenshot_on_error(f"AItext提取失败_{text_desc}")
-            raise e
-
-    @allure.step("AI滚动: {element_desc}")
-    def ai_scroll(self, **kwargs):
-        """
-        AI 驱动的滚动操作
-        
-        参数:
-            element描述: 要滚动到的element描述，如"页面底部"、"评论区"
-        """
-        kwargs.pop("关键字", None)
-        element_desc = kwargs.get("element_desc")
-        
-        if not element_desc:
-            raise ValueError("element描述不能为空")
-        
-        operation_desc = f"滚动到{element_desc}"
-        
-        try:
-            actions = ['滚动']
-            result = self._call_ai_vision(operation_desc, actions)
-            bbox = result['bbox']
-            
-            page = self._get_page()
-            x = (bbox[0] + bbox[2]) / 2
-            y = (bbox[1] + bbox[3]) / 2
-            page.evaluate(f"window.scrollTo({x}, {y})")
-            print(f"✓ AI滚动成功: 滚动到{element_desc}")
-        except Exception as e:
-            self._take_screenshot_on_error(f"AI滚动失败_{element_desc}")
-            raise e
-
-    @allure.step("AI悬停: {element_desc}")
-    def ai_hover(self, **kwargs):
-        """
-        AI 驱动的鼠标悬停操作
-        
-        参数:
-            element描述: 要悬停的element描述，如"用户菜单"、"导航栏"
-        """
-        kwargs.pop("关键字", None)
-        element_desc = kwargs.get("element_desc")
-        
-        if not element_desc:
-            raise ValueError("element描述不能为空")
-        
-        operation_desc = f"鼠标悬停在{element_desc}"
-        
-        try:
-            actions = ['悬停']
-            result = self._call_ai_vision(operation_desc, actions)
-            bbox = result['bbox']
-            
-            page = self._get_page()
-            x = (bbox[0] + bbox[2]) / 2
-            y = (bbox[1] + bbox[3]) / 2
-            page.mouse.move(x, y)
-            print(f"✓ AI悬停成功: 鼠标悬停在{element_desc}")
-        except Exception as e:
-            self._take_screenshot_on_error(f"AI悬停失败_{element_desc}")
-            raise e
-
-    @allure.step("AI拖拽: {source_element_desc} -> {target_element_desc}")
-    def ai_drag(self, **kwargs):
-        """
-        AI 驱动的拖拽操作
-        
-        参数:
-            源element描述: 要拖拽的element描述，如"待办事项"
-            目标element描述: 拖拽目标的描述，如"已完成区域"
-        """
-        kwargs.pop("关键字", None)
-        source_element_desc = kwargs.get("source_element_desc")
-        target_element_desc = kwargs.get("target_element_desc")
-        
-        if not source_element_desc or not target_element_desc:
-            raise ValueError("源element描述和目标element描述不能为空")
-        
-        try:
-            # 先找到源element
-            operation_desc1 = f"找到{source_element_desc}"
-            actions = ['拖拽']
-            result1 = self._call_ai_vision(operation_desc1, actions)
-            source_bbox = result1['bbox']
-            source_x = (source_bbox[0] + source_bbox[2]) / 2
-            source_y = (source_bbox[1] + source_bbox[3]) / 2
-            
-            # 再找到目标element
-            operation_desc2 = f"找到{target_element_desc}"
-            result2 = self._call_ai_vision(operation_desc2, actions)
-            target_bbox = result2['bbox']
-            target_x = (target_bbox[0] + target_bbox[2]) / 2
-            target_y = (target_bbox[1] + target_bbox[3]) / 2
-            
-            # 执行拖拽 (Playwright 方式)
-            page = self._get_page()
-            page.mouse.move(source_x, source_y)
-            page.mouse.down()
-            page.mouse.move(target_x, target_y)
-            page.mouse.up()
-            
-            print(f"✓ AI拖拽成功: {source_element_desc} -> {target_element_desc}")
-        except Exception as e:
-            self._take_screenshot_on_error(f"AI拖拽失败_{source_element_desc}_to_{target_element_desc}")
-            raise e
-
-    @allure.step("AI断言可见: {element_desc}")
-    def ai_assert_visible(self, **kwargs):
-        """
-        AI 驱动的可见性断言
-        
-        参数:
-            element描述: 要断言可见的element描述，如"成功提示消息"、"登录按钮"
-        """
-        kwargs.pop("关键字", None)
-        element_desc = kwargs.get("element_desc")
-        
-        if not element_desc:
-            raise ValueError("element描述不能为空")
-        
-        operation_desc = f"找到{element_desc}"
-        
-        try:
-            actions = ['点击']  # 使用点击操作来定位element
-            result = self._call_ai_vision(operation_desc, actions)
-            
-            # 如果 AI 能找到element，说明element可见
-            if result.get('bbox'):
-                print(f"✓ AI断言成功: {element_desc} 可见")
-            else:
-                raise AssertionError(f"AI断言失败: {element_desc} 不可见")
-        except Exception as e:
-            self._take_screenshot_on_error(f"AI断言失败_{element_desc}")
-            raise AssertionError(f"AI断言失败: {element_desc} 不可见") from e
-
-    # ============ 旧关键字兼容方法 - 向后兼容 ============
-    
-    def input_context(self, **kwargs):
-        """
-        旧版关键字兼容: input_context -> input_text
-        
-        旧参数映射:
-            定位方式 -> locator_type
-            目标对象 -> element
-            数据内容 -> text
-        """
-        kwargs.pop("关键字", None)
-        locator_type = kwargs.get("定位方式", kwargs.get("locator_type"))
-        element = kwargs.get("目标对象", kwargs.get("element"))
-        text = kwargs.get("数据内容", kwargs.get("text"))
-        
-        # 调用新的 input_text 方法
-        return self.input_text(locator_type=locator_type, element=element, text=text)
-    
-    def option_click(self, **kwargs):
-        """
-        旧版关键字兼容: option_click -> click_element
-        
-        旧参数映射:
-            定位方式 -> locator_type
-            目标对象 -> element
-        """
-        kwargs.pop("关键字", None)
-        locator_type = kwargs.get("定位方式", kwargs.get("locator_type"))
-        element = kwargs.get("目标对象", kwargs.get("element"))
-        
-        # 调用新的 click_element 方法
-        return self.click_element(locator_type=locator_type, element=element)
-    
-    def wait_sleep(self, **kwargs):
-        """
-        旧版关键字兼容: wait_sleep -> sleep
-        
-        旧参数映射:
-            数据内容 -> time
-        """
-        kwargs.pop("关键字", None)
-        time_value = kwargs.get("数据内容", kwargs.get("time"))
-        
-        if time_value:
-            time_value = float(time_value)
-        
-        # 调用新的 sleep 方法
-        return self.sleep(time=time_value)
-    
-    def assert_browser_title(self, **kwargs):
-        """
-        旧版关键字兼容: assert_browser_title -> assert_title_equals
-        
-        旧参数映射:
-            数据内容 -> expected_title
-        """
-        kwargs.pop("关键字", None)
-        expected_title = kwargs.get("数据内容", kwargs.get("expected_title"))
-        
-        # 调用新的 assert_title_equals 方法
-        return self.assert_title_equals(expected_title=expected_title)
+        print(f"文件下载断言成功: {file_path} ({actual_size} 字节)")
 
 
 

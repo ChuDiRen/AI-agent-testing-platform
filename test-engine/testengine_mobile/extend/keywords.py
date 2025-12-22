@@ -10,11 +10,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from ..core.globalContext import g_context
 from ..utils.AppiumManager import AppiumManager
-from .mobile_use_keywords import MobileUseKeywords
 
 
-class Keywords(MobileUseKeywords):
-    """Mobile 自动化测试关键字类，继承 Mobile-Use AI 关键字"""
+class Keywords:
+    """Mobile 自动化测试关键字类"""
     def _get_driver(self):
         driver = AppiumManager.get_driver()
         if driver is None:
@@ -74,18 +73,33 @@ class Keywords(MobileUseKeywords):
 
     @allure.step("启动 App")
     def open_app(self, **kwargs: Any):
+        """
+        启动 App
+        
+        参数:
+        - platform: 平台 (android/ios)
+        - server: Appium 服务器地址
+        - device_name: 设备名称
+        - udid: 设备 UDID
+        - app: App 路径
+        - bundle_id: iOS Bundle ID
+        - no_reset: 是否不重置 App
+        - automation_name: 自动化引擎名称
+        - new_command_timeout: 命令超时时间
+        """
         if AppiumManager.get_driver() is not None:
             return
 
-        platform = (kwargs.get("platform") or g_context().get_dict("PLATFORM") or g_context().get_dict("platform") or "android").lower()
-        server = kwargs.get("server") or g_context().get_dict("APPIUM_SERVER") or g_context().get_dict("server") or "http://127.0.0.1:4723"
-        device_name = kwargs.get("deviceName") or g_context().get_dict("deviceName") or g_context().get_dict("DEVICE_NAME")
-        udid = kwargs.get("udid") or g_context().get_dict("udid") or g_context().get_dict("UDID")
-        app = kwargs.get("app") or g_context().get_dict("app") or g_context().get_dict("APP")
-        bundle_id = kwargs.get("bundleId") or g_context().get_dict("bundleId") or g_context().get_dict("BUNDLE_ID")
-        no_reset_raw = kwargs.get("noReset", g_context().get_dict("noReset"))
+        platform = (kwargs.get("platform") or g_context().get_dict("platform") or "android").lower()
+        server = kwargs.get("server") or g_context().get_dict("server") or "http://127.0.0.1:4723"
+        device_name = kwargs.get("device_name") or g_context().get_dict("device_name")
+        udid = kwargs.get("udid") or g_context().get_dict("udid")
+        app = kwargs.get("app") or g_context().get_dict("app")
+        bundle_id = kwargs.get("bundle_id") or g_context().get_dict("bundle_id")
+        no_reset_raw = kwargs.get("no_reset", g_context().get_dict("no_reset"))
         no_reset = True if no_reset_raw is None else (no_reset_raw if isinstance(no_reset_raw, bool) else str(no_reset_raw).lower() in ("true", "1", "yes"))
-        automation_name = kwargs.get("automationName")
+        automation_name = kwargs.get("automation_name")
+        new_command_timeout = kwargs.get("new_command_timeout")
 
         caps: dict[str, Any] = {}
         if platform == "android":
@@ -108,11 +122,11 @@ class Keywords(MobileUseKeywords):
         if udid:
             caps["appium:udid"] = udid
         caps["appium:noReset"] = no_reset
-        if (nct := kwargs.get("newCommandTimeout")) is not None:
-            caps["appium:newCommandTimeout"] = int(nct)
+        if new_command_timeout is not None:
+            caps["appium:newCommandTimeout"] = int(new_command_timeout)
 
-        g_context().set_dict("APPIUM_SERVER", server)
-        g_context().set_dict("PLATFORM", platform)
+        g_context().set_dict("server", server)
+        g_context().set_dict("platform", platform)
         g_context().set_dict("_caps", caps)
 
         AppiumManager.create_driver(server, caps)
@@ -615,7 +629,7 @@ class Keywords(MobileUseKeywords):
     def press_home(self, **kwargs: Any):
         """按 Home 键"""
         driver = self._get_driver()
-        platform = (g_context().get_dict("PLATFORM") or "android").lower()
+        platform = (g_context().get_dict("platform") or "android").lower()
         if platform == "android":
             driver.press_keycode(3)  # KEYCODE_HOME
         else:

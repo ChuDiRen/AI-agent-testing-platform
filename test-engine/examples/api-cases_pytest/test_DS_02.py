@@ -48,15 +48,3 @@ async def test_02():
         except Exception as e:
             # 捕获JSON解析错误
             pytest.skip(f"JSON解析失败: {str(e)}，响应内容: {response.text if response and hasattr(response, 'text') else 'N/A'}")
-
-        # # 2.数据库检查
-        # # 订单ID从响应报文中获取
-        # order_ids = keyWords.get_text(res.text, "$..order_ids")
-        # order_id = order_ids[0]
-        # # 订单状态从数据库里查询
-        # sql = f'select status from sxo_order where id = {order_id}'
-        # # 数据库里的订单状态
-        # status_db = keyWords.sqlCheck(sql)
-        # # 响应报文的订单状态
-        # status_intf = keyWords.get_text(res.text, "$..order_status")
-        # assert status_db == status_intf

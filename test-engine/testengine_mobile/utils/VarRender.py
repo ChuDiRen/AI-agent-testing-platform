@@ -1,9 +1,7 @@
-from typing import Any
+"""
+变量渲染 - 复用公共模块
+"""
+from testengine_common.var_render import refresh, refresh_simple
 
-from jinja2 import Template
+__all__ = ["refresh", "refresh_simple"]
 
-
-def refresh(target: Any | None, context: dict[str, Any]) -> str | None:
-    if target is None:
-        return None
-    return Template(str(target)).render(context)

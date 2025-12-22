@@ -66,5 +66,3 @@ class TestRunner:
 
         finally:
             print("========执行完毕========")
-            # if driver is not None:
-            #     driver.quit()

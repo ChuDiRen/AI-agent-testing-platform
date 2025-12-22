@@ -5,15 +5,15 @@
 # App 启动与关闭
 # ================================
 open_app:
-  - platform
-  - server
-  - deviceName
-  - udid
-  - app
-  - bundleId
-  - noReset
-  - automationName
-  - newCommandTimeout
+  - platform           # 平台 (android/ios)
+  - server             # Appium 服务器地址
+  - device_name        # 设备名称
+  - udid               # 设备 UDID
+  - app                # App 路径
+  - bundle_id          # iOS Bundle ID
+  - no_reset           # 是否不重置 App
+  - automation_name    # 自动化引擎名称
+  - new_command_timeout # 命令超时时间
 
 close_app: []
 
@@ -307,102 +307,3 @@ set_variable:
 get_variable:
   - variable_name
 
-# ================================
-# Mobile-Use AI 关键字
-# 基于 LLM 驱动的智能移动端自动化
-# ================================
-
-# 配置与初始化
-mu_configure:
-  - llm_provider
-  - llm_model
-  - api_key
-  - base_url
-  - platform
-  - device_id
-  - timeout
-  - max_steps
-  - minitap_api_key
-
-mu_init_agent:
-  - platform
-  - device_id
-  - llm_provider
-  - llm_model
-
-mu_close_agent: []
-
-# 核心 AI 任务
-mu_run_task:
-  - goal
-  - output_description
-  - max_steps
-  - save_result
-  - variable_name
-
-mu_analyze_screen:
-  - prompt
-  - variable_name
-
-mu_tap:
-  - element_desc
-
-mu_input:
-  - element_desc
-  - text
-  - clear_first
-
-mu_swipe:
-  - direction
-  - element_desc
-
-mu_back: []
-
-mu_home: []
-
-mu_open_app:
-  - app_name
-
-mu_close_app:
-  - app_name
-
-# 数据抓取
-mu_extract_data:
-  - data_desc
-  - output_format
-  - variable_name
-
-mu_get_text:
-  - element_desc
-  - variable_name
-
-# AI 断言
-mu_assert_visible:
-  - element_desc
-
-mu_assert_text_contains:
-  - expected_text
-  - element_desc
-
-# 高级功能
-mu_login:
-  - username
-  - password
-  - app_name
-
-mu_search:
-  - keyword
-  - app_name
-
-mu_send_message:
-  - recipient
-  - message
-  - app_name
-
-mu_screenshot:
-  - filename
-  - description
-
-mu_wait:
-  - condition
-  - timeout

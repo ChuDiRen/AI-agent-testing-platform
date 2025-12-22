@@ -1,0 +1,107 @@
+# Web 测试示例 - 使用新版关键字 API
+# 包含多窗口、Cookie、LocalStorage 等新功能
+
+test_name: "新版 Web 关键字示例"
+
+context:
+  base_url: "https://www.baidu.com"
+
+test_cases:
+  - name: "基础浏览器操作"
+    steps:
+      - 关键字: open_browser
+        browser: chromium
+        headless: false
+        url: "{{base_url}}"
+      
+      - 关键字: wait_for_page_load
+        wait_until: load
+      
+      - 关键字: assert_title_contains
+        expected_text: 百度
+      
+      - 关键字: input_text
+        locator_type: id
+        element: kw
+        text: "Playwright 自动化测试"
+      
+      - 关键字: click_element
+        locator_type: id
+        element: su
+      
+      - 关键字: wait_for_page_load
+        wait_until: networkidle
+      
+      - 关键字: take_screenshot
+        filename: baidu_search_result
+      
+      - 关键字: close_browser
+
+  - name: "多标签页操作"
+    steps:
+      - 关键字: open_browser
+        browser: chromium
+        headless: false
+        url: "{{base_url}}"
+      
+      - 关键字: open_new_tab
+        url: "https://www.bing.com"
+      
+      - 关键字: get_tab_count
+        variable_name: tab_count
+      
+      - 关键字: switch_to_tab
+        index: 0
+      
+      - 关键字: assert_title_contains
+        expected_text: 百度
+      
+      - 关键字: switch_to_tab
+        index: 1
+      
+      - 关键字: assert_title_contains
+        expected_text: Bing
+      
+      - 关键字: close_current_tab
+      
+      - 关键字: close_browser
+
+  - name: "Cookie 操作"
+    steps:
+      - 关键字: open_browser
+        browser: chromium
+        headless: false
+        url: "{{base_url}}"
+      
+      - 关键字: set_cookie
+        name: test_cookie
+        value: test_value
+      
+      - 关键字: get_cookie
+        name: test_cookie
+        variable_name: cookie_value
+      
+      - 关键字: delete_cookie
+        name: test_cookie
+      
+      - 关键字: close_browser
+
+  - name: "LocalStorage 操作"
+    steps:
+      - 关键字: open_browser
+        browser: chromium
+        headless: false
+        url: "{{base_url}}"
+      
+      - 关键字: set_local_storage
+        key: test_key
+        value: test_value
+      
+      - 关键字: get_local_storage
+        key: test_key
+        variable_name: storage_value
+      
+      - 关键字: delete_local_storage
+        key: test_key
+      
+      - 关键字: close_browser

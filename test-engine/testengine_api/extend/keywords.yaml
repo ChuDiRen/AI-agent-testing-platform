@@ -1,183 +1,176 @@
-# 用来维护关键字对应的对应的变量数据
+# API 测试关键字参数配置
 
 # ================================
-# HTTP请求类关键字
+# HTTP 请求类关键字
 # ================================
+send_request:
+  - method       # 请求方法 (GET/POST/PUT/DELETE/PATCH)
+  - url          # 请求地址
+  - headers      # 请求头
+  - params       # URL 参数
+  - data         # 表单数据
+  - json         # JSON 数据
+  - files        # 上传文件
+  - download     # 是否下载响应
+  - timeout      # 超时时间
+
 request_get:
-  - URL
-  - PARAMS
-  - HEADERS
+  - url
+  - params
+  - headers
 
 request_post_json:
-  - URL
-  - PARAMS
-  - HEADERS
-  - DATA
+  - url
+  - params
+  - headers
+  - json
 
 request_post_form:
-  - URL
-  - PARAMS
-  - HEADERS
-  - DATA
+  - url
+  - params
+  - headers
+  - data
 
 request_post_file:
-  - URL
-  - PARAMS
-  - HEADERS
-  - DATA
-  - FILES
+  - url
+  - params
+  - headers
+  - data
+  - files
 
 request_put:
-  - URL
-  - PARAMS
-  - HEADERS
-  - DATA
+  - url
+  - params
+  - headers
+  - json
 
 request_delete:
-  - URL
-  - PARAMS
-  - HEADERS
+  - url
+  - params
+  - headers
 
 request_patch:
-  - URL
-  - PARAMS
-  - HEADERS
-  - DATA
-
-# 兼容旧版本关键字
-request_post_form_urlencoded: URL,PARAMS,HEADERS,DATA
-request_post_row_json: URL,PARAMS,HEADERS,DATA
-request_post_form_data: URL,PARAMS,HEADERS,DATA,FILES
+  - url
+  - params
+  - headers
+  - json
 
 # ================================
 # 数据提取类关键字
 # ================================
-extract_json_data:
-  - EXPRESSION  # JSONPath表达式
-  - INDEX       # 下标，默认0
-  - VAR_NAME    # 需要存储的变量名
+extract_json:
+  - expression   # JSONPath 表达式
+  - index        # 下标（默认 0）
+  - var_name     # 存储的变量名
 
-extract_regex_data:
-  - EXPRESSION  # 正则表达式
-  - INDEX       # 下标，默认0
-  - VAR_NAME    # 需要存储的变量名
+extract_regex:
+  - expression   # 正则表达式
+  - index        # 下标（默认 0）
+  - var_name     # 存储的变量名
 
 extract_header:
-  - HEADER_NAME # 响应头名称
-  - VAR_NAME    # 需要存储的变量名
+  - header_name  # 响应头名称
+  - var_name     # 存储的变量名
 
 extract_cookie:
-  - COOKIE_NAME # Cookie名称
-  - VAR_NAME    # 需要存储的变量名
+  - cookie_name  # Cookie 名称
+  - var_name     # 存储的变量名
 
-# 兼容旧版本关键字
-ex_jsonData:
-  - EXVALUE  # JSON表达式
-  - INDEX    # 下标，默认0
-  - VARNAME  # 需要存储的变量
-
-ex_reData:
-  - EXVALUE  # 正则表达式
-  - INDEX    # 下标，默认0
-  - VARNAME  # 需要存储的变量
+extract_mysql:
+  - db_name      # 数据库名称
+  - sql          # SQL 查询语句
+  - var_names    # 变量名列表
 
 # ================================
 # 断言验证类关键字
 # ================================
 assert_status_code:
-  - EXPECTED_CODE  # 期望的状态码
+  - expected_code  # 期望的状态码
 
 assert_response_time:
-  - MAX_TIME  # 最大响应时间(秒)
+  - max_time       # 最大响应时间（秒）
 
-assert_contains_text:
-  - EXPECTED_TEXT  # 期望包含的文本
+assert_contains:
+  - expected_text  # 期望包含的文本
 
-assert_json_field:
-  - JSON_PATH      # JSONPath表达式
-  - EXPECTED_VALUE # 期望的值
+assert_json:
+  - json_path      # JSONPath 表达式
+  - expected       # 期望值
+  - operator       # 操作符 (==, !=, >, <, >=, <=, in, not in)
 
-assert_number_compare:
-  - ACTUAL_VALUE   # 实际值
-  - EXPECTED_VALUE # 期望值
-  - OPERATOR       # 操作符 (>, <, ==, >=, <=, !=)
+assert_compare:
+  - value          # 实际值
+  - expected       # 期望值
+  - operator       # 操作符 (>, <, ==, >=, <=, !=)
+  - message        # 自定义错误消息
 
-# 兼容旧版本关键字
-assert_text_comparators:
-  - VALUE    # 实际结果
-  - EXPECTED # 期望结果
-  - OP_STR   # 操作符的字符串表示（如 '>', '<', '==' 等）
+assert_file_md5:
+  - expected_md5   # 期望的 MD5 值
 
-assert_json_comparators:
-  - JSON_PATH  # JSONPath 表达式（如 '$..msg'）
-  - EXPECTED   # 期望的值
-  - OP_STR     # 操作符（如 '==', '!=', '>', '<', 'in' 等）
-
-# ================================
-# 数据库操作类关键字
-# ================================
-execute_sql_query:
-  - DB_NAME    # 数据库名称
-  - SQL        # SQL查询语句
-  - VAR_NAMES  # 变量名列表
-
-execute_sql_update:
-  - DB_NAME  # 数据库名称
-  - SQL      # SQL更新语句
-
-# 兼容旧版本关键字
-ex_mysqlData:
-  - 数据库    # 数据库的名字，在你context中维护的
-  - SQL      # SQL语句
-  - reference_variables  # 列表格式
+assert_json_deep:
+  - json1          # 第一个 JSON 对象
+  - json2          # 第二个 JSON 对象
+  - exclude_fields # 需要排除的字段
+  - ignore_order   # 是否忽略列表顺序
 
 # ================================
 # 工具类关键字
 # ================================
-wait_time:
-  - SECONDS  # 等待时间(秒)
-
 generate_random_string:
-  - LENGTH    # 字符串长度
-  - VAR_NAME  # 存储变量名
+  - length         # 字符串长度
+  - var_name       # 存储变量名
 
 generate_random_number:
-  - MIN_VALUE  # 最小值
-  - MAX_VALUE  # 最大值
-  - VAR_NAME   # 存储变量名
+  - min_value      # 最小值
+  - max_value      # 最大值
+  - var_name       # 存储变量名
 
 get_timestamp:
-  - VAR_NAME  # 存储变量名
+  - var_name       # 存储变量名
 
 format_datetime:
-  - FORMAT    # 时间格式，默认 %Y-%m-%d %H:%M:%S
-  - VAR_NAME  # 存储变量名
+  - format         # 时间格式
+  - var_name       # 存储变量名
 
 md5_encrypt:
-  - TEXT      # 要加密的文本
-  - VAR_NAME  # 存储变量名
+  - text           # 要加密的文本
+  - var_name       # 存储变量名
 
 base64_encode:
-  - TEXT      # 要编码的文本
-  - VAR_NAME  # 存储变量名
+  - text           # 要编码的文本
+  - var_name       # 存储变量名
 
 base64_decode:
-  - ENCODED_TEXT  # 要解码的文本
-  - VAR_NAME      # 存储变量名
+  - encoded_text   # 要解码的文本
+  - var_name       # 存储变量名
+
+aes_encrypt:
+  - data           # 要加密的数据
+  - key            # AES 密钥
+  - var_name       # 存储变量名
+
+wait_time:
+  - seconds        # 等待时间（秒）
 
 # ================================
-# 文件操作类关键字
+# WebSocket 关键字
 # ================================
-read_file:
-  - FILE_PATH  # 文件路径
-  - ENCODING   # 文件编码，默认utf-8
-  - VAR_NAME   # 存储变量名
+ws_connect:
+  - url            # WebSocket 地址
+  - headers        # 请求头
+  - timeout        # 连接超时（秒）
 
-write_file:
-  - FILE_PATH  # 文件路径
-  - CONTENT    # 文件内容
-  - ENCODING   # 文件编码，默认utf-8
-  - MODE       # 写入模式，默认w
+ws_send:
+  - message        # 要发送的消息
 
-delete_file:
-  - FILE_PATH  # 文件路径
+ws_receive:
+  - timeout        # 接收超时（秒）
+  - var_name       # 存储变量名
+
+ws_close: []
+
+ws_assert_message:
+  - expected       # 期望值
+  - operator       # 操作符（==, contains, json_path）
+  - json_path      # JSONPath 表达式
+

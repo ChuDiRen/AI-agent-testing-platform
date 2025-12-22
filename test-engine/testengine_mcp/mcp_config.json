@@ -1,0 +1,79 @@
+{
+  "mcpServers": {
+    "test-engine": {
+      "url": "http://localhost:8100/mcp",
+      "description": "自动化测试引擎 MCP 服务",
+      "capabilities": {
+        "case_generation": {
+          "description": "生成 4 种测试用例",
+          "tools": [
+            {
+              "name": "generate_api_case",
+              "endpoint": "POST /cases/generate/api",
+              "description": "生成 API 测试用例，支持 status_code/contains/jsonpath/response_time 等断言"
+            },
+            {
+              "name": "generate_web_case",
+              "endpoint": "POST /cases/generate/web",
+              "description": "生成 Web 测试用例，支持 click/input/assert_text/assert_element 等操作"
+            },
+            {
+              "name": "generate_mobile_case",
+              "endpoint": "POST /cases/generate/mobile",
+              "description": "生成 Mobile 测试用例，支持 Android/iOS 双平台"
+            },
+            {
+              "name": "generate_perf_case",
+              "endpoint": "POST /cases/generate/perf",
+              "description": "生成性能测试用例，基于 Locust，支持并发用户配置"
+            }
+          ]
+        },
+        "test_execution": {
+          "description": "执行测试用例",
+          "tools": [
+            {
+              "name": "quick_api_test",
+              "endpoint": "POST /test/api/quick",
+              "description": "快速 API 测试，无需创建用例文件"
+            },
+            {
+              "name": "run_test_case",
+              "endpoint": "POST /test/case/run",
+              "description": "运行单个测试用例"
+            },
+            {
+              "name": "run_directory_test",
+              "endpoint": "POST /test/directory/run",
+              "description": "运行整个目录的测试用例"
+            }
+          ]
+        },
+        "test_report": {
+          "description": "测试报告",
+          "tools": [
+            {
+              "name": "list_reports",
+              "endpoint": "GET /test/reports",
+              "description": "列出所有测试报告"
+            },
+            {
+              "name": "get_report",
+              "endpoint": "GET /test/report",
+              "description": "获取测试报告详情"
+            },
+            {
+              "name": "get_report_summary",
+              "endpoint": "GET /test/report/summary",
+              "description": "获取报告摘要（适合 LLM 展示）"
+            }
+          ]
+        }
+      },
+      "startup": {
+        "command": "python -m uvicorn testengine_mcp.main:app --host 0.0.0.0 --port 8100",
+        "cwd": "test-engine"
+      }
+    }
+  }
+}

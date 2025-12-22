@@ -4,6 +4,7 @@
 参数定义从 plugin.yaml 读取
 """
 import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
@@ -28,8 +29,19 @@ def generate_report(allure_results_dir: Path, allure_report_dir: Path) -> Option
     """
     print("\n=== 测试执行完成，正在生成Allure报告... ===")
     
-    # 1. 生成 Allure 报告
-    os.system(f'allure generate -c -o "{allure_report_dir}" "{allure_results_dir}"')
+    # 1. 生成 Allure 报告（使用 subprocess 替代 os.system）
+    try:
+        subprocess.run(
+            ['allure', 'generate', '-c', '-o', str(allure_report_dir), str(allure_results_dir)],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"警告: Allure 报告生成失败: {e.stderr}")
+    except FileNotFoundError:
+        print("警告: 未找到 allure 命令，请确保已安装 Allure CLI")
+        return None
     
     # 2. 使用 allure-combine 生成单文件报告
     try:
@@ -98,7 +110,7 @@ def run_pytest_tests(
     """
     直接运行 pytest 测试脚本（不使用 CasesPlugin）
     
-    :param engine: 引擎类型 ('api' 或 'web')
+    :param engine: 引擎类型 ('api'、'web'、'mobile'、'perf')
     :param project_root: 项目根目录
     :param reports_dir: 报告目录
     :param cases_dir: 测试用例目录
@@ -115,6 +127,11 @@ def run_pytest_tests(
     if engine == 'web':
         screenshots_dir = reports_dir / "screenshots"
         screenshots_dir.mkdir(exist_ok=True)
+    
+    # 如果是 perf 测试，创建性能测试报告目录
+    if engine == 'perf':
+        perf_reports_dir = reports_dir / "perf-reports"
+        perf_reports_dir.mkdir(exist_ok=True)
     
     # 构建 pytest 参数
     pytest_args = [
@@ -286,7 +303,15 @@ def run_perf_engine() -> int:
         reports_dir.mkdir(exist_ok=True)
         
         # 从 plugin_config 获取参数
+        case_type = plugin_config.get_arg("type", "yaml")
         cases_dir = plugin_config.get_arg("cases") or "examples/perf-cases_yaml"
+        
+        # pytest 模式：直接运行 pytest 测试脚本
+        if case_type == 'pytest':
+            print(f"检测到 pytest 模式，直接运行测试脚本")
+            return run_pytest_tests('perf', project_root, reports_dir, cases_dir)
+        
+        # yaml 模式：使用 Locust 运行器
         host = plugin_config.get_arg("host", "")
         users = int(plugin_config.get_arg("users", 10))
         spawn_rate = float(plugin_config.get_arg("spawn_rate", 1))

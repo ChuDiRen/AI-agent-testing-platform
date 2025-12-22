@@ -1,184 +1,230 @@
 # Web 自动化测试关键字参数配置
-# 用来维护关键字对应的参数列表
 
 # ================================
 # 浏览器操作类关键字
 # ================================
 open_browser:
-  - browser         # chromium/firefox/webkit (默认 chromium)
-  - headless        # true/false (默认 false)
-  - implicit_wait   # 等待时间（秒，可选）
-  - window_size     # maximize/1920x1080/等 (可选)
-  - url             # 初始 URL (可选)
+  - browser         # chromium/firefox/webkit
+  - headless        # true/false
+  - implicit_wait   # 等待时间（秒）
+  - window_size     # maximize/1920x1080
+  - url             # 初始 URL
 
-close_browser: []  # 无参数
+close_browser: []
 
 navigate_to:
-  - url  # 目标 URL
+  - url
+  - wait_until      # load/domcontentloaded/networkidle
+  - timeout
 
-refresh_page: []  # 无参数
+refresh_page: []
 
-go_back: []  # 浏览器后退
+go_back: []
 
-go_forward: []  # 浏览器前进
+go_forward: []
 
 # ================================
 # 元素操作类关键字
 # ================================
 click_element:
-  - locator_type  # id/name/xpath/css/role/text 等
-  - element       # 元素标识
-  - timeout       # 超时时间（毫秒，可选）
+  - locator_type    # id/name/xpath/css/role/text
+  - element
+  - timeout
+  - force_click
 
 input_text:
-  - locator_type  # id/name/xpath/css/role 等
-  - element       # 元素标识
-  - text          # 输入的文本
-  - timeout       # 超时时间（毫秒，可选）
-  - wait_visible  # 是否等待可见 (可选)
+  - locator_type
+  - element
+  - text
+  - clear
+  - timeout
+  - wait_visible
 
 get_element_text:
-  - locator_type  # id/name/xpath/css/role 等
-  - element       # 元素标识
-  - variable_name # 存储变量名
-  - timeout       # 超时时间（毫秒，可选）
+  - locator_type
+  - element
+  - variable_name
+  - timeout
 
 hover_element:
-  - locator_type  # id/name/xpath/css/role 等
-  - element       # 元素标识
-  - timeout       # 超时时间（毫秒，可选）
+  - locator_type
+  - element
+  - timeout
 
 scroll_to_element:
-  - locator_type  # id/name/xpath/css/role 等
-  - element       # 元素标识
+  - locator_type
+  - element
 
 double_click_element:
-  - locator_type  # id/name/xpath/css/role 等
-  - element       # 元素标识
+  - locator_type
+  - element
+  - timeout
 
 right_click_element:
-  - locator_type  # id/name/xpath/css/role 等
-  - element       # 元素标识
+  - locator_type
+  - element
+  - timeout
+
+clear_element:
+  - locator_type
+  - element
+
+get_attribute:
+  - locator_type
+  - element
+  - attribute_name
+  - variable_name
+
+select_dropdown:
+  - locator_type
+  - element
+  - select_method   # value/text/index
+  - option_value
 
 # ================================
 # 等待类关键字
 # ================================
 wait_for_page_load:
-  - wait_until    # load/domcontentloaded/networkidle
-  - timeout       # 超时时间（毫秒，可选）
+  - wait_until      # load/domcontentloaded/networkidle
+  - timeout
+
+wait_for_element:
+  - locator_type
+  - element
+  - timeout
 
 wait_for_element_visible:
-  - locator_type  # id/name/xpath/css/role 等
-  - element       # 元素标识
-  - timeout       # 超时时间（毫秒，可选）
+  - locator_type
+  - element
+  - timeout
+
+wait_for_element_hidden:
+  - locator_type
+  - element
+  - timeout
 
 wait_for_element_clickable:
-  - locator_type  # id/name/xpath/css/role 等
-  - element       # 元素标识
-  - timeout       # 超时时间（毫秒，可选）
-
-wait_for_element_invisible:
-  - locator_type  # id/name/xpath/css/role 等
-  - element       # 元素标识
-  - timeout       # 超时时间（毫秒，可选）
+  - locator_type
+  - element
+  - timeout
 
 wait_for_text:
-  - expected_text # 期望的文本
-  - timeout       # 超时时间（毫秒，可选）
+  - expected_text
+  - locator_type
+  - element
+  - timeout
 
 sleep:
-  - time          # 等待时间（秒）
+  - time
 
 # ================================
 # 断言类关键字
 # ================================
+assert_title:
+  - expected_title
+  - timeout
+
 assert_title_equals:
-  - expected_title  # 期望的页面标题
+  - expected_title
+  - timeout
 
 assert_title_contains:
-  - expected_text   # 期望包含的文本
+  - expected_text
+  - timeout
 
 assert_text_contains:
-  - expected_text   # 期望包含的文本
+  - locator_type
+  - element
+  - expected_text
+  - timeout
 
 assert_element_visible:
-  - locator_type    # id/name/xpath/css/role 等
-  - element         # 元素标识
-
-assert_element_invisible:
-  - locator_type    # id/name/xpath/css/role 等
-  - element         # 元素标识
+  - locator_type
+  - element
+  - timeout
 
 assert_element_exists:
-  - locator_type    # id/name/xpath/css/role 等
-  - element         # 元素标识
+  - locator_type
+  - element
+  - timeout
 
 # ================================
 # 获取信息类关键字
 # ================================
 get_current_url:
-  - variable_name   # 存储变量名
-
-get_page_title:
-  - variable_name   # 存储变量名
-
-get_element_attribute:
-  - locator_type    # id/name/xpath/css/role 等
-  - element         # 元素标识
-  - attribute_name  # 属性名
-  - variable_name   # 存储变量名
+  - variable_name
 
 # ================================
-# 截图和日志类关键字
+# 截图和脚本类关键字
 # ================================
 take_screenshot:
-  - filename        # 文件名（可选）
+  - filename
+  - full_page
 
 execute_script:
-  - script          # JavaScript 代码
-  - variable_name   # 存储变量名（可选）
+  - script
+  - variable_name
 
 # ================================
-# 其他关键字
+# iframe 操作
 # ================================
-select_option:
-  - locator_type    # id/name/xpath/css/role 等
-  - element         # 元素标识
-  - option_value    # 选项值
-
-select_option_by_text:
-  - locator_type    # id/name/xpath/css/role 等
-  - element         # 元素标识
-  - option_text     # 选项文本
-
-upload_file:
-  - locator_type    # id/name/xpath/css/role 等
-  - element         # 元素标识
-  - file_path       # 文件路径
-
 switch_to_frame:
-  - locator_type    # id/name/xpath/css/role 等
-  - element         # 元素标识
-
-switch_to_default_content: []  # 无参数
-
-accept_alert: []  # 接受警告框
-
-dismiss_alert: []  # 拒绝警告框
-
-get_alert_text:
-  - variable_name   # 存储变量名
+  - locator_type
+  - element
 
 # ================================
-# AI 驱动操作类关键字
+# 多窗口/标签页操作
 # ================================
-ai_click:
-  - element_desc    # 元素描述
+open_new_tab:
+  - url
 
-ai_input:
-  - element_desc    # 元素描述
-  - text            # 输入的文本
+switch_to_tab:
+  - index
 
-ai_operation:
-  - operation_desc  # 操作描述
+close_current_tab: []
 
+get_tab_count:
+  - variable_name
+
+# ================================
+# Cookie 操作
+# ================================
+set_cookie:
+  - name
+  - value
+  - domain
+  - path
+
+get_cookie:
+  - name
+  - variable_name
+
+delete_cookie:
+  - name
+
+# ================================
+# LocalStorage 操作
+# ================================
+set_local_storage:
+  - key
+  - value
+
+get_local_storage:
+  - key
+  - variable_name
+
+delete_local_storage:
+  - key
+
+# ================================
+# 文件下载操作
+# ================================
+wait_for_download:
+  - locator_type
+  - element
+  - save_path
+  - variable_name
+
+assert_file_downloaded:
+  - file_path
+  - expected_size

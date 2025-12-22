@@ -27,7 +27,6 @@
 ### Web 测试特性
 
 - 🌐 基于 Playwright - 现代化 Web 自动化测试框架
-- 🤖 AI驱动操作 - 基于Qwen-VL视觉模型，使用自然语言描述定位和操作元素（新功能）
 - 🎯 多浏览器支持（Chromium、Firefox、WebKit）
 - ⚡ 内置自动等待 - 无需显式等待
 - 🎭 现代化定位方式（role、text、label、placeholder 等）
@@ -40,20 +39,19 @@
 ### 移动端测试特性
 
 - 📱 基于 Appium - 支持 Android 和 iOS 双平台
-- 🤖 AI驱动操作 - 基于 mobile-use，支持自然语言控制移动设备
 - 🎯 多种定位方式（id、accessibility_id、xpath、uiautomator、ios_predicate 等）
 - 📸 失败自动截图 + 页面源码附加
 - 👆 丰富的手势操作（点击、长按、滑动、捏合、拖拽等）
 - 📊 70+ 内置关键字，覆盖移动端全部操作场景
 - 🔄 App 生命周期管理（安装、卸载、启动、终止等）
 - 📋 剪贴板、通知栏、Context 切换等高级功能
-- 🗣️ 自然语言数据抓取和智能断言
 
 ### 性能测试特性
 
 - ⚡ 基于 Locust - 高性能分布式负载测试框架
 - 📈 实时监控 - Web UI 实时查看测试指标
 - 🔄 关键字驱动 - 使用 YAML 编写性能测试用例
+- 🐍 **Pytest 支持** - 使用 Python pytest 脚本编写性能测试（新增）
 - 📊 丰富指标 - RPS、响应时间、失败率等
 - 🎯 灵活配置 - 并发用户数、生成速率、运行时长
 - 📝 HTML 报告 - 自动生成详细的测试报告
@@ -89,12 +87,14 @@ test-engine/
 │   ├── core/              # 核心运行器 (Locust)
 │   ├── extend/            # 关键字扩展
 │   ├── parse/             # 用例解析器
-│   └── utils/             # 工具类
+│   ├── utils/             # 工具类
+│   └── pytest.ini         # Pytest 配置文件
 ├── examples/              # 示例用例
 │   ├── api-cases/         # API测试示例
 │   ├── web-cases/         # Web测试示例
 │   ├── mobile-cases_yaml/ # 移动端测试示例
-│   └── perf-cases_yaml/   # 性能测试示例
+│   ├── perf-cases_yaml/   # 性能测试示例（YAML）
+│   └── perf-cases_pytest/ # 性能测试示例（Pytest）
 ├── reports/               # 测试报告目录（运行时自动生成）
 │   ├── allure-results/    # Allure 原始测试数据（JSON）
 │   ├── allure-report/     # Allure HTML 可视化报告
@@ -152,10 +152,15 @@ testrun --engine-type=api --type=yaml --cases=examples/api-cases
 testrun --engine-type=web --type=yaml --cases=examples/web-cases --browser=chromium --headless=true
 testrun --engine-type=mobile --type=yaml --cases=examples/mobile-cases_yaml --platform=android
 
-# 性能测试
-python -m testrun.cli --engine-type=perf --cases=examples/perf-cases_yaml --host=https://api.example.com --users=100 --run_time=60s
+# 性能测试（YAML 格式）
+python -m testrun.cli --engine-type=perf --type=yaml --cases=examples/perf-cases_yaml --host=https://api.example.com --users=100 --run_time=60s
 
-testrun --engine-type=perf --cases=examples/perf-cases_yaml --host=https://api.example.com --users=50 --spawn_rate=5
+# 性能测试（Pytest 格式 - 新增）
+python -m testrun.cli --engine-type=perf --type=pytest --cases=examples/perf-cases_pytest
+
+# 安装后可直接使用 testrun 命令
+testrun --engine-type=perf --type=yaml --cases=examples/perf-cases_yaml --host=https://api.example.com --users=50 --spawn_rate=5
+testrun --engine-type=perf --type=pytest --cases=examples/perf-cases_pytest
 ```
 
 #### 方式二：通过配置文件指定
@@ -343,45 +348,6 @@ steps:
 | `click_element` | 点击元素 | 定位方式, 元素 |
 | `input_text` | 输入文本 | 定位方式, 元素, 文本 |
 | `assert_element_visible` | 断言元素可见 | 定位方式, 元素 |
-
-#### AI 驱动操作关键字 🤖 NEW
-
-| 关键字 | 说明 | 主要参数 |
-|--------|------|---------|
-| `ai_operation` | AI通用操作 | 操作描述 |
-| `ai_click` | AI点击元素 | 元素描述 |
-| `ai_input` | AI输入文本 | 元素描述, 文本 |
-| `ai_extract_text` | AI提取文本 | 文本描述, 变量名 |
-| `ai_scroll` | AI滚动到元素 | 元素描述 |
-| `ai_hover` | AI鼠标悬停 | 元素描述 |
-| `ai_drag` | AI拖拽元素 | 源元素描述, 目标元素描述 |
-| `ai_assert_visible` | AI断言可见 | 元素描述 |
-
-**AI操作特点**：
-
-- ✅ 使用自然语言描述元素，无需编写XPath或CSS选择器
-- ✅ 基于Qwen-VL视觉模型，智能识别页面元素
-- ✅ 适用于元素定位困难或动态变化的场景
-- ⚠️ 需要配置阿里云百炼API Key
-- 📖 与 web-engine 功能完全一致
-
-**快速示例**：
-
-```yaml
-- AI点击登录按钮:
-    关键字: ai_click
-    元素描述: 蓝色的登录按钮
-
-- AI输入用户名:
-    关键字: ai_input
-    元素描述: 用户名输入框
-    文本: admin
-
-- AI提取错误信息:
-    关键字: ai_extract_text
-    文本描述: 红色的错误提示信息
-    变量名: error_msg
-```
 
 ### 数据驱动测试
 
