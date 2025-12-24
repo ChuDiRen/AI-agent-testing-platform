@@ -67,6 +67,14 @@ async def lifespan(app: FastAPI):
                 logger.info("提示: 启动RabbitMQ服务: docker-compose up -d rabbitmq")
                 logger.info("或修改配置使用内存队列: QUEUE_TYPE=memory")
 
+        # 启动 Cron 调度器
+        try:
+            from apitest.service.cron_scheduler import cron_scheduler
+            cron_scheduler.start()
+            logger.info("✓ Cron 调度器已启动")
+        except Exception as e:
+            logger.error(f"✗ Cron 调度器启动失败: {e}")
+
         logger.info("=" * 60)
         logger.info("🚀 应用启动完成！")
         logger.info("📖 API文档: http://localhost:5000/docs")
@@ -88,7 +96,15 @@ async def lifespan(app: FastAPI):
         # 关闭时执行清理工作
         logger.info("=" * 60)
         logger.info("正在优雅关闭应用...")
-        
+
+        # 关闭 Cron 调度器
+        try:
+            from apitest.service.cron_scheduler import cron_scheduler
+            cron_scheduler.shutdown()
+            logger.info("✓ Cron 调度器已关闭")
+        except Exception as e:
+            logger.error(f"关闭 Cron 调度器失败: {e}")
+
         # ✅ 修复消息队列优雅关闭
         try:
             from core.QueueFactory import queue_manager
@@ -207,6 +223,9 @@ application.include_router(RobotConfigController.module_route)
 
 from msgmanage.api import RobotMsgConfigController
 application.include_router(RobotMsgConfigController.module_route)
+
+from msgmanage.api import MsgTemplateController
+application.include_router(MsgTemplateController.template_route)
 
 # 注册AI测试助手模块路由
 from aiassistant.api import AiModelController, PromptTemplateController, TestCaseController

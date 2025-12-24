@@ -192,6 +192,15 @@ async def insert(data: TestTaskCreate, session: Session = Depends(get_session)):
         )
         session.add(task)
         session.commit()
+
+        # 如果是定时任务，添加到调度器
+        if task.task_type == 'scheduled' and task.cron_expression:
+            try:
+                from apitest.service.cron_scheduler import cron_scheduler
+                cron_scheduler.add_task(task.id, task.cron_expression)
+            except Exception as e:
+                logger.warning(f"添加定时任务到调度器失败: {e}")
+
         return respModel.ok_resp_text(msg="新增成功")
     except Exception as e:
         session.rollback()
@@ -232,6 +241,22 @@ async def update(data: TestTaskUpdate, session: Session = Depends(get_session)):
         
         task.update_time = datetime.now()
         session.commit()
+
+        # 同步更新调度器
+        if task.task_type == 'scheduled' and task.cron_expression:
+            try:
+                from apitest.service.cron_scheduler import cron_scheduler
+                cron_scheduler.add_task(task.id, task.cron_expression)
+            except Exception as e:
+                logger.warning(f"更新定时任务调度失败: {e}")
+        elif task.task_type != 'scheduled':
+            # 移除定时任务
+            try:
+                from apitest.service.cron_scheduler import cron_scheduler
+                cron_scheduler.remove_task(task.id)
+            except Exception as e:
+                logger.warning(f"移除定时任务调度失败: {e}")
+
         return respModel.ok_resp_text(msg="更新成功")
     except Exception as e:
         session.rollback()
@@ -247,6 +272,14 @@ async def delete(id: int = Query(...), session: Session = Depends(get_session)):
         if obj:
             session.delete(obj)
             session.commit()
+
+            # 从调度器移除
+            try:
+                from apitest.service.cron_scheduler import cron_scheduler
+                cron_scheduler.remove_task(id)
+            except Exception as e:
+                logger.warning(f"从调度器移除任务失败: {e}")
+
             return respModel.ok_resp_text(msg="删除成功")
         return respModel.error_resp("数据不存在")
     except Exception as e:
