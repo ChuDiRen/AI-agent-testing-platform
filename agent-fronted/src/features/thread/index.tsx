@@ -277,10 +277,12 @@ export function Thread() {
             <StickyToBottomContent
               className={cn(
                 "absolute inset-0 overflow-y-scroll px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent",
-                !chatStarted && "flex flex-col items-center justify-center",
-                chatStarted && "grid grid-rows-[1fr_auto]",
+                "grid grid-rows-[1fr_auto]"
               )}
-              contentClassName="pt-20 pb-10 max-w-6xl mx-auto flex flex-col gap-6 w-full px-4 md:px-8"
+              contentClassName={cn(
+                "pt-20 pb-10 max-w-5xl mx-auto flex flex-col gap-6 w-full px-4 md:px-8",
+                !chatStarted && "h-full justify-center items-center"
+              )}
               content={
                 <>
                   {messages
@@ -301,6 +303,19 @@ export function Thread() {
                         />
                       ),
                     )}
+                  {!chatStarted && (
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className="flex items-center gap-3">
+                        <LangGraphLogoSVG className="h-12 w-12 flex-shrink-0" />
+                        <h1 className="text-3xl font-semibold tracking-tight">
+                          {t("app.title")}
+                        </h1>
+                      </div>
+                      <p className="text-muted-foreground text-lg">
+                        {t("app.description")}
+                      </p>
+                    </div>
+                  )}
                   {/* Special rendering case where there are no AI/tool messages, but there is an interrupt.
                     We need to render it outside of the messages list, since there are no messages to render */}
                   {hasNoAIOrToolMessages && !!stream.interrupt && (
@@ -317,22 +332,14 @@ export function Thread() {
                 </>
               }
               footer={
-                <div className="pointer-events-none sticky bottom-0 flex flex-col items-center gap-8 bg-gradient-to-t from-background via-background/90 to-transparent pb-6 pt-10">
-                  {!chatStarted && (
-                    <div className="flex items-center gap-3">
-                      <LangGraphLogoSVG className="h-8 flex-shrink-0" />
-                      <h1 className="text-2xl font-semibold tracking-tight">
-                        {t("app.title")}
-                      </h1>
-                    </div>
-                  )}
+                <div className="pointer-events-none sticky bottom-0 flex flex-col items-center gap-8 bg-gradient-to-t from-background via-background/90 to-transparent pb-6 pt-10 w-full">
 
                   <ScrollToBottom className="pointer-events-auto animate-in fade-in-0 zoom-in-95 absolute bottom-full left-1/2 mb-4 -translate-x-1/2" />
 
                   <div
                     ref={dropRef}
                     className={cn(
-                      "pointer-events-auto bg-background relative z-10 mx-auto w-full max-w-4xl rounded-2xl border shadow-lg transition-all",
+                      "pointer-events-auto bg-background relative z-10 mx-auto w-full max-w-5xl rounded-2xl border shadow-2xl transition-all",
                       dragOver
                         ? "border-primary border-2 border-dotted"
                         : "border-border",
@@ -340,7 +347,7 @@ export function Thread() {
                   >
                     <form
                       onSubmit={handleSubmit}
-                      className="mx-auto grid max-w-4xl grid-rows-[1fr_auto]"
+                      className="mx-auto grid max-w-5xl grid-rows-[1fr_auto]"
                     >
                       <ContentBlocksPreview
                         blocks={contentBlocks}
@@ -368,7 +375,7 @@ export function Thread() {
                       />
 
                       <div className="flex items-center justify-between p-3 border-t bg-muted/20 rounded-b-2xl">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -384,16 +391,16 @@ export function Thread() {
                             </Tooltip>
                           </TooltipProvider>
 
-                          <div className="flex items-center space-x-2 px-2 py-1.5 rounded-md hover:bg-muted transition-colors">
+                          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted transition-colors">
                             <Switch
                               id="render-tool-calls"
                               checked={hideToolCalls ?? false}
                               onCheckedChange={setHideToolCalls}
-                              className="scale-75 data-[state=checked]:bg-primary"
+                              className="data-[state=checked]:bg-primary"
                             />
                             <Label
                               htmlFor="render-tool-calls"
-                              className="text-xs font-medium text-muted-foreground cursor-pointer"
+                              className="text-sm font-medium text-muted-foreground cursor-pointer"
                             >
                               {t("toolCall.hide")}
                             </Label>

@@ -13,6 +13,7 @@
   },
   "env": ".env",
   "store": {
+    "path": "./memory/store.py:get_store",
     "ttl": {
       "refresh_on_read": true,
       "default_ttl": 10080,
@@ -20,6 +21,7 @@
     }
   },
   "checkpointer": {
+    "path": "./memory/checkpointer.py:get_checkpointer",
     "ttl": {
       "strategy": "delete",
       "sweep_interval_minutes": 10,

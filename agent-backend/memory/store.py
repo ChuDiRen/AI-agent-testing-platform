@@ -125,18 +125,10 @@ class PersistentStore(BaseStore):
         value: Dict[str, Any],
         index: Optional[bool] = None
     ) -> None:
-        """存储数据
-        
-        Args:
-            namespace: 命名空间元组，如 ("user_123", "schema_cache")
-            key: 键名
-            value: 要存储的值（字典）
-            index: 保留参数（未使用）
-        """
+        """存储数据"""
         namespace_str = self._namespace_to_str(namespace)
         memory_id = self._generate_id(namespace, key)
         
-        # 持久化到数据库
         conn = self._get_connection()
         value_str = json.dumps(value, ensure_ascii=False, default=str)
         
@@ -154,15 +146,7 @@ class PersistentStore(BaseStore):
         namespace: Tuple[str, ...], 
         key: str
     ) -> Optional[Item]:
-        """获取数据
-        
-        Args:
-            namespace: 命名空间
-            key: 键名
-            
-        Returns:
-            Item 对象，如果不存在返回 None
-        """
+        """获取数据"""
         namespace_str = self._namespace_to_str(namespace)
         
         conn = self._get_connection()
@@ -184,12 +168,7 @@ class PersistentStore(BaseStore):
         )
     
     def delete(self, namespace: Tuple[str, ...], key: str) -> None:
-        """删除数据
-        
-        Args:
-            namespace: 命名空间
-            key: 键名
-        """
+        """删除数据"""
         namespace_str = self._namespace_to_str(namespace)
         
         conn = self._get_connection()
@@ -208,27 +187,14 @@ class PersistentStore(BaseStore):
         limit: int = 10,
         offset: int = 0
     ) -> List[SearchItem]:
-        """搜索数据
-        
-        Args:
-            namespace: 命名空间（支持前缀匹配）
-            query: 搜索查询（用于文本匹配）
-            filter: 过滤条件
-            limit: 最大返回数量
-            offset: 偏移量
-            
-        Returns:
-            匹配的 SearchItem 列表
-        """
+        """搜索数据"""
         namespace_str = self._namespace_to_str(namespace)
         
         conn = self._get_connection()
         
-        # 构建查询
         sql = "SELECT namespace, key, value, created_at, updated_at FROM long_term_memory WHERE namespace LIKE ?"
         params = [namespace_str + "%"]
         
-        # 文本搜索（简单的 LIKE 匹配）
         if query:
             sql += " AND value LIKE ?"
             params.append(f"%{query}%")
@@ -242,7 +208,6 @@ class PersistentStore(BaseStore):
         for row in cursor.fetchall():
             value = json.loads(row["value"])
             
-            # 过滤条件匹配
             if filter:
                 match = True
                 for k, v in filter.items():
@@ -272,18 +237,7 @@ class PersistentStore(BaseStore):
         limit: int = 100,
         offset: int = 0
     ) -> List[Tuple[str, ...]]:
-        """列出命名空间
-        
-        Args:
-            prefix: 命名空间前缀
-            suffix: 命名空间后缀
-            max_depth: 最大深度
-            limit: 最大返回数量
-            offset: 偏移量
-            
-        Returns:
-            命名空间列表
-        """
+        """列出命名空间"""
         conn = self._get_connection()
         
         sql = "SELECT DISTINCT namespace FROM long_term_memory"
@@ -352,10 +306,7 @@ class PersistentStore(BaseStore):
     
     # ==================== 批量操作 ====================
     
-    async def abatch(
-        self,
-        ops: Sequence[tuple]
-    ) -> List[Any]:
+    async def abatch(self, ops: Sequence[tuple]) -> List[Any]:
         """异步批量操作"""
         results = []
         for op in ops:
@@ -378,30 +329,22 @@ class PersistentStore(BaseStore):
         return asyncio.get_event_loop().run_until_complete(self.abatch(ops))
 
 
-# ==================== 全局实例管理 ====================
+# ==================== LangGraph API 工厂函数 ====================
 
-_store_manager: Optional[PersistentStore] = None
+_store_instance: Optional[PersistentStore] = None
 
 
-def get_store(db_path: str = "data/agent_memory.db") -> PersistentStore:
-    """获取全局的 Store 实例
+def get_store() -> PersistentStore:
+    """获取 Store 单例实例 - 供 LangGraph API 使用
     
-    Args:
-        db_path: 数据库路径
-        
-    Returns:
-        PersistentStore 实例
+    在 langgraph.json 中配置:
+        "store": {
+            "path": "./memory/store.py:get_store"
+        }
     """
-    global _store_manager
-    if _store_manager is None:
-        _store_manager = PersistentStore(db_path=db_path)
-    return _store_manager
-
-
-def get_store_manager() -> PersistentStore:
-    """获取全局存储管理器实例"""
-    return get_store()
-
-
-# 保持向后兼容
-StoreManager = PersistentStore
+    global _store_instance
+    if _store_instance is None:
+        from pathlib import Path
+        db_path = Path(__file__).parent.parent / "data" / "agent_memory.db"
+        _store_instance = PersistentStore(str(db_path))
+    return _store_instance

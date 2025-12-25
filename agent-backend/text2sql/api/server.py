@@ -25,7 +25,7 @@ app = FastAPI(title="Text2SQL Extensions", version="1.0.0", lifespan=lifespan)
 @app.get("/memory/stats")
 async def memory_stats():
     """记忆系统统计"""
-    from text2sql.memory import get_memory_manager
+    from memory import get_memory_manager
     mm = get_memory_manager()
     return {
         "sessions_count": len(mm.list_sessions()),
@@ -38,7 +38,7 @@ async def memory_stats():
 @app.post("/memory/schema/{connection_id}/invalidate")
 async def invalidate_schema(connection_id: int):
     """清除 Schema 缓存"""
-    from text2sql.memory import get_memory_manager
+    from memory import get_memory_manager
     get_memory_manager().invalidate_schema_cache(connection_id)
     return {"ok": True}
 

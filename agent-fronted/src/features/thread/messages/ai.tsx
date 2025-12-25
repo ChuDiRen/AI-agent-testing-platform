@@ -106,7 +106,7 @@ function ToolCallsSummary({
   toolResults,
   toolCallAttempts,
 }: ToolCallsSummaryProps) {
-  const [isExpanded, setIsExpanded] = useState(false); // 默认折叠,用户可点击展开查看详情
+  const [isExpanded, setIsExpanded] = useState(false); // 默认折叠，用户可点击展开
 
   if (toolCalls.length === 0) return null;
 
@@ -343,7 +343,7 @@ export function AssistantMessage({
     // 优先使用 message.tool_calls
     if (hasToolCalls && message.tool_calls) {
       for (const tc of message.tool_calls) {
-        if (tc.id && tc.name && tc.args) {
+        if (tc.id && tc.name) {
           calls.push(tc);
           seenIds.add(tc.id);
         }
@@ -353,7 +353,7 @@ export function AssistantMessage({
     // 添加 Anthropic 工具调用（如果不重复）
     if (hasAnthropicToolCalls && anthropicStreamedToolCalls) {
       for (const tc of anthropicStreamedToolCalls) {
-        if (tc.id && tc.name && tc.args && !seenIds.has(tc.id)) {
+        if (tc.id && tc.name && !seenIds.has(tc.id)) {
           calls.push(tc);
           seenIds.add(tc.id);
         }

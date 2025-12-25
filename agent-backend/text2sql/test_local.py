@@ -24,7 +24,7 @@ from text2sql.chat_graph import (
     clear_user_memory,
     clear_session
 )
-from text2sql.memory import get_memory_manager, reset_memory_manager
+from memory import get_memory_manager, reset_memory_manager
 
 
 def setup_test_database():

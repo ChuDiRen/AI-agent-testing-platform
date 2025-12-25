@@ -13,7 +13,7 @@ from typing_extensions import Annotated
 from langchain_core.tools import tool, InjectedToolArg
 from langgraph.store.base import BaseStore
 
-from ..memory.manager import get_memory_manager, MemoryManager
+from memory import get_memory_manager, MemoryManager
 
 
 # ==================== Schema 缓存工具 ====================

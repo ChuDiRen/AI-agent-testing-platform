@@ -1,12 +1,12 @@
 """
 短期记忆管理器
 
-基于SqliteSaver封装，提供会话上下文管理
+基于 SqliteSaver 封装，提供会话上下文管理
 """
 
 import sqlite3
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from contextlib import contextmanager
 
 from langgraph.checkpoint.sqlite import SqliteSaver
@@ -15,14 +15,14 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 class CheckpointerManager:
     """短期记忆管理器
     
-    封装SqliteSaver，提供会话上下文的存储和检索
+    封装 SqliteSaver，提供会话上下文的存储和检索
     """
     
     def __init__(self, db_path: str = "data/agent_memory.db"):
         """初始化检查点管理器
         
         Args:
-            db_path: SQLite数据库文件路径
+            db_path: SQLite 数据库文件路径
         """
         self.db_path = Path(db_path)
         self._checkpointer: Optional[SqliteSaver] = None
@@ -43,10 +43,10 @@ class CheckpointerManager:
         return self._conn
     
     def get_checkpointer(self) -> SqliteSaver:
-        """获取SqliteSaver实例（带缓存）
+        """获取 SqliteSaver 实例（带缓存）
         
         Returns:
-            初始化好的SqliteSaver实例
+            初始化好的 SqliteSaver 实例
         """
         if self._checkpointer is None:
             conn = self._get_connection()
@@ -58,21 +58,20 @@ class CheckpointerManager:
         """删除指定线程的所有检查点
         
         Args:
-            thread_id: 线程ID
+            thread_id: 线程 ID
         """
         conn = self._get_connection()
         try:
             conn.execute("DELETE FROM checkpoints WHERE thread_id = ?", (thread_id,))
             conn.commit()
         except sqlite3.OperationalError:
-            # 表可能不存在
-            pass
+            pass  # 表可能不存在
         
-    def list_threads(self) -> list[str]:
-        """列出所有线程ID
+    def list_threads(self) -> List[str]:
+        """列出所有线程 ID
         
         Returns:
-            线程ID列表
+            线程 ID 列表
         """
         conn = self._get_connection()
         try:
@@ -81,7 +80,6 @@ class CheckpointerManager:
             )
             return [row[0] for row in cursor.fetchall()]
         except sqlite3.OperationalError:
-            # 表可能不存在
             return []
     
     def close(self) -> None:
@@ -92,48 +90,13 @@ class CheckpointerManager:
             self._checkpointer = None
 
 
-# 全局管理器实例
-_manager: Optional[CheckpointerManager] = None
-
-
-def get_checkpointer(db_path: str = "data/agent_memory.db") -> SqliteSaver:
-    """获取全局的SqliteSaver实例
-    
-    Args:
-        db_path: 数据库路径
-        
-    Returns:
-        SqliteSaver实例
-    """
-    global _manager
-    if _manager is None:
-        _manager = CheckpointerManager(db_path)
-    return _manager.get_checkpointer()
-
-
-def get_manager() -> CheckpointerManager:
-    """获取全局管理器实例"""
-    global _manager
-    if _manager is None:
-        _manager = CheckpointerManager()
-    return _manager
-
-
-def reset_checkpointer_manager() -> None:
-    """重置全局管理器"""
-    global _manager
-    if _manager:
-        _manager.close()
-    _manager = None
-
-
 @contextmanager
 def checkpointer_context(db_path: str = "data/agent_memory.db"):
     """上下文管理器，自动关闭连接
     
     Usage:
         with checkpointer_context() as checkpointer:
-            # 使用checkpointer
+            # 使用 checkpointer
             pass
     """
     manager = CheckpointerManager(db_path)
@@ -141,3 +104,24 @@ def checkpointer_context(db_path: str = "data/agent_memory.db"):
         yield manager.get_checkpointer()
     finally:
         manager.close()
+
+
+# ==================== LangGraph API 工厂函数 ====================
+
+_checkpointer_manager: Optional[CheckpointerManager] = None
+
+
+def get_checkpointer() -> SqliteSaver:
+    """获取 Checkpointer 单例实例 - 供 LangGraph API 使用
+    
+    在 langgraph.json 中配置:
+        "checkpointer": {
+            "path": "./memory/checkpointer.py:get_checkpointer"
+        }
+    """
+    global _checkpointer_manager
+    if _checkpointer_manager is None:
+        from pathlib import Path
+        db_path = Path(__file__).parent.parent / "data" / "agent_memory.db"
+        _checkpointer_manager = CheckpointerManager(str(db_path))
+    return _checkpointer_manager.get_checkpointer()

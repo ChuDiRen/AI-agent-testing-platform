@@ -109,11 +109,11 @@ export function UnifiedSettings({
 }: UnifiedSettingsProps) {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<TabType>("agent");
-  
+
   // 智能体筛选
   const [agentCategory, setAgentCategory] = useState("全部");
   const [agentSearch, setAgentSearch] = useState("");
-  
+
   // 连接设置表单
   const [apiUrl, setApiUrl] = useState(currentApiUrl);
   const [apiKey, setApiKey] = useState(currentApiKey);
@@ -186,10 +186,11 @@ export function UnifiedSettings({
         </div>
 
         {/* Tab 内容 */}
-        <div className="flex-1 overflow-hidden">
+        {/* Tab 内容 */}
+        <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
           {/* 智能体选择 */}
           {activeTab === "agent" && (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col flex-1 min-h-0">
               {/* 搜索和分类 */}
               <div className="flex flex-col gap-3 p-4 border-b">
                 <input
@@ -244,7 +245,7 @@ export function UnifiedSettings({
 
           {/* 连接设置 */}
           {activeTab === "connection" && (
-            <div className="p-6 overflow-y-auto h-full">
+            <div className="p-6 overflow-y-auto flex-1 min-h-0">
               <div className="flex flex-col gap-6 max-w-lg">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="apiUrl">
