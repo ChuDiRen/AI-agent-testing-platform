@@ -21,8 +21,8 @@ def create_reviewer_agent(model: BaseChatModel, summarization_model: BaseChatMod
     if summarization_model:
         middleware.append(SummarizationMiddleware(
             model=summarization_model,
-            trigger=("tokens", 8000),
-            keep=("messages", 10),
+            max_tokens_before_summary=8000,
+            messages_to_keep=10,
         ))
 
     agent = create_agent(

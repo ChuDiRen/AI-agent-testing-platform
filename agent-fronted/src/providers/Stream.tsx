@@ -25,8 +25,7 @@ import { getApiKey } from "@/lib/api-key";
 import { useThreads } from "./Thread";
 import { toast } from "sonner";
 import { useI18n } from "@/hooks/useI18n";
-import { SettingsDialog } from "@/components/settings-dialog";
-import { AgentSelector, AgentSwitchButton, AGENTS_LIST } from "@/components/agent-selector";
+import { UnifiedSettings, SettingsSwitchButton, AGENTS_LIST } from "@/components/unified-settings";
 
 export type StateType = { messages: Message[]; ui?: UIMessage[] };
 
@@ -139,10 +138,7 @@ type SettingsContextType = {
   showSettings: boolean;
   openSettings: () => void;
   closeSettings: () => void;
-  // 智能体选择相关
-  showAgentSelector: boolean;
-  openAgentSelector: () => void;
-  closeAgentSelector: () => void;
+  // 智能体相关
   currentAgentId: string;
   switchAgent: (agentId: string) => void;
 };
@@ -188,9 +184,6 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
 
   // 控制设置表单的显示
   const [showSettings, setShowSettings] = useState(false);
-  
-  // 控制智能体选择器的显示
-  const [showAgentSelector, setShowAgentSelector] = useState(false);
 
   // Determine final values to use, prioritizing URL params then env vars
   const finalApiUrl = apiUrl || envApiUrl;
@@ -298,22 +291,16 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
     showSettings,
     openSettings: () => setShowSettings(true),
     closeSettings: () => setShowSettings(false),
-    // 智能体选择相关
-    showAgentSelector,
-    openAgentSelector: () => setShowAgentSelector(true),
-    closeAgentSelector: () => setShowAgentSelector(false),
+    // 智能体相关
     currentAgentId: assistantId || DEFAULT_ASSISTANT_ID,
     switchAgent: (agentId: string) => {
       setAssistantId(agentId);
-      setShowAgentSelector(false);
-      // 切换智能体时提示用户
       toast.success(`已切换到: ${AGENTS_LIST.find(a => a.id === agentId)?.name || agentId}`);
     },
   };
 
-  const handleSaveSettings = (newApiUrl: string, newAssistantId: string, newApiKey: string) => {
+  const handleConnectionSave = (newApiUrl: string, newApiKey: string) => {
     setApiUrl(newApiUrl);
-    setAssistantId(newAssistantId);
     setApiKey(newApiKey);
     setShowSettings(false);
   };
@@ -326,19 +313,14 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
         assistantId={assistantId}
       >
         {children}
-        <SettingsDialog
+        <UnifiedSettings
           open={showSettings}
           onOpenChange={setShowSettings}
-          currentApiUrl={apiUrl}
-          currentAssistantId={assistantId}
-          currentApiKey={apiKey}
-          onSave={handleSaveSettings}
-        />
-        <AgentSelector
-          open={showAgentSelector}
-          onOpenChange={setShowAgentSelector}
           currentAgentId={assistantId || DEFAULT_ASSISTANT_ID}
-          onSelect={settingsValue.switchAgent}
+          onAgentSelect={settingsValue.switchAgent}
+          currentApiUrl={apiUrl}
+          currentApiKey={apiKey}
+          onConnectionSave={handleConnectionSave}
         />
       </StreamSession>
     </SettingsContext.Provider>

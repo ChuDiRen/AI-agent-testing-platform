@@ -9,9 +9,21 @@
     "sql_agent_graph": "./examples/sql_agent_graph.py:agent_old",
     "api_agent": "./examples/api_agent.py:agent_auto",
     "text2sql_agent": "./text2sql/chat_graph.py:get_app",
-    "text2sql_stream": "./text2sql/chat_graph.py:get_stream_app",
-    "text2testcase_agent": "./text2testcase/chat_graph.py:get_app",
-    "text2testcase_stream": "./text2testcase/chat_graph.py:get_stream_app"
+    "text2testcase_agent": "./text2testcase/chat_graph.py:get_app"
   },
-  "env": ".env"
+  "env": ".env",
+  "store": {
+    "ttl": {
+      "refresh_on_read": true,
+      "default_ttl": 10080,
+      "sweep_interval_minutes": 60
+    }
+  },
+  "checkpointer": {
+    "ttl": {
+      "strategy": "delete",
+      "sweep_interval_minutes": 10,
+      "default_ttl": 43200
+    }
+  }
 }

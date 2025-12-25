@@ -32,8 +32,8 @@ def create_writer_agent(model: BaseChatModel, summarization_model: BaseChatModel
     if summarization_model:
         middleware.append(SummarizationMiddleware(
             model=summarization_model,
-            trigger=("tokens", 6000),
-            keep=("messages", 15),
+            max_tokens_before_summary=6000,
+            messages_to_keep=15,
         ))
 
     agent = create_agent(

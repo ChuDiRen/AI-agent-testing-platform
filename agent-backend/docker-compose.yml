@@ -1,6 +1,24 @@
 version: "3.8"
 
 services:
+  # PostgreSQL database for persistence
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: langgraph
+      POSTGRES_PASSWORD: langgraph
+      POSTGRES_DB: langgraph
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langgraph"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # LangGraph API Server
   langgraph-api:
     build:
       context: .
@@ -8,27 +26,32 @@ services:
     ports:
       - "2024:8000"
     environment:
-      # SQLite 持久化配置
-      - LANGGRAPH_SQLITE_URI=/data/agent_checkpoints.db
-      - LANGGRAPH_STORE_URI=sqlite:////data/agent_checkpoints.db
+      # PostgreSQL connection
+      - POSTGRES_URI=postgresql://langgraph:langgraph@postgres:5432/langgraph
 
       # API Keys
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
 
-      # LangGraph 配置
+      # LangGraph config
       - LANGCHAIN_TRACING_V2=false
       - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY:-}
 
     volumes:
-      # 挂载数据目录（持久化）
-      - ./data:/data
-      # 挂载代码目录（开发时热重载）
+      # Mount code for hot reload
       - ./examples:/deps/__outer_agent-backend/src/examples
+      - ./text2sql:/deps/__outer_agent-backend/src/text2sql
+      - ./text2testcase:/deps/__outer_agent-backend/src/text2testcase
       - ./langgraph.json:/deps/__outer_agent-backend/src/langgraph.json
+    depends_on:
+      postgres:
+        condition: service_healthy
     command:
       - "--host"
       - "0.0.0.0"
       - "--port"
       - "8000"
-      - "--config"
-      - "/deps/__outer_agent-backend/src/langgraph.json"
+      - "--postgres-uri"
+      - "postgresql://langgraph:langgraph@postgres:5432/langgraph"
+
+volumes:
+  postgres_data:

@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { PanelRightOpen, PanelRightClose, SquarePen, Settings } from "lucide-react";
+import { PanelRightOpen, PanelRightClose, SquarePen } from "lucide-react";
 import { LangGraphLogoSVG } from "@/components/icons/langgraph";
 import { TooltipIconButton } from "../tooltip-icon-button";
-import { AgentSwitchButton } from "@/components/agent-selector";
+import { SettingsSwitchButton } from "@/components/unified-settings";
 import { useI18n } from "@/hooks/useI18n";
 
 interface ThreadHeaderProps {
@@ -13,7 +13,6 @@ interface ThreadHeaderProps {
   chatStarted: boolean;
   setThreadId: (id: string | null) => void;
   currentAgentId: string;
-  openAgentSelector: () => void;
   openSettings: () => void;
 }
 
@@ -24,7 +23,6 @@ export function ThreadHeader({
   chatStarted,
   setThreadId,
   currentAgentId,
-  openAgentSelector,
   openSettings,
 }: ThreadHeaderProps) {
   const { t } = useI18n();
@@ -63,9 +61,9 @@ export function ThreadHeader({
       </div>
 
       <div className="flex items-center gap-2">
-        <AgentSwitchButton
+        <SettingsSwitchButton
           currentAgentId={currentAgentId}
-          onClick={openAgentSelector}
+          onClick={openSettings}
         />
 
         <div className="h-4 w-px bg-border mx-1" />
@@ -78,16 +76,6 @@ export function ThreadHeader({
           onClick={() => setThreadId(null)}
         >
           <SquarePen className="size-5" />
-        </TooltipIconButton>
-
-        <TooltipIconButton
-          tooltip={t("settings.title")}
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 text-muted-foreground hover:text-foreground"
-          onClick={openSettings}
-        >
-          <Settings className="size-5" />
         </TooltipIconButton>
       </div>
     </div>

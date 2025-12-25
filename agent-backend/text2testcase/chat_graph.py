@@ -5,8 +5,16 @@ Text-to-TestCase 图工作流
 将 TestCaseSupervisor 封装为 LangGraph 兼容的图
 """
 
+import sys
+import os
 from typing import Annotated, Any, Dict, List, Literal, Optional
 from dataclasses import dataclass, field
+
+# 确保 text2testcase 包可以被导入
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+_parent_dir = os.path.dirname(_current_dir)
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
 
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
@@ -15,9 +23,9 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.checkpoint.memory import MemorySaver
 
-from .config import Config
-from .models import TestCaseState
-from .supervisor import TestCaseSupervisor
+from text2testcase.config import Config
+from text2testcase.models import TestCaseState
+from text2testcase.supervisor import TestCaseSupervisor
 
 
 # ============== LangGraph 状态定义 ==============
@@ -242,20 +250,6 @@ def get_app(config: dict = None):
         
     Returns:
         编译好的图（checkpointer 由 LangGraph API 注入）
-    """
-    graph = build_text2testcase_graph()
-    return graph.compile()
-
-
-def get_stream_app(config: dict = None):
-    """
-    流式图工厂函数 - 供 LangGraph API 使用
-    
-    Args:
-        config: RunnableConfig
-        
-    Returns:
-        编译好的图，支持流式输出
     """
     graph = build_text2testcase_graph()
     return graph.compile()

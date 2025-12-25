@@ -44,7 +44,6 @@ import {
   useArtifactContext,
 } from "./artifact";
 import { useI18n } from "@/hooks/useI18n";
-import { AgentSwitchButton } from "@/components/agent-selector";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -91,7 +90,7 @@ function ScrollToBottom(props: { className?: string }) {
 
 export function Thread() {
   const { t } = useI18n();
-  const { openSettings, openAgentSelector, currentAgentId } = useSettings();
+  const { openSettings, currentAgentId, currentModelId } = useSettings();
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
 
@@ -248,34 +247,20 @@ export function Thread() {
   );
 
   return (
-    <div className="flex h-screen w-full overflow-hidden">
+    <div className="flex h-screen w-full overflow-hidden bg-background">
       <ThreadSidebar isOpen={chatHistoryOpen} isLargeScreen={isLargeScreen} />
 
       <div
         className={cn(
-          "grid w-full grid-cols-[1fr_0fr] transition-all duration-500",
-          artifactOpen && "grid-cols-[3fr_2fr]",
+          "grid flex-1 w-full min-w-0 grid-cols-[1fr_0fr] transition-all duration-500 ease-in-out",
+          artifactOpen && "grid-cols-[1fr_400px] lg:grid-cols-[1fr_600px]",
         )}
       >
-        <motion.div
+        <div
           className={cn(
-            "relative flex min-w-0 flex-1 flex-col overflow-hidden",
-            !chatStarted && "grid-rows-[1fr]",
+            "relative flex min-w-0 flex-col overflow-hidden",
+            !chatStarted && "h-full justify-center",
           )}
-          layout={isLargeScreen}
-          animate={{
-            marginLeft: chatHistoryOpen ? (isLargeScreen ? 300 : 0) : 0,
-            width: chatHistoryOpen
-              ? isLargeScreen
-                ? "calc(100% - 300px)"
-                : "100%"
-              : "100%",
-          }}
-          transition={
-            isLargeScreen
-              ? { type: "spring", stiffness: 300, damping: 30 }
-              : { duration: 0 }
-          }
         >
           <ThreadHeader
             chatHistoryOpen={chatHistoryOpen}
@@ -284,18 +269,18 @@ export function Thread() {
             chatStarted={chatStarted}
             setThreadId={setThreadId}
             currentAgentId={currentAgentId}
-            openAgentSelector={openAgentSelector}
+            currentModelId={currentModelId}
             openSettings={openSettings}
           />
 
-          <StickToBottom className="relative flex-1 overflow-hidden pt-[60px]">
+          <StickToBottom className="relative flex-1 overflow-hidden">
             <StickyToBottomContent
               className={cn(
                 "absolute inset-0 overflow-y-scroll px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent",
-                !chatStarted && "mt-[25vh] flex flex-col items-stretch",
+                !chatStarted && "flex flex-col items-center justify-center",
                 chatStarted && "grid grid-rows-[1fr_auto]",
               )}
-              contentClassName="pt-8 pb-10 max-w-4xl mx-auto flex flex-col gap-6 w-full px-4 md:px-8"
+              contentClassName="pt-20 pb-10 max-w-6xl mx-auto flex flex-col gap-6 w-full px-4 md:px-8"
               content={
                 <>
                   {messages
@@ -347,7 +332,7 @@ export function Thread() {
                   <div
                     ref={dropRef}
                     className={cn(
-                      "pointer-events-auto bg-background relative z-10 mx-auto w-full max-w-3xl rounded-2xl border shadow-lg transition-all",
+                      "pointer-events-auto bg-background relative z-10 mx-auto w-full max-w-4xl rounded-2xl border shadow-lg transition-all",
                       dragOver
                         ? "border-primary border-2 border-dotted"
                         : "border-border",
@@ -355,7 +340,7 @@ export function Thread() {
                   >
                     <form
                       onSubmit={handleSubmit}
-                      className="mx-auto grid max-w-3xl grid-rows-[1fr_auto]"
+                      className="mx-auto grid max-w-4xl grid-rows-[1fr_auto]"
                     >
                       <ContentBlocksPreview
                         blocks={contentBlocks}
@@ -457,9 +442,9 @@ export function Thread() {
               }
             />
           </StickToBottom>
-        </motion.div>
-        <div className="relative flex flex-col border-l bg-background shadow-inner-left">
-          <div className="absolute inset-0 flex min-w-[30vw] flex-col">
+        </div>
+        <div className="relative flex flex-col border-l bg-background shadow-inner-left overflow-hidden">
+          <div className="flex h-full w-full flex-col">
             <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/30">
               <ArtifactTitle className="truncate overflow-hidden font-medium" />
               <Button
