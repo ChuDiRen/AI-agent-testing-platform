@@ -1,24 +1,6 @@
 version: "3.8"
 
 services:
-  # PostgreSQL database for persistence
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: langgraph
-      POSTGRES_PASSWORD: langgraph
-      POSTGRES_DB: langgraph
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U langgraph"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # LangGraph API Server
   langgraph-api:
     build:
       context: .
@@ -26,9 +8,6 @@ services:
     ports:
       - "2024:8000"
     environment:
-      # PostgreSQL connection
-      - POSTGRES_URI=postgresql://langgraph:langgraph@postgres:5432/langgraph
-
       # API Keys
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
 
@@ -37,21 +16,12 @@ services:
       - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY:-}
 
     volumes:
-      # Mount code for hot reload
-      - ./examples:/deps/__outer_agent-backend/src/examples
-      - ./text2sql:/deps/__outer_agent-backend/src/text2sql
-      - ./text2testcase:/deps/__outer_agent-backend/src/text2testcase
-      - ./langgraph.json:/deps/__outer_agent-backend/src/langgraph.json
-    depends_on:
-      postgres:
-        condition: service_healthy
-    command:
-      - "--host"
-      - "0.0.0.0"
-      - "--port"
-      - "8000"
-      - "--postgres-uri"
-      - "postgresql://langgraph:langgraph@postgres:5432/langgraph"
-
-volumes:
-  postgres_data:
+      # SQLite data persistence
+      - ./data:/app/data
+      # Mount code for development (optional, remove in production)
+      - ./examples:/app/examples
+      - ./text2sql:/app/text2sql
+      - ./text2testcase:/app/text2testcase
+      - ./langgraph.json:/app/langgraph.json
+      - ./server.py:/app/server.py
+    restart: unless-stopped

@@ -1,12 +1,20 @@
-FROM langchain/langgraph-api:3.11
+FROM python:3.11-slim
 
-# 添加项目依赖
-ADD requirements.txt /deps/requirements.txt
-RUN PYTHONDONTWRITEBYTECODE=1 pip install --no-cache-dir -c /api/constraints.txt -r /deps/requirements.txt
+WORKDIR /app
 
-# 添加项目代码
-ADD . /deps/__outer_agent-backend/src
-ENV PYTHONPATH=/deps/__outer_agent-backend/src:$PYTHONPATH
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir uvicorn fastapi langgraph-checkpoint-sqlite
 
-# 设置工作目录
-WORKDIR /deps/__outer_agent-backend/src
+# Copy source code
+COPY . .
+
+# Create data directory
+RUN mkdir -p /app/data
+
+# Expose port
+EXPOSE 8000
+
+# Run server
+CMD ["python", "-m", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
