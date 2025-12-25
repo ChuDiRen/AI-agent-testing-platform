@@ -14,20 +14,17 @@ import {
   ensureToolCallsHaveResponses,
 } from "@/lib/ensure-tool-responses";
 import { LangGraphLogoSVG } from "@/components/icons/langgraph";
-import { TooltipIconButton } from "./tooltip-icon-button";
 import {
   ArrowDown,
   LoaderCircle,
-  PanelRightOpen,
-  PanelRightClose,
-  SquarePen,
   XIcon,
   Plus,
-  Settings,
+  ArrowRight,
 } from "lucide-react";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
-import ThreadHistory from "./history";
+import { ThreadSidebar } from "./components/thread-sidebar";
+import { ThreadHeader } from "./components/thread-header";
 import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Label } from "@/components/ui/label";
@@ -47,6 +44,7 @@ import {
   useArtifactContext,
 } from "./artifact";
 import { useI18n } from "@/hooks/useI18n";
+import { AgentSwitchButton } from "@/components/agent-selector";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -93,7 +91,7 @@ function ScrollToBottom(props: { className?: string }) {
 
 export function Thread() {
   const { t } = useI18n();
-  const { openSettings } = useSettings();
+  const { openSettings, openAgentSelector, currentAgentId } = useSettings();
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
 
@@ -251,30 +249,7 @@ export function Thread() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
-      <div className="relative hidden lg:flex">
-        <motion.div
-          className="absolute z-20 h-full overflow-hidden border-r bg-white"
-          style={{ width: 300 }}
-          animate={
-            isLargeScreen
-              ? { x: chatHistoryOpen ? 0 : -300 }
-              : { x: chatHistoryOpen ? 0 : -300 }
-          }
-          initial={{ x: -300 }}
-          transition={
-            isLargeScreen
-              ? { type: "spring", stiffness: 300, damping: 30 }
-              : { duration: 0 }
-          }
-        >
-          <div
-            className="relative h-full"
-            style={{ width: 300 }}
-          >
-            <ThreadHistory />
-          </div>
-        </motion.div>
-      </div>
+      <ThreadSidebar isOpen={chatHistoryOpen} isLargeScreen={isLargeScreen} />
 
       <div
         className={cn(
@@ -302,109 +277,25 @@ export function Thread() {
               : { duration: 0 }
           }
         >
-          {!chatStarted && (
-            <div className="absolute top-0 left-0 z-10 flex w-full items-center justify-between gap-3 p-2 pl-4">
-              <div>
-                {(!chatHistoryOpen || !isLargeScreen) && (
-                  <Button
-                    className="hover:bg-gray-100"
-                    variant="ghost"
-                    onClick={() => setChatHistoryOpen((p) => !p)}
-                  >
-                    {chatHistoryOpen ? (
-                      <PanelRightOpen className="size-5" />
-                    ) : (
-                      <PanelRightClose className="size-5" />
-                    )}
-                  </Button>
-                )}
-              </div>
-              <div className="absolute top-2 right-4 flex items-center gap-4">
-                <TooltipIconButton
-                  size="lg"
-                  className="p-4"
-                  tooltip={t("settings.title")}
-                  variant="ghost"
-                  onClick={openSettings}
-                >
-                  <Settings className="size-5" />
-                </TooltipIconButton>
-              </div>
-            </div>
-          )}
-          {chatStarted && (
-            <div className="relative z-10 flex items-center justify-between gap-3 p-2">
-              <div className="relative flex items-center justify-start gap-2">
-                <div className="absolute left-0 z-10">
-                  {(!chatHistoryOpen || !isLargeScreen) && (
-                    <Button
-                      className="hover:bg-gray-100"
-                      variant="ghost"
-                      onClick={() => setChatHistoryOpen((p) => !p)}
-                    >
-                      {chatHistoryOpen ? (
-                        <PanelRightOpen className="size-5" />
-                      ) : (
-                        <PanelRightClose className="size-5" />
-                      )}
-                    </Button>
-                  )}
-                </div>
-                <motion.button
-                  className="flex cursor-pointer items-center gap-2"
-                  onClick={() => setThreadId(null)}
-                  animate={{
-                    marginLeft: !chatHistoryOpen ? 48 : 0,
-                  }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 30,
-                  }}
-                >
-                  <LangGraphLogoSVG
-                    width={32}
-                    height={32}
-                  />
-                  <span className="text-xl font-semibold tracking-tight">
-                    {t("app.title")}
-                  </span>
-                </motion.button>
-              </div>
+          <ThreadHeader
+            chatHistoryOpen={chatHistoryOpen}
+            setChatHistoryOpen={setChatHistoryOpen}
+            isLargeScreen={isLargeScreen}
+            chatStarted={chatStarted}
+            setThreadId={setThreadId}
+            currentAgentId={currentAgentId}
+            openAgentSelector={openAgentSelector}
+            openSettings={openSettings}
+          />
 
-              <div className="flex items-center gap-4">
-                <TooltipIconButton
-                  size="lg"
-                  className="p-4"
-                  tooltip={t("settings.title")}
-                  variant="ghost"
-                  onClick={openSettings}
-                >
-                  <Settings className="size-5" />
-                </TooltipIconButton>
-                <TooltipIconButton
-                  size="lg"
-                  className="p-4"
-                  tooltip={t("thread.newThread")}
-                  variant="ghost"
-                  onClick={() => setThreadId(null)}
-                >
-                  <SquarePen className="size-5" />
-                </TooltipIconButton>
-              </div>
-
-              <div className="from-background to-background/0 absolute inset-x-0 top-full h-5 bg-gradient-to-b" />
-            </div>
-          )}
-
-          <StickToBottom className="relative flex-1 overflow-hidden">
+          <StickToBottom className="relative flex-1 overflow-hidden pt-[60px]">
             <StickyToBottomContent
               className={cn(
                 "absolute inset-0 overflow-y-scroll px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent",
                 !chatStarted && "mt-[25vh] flex flex-col items-stretch",
                 chatStarted && "grid grid-rows-[1fr_auto]",
               )}
-              contentClassName="pt-8 pb-16 max-w-3xl mx-auto flex flex-col gap-4 w-full"
+              contentClassName="pt-8 pb-10 max-w-4xl mx-auto flex flex-col gap-6 w-full px-4 md:px-8"
               content={
                 <>
                   {messages
@@ -441,7 +332,7 @@ export function Thread() {
                 </>
               }
               footer={
-                <div className="sticky bottom-0 flex flex-col items-center gap-8 bg-white">
+                <div className="pointer-events-none sticky bottom-0 flex flex-col items-center gap-8 bg-gradient-to-t from-background via-background/90 to-transparent pb-6 pt-10">
                   {!chatStarted && (
                     <div className="flex items-center gap-3">
                       <LangGraphLogoSVG className="h-8 flex-shrink-0" />
@@ -451,20 +342,20 @@ export function Thread() {
                     </div>
                   )}
 
-                  <ScrollToBottom className="animate-in fade-in-0 zoom-in-95 absolute bottom-full left-1/2 mb-4 -translate-x-1/2" />
+                  <ScrollToBottom className="pointer-events-auto animate-in fade-in-0 zoom-in-95 absolute bottom-full left-1/2 mb-4 -translate-x-1/2" />
 
                   <div
                     ref={dropRef}
                     className={cn(
-                      "bg-muted relative z-10 mx-auto mb-8 w-full max-w-3xl rounded-2xl shadow-xs transition-all",
+                      "pointer-events-auto bg-background relative z-10 mx-auto w-full max-w-3xl rounded-2xl border shadow-lg transition-all",
                       dragOver
                         ? "border-primary border-2 border-dotted"
-                        : "border border-solid",
+                        : "border-border",
                     )}
                   >
                     <form
                       onSubmit={handleSubmit}
-                      className="mx-auto grid max-w-3xl grid-rows-[1fr_auto] gap-2"
+                      className="mx-auto grid max-w-3xl grid-rows-[1fr_auto]"
                     >
                       <ContentBlocksPreview
                         blocks={contentBlocks}
@@ -488,63 +379,77 @@ export function Thread() {
                           }
                         }}
                         placeholder={t("message.typeMessage")}
-                        className="field-sizing-content resize-none border-none bg-transparent p-3.5 pb-0 shadow-none ring-0 outline-none focus:ring-0 focus:outline-none"
+                        className="field-sizing-content min-h-[60px] resize-none border-none bg-transparent p-4 text-base shadow-none ring-0 outline-none focus:ring-0 focus:outline-none"
                       />
 
-                      <div className="flex items-center gap-6 p-2 pt-4">
-                        <div>
-                          <div className="flex items-center space-x-2">
+                      <div className="flex items-center justify-between p-3 border-t bg-muted/20 rounded-b-2xl">
+                        <div className="flex items-center gap-2">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Label
+                                  htmlFor="file-input"
+                                  className="flex cursor-pointer items-center justify-center size-9 rounded-lg hover:bg-muted transition-colors"
+                                >
+                                  <Plus className="size-5 text-muted-foreground" />
+                                  <span className="sr-only">{t("upload.title")}</span>
+                                </Label>
+                              </TooltipTrigger>
+                              <TooltipContent>{t("upload.title")}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          <div className="flex items-center space-x-2 px-2 py-1.5 rounded-md hover:bg-muted transition-colors">
                             <Switch
                               id="render-tool-calls"
                               checked={hideToolCalls ?? false}
                               onCheckedChange={setHideToolCalls}
+                              className="scale-75 data-[state=checked]:bg-primary"
                             />
                             <Label
                               htmlFor="render-tool-calls"
-                              className="text-sm text-gray-600"
+                              className="text-xs font-medium text-muted-foreground cursor-pointer"
                             >
                               {t("toolCall.hide")}
                             </Label>
                           </div>
                         </div>
-                        <Label
-                          htmlFor="file-input"
-                          className="flex cursor-pointer items-center gap-2"
-                        >
-                          <Plus className="size-5 text-gray-600" />
-                          <span className="text-sm text-gray-600">
-                            {t("upload.title")}
-                          </span>
-                        </Label>
-                        <input
-                          id="file-input"
-                          type="file"
-                          onChange={handleFileUpload}
-                          multiple
-                          accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
-                          className="hidden"
-                        />
-                        {stream.isLoading ? (
-                          <Button
-                            key="stop"
-                            onClick={() => stream.stop()}
-                            className="ml-auto"
-                          >
-                            <LoaderCircle className="h-4 w-4 animate-spin" />
-                            {t("common.cancel")}
-                          </Button>
-                        ) : (
-                          <Button
-                            type="submit"
-                            className="ml-auto shadow-md transition-all"
-                            disabled={
-                              isLoading ||
-                              (!input.trim() && contentBlocks.length === 0)
-                            }
-                          >
-                            {t("common.send")}
-                          </Button>
-                        )}
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            id="file-input"
+                            type="file"
+                            onChange={handleFileUpload}
+                            multiple
+                            accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+                            className="hidden"
+                          />
+                          {stream.isLoading ? (
+                            <Button
+                              key="stop"
+                              onClick={() => stream.stop()}
+                              size="sm"
+                              variant="destructive"
+                              className="h-9 px-4 rounded-lg"
+                            >
+                              <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
+                              {t("common.cancel")}
+                            </Button>
+                          ) : (
+                            <Button
+                              type="submit"
+                              size="sm"
+                              className="h-9 px-4 rounded-lg shadow-sm"
+                              disabled={
+                                isLoading ||
+                                (!input.trim() && contentBlocks.length === 0)
+                              }
+                            >
+                              {t("common.send")}
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </form>
                   </div>
@@ -553,16 +458,18 @@ export function Thread() {
             />
           </StickToBottom>
         </motion.div>
-        <div className="relative flex flex-col border-l">
+        <div className="relative flex flex-col border-l bg-background shadow-inner-left">
           <div className="absolute inset-0 flex min-w-[30vw] flex-col">
-            <div className="grid grid-cols-[1fr_auto] border-b p-4">
-              <ArtifactTitle className="truncate overflow-hidden" />
-              <button
+            <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/30">
+              <ArtifactTitle className="truncate overflow-hidden font-medium" />
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={closeArtifact}
-                className="cursor-pointer"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
               >
-                <XIcon className="size-5" />
-              </button>
+                <XIcon className="size-4" />
+              </Button>
             </div>
             <ArtifactContent className="relative flex-grow" />
           </div>
