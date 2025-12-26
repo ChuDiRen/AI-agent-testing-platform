@@ -21,41 +21,42 @@
 
 ### 后端文件
 ```
-app/
-├── models/{module}.py        # 数据模型
-├── schemas/{module}.py       # Pydantic Schema
-├── repositories/{module}.py  # 数据访问层
-├── services/{module}.py      # 业务逻辑层
-└── api/{module}.py           # API 路由
+platform-fastapi-server/
+├── apitest/
+│   ├── model/{module}.py         # 数据模型 (SQLModel)
+│   ├── schemas/{module}.py       # Pydantic Schema
+│   ├── service/{module}_service.py # 业务逻辑层
+│   └── api/{module}Controller.py # API 控制器
+└── core/                     # 核心组件
 ```
 
 ### 前端文件
 ```
-src/
-├── api/{module}.ts           # API 接口
-├── types/{module}.ts         # TypeScript 类型
-└── views/{module}/
-    ├── index.vue             # 列表页
-    └── components/
-        └── FormDialog.vue    # 表单弹窗
+platform-vue-web/src/
+├── views/{module}/
+│   ├── {Module}List.vue     # 列表页
+│   ├── {Module}Form.vue     # 表单弹窗
+│   ├── {module}.js          # API 接口定义
+│   └── components/          # 模块私有组件
+└── axios.js                 # HTTP 客户端配置
 ```
 
 ### 生成的 API 接口
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | /api/{module} | 获取列表（分页） |
-| GET | /api/{module}/{id} | 获取详情 |
-| POST | /api/{module} | 创建 |
-| PUT | /api/{module}/{id} | 更新 |
-| DELETE | /api/{module}/{id} | 删除 |
-| DELETE | /api/{module}/batch | 批量删除 |
+| POST | /{Module}/queryByPage | 分页查询 |
+| GET | /{Module}/queryById | 按ID查询 |
+| POST | /{Module}/insert | 新增 |
+| PUT | /{Module}/update | 更新 |
+| DELETE | /{Module}/delete | 删除 |
+| POST | /{Module}/batchDelete | 批量删除 |
 
 ## 代码规范
-- 后端遵循四层架构
-- 前端使用 Vue 3 + TypeScript
+- 后端遵循四层架构（Controller → Service → Model → Schema）
+- 前端使用 Vue 3 + JavaScript + Element Plus
 - 自动添加参数校验
 - 自动添加错误处理
-- 自动生成类型定义
+- 统一响应格式
 
 ## 注意事项
 - 生成前会检查是否已存在同名模块

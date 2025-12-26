@@ -23,14 +23,7 @@ logger = get_logger(__name__)
 @module_route.post("/queryByPage", summary="分页查询API接口信息", dependencies=[Depends(check_permission("apitest:api:query"))])
 async def queryByPage(query: ApiInfoQuery, session: Session = Depends(get_session)):
     try:
-        service = InfoService(session)
-        datas, total = service.query_by_page(
-            page=query.page,
-            page_size=query.pageSize,
-            project_id=query.project_id,
-            api_name=query.api_name,
-            request_method=query.request_method
-        )
+        datas, total = InfoService.query_by_page(session, query)
         return respModel.ok_resp_list(lst=datas, total=total)
     except Exception as e:
         logger.error(f"操作失败: {e}", exc_info=True)
@@ -39,8 +32,7 @@ async def queryByPage(query: ApiInfoQuery, session: Session = Depends(get_sessio
 @module_route.get("/queryById", summary="根据ID查询API接口信息")
 async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
-        service = InfoService(session)
-        data = service.get_by_id(id)
+        data = InfoService.query_by_id(session, id)
         if data:
             return respModel.ok_resp(obj=data)
         else:
@@ -52,8 +44,7 @@ async def queryById(id: int = Query(...), session: Session = Depends(get_session
 @module_route.post("/insert", summary="新增API接口信息", dependencies=[Depends(check_permission("apitest:api:add"))])
 async def insert(api_info: ApiInfoCreate, session: Session = Depends(get_session)):
     try:
-        service = InfoService(session)
-        data = service.create(**api_info.model_dump())
+        data = InfoService.create(session, api_info)
         return respModel.ok_resp(msg="添加成功", dic_t={"id": data.id})
     except Exception as e:
         return respModel.error_resp(msg=f"添加失败:{e}")
@@ -61,30 +52,28 @@ async def insert(api_info: ApiInfoCreate, session: Session = Depends(get_session
 @module_route.put("/update", summary="更新API接口信息", dependencies=[Depends(check_permission("apitest:api:edit"))])
 async def update(api_info: ApiInfoUpdate, session: Session = Depends(get_session)):
     try:
-        service = InfoService(session)
-        update_data = api_info.model_dump(exclude_unset=True, exclude={"id"})
-        updated = service.update(api_info.id, update_data)
+        updated = InfoService.update(session, api_info)
         if not updated:
             return respModel.error_resp("数据不存在")
         return respModel.ok_resp(msg="更新成功")
     except Exception as e:
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.delete("/delete", summary="删除API接口信息", dependencies=[Depends(check_permission("apitest:api:delete"))])
 async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
-        service = InfoService(session)
-        if not service.delete(id):
+        if not InfoService.delete(session, id):
             return respModel.error_resp("数据不存在")
         return respModel.ok_resp_text(msg="删除成功")
     except Exception as e:
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 @module_route.get("/getByProject", summary="根据项目ID获取接口列表")
 async def getByProject(project_id: int = Query(...), session: Session = Depends(get_session)):
     try:
-        service = InfoService(session)
-        datas = service.query_by_project(project_id)
+        datas = InfoService.query_by_project(session, project_id)
         return respModel.ok_resp_list(lst=datas, total=len(datas))
     except Exception as e:
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")

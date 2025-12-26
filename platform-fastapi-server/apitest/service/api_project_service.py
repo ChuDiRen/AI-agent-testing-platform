@@ -17,16 +17,22 @@ class ApiProjectService:
     def __init__(self, session: Session):
         self.session = session
     
-    def query_by_page(self, page: int, page_size: int, project_name: Optional[str] = None) -> tuple[List[ApiProject], int]:
+    def query_by_page(self, page: int, page_size: int, **filters) -> tuple[List[ApiProject], int]:
         """分页查询API项目"""
-        offset = (page - 1) * page_size
         statement = select(ApiProject)
         count_statement = select(ApiProject)
         
-        if project_name:
-            statement = statement.where(ApiProject.project_name.contains(project_name))
-            count_statement = count_statement.where(ApiProject.project_name.contains(project_name))
+        # 动态过滤条件
+        for key, value in filters.items():
+            if value is not None and hasattr(ApiProject, key):
+                if isinstance(value, str) and key == 'project_name':
+                    statement = statement.where(getattr(ApiProject, key).contains(value))
+                    count_statement = count_statement.where(getattr(ApiProject, key).contains(value))
+                else:
+                    statement = statement.where(getattr(ApiProject, key) == value)
+                    count_statement = count_statement.where(getattr(ApiProject, key) == value)
         
+        offset = (page - 1) * page_size
         datas = self.session.exec(statement.limit(page_size).offset(offset)).all()
         total = len(self.session.exec(count_statement).all())
         return list(datas), total
