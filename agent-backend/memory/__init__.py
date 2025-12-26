@@ -55,6 +55,7 @@ langgraph.json 配置示例：
 from .manager import MemoryManager, get_memory_manager, reset_memory_manager
 from .store import PersistentStore
 from .checkpointer import CheckpointerManager, checkpointer_context
+from .runtime_patch import patch_runtime_checkpointer, unpatch_runtime_checkpointer, auto_patch
 
 __all__ = [
     "MemoryManager",
@@ -63,4 +64,8 @@ __all__ = [
     "PersistentStore",
     "CheckpointerManager",
     "checkpointer_context",
+    # Runtime patch for langgraph dev
+    "patch_runtime_checkpointer",
+    "unpatch_runtime_checkpointer",
+    "auto_patch",
 ]
