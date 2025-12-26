@@ -20,7 +20,7 @@ from ..tools.sql_tools import SQL_TOOLS
 
 def _create_memory_aware_sql_tools(dialect: str = "mysql") -> List:
     """创建带长期记忆支持的 SQL 工具"""
-    from ..memory import get_memory_manager
+    from memory import get_memory_manager
     
     @tool
     def get_similar_patterns(

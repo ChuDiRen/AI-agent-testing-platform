@@ -41,9 +41,9 @@ export const AGENTS_LIST: AgentMetadata[] = [
     tags: ["SQL", "流式"],
     is_streaming: true,
   },
-  // Text-to-TestCase 系列
+  // Text-to-Case 系列
   {
-    id: "text2testcase_agent",
+    id: "text2case_agent",
     name: "测试用例生成",
     description: "根据需求自动生成测试用例，支持需求分析、测试点设计、用例编写",
     icon: "🧪",
@@ -51,7 +51,7 @@ export const AGENTS_LIST: AgentMetadata[] = [
     tags: ["测试用例", "自动化"],
   },
   {
-    id: "text2testcase_stream",
+    id: "text2case_stream",
     name: "测试用例生成 (流式)",
     description: "测试用例生成，支持流式输出",
     icon: "🧪",

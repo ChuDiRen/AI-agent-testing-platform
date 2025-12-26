@@ -369,3 +369,180 @@ def fetch_confluence_page(url: str, token: Optional[str] = None) -> str:
         return result.content
     else:
         return f"获取失败: {result.error}"
+
+
+@tool
+def parse_requirement(requirement_text: str) -> Dict[str, Any]:
+    """解析需求文本，提取结构化信息
+    
+    分析需求文本，识别功能点、业务规则、接口信息等。
+    
+    Args:
+        requirement_text: 需求描述文本
+        
+    Returns:
+        结构化的需求信息
+    """
+    result = {
+        "功能点": [],
+        "业务规则": [],
+        "接口信息": {},
+        "约束条件": [],
+        "测试类型建议": "API",
+    }
+    
+    # 识别功能点（以动词开头的句子）
+    func_patterns = [
+        r'支持(.+?)(?:[。；,]|$)',
+        r'实现(.+?)(?:[。；,]|$)',
+        r'提供(.+?)(?:[。；,]|$)',
+        r'能够(.+?)(?:[。；,]|$)',
+    ]
+    for pattern in func_patterns:
+        matches = re.findall(pattern, requirement_text)
+        result["功能点"].extend(matches)
+    
+    # 识别业务规则（包含"如果"、"当"、"必须"等关键词）
+    rule_patterns = [
+        r'如果(.+?)(?:则|就)(.+?)(?:[。；]|$)',
+        r'当(.+?)时[，,](.+?)(?:[。；]|$)',
+        r'必须(.+?)(?:[。；,]|$)',
+        r'不能(.+?)(?:[。；,]|$)',
+    ]
+    for pattern in rule_patterns:
+        matches = re.findall(pattern, requirement_text)
+        for match in matches:
+            if isinstance(match, tuple):
+                result["业务规则"].append(" -> ".join(match))
+            else:
+                result["业务规则"].append(match)
+    
+    # 识别接口信息
+    if "接口" in requirement_text or "API" in requirement_text:
+        result["测试类型建议"] = "API"
+        # 提取HTTP方法
+        methods = re.findall(r'(GET|POST|PUT|DELETE|PATCH)', requirement_text, re.IGNORECASE)
+        if methods:
+            result["接口信息"]["methods"] = list(set(methods))
+        # 提取URL路径
+        paths = re.findall(r'(/[a-zA-Z0-9/_-]+)', requirement_text)
+        if paths:
+            result["接口信息"]["paths"] = list(set(paths))
+    
+    # 识别约束条件
+    constraint_patterns = [
+        r'长度[不]?[超过|小于|大于|等于](\d+)',
+        r'范围[为是]?(\d+)[到至-](\d+)',
+        r'最[大小]值?[为是]?(\d+)',
+    ]
+    for pattern in constraint_patterns:
+        matches = re.findall(pattern, requirement_text)
+        result["约束条件"].extend([str(m) for m in matches])
+    
+    # 去重
+    result["功能点"] = list(set(result["功能点"]))
+    result["业务规则"] = list(set(result["业务规则"]))
+    result["约束条件"] = list(set(result["约束条件"]))
+    
+    return result
+
+
+@tool
+def extract_test_points(requirement_text: str, analysis_result: Optional[str] = None) -> Dict[str, Any]:
+    """从需求中提取测试点
+    
+    基于需求文本和分析结果，提取需要测试的关键点。
+    
+    Args:
+        requirement_text: 需求描述文本
+        analysis_result: 需求分析结果（可选）
+        
+    Returns:
+        测试点列表和分类
+    """
+    test_points = {
+        "正常流程": [],
+        "边界值": [],
+        "异常处理": [],
+        "安全测试": [],
+        "性能测试": [],
+    }
+    
+    # 正常流程测试点
+    if "登录" in requirement_text:
+        test_points["正常流程"].append("正确用户名密码登录成功")
+    if "注册" in requirement_text:
+        test_points["正常流程"].append("正确信息注册成功")
+    if "查询" in requirement_text:
+        test_points["正常流程"].append("正常条件查询返回正确结果")
+    if "创建" in requirement_text or "新增" in requirement_text:
+        test_points["正常流程"].append("正确参数创建成功")
+    if "修改" in requirement_text or "更新" in requirement_text:
+        test_points["正常流程"].append("正确参数修改成功")
+    if "删除" in requirement_text:
+        test_points["正常流程"].append("删除操作执行成功")
+    
+    # 边界值测试点
+    if re.search(r'长度|字符|范围|最[大小]', requirement_text):
+        test_points["边界值"].extend([
+            "最小值边界",
+            "最大值边界",
+            "边界值-1",
+            "边界值+1",
+        ])
+    
+    # 异常处理测试点
+    test_points["异常处理"].extend([
+        "必填参数为空",
+        "参数格式错误",
+        "参数类型错误",
+        "资源不存在",
+    ])
+    
+    # 安全测试点
+    if "密码" in requirement_text or "登录" in requirement_text:
+        test_points["安全测试"].extend([
+            "SQL注入攻击",
+            "XSS攻击",
+            "密码错误次数限制",
+        ])
+    
+    # 性能测试点
+    if "并发" in requirement_text or "性能" in requirement_text:
+        test_points["性能测试"].extend([
+            "并发请求处理",
+            "响应时间要求",
+            "大数据量处理",
+        ])
+    
+    # 统计
+    total = sum(len(points) for points in test_points.values())
+    
+    return {
+        "test_points": test_points,
+        "total_count": total,
+        "categories": list(test_points.keys()),
+    }
+
+
+# ============== 工具集合 ==============
+
+REQUIREMENT_TOOLS = [
+    analyze_requirements_from_input,
+    fetch_url_content,
+    fetch_confluence_page,
+    parse_requirement,
+    extract_test_points,
+]
+
+__all__ = [
+    "RequirementFetcher",
+    "FetchResult",
+    "SourceType",
+    "analyze_requirements_from_input",
+    "fetch_url_content",
+    "fetch_confluence_page",
+    "parse_requirement",
+    "extract_test_points",
+    "REQUIREMENT_TOOLS",
+]

@@ -22,23 +22,30 @@ def setup_database(db_path: Path) -> None:
     """自动下载并设置Chinook数据库"""
     db_url = "https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite"
 
+    # 确保 data 目录存在（必须在连接数据库前创建）
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
     def get_tables():
         """验证数据库并返回表列表"""
-        with sqlite3.connect(db_path) as conn:
-            return conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        if not db_path.exists():
+            return []
+        try:
+            with sqlite3.connect(db_path) as conn:
+                return conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        except Exception:
+            return []
 
     # 检查现有数据库
     if get_tables():
         return
 
-    # 确保 data 目录存在
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    
     # 下载数据库
     try:
+        print(f"[Chinook] 正在下载数据库到: {db_path}")
         urllib.request.urlretrieve(db_url, db_path)
         if not get_tables():
             raise SystemExit(f"数据库下载失败，请手动下载: {db_url}")
+        print(f"[Chinook] 下载完成: {db_path}")
     except Exception as e:
         raise SystemExit(f"数据库下载失败: {e}\n手动下载: {db_url}")
 
@@ -47,8 +54,8 @@ def setup_database(db_path: Path) -> None:
 os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem"
 model = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
 
-# 设置数据库
-db_path = Path(__file__).parent.parent / "data" / "Chinook.db"
+# 设置数据库 - 使用 resolve() 规范化路径
+db_path = Path(__file__).parent.parent.resolve() / "data" / "Chinook.db"
 setup_database(db_path)
 
 # 连接数据库
@@ -142,8 +149,8 @@ _agent_hitl_cache = None
 _checkpointer_cache = None  # SQLite短期记忆缓存
 _store_cache = None  # 长期记忆存储缓存
 
-# 统一的记忆数据库路径
-MEMORY_DB_PATH = Path(__file__).parent.parent / "data" / "agent_memory.db"
+# 统一的记忆数据库路径 - 使用 resolve() 规范化路径
+MEMORY_DB_PATH = Path(__file__).parent.parent.resolve() / "data" / "agent_memory.db"
 
 def _get_checkpointer():
     """获取SQLite短期记忆(带缓存)"""
@@ -194,6 +201,7 @@ async def _get_chart_tools():
             _chart_tools_cache = []
     return _chart_tools_cache
 
+
 async def _get_agent():
     """获取完整agent(带缓存, 首次调用时加载MCP工具)
     
@@ -209,7 +217,9 @@ async def _get_agent():
             checkpointer=_get_checkpointer(),  # SQLite短期记忆
             store=_get_store(),  # 长期记忆存储
         )
+        print("[成功] SQL Agent 已初始化（含图表工具）")
     return _agent_cache
+
 
 # 导出graph工厂函数(LangGraph API会调用此函数获取graph)
 async def agent_old():
@@ -238,8 +248,10 @@ async def _get_agent_hitl():
                 )
             ],
         )
+        print("[成功] SQL Agent (HITL) 已初始化")
     return _agent_hitl_cache
 
 
 async def agent_hitl():
+    """Agent HITL 工厂函数"""
     return await _get_agent_hitl()

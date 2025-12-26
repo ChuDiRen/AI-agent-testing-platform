@@ -1,39 +1,39 @@
 """
-Text-to-SQL 图工作流
+Text-to-TestCase 图工作流
 
-基于 LangGraph 的 Text-to-SQL 工作流
+基于 LangGraph 官方的 langgraph_supervisor 构建
+参考 text2sql 架构，使用 Supervisor + ReAct Agents 模式
 """
-
 import sys
 import os
-from typing import Any, Dict, Optional
+from typing import Optional
 
-# 确保 text2sql 包可以被导入
+# 确保 text2case 包可以被导入
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 _parent_dir = os.path.dirname(_current_dir)
 if _parent_dir not in sys.path:
     sys.path.insert(0, _parent_dir)
 
-from text2sql.config import get_model, LLMConfig
-from text2sql.agents.supervisor_agent import build_supervisor_with_config
+from text2case.config import get_model, LLMConfig
+from text2case.agents.supervisor_agent import build_supervisor_with_config
 
 
-def create_text2sql_graph(
-    connection_id: int = 0,
+def create_text2case_graph(
     model_config: Optional[LLMConfig] = None,
-    max_retries: int = 3,
-    dialect: str = "mysql",
+    max_retries: int = 2,
+    enable_review: bool = True,
+    enable_export: bool = False,
     checkpointer=None,
     store=None,
     use_persistent_memory: bool = False
 ):
-    """创建 Text-to-SQL 图工作流
+    """创建 Text-to-TestCase 图工作流
     
     Args:
-        connection_id: 数据库连接 ID
         model_config: LLM 配置
         max_retries: 最大重试次数
-        dialect: 数据库方言
+        enable_review: 是否启用评审（默认启用）
+        enable_export: 是否启用导出（默认不启用，按需调用）
         checkpointer: 短期记忆（可选，优先使用）
         store: 长期记忆（可选，优先使用）
         use_persistent_memory: 是否使用持久化记忆（当 checkpointer/store 未提供时）
@@ -45,9 +45,9 @@ def create_text2sql_graph(
     
     supervisor = build_supervisor_with_config(
         model=model,
-        connection_id=connection_id,
         max_retries=max_retries,
-        dialect=dialect
+        enable_review=enable_review,
+        enable_export=enable_export
     )
     
     # 如果未提供 checkpointer/store 且启用持久化记忆，则使用 MemoryManager
@@ -70,25 +70,19 @@ def graph(config: dict = None):
     Returns:
         编译好的图（不含 checkpointer/store，由 LangGraph API 注入）
     """
-    from text2sql.database import setup_chinook, register_connection, DatabaseConfig
-    
-    # 确保数据库已初始化
-    try:
-        db_path = setup_chinook()
-        register_connection(0, DatabaseConfig(db_type="sqlite", database=str(db_path)))
-    except Exception:
-        pass
-    
-    connection_id = 0
-    dialect = "sqlite"
+    max_retries = 2
+    enable_review = True
+    enable_export = False
     
     if config and "configurable" in config:
-        connection_id = config["configurable"].get("connection_id", 0)
-        dialect = config["configurable"].get("dialect", "sqlite")
+        max_retries = config["configurable"].get("max_retries", 2)
+        enable_review = config["configurable"].get("enable_review", True)
+        enable_export = config["configurable"].get("enable_export", False)
     
-    return create_text2sql_graph(
-        connection_id=connection_id,
-        dialect=dialect
+    return create_text2case_graph(
+        max_retries=max_retries,
+        enable_review=enable_review,
+        enable_export=enable_export
     )
 
 
@@ -107,72 +101,83 @@ def get_app(config: dict = None):
     Returns:
         未编译的 StateGraph（checkpointer/store 由 LangGraph API 在编译时注入）
     """
-    from text2sql.database import setup_chinook, register_connection, DatabaseConfig
-    
-    # 确保数据库已初始化
-    try:
-        db_path = setup_chinook()
-        register_connection(0, DatabaseConfig(db_type="sqlite", database=str(db_path)))
-    except Exception:
-        pass
-    
-    connection_id = 0
-    dialect = "sqlite"
-    max_retries = 3
+    max_retries = 2
+    enable_review = True
+    enable_export = True  # 默认启用导出
     
     if config and "configurable" in config:
-        connection_id = config["configurable"].get("connection_id", 0)
-        dialect = config["configurable"].get("dialect", "sqlite")
-        max_retries = config["configurable"].get("max_retries", 3)
+        max_retries = config["configurable"].get("max_retries", 2)
+        enable_review = config["configurable"].get("enable_review", True)
+        enable_export = config["configurable"].get("enable_export", True)
     
     model = get_model()
     
     # 返回未编译的 StateGraph，由 LangGraph API 服务器编译并注入 checkpointer/store
     return build_supervisor_with_config(
         model=model,
-        connection_id=connection_id,
         max_retries=max_retries,
-        dialect=dialect
+        enable_review=enable_review,
+        enable_export=enable_export
     )
+
+
+def get_app_simple(config: dict = None):
+    """
+    简化版图工厂函数 - 不带记忆
+    
+    Args:
+        config: RunnableConfig
+        
+    Returns:
+        编译好的图（不带 checkpointer）
+    """
+    return graph(config)
 
 
 # ============== 便捷运行函数 ==============
 
-async def run_text2sql(
-    query: str,
-    connection_id: int = 0,
-    dialect: str = "sqlite",
+async def run_text2case(
+    requirement: str,
+    test_type: str = "API",
     thread_id: str = "default",
-    user_id: str = "default"
+    user_id: str = "default",
+    enable_review: bool = True,
+    enable_export: bool = False
 ) -> dict:
     """便捷运行函数（带持久化记忆）
     
     Args:
-        query: 自然语言查询
-        connection_id: 数据库连接 ID
-        dialect: 数据库方言
+        requirement: 需求描述
+        test_type: 测试类型 (API/Web/App)
         thread_id: 会话 ID
         user_id: 用户 ID
+        enable_review: 是否启用评审
+        enable_export: 是否启用导出
         
     Returns:
-        查询结果
+        生成结果
     """
     from langchain_core.messages import HumanMessage
-    from text2sql.database import setup_chinook, register_connection, DatabaseConfig
-    
-    # 确保数据库已初始化
-    try:
-        db_path = setup_chinook()
-        register_connection(0, DatabaseConfig(db_type="sqlite", database=str(db_path)))
-    except Exception:
-        pass
     
     # 使用持久化记忆创建图
-    app = create_text2sql_graph(
-        connection_id=connection_id,
-        dialect=dialect,
+    app = create_text2case_graph(
+        max_retries=2,
+        enable_review=enable_review,
+        enable_export=enable_export,
         use_persistent_memory=True
     )
+    
+    # 构建输入
+    user_message = f"""请为以下{test_type}需求生成测试用例：
+
+{requirement}
+
+请按照完整流程执行：
+1. 分析需求
+2. 生成测试用例
+{"3. 评审测试用例" if enable_review else ""}
+{"4. 导出文件" if enable_export else ""}
+"""
     
     config = {
         "configurable": {
@@ -182,10 +187,11 @@ async def run_text2sql(
     }
     
     result = await app.ainvoke(
-        {"messages": [HumanMessage(content=query)]},
+        {"messages": [HumanMessage(content=user_message)]},
         config
     )
     
+    # 提取最终结果
     final_message = result.get("messages", [])[-1] if result.get("messages") else None
     
     return {
@@ -195,42 +201,44 @@ async def run_text2sql(
     }
 
 
-def run_text2sql_sync(
-    query: str,
-    connection_id: int = 0,
-    dialect: str = "sqlite",
+# ============== 同步运行函数 ==============
+
+def run_text2case_sync(
+    requirement: str,
+    test_type: str = "API",
     thread_id: str = "default",
     user_id: str = "default",
+    enable_review: bool = False,
+    enable_export: bool = False,
     use_memory: bool = True
 ) -> dict:
     """同步运行函数
     
     Args:
-        query: 自然语言查询
-        connection_id: 数据库连接 ID
-        dialect: 数据库方言
+        requirement: 需求描述
+        test_type: 测试类型
         thread_id: 会话 ID
         user_id: 用户 ID
+        enable_review: 是否启用评审
+        enable_export: 是否启用导出
         use_memory: 是否使用持久化记忆
         
     Returns:
-        查询结果
+        生成结果
     """
     from langchain_core.messages import HumanMessage
-    from text2sql.database import setup_chinook, register_connection, DatabaseConfig
     
-    # 确保数据库已初始化
-    try:
-        db_path = setup_chinook()
-        register_connection(0, DatabaseConfig(db_type="sqlite", database=str(db_path)))
-    except Exception:
-        pass
-    
-    app = create_text2sql_graph(
-        connection_id=connection_id,
-        dialect=dialect,
+    app = create_text2case_graph(
+        max_retries=2,
+        enable_review=enable_review,
+        enable_export=enable_export,
         use_persistent_memory=use_memory
     )
+    
+    user_message = f"""请为以下{test_type}需求生成测试用例：
+
+{requirement}
+"""
     
     config = {
         "configurable": {
@@ -240,7 +248,7 @@ def run_text2sql_sync(
     }
     
     result = app.invoke(
-        {"messages": [HumanMessage(content=query)]},
+        {"messages": [HumanMessage(content=user_message)]},
         config
     )
     

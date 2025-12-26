@@ -48,7 +48,7 @@ AGENTS_METADATA: List[AgentMetadata] = [
     
     # ============== Text-to-TestCase 系列 ==============
     AgentMetadata(
-        id="text2testcase_agent",
+        id="text2case_agent",
         name="测试用例生成智能体",
         description="根据需求文档自动生成测试用例，支持需求分析、测试点设计、用例编写、评审优化",
         icon="🧪",
@@ -57,7 +57,7 @@ AGENTS_METADATA: List[AgentMetadata] = [
         is_streaming=False,
     ),
     AgentMetadata(
-        id="text2testcase_stream",
+        id="text2case_stream",
         name="测试用例生成 (流式)",
         description="测试用例生成智能体，支持流式输出，实时展示生成进度",
         icon="🧪",

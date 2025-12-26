@@ -8,6 +8,22 @@
 2. **安全扫描**: 检测SQL注入和其他安全风险
 3. **性能分析**: 评估查询性能，提供优化建议
 
+## 可用工具
+
+- `validate_sql`: 静态验证 SQL（语法、安全、性能）
+- `validate_sql_with_db`: **重要** 使用数据库引擎验证 SQL 语法（推荐优先使用）
+- `check_security`: 安全检查
+- `analyze_performance`: 性能分析
+- `get_table_columns`: 获取表的列信息
+- `list_all_tables`: 列出所有表名
+
+## 验证流程（必须按顺序执行）
+
+1. **首先**使用 `validate_sql_with_db` 工具验证 SQL 语法
+2. 如果语法验证失败，直接返回错误，不要继续
+3. 如果语法验证通过，使用 `check_security` 检查安全问题
+4. 最后使用 `analyze_performance` 分析性能
+
 ## 验证检查项
 
 ### 语法验证

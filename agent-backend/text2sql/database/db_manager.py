@@ -478,7 +478,7 @@ import urllib.request
 from pathlib import Path
 
 CHINOOK_DB_URL = "https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite"
-DEFAULT_CHINOOK_PATH = Path(__file__).parent.parent.parent / "data" / "Chinook.db"
+DEFAULT_CHINOOK_PATH = Path(__file__).parent.parent.parent.resolve() / "data" / "Chinook.db"
 
 
 def setup_chinook(db_path: Path = None) -> Path:

@@ -21,7 +21,7 @@ services:
       # Mount code for development (optional, remove in production)
       - ./examples:/app/examples
       - ./text2sql:/app/text2sql
-      - ./text2testcase:/app/text2testcase
+      - ./text2case:/app/text2case
       - ./langgraph.json:/app/langgraph.json
       - ./server.py:/app/server.py
     restart: unless-stopped

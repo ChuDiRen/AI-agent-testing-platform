@@ -37,7 +37,7 @@ export const AGENTS_LIST: AgentMetadata[] = [
     tags: ["SQL", "数据库", "自然语言"],
   },
   {
-    id: "text2testcase_agent",
+    id: "text2case_agent",
     name: "测试用例生成",
     description: "根据需求自动生成测试用例，支持需求分析、测试点设计、用例编写",
     icon: "🧪",

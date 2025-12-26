@@ -9,7 +9,7 @@
     "sql_agent_graph": "./examples/sql_agent_graph.py:agent_old",
     "api_agent": "./examples/api_agent.py:agent_auto",
     "text2sql_agent": "./text2sql/chat_graph.py:get_app",
-    "text2testcase_agent": "./text2testcase/chat_graph.py:get_app"
+    "text2case_agent": "./text2case/chat_graph.py:get_app"
   },
   "env": ".env",
   "store": {

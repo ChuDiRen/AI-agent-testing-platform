@@ -5,7 +5,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
-_root = Path(__file__).parent.parent.parent
+_root = Path(__file__).parent.parent.parent.resolve()
 if str(_root) not in sys.path:
     sys.path.insert(0, str(_root))
 

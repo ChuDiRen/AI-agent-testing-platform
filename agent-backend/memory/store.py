@@ -37,23 +37,28 @@ class MemoryItem:
 
 class PersistentStore(BaseStore):
     """持久化长期记忆存储
-    
+
     直接使用 SQLite 持久化存储，无内存缓存
     支持:
     - Schema 缓存
     - 查询模式存储
     - 用户偏好
     """
-    
-    def __init__(self, db_path: str = "data/agent_memory.db"):
+
+    # 统一数据目录
+    DATA_DIR = Path(__file__).parent.parent.resolve() / "data"
+
+    def __init__(self, db_path: str = None):
         """初始化持久化存储
-        
+
         Args:
-            db_path: SQLite 数据库文件路径
+            db_path: SQLite 数据库文件路径，默认为 DATA_DIR/agent_memory.db
         """
+        if db_path is None:
+            db_path = str(self.DATA_DIR / "agent_memory.db")
         self.db_path = Path(db_path)
         self._conn: Optional[sqlite3.Connection] = None
-        
+
         # 初始化
         self._ensure_dir()
         self._init_tables()

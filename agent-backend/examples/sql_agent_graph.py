@@ -21,23 +21,28 @@ def setup_database(db_path: Path) -> None:
     """自动下载并设置 Chinook数据库"""
     db_url = "https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite"
 
+    # 确保 data 目录存在（必须在连接数据库前创建）
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
     def get_tables():
         """验证数据库并返回表列表"""
+        if not db_path.exists():
+            return []
         with suppress(Exception):
             with sqlite3.connect(db_path) as conn:
                 return conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        return []
 
     if get_tables(): # 检查现有数据库
         return
 
-    # 确保 data 目录存在
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    
     # 下载数据库
     try:
+        print(f"[Chinook] 正在下载数据库到: {db_path}")
         urllib.request.urlretrieve(db_url, db_path)
         if not get_tables():
             raise SystemExit(f"数据库下载失败，请手动下载: {db_url}")
+        print(f"[Chinook] 下载完成: {db_path}")
     except Exception as e:
         raise SystemExit(f"数据库下载失败: {e}\n手动下载: {db_url}")
 
@@ -45,7 +50,7 @@ def setup_database(db_path: Path) -> None:
 os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem" # 初始化
 llm = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
 
-db_path = Path(__file__).parent.parent / "data" / "Chinook.db" # 设置数据库
+db_path = Path(__file__).parent.parent.resolve() / "data" / "Chinook.db" # 设置数据库
 setup_database(db_path)
 
 db = SQLDatabase.from_uri(f"sqlite:///{db_path}") # 连接数据库
@@ -169,8 +174,6 @@ agent_old = builder.compile() # 编译 agent (LangGraph API 自动处理持久�
 from langchain_core.runnables import RunnableConfig # 导入依赖
 from langchain.tools import tool
 from langgraph.types import interrupt, Command
-
-checkpoint_db_path = Path(__file__).parent.parent / "data" / "checkpoints.db" # 配置 SQLite Checkpointer 用于持久化对话状态
 
 
 @tool(run_query_tool.name, description=run_query_tool.description, args_schema=run_query_tool.args_schema)

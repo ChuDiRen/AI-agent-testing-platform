@@ -42,13 +42,18 @@ class MemoryManager:
     NS_QUERY_PATTERNS = "query_patterns"
     NS_USER_PREFERENCES = "user_preferences"
     NS_SUCCESSFUL_QUERIES = "successful_queries"
-    
-    def __init__(self, db_path: str = "data/agent_memory.db"):
+
+    # 统一数据目录
+    DATA_DIR = Path(__file__).parent.parent.resolve() / "data"
+
+    def __init__(self, db_path: str = None):
         """初始化记忆管理器
-        
+
         Args:
-            db_path: 数据库文件路径（短期和长期记忆共用）
+            db_path: 数据库文件路径（短期和长期记忆共用），默认为 DATA_DIR/agent_memory.db
         """
+        if db_path is None:
+            db_path = str(self.DATA_DIR / "agent_memory.db")
         self.db_path = db_path
         self._checkpointer_manager = CheckpointerManager(db_path)
         self._store = PersistentStore(db_path=db_path)
@@ -253,7 +258,7 @@ class MemoryManager:
 _memory_manager: Optional[MemoryManager] = None
 
 
-def get_memory_manager(db_path: str = "data/agent_memory.db") -> MemoryManager:
+def get_memory_manager(db_path: str = None) -> MemoryManager:
     """获取全局记忆管理器实例"""
     global _memory_manager
     if _memory_manager is None:

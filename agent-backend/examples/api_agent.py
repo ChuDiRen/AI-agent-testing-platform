@@ -372,7 +372,9 @@ async def get_agent_auto():
             tools,
             system_prompt=system_prompt,
         )
+        print("[成功] API Agent 已初始化")
     return _agent_auto
+
 
 # 导出给 langgraph.json 使用
 async def agent_auto():

@@ -92,9 +92,9 @@ def build_supervisor_with_config(
     # 创建各代理，传入 connection_id
     schema_agent = create_schema_agent(model, connection_id=connection_id)
     sql_generator = create_sql_generator_agent(model, dialect=dialect)
-    sql_validator = create_sql_validator_agent(model)
+    sql_validator = create_sql_validator_agent(model, connection_id=connection_id)
     sql_executor = create_sql_executor_agent(model, connection_id=connection_id)
-    error_recovery = create_error_recovery_agent(model, max_retries=max_retries)
+    error_recovery = create_error_recovery_agent(model, connection_id=connection_id, max_retries=max_retries)
     chart_generator = create_chart_generator_agent(model)
     
     agents = [

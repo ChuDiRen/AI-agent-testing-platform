@@ -22,7 +22,7 @@ from ..database.db_manager import get_database_manager
 
 def _create_bound_schema_tools(connection_id: int) -> List:
     """创建绑定了 connection_id 的 schema 工具（带长期记忆支持）"""
-    from ..memory import get_memory_manager
+    from memory import get_memory_manager
     
     manager = get_database_manager(connection_id)
     

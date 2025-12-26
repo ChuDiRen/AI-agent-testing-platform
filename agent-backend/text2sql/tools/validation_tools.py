@@ -344,9 +344,152 @@ def analyze_performance(sql: str) -> Dict[str, Any]:
     }
 
 
-# 工具列表
+# ============ 方案 A: 数据库预执行验证 ============
+
+def create_db_validation_tools(connection_id: int = 0) -> List:
+    """创建带数据库连接的验证工具
+    
+    Args:
+        connection_id: 数据库连接 ID
+        
+    Returns:
+        工具列表
+    """
+    from ..database.db_manager import get_database_manager, DatabaseType
+    
+    @tool
+    def validate_sql_with_db(sql: str) -> Dict[str, Any]:
+        """使用数据库引擎验证 SQL 语法
+        
+        通过 EXPLAIN 或预编译验证 SQL 语法是否正确，不实际执行查询。
+        
+        Args:
+            sql: SQL 语句
+            
+        Returns:
+            验证结果，包含 is_valid、error 等字段
+        """
+        try:
+            manager = get_database_manager(connection_id)
+            db_type = manager.config.db_type
+            
+            # 根据数据库类型选择验证方式
+            if db_type == DatabaseType.SQLITE:
+                # SQLite 使用 EXPLAIN QUERY PLAN
+                explain_sql = f"EXPLAIN QUERY PLAN {sql.rstrip(';')}"
+            elif db_type in [DatabaseType.MYSQL, DatabaseType.POSTGRESQL]:
+                # MySQL/PostgreSQL 使用 EXPLAIN
+                explain_sql = f"EXPLAIN {sql.rstrip(';')}"
+            else:
+                # 其他数据库直接尝试执行
+                explain_sql = f"EXPLAIN {sql.rstrip(';')}"
+            
+            result = manager.execute_query(explain_sql)
+            
+            if result.success:
+                return {
+                    "is_valid": True,
+                    "sql": sql,
+                    "message": "SQL 语法验证通过",
+                    "explain_result": result.data[:5] if result.data else []  # 返回部分执行计划
+                }
+            else:
+                return {
+                    "is_valid": False,
+                    "sql": sql,
+                    "error": result.error,
+                    "error_code": result.error_code,
+                    "message": f"SQL 语法错误: {result.error}"
+                }
+                
+        except Exception as e:
+            return {
+                "is_valid": False,
+                "sql": sql,
+                "error": str(e),
+                "error_code": "VALIDATION_ERROR",
+                "message": f"验证过程出错: {str(e)}"
+            }
+    
+    @tool
+    def get_table_columns(table_name: str) -> Dict[str, Any]:
+        """获取指定表的列信息
+        
+        用于验证 SQL 中引用的列是否存在。
+        
+        Args:
+            table_name: 表名
+            
+        Returns:
+            表的列信息
+        """
+        try:
+            manager = get_database_manager(connection_id)
+            table_info = manager.get_table_info(table_name)
+            
+            return {
+                "success": True,
+                "table_name": table_name,
+                "columns": [
+                    {
+                        "name": col.name,
+                        "type": col.data_type,
+                        "nullable": col.nullable,
+                        "primary_key": col.primary_key
+                    }
+                    for col in table_info.columns
+                ]
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "table_name": table_name,
+                "error": str(e)
+            }
+    
+    @tool
+    def list_all_tables() -> Dict[str, Any]:
+        """列出数据库中所有表名
+        
+        用于验证 SQL 中引用的表是否存在。
+        
+        Returns:
+            表名列表
+        """
+        try:
+            manager = get_database_manager(connection_id)
+            tables = manager.get_tables()
+            
+            return {
+                "success": True,
+                "tables": tables,
+                "count": len(tables)
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    return [validate_sql_with_db, get_table_columns, list_all_tables]
+
+
+# 工具列表（基础静态验证）
 VALIDATION_TOOLS = [
     validate_sql,
     check_security,
     analyze_performance
 ]
+
+
+def get_enhanced_validation_tools(connection_id: int = 0) -> List:
+    """获取增强版验证工具（包含数据库验证）
+    
+    Args:
+        connection_id: 数据库连接 ID
+        
+    Returns:
+        完整的验证工具列表
+    """
+    db_tools = create_db_validation_tools(connection_id)
+    return VALIDATION_TOOLS + db_tools

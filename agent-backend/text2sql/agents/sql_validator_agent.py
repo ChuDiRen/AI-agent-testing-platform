@@ -11,17 +11,19 @@ from langchain_core.language_models import BaseChatModel
 
 from ..config import get_model
 from ..prompts import load_prompt
-from ..tools.validation_tools import VALIDATION_TOOLS
+from ..tools.validation_tools import VALIDATION_TOOLS, get_enhanced_validation_tools
 
 
 def create_sql_validator_agent(
     model: BaseChatModel = None,
+    connection_id: int = 0,
     tools: List = None
 ) -> Any:
-    """创建SQL验证代理
+    """创建SQL验证代理（增强版）
     
     Args:
         model: LLM模型
+        connection_id: 数据库连接 ID（用于数据库级别的 SQL 验证）
         tools: 工具列表
         
     Returns:
@@ -31,7 +33,8 @@ def create_sql_validator_agent(
         model = get_model()
     
     if tools is None:
-        tools = VALIDATION_TOOLS
+        # 使用增强版验证工具（包含数据库验证）
+        tools = get_enhanced_validation_tools(connection_id)
     
     prompt = load_prompt("sql_validator")
     

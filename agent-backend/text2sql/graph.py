@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 # 添加父目录到 sys.path 以支持绝对导入
-_root = Path(__file__).parent.parent
+_root = Path(__file__).parent.parent.resolve()
 if str(_root) not in sys.path:
     sys.path.insert(0, str(_root))
 

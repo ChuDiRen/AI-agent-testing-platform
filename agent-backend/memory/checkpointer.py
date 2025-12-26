@@ -14,16 +14,21 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 
 class CheckpointerManager:
     """短期记忆管理器
-    
+
     封装 SqliteSaver，提供会话上下文的存储和检索
     """
-    
-    def __init__(self, db_path: str = "data/agent_memory.db"):
+
+    # 统一数据目录
+    DATA_DIR = Path(__file__).parent.parent.resolve() / "data"
+
+    def __init__(self, db_path: str = None):
         """初始化检查点管理器
-        
+
         Args:
-            db_path: SQLite 数据库文件路径
+            db_path: SQLite 数据库文件路径，默认为 DATA_DIR/agent_memory.db
         """
+        if db_path is None:
+            db_path = str(self.DATA_DIR / "agent_memory.db")
         self.db_path = Path(db_path)
         self._checkpointer: Optional[SqliteSaver] = None
         self._conn: Optional[sqlite3.Connection] = None
@@ -91,13 +96,16 @@ class CheckpointerManager:
 
 
 @contextmanager
-def checkpointer_context(db_path: str = "data/agent_memory.db"):
+def checkpointer_context(db_path: str = None):
     """上下文管理器，自动关闭连接
-    
+
     Usage:
         with checkpointer_context() as checkpointer:
             # 使用 checkpointer
             pass
+
+    Args:
+        db_path: SQLite 数据库文件路径，默认为 DATA_DIR/agent_memory.db
     """
     manager = CheckpointerManager(db_path)
     try:

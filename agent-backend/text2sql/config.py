@@ -7,11 +7,24 @@
 import os
 from dataclasses import dataclass, field
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
+
+
+# ==================== 数据路径配置 ====================
+
+# 项目根目录（agent-backend）
+PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+
+# 统一数据目录
+DATA_DIR = PROJECT_ROOT / "data"
+
+# 确保数据目录存在
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @dataclass
@@ -79,13 +92,13 @@ class DatabaseConfig:
 @dataclass
 class MemoryConfig:
     """记忆系统配置"""
-    # 数据库路径
-    db_path: str = "data/agent_memory.db"
-    
+    # 数据库路径（统一使用 agent-backend/data 目录）
+    db_path: str = str(DATA_DIR / "agent_memory.db")
+
     # 短期记忆配置
     max_messages: int = 20
     max_tokens: int = 8000
-    
+
     # 长期记忆配置
     enable_semantic_search: bool = True
     embedding_model: str = "text-embedding-ada-002"
