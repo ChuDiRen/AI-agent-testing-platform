@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from apitest.service.api_meta_service import MetaService
+from apitest.service.ApiMetaService import MetaService
 from config.dev_settings import settings
 from core.MinioUtils import MinioUtils
 from core.database import get_session
@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, Query, File, UploadFile, Form
 from sqlmodel import Session, select
 
 from ..model.ApiMetaModel import ApiMeta
-from ..schemas.api_meta_schema import ApiMetaQuery, ApiMetaUpdate
+from ..schemas.ApiMetaSchema import ApiMetaQuery, ApiMetaUpdate
 
 module_name = "ApiMeta" # 模块名称
 module_model = ApiMeta

@@ -5,9 +5,9 @@ from typing import List, Optional, Dict, Any
 from sqlmodel import Session, select
 
 from core.time_utils import TimeFormatter
-from ..model.dept import Dept
-from ..model.user import User
-from ..schemas.dept_schema import DeptCreate, DeptUpdate
+from ..model.DeptModel import Dept
+from ..model.UserModel import User
+from ..schemas.DeptSchema import DeptCreate, DeptUpdate
 
 
 class DeptService:

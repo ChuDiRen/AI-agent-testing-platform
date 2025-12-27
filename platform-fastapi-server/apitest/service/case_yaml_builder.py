@@ -23,7 +23,7 @@ from ..model.ApiInfoModel import ApiInfo
 from ..model.ApiKeyWordModel import ApiKeyWord
 from ..model.ApiCollectionInfoModel import ApiCollectionInfo
 from ..model.ApiCollectionDetailModel import ApiCollectionDetail
-from ..model.ApiDbBaseModel import ApiDbBase
+from ..model.ApiDbbaseModel import ApiDbBase
 
 
 class CaseYamlBuilder:

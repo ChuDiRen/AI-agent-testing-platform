@@ -90,6 +90,18 @@ class Settings(BaseSettings): # 开发环境配置
     OPENAI_API_KEY: Optional[str] = None  # OpenAI API密钥
     DEEPSEEK_API_KEY: Optional[str] = None  # DeepSeek API密钥
     
+    # ==================== Supabase配置 ====================
+    SUPABASE_URL: Optional[str] = None
+    SUPABASE_KEY: Optional[str] = None
+    SUPABASE_SERVICE_KEY: Optional[str] = None
+    SUPABASE_JWT_SECRET: Optional[str] = None
+    SUPABASE_DB_HOST: Optional[str] = None
+    SUPABASE_DB_PORT: Optional[str] = None
+    SUPABASE_DB_USER: Optional[str] = None
+    SUPABASE_DB_PASSWORD: Optional[str] = None
+    SUPABASE_DB_NAME: Optional[str] = None
+    SUPABASE_DB_URI: Optional[str] = None
+    
     def __init__(self, **kwargs):
         """初始化配置,设置派生路径"""
         super().__init__(**kwargs)

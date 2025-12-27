@@ -6,7 +6,7 @@ from core.logger import get_logger
 from core.resp_model import respModel
 from fastapi import APIRouter, Depends, Header
 from sqlmodel import Session, select
-from sysmanage.model.user import User
+from sysmanage.model.UserModel import User
 
 from ..schemas.login_schema import LoginRequest
 

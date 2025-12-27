@@ -59,9 +59,9 @@ AI-agent-testing-platform/
 
 ## 后端开发规范
 
-### 三层架构
+### 四层架构
 ```
-Controller (api/) → Service (service/) → Model (model/)
+Controller (api/) → Service (service/) → Model (model/) → Schema (schemas/)
 ```
 
 ### Controller 规范
@@ -78,9 +78,18 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["模块描述"])
 @module_route.delete("/delete")       # 删除
 ```
 
+### Schema 规范
+```python
+# 文件命名: {ModuleName}Schema.py
+# 用于定义 Pydantic 模型和请求/响应 Schema
+class UserCreate(BaseModel):
+    username: str
+    password: str
+```
+
 ### Service 规范
 ```python
-# 文件命名: {module}_service.py
+# 文件命名: {module}Service.py
 class XxxService:
     def __init__(self, session: Session):
         self.session = session
@@ -215,6 +224,26 @@ export function deleteById(id) {
 | git-workflow | Git、分支、提交、PR | Git 工作流 |
 | tech-decision | 技术选型、对比、推荐 | 技术选型 |
 | brainstorm | 头脑风暴、想法、方案 | 头脑风暴 |
+
+## 搜索工具使用指南
+
+### codebase-retrieval 工具
+**工具名称**: `codebase-retrieval` (auggie-mcp)
+
+#### 使用规则
+1. 搜索代码时，**优先使用** `codebase-retrieval` 工具
+2. 该工具提供语义代码搜索，比 grep 更智能
+3. 适用于：查找相关代码、理解代码结构、搜索特定功能实现
+
+#### 调用示例
+```
+使用 codebase-retrieval 搜索 [你的查询]
+```
+
+#### 配置信息
+- **MCP Server**: auggie-mcp
+- **Tenant URL**: https://d1.api.augmentcode.com/
+- **Scope**: 全局可用
 
 ## 注意事项
 

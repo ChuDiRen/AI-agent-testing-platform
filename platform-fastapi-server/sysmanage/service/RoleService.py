@@ -4,9 +4,9 @@ from typing import List, Optional, Tuple
 
 from sqlmodel import Session, select
 
-from ..model.role import Role
-from ..model.role_menu import RoleMenu
-from ..schemas.role_schema import RoleQuery, RoleCreate, RoleUpdate, RoleMenuAssign
+from ..model.RoleModel import Role
+from ..model.RoleMenuModel import RoleMenu
+from ..schemas.RoleSchema import RoleQuery, RoleCreate, RoleUpdate, RoleMenuAssign
 
 
 class RoleService:

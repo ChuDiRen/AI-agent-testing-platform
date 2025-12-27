@@ -6,12 +6,12 @@ from typing import List, Optional, Dict, Any
 from sqlmodel import Session, select
 from core.logger import get_logger
 
-from ..model.ApiDbBaseModel import ApiDbBase
+from ..model.ApiDbbaseModel import ApiDbBase
 
 logger = get_logger(__name__)
 
 
-class ApiDbBaseService:
+class ApiDbbaseService:
     """API数据库配置服务"""
     
     def __init__(self, session: Session):

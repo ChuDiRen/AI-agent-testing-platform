@@ -5,7 +5,7 @@ API测试报告查看器Controller
 from pathlib import Path
 from typing import Optional
 
-from apitest.service.api_report_viewer_service import ReportViewerService
+from apitest.service.ApiReportViewerService import ReportViewerService
 from core.logger import get_logger
 from core.temp_manager import get_temp_subdir
 from fastapi import APIRouter, Query, HTTPException

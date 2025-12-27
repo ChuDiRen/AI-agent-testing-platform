@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from apitest.service.api_operation_type_service import OperationTypeService
+from apitest.service.ApiOperationTypeService import OperationTypeService
 from core.database import get_session
 from core.dependencies import check_permission
 from core.logger import get_logger
@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
 from ..model.ApiOperationTypeModel import OperationType
-from ..schemas.api_operation_type_schema import OperationTypeQuery, OperationTypeCreate, OperationTypeUpdate
+from ..schemas.ApiOperationTypeSchema import OperationTypeQuery, OperationTypeCreate, OperationTypeUpdate
 
 module_name = "OperationType" # 模块名称
 module_model = OperationType

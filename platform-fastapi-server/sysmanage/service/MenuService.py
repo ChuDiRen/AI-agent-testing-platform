@@ -4,10 +4,10 @@ from typing import List, Optional, Dict, Any
 
 from sqlmodel import Session, select
 
-from ..model.menu import Menu
-from ..model.role_menu import RoleMenu
-from ..model.user_role import UserRole
-from ..schemas.menu_schema import MenuCreate, MenuUpdate
+from ..model.MenuModel import Menu
+from ..model.RoleMenuModel import RoleMenu
+from ..model.UserRoleModel import UserRole
+from ..schemas.MenuSchema import MenuCreate, MenuUpdate
 
 
 class MenuService:

@@ -5,8 +5,8 @@ from core.resp_model import respModel
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
-from ..schemas.menu_schema import MenuCreate, MenuUpdate
-from ..service.menu_service import MenuService
+from ..schemas.MenuSchema import MenuCreate, MenuUpdate
+from ..service.MenuService import MenuService
 
 module_name = "menu"
 module_route = APIRouter(prefix=f"/{module_name}", tags=["菜单管理"])

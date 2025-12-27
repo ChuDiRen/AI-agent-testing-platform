@@ -8,7 +8,7 @@ from sqlmodel import Session, select, and_, or_
 
 from apitest.model.ApiInfoModel import ApiInfo
 from apitest.model.ApiFolderModel import ApiFolder
-from apitest.schemas.api_info_schema import ApiInfoQuery, ApiInfoCreate, ApiInfoUpdate
+from apitest.schemas.ApiInfoSchema import ApiInfoQuery, ApiInfoCreate, ApiInfoUpdate
 
 
 class InfoService:
@@ -161,7 +161,7 @@ class InfoService:
         # 总接口数
         total_statement = select(ApiInfo).where(ApiInfo.project_id == project_id)
         total_count = len(session.exec(total_statement).all())
-        
+
         # 按方法统计
         method_stats = {}
         for method in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']:
@@ -175,15 +175,15 @@ class InfoService:
             ).all())
             if count > 0:
                 method_stats[method] = count
-        
+
         # 按目录统计
         folder_stats = []
-        folders = self.session.exec(
+        folders = session.exec(
             select(ApiFolder).where(ApiFolder.project_id == project_id)
         ).all()
-        
+
         for folder in folders:
-            count = len(self.session.exec(
+            count = len(session.exec(
                 select(ApiInfo).where(
                     and_(
                         ApiInfo.project_id == project_id,
@@ -196,7 +196,7 @@ class InfoService:
                 'folder_name': folder.folder_name,
                 'count': count
             })
-        
+
         return {
             'total_count': total_count,
             'method_stats': method_stats,

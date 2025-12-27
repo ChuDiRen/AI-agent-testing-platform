@@ -13,7 +13,8 @@ from sqlmodel import Session, select
 from ..model.ApiCollectionInfoModel import ApiCollectionInfo
 from ..model.ApiInfoCaseModel import ApiInfoCase
 from ..model.TestTaskModel import TestTask, TestTaskExecution
-from ..schemas.test_task_schema import (
+from ..service.TestTaskService import TestTaskService
+from ..schemas.TestTaskSchema import (
     TestTaskQuery, TestTaskCreate, TestTaskUpdate,
     TestTaskExecuteRequest, TestTaskExecutionQuery
 )
@@ -29,20 +30,8 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["测试任务管理"])
 async def queryByPage(query: TestTaskQuery, session: Session = Depends(get_session)):
     """分页查询测试任务"""
     try:
-        statement = select(module_model)
-        if query.project_id:
-            statement = statement.where(module_model.project_id == query.project_id)
-        if query.task_name:
-            statement = statement.where(module_model.task_name.like(f"%{query.task_name}%"))
-        if query.task_type:
-            statement = statement.where(module_model.task_type == query.task_type)
-        if query.task_status:
-            statement = statement.where(module_model.task_status == query.task_status)
+        datas, total = TestTaskService.query_by_page(session, query)
 
-        offset = (query.page - 1) * query.pageSize
-        datas = session.exec(statement.order_by(module_model.create_time.desc()).limit(query.pageSize).offset(offset)).all()
-        total = len(session.exec(statement).all())
-        
         result_list = []
         for data in datas:
             # 解析case_ids
@@ -52,13 +41,13 @@ async def queryByPage(query: TestTaskQuery, session: Session = Depends(get_sessi
                     case_ids = json.loads(data.case_ids)
                 except:
                     pass
-            
+
             # 获取关联计划名称
             plan_name = None
             if data.plan_id:
                 plan = session.get(ApiCollectionInfo, data.plan_id)
                 plan_name = plan.plan_name if plan else None
-            
+
             item = {
                 "id": data.id,
                 "project_id": data.project_id,
@@ -81,7 +70,7 @@ async def queryByPage(query: TestTaskQuery, session: Session = Depends(get_sessi
                 "update_time": TimeFormatter.format_datetime(data.update_time)
             }
             result_list.append(item)
-        
+
         return respModel.ok_resp_list(lst=result_list, total=total)
     except Exception as e:
         logger.error(f"操作失败: {e}", exc_info=True)
@@ -92,7 +81,7 @@ async def queryByPage(query: TestTaskQuery, session: Session = Depends(get_sessi
 async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询测试任务详情"""
     try:
-        task = session.get(module_model, id)
+        task = TestTaskService.query_by_id(session, id)
         if not task:
             return respModel.ok_resp(msg="查询成功,但是没有数据")
         

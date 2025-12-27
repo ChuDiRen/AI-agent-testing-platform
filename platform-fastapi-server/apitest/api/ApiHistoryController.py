@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 
 import yaml
-from apitest.service.api_history_service import HistoryService
+from apitest.service.ApiHistoryService import HistoryService
 from config.dev_settings import settings
 from core.database import get_session
 from core.dependencies import check_permission
@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 
 from ..model.ApiHistoryModel import ApiHistory
-from ..schemas.api_history_schema import ApiTestHistoryQuery, ApiTestExecuteRequest
+from ..schemas.ApiHistorySchema import ApiTestHistoryQuery, ApiTestExecuteRequest
 
 logger = get_logger(__name__)
 

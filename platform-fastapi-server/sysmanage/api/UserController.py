@@ -5,8 +5,8 @@ from core.resp_model import respModel
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
-from ..schemas.user_schema import UserQuery, UserCreate, UserUpdate, UserRoleAssign, UserStatusUpdate
-from ..service.user_service import UserService
+from ..schemas.UserSchema import UserQuery, UserCreate, UserUpdate, UserRoleAssign, UserStatusUpdate
+from ..service.UserService import UserService
 
 module_name = "user" # 模块名称
 module_route = APIRouter(prefix=f"/{module_name}", tags=["用户管理"])

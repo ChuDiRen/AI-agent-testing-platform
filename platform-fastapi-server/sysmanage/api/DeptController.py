@@ -5,8 +5,8 @@ from core.resp_model import respModel
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
-from ..schemas.dept_schema import DeptCreate, DeptUpdate
-from ..service.dept_service import DeptService
+from ..schemas.DeptSchema import DeptCreate, DeptUpdate
+from ..service.DeptService import DeptService
 
 module_name = "dept"
 module_route = APIRouter(prefix=f"/{module_name}", tags=["部门管理"])

@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from typing import List
 
-from apitest.service.api_info_case_step_service import InfoCaseStepService
+from apitest.service.ApiInfoCaseStepService import InfoCaseStepService
 from core.database import get_session
 from core.dependencies import check_permission
 from core.logger import get_logger
@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
 from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
-from ..schemas.api_info_case_schema import ApiInfoCaseStepCreate, ApiInfoCaseStepUpdate
+from ..schemas.ApiInfoCaseSchema import ApiInfoCaseStepCreate, ApiInfoCaseStepUpdate
 
 module_name = "ApiInfoCaseStep"
 module_model = ApiInfoCaseStep
@@ -26,8 +26,7 @@ logger = get_logger(__name__)
 async def queryByCaseId(case_info_id: int = Query(...), session: Session = Depends(get_session)):
     """根据用例ID查询所有步骤"""
     try:
-        service = InfoCaseStepService(session)
-        steps = service.query_by_case_id(case_info_id)
+        steps = InfoCaseStepService.query_by_case_id(session, case_info_id)
         return respModel.ok_resp_list(lst=steps, msg="查询成功")
     except Exception as e:
         logger.error(f"查询用例步骤失败: {e}", exc_info=True)
@@ -38,11 +37,10 @@ async def queryByCaseId(case_info_id: int = Query(...), session: Session = Depen
 async def insert(step: ApiInfoCaseStepCreate, session: Session = Depends(get_session)):
     """新增用例步骤"""
     try:
-        service = InfoCaseStepService(session)
         step_data_dict = step.model_dump()
         if step_data_dict.get('step_data'):
             step_data_dict['step_data'] = json.dumps(step_data_dict['step_data'], ensure_ascii=False)
-        data = service.create(**step_data_dict)
+        data = InfoCaseStepService.create(session, step_data_dict)
         return respModel.ok_resp(msg="添加成功", dic_t={"id": data.id})
     except Exception as e:
         logger.error(f"新增用例步骤失败: {e}", exc_info=True)
@@ -53,12 +51,12 @@ async def insert(step: ApiInfoCaseStepCreate, session: Session = Depends(get_ses
 async def update(step: ApiInfoCaseStepUpdate, session: Session = Depends(get_session)):
     """更新用例步骤"""
     try:
-        service = InfoCaseStepService(session)
         update_data = step.model_dump(exclude_unset=True, exclude={'id'})
         if 'step_data' in update_data and update_data['step_data']:
             update_data['step_data'] = json.dumps(update_data['step_data'], ensure_ascii=False)
-        
-        if service.update(step.id, update_data):
+
+        result = InfoCaseStepService.update(session, step.id, update_data)
+        if result:
             return respModel.ok_resp(msg="修改成功")
         else:
             return respModel.error_resp(msg="步骤不存在")
@@ -71,8 +69,7 @@ async def update(step: ApiInfoCaseStepUpdate, session: Session = Depends(get_ses
 async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除用例步骤"""
     try:
-        service = InfoCaseStepService(session)
-        if service.delete(id):
+        if InfoCaseStepService.delete(session, id):
             return respModel.ok_resp(msg="删除成功")
         else:
             return respModel.error_resp(msg="步骤不存在")
@@ -85,9 +82,8 @@ async def delete(id: int = Query(...), session: Session = Depends(get_session)):
 async def batchUpdateOrder(steps: List[dict], session: Session = Depends(get_session)):
     """批量更新步骤顺序"""
     try:
-        service = InfoCaseStepService(session)
         order_updates = [{"id": s.get('id'), "run_order": s.get('run_order')} for s in steps]
-        service.batch_update_order(order_updates)
+        InfoCaseStepService.batch_update_order(session, order_updates)
         return respModel.ok_resp(msg="更新顺序成功")
     except Exception as e:
         logger.error(f"批量更新步骤顺序失败: {e}", exc_info=True)

@@ -5,8 +5,8 @@ from core.resp_model import respModel
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
-from ..schemas.role_schema import RoleQuery, RoleCreate, RoleUpdate, RoleMenuAssign
-from ..service.role_service import RoleService
+from ..schemas.RoleSchema import RoleQuery, RoleCreate, RoleUpdate, RoleMenuAssign
+from ..service.RoleService import RoleService
 
 module_name = "role"
 module_route = APIRouter(prefix=f"/{module_name}", tags=["角色管理"])

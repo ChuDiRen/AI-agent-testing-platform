@@ -4,9 +4,9 @@
 """
 from datetime import datetime, timedelta
 
-from apitest.service.api_request_history_service import RequestHistoryService
+from apitest.service.ApiRequestHistoryService import RequestHistoryService
 from apitest.model.ApiRequestHistoryModel import ApiRequestHistory
-from apitest.schemas.api_request_history_schema import (
+from apitest.schemas.ApiRequestHistorySchema import (
     ApiRequestHistoryQuery,
     ApiRequestHistoryCreate,
     ApiRequestHistoryBatchDelete,

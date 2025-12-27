@@ -4,9 +4,9 @@ from typing import List, Optional, Tuple
 
 from sqlmodel import Session, select
 
-from ..model.user import User
-from ..model.user_role import UserRole
-from ..schemas.user_schema import UserQuery, UserCreate, UserUpdate, UserRoleAssign, UserStatusUpdate
+from ..model.UserModel import User
+from ..model.UserRoleModel import UserRole
+from ..schemas.UserSchema import UserQuery, UserCreate, UserUpdate, UserRoleAssign, UserStatusUpdate
 
 
 class UserService:

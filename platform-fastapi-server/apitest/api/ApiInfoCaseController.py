@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 
 import yaml
-from apitest.service.api_info_case_service import InfoCaseService
+from apitest.service.ApiInfoCaseService import InfoCaseService
 from config.dev_settings import settings
 from core.database import get_session
 from core.dependencies import check_permission
@@ -17,7 +17,7 @@ from sqlmodel import Session, select
 
 from ..model.ApiInfoCaseModel import ApiInfoCase
 from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
-from ..schemas.api_info_case_schema import (
+from ..schemas.ApiInfoCaseSchema import (
     ApiInfoCaseQuery, ApiInfoCaseCreate, ApiInfoCaseUpdate,
     YamlGenerateRequest,
     ApiInfoCaseExecuteRequest
@@ -42,13 +42,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["API用例管理"])
 async def queryByPage(query: ApiInfoCaseQuery, session: Session = Depends(get_session)):
     """分页查询用例"""
     try:
-        service = InfoCaseService(session)
-        datas, total = service.query_by_page(
-            page=query.page,
-            page_size=query.pageSize,
-            project_id=query.project_id,
-            case_name=query.case_name
-        )
+        datas, total = InfoCaseService.query_by_page(session, query)
         return respModel.ok_resp_list(lst=datas, total=total)
     except Exception as e:
         logger.error(f"查询失败: {e}", exc_info=True)
@@ -58,8 +52,7 @@ async def queryByPage(query: ApiInfoCaseQuery, session: Session = Depends(get_se
 async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询用例（含步骤）"""
     try:
-        service = InfoCaseService(session)
-        case = service.get_by_id(id)
+        case = InfoCaseService.query_by_id(session, id)
         if not case:
             return respModel.error_resp("用例不存在")
         

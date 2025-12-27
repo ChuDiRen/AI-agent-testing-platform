@@ -5,8 +5,8 @@ from core.resp_model import respModel
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
-from ..service.api_dbbase_service import ApiDbBaseService
-from ..schemas.api_dbbase_schema import ApiDbBaseQuery, ApiDbBaseCreate, ApiDbBaseUpdate
+from ..service.ApiDbbaseService import ApiDbbaseService
+from ..schemas.ApiDbbaseSchema import ApiDbBaseQuery, ApiDbBaseCreate, ApiDbBaseUpdate
 
 module_name = "ApiDbBase"
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API数据库配置管理"])
@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 @module_route.post("/queryByPage", summary="分页查询数据库配置", dependencies=[Depends(check_permission("apitest:database:query"))])
 async def queryByPage(query: ApiDbBaseQuery, session: Session = Depends(get_session)):
     try:
-        service = ApiDbBaseService(session)
+        service = ApiDbbaseService(session)
         datas, total = service.query_by_page(
             page=query.page,
             page_size=query.pageSize,
@@ -30,7 +30,7 @@ async def queryByPage(query: ApiDbBaseQuery, session: Session = Depends(get_sess
 @module_route.get("/queryById", summary="根据ID查询数据库配置", dependencies=[Depends(check_permission("apitest:database:query"))])
 async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     try:
-        service = ApiDbBaseService(session)
+        service = ApiDbbaseService(session)
         data = service.get_by_id(id)
         if data:
             return respModel.ok_resp(obj=data)
@@ -43,7 +43,7 @@ async def queryById(id: int = Query(...), session: Session = Depends(get_session
 @module_route.post("/insert", summary="新增数据库配置", dependencies=[Depends(check_permission("apitest:database:add"))])
 async def insert(db_config: ApiDbBaseCreate, session: Session = Depends(get_session)):
     try:
-        service = ApiDbBaseService(session)
+        service = ApiDbbaseService(session)
         data = service.create(
             project_id=db_config.project_id,
             name=db_config.name,
@@ -68,7 +68,7 @@ async def insert(db_config: ApiDbBaseCreate, session: Session = Depends(get_sess
 @module_route.put("/update", summary="更新数据库配置", dependencies=[Depends(check_permission("apitest:database:edit"))])
 async def update(db_config: ApiDbBaseUpdate, session: Session = Depends(get_session)):
     try:
-        service = ApiDbBaseService(session)
+        service = ApiDbbaseService(session)
         update_data = db_config.model_dump(exclude_unset=True, exclude={'id'})
         updated = service.update(db_config.id, update_data)
         if updated:
@@ -83,7 +83,7 @@ async def update(db_config: ApiDbBaseUpdate, session: Session = Depends(get_sess
 @module_route.delete("/delete", summary="删除数据库配置", dependencies=[Depends(check_permission("apitest:database:delete"))])
 async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
-        service = ApiDbBaseService(session)
+        service = ApiDbbaseService(session)
         if service.delete(id):
             return respModel.ok_resp(msg="删除成功")
         else:
@@ -97,7 +97,7 @@ async def delete(id: int = Query(...), session: Session = Depends(get_session)):
 async def toggleEnabled(id: int = Query(...), is_enabled: str = Query(...), session: Session = Depends(get_session)):
     """启用或禁用数据库配置"""
     try:
-        service = ApiDbBaseService(session)
+        service = ApiDbbaseService(session)
         updated = service.toggle_enabled(id, is_enabled)
         if updated:
             status_text = "启用" if is_enabled == "1" else "禁用"
@@ -113,7 +113,7 @@ async def toggleEnabled(id: int = Query(...), is_enabled: str = Query(...), sess
 async def queryByProject(project_id: int = Query(...), session: Session = Depends(get_session)):
     """根据项目ID查询启用的数据库配置列表"""
     try:
-        service = ApiDbBaseService(session)
+        service = ApiDbbaseService(session)
         datas = service.query_by_project(project_id)
         return respModel.ok_resp_list(lst=datas, msg="查询成功")
     except Exception as e:

@@ -15,8 +15,8 @@ from sqlmodel import Session, select
 from ..model.ApiCollectionDetailModel import ApiCollectionDetail
 from ..model.ApiInfoCaseModel import ApiInfoCase
 from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
-from ..service.api_collection_detail_service import ApiCollectionDetailService
-from ..schemas.api_collection_schema import ApiCollectionDetailCreate, ApiCollectionDetailUpdate
+from ..service.ApiCollectionDetailService import ApiCollectionDetailService
+from ..schemas.ApiCollectionSchema import ApiCollectionDetailCreate, ApiCollectionDetailUpdate
 
 module_name = "ApiCollectionDetail"
 module_model = ApiCollectionDetail

@@ -10,7 +10,7 @@ API测试统计图表Controller
 """
 from datetime import datetime, timedelta
 
-from apitest.service.api_statistics_service import StatisticsService
+from apitest.service.ApiStatisticsService import StatisticsService
 from core.database import get_session
 from core.logger import get_logger
 from core.resp_model import respModel

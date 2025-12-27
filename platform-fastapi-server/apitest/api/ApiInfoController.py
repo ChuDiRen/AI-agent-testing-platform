@@ -3,7 +3,7 @@
 """
 from datetime import datetime
 
-from apitest.service.api_info_service import InfoService
+from apitest.service.ApiInfoService import InfoService
 from core.SwaggerParser import SwaggerParser, fetch_swagger_from_url
 from core.database import get_session
 from core.dependencies import check_permission
@@ -13,8 +13,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
 from ..model.ApiInfoModel import ApiInfo
-from ..schemas.api_info_schema import ApiInfoQuery, ApiInfoCreate, ApiInfoUpdate, ApiDebugRequest
-from ..schemas.swagger_import_schema import SwaggerImportRequest, SwaggerImportResponse
+from ..schemas.ApiInfoSchema import ApiInfoQuery, ApiInfoCreate, ApiInfoUpdate, ApiDebugRequest
+from ..schemas.SwaggerImportSchema import SwaggerImportRequest, SwaggerImportResponse
 
 module_name = "ApiInfo"
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API接口信息管理"])
@@ -89,8 +89,7 @@ async def getMethods():
 @module_route.get("/search", summary="搜索接口")
 async def search(keyword: str = Query(...), project_id: int = Query(...), session: Session = Depends(get_session)):
     try:
-        service = InfoService(session)
-        datas = service.search(keyword, project_id)
+        datas = InfoService.search(session, keyword, project_id)
         return respModel.ok_resp_list(lst=datas, total=len(datas))
     except Exception as e:
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
@@ -98,8 +97,7 @@ async def search(keyword: str = Query(...), project_id: int = Query(...), sessio
 @module_route.get("/getStatistics", summary="获取接口统计信息")
 async def getStatistics(project_id: int = Query(...), session: Session = Depends(get_session)):
     try:
-        service = InfoService(session)
-        stats = service.get_statistics(project_id)
+        stats = InfoService.get_statistics(session, project_id)
         return respModel.ok_resp(obj=stats)
     except Exception as e:
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
@@ -107,8 +105,6 @@ async def getStatistics(project_id: int = Query(...), session: Session = Depends
 @module_route.post("/importSwagger", summary="导入Swagger/OpenAPI文档", dependencies=[Depends(check_permission("apitest:api:add"))])
 async def import_swagger(request: SwaggerImportRequest, session: Session = Depends(get_session)):
     try:
-        service = InfoService(session)
-        
         # 获取Swagger数据
         source_url = None
         if request.swagger_url:
@@ -118,28 +114,29 @@ async def import_swagger(request: SwaggerImportRequest, session: Session = Depen
             swagger_data = request.swagger_json
         else:
             return respModel.error_resp("请提供swagger_url或swagger_json")
-        
+
         # 解析Swagger文档
         parser = SwaggerParser(swagger_data)
         apis = parser.parse()
-        
+
         # 导入统计
         total_apis = len(apis)
         imported_apis = 0
         skipped_apis = 0
         failed_apis = 0
         details = []
-        
+
         # 逐个导入接口
         for api in apis:
             try:
                 # 检查是否已存在（根据URL和方法判断）
-                existing = service.find_by_url_method(
+                existing = InfoService.find_by_url_method(
+                    session,
                     project_id=request.project_id,
                     url=api.get('url', ''),
                     method=api.get('method', '')
                 )
-                
+
                 if existing and not request.overwrite:
                     skipped_apis += 1
                     details.append({
@@ -148,30 +145,40 @@ async def import_swagger(request: SwaggerImportRequest, session: Session = Depen
                         "reason": "已存在"
                     })
                     continue
-                
+
                 # 创建或更新接口
-                api_data = {
-                    "project_id": request.project_id,
-                    "folder_id": request.folder_id or 0,
-                    "api_name": api.get('name', ''),
-                    "request_method": api.get('method', 'GET'),
-                    "request_url": api.get('url', ''),
-                    "request_headers": api.get('headers'),
-                    "request_params": api.get('params'),
-                    "requests_json_data": api.get('body')
-                }
-                
                 if existing:
-                    service.update(existing.id, api_data)
+                    # 更新接口
+                    api_update = ApiInfoUpdate(
+                        id=existing.id,
+                        api_name=api.get('name', ''),
+                        request_method=api.get('method', 'GET'),
+                        request_url=api.get('url', ''),
+                        request_headers=api.get('headers'),
+                        request_params=api.get('params'),
+                        requests_json_data=api.get('body')
+                    )
+                    InfoService.update(session, api_update)
                 else:
-                    service.create(**api_data)
-                
+                    # 创建接口
+                    api_create = ApiInfoCreate(
+                        project_id=request.project_id,
+                        folder_id=request.folder_id or 0,
+                        api_name=api.get('name', ''),
+                        request_method=api.get('method', 'GET'),
+                        request_url=api.get('url', ''),
+                        request_headers=api.get('headers'),
+                        request_params=api.get('params'),
+                        requests_json_data=api.get('body')
+                    )
+                    InfoService.create(session, api_create)
+
                 imported_apis += 1
                 details.append({
                     "api_name": api.get('name', ''),
                     "status": "imported"
                 })
-                
+
             except Exception as e:
                 failed_apis += 1
                 details.append({
@@ -179,7 +186,7 @@ async def import_swagger(request: SwaggerImportRequest, session: Session = Depen
                     "status": "failed",
                     "reason": str(e)
                 })
-        
+
         # 返回结果
         result = SwaggerImportResponse(
             total_apis=total_apis,
@@ -188,10 +195,10 @@ async def import_swagger(request: SwaggerImportRequest, session: Session = Depen
             failed_apis=failed_apis,
             details=details[:100]
         )
-        
+
         msg = f"导入完成: 成功{imported_apis}个, 跳过{skipped_apis}个, 失败{failed_apis}个"
         return respModel.ok_resp(obj=result.model_dump(), msg=msg)
-        
+
     except Exception as e:
         session.rollback()
         logger.error(f"导入Swagger失败: {e}", exc_info=True)

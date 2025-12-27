@@ -5,8 +5,8 @@ from core.resp_model import respModel
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
-from ..service.api_collection_info_service import ApiCollectionInfoService
-from ..schemas.api_collection_schema import (
+from ..service.ApiCollectionInfoService import ApiCollectionInfoService
+from ..schemas.ApiCollectionSchema import (
     ApiCollectionInfoQuery, ApiCollectionInfoCreate, ApiCollectionInfoUpdate,
     ApiCollectionDetailCreate, BatchAddCasesRequest, UpdateDdtDataRequest,
     PlanRobotCreate, PlanRobotUpdate
@@ -23,8 +23,8 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["API测试计划管理"
 async def queryByPage(query: ApiCollectionInfoQuery, session: Session = Depends(get_session)):
     """分页查询测试计划"""
     try:
-        service = ApiCollectionInfoService(session)
-        result_list, total = service.query_by_page(
+        result_list, total = ApiCollectionInfoService.query_by_page(
+            session=session,
             page=query.page,
             page_size=query.pageSize,
             project_id=query.project_id,

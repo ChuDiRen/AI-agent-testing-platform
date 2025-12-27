@@ -172,11 +172,11 @@ application.include_router(DeptController.module_route)
 from apitest.api import ApiProjectController
 application.include_router(ApiProjectController.module_route)
 
-from apitest.api import ApiDbBaseController
-application.include_router(ApiDbBaseController.module_route)
+from apitest.api import ApiDbbaseController
+application.include_router(ApiDbbaseController.module_route)
 
-from apitest.api import ApiKeyWordController
-application.include_router(ApiKeyWordController.module_route)
+from apitest.api import ApiKeywordController
+application.include_router(ApiKeywordController.module_route)
 
 from apitest.api import ApiOperationTypeController
 application.include_router(ApiOperationTypeController.module_route)

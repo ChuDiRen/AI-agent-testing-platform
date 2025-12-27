@@ -9,7 +9,7 @@ from sqlmodel import Session, select, and_, or_
 from apitest.model.ApiKeyWordModel import ApiKeyWord
 
 
-class KeyWordService:
+class ApiKeywordService:
     def __init__(self, session: Session):
         self.session = session
     

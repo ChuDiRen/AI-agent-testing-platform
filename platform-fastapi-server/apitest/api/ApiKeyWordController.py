@@ -5,7 +5,7 @@ import json
 import os
 from datetime import datetime
 
-from apitest.service.api_keyword_service import KeyWordService
+from apitest.service.ApiKeywordService import ApiKeywordService
 from config.dev_settings import settings
 from core.database import get_session
 from core.dependencies import check_permission
@@ -18,7 +18,7 @@ from sqlmodel import Session, select
 from ..model.ApiKeyWordModel import ApiKeyWord
 from ..model.ApiOperationTypeModel import OperationType
 from plugin.model.PluginModel import Plugin
-from ..schemas.api_keyword_schema import ApiKeyWordQuery, ApiKeyWordCreate, ApiKeyWordUpdate, KeywordFileRequest
+from ..schemas.ApiKeywordSchema import ApiKeyWordQuery, ApiKeyWordCreate, ApiKeyWordUpdate, KeywordFileRequest
 
 logger = get_logger(__name__)
 
@@ -39,7 +39,7 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["API关键字管理"])
 async def queryAll(session: Session = Depends(get_session)):
     """查询所有关键字"""
     try:
-        service = KeyWordService(session)
+        service = ApiKeywordService(session)
         datas = service.query_all()
         return respModel.ok_resp_list(lst=datas, msg="查询成功")
     except Exception as e:
@@ -50,7 +50,7 @@ async def queryAll(session: Session = Depends(get_session)):
 async def queryByPage(query: ApiKeyWordQuery, session: Session = Depends(get_session)):
     """分页查询关键字"""
     try:
-        service = KeyWordService(session)
+        service = ApiKeywordService(session)
         datas, total = service.query_by_page(
             page=query.page,
             page_size=query.pageSize,
@@ -65,7 +65,7 @@ async def queryByPage(query: ApiKeyWordQuery, session: Session = Depends(get_ses
 async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询关键字"""
     try:
-        service = KeyWordService(session)
+        service = ApiKeywordService(session)
         data = service.get_by_id(id)
         if data:
             return respModel.ok_resp(obj=data)
@@ -79,7 +79,7 @@ async def queryById(id: int = Query(...), session: Session = Depends(get_session
 async def insert(keyword: ApiKeyWordCreate, session: Session = Depends(get_session)):
     """新增关键字"""
     try:
-        service = KeyWordService(session)
+        service = ApiKeywordService(session)
         data = service.create(**keyword.model_dump())
         return respModel.ok_resp(msg="添加成功", dic_t={"id": data.id})
     except Exception as e:

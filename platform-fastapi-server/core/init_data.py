@@ -6,12 +6,12 @@ from datetime import datetime
 
 from apitest.model.ApiOperationTypeModel import OperationType
 from sqlmodel import Session, select
-from sysmanage.model.dept import Dept
-from sysmanage.model.menu import Menu
-from sysmanage.model.role import Role
-from sysmanage.model.role_menu import RoleMenu
-from sysmanage.model.user import User
-from sysmanage.model.user_role import UserRole
+from sysmanage.model.DeptModel import Dept
+from sysmanage.model.MenuModel import Menu
+from sysmanage.model.RoleModel import Role
+from sysmanage.model.RoleMenuModel import RoleMenu
+from sysmanage.model.UserModel import User
+from sysmanage.model.UserRoleModel import UserRole
 
 from .database import engine
 
