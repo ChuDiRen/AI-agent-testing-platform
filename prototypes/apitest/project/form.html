@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../common.css">
+    <title>项目配置 - 静态原型</title>
+</head>
+
+<body class="proto-container">
+    <div class="proto-header">
+        <h1 class="proto-title" id="formTitle">新增项目</h1>
+        <a href="index.html" class="proto-btn proto-btn-secondary">返回列表</a>
+    </div>
+
+    <div class="proto-card" style="max-width: 800px; margin: 0 auto;">
+        <form id="projectForm">
+            <input type="hidden" id="project_id">
+
+            <div class="proto-form-group">
+                <label class="proto-label">项目名称</label>
+                <input type="text" id="project_name" class="proto-input" placeholder="请输入项目名称" required>
+            </div>
+
+            <div class="proto-form-group">
+                <label class="proto-label">项目描述</label>
+                <textarea id="project_desc" class="proto-textarea" rows="4" placeholder="请输入项目描述"></textarea>
+            </div>
+
+            <!-- Status field removed to align with backend model -->
+
+            <div class="proto-form-actions">
+                <button type="button" class="proto-btn proto-btn-secondary"
+                    onclick="window.location.href='index.html'">取消</button>
+                <button type="submit" class="proto-btn proto-btn-primary">保存数据</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="../proto-logic.js"></script>
+    <script>
+        const id = getUrlParam('id');
+        const form = document.getElementById('projectForm');
+
+        if (id) {
+            document.getElementById('formTitle').innerText = '编辑项目';
+            const data = ProtoService.get('Project', id);
+            if (data) {
+                document.getElementById('project_id').value = data.id;
+                document.getElementById('project_name').value = data.project_name;
+                document.getElementById('project_desc').value = data.project_desc || '';
+                document.getElementById('project_desc').value = data.project_desc || '';
+            }
+        }
+
+        form.onsubmit = (e) => {
+            e.preventDefault();
+            const payload = {
+                id: document.getElementById('project_id').value || undefined,
+                project_name: document.getElementById('project_name').value,
+                project_desc: document.getElementById('project_desc').value,
+                project_desc: document.getElementById('project_desc').value
+            };
+
+            ProtoService.save('Project', payload);
+            ProtoUI.toast('保存成功');
+            setTimeout(() => window.location.href = 'index.html', 1000);
+        };
+    </script>
+</body>
+
+</html>

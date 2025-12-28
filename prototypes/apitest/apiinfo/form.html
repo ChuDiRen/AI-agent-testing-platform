@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../common.css">
+    <title>接口配置 - 静态原型</title>
+</head>
+
+<body class="proto-container">
+    <div class="proto-header">
+        <h1 class="proto-title" id="formTitle">新增接口</h1>
+        <div style="display: flex; gap: 12px;">
+            <button class="proto-btn proto-btn-secondary" onclick="window.location.href='index.html'">取消</button>
+            <button class="proto-btn proto-btn-primary" id="saveBtn">保存接口</button>
+        </div>
+    </div>
+
+    <div class="proto-card">
+        <form id="apiForm">
+            <input type="hidden" id="api_id">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="proto-form-group">
+                    <label class="proto-label">接口名称</label>
+                    <input type="text" id="api_name" class="proto-input" placeholder="请输入接口名称" required>
+                </div>
+                <div class="proto-form-group">
+                    <label class="proto-label">所属项目</label>
+                    <select id="project_id" class="proto-select" required>
+                        <option value="">请选择项目</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                <select id="request_method" class="proto-select" style="width: 120px;">
+                    <option>GET</option>
+                    <option>POST</option>
+                    <option>PUT</option>
+                    <option>DELETE</option>
+                    <option>PATCH</option>
+                </select>
+                <input type="text" id="request_url" class="proto-input" style="flex: 1;"
+                    placeholder="请输入请求路径，如 /v1/user/info" required>
+            </div>
+
+            <div class="tabs" style="display:flex; gap: 24px; border-bottom: 2px solid #f1f5f9; margin-bottom: 24px;">
+                <div class="tab-item active" onclick="switchTab('params')">URL参数</div>
+                <div class="tab-item" onclick="switchTab('headers')">Headers</div>
+                <div class="tab-item" onclick="switchTab('debug')">调试变量</div>
+                <div class="tab-item" onclick="switchTab('body-json')">Body (JSON)</div>
+                <div class="tab-item" onclick="switchTab('body-form')">Body (Form)</div>
+                <div class="tab-item" onclick="switchTab('body-www')">Body (x-www)</div>
+                <div class="tab-item" onclick="switchTab('body-file')">Body (Files)</div>
+            </div>
+
+            <div id="tab-params" class="tab-content active">
+                <textarea id="request_params" class="proto-textarea" rows="8" placeholder='[]'></textarea>
+                <p style="font-size: 12px; color: #94a3b8; margin-top: 8px;">请以 JSON 数组格式输入参数，例如：[{"key": "id", "value":
+                    "1"}]</p>
+            </div>
+
+            <div id="tab-headers" class="tab-content" style="display:none;">
+                <textarea id="request_headers" class="proto-textarea" rows="8" placeholder='[]'></textarea>
+            </div>
+
+            <div id="tab-debug" class="tab-content" style="display:none;">
+                <textarea id="debug_vars" class="proto-textarea" rows="8"
+                    placeholder='[{"key": "token", "value": "xxx"}]'></textarea>
+                <p style="font-size: 12px; color: #94a3b8; margin-top: 8px;">调试时使用的临时变量</p>
+            </div>
+
+            <div id="tab-body-json" class="tab-content" style="display:none;">
+                <textarea id="requests_json_data" class="proto-textarea" rows="8" placeholder='{}'></textarea>
+            </div>
+
+            <div id="tab-body-form" class="tab-content" style="display:none;">
+                <textarea id="request_form_datas" class="proto-textarea" rows="8"
+                    placeholder='[{"key": "username", "value": "admin"}]'></textarea>
+            </div>
+
+            <div id="tab-body-www" class="tab-content" style="display:none;">
+                <textarea id="request_www_form_datas" class="proto-textarea" rows="8"
+                    placeholder='[{"key": "code", "value": "123"}]'></textarea>
+            </div>
+
+            <div id="tab-body-file" class="tab-content" style="display:none;">
+                <textarea id="request_files" class="proto-textarea" rows="8"
+                    placeholder='[{"key": "file", "value": "path/to/file"}]'></textarea>
+            </div>
+        </form>
+    </div>
+
+    <script src="../proto-logic.js"></script>
+    <script>
+        function simulateRun() {
+            ProtoUI.toast('正在发送请求...', 'success');
+            setTimeout(() => {
+                alert('【模拟运行结果】\nStatus: 200 OK\nTime: 120ms\nResponse: {"code": 200, "msg": "success"}');
+            }, 1000);
+        }
+
+        const id = getUrlParam('id');
+        const projects = ProtoService.list('Project');
+        const projectSelect = document.getElementById('project_id');
+
+        // 填充项目下拉
+        projectSelect.innerHTML += projects.map(p => `<option value="${p.id}">${p.project_name}</option>`).join('');
+
+        if (id) {
+            document.getElementById('formTitle').innerText = '编辑接口';
+            const data = ProtoService.get('ApiInfo', id);
+            if (data) {
+                document.getElementById('api_id').value = data.id;
+                document.getElementById('api_name').value = data.api_name;
+                document.getElementById('project_id').value = data.project_id;
+                document.getElementById('request_method').value = data.request_method;
+                document.getElementById('request_url').value = data.request_url;
+                document.getElementById('request_params').value = data.request_params || '[]';
+                document.getElementById('request_headers').value = data.request_headers || '[]';
+                document.getElementById('debug_vars').value = data.debug_vars || '[]';
+                document.getElementById('requests_json_data').value = data.requests_json_data || '{}';
+                document.getElementById('request_form_datas').value = data.request_form_datas || '[]';
+                document.getElementById('request_www_form_datas').value = data.request_www_form_datas || '[]';
+                document.getElementById('request_files').value = data.request_files || '[]';
+            }
+        }
+
+        document.getElementById('saveBtn').onclick = () => {
+            const form = document.getElementById('apiForm');
+            if (!form.checkValidity()) return form.reportValidity();
+
+            const payload = {
+                id: document.getElementById('api_id').value || undefined,
+                api_name: document.getElementById('api_name').value,
+                project_id: document.getElementById('project_id').value,
+                request_method: document.getElementById('request_method').value,
+                request_url: document.getElementById('request_url').value,
+                request_params: document.getElementById('request_params').value,
+                request_headers: document.getElementById('request_headers').value,
+                debug_vars: document.getElementById('debug_vars').value,
+                requests_json_data: document.getElementById('requests_json_data').value,
+                request_form_datas: document.getElementById('request_form_datas').value,
+                request_www_form_datas: document.getElementById('request_www_form_datas').value,
+                request_files: document.getElementById('request_files').value
+            };
+
+            ProtoService.save('ApiInfo', payload);
+            ProtoUI.toast('接口保存成功');
+            setTimeout(() => window.location.href = 'index.html', 1000);
+        };
+
+        function switchTab(name) {
+            document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+            document.querySelectorAll('.tab-item').forEach(i => i.classList.remove('active'));
+            document.getElementById('tab-' + name).style.display = 'block';
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+    <style>
+        .tab-item {
+            padding: 10px 0;
+            cursor: pointer;
+            color: #64748b;
+            border-bottom: 2px solid transparent;
+            transition: 0.2s;
+        }
+
+        .tab-item.active {
+            color: #4f46e5;
+            border-bottom-color: #4f46e5;
+            font-weight: 700;
+        }
+    </style>
+</body>
+
+</html>

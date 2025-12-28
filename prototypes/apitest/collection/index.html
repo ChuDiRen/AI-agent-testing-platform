@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../common.css">
+    <title>测试计划管理 - 静态原型</title>
+</head>
+
+<body class="proto-container">
+    <div class="proto-header">
+        <h1 class="proto-title">测试计划管理</h1>
+    </div>
+
+    <div class="proto-card">
+        <!-- Unified Toolbar -->
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f1f5f9;">
+            <div style="display: flex; gap: 12px;">
+                <input type="text" id="searchInput" class="proto-input" style="width: 300px;" placeholder="搜索计划名称/描述..."
+                    onkeyup="renderList()">
+                <button class="proto-btn proto-btn-secondary">🔎 搜索</button>
+            </div>
+            <button class="proto-btn proto-btn-primary" onclick="window.location.href='form.html'">+ 新建计划</button>
+        </div>
+
+        <table class="proto-table">
+            <thead>
+                <tr>
+                    <th>计划名称</th>
+                    <th>计划描述</th>
+                    <th>所属项目</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="collectionListBody">
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div
+            style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; gap: 12px; color: #64748b; font-size: 14px;">
+            <span>共 12 条</span>
+            <button class="proto-btn proto-btn-secondary" disabled>上一页</button>
+            <span style="font-weight: 600; color: #4f46e5;">1</span>
+            <button class="proto-btn proto-btn-secondary">下一页</button>
+        </div>
+    </div>
+
+    <script src="../proto-logic.js"></script>
+    <script>
+        ProtoStorage.initSeed('ApiCollection', [
+            { id: 4001, collection_name: 'V1.0冒烟测试', collection_desc: '核心功能回归', project_id: 1001, create_time: '2025-01-01' },
+            { id: 4002, collection_name: '支付模块专项', collection_desc: '支付流程深度测试', project_id: 1001, create_time: '2025-01-02' }
+        ]);
+
+        function renderList() {
+            const keyword = document.getElementById('searchInput').value.toLowerCase();
+            const collections = ProtoService.list('ApiCollection').filter(item =>
+                item.collection_name.toLowerCase().includes(keyword) ||
+                (item.collection_desc && item.collection_desc.toLowerCase().includes(keyword))
+            );
+            const projects = ProtoService.list('Project');
+            const tbody = document.getElementById('collectionListBody');
+
+            tbody.innerHTML = collections.map(c => {
+                const project = projects.find(p => p.id == c.project_id);
+                return `
+                    <tr>
+                        <td style="font-weight: 500;">${c.collection_name}</td>
+                        <td style="color: #64748b;">${c.collection_desc || '-'}</td>
+                        <td>${project ? project.project_name : '未知项目'}</td>
+                        <td style="font-size: 13px; color: #94a3b8;">${c.create_time || '-'}</td>
+                        <td>
+                            <a href="form.html?id=${c.id}" style="color: #4f46e5; text-decoration: none;">编辑</a> 
+                            <span style="color: #e2e8f0;">|</span>
+                            <a href="report.html?id=${c.id}" style="color: #059669; text-decoration: none;">报告</a> 
+                            <span style="color: #e2e8f0;">|</span> 
+                            <a href="javascript:void(0)" onclick="handleDelete(${c.id})" style="color: #ef4444; text-decoration: none;">删除</a>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function handleDelete(id) {
+            if (confirm('确定删除该计划吗？')) {
+                ProtoService.delete('ApiCollection', id);
+                ProtoUI.toast('计划已删除');
+                renderList();
+            }
+        }
+        renderList();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../common.css">
+    <title>素材管理 - 静态原型</title>
+</head>
+
+<body class="proto-container">
+    <div class="proto-header">
+        <h1 class="proto-title">素材(文件)管理</h1>
+        <button class="proto-btn proto-btn-primary" onclick="window.location.href='form.html'">+ 上传素材</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+        <input type="text" id="searchInput" class="proto-input" style="width: 300px;" placeholder="搜索文件名..."
+            onkeyup="renderList()">
+        <button class="proto-btn proto-btn-secondary">🔎 搜索</button>
+    </div>
+
+    <div class="proto-card">
+        <table class="proto-table">
+            <thead>
+                <tr>
+                    <th>文件名</th>
+                    <th>所属项目</th>
+                    <th>类型</th>
+                    <th>文件大小</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="mateListBody">
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div
+            style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; gap: 12px; color: #64748b; font-size: 14px;">
+            <span>共 200+ 条</span>
+            <button class="proto-btn proto-btn-secondary" disabled>上一页</button>
+            <span style="font-weight: 600; color: #4f46e5;">1</span>
+            <button class="proto-btn proto-btn-secondary">下一页</button>
+        </div>
+    </div>
+
+    <script src="../proto-logic.js"></script>
+    <script>
+        ProtoStorage.initSeed('ApiMate', [
+            { id: 1, mate_name: 'test_image.png', project_id: 1001, size: '2.5 MB', create_time: '2025-01-05' },
+        ]);
+
+        function renderList() {
+            const keyword = document.getElementById('searchInput').value.toLowerCase();
+            const list = ProtoService.list('ApiMate').filter(item =>
+                item.mate_name.toLowerCase().includes(keyword)
+            );
+            const projects = ProtoService.list('Project');
+            const tbody = document.getElementById('mateListBody');
+
+            tbody.innerHTML = list.map(item => {
+                const project = projects.find(p => p.id == item.project_id);
+                return `
+                <tr>
+                    <td>${item.mate_name}</td>
+                     <td>${project ? project.project_name : '未知项目'}</td>
+                     <td><span class="proto-badge" style="background: #e0f2fe; color: #0284c7;">${item.file_type || 'Unknown'}</span></td>
+                    <td>${item.size || '0 KB'}</td>
+                    <td style="font-size: 13px; color: #94a3b8;">${item.create_time || '-'}</td>
+                    <td>
+                        <a href="form.html?id=${item.id}" style="color: #4f46e5; text-decoration: none;">编辑</a> 
+                        <span style="color: #e2e8f0;">|</span> 
+                        <a href="javascript:void(0)" onclick="handleDelete(${item.id})" style="color: #ef4444; text-decoration: none;">删除</a>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        function handleDelete(id) {
+            if (confirm('确定删除该素材吗？')) {
+                ProtoService.delete('ApiMate', id);
+                ProtoUI.toast('素材已删除');
+                renderList();
+            }
+        }
+        renderList();
+    </script>
+</body>
+
+</html>

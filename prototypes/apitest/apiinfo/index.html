@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../common.css">
+    <title>接口定义 - 静态原型</title>
+</head>
+
+<body class="proto-container">
+    <div class="proto-header">
+        <div>
+            <h1 class="proto-title">接口定义</h1>
+            <p style="color: #64748b; margin-top: 4px; font-size: 14px;">管理并维护项目的 API 契约与调试配置</p>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <button class="proto-btn proto-btn-primary" onclick="window.location.href='form.html'">+ 新建接口</button>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+        <input type="text" id="searchInput" class="proto-input" style="width: 300px;" placeholder="搜索接口名称/URL..."
+            onkeyup="renderList()">
+        <button class="proto-btn proto-btn-secondary">🔎 搜索</button>
+    </div>
+
+    <div class="proto-card">
+        <table class="proto-table">
+            <thead>
+                <tr>
+                    <th>请求方法</th>
+                    <th>接口名称</th>
+                    <th>请求路径</th>
+                    <th>所属项目</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="apiListBody">
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div
+            style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; gap: 12px; color: #64748b; font-size: 14px;">
+            <span>共 45 条</span>
+            <button class="proto-btn proto-btn-secondary" disabled>上一页</button>
+            <span style="font-weight: 600; color: #4f46e5;">1</span>
+            <button class="proto-btn proto-btn-secondary">下一页</button>
+        </div>
+    </div>
+
+    <script src="../proto-logic.js"></script>
+    <script>
+        ProtoStorage.initSeed('ApiInfo', [
+            { id: 2001, api_name: '获取用户详情', request_method: 'GET', request_url: '/v1/user/{id}', project_id: 1001 },
+            { id: 2002, api_name: '创建订单', request_method: 'POST', request_url: '/v1/order/create', project_id: 1001 },
+            { id: 2003, api_name: '更新物理库存', request_method: 'PUT', request_url: '/v1/storage/update', project_id: 1002 }
+        ]);
+
+        function renderList() {
+            const keyword = document.getElementById('searchInput').value.toLowerCase();
+            let apis = ProtoService.list('ApiInfo').filter(item =>
+                item.api_name.toLowerCase().includes(keyword) ||
+                item.request_url.toLowerCase().includes(keyword)
+            );
+
+            const projects = ProtoService.list('Project');
+            const tbody = document.getElementById('apiListBody');
+
+            tbody.innerHTML = apis.map(api => {
+                const project = projects.find(p => p.id == api.project_id);
+                return `
+                    <tr>
+                        <td><span class="proto-badge badge-${api.request_method.toLowerCase()}">${api.request_method}</span></td>
+                        <td style="font-weight: 500;">${api.api_name}</td>
+                        <td><code style="background: #f1f5f9; padding: 2px 4px; border-radius: 4px;">${api.request_url}</code></td>
+                        <td>${project ? project.project_name : '未知项目'}</td>
+                        <td>
+                            <a href="form.html?id=${api.id}" style="color: #4f46e5; text-decoration: none;">详情/编辑</a> 
+                            <span style="color: #e2e8f0;">|</span> 
+                            <a href="javascript:void(0)" onclick="handleDelete(${api.id})" style="color: #ef4444; text-decoration: none;">删除</a>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function handleDelete(id) {
+            if (confirm('确定删除该接口吗？')) {
+                ProtoService.delete('ApiInfo', id);
+                ProtoUI.toast('接口已删除');
+                renderList();
+            }
+        }
+        renderList();
+    </script>
+</body>
+
+</html>

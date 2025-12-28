@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../common.css">
+    <title>数据库配置 - 静态原型</title>
+</head>
+
+<body class="proto-container">
+    <div class="proto-header">
+        <h1 class="proto-title" id="formTitle">新建数据库配置</h1>
+        <div style="display: flex; gap: 12px;">
+            <button class="proto-btn proto-btn-secondary" onclick="window.location.href='db_index.html'">取消</button>
+            <button class="proto-btn proto-btn-primary" id="saveBtn">保存</button>
+        </div>
+    </div>
+
+    <div class="proto-card">
+        <form id="dbForm">
+            <input type="hidden" id="db_id">
+
+            <div class="proto-form-group">
+                <label class="proto-label">配置名称 (别名)</label>
+                <input type="text" id="db_name" class="proto-input" placeholder="例如：订单库-测试环境" required>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="proto-form-group">
+                    <label class="proto-label">数据库类型</label>
+                    <select id="db_type" class="proto-select" required>
+                        <option value="mysql">MySQL</option>
+                        <option value="oracle">Oracle</option>
+                        <option value="postgresql">PostgreSQL</option>
+                        <option value="redis">Redis</option>
+                    </select>
+                </div>
+                <div class="proto-form-group">
+                    <label class="proto-label">所属项目</label>
+                    <select id="project_id" class="proto-select" required>
+                        <option value="">请选择项目</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+                <div class="proto-form-group">
+                    <label class="proto-label">主机地址 (Host)</label>
+                    <input type="text" id="host" class="proto-input" placeholder="127.0.0.1" required>
+                </div>
+                <div class="proto-form-group">
+                    <label class="proto-label">端口 (Port)</label>
+                    <input type="number" id="port" class="proto-input" placeholder="3306" required>
+                </div>
+            </div>
+
+            <div class="proto-form-group">
+                <label class="proto-label">数据库名称 (Schema)</label>
+                <input type="text" id="db_base" class="proto-input" placeholder="table_name">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="proto-form-group">
+                    <label class="proto-label">用户名</label>
+                    <input type="text" id="user" class="proto-input" required>
+                </div>
+                <div class="proto-form-group">
+                    <label class="proto-label">密码</label>
+                    <input type="password" id="password" class="proto-input" required>
+                </div>
+            </div>
+
+            <div class="proto-form-group" style="margin-top: 12px;">
+                <button type="button" class="proto-btn proto-btn-secondary" onclick="testConnection()">测试连接</button>
+            </div>
+
+        </form>
+    </div>
+
+    <script src="../proto-logic.js"></script>
+    <script>
+        const id = getUrlParam('id');
+        const projects = ProtoService.list('Project');
+        document.getElementById('project_id').innerHTML += projects.map(p => `<option value="${p.id}">${p.project_name}</option>`).join('');
+
+        if (id) {
+            document.getElementById('formTitle').innerText = '编辑配置';
+            const data = ProtoService.get('ApiDbBase', id);
+            if (data) {
+                document.getElementById('db_id').value = data.id;
+                document.getElementById('db_name').value = data.db_name;
+                document.getElementById('db_type').value = data.db_type;
+                document.getElementById('project_id').value = data.project_id || '';
+                document.getElementById('host').value = data.host;
+                document.getElementById('port').value = data.port;
+                document.getElementById('db_base').value = data.db_base;
+                document.getElementById('user').value = data.user;
+                document.getElementById('password').value = data.password;
+            }
+        }
+
+        function testConnection() {
+            ProtoUI.toast('连接测试成功', 'success');
+        }
+
+        document.getElementById('saveBtn').onclick = () => {
+            const form = document.getElementById('dbForm');
+            if (!form.checkValidity()) return form.reportValidity();
+
+            const payload = {
+                id: document.getElementById('db_id').value || undefined,
+                db_name: document.getElementById('db_name').value,
+                db_type: document.getElementById('db_type').value,
+                project_id: document.getElementById('project_id').value,
+                host: document.getElementById('host').value,
+                port: document.getElementById('port').value,
+                db_base: document.getElementById('db_base').value,
+                user: document.getElementById('user').value,
+                password: document.getElementById('password').value
+            };
+
+            ProtoService.save('ApiDbBase', payload);
+            ProtoUI.toast('保存成功');
+            setTimeout(() => window.location.href = 'db_index.html', 1000);
+        };
+    </script>
+</body>
+
+</html>

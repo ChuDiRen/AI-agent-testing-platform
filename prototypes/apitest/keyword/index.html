@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../common.css">
+    <title>关键字管理 - 静态原型</title>
+</head>
+
+<body class="proto-container">
+    <div class="proto-header">
+        <h1 class="proto-title">关键字管理</h1>
+        <button class="proto-btn proto-btn-primary" onclick="window.location.href='form.html'">+ 新建关键字</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+        <input type="text" id="searchInput" class="proto-input" style="width: 300px;" placeholder="搜索关键字/方法名..."
+            onkeyup="renderList()">
+        <button class="proto-btn proto-btn-secondary">🔎 搜索</button>
+    </div>
+
+    <div class="proto-card">
+        <table class="proto-table">
+            <thead>
+                <tr>
+                    <th>关键字名称</th>
+                    <th>方法名</th>
+                    <th>操作类型</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="keywordListBody">
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div
+            style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; gap: 12px; color: #64748b; font-size: 14px;">
+            <span>共 50+ 条</span>
+            <button class="proto-btn proto-btn-secondary" disabled>上一页</button>
+            <span style="font-weight: 600; color: #4f46e5;">1</span>
+            <button class="proto-btn proto-btn-secondary">下一页</button>
+        </div>
+    </div>
+
+    <script src="../proto-logic.js"></script>
+    <script>
+        // Seed Data
+        ProtoStorage.initSeed('ApiKeyWord', [
+            { id: 1, name: '发送请求', keyword_fun_name: 'send_request', operation_type_id: 1, is_enabled: 'true' },
+            { id: 2, name: '断言', keyword_fun_name: 'assert_equals', operation_type_id: 2, is_enabled: 'true' }
+        ]);
+
+        // Mock Operation Types
+        const opTypes = {
+            1: '网络请求',
+            2: '断言操作',
+            3: '数据处理',
+            4: '数据库操作'
+        };
+
+        function renderList() {
+            const keyword = document.getElementById('searchInput').value.toLowerCase();
+            const list = ProtoService.list('ApiKeyWord').filter(item =>
+                item.name.toLowerCase().includes(keyword) ||
+                item.keyword_fun_name.toLowerCase().includes(keyword)
+            );
+            const tbody = document.getElementById('keywordListBody');
+
+            tbody.innerHTML = list.map(item => `
+                <tr>
+                    <td>${item.name}</td>
+                    <td style="font-family: monospace; color: #475569;">${item.keyword_fun_name}</td>
+                    <td><span class="proto-badge" style="background: #e0f2fe; color: #0284c7;">${opTypes[item.operation_type_id] || '未知'}</span></td>
+                    <td>${item.is_enabled === 'true' ? '<span style="color: #10b981;">● 启用</span>' : '<span style="color: #94a3b8;">● 禁用</span>'}</td>
+                    <td>
+                        <a href="form.html?id=${item.id}" style="color: #4f46e5; text-decoration: none;">编辑</a> 
+                        <span style="color: #e2e8f0;">|</span> 
+                        <a href="javascript:void(0)" onclick="handleDelete(${item.id})" style="color: #ef4444; text-decoration: none;">删除</a>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function handleDelete(id) {
+            if (confirm('确定删除该关键字吗？')) {
+                ProtoService.delete('ApiKeyWord', id);
+                ProtoUI.toast('关键字已删除');
+                renderList();
+            }
+        }
+        renderList();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../common.css">
+    <title>关键字配置 - 静态原型</title>
+</head>
+
+<body class="proto-container">
+    <div class="proto-header">
+        <h1 class="proto-title" id="formTitle">新增关键字</h1>
+        <div style="display: flex; gap: 12px;">
+            <button class="proto-btn proto-btn-secondary" onclick="window.location.href='index.html'">取消</button>
+            <button class="proto-btn proto-btn-primary" id="saveBtn">保存</button>
+        </div>
+    </div>
+
+    <div class="proto-card">
+        <form id="keywordForm">
+            <input type="hidden" id="keyword_id">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                <div class="proto-form-group">
+                    <label class="proto-label">关键字名称</label>
+                    <input type="text" id="name" class="proto-input" placeholder="例如：发送HTTP请求" required>
+                </div>
+                <div class="proto-form-group">
+                    <label class="proto-label">函数名称 (English)</label>
+                    <input type="text" id="keyword_fun_name" class="proto-input" placeholder="例如：send_http_request"
+                        required>
+                </div>
+                <div class="proto-form-group">
+                    <label class="proto-label">操作类型</label>
+                    <select id="operation_type_id" class="proto-select" required>
+                        <option value="1">网络请求</option>
+                        <option value="2">断言操作</option>
+                        <option value="3">数据处理</option>
+                        <option value="4">数据库操作</option>
+                    </select>
+                </div>
+                <div class="proto-form-group">
+                    <label class="proto-label">状态</label>
+                    <select id="is_enabled" class="proto-select">
+                        <option value="true">启用</option>
+                        <option value="false">禁用</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="tabs" style="display:flex; gap: 24px; border-bottom: 2px solid #f1f5f9; margin-bottom: 24px;">
+                <div class="tab-item active" onclick="switchTab('code')">代码体</div>
+                <div class="tab-item" onclick="switchTab('vars')">变量描述</div>
+            </div>
+
+            <!-- Tab 1: Code Body -->
+            <div id="tab-code" class="tab-content active">
+                <div style="margin-bottom: 12px;">
+                    <button type="button" class="proto-btn proto-btn-secondary"
+                        onclick="generateExample()">生成示例代码</button>
+                    <button type="button" class="proto-btn proto-btn-primary" onclick="generateFile()">生成关键字文件</button>
+                </div>
+                <textarea id="keyword_value" class="proto-textarea" rows="15"
+                    style="font-family: monospace; background: #1e293b; color: #e2e8f0;"
+                    placeholder="# Python Code Here..."></textarea>
+            </div>
+
+            <!-- Tab 2: Variable Description -->
+            <div id="tab-vars" class="tab-content" style="display:none;">
+                <div style="margin-bottom: 12px; display: flex; gap: 10px;">
+                    <input type="text" id="new_var_name" class="proto-input" placeholder="变量名 (如: url)"
+                        style="width: 200px;">
+                    <input type="text" id="new_var_desc" class="proto-input" placeholder="描述 (如: 请求地址)"
+                        style="width: 300px;">
+                    <button type="button" class="proto-btn proto-btn-primary" onclick="addVar()">添加变量</button>
+                </div>
+                <table class="proto-table">
+                    <thead>
+                        <tr>
+                            <th>变量名</th>
+                            <th>描述</th>
+                            <th style="width: 80px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="varsTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+        </form>
+    </div>
+
+    <script src="../proto-logic.js"></script>
+    <script>
+        const id = getUrlParam('id');
+        let currentVars = [];
+
+        if (id) {
+            document.getElementById('formTitle').innerText = '编辑关键字';
+            const data = ProtoService.get('ApiKeyWord', id);
+            if (data) {
+                document.getElementById('keyword_id').value = data.id;
+                document.getElementById('name').value = data.name;
+                document.getElementById('keyword_fun_name').value = data.keyword_fun_name;
+                document.getElementById('operation_type_id').value = data.operation_type_id;
+                document.getElementById('is_enabled').value = data.is_enabled;
+                document.getElementById('keyword_value').value = data.keyword_value || '';
+
+                try {
+                    currentVars = data.keyword_desc ? JSON.parse(data.keyword_desc) : [];
+                } catch (e) {
+                    currentVars = [];
+                }
+                renderVars();
+            }
+        }
+
+        function renderVars() {
+            document.getElementById('varsTableBody').innerHTML = currentVars.map((v, i) => `
+                <tr>
+                    <td>${v.name}</td>
+                    <td>${v.placeholder}</td>
+                    <td><button type="button" style="color: #ef4444; border: none; background: none; cursor: pointer;" onclick="deleteVar(${i})">删除</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function addVar() {
+            const name = document.getElementById('new_var_name').value;
+            const desc = document.getElementById('new_var_desc').value;
+            if (name && desc) {
+                currentVars.push({ name, placeholder: desc });
+                renderVars();
+                document.getElementById('new_var_name').value = '';
+                document.getElementById('new_var_desc').value = '';
+            } else {
+                ProtoUI.toast('请填写完整变量信息', 'error');
+            }
+        }
+
+        function deleteVar(index) {
+            currentVars.splice(index, 1);
+            renderVars();
+        }
+
+        function generateExample() {
+            document.getElementById('keyword_value').value = `# -*- coding: UTF-8 -*-
+from apprun.core.globalContext import g_context
+
+class MyKeyword:
+    def __init__(self, driver):
+        self.driver = driver
+
+    def my_function(self, **kwargs):
+        # Implementation...
+        pass
+`;
+        }
+
+        function generateFile() {
+            ProtoUI.toast('后台正在生成 .py 文件...', 'success');
+        }
+
+        document.getElementById('saveBtn').onclick = () => {
+            const form = document.getElementById('keywordForm');
+            if (!form.checkValidity()) return form.reportValidity();
+
+            const payload = {
+                id: document.getElementById('keyword_id').value || undefined,
+                name: document.getElementById('name').value,
+                keyword_fun_name: document.getElementById('keyword_fun_name').value,
+                operation_type_id: document.getElementById('operation_type_id').value,
+                is_enabled: document.getElementById('is_enabled').value,
+                keyword_value: document.getElementById('keyword_value').value,
+                keyword_desc: JSON.stringify(currentVars)
+            };
+
+            ProtoService.save('ApiKeyWord', payload);
+            ProtoUI.toast('保存成功');
+            setTimeout(() => window.location.href = 'index.html', 1000);
+        };
+
+        function switchTab(name) {
+            document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+            document.querySelectorAll('.tab-item').forEach(i => i.classList.remove('active'));
+            document.getElementById('tab-' + name).style.display = 'block';
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+    <style>
+        .tab-item {
+            padding: 10px 0;
+            cursor: pointer;
+            color: #64748b;
+            border-bottom: 2px solid transparent;
+            transition: 0.2s;
+        }
+
+        .tab-item.active {
+            color: #4f46e5;
+            border-bottom-color: #4f46e5;
+            font-weight: 700;
+        }
+    </style>
+</body>
+
+</html>

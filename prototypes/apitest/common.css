@@ -1,0 +1,355 @@
+/* 统一原型样式系统 */
+.proto-container {
+    --sidebar-width: 240px;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #1e293b;
+    background: #f8fafc;
+    min-height: 100vh;
+    display: flex;
+    padding: 0;
+    /* Reset padding */
+}
+
+/* Sidebar Styles */
+.proto-sidebar {
+    width: var(--sidebar-width);
+    background: #1e293b;
+    color: white;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+}
+
+.proto-sidebar-brand {
+    padding: 24px;
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+    border-bottom: 1px solid #334155;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.proto-nav {
+    padding: 16px 0;
+    flex: 1;
+}
+
+.proto-nav-item {
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.proto-nav-item:hover,
+.proto-nav-item.active {
+    background: #334155;
+    color: white;
+    border-right: 3px solid #6366f1;
+}
+
+/* Main Content Area */
+.proto-main {
+    margin-left: var(--sidebar-width);
+    flex: 1;
+    padding: 32px;
+    max-width: 1200px;
+    /* width: calc(100% - var(--sidebar-width)); */
+}
+
+/* Layout Utilities */
+.proto-page-header {
+    margin-bottom: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Override old container */
+.proto-container>.proto-header,
+.proto-container>.proto-card {
+    /* These will be moved into .proto-main via JS logic or manual update */
+}
+
+.proto-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.proto-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.proto-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.proto-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.proto-table th {
+    text-align: left;
+    padding: 12px 16px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.proto-table td {
+    padding: 16px;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+    color: #334155;
+}
+
+.proto-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.proto-btn-primary {
+    background: #4f46e5;
+    color: white;
+}
+
+.proto-btn-primary:hover {
+    background: #4338ca;
+}
+
+.proto-btn-secondary {
+    background: white;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+}
+
+.proto-btn-secondary:hover {
+    background: #f8fafc;
+}
+
+.proto-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.badge-get {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge-post {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+.badge-put {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.badge-delete {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+}
+
+/* 状态点增强 */
+.dot {
+    height: 8px;
+    width: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+.dot-success {
+    background-color: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.dot-danger {
+    background-color: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+/* 表单样式 */
+.proto-form-group {
+    margin-bottom: 24px;
+}
+
+.proto-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 8px;
+}
+
+.proto-input,
+.proto-select,
+.proto-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s;
+    background: white;
+    color: #1e293b;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.proto-input:focus,
+.proto-select:focus,
+.proto-textarea:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.proto-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.proto-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 32px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 24px;
+}
+
+code {
+    background: #f1f5f9;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+}
+
+/* Tab 切换组件 */
+.tabs {
+    display: flex;
+    gap: 24px;
+    border-bottom: 2px solid #f1f5f9;
+    margin-bottom: 24px;
+}
+
+.tab-item {
+    padding: 12px 0;
+    cursor: pointer;
+    color: #64748b;
+    border-bottom: 2px solid transparent;
+    transition: 0.2s;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.tab-item:hover {
+    color: #4f46e5;
+}
+
+.tab-item.active {
+    color: #4f46e5;
+    border-bottom-color: #4f46e5;
+    font-weight: 700;
+}
+
+/* 响应式网格布局 */
+.collection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+}
+
+.collection-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    transition: 0.3s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.collection-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    border-color: #4f46e5;
+}
+
+/* API 伴侣列表项 */
+.api-item {
+    padding: 12px;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: 0.2s;
+    border-radius: 6px;
+    margin-bottom: 4px;
+}
+
+.api-item:hover {
+    background: #f8fafc;
+}
+
+.api-item.active {
+    background: #eff6ff;
+    border-left: 4px solid #4f46e5;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+/* 代码预览增强 */
+pre {
+    font-family: 'Fira Code', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0;
+}

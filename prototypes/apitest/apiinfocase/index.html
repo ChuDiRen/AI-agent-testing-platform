@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../common.css">
+    <title>用例管理 - 静态原型</title>
+</head>
+
+<body class="proto-container">
+    <div class="proto-header">
+        <h1 class="proto-title">用例管理</h1>
+        <button class="proto-btn proto-btn-primary" onclick="window.location.href='form.html'">+ 编排新用例</button>
+    </div>
+
+    <div class="proto-card">
+        <table class="proto-table">
+            <thead>
+                <tr>
+                    <th>用例名称</th>
+                    <th>所属项目</th>
+                    <!-- Priority column removed -->
+                    <th>步骤数</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="caseListBody">
+            </tbody>
+        </table>
+    </div>
+
+    <script src="../proto-logic.js"></script>
+    <script>
+        ProtoStorage.initSeed('ApiCase', [
+            { id: 3001, case_name: '提交订单冒烟测试', case_desc: '全流程验证', project_id: 1001 },
+            { id: 3002, case_name: '修改个人资料校验', case_desc: '边界值测试', project_id: 1001 }
+        ]);
+
+        function renderList() {
+            const cases = ProtoService.list('ApiCase');
+            const projects = ProtoService.list('Project');
+            const tbody = document.getElementById('caseListBody');
+
+            tbody.innerHTML = cases.map(c => {
+                const project = projects.find(p => p.id == c.project_id);
+                return `
+                    <tr>
+                        <td style="font-weight: 500;">${c.case_name}</td>
+                        <td>${project ? project.project_name : '未知项目'}</td>
+                        <!-- Priority column removed -->
+                        <td>5 步</td>
+                        <td>
+                            <a href="form.html?id=${c.id}" style="color: #4f46e5; text-decoration: none;">编排</a> 
+                            <span style="color: #e2e8f0;">|</span> 
+                            <a href="javascript:void(0)" onclick="handleDelete(${c.id})" style="color: #ef4444; text-decoration: none;">删除</a>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function handleDelete(id) {
+            if (confirm('确定删除该用例吗？')) {
+                ProtoService.delete('ApiCase', id);
+                ProtoUI.toast('用例已删除');
+                renderList();
+            }
+        }
+        renderList();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../common.css">
+    <title>项目管理 - 静态原型</title>
+</head>
+
+<body class="proto-container">
+    <div class="proto-header">
+        <h1 class="proto-title">项目管理</h1>
+        <button class="proto-btn proto-btn-primary" onclick="window.location.href='form.html'">+ 新建项目</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+        <input type="text" id="searchInput" class="proto-input" style="width: 300px;" placeholder="搜索项目名称..."
+            onkeyup="renderList()">
+        <button class="proto-btn proto-btn-secondary">🔎 搜索</button>
+    </div>
+
+    <div class="proto-card">
+        <table class="proto-table">
+            <thead>
+                <tr>
+                    <th>项目名称</th>
+                    <th>项目描述</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="projectListBody">
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div
+            style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; gap: 12px; color: #64748b; font-size: 14px;">
+            <span>共 12 条</span>
+            <button class="proto-btn proto-btn-secondary" disabled>上一页</button>
+            <span style="font-weight: 600; color: #4f46e5;">1</span>
+            <button class="proto-btn proto-btn-secondary">下一页</button>
+        </div>
+    </div>
+
+    <script src="../proto-logic.js"></script>
+    <script>
+        ProtoStorage.initSeed('Project', [
+            { id: 1001, project_name: '电商中台系统', project_desc: '核心业务中台' },
+            { id: 1002, project_name: '用户中心服务', project_desc: '统一身份认证平台' },
+            { id: 1003, project_name: '遗留系统备份', project_desc: '历史旧数据归档' }
+        ]);
+
+        function renderList() {
+            const projects = ProtoService.list('Project');
+            const tbody = document.getElementById('projectListBody');
+            tbody.innerHTML = projects.map(p => `
+                <tr>
+                    <td style="font-weight: 600;">${p.project_name}</td>
+                    <td style="color: #64748b; font-size: 14px;">${p.project_desc || '-'}</td>
+                    <!-- Status column removed -->
+                    <td>
+                        <a href="form.html?id=${p.id}" style="color: #4f46e5; text-decoration: none;">编辑</a> 
+                        <span style="color: #e2e8f0;">|</span> 
+                        <a href="javascript:void(0)" onclick="handleDelete(${p.id})" style="color: #ef4444; text-decoration: none;">删除</a>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function handleDelete(id) {
+            if (confirm('确定删除该项目吗？')) {
+                ProtoService.delete('Project', id);
+                ProtoUI.toast('项目已删除');
+                renderList();
+            }
+        }
+        renderList();
+    </script>
+</body>
+
+</html>

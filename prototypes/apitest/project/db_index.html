@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../common.css">
+    <title>数据库配置 - 静态原型</title>
+</head>
+
+<body class="proto-container">
+    <div class="proto-header">
+        <h1 class="proto-title">数据库配置</h1>
+        <button class="proto-btn proto-btn-primary" onclick="window.location.href='db_form.html'">+ 新建配置</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+        <input type="text" id="searchInput" class="proto-input" style="width: 300px;" placeholder="搜索数据库/地址..."
+            onkeyup="renderList()">
+        <button class="proto-btn proto-btn-secondary">🔎 搜索</button>
+    </div>
+
+    <div class="proto-card">
+        <table class="proto-table">
+            <thead>
+                <tr>
+                    <th>配置名称</th>
+                    <th>类型</th>
+                    <th>主机 (Host)</th>
+                    <th>数据库名</th>
+                    <th>用户名</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="dbListBody">
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div
+            style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; gap: 12px; color: #64748b; font-size: 14px;">
+            <span>共 5 条</span>
+            <button class="proto-btn proto-btn-secondary" disabled>上一页</button>
+            <span style="font-weight: 600; color: #4f46e5;">1</span>
+            <button class="proto-btn proto-btn-secondary">下一页</button>
+        </div>
+    </div>
+
+    <script src="../proto-logic.js"></script>
+    <script>
+        ProtoStorage.initSeed('ApiDbBase', [
+            { id: 1, db_name: '用户主库', db_type: 'mysql', host: '192.168.1.10', db_base: 'user_db', user: 'root' },
+        ]);
+
+        function renderList() {
+            const keyword = document.getElementById('searchInput').value.toLowerCase();
+            const list = ProtoService.list('ApiDbBase').filter(item =>
+                item.db_name.toLowerCase().includes(keyword) ||
+                item.host.includes(keyword)
+            );
+            const tbody = document.getElementById('dbListBody');
+
+            tbody.innerHTML = list.map(item => `
+                <tr>
+                    <td style="font-weight: 500;">${item.db_name}</td>
+                    <td><span class="proto-badge" style="background: #f1f5f9;">${item.db_type}</span></td>
+                    <td>${item.host}</td>
+                    <td>${item.db_base}</td>
+                    <td>${item.user}</td>
+                    <td>
+                        <a href="db_form.html?id=${item.id}" style="color: #4f46e5; text-decoration: none;">编辑</a> 
+                        <span style="color: #e2e8f0;">|</span> 
+                        <a href="javascript:void(0)" onclick="handleDelete(${item.id})" style="color: #ef4444; text-decoration: none;">删除</a>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function handleDelete(id) {
+            if (confirm('确定删除该配置吗？')) {
+                ProtoService.delete('ApiDbBase', id);
+                ProtoUI.toast('配置已删除');
+                renderList();
+            }
+        }
+        renderList();
+    </script>
+</body>
+
+</html>
