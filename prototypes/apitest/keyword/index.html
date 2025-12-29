@@ -3,8 +3,365 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../common.css">
     <title>关键字管理 - 静态原型</title>
+    <style>
+        /* 页面动画 */
+        @keyframes pageEnter {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes cardSlide {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes rowFadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .proto-container {
+            padding: 32px 40px;
+            animation: pageEnter var(--animation-normal) ease-out;
+        }
+
+        .proto-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+
+        .proto-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .proto-title::before {
+            content: '🔑';
+            font-size: 24px;
+        }
+
+        /* 搜索工具栏 */
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            animation: cardSlide var(--animation-normal) ease-out;
+            animation-delay: 0.1s;
+            animation-fill-mode: both;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-wrapper::before {
+            content: '🔍';
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+        }
+
+        .search-wrapper input {
+            width: 100%;
+            padding: 12px 16px 12px 42px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all var(--animation-fast);
+            background: white;
+        }
+
+        .search-wrapper input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+
+        .toolbar .proto-btn {
+            transition: all var(--animation-fast);
+        }
+
+        .toolbar .proto-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* 表格卡片 */
+        .proto-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            animation: cardSlide var(--animation-normal) ease-out;
+            animation-delay: 0.2s;
+            animation-fill-mode: both;
+            transition: box-shadow var(--animation-fast);
+        }
+
+        .proto-card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .proto-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .proto-table th {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 16px 20px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .proto-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 14px;
+            color: #334155;
+        }
+
+        .proto-table tr {
+            transition: all var(--animation-fast);
+        }
+
+        .proto-table tbody tr {
+            animation: rowFadeIn var(--animation-fast) ease-out;
+        }
+
+        .proto-table tbody tr:nth-child(1) { animation-delay: 0.05s; }
+        .proto-table tbody tr:nth-child(2) { animation-delay: 0.1s; }
+        .proto-table tbody tr:nth-child(3) { animation-delay: 0.15s; }
+        .proto-table tbody tr:nth-child(4) { animation-delay: 0.2s; }
+        .proto-table tbody tr:nth-child(5) { animation-delay: 0.25s; }
+
+        .proto-table tbody tr:hover {
+            background: linear-gradient(90deg, #f8fafc 0%, #ffffff 100%);
+        }
+
+        .proto-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* 方法名样式 */
+        .method-name {
+            font-family: 'Monaco', 'Consolas', monospace;
+            color: #7c3aed;
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* 操作类型徽章 */
+        .proto-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: transform var(--animation-fast);
+        }
+
+        .proto-badge:hover {
+            transform: scale(1.05);
+        }
+
+        .badge-network {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e40af;
+        }
+
+        .badge-network::before {
+            content: '🌐';
+        }
+
+        .badge-assert {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #166534;
+        }
+
+        .badge-assert::before {
+            content: '✅';
+        }
+
+        .badge-data {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+        }
+
+        .badge-data::before {
+            content: '📊';
+        }
+
+        .badge-db {
+            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+            color: #7c3aed;
+        }
+
+        .badge-db::before {
+            content: '🗄️';
+        }
+
+        /* 状态指示器 */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-enabled .status-dot {
+            background: var(--success-color);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+        }
+
+        .status-enabled {
+            color: var(--success-color);
+        }
+
+        .status-disabled .status-dot {
+            background: #94a3b8;
+            box-shadow: none;
+            animation: none;
+        }
+
+        .status-disabled {
+            color: #94a3b8;
+        }
+
+        /* 操作链接 */
+        .action-links {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .action-link {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all var(--animation-fast);
+            cursor: pointer;
+            border: none;
+            background: none;
+        }
+
+        .action-link-edit {
+            color: var(--primary-color);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .action-link-edit:hover {
+            background: rgba(59, 130, 246, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .action-link-delete {
+            color: var(--error-color);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .action-link-delete:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* 分页 */
+        .pagination {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 20px 24px;
+            gap: 12px;
+            color: #64748b;
+            font-size: 14px;
+            border-top: 1px solid #f1f5f9;
+            background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%);
+        }
+
+        .pagination .proto-btn {
+            transition: all var(--animation-fast);
+        }
+
+        .pagination .proto-btn:not(:disabled):hover {
+            transform: translateY(-1px);
+        }
+
+        .page-current {
+            font-weight: 700;
+            color: var(--primary-color);
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            padding: 6px 14px;
+            border-radius: 8px;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .proto-container {
+                padding: 20px;
+            }
+            .toolbar {
+                flex-direction: column;
+            }
+            .search-wrapper {
+                max-width: 100%;
+            }
+        }
+    </style>
 </head>
 
 <body class="proto-container">
@@ -14,9 +371,10 @@
     </div>
 
     <!-- Toolbar -->
-    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
-        <input type="text" id="searchInput" class="proto-input" style="width: 300px;" placeholder="搜索关键字/方法名..."
-            onkeyup="renderList()">
+    <div class="toolbar">
+        <div class="search-wrapper">
+            <input type="text" id="searchInput" placeholder="搜索关键字/方法名..." onkeyup="renderList()">
+        </div>
         <button class="proto-btn proto-btn-secondary">🔎 搜索</button>
     </div>
 
@@ -36,11 +394,10 @@
         </table>
 
         <!-- Pagination -->
-        <div
-            style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; gap: 12px; color: #64748b; font-size: 14px;">
+        <div class="pagination">
             <span>共 50+ 条</span>
             <button class="proto-btn proto-btn-secondary" disabled>上一页</button>
-            <span style="font-weight: 600; color: #4f46e5;">1</span>
+            <span class="page-current">1</span>
             <button class="proto-btn proto-btn-secondary">下一页</button>
         </div>
     </div>
@@ -50,15 +407,17 @@
         // Seed Data
         ProtoStorage.initSeed('ApiKeyWord', [
             { id: 1, name: '发送请求', keyword_fun_name: 'send_request', operation_type_id: 1, is_enabled: 'true' },
-            { id: 2, name: '断言', keyword_fun_name: 'assert_equals', operation_type_id: 2, is_enabled: 'true' }
+            { id: 2, name: '断言', keyword_fun_name: 'assert_equals', operation_type_id: 2, is_enabled: 'true' },
+            { id: 3, name: '数据转换', keyword_fun_name: 'transform_data', operation_type_id: 3, is_enabled: 'true' },
+            { id: 4, name: '执行SQL', keyword_fun_name: 'execute_sql', operation_type_id: 4, is_enabled: 'false' }
         ]);
 
         // Mock Operation Types
         const opTypes = {
-            1: '网络请求',
-            2: '断言操作',
-            3: '数据处理',
-            4: '数据库操作'
+            1: { name: '网络请求', class: 'badge-network' },
+            2: { name: '断言操作', class: 'badge-assert' },
+            3: { name: '数据处理', class: 'badge-data' },
+            4: { name: '数据库操作', class: 'badge-db' }
         };
 
         function renderList() {
@@ -69,19 +428,42 @@
             );
             const tbody = document.getElementById('keywordListBody');
 
-            tbody.innerHTML = list.map(item => `
+            if (list.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">🔑</div>
+                                <div>暂无关键字数据</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = list.map(item => {
+                const opType = opTypes[item.operation_type_id] || { name: '未知', class: 'badge-network' };
+                const isEnabled = item.is_enabled === 'true';
+                return `
                 <tr>
-                    <td>${item.name}</td>
-                    <td style="font-family: monospace; color: #475569;">${item.keyword_fun_name}</td>
-                    <td><span class="proto-badge" style="background: #e0f2fe; color: #0284c7;">${opTypes[item.operation_type_id] || '未知'}</span></td>
-                    <td>${item.is_enabled === 'true' ? '<span style="color: #10b981;">● 启用</span>' : '<span style="color: #94a3b8;">● 禁用</span>'}</td>
+                    <td><strong>${item.name}</strong></td>
+                    <td><code class="method-name">${item.keyword_fun_name}</code></td>
+                    <td><span class="proto-badge ${opType.class}">${opType.name}</span></td>
                     <td>
-                        <a href="form.html?id=${item.id}" style="color: #4f46e5; text-decoration: none;">编辑</a> 
-                        <span style="color: #e2e8f0;">|</span> 
-                        <a href="javascript:void(0)" onclick="handleDelete(${item.id})" style="color: #ef4444; text-decoration: none;">删除</a>
+                        <span class="status-indicator ${isEnabled ? 'status-enabled' : 'status-disabled'}">
+                            <span class="status-dot"></span>
+                            ${isEnabled ? '启用' : '禁用'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-links">
+                            <a href="form.html?id=${item.id}" class="action-link action-link-edit">编辑</a>
+                            <button class="action-link action-link-delete" onclick="handleDelete(${item.id})">删除</button>
+                        </div>
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
         function handleDelete(id) {

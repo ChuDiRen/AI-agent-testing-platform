@@ -47,9 +47,9 @@
     <script src="../proto-logic.js"></script>
     <script>
         ProtoStorage.initSeed('Project', [
-            { id: 1001, project_name: '电商中台系统', project_desc: '核心业务中台' },
-            { id: 1002, project_name: '用户中心服务', project_desc: '统一身份认证平台' },
-            { id: 1003, project_name: '遗留系统备份', project_desc: '历史旧数据归档' }
+            { id: 1001, project_name: '电商中台系统', project_desc: '核心业务中台', created_at: '2025-12-15 10:30:00' },
+            { id: 1002, project_name: '用户中心服务', project_desc: '统一身份认证平台', created_at: '2025-12-18 14:20:00' },
+            { id: 1003, project_name: '遗留系统备份', project_desc: '历史旧数据归档', created_at: '2025-12-25 09:15:00' }
         ]);
 
         function renderList() {
@@ -59,7 +59,7 @@
                 <tr>
                     <td style="font-weight: 600;">${p.project_name}</td>
                     <td style="color: #64748b; font-size: 14px;">${p.project_desc || '-'}</td>
-                    <!-- Status column removed -->
+                    <td style="color: #64748b; font-size: 14px;">${p.created_at || '-'}</td>
                     <td>
                         <a href="form.html?id=${p.id}" style="color: #4f46e5; text-decoration: none;">编辑</a> 
                         <span style="color: #e2e8f0;">|</span> 

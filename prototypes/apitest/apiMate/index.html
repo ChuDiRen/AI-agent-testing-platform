@@ -3,8 +3,303 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../common.css">
     <title>素材管理 - 静态原型</title>
+    <style>
+        @keyframes pageEnter {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes cardSlide {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes rowFadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .proto-container {
+            padding: 32px 40px;
+            animation: pageEnter 0.4s ease-out;
+        }
+
+        .proto-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+
+        .proto-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .proto-title::before {
+            content: '📁';
+            font-size: 24px;
+        }
+
+        /* 搜索栏 */
+        .search-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            animation: cardSlide 0.4s ease-out 0.1s both;
+        }
+
+        .search-bar .proto-input {
+            width: 320px;
+            padding: 12px 18px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .search-bar .proto-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
+
+        /* 卡片 */
+        .proto-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            animation: cardSlide 0.5s ease-out 0.15s both;
+        }
+
+        /* 表格 */
+        .proto-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .proto-table th {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 16px 20px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .proto-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 14px;
+            color: #334155;
+        }
+
+        .proto-table tbody tr {
+            transition: all 0.2s;
+            animation: rowFadeIn 0.3s ease-out;
+        }
+
+        .proto-table tbody tr:nth-child(1) { animation-delay: 0.05s; }
+        .proto-table tbody tr:nth-child(2) { animation-delay: 0.1s; }
+        .proto-table tbody tr:nth-child(3) { animation-delay: 0.15s; }
+        .proto-table tbody tr:nth-child(4) { animation-delay: 0.2s; }
+        .proto-table tbody tr:nth-child(5) { animation-delay: 0.25s; }
+
+        .proto-table tbody tr:hover {
+            background: linear-gradient(90deg, #f8fafc 0%, #ffffff 100%);
+        }
+
+        /* 文件名 */
+        .file-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .file-icon.image {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        }
+
+        .file-icon.document {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        }
+
+        .file-icon.video {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        }
+
+        .file-icon.audio {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+
+        .file-icon.archive {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+        }
+
+        .file-icon.other {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+        }
+
+        /* 文件类型徽章 */
+        .file-type-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .file-type-badge.image {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .file-type-badge.document {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .file-type-badge.video {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .file-type-badge.audio {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .file-type-badge.archive {
+            background: #e0e7ff;
+            color: #4338ca;
+        }
+
+        .file-type-badge.other {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        /* 文件大小 */
+        .file-size {
+            font-family: 'Monaco', monospace;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        /* 操作链接 */
+        .action-link {
+            color: #4f46e5;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .action-link:hover {
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        .action-link.download {
+            color: #10b981;
+        }
+
+        .action-link.download:hover {
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .action-link.delete {
+            color: #ef4444;
+        }
+
+        .action-link.delete:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .action-divider {
+            color: #e2e8f0;
+            margin: 0 4px;
+        }
+
+        /* 分页 */
+        .pagination {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 16px 20px;
+            gap: 12px;
+            color: #64748b;
+            font-size: 14px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .pagination .proto-btn {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        .page-number {
+            font-weight: 600;
+            color: #4f46e5;
+            padding: 6px 12px;
+            background: rgba(79, 70, 229, 0.1);
+            border-radius: 8px;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .proto-container {
+                padding: 20px;
+            }
+            .search-bar .proto-input {
+                width: 100%;
+            }
+            .proto-table th, .proto-table td {
+                padding: 12px;
+            }
+        }
+    </style>
 </head>
 
 <body class="proto-container">
@@ -13,9 +308,9 @@
         <button class="proto-btn proto-btn-primary" onclick="window.location.href='form.html'">+ 上传素材</button>
     </div>
 
-    <!-- Toolbar -->
-    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
-        <input type="text" id="searchInput" class="proto-input" style="width: 300px;" placeholder="搜索文件名..."
+    <!-- 搜索栏 -->
+    <div class="search-bar">
+        <input type="text" id="searchInput" class="proto-input" placeholder="搜索文件名..."
             onkeyup="renderList()">
         <button class="proto-btn proto-btn-secondary">🔎 搜索</button>
     </div>
@@ -36,12 +331,16 @@
             </tbody>
         </table>
 
-        <!-- Pagination -->
-        <div
-            style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; gap: 12px; color: #64748b; font-size: 14px;">
-            <span>共 200+ 条</span>
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-icon">📁</div>
+            <div>暂无素材文件</div>
+        </div>
+
+        <!-- 分页 -->
+        <div class="pagination">
+            <span>共 <strong id="totalCount">0</strong> 条</span>
             <button class="proto-btn proto-btn-secondary" disabled>上一页</button>
-            <span style="font-weight: 600; color: #4f46e5;">1</span>
+            <span class="page-number">1</span>
             <button class="proto-btn proto-btn-secondary">下一页</button>
         </div>
     </div>
@@ -49,8 +348,21 @@
     <script src="../proto-logic.js"></script>
     <script>
         ProtoStorage.initSeed('ApiMate', [
-            { id: 1, mate_name: 'test_image.png', project_id: 1001, size: '2.5 MB', create_time: '2025-01-05' },
+            { id: 1, mate_name: 'test_image.png', project_id: 1001, file_type: 'image', size: '2.5 MB', create_time: '2025-01-05' },
+            { id: 2, mate_name: 'api_doc.pdf', project_id: 1001, file_type: 'document', size: '1.2 MB', create_time: '2025-01-04' },
+            { id: 3, mate_name: 'demo_video.mp4', project_id: 1002, file_type: 'video', size: '45.8 MB', create_time: '2025-01-03' },
+            { id: 4, mate_name: 'config.json', project_id: 1001, file_type: 'document', size: '4.5 KB', create_time: '2025-01-02' },
+            { id: 5, mate_name: 'backup.zip', project_id: 1003, file_type: 'archive', size: '128 MB', create_time: '2025-01-01' },
         ]);
+
+        const fileTypeConfig = {
+            image: { icon: '🖼️', class: 'image' },
+            document: { icon: '📄', class: 'document' },
+            video: { icon: '🎬', class: 'video' },
+            audio: { icon: '🎵', class: 'audio' },
+            archive: { icon: '📦', class: 'archive' },
+            other: { icon: '📎', class: 'other' }
+        };
 
         function renderList() {
             const keyword = document.getElementById('searchInput').value.toLowerCase();
@@ -59,23 +371,47 @@
             );
             const projects = ProtoService.list('Project');
             const tbody = document.getElementById('mateListBody');
+            const emptyState = document.getElementById('emptyState');
 
-            tbody.innerHTML = list.map(item => {
+            document.getElementById('totalCount').textContent = list.length;
+
+            if (list.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            tbody.innerHTML = list.map((item, i) => {
                 const project = projects.find(p => p.id == item.project_id);
+                const typeConfig = fileTypeConfig[item.file_type] || fileTypeConfig.other;
                 return `
-                <tr>
-                    <td>${item.mate_name}</td>
-                     <td>${project ? project.project_name : '未知项目'}</td>
-                     <td><span class="proto-badge" style="background: #e0f2fe; color: #0284c7;">${item.file_type || 'Unknown'}</span></td>
-                    <td>${item.size || '0 KB'}</td>
+                <tr style="animation-delay: ${i * 0.05}s">
+                    <td>
+                        <div class="file-name">
+                            <div class="file-icon ${typeConfig.class}">${typeConfig.icon}</div>
+                            <span style="font-weight: 500;">${item.mate_name}</span>
+                        </div>
+                    </td>
+                    <td>${project ? project.project_name : '未知项目'}</td>
+                    <td>
+                        <span class="file-type-badge ${typeConfig.class}">${item.file_type || 'other'}</span>
+                    </td>
+                    <td><span class="file-size">${item.size || '0 KB'}</span></td>
                     <td style="font-size: 13px; color: #94a3b8;">${item.create_time || '-'}</td>
                     <td>
-                        <a href="form.html?id=${item.id}" style="color: #4f46e5; text-decoration: none;">编辑</a> 
-                        <span style="color: #e2e8f0;">|</span> 
-                        <a href="javascript:void(0)" onclick="handleDelete(${item.id})" style="color: #ef4444; text-decoration: none;">删除</a>
+                        <a href="javascript:void(0)" onclick="handleDownload(${item.id})" class="action-link download">下载</a>
+                        <span class="action-divider">|</span>
+                        <a href="form.html?id=${item.id}" class="action-link">编辑</a>
+                        <span class="action-divider">|</span>
+                        <a href="javascript:void(0)" onclick="handleDelete(${item.id})" class="action-link delete">删除</a>
                     </td>
                 </tr>
             `}).join('');
+        }
+
+        function handleDownload(id) {
+            ProtoUI.toast('开始下载...', 'success');
         }
 
         function handleDelete(id) {

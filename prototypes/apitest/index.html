@@ -6,197 +6,568 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>接口自动化原型导航 - API Platform</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         :root {
             --primary: #4f46e5;
-            --bg: #f8fafc;
+            --primary-light: #6366f1;
+            --primary-dark: #4338ca;
+            --bg: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
         }
 
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background-color: var(--bg);
-            margin: 0;
-            display: flex;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: var(--bg);
             min-height: 100vh;
+            display: flex;
+            -webkit-font-smoothing: antialiased;
         }
 
+        /* 侧边栏 */
         .sidebar {
             width: 280px;
-            background: #1e293b;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
             color: white;
-            padding: 40px 20px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            overflow-y: auto;
+            z-index: 100;
         }
 
         .logo {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 800;
-            margin-bottom: 40px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+        }
+
+        .nav-group {
+            padding: 16px 12px;
+        }
+
+        .group-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 1.2px;
+            margin-bottom: 12px;
+            padding-left: 12px;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--primary-light);
+            transform: scaleY(0);
+            transition: transform 0.2s;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: white;
+            transform: translateX(4px);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(79, 70, 229, 0.2) 0%, transparent 100%);
+            color: white;
+        }
+
+        .nav-item.active::before {
+            transform: scaleY(1);
+        }
+
+        .nav-item .icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .nav-item:hover .icon {
+            transform: scale(1.15);
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 20px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        /* 主内容区 */
+        .main {
+            flex: 1;
+            margin-left: 280px;
+            padding: 32px 40px;
+            min-height: 100vh;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .welcome-section {
+            margin-bottom: 36px;
+        }
+
+        .welcome-title {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+        }
+
+        .welcome-desc {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.7;
+            max-width: 600px;
+        }
+
+        .welcome-desc code {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            color: var(--primary);
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* 快速入口 */
+        .quick-entry {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .quick-entry-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .quick-links {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .quick-link {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            text-decoration: none;
+            color: #475569;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .nav-group {
-            margin-bottom: 30px;
-        }
-
-        .group-title {
-            font-size: 12px;
-            text-transform: uppercase;
-            color: #64748b;
-            letter-spacing: 1px;
-            margin-bottom: 15px;
-            padding-left: 10px;
-        }
-
-        .nav-item {
-            padding: 12px 15px;
-            border-radius: 8px;
-            color: #94a3b8;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 5px;
-            text-decoration: none;
-        }
-
-        .nav-item:hover {
-            background: rgba(255, 255, 255, 0.05);
+        .quick-link:hover {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
             color: white;
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25);
         }
 
-        .nav-item.active {
-            background: var(--primary);
-            color: white;
+        .quick-link .icon {
+            font-size: 16px;
+            transition: transform 0.2s;
         }
 
-        .main {
-            flex: 1;
-            padding: 60px;
+        .quick-link:hover .icon {
+            transform: scale(1.2);
         }
 
-        .welcome-card {
-            background: white;
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        }
-
+        /* 模块卡片网格 */
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 24px;
         }
 
         .module-card {
             background: white;
-            border: 1px solid #e2e8f0;
-            padding: 24px;
-            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 28px;
+            border-radius: 16px;
             text-decoration: none;
             color: inherit;
-            transition: 0.3s;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .module-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .module-card:hover {
             border-color: var(--primary);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
         }
 
+        .module-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .module-card:hover .card-icon {
+            transform: scale(1.1) rotate(-5deg);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: transform 0.3s ease;
+        }
+
+        .card-icon.blue { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
+        .card-icon.green { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); }
+        .card-icon.purple { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); }
+        .card-icon.orange { background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); }
+        .card-icon.pink { background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); }
+        .card-icon.cyan { background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%); }
+
         .tag {
-            font-size: 11px;
-            background: #eef2ff;
-            color: var(--primary);
-            padding: 2px 8px;
-            border-radius: 4px;
+            font-size: 10px;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 6px;
             font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .module-card h3 {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .module-card p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .module-link {
+            font-size: 13px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: gap 0.25s;
+        }
+
+        .module-link:hover {
+            gap: 12px;
+        }
+
+        .module-link::after {
+            content: '→';
+            transition: transform 0.25s;
+        }
+
+        .module-link:hover::after {
+            transform: translateX(4px);
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 72px;
+            }
+            .sidebar .logo span:not(.logo-icon),
+            .sidebar .group-title,
+            .sidebar .nav-item span:not(.icon),
+            .sidebar .sidebar-footer {
+                display: none;
+            }
+            .sidebar .logo {
+                padding: 20px 16px;
+                justify-content: center;
+            }
+            .sidebar .nav-item {
+                padding: 14px;
+                justify-content: center;
+                border-radius: 8px;
+            }
+            .main {
+                margin-left: 72px;
+                padding: 24px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .main {
+                margin-left: 0;
+                padding: 20px;
+            }
+            .welcome-title {
+                font-size: 26px;
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="sidebar">
-        <div class="logo">🚀 API Protos</div>
+        <div class="logo">
+            <div class="logo-icon">⚡</div>
+            <span>API Protos</span>
+        </div>
         <div class="nav-group">
             <div class="group-title">核心模块</div>
-            <a href="#" class="nav-item active">总览 (Dashboard)</a>
-            <a href="#" class="nav-item">项目配置</a>
-            <a href="#" class="nav-item">接口定义</a>
-            <a href="#" class="nav-item">用例编排</a>
-            <a href="#" class="nav-item">流水线执行</a>
+            <a href="dashboard/index.html" class="nav-item active">
+                <span class="icon">📊</span> <span>仪表盘</span>
+            </a>
+            <a href="project/index.html" class="nav-item">
+                <span class="icon">📁</span> <span>项目管理</span>
+            </a>
+            <a href="apiinfo/index.html" class="nav-item">
+                <span class="icon">🔌</span> <span>接口定义</span>
+            </a>
+            <a href="apiinfocase/index.html" class="nav-item">
+                <span class="icon">🧪</span> <span>用例编排</span>
+            </a>
+            <a href="collection/index.html" class="nav-item">
+                <span class="icon">📅</span> <span>测试计划</span>
+            </a>
         </div>
         <div class="nav-group">
             <div class="group-title">工具箱</div>
-            <a href="#" class="nav-item">公共库</a>
-            <a href="#" class="nav-item">API 伴侣</a>
+            <a href="keyword/index.html" class="nav-item">
+                <span class="icon">🔑</span> <span>关键字库</span>
+            </a>
+            <a href="function/index.html" class="nav-item">
+                <span class="icon">ƒ</span> <span>自定义函数</span>
+            </a>
+            <a href="apiMate/index.html" class="nav-item">
+                <span class="icon">🛠️</span> <span>API 伴侣</span>
+            </a>
+        </div>
+        <div class="nav-group">
+            <div class="group-title">系统配置</div>
+            <a href="message/robot.html" class="nav-item">
+                <span class="icon">🤖</span> <span>消息管理</span>
+            </a>
+            <a href="project/db_index.html" class="nav-item">
+                <span class="icon">🗄️</span> <span>数据库配置</span>
+            </a>
+            <a href="locust/index.html" class="nav-item">
+                <span class="icon">🦗</span> <span>性能测试</span>
+            </a>
+        </div>
+        <div class="sidebar-footer">
+            v1.0.0 Prototype Preview
         </div>
     </div>
-    <div class="main">
-        <div class="welcome-card">
-            <h1 style="margin: 0; font-size: 32px;">接口自动化原型预览</h1>
-            <p style="color: #64748b; font-size: 18px; margin-top: 10px;">以下是根据 <code>demo/platform-vue-web</code>
-                结构生成的纯静态 HTML 原型。所有页面均包含 Mock 假数据，仅供视觉与交互参考。</p>
 
-            <div class="grid">
-                <div class="module-card">
-                    <span class="tag">MODULE</span>
-                    <h3 style="margin: 12px 0 8px 0;">项目管理 (Project)</h3>
-                    <p style="font-size: 14px; color: #64748b; margin-bottom: 15px;">多环境配置与权限控制原型。</p>
-                    <a href="project/index.html"
-                        style="font-size: 14px; color: var(--primary); text-decoration: none; font-weight: 600;">查看静态原型
-                        →</a>
+    <div class="main">
+        <div class="welcome-section">
+            <h1 class="welcome-title">接口自动化原型预览</h1>
+            <p class="welcome-desc">
+                基于 <code>platform-vue-web</code> 结构生成的纯静态 HTML 原型。
+                所有页面均包含 Mock 数据，仅供视觉与交互参考。
+            </p>
+        </div>
+
+        <div class="quick-entry">
+            <div class="quick-entry-title">快速入口</div>
+            <div class="quick-links">
+                <a href="dashboard/index.html" class="quick-link"><span class="icon">📊</span> 仪表盘</a>
+                <a href="apiinfo/form.html" class="quick-link"><span class="icon">➕</span> 新建接口</a>
+                <a href="apiinfocase/form.html" class="quick-link"><span class="icon">📋</span> 新建用例</a>
+                <a href="collection/form.html" class="quick-link"><span class="icon">🚀</span> 新建计划</a>
+                <a href="collection/report.html" class="quick-link"><span class="icon">📈</span> 执行报告</a>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="module-card">
+                <div class="card-header">
+                    <div class="card-icon blue">📊</div>
+                    <span class="tag">Dashboard</span>
                 </div>
-                <div class="module-card">
-                    <span class="tag">CORE</span>
-                    <h3 style="margin: 12px 0 8px 0;">接口定义 (API Info)</h3>
-                    <p style="font-size: 14px; color: #64748b; margin-bottom: 15px;">契约维护与字段映射原型。</p>
-                    <a href="apiinfo/index.html"
-                        style="font-size: 14px; color: var(--primary); text-decoration: none; font-weight: 600;">查看静态原型
-                        →</a>
+                <h3>仪表盘</h3>
+                <p>数据概览、执行趋势、通过率分布等核心指标展示。</p>
+                <a href="dashboard/index.html" class="module-link">查看原型</a>
+            </div>
+            <div class="module-card">
+                <div class="card-header">
+                    <div class="card-icon green">📁</div>
+                    <span class="tag">Module</span>
                 </div>
-                <div class="module-card">
+                <h3>项目管理</h3>
+                <p>多环境配置与权限控制，支持项目级别的参数管理。</p>
+                <a href="project/index.html" class="module-link">查看原型</a>
+            </div>
+            <div class="module-card">
+                <div class="card-header">
+                    <div class="card-icon purple">🔌</div>
+                    <span class="tag">Core</span>
+                </div>
+                <h3>接口定义</h3>
+                <p>API 契约维护与字段映射，支持在线调试与文档生成。</p>
+                <a href="apiinfo/index.html" class="module-link">查看原型</a>
+            </div>
+            <div class="module-card">
+                <div class="card-header">
+                    <div class="card-icon orange">🧪</div>
                     <span class="tag">UI</span>
-                    <h3 style="margin: 12px 0 8px 0;">用例管理 (Case)</h3>
-                    <p style="font-size: 14px; color: #64748b; margin-bottom: 15px;">可视化业务流程编排原型。</p>
-                    <a href="apiinfocase/index.html"
-                        style="font-size: 14px; color: var(--primary); text-decoration: none; font-weight: 600;">查看静态原型
-                        →</a>
                 </div>
-                <div class="module-card">
+                <h3>用例编排</h3>
+                <p>可视化业务流程编排，支持数据驱动与参数化测试。</p>
+                <a href="apiinfocase/index.html" class="module-link">查看原型</a>
+            </div>
+            <div class="module-card">
+                <div class="card-header">
+                    <div class="card-icon pink">📅</div>
                     <span class="tag">CI/CD</span>
-                    <h3 style="margin: 12px 0 8px 0;">任务集合 (Collection)</h3>
-                    <p style="font-size: 14px; color: #64748b; margin-bottom: 15px;">运行流水线与执行进度原型。</p>
-                    <a href="collection/index.html"
-                        style="font-size: 14px; color: var(--primary); text-decoration: none; font-weight: 600;">查看静态原型
-                        →</a>
                 </div>
-                <div class="module-card">
-                    <span class="tag">LIB</span>
-                    <h3 style="margin: 12px 0 8px 0;">关键字库 (Keyword)</h3>
-                    <p style="font-size: 14px; color: #64748b; margin-bottom: 15px;">公共函数与动态参数原型。</p>
-                    <a href="keyword/index.html"
-                        style="font-size: 14px; color: var(--primary); text-decoration: none; font-weight: 600;">查看静态原型
-                        →</a>
+                <h3>测试计划</h3>
+                <p>运行流水线与执行进度监控，支持定时任务与触发器。</p>
+                <a href="collection/index.html" class="module-link">查看原型</a>
+            </div>
+            <div class="module-card">
+                <div class="card-header">
+                    <div class="card-icon cyan">🔑</div>
+                    <span class="tag">Lib</span>
                 </div>
-                <div class="module-card">
-                    <span class="tag">MSG</span>
-                    <h3 style="margin: 12px 0 8px 0;">消息管理 (Message)</h3>
-                    <p style="font-size: 14px; color: #64748b; margin-bottom: 15px;">机器人告警与通知策略原型。</p>
-                    <a href="../msgmanage/index.html"
-                        style="font-size: 14px; color: var(--primary); text-decoration: none; font-weight: 600;">查看静态原型
-                        →</a>
+                <h3>关键字库</h3>
+                <p>公共函数与动态参数管理，提升用例复用率。</p>
+                <a href="keyword/index.html" class="module-link">查看原型</a>
+            </div>
+            <div class="module-card">
+                <div class="card-header">
+                    <div class="card-icon blue">ƒ</div>
+                    <span class="tag">Func</span>
                 </div>
-                <div class="module-card">
-                    <span class="tag">TOOLS</span>
-                    <h3 style="margin: 12px 0 8px 0;">API 伴侣 (Mate)</h3>
-                    <p style="font-size: 14px; color: #64748b; margin-bottom: 15px;">CURL 转换等辅助原型。</p>
-                    <a href="apiMate/index.html"
-                        style="font-size: 14px; color: var(--primary); text-decoration: none; font-weight: 600;">查看静态原型
-                        →</a>
+                <h3>自定义函数</h3>
+                <p>Python 脚本编写与管理，扩展平台能力。</p>
+                <a href="function/index.html" class="module-link">查看原型</a>
+            </div>
+            <div class="module-card">
+                <div class="card-header">
+                    <div class="card-icon green">🛠️</div>
+                    <span class="tag">Tools</span>
                 </div>
+                <h3>API 伴侣</h3>
+                <p>CURL 转换、Mock 服务等辅助工具集合。</p>
+                <a href="apiMate/index.html" class="module-link">查看原型</a>
+            </div>
+            <div class="module-card">
+                <div class="card-header">
+                    <div class="card-icon purple">📈</div>
+                    <span class="tag">Report</span>
+                </div>
+                <h3>执行报告</h3>
+                <p>详细的测试执行报告，包含用例详情与失败分析。</p>
+                <a href="collection/report.html" class="module-link">查看原型</a>
+            </div>
+            <div class="module-card">
+                <div class="card-header">
+                    <div class="card-icon orange">🤖</div>
+                    <span class="tag">Msg</span>
+                </div>
+                <h3>消息管理</h3>
+                <p>机器人配置与消息模板管理，支持多平台通知。</p>
+                <a href="message/robot.html" class="module-link">查看原型</a>
             </div>
         </div>
     </div>

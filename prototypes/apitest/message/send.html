@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>消息发送 - 消息管理</title>
+    <link rel="stylesheet" href="../common.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #6366f1;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --bg: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            animation: pageEnter 0.5s ease-out;
+        }
+
+        @keyframes pageEnter {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes cardSlide {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes quickBtnPop {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes stepComplete {
+            from { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            to { transform: scale(1); }
+        }
+
+        .page-container {
+            padding: 32px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 页面头部 */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            animation: cardSlide 0.4s ease-out;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .page-subtitle {
+            color: #64748b;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #f8fafc;
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-lg {
+            padding: 14px 28px;
+            font-size: 16px;
+        }
+
+        /* 主体布局 */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 24px;
+        }
+
+        /* 发送表单区域 */
+        .send-form-card {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            animation: cardSlide 0.5s ease-out 0.2s backwards;
+        }
+
+        .card-header {
+            padding: 24px;
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        /* 步骤指示器 */
+        .steps {
+            display: flex;
+            margin-bottom: 32px;
+        }
+
+        .step {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+        }
+
+        .step::after {
+            content: '';
+            flex: 1;
+            height: 2px;
+            background: #e2e8f0;
+            margin: 0 12px;
+        }
+
+        .step:last-child::after {
+            display: none;
+        }
+
+        .step-number {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .step.active .step-number {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .step.completed .step-number {
+            background: var(--success);
+            color: white;
+            animation: stepComplete 0.3s ease-out;
+        }
+
+        .step-content {
+            flex-shrink: 0;
+        }
+
+        .step-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .step.active .step-title {
+            color: var(--primary);
+        }
+
+        .step-desc {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        /* 表单样式 */
+        .form-section {
+            margin-bottom: 28px;
+        }
+
+        .form-section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .form-label .required {
+            color: var(--danger);
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 6px;
+        }
+
+        /* 机器人选择卡片 */
+        .robot-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .robot-option {
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .robot-option:hover {
+            border-color: var(--primary);
+            background: #f8fafc;
+        }
+
+        .robot-option.selected {
+            border-color: var(--primary);
+            background: #eef2ff;
+        }
+
+        .robot-option .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .robot-option .avatar.wechat { background: linear-gradient(135deg, #07c160 0%, #06ae56 100%); }
+        .robot-option .avatar.dingtalk { background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%); }
+        .robot-option .avatar.feishu { background: linear-gradient(135deg, #3370ff 0%, #2b5fd9 100%); }
+
+        .robot-option .info {
+            flex: 1;
+        }
+
+        .robot-option .name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .robot-option .type {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .robot-option .check {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+
+        .robot-option.selected .check {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* 模板选择 */
+        .template-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .template-option {
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .template-option:hover {
+            border-color: var(--primary);
+            background: #f8fafc;
+        }
+
+        .template-option.selected {
+            border-color: var(--primary);
+            background: #eef2ff;
+        }
+
+        .template-option-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .template-option .name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .template-option .badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .badge-text { background: #dbeafe; color: #2563eb; }
+        .badge-markdown { background: #ede9fe; color: #7c3aed; }
+        .badge-card { background: #fce7f3; color: #db2777; }
+
+        .template-option .desc {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        /* 变量输入 */
+        .variables-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .variable-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .variable-input-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+        }
+
+        .variable-input-group label code {
+            background: #fef3c7;
+            color: #b45309;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-left: 6px;
+        }
+
+        .variable-input-group input {
+            padding: 10px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .variable-input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        /* 发送按钮区域 */
+        .send-actions {
+            display: flex;
+            gap: 12px;
+            padding-top: 24px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        /* 预览面板 */
+        .preview-card {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            position: sticky;
+            top: 32px;
+            animation: cardSlide 0.5s ease-out 0.3s backwards;
+        }
+
+        .preview-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+
+        .preview-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .preview-body {
+            padding: 24px;
+            background: #f8fafc;
+            min-height: 400px;
+        }
+
+        .preview-device {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .preview-device-header {
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #07c160 0%, #06ae56 100%);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .preview-device-header.dingtalk {
+            background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+        }
+
+        .preview-device-header.feishu {
+            background: linear-gradient(135deg, #3370ff 0%, #2b5fd9 100%);
+        }
+
+        .preview-device-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .preview-device-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .preview-device-content {
+            padding: 20px;
+            font-size: 14px;
+            color: #1e293b;
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+
+        .preview-device-content h2 {
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .preview-device-content strong {
+            color: #374151;
+        }
+
+        .preview-device-content a {
+            color: var(--primary);
+        }
+
+        .preview-device-time {
+            padding: 12px 20px;
+            border-top: 1px solid #f1f5f9;
+            font-size: 12px;
+            color: #94a3b8;
+            text-align: right;
+        }
+
+        /* 发送历史 */
+        .history-section {
+            margin-top: 24px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .history-item {
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .history-item .status-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .history-item .status-icon.success {
+            background: #dcfce7;
+        }
+
+        .history-item .status-icon.error {
+            background: #fee2e2;
+        }
+
+        .history-item .info {
+            flex: 1;
+        }
+
+        .history-item .template-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .history-item .robot-name {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .history-item .time {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        /* 快速发送按钮 */
+        .quick-send-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .quick-send-btn {
+            padding: 16px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            animation: quickBtnPop 0.5s ease-out backwards;
+        }
+
+        .quick-send-btn:nth-child(1) { animation-delay: 0.1s; }
+        .quick-send-btn:nth-child(2) { animation-delay: 0.15s; }
+        .quick-send-btn:nth-child(3) { animation-delay: 0.2s; }
+        .quick-send-btn:nth-child(4) { animation-delay: 0.25s; }
+
+        .quick-send-btn:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .quick-send-btn .icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .quick-send-btn .name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .quick-send-btn .desc {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            .preview-card {
+                position: static;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-container">
+        <!-- 页面头部 -->
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">📤 消息发送</h1>
+                <p class="page-subtitle">测试消息模板，验证机器人连接，手动发送通知</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="location.href='robot.html'">
+                    🤖 机器人配置
+                </button>
+                <button class="btn btn-secondary" onclick="location.href='template.html'">
+                    📝 消息模板
+                </button>
+            </div>
+        </div>
+
+        <!-- 快速发送 -->
+        <div class="quick-send-grid">
+            <button class="quick-send-btn" onclick="quickSend('test_complete')">
+                <div class="icon">✅</div>
+                <div class="name">测试完成通知</div>
+                <div class="desc">发送测试执行完成的通知</div>
+            </button>
+            <button class="quick-send-btn" onclick="quickSend('test_fail')">
+                <div class="icon">⚠️</div>
+                <div class="name">测试失败告警</div>
+                <div class="desc">发送测试失败的告警消息</div>
+            </button>
+            <button class="quick-send-btn" onclick="quickSend('daily_report')">
+                <div class="icon">📊</div>
+                <div class="name">每日测试报告</div>
+                <div class="desc">发送当日测试汇总报告</div>
+            </button>
+            <button class="quick-send-btn" onclick="quickSend('custom')">
+                <div class="icon">✏️</div>
+                <div class="name">自定义消息</div>
+                <div class="desc">编写并发送自定义消息</div>
+            </button>
+        </div>
+
+        <div class="main-layout">
+            <!-- 发送表单 -->
+            <div class="send-form-card">
+                <div class="card-header">
+                    <h2 class="card-title">📨 发送消息</h2>
+                </div>
+                <div class="card-body">
+                    <!-- 步骤指示器 -->
+                    <div class="steps">
+                        <div class="step completed" id="step1">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <div class="step-title">选择机器人</div>
+                                <div class="step-desc">选择消息接收方</div>
+                            </div>
+                        </div>
+                        <div class="step active" id="step2">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <div class="step-title">选择模板</div>
+                                <div class="step-desc">选择消息模板</div>
+                            </div>
+                        </div>
+                        <div class="step" id="step3">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <div class="step-title">填写变量</div>
+                                <div class="step-desc">配置模板变量</div>
+                            </div>
+                        </div>
+                        <div class="step" id="step4">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <div class="step-title">发送</div>
+                                <div class="step-desc">预览并发送</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 步骤1: 选择机器人 -->
+                    <div class="form-section">
+                        <div class="form-section-title">🤖 选择机器人</div>
+                        <div class="robot-selector">
+                            <div class="robot-option selected" data-id="1" onclick="selectRobot(this)">
+                                <div class="avatar wechat">💬</div>
+                                <div class="info">
+                                    <div class="name">测试结果通知群</div>
+                                    <div class="type">企业微信</div>
+                                </div>
+                                <div class="check">✓</div>
+                            </div>
+                            <div class="robot-option" data-id="2" onclick="selectRobot(this)">
+                                <div class="avatar dingtalk">🔔</div>
+                                <div class="info">
+                                    <div class="name">研发告警群</div>
+                                    <div class="type">钉钉</div>
+                                </div>
+                                <div class="check">✓</div>
+                            </div>
+                            <div class="robot-option" data-id="3" onclick="selectRobot(this)">
+                                <div class="avatar feishu">🐦</div>
+                                <div class="info">
+                                    <div class="name">产品日报群</div>
+                                    <div class="type">飞书</div>
+                                </div>
+                                <div class="check">✓</div>
+                            </div>
+                            <div class="robot-option" data-id="4" onclick="selectRobot(this)">
+                                <div class="avatar dingtalk">🔔</div>
+                                <div class="info">
+                                    <div class="name">运维监控群</div>
+                                    <div class="type">钉钉</div>
+                                </div>
+                                <div class="check">✓</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 步骤2: 选择模板 -->
+                    <div class="form-section">
+                        <div class="form-section-title">📝 选择模板</div>
+                        <div class="template-selector">
+                            <div class="template-option selected" data-id="1" onclick="selectTemplate(this)">
+                                <div class="template-option-header">
+                                    <span class="name">测试执行完成通知</span>
+                                    <span class="badge badge-markdown">Markdown</span>
+                                </div>
+                                <div class="desc">测试计划执行完成后的通知消息</div>
+                            </div>
+                            <div class="template-option" data-id="2" onclick="selectTemplate(this)">
+                                <div class="template-option-header">
+                                    <span class="name">测试失败告警</span>
+                                    <span class="badge badge-markdown">Markdown</span>
+                                </div>
+                                <div class="desc">测试用例执行失败时的告警通知</div>
+                            </div>
+                            <div class="template-option" data-id="3" onclick="selectTemplate(this)">
+                                <div class="template-option-header">
+                                    <span class="name">简单文本通知</span>
+                                    <span class="badge badge-text">文本</span>
+                                </div>
+                                <div class="desc">通用的简单文本通知模板</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 步骤3: 填写变量 -->
+                    <div class="form-section">
+                        <div class="form-section-title">🏷️ 填写变量</div>
+                        <div class="variables-grid">
+                            <div class="variable-input-group">
+                                <label>项目名称 <code>{{project_name}}</code></label>
+                                <input type="text" id="var_project_name" value="API自动化测试项目">
+                            </div>
+                            <div class="variable-input-group">
+                                <label>计划名称 <code>{{plan_name}}</code></label>
+                                <input type="text" id="var_plan_name" value="回归测试计划 v2.0">
+                            </div>
+                            <div class="variable-input-group">
+                                <label>执行时间 <code>{{exec_time}}</code></label>
+                                <input type="text" id="var_exec_time" value="2025-12-29 16:30:00">
+                            </div>
+                            <div class="variable-input-group">
+                                <label>通过数量 <code>{{pass_count}}</code></label>
+                                <input type="text" id="var_pass_count" value="45">
+                            </div>
+                            <div class="variable-input-group">
+                                <label>失败数量 <code>{{fail_count}}</code></label>
+                                <input type="text" id="var_fail_count" value="3">
+                            </div>
+                            <div class="variable-input-group">
+                                <label>跳过数量 <code>{{skip_count}}</code></label>
+                                <input type="text" id="var_skip_count" value="2">
+                            </div>
+                            <div class="variable-input-group">
+                                <label>通过率 <code>{{pass_rate}}</code></label>
+                                <input type="text" id="var_pass_rate" value="90">
+                            </div>
+                            <div class="variable-input-group">
+                                <label>报告链接 <code>{{report_url}}</code></label>
+                                <input type="text" id="var_report_url" value="https://test.example.com/report/123">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 发送按钮 -->
+                    <div class="send-actions">
+                        <button class="btn btn-secondary" onclick="resetForm()">🔄 重置</button>
+                        <button class="btn btn-secondary" onclick="saveAsDraft()">💾 保存草稿</button>
+                        <button class="btn btn-success btn-lg" onclick="sendMessage()" style="margin-left: auto;">
+                            📤 发送消息
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 预览面板 -->
+            <div class="preview-card">
+                <div class="preview-header">
+                    <h3 class="preview-title">📱 消息预览</h3>
+                </div>
+                <div class="preview-body">
+                    <div class="preview-device">
+                        <div class="preview-device-header" id="previewHeader">
+                            <div class="preview-device-avatar">🤖</div>
+                            <div class="preview-device-name">测试结果通知群</div>
+                        </div>
+                        <div class="preview-device-content" id="previewContent">
+<h2>🧪 测试执行完成</h2>
+
+<strong>项目</strong>: API自动化测试项目
+<strong>计划</strong>: 回归测试计划 v2.0
+<strong>执行时间</strong>: 2025-12-29 16:30:00
+
+<strong>📊 执行结果</strong>
+- ✅ 通过: 45 个
+- ❌ 失败: 3 个
+- ⏭️ 跳过: 2 个
+- 📈 通过率: 90%
+
+<a href="#">📄 查看详细报告</a>
+                        </div>
+                        <div class="preview-device-time">
+                            刚刚
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 发送历史 -->
+                <div class="history-section" style="padding: 0 24px 24px;">
+                    <div class="form-section-title">📜 最近发送</div>
+                    <div class="history-list">
+                        <div class="history-item">
+                            <div class="status-icon success">✅</div>
+                            <div class="info">
+                                <div class="template-name">测试执行完成通知</div>
+                                <div class="robot-name">测试结果通知群</div>
+                            </div>
+                            <div class="time">5分钟前</div>
+                        </div>
+                        <div class="history-item">
+                            <div class="status-icon success">✅</div>
+                            <div class="info">
+                                <div class="template-name">测试失败告警</div>
+                                <div class="robot-name">研发告警群</div>
+                            </div>
+                            <div class="time">1小时前</div>
+                        </div>
+                        <div class="history-item">
+                            <div class="status-icon error">❌</div>
+                            <div class="info">
+                                <div class="template-name">每日测试报告</div>
+                                <div class="robot-name">产品日报群</div>
+                            </div>
+                            <div class="time">昨天 18:00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../proto-logic.js"></script>
+    <script>
+        let selectedRobotId = 1;
+        let selectedTemplateId = 1;
+
+        function selectRobot(el) {
+            document.querySelectorAll('.robot-option').forEach(opt => opt.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedRobotId = el.dataset.id;
+            updatePreview();
+        }
+
+        function selectTemplate(el) {
+            document.querySelectorAll('.template-option').forEach(opt => opt.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedTemplateId = el.dataset.id;
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const projectName = document.getElementById('var_project_name')?.value || 'API测试项目';
+            const planName = document.getElementById('var_plan_name')?.value || '测试计划';
+            const execTime = document.getElementById('var_exec_time')?.value || '2025-12-29';
+            const passCount = document.getElementById('var_pass_count')?.value || '0';
+            const failCount = document.getElementById('var_fail_count')?.value || '0';
+            const skipCount = document.getElementById('var_skip_count')?.value || '0';
+            const passRate = document.getElementById('var_pass_rate')?.value || '0';
+
+            const content = `<h2>🧪 测试执行完成</h2>
+
+<strong>项目</strong>: ${projectName}
+<strong>计划</strong>: ${planName}
+<strong>执行时间</strong>: ${execTime}
+
+<strong>📊 执行结果</strong>
+- ✅ 通过: ${passCount} 个
+- ❌ 失败: ${failCount} 个
+- ⏭️ 跳过: ${skipCount} 个
+- 📈 通过率: ${passRate}%
+
+<a href="#">📄 查看详细报告</a>`;
+
+            document.getElementById('previewContent').innerHTML = content;
+        }
+
+        function sendMessage() {
+            ProtoUI.toast('正在发送消息...', 'success');
+            
+            // 模拟发送
+            setTimeout(() => {
+                ProtoUI.toast('✅ 消息发送成功！', 'success');
+                
+                // 更新步骤状态
+                document.querySelectorAll('.step').forEach(step => {
+                    step.classList.remove('active');
+                    step.classList.add('completed');
+                });
+            }, 1500);
+        }
+
+        function quickSend(type) {
+            ProtoUI.toast(`快速发送: ${type}`, 'success');
+        }
+
+        function resetForm() {
+            document.getElementById('var_project_name').value = '';
+            document.getElementById('var_plan_name').value = '';
+            document.getElementById('var_exec_time').value = '';
+            document.getElementById('var_pass_count').value = '';
+            document.getElementById('var_fail_count').value = '';
+            document.getElementById('var_skip_count').value = '';
+            document.getElementById('var_pass_rate').value = '';
+            document.getElementById('var_report_url').value = '';
+            updatePreview();
+            ProtoUI.toast('表单已重置', 'success');
+        }
+
+        function saveAsDraft() {
+            ProtoUI.toast('草稿已保存', 'success');
+        }
+
+        // 监听变量输入变化
+        document.querySelectorAll('.variable-input-group input').forEach(input => {
+            input.addEventListener('input', updatePreview);
+        });
+    </script>
+</body>
+
+</html>

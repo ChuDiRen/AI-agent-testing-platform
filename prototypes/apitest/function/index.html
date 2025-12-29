@@ -3,19 +3,1247 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../common.css">
     <title>自定义函数 - 静态原型</title>
+    <style>
+        /* 页面入场动画 */
+        @keyframes pageEnter {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes sidebarSlide {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes mainSlide {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes itemFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes codeGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
+            50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.2); }
+        }
+
+        .proto-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            height: 100vh;
+            padding: 24px 32px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            animation: pageEnter var(--animation-normal) ease-out;
+        }
+
+        .proto-header {
+            animation: itemFadeIn var(--animation-normal) ease-out;
+        }
+
+        .function-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .function-sidebar {
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+            border: 1px solid #e2e8f0;
+            animation: sidebarSlide var(--animation-normal) ease-out;
+            transition: box-shadow var(--animation-fast);
+        }
+
+        .function-sidebar:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+        }
+
+        .sidebar-search {
+            display: flex;
+            gap: 8px;
+        }
+
+        .sidebar-search input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 13px;
+            transition: all var(--animation-fast);
+        }
+
+        .sidebar-search input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .sidebar-body {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .function-category {
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            font-weight: 600;
+            color: #475569;
+            font-size: 13px;
+            transition: all var(--animation-fast);
+        }
+
+        .category-header:hover {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            padding-left: 24px;
+        }
+
+        .category-count {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: white;
+            font-weight: 600;
+            transition: transform var(--animation-fast);
+        }
+
+        .category-header:hover .category-count {
+            transform: scale(1.1);
+        }
+
+        .category-body {
+            display: none;
+        }
+
+        .category-body.open {
+            display: block;
+            animation: itemFadeIn var(--animation-fast) ease-out;
+        }
+
+        .function-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px 12px 36px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all var(--animation-fast);
+        }
+
+        .function-item:hover {
+            background: linear-gradient(90deg, #f8fafc 0%, #ffffff 100%);
+            padding-left: 40px;
+        }
+
+        .function-item.active {
+            background: linear-gradient(90deg, #eff6ff 0%, #dbeafe 100%);
+            border-left-color: var(--primary-color);
+        }
+
+        .function-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 15px;
+            transition: transform var(--animation-fast);
+        }
+
+        .function-item:hover .function-icon {
+            transform: scale(1.1);
+        }
+
+        .function-icon.builtin {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        }
+
+        .function-icon.custom {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        }
+
+        .function-name {
+            flex: 1;
+            font-size: 13px;
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        .function-badge {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .function-main {
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+            border: 1px solid #e2e8f0;
+            animation: mainSlide var(--animation-normal) ease-out;
+            transition: box-shadow var(--animation-fast);
+        }
+
+        .function-main:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .main-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        }
+
+        .main-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .main-title h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .main-title .type-badge {
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: transform var(--animation-fast);
+        }
+
+        .main-title .type-badge:hover {
+            transform: scale(1.05);
+        }
+
+        .main-title .type-badge.builtin {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e40af;
+        }
+
+        .main-title .type-badge.custom {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #166534;
+        }
+
+        .main-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .main-actions .proto-btn {
+            transition: all var(--animation-fast);
+        }
+
+        .main-actions .proto-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .main-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 0;
+            padding: 0 24px;
+            border-bottom: 1px solid #e2e8f0;
+            flex-shrink: 0;
+            background: #fafbfc;
+            position: relative;
+        }
+
+        .tab-nav-item {
+            padding: 14px 20px;
+            cursor: pointer;
+            color: #64748b;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -1px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all var(--animation-fast);
+            position: relative;
+        }
+
+        .tab-nav-item:hover {
+            color: var(--primary-color);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .tab-nav-item.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            font-weight: 600;
+            background: white;
+        }
+
+        .tab-nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color) 0%, #1d4ed8 100%);
+            border-radius: 3px 3px 0 0;
+            animation: tabSlide var(--animation-fast) ease-out;
+        }
+
+        @keyframes tabSlide {
+            from { transform: scaleX(0); }
+            to { transform: scaleX(1); }
+        }
+
+        .tab-content {
+            flex: 1;
+            overflow: auto;
+            padding: 24px;
+            min-height: 0;
+            animation: itemFadeIn var(--animation-fast) ease-out;
+        }
+
+        .code-editor {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 12px;
+            overflow: hidden;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 400px;
+            border: 1px solid #334155;
+            animation: codeGlow 3s ease-in-out infinite;
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-bottom: 1px solid #334155;
+        }
+
+        .code-filename {
+            color: #94a3b8;
+            font-size: 13px;
+            font-family: monospace;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .code-filename::before {
+            content: '🐍';
+            font-size: 14px;
+        }
+
+        .code-lang-tag {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .code-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .code-action-btn {
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #334155 0%, #475569 100%);
+            border: none;
+            border-radius: 6px;
+            color: #94a3b8;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all var(--animation-fast);
+        }
+
+        .code-action-btn:hover {
+            background: linear-gradient(135deg, #475569 0%, #64748b 100%);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .code-body {
+            flex: 1;
+            display: flex;
+            overflow: auto;
+        }
+
+        .line-numbers {
+            padding: 16px 14px;
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            color: #475569;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            text-align: right;
+            user-select: none;
+            border-right: 1px solid #334155;
+        }
+
+        .code-content {
+            flex: 1;
+            padding: 16px 20px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #e2e8f0;
+            overflow: auto;
+        }
+
+        .code-content textarea {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            color: #e2e8f0;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+            resize: none;
+        }
+
+        .code-content textarea:focus {
+            outline: none;
+        }
+
+        .param-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .param-table th,
+        .param-table td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .param-table th {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            font-weight: 600;
+            color: #64748b;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .param-table tr {
+            transition: all var(--animation-fast);
+        }
+
+        .param-table tr:hover {
+            background: linear-gradient(90deg, #f8fafc 0%, #ffffff 100%);
+        }
+
+        .param-type {
+            display: inline-block;
+            padding: 3px 10px;
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            border-radius: 6px;
+            font-size: 12px;
+            color: #4f46e5;
+            font-family: monospace;
+            font-weight: 600;
+        }
+
+        .param-required {
+            color: #ef4444;
+            font-size: 11px;
+            margin-left: 4px;
+            font-weight: 700;
+        }
+
+        .example-block {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: all var(--animation-fast);
+        }
+
+        .example-block:hover {
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .example-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .example-title::before {
+            content: '💡';
+        }
+
+        .example-code {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 8px;
+            padding: 14px 18px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #fbbf24;
+            overflow-x: auto;
+            border: 1px solid #334155;
+        }
+
+        .test-panel {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .test-panel h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .test-panel h3::before {
+            content: '🧪';
+        }
+
+        .test-input {
+            margin-bottom: 16px;
+        }
+
+        .test-input label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+
+        .test-input input,
+        .test-input textarea,
+        .test-input select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: all var(--animation-fast);
+        }
+
+        .test-input input:focus,
+        .test-input textarea:focus,
+        .test-input select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .test-result {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px 20px;
+            font-family: monospace;
+            font-size: 13px;
+            transition: all var(--animation-fast);
+        }
+
+        .test-result.success {
+            border-color: var(--success-color);
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            animation: pulse 0.5s ease-out;
+        }
+
+        .test-result.error {
+            border-color: var(--error-color);
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            color: #991b1b;
+        }
+
+        .empty-main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #94a3b8;
+        }
+
+        .empty-main-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .empty-main p {
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .dialog-overlay.open {
+            display: flex;
+            animation: itemFadeIn var(--animation-fast) ease-out;
+        }
+
+        .dialog {
+            background: white;
+            border-radius: 16px;
+            width: 520px;
+            max-width: 90%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            animation: mainSlide var(--animation-normal) ease-out;
+        }
+
+        .dialog-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px;
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            border-radius: 16px 16px 0 0;
+        }
+
+        .dialog-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dialog-title::before {
+            content: '✨';
+        }
+
+        .dialog-close {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #64748b;
+            transition: all var(--animation-fast);
+        }
+
+        .dialog-close:hover {
+            background: #f1f5f9;
+            color: #1e293b;
+            transform: rotate(90deg);
+        }
+
+        .dialog-body {
+            padding: 24px;
+        }
+
+        .dialog-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 20px 24px;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+            border-radius: 0 0 16px 16px;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 1024px) {
+            .function-grid {
+                grid-template-columns: 280px 1fr;
+                gap: 16px;
+            }
+            .proto-container {
+                padding: 16px 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .function-grid {
+                grid-template-columns: 1fr;
+            }
+            .function-sidebar {
+                max-height: 300px;
+            }
+        }
+    </style>
 </head>
 
 <body class="proto-container">
     <div class="proto-header">
         <h1 class="proto-title">自定义函数</h1>
-        <button class="proto-btn proto-btn-primary">+ 新建函数</button>
+        <button class="proto-btn proto-btn-primary" onclick="openCreateDialog()">+ 新建函数</button>
     </div>
-    <div class="proto-card">
-        <p style="color: #64748b; text-align: center; padding: 40px;">🚧 函数管理功能开发中...</p>
+
+    <div class="function-grid">
+        <!-- 左侧函数列表 -->
+        <div class="function-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-search">
+                    <input type="text" placeholder="搜索函数..." oninput="searchFunctions(this.value)">
+                </div>
+            </div>
+            <div class="sidebar-body" id="functionList">
+                <!-- 内置函数 -->
+                <div class="function-category">
+                    <div class="category-header" onclick="toggleCategory(this)">
+                        <span>📦 内置函数</span>
+                        <span class="category-count">12</span>
+                    </div>
+                    <div class="category-body open">
+                        <div class="function-item active" onclick="selectFunction('random_string')">
+                            <div class="function-icon builtin">🔤</div>
+                            <span class="function-name">random_string</span>
+                            <span class="function-badge">字符串</span>
+                        </div>
+                        <div class="function-item" onclick="selectFunction('random_int')">
+                            <div class="function-icon builtin">🔢</div>
+                            <span class="function-name">random_int</span>
+                            <span class="function-badge">数字</span>
+                        </div>
+                        <div class="function-item" onclick="selectFunction('timestamp')">
+                            <div class="function-icon builtin">⏰</div>
+                            <span class="function-name">timestamp</span>
+                            <span class="function-badge">时间</span>
+                        </div>
+                        <div class="function-item" onclick="selectFunction('uuid')">
+                            <div class="function-icon builtin">🆔</div>
+                            <span class="function-name">uuid</span>
+                            <span class="function-badge">标识</span>
+                        </div>
+                        <div class="function-item" onclick="selectFunction('md5')">
+                            <div class="function-icon builtin">🔐</div>
+                            <span class="function-name">md5</span>
+                            <span class="function-badge">加密</span>
+                        </div>
+                        <div class="function-item" onclick="selectFunction('base64_encode')">
+                            <div class="function-icon builtin">📝</div>
+                            <span class="function-name">base64_encode</span>
+                            <span class="function-badge">编码</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 自定义函数 -->
+                <div class="function-category">
+                    <div class="category-header" onclick="toggleCategory(this)">
+                        <span>✨ 自定义函数</span>
+                        <span class="category-count">5</span>
+                    </div>
+                    <div class="category-body open">
+                        <div class="function-item" onclick="selectFunction('generate_order_no')">
+                            <div class="function-icon custom">📋</div>
+                            <span class="function-name">generate_order_no</span>
+                            <span class="function-badge">业务</span>
+                        </div>
+                        <div class="function-item" onclick="selectFunction('calc_sign')">
+                            <div class="function-icon custom">✍️</div>
+                            <span class="function-name">calc_sign</span>
+                            <span class="function-badge">签名</span>
+                        </div>
+                        <div class="function-item" onclick="selectFunction('encrypt_password')">
+                            <div class="function-icon custom">🔒</div>
+                            <span class="function-name">encrypt_password</span>
+                            <span class="function-badge">加密</span>
+                        </div>
+                        <div class="function-item" onclick="selectFunction('format_phone')">
+                            <div class="function-icon custom">📱</div>
+                            <span class="function-name">format_phone</span>
+                            <span class="function-badge">格式化</span>
+                        </div>
+                        <div class="function-item" onclick="selectFunction('generate_id_card')">
+                            <div class="function-icon custom">🪪</div>
+                            <span class="function-name">generate_id_card</span>
+                            <span class="function-badge">测试数据</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧函数详情 -->
+        <div class="function-main" id="functionMain">
+            <div class="main-header">
+                <div class="main-title">
+                    <h2 id="funcName">random_string</h2>
+                    <span class="type-badge builtin" id="funcType">内置函数</span>
+                </div>
+                <div class="main-actions">
+                    <button class="proto-btn proto-btn-secondary" onclick="testFunction()">🧪 测试运行</button>
+                    <button class="proto-btn proto-btn-secondary" id="editBtn" style="display: none;" onclick="editFunction()">✏️ 编辑</button>
+                    <button class="proto-btn proto-btn-secondary" id="deleteBtn" style="display: none;" onclick="deleteFunction()">🗑️ 删除</button>
+                </div>
+            </div>
+
+            <div class="main-body">
+                <div class="tab-nav">
+                    <div class="tab-nav-item active" onclick="switchTab('info')">📋 基本信息</div>
+                    <div class="tab-nav-item" onclick="switchTab('code')">💻 源代码</div>
+                    <div class="tab-nav-item" onclick="switchTab('test')">🧪 测试</div>
+                </div>
+
+                <!-- 基本信息 Tab -->
+                <div id="tab-info" class="tab-content">
+                    <div style="margin-bottom: 24px;">
+                        <h3 style="font-size: 14px; color: #64748b; margin-bottom: 8px;">函数描述</h3>
+                        <p id="funcDesc" style="color: #1e293b; line-height: 1.6;">生成指定长度的随机字符串，可指定字符集类型（字母、数字或混合）。</p>
+                    </div>
+
+                    <div style="margin-bottom: 24px;">
+                        <h3 style="font-size: 14px; color: #64748b; margin-bottom: 12px;">参数列表</h3>
+                        <table class="param-table">
+                            <thead>
+                                <tr>
+                                    <th>参数名</th>
+                                    <th>类型</th>
+                                    <th>必填</th>
+                                    <th>默认值</th>
+                                    <th>说明</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paramTable">
+                                <tr>
+                                    <td>length</td>
+                                    <td><span class="param-type">int</span></td>
+                                    <td><span class="param-required">*</span></td>
+                                    <td>8</td>
+                                    <td>生成字符串的长度</td>
+                                </tr>
+                                <tr>
+                                    <td>charset</td>
+                                    <td><span class="param-type">string</span></td>
+                                    <td>-</td>
+                                    <td>"alphanumeric"</td>
+                                    <td>字符集类型：alpha/numeric/alphanumeric</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style="margin-bottom: 24px;">
+                        <h3 style="font-size: 14px; color: #64748b; margin-bottom: 12px;">返回值</h3>
+                        <p style="color: #1e293b;"><span class="param-type">string</span> - 生成的随机字符串</p>
+                    </div>
+
+                    <div>
+                        <h3 style="font-size: 14px; color: #64748b; margin-bottom: 12px;">使用示例</h3>
+                        <div class="example-block">
+                            <div class="example-title">示例 1: 生成8位随机字符串</div>
+                            <div class="example-code">${random_string(8)}</div>
+                            <p style="font-size: 12px; color: #64748b; margin-top: 8px;">输出: "aB3xK9mN"</p>
+                        </div>
+                        <div class="example-block">
+                            <div class="example-title">示例 2: 生成纯数字字符串</div>
+                            <div class="example-code">${random_string(6, "numeric")}</div>
+                            <p style="font-size: 12px; color: #64748b; margin-top: 8px;">输出: "482951"</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 源代码 Tab -->
+                <div id="tab-code" class="tab-content" style="display: none; padding: 0; flex: 1; min-height: 0;">
+                    <div class="code-editor">
+                        <div class="code-header">
+                            <span class="code-filename">random_string.py</span>
+                            <div class="code-actions">
+                                <button class="code-action-btn" onclick="copyCode()">📋 复制</button>
+                                <button class="code-action-btn" onclick="formatCode()">🔧 格式化</button>
+                            </div>
+                        </div>
+                        <div class="code-body">
+                            <div class="line-numbers" id="lineNumbers">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20</div>
+                            <div class="code-content">
+                                <textarea id="codeEditor" spellcheck="false">import random
+import string
+
+def random_string(length=8, charset="alphanumeric"):
+    """
+    生成指定长度的随机字符串
+    
+    Args:
+        length: 字符串长度，默认8
+        charset: 字符集类型
+            - alpha: 仅字母
+            - numeric: 仅数字
+            - alphanumeric: 字母+数字
+    
+    Returns:
+        str: 随机字符串
+    """
+    if charset == "alpha":
+        chars = string.ascii_letters
+    elif charset == "numeric":
+        chars = string.digits
+    else:
+        chars = string.ascii_letters + string.digits
+    
+    return ''.join(random.choice(chars) for _ in range(length))</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 测试 Tab -->
+                <div id="tab-test" class="tab-content" style="display: none;">
+                    <div class="test-panel">
+                        <h3 style="font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 16px;">函数测试</h3>
+                        <div class="test-input">
+                            <label>length (int)</label>
+                            <input type="number" id="testParam1" value="8" placeholder="输入长度">
+                        </div>
+                        <div class="test-input">
+                            <label>charset (string)</label>
+                            <select id="testParam2" style="width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                <option value="alphanumeric">alphanumeric (字母+数字)</option>
+                                <option value="alpha">alpha (仅字母)</option>
+                                <option value="numeric">numeric (仅数字)</option>
+                            </select>
+                        </div>
+                        <button class="proto-btn proto-btn-primary" onclick="runTest()" style="margin-bottom: 16px;">▶️ 运行测试</button>
+                        
+                        <h4 style="font-size: 13px; color: #64748b; margin-bottom: 8px;">执行结果</h4>
+                        <div class="test-result success" id="testResult">
+                            <div style="color: #166534; margin-bottom: 4px;">✓ 执行成功</div>
+                            <div style="font-family: monospace;">返回值: "aB3xK9mN"</div>
+                            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">耗时: 0.12ms</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- 新建函数对话框 -->
+    <div class="dialog-overlay" id="createDialog">
+        <div class="dialog">
+            <div class="dialog-header">
+                <span class="dialog-title">新建自定义函数</span>
+                <div class="dialog-close" onclick="closeCreateDialog()">✕</div>
+            </div>
+            <div class="dialog-body">
+                <div class="proto-form-group" style="margin-bottom: 16px;">
+                    <label class="proto-label">函数名称 <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="newFuncName" class="proto-input" placeholder="如 generate_order_no">
+                    <p style="font-size: 12px; color: #94a3b8; margin-top: 4px;">仅支持字母、数字和下划线，以字母开头</p>
+                </div>
+                <div class="proto-form-group" style="margin-bottom: 16px;">
+                    <label class="proto-label">函数描述</label>
+                    <textarea id="newFuncDesc" class="proto-textarea" rows="3" placeholder="描述函数的功能和用途"></textarea>
+                </div>
+                <div class="proto-form-group">
+                    <label class="proto-label">分类</label>
+                    <select id="newFuncCategory" class="proto-select">
+                        <option value="business">业务函数</option>
+                        <option value="encrypt">加密函数</option>
+                        <option value="format">格式化函数</option>
+                        <option value="data">测试数据</option>
+                        <option value="other">其他</option>
+                    </select>
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button class="proto-btn proto-btn-secondary" onclick="closeCreateDialog()">取消</button>
+                <button class="proto-btn proto-btn-primary" onclick="createFunction()">创建</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../proto-logic.js"></script>
+    <script>
+        // 函数数据
+        const functions = {
+            random_string: {
+                name: 'random_string',
+                type: 'builtin',
+                desc: '生成指定长度的随机字符串，可指定字符集类型（字母、数字或混合）。',
+                params: [
+                    { name: 'length', type: 'int', required: true, default: '8', desc: '生成字符串的长度' },
+                    { name: 'charset', type: 'string', required: false, default: '"alphanumeric"', desc: '字符集类型：alpha/numeric/alphanumeric' }
+                ],
+                returnType: 'string',
+                returnDesc: '生成的随机字符串',
+                code: `import random
+import string
+
+def random_string(length=8, charset="alphanumeric"):
+    """
+    生成指定长度的随机字符串
+    """
+    if charset == "alpha":
+        chars = string.ascii_letters
+    elif charset == "numeric":
+        chars = string.digits
+    else:
+        chars = string.ascii_letters + string.digits
+    
+    return ''.join(random.choice(chars) for _ in range(length))`
+            },
+            generate_order_no: {
+                name: 'generate_order_no',
+                type: 'custom',
+                desc: '生成订单号，格式为：前缀 + 日期 + 随机数，如 ORD20251229123456。',
+                params: [
+                    { name: 'prefix', type: 'string', required: false, default: '"ORD"', desc: '订单号前缀' }
+                ],
+                returnType: 'string',
+                returnDesc: '生成的订单号',
+                code: `import time
+import random
+
+def generate_order_no(prefix="ORD"):
+    """
+    生成订单号
+    格式: 前缀 + 日期时间 + 4位随机数
+    """
+    date_str = time.strftime("%Y%m%d%H%M%S")
+    random_str = str(random.randint(1000, 9999))
+    return f"{prefix}{date_str}{random_str}"`
+            }
+        };
+
+        let currentFunction = 'random_string';
+
+        function toggleCategory(header) {
+            const body = header.nextElementSibling;
+            body.classList.toggle('open');
+        }
+
+        function selectFunction(name) {
+            document.querySelectorAll('.function-item').forEach(item => item.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            currentFunction = name;
+            renderFunctionDetail(name);
+        }
+
+        function renderFunctionDetail(name) {
+            const func = functions[name] || functions.random_string;
+            
+            document.getElementById('funcName').textContent = func.name;
+            document.getElementById('funcType').textContent = func.type === 'builtin' ? '内置函数' : '自定义函数';
+            document.getElementById('funcType').className = 'type-badge ' + func.type;
+            document.getElementById('funcDesc').textContent = func.desc;
+            
+            // 显示/隐藏编辑删除按钮
+            document.getElementById('editBtn').style.display = func.type === 'custom' ? 'inline-block' : 'none';
+            document.getElementById('deleteBtn').style.display = func.type === 'custom' ? 'inline-block' : 'none';
+            
+            // 渲染参数表格
+            const paramHtml = func.params.map(p => `
+                <tr>
+                    <td>${p.name}</td>
+                    <td><span class="param-type">${p.type}</span></td>
+                    <td>${p.required ? '<span class="param-required">*</span>' : '-'}</td>
+                    <td>${p.default}</td>
+                    <td>${p.desc}</td>
+                </tr>
+            `).join('');
+            document.getElementById('paramTable').innerHTML = paramHtml;
+            
+            // 更新代码
+            document.getElementById('codeEditor').value = func.code;
+        }
+
+        function switchTab(name) {
+            document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+            document.querySelectorAll('.tab-nav-item').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + name).style.display = 'block';
+            event.currentTarget.classList.add('active');
+        }
+
+        function searchFunctions(keyword) {
+            // 简单的搜索过滤逻辑
+            document.querySelectorAll('.function-item').forEach(item => {
+                const name = item.querySelector('.function-name').textContent;
+                item.style.display = name.toLowerCase().includes(keyword.toLowerCase()) ? 'flex' : 'none';
+            });
+        }
+
+        function openCreateDialog() {
+            document.getElementById('createDialog').classList.add('open');
+        }
+
+        function closeCreateDialog() {
+            document.getElementById('createDialog').classList.remove('open');
+        }
+
+        function createFunction() {
+            const name = document.getElementById('newFuncName').value;
+            if (!name) {
+                ProtoUI.toast('请输入函数名称', 'error');
+                return;
+            }
+            if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(name)) {
+                ProtoUI.toast('函数名格式不正确', 'error');
+                return;
+            }
+            
+            ProtoUI.toast('函数创建成功', 'success');
+            closeCreateDialog();
+        }
+
+        function copyCode() {
+            const code = document.getElementById('codeEditor').value;
+            navigator.clipboard.writeText(code);
+            ProtoUI.toast('代码已复制', 'success');
+        }
+
+        function formatCode() {
+            ProtoUI.toast('代码已格式化', 'success');
+        }
+
+        function runTest() {
+            const length = document.getElementById('testParam1').value;
+            const charset = document.getElementById('testParam2').value;
+            
+            // 模拟生成结果
+            let chars = '';
+            if (charset === 'alpha') {
+                chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            } else if (charset === 'numeric') {
+                chars = '0123456789';
+            } else {
+                chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            }
+            
+            let result = '';
+            for (let i = 0; i < parseInt(length); i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.className = 'test-result success';
+            resultDiv.innerHTML = `
+                <div style="color: #166534; margin-bottom: 4px;">✓ 执行成功</div>
+                <div style="font-family: monospace;">返回值: "${result}"</div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 4px;">耗时: ${(Math.random() * 0.5).toFixed(2)}ms</div>
+            `;
+            
+            ProtoUI.toast('测试执行成功', 'success');
+        }
+
+        function testFunction() {
+            switchTab('test');
+            document.querySelectorAll('.tab-nav-item')[2].classList.add('active');
+        }
+
+        function editFunction() {
+            switchTab('code');
+            document.querySelectorAll('.tab-nav-item')[1].classList.add('active');
+            ProtoUI.toast('进入编辑模式', 'success');
+        }
+
+        function deleteFunction() {
+            if (confirm('确定要删除此函数吗？此操作不可恢复。')) {
+                ProtoUI.toast('函数已删除', 'success');
+            }
+        }
+
+        // 初始化
+        renderFunctionDetail('random_string');
+    </script>
 </body>
 
 </html>

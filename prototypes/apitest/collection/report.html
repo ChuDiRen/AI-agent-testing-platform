@@ -4,112 +4,1312 @@
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="../common.css">
-    <title>测试计划报告 - 静态原型</title>
-    <!-- Mock ECharts via a simple placeholder or CDN if allowed, but strict local preferred. We will use CSS/SVG headers for simple charts -->
+    <title>测试计划执行报告 - 静态原型</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        .proto-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 24px 32px;
+            animation: fadeIn var(--animation-normal) ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        /* 报告头部增强 */
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+            animation: slideDown var(--animation-normal) ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .report-info {
+            flex: 1;
+        }
+
+        .report-title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .report-title::before {
+            content: '📋';
+            font-size: 28px;
+        }
+
+        .report-meta {
+            display: flex;
+            gap: 24px;
+            color: #64748b;
+            font-size: 14px;
+            flex-wrap: wrap;
+        }
+
+        .report-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color var(--animation-fast);
+        }
+
+        .report-meta span:hover {
+            color: var(--primary-color);
+        }
+
+        .report-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* 统计卡片增强 */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-item {
+            background: white;
+            border-radius: 14px;
+            padding: 22px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            border-left: 4px solid transparent;
+            transition: all var(--animation-normal);
+            position: relative;
+            overflow: hidden;
+            animation: statFadeIn var(--animation-normal) ease-out backwards;
+        }
+
+        .stat-item:nth-child(1) { animation-delay: 0s; }
+        .stat-item:nth-child(2) { animation-delay: 0.1s; }
+        .stat-item:nth-child(3) { animation-delay: 0.2s; }
+        .stat-item:nth-child(4) { animation-delay: 0.3s; }
+        .stat-item:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes statFadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stat-item:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-item::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            opacity: 0.1;
+            transform: translate(20px, -20px);
+        }
+
+        .stat-item.total {
+            border-left-color: var(--primary-color);
+        }
+
+        .stat-item.total::after {
+            background: var(--primary-color);
+        }
+
+        .stat-item.passed {
+            border-left-color: var(--success-color);
+        }
+
+        .stat-item.passed::after {
+            background: var(--success-color);
+        }
+
+        .stat-item.failed {
+            border-left-color: var(--error-color);
+        }
+
+        .stat-item.failed::after {
+            background: var(--error-color);
+        }
+
+        .stat-item.broken {
+            border-left-color: var(--warning-color);
+        }
+
+        .stat-item.broken::after {
+            background: var(--warning-color);
+        }
+
+        .stat-item.skipped {
+            border-left-color: #64748b;
+        }
+
+        .stat-item.skipped::after {
+            background: #64748b;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            transition: transform var(--animation-fast);
+        }
+
+        .stat-item:hover .stat-value {
+            transform: scale(1.1);
+        }
+
+        .stat-item.total .stat-value {
+            color: var(--primary-color);
+        }
+
+        .stat-item.passed .stat-value {
+            color: var(--success-color);
+        }
+
+        .stat-item.failed .stat-value {
+            color: var(--error-color);
+        }
+
+        .stat-item.broken .stat-value {
+            color: var(--warning-color);
+        }
+
+        .stat-item.skipped .stat-value {
+            color: #64748b;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .stat-percent {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 6px;
+            padding: 2px 8px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            display: inline-block;
+        }
+
+        /* 图表区域增强 */
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+            flex: 1;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 14px;
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            transition: all var(--animation-normal);
+            animation: chartFadeIn var(--animation-normal) ease-out backwards;
+        }
+
+        .chart-card:nth-child(1) { animation-delay: 0.2s; }
+        .chart-card:nth-child(2) { animation-delay: 0.3s; }
+
+        @keyframes chartFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .chart-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-title::before {
+            content: '';
+            width: 4px;
+            height: 18px;
+            background: linear-gradient(135deg, var(--primary-color), #1d4ed8);
+            border-radius: 2px;
+        }
+
+        .chart-content {
+            flex: 1;
+            min-height: 300px;
+        }
+
+        /* 历史记录列表增强 */
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: all var(--animation-fast);
+            border-radius: 8px;
+            margin-bottom: 4px;
+        }
+
+        .history-item:hover {
+            background: #f8fafc;
+            transform: translateX(4px);
+        }
+
+        .history-item.active {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .history-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 14px;
+            flex-shrink: 0;
+            transition: transform var(--animation-fast);
+        }
+
+        .history-item:hover .history-status {
+            transform: scale(1.3);
+        }
+
+        .history-status.success {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+        }
+
+        .history-status.fail {
+            background: linear-gradient(135deg, var(--error-color), #dc2626);
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+        }
+
+        .history-info {
+            flex: 1;
+        }
+
+        .history-name {
+            font-weight: 500;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .history-duration {
+            font-size: 13px;
+            color: #64748b;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+
+        /* 用例表格增强 */
+        .case-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .case-table th,
+        .case-table td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .case-table th {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            font-weight: 600;
+            color: #64748b;
+            font-size: 13px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .case-table tbody tr {
+            transition: all var(--animation-fast);
+        }
+
+        .case-table tbody tr:hover {
+            background: #f8fafc;
+            transform: scale(1.005);
+        }
+
+        /* 状态徽章增强 */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            transition: all var(--animation-fast);
+        }
+
+        .status-badge:hover {
+            transform: scale(1.05);
+        }
+
+        .status-badge.passed {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #166534;
+        }
+
+        .status-badge.failed {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+        }
+
+        .status-badge.broken {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+        }
+
+        .status-badge.skipped {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            color: #475569;
+        }
+
+        /* 筛选按钮增强 */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            color: #64748b;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all var(--animation-fast);
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            transform: translateY(-1px);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, var(--primary-color), #1d4ed8);
+            border-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .filter-btn .count {
+            margin-left: 6px;
+            padding: 2px 8px;
+            background: rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            font-size: 11px;
+        }
+
+        .filter-btn.active .count {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* 侧边面板增强 */
+        .case-detail-panel {
+            position: fixed;
+            top: 0;
+            right: -520px;
+            width: 520px;
+            height: 100vh;
+            background: white;
+            box-shadow: -8px 0 30px rgba(0, 0, 0, 0.15);
+            transition: right var(--animation-normal) cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .case-detail-panel.open {
+            right: 0;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 22px;
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .panel-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .panel-close {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #64748b;
+            transition: all var(--animation-fast);
+            font-size: 18px;
+        }
+
+        .panel-close:hover {
+            background: #fee2e2;
+            color: var(--error-color);
+            transform: rotate(90deg);
+        }
+
+        .panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 22px;
+        }
+
+        .detail-section {
+            margin-bottom: 26px;
+        }
+
+        .detail-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-section-title::before {
+            content: '';
+            width: 3px;
+            height: 14px;
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        .detail-item {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .detail-label {
+            width: 90px;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .detail-value {
+            flex: 1;
+            color: #1e293b;
+            font-size: 13px;
+        }
+
+        /* 步骤列表增强 */
+        .step-list {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 14px 18px;
+            border-bottom: 1px solid #f1f5f9;
+            transition: all var(--animation-fast);
+        }
+
+        .step-item:hover {
+            background: #f8fafc;
+        }
+
+        .step-item:last-child {
+            border-bottom: none;
+        }
+
+        .step-number {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            margin-right: 14px;
+            flex-shrink: 0;
+            transition: all var(--animation-fast);
+        }
+
+        .step-item:hover .step-number {
+            transform: scale(1.1);
+        }
+
+        .step-item.passed .step-number {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #166534;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+        }
+
+        .step-item.failed .step-number {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.2);
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-name {
+            font-weight: 500;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .step-desc {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        /* 错误块增强 */
+        .error-block {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 18px;
+            margin-top: 14px;
+        }
+
+        .error-title {
+            color: var(--error-color);
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .error-title::before {
+            content: '⚠️';
+        }
+
+        .error-message {
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 12px;
+            color: #991b1b;
+            white-space: pre-wrap;
+            word-break: break-all;
+            background: rgba(255, 255, 255, 0.5);
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .allure-frame {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+
+        /* Tab导航增强 */
+        .tab-nav {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid #f1f5f9;
+            margin-bottom: 22px;
+        }
+
+        .tab-nav-item {
+            padding: 14px 22px;
+            cursor: pointer;
+            color: #64748b;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all var(--animation-fast);
+            font-weight: 500;
+            position: relative;
+        }
+
+        .tab-nav-item:hover {
+            color: var(--primary-color);
+            background: var(--primary-light);
+        }
+
+        .tab-nav-item.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .tab-nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary-color);
+            animation: tabIndicator var(--animation-normal) ease-out;
+        }
+
+        @keyframes tabIndicator {
+            from { transform: scaleX(0); }
+            to { transform: scaleX(1); }
+        }
+
+        /* 遮罩层增强 */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 99;
+            display: none;
+            opacity: 0;
+            transition: opacity var(--animation-normal);
+        }
+
+        .overlay.open {
+            display: block;
+            opacity: 1;
+        }
+
+        /* 响应式优化 */
+        @media (max-width: 1200px) {
+            .stat-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .proto-container {
+                padding: 16px 20px;
+            }
+
+            .chart-row {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .report-header {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .report-actions {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+
+            .stat-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .case-detail-panel {
+                width: 100%;
+                right: -100%;
+            }
+
+            .tab-nav {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .tab-nav-item {
+                white-space: nowrap;
+                padding: 12px 16px;
+            }
+        }
+    </style>
 </head>
 
 <body class="proto-container">
-    <div class="proto-header">
-        <h1 class="proto-title">测试计划执行报告</h1>
-        <button class="proto-btn proto-btn-secondary" onclick="window.location.href='index.html'">返回列表</button>
+    <!-- 报告头部 -->
+    <div class="report-header">
+        <div class="report-info">
+            <h1 class="report-title" id="reportTitle">电商核心流程回归测试</h1>
+            <div class="report-meta">
+                <span>📁 电商平台API</span>
+                <span>🕐 执行时间: 2025-12-29 15:30:00</span>
+                <span>⏱️ 总耗时: 5m 48s</span>
+                <span>👤 执行人: admin</span>
+            </div>
+        </div>
+        <div class="report-actions">
+            <button class="proto-btn proto-btn-secondary" onclick="window.location.href='index.html'">返回列表</button>
+            <button class="proto-btn proto-btn-secondary" onclick="exportReport()">📥 导出报告</button>
+            <button class="proto-btn proto-btn-primary" onclick="rerunTest()">🔄 重新执行</button>
+        </div>
     </div>
 
-    <div class="proto-card" style="margin-bottom: 24px;">
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center;">
-            <div style="padding: 20px; background: #f8fafc; border-radius: 8px;">
-                <p style="color: #64748b; font-size: 14px;">总执行次数</p>
-                <h2 style="font-size: 32px; color: #0f172a; margin: 10px 0;">24</h2>
+    <!-- 统计卡片 -->
+    <div class="stat-grid">
+        <div class="stat-item total">
+            <div class="stat-value">158</div>
+            <div class="stat-label">总用例数</div>
+        </div>
+        <div class="stat-item passed">
+            <div class="stat-value">145</div>
+            <div class="stat-label">通过</div>
+            <div class="stat-percent">91.8%</div>
+        </div>
+        <div class="stat-item failed">
+            <div class="stat-value">8</div>
+            <div class="stat-label">失败</div>
+            <div class="stat-percent">5.1%</div>
+        </div>
+        <div class="stat-item broken">
+            <div class="stat-value">3</div>
+            <div class="stat-label">异常</div>
+            <div class="stat-percent">1.9%</div>
+        </div>
+        <div class="stat-item skipped">
+            <div class="stat-value">2</div>
+            <div class="stat-label">跳过</div>
+            <div class="stat-percent">1.3%</div>
+        </div>
+    </div>
+
+    <!-- Tab导航 -->
+    <div class="tab-nav">
+        <div class="tab-nav-item active" onclick="switchMainTab('overview')">📊 执行概览</div>
+        <div class="tab-nav-item" onclick="switchMainTab('cases')">📋 用例详情</div>
+        <div class="tab-nav-item" onclick="switchMainTab('history')">📈 历史趋势</div>
+        <div class="tab-nav-item" onclick="switchMainTab('allure')">📑 Allure报告</div>
+    </div>
+
+    <!-- 执行概览 Tab -->
+    <div id="tab-overview" class="main-tab-content">
+        <div class="chart-row">
+            <div class="chart-card">
+                <div class="chart-title">执行结果分布</div>
+                <div id="pieChart" class="chart-content"></div>
             </div>
-            <div style="padding: 20px; background: #f8fafc; border-radius: 8px;">
-                <p style="color: #64748b; font-size: 14px;">最近一次用例数</p>
-                <h2 style="font-size: 32px; color: #3b82f6; margin: 10px 0;">158</h2>
+            <div class="chart-card">
+                <div class="chart-title">执行耗时分布 (Top 10)</div>
+                <div id="durationChart" class="chart-content"></div>
             </div>
-            <div style="padding: 20px; background: #f8fafc; border-radius: 8px;">
-                <p style="color: #64748b; font-size: 14px;">总体通过率</p>
-                <h2 style="font-size: 32px; color: #10b981; margin: 10px 0;">92%</h2>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">失败用例 Top 5</div>
+            <table class="case-table">
+                <thead>
+                    <tr>
+                        <th>用例名称</th>
+                        <th>失败原因</th>
+                        <th>失败次数</th>
+                        <th>最后失败时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>用户登录 - 密码错误场景</td>
+                        <td><span style="color: #ef4444;">断言失败: 预期返回401，实际返回200</span></td>
+                        <td><span style="color: #ef4444; font-weight: bold;">12</span></td>
+                        <td>2025-12-29 15:32:11</td>
+                        <td><a href="#" onclick="openCaseDetail(1)" style="color: #3b82f6;">查看详情</a></td>
+                    </tr>
+                    <tr>
+                        <td>订单创建 - 库存不足</td>
+                        <td><span style="color: #ef4444;">接口超时: 响应时间超过30s</span></td>
+                        <td><span style="color: #ef4444; font-weight: bold;">8</span></td>
+                        <td>2025-12-29 15:28:45</td>
+                        <td><a href="#" onclick="openCaseDetail(2)" style="color: #3b82f6;">查看详情</a></td>
+                    </tr>
+                    <tr>
+                        <td>支付回调 - 签名验证</td>
+                        <td><span style="color: #ef4444;">签名校验失败</span></td>
+                        <td><span style="color: #ef4444; font-weight: bold;">5</span></td>
+                        <td>2025-12-29 15:25:30</td>
+                        <td><a href="#" onclick="openCaseDetail(3)" style="color: #3b82f6;">查看详情</a></td>
+                    </tr>
+                    <tr>
+                        <td>商品搜索 - 特殊字符</td>
+                        <td><span style="color: #f59e0b;">数据库连接异常</span></td>
+                        <td><span style="color: #f59e0b; font-weight: bold;">3</span></td>
+                        <td>2025-12-29 15:20:18</td>
+                        <td><a href="#" onclick="openCaseDetail(4)" style="color: #3b82f6;">查看详情</a></td>
+                    </tr>
+                    <tr>
+                        <td>优惠券核销 - 并发场景</td>
+                        <td><span style="color: #ef4444;">数据不一致: 优惠券状态未更新</span></td>
+                        <td><span style="color: #ef4444; font-weight: bold;">2</span></td>
+                        <td>2025-12-29 15:18:05</td>
+                        <td><a href="#" onclick="openCaseDetail(5)" style="color: #3b82f6;">查看详情</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 用例详情 Tab -->
+    <div id="tab-cases" class="main-tab-content" style="display: none;">
+        <div class="chart-card">
+            <div class="filter-bar">
+                <button class="filter-btn active" onclick="filterCases('all')">全部 <span class="count">158</span></button>
+                <button class="filter-btn" onclick="filterCases('passed')">通过 <span class="count">145</span></button>
+                <button class="filter-btn" onclick="filterCases('failed')">失败 <span class="count">8</span></button>
+                <button class="filter-btn" onclick="filterCases('broken')">异常 <span class="count">3</span></button>
+                <button class="filter-btn" onclick="filterCases('skipped')">跳过 <span class="count">2</span></button>
+                <input type="text" class="proto-input" placeholder="搜索用例名称..." style="margin-left: auto; width: 250px;">
+            </div>
+
+            <div style="max-height: 500px; overflow-y: auto;">
+                <table class="case-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">#</th>
+                            <th>用例名称</th>
+                            <th style="width: 100px;">状态</th>
+                            <th style="width: 100px;">耗时</th>
+                            <th style="width: 80px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="caseTableBody">
+                        <!-- 动态生成 -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
-        <div class="proto-card" style="height: 400px;">
-            <h3 style="margin-bottom: 20px;">执行结果趋势 (Bar Chart)</h3>
-            <div id="barChart" style="width: 100%; height: 320px;"></div>
+    <!-- 历史趋势 Tab -->
+    <div id="tab-history" class="main-tab-content" style="display: none;">
+        <div class="chart-row">
+            <div class="chart-card">
+                <div class="chart-title">执行结果趋势 (近5次)</div>
+                <div id="barChart" class="chart-content"></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">执行耗时趋势 (近10次)</div>
+                <div id="lineChart" class="chart-content"></div>
+            </div>
         </div>
-        <div class="proto-card" style="height: 400px;">
-            <h3 style="margin-bottom: 20px;">执行耗时趋势 (Line Chart)</h3>
-            <div id="lineChart" style="width: 100%; height: 320px;"></div>
+
+        <div class="chart-card">
+            <div class="chart-title">历史执行记录</div>
+            <div class="history-list">
+                <div class="history-item active">
+                    <div class="history-status success"></div>
+                    <div class="history-info">
+                        <div class="history-name">Run #24 - 91.8% 通过</div>
+                        <div class="history-time">2025-12-29 15:30:00</div>
+                    </div>
+                    <div class="history-duration">5m 48s</div>
+                </div>
+                <div class="history-item">
+                    <div class="history-status success"></div>
+                    <div class="history-info">
+                        <div class="history-name">Run #23 - 94.2% 通过</div>
+                        <div class="history-time">2025-12-28 10:15:00</div>
+                    </div>
+                    <div class="history-duration">5m 12s</div>
+                </div>
+                <div class="history-item">
+                    <div class="history-status fail"></div>
+                    <div class="history-info">
+                        <div class="history-name">Run #22 - 85.3% 通过</div>
+                        <div class="history-time">2025-12-27 16:45:00</div>
+                    </div>
+                    <div class="history-duration">6m 34s</div>
+                </div>
+                <div class="history-item">
+                    <div class="history-status success"></div>
+                    <div class="history-info">
+                        <div class="history-name">Run #21 - 92.1% 通过</div>
+                        <div class="history-time">2025-12-26 09:30:00</div>
+                    </div>
+                    <div class="history-duration">5m 28s</div>
+                </div>
+                <div class="history-item">
+                    <div class="history-status success"></div>
+                    <div class="history-info">
+                        <div class="history-name">Run #20 - 95.5% 通过</div>
+                        <div class="history-time">2025-12-25 14:20:00</div>
+                    </div>
+                    <div class="history-duration">4m 56s</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="proto-card">
-        <h3 style="margin-bottom: 20px;">Top 5 失败用例</h3>
-        <table class="proto-table">
-            <thead>
-                <tr>
-                    <th>用例名称</th>
-                    <th>失败次数</th>
-                    <th>最后失败时间</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>用户登录接口 - 异常参数</td>
-                    <td><span style="color: #ef4444; font-weight: bold;">12</span></td>
-                    <td>2025-01-05 14:20:11</td>
-                </tr>
-                <tr>
-                    <td>订单创建 - 库存不足</td>
-                    <td><span style="color: #ef4444; font-weight: bold;">8</span></td>
-                    <td>2025-01-04 09:11:30</td>
-                </tr>
-                <tr>
-                    <td>支付回调 - 签名错误</td>
-                    <td><span style="color: #ef4444; font-weight: bold;">5</span></td>
-                    <td>2025-01-03 11:22:45</td>
-                </tr>
-            </tbody>
-        </table>
+    <!-- Allure报告 Tab -->
+    <div id="tab-allure" class="main-tab-content" style="display: none;">
+        <div class="chart-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div class="chart-title" style="margin-bottom: 0;">Allure 测试报告</div>
+                <button class="proto-btn proto-btn-secondary" onclick="openAllureInNewTab()">🔗 新窗口打开</button>
+            </div>
+            <div style="background: #f8fafc; border-radius: 8px; padding: 40px; text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+                <p style="color: #64748b; margin-bottom: 16px;">Allure报告将在此处嵌入展示</p>
+                <p style="font-size: 13px; color: #94a3b8;">报告路径: /reports/allure/2025-12-29-153000/index.html</p>
+                <div style="margin-top: 24px;">
+                    <button class="proto-btn proto-btn-primary" onclick="loadAllureReport()">加载报告</button>
+                </div>
+            </div>
+            <iframe id="allureFrame" class="allure-frame" style="display: none;" src=""></iframe>
+        </div>
+    </div>
+
+    <!-- 用例详情侧边面板 -->
+    <div class="overlay" id="overlay" onclick="closeCaseDetail()"></div>
+    <div class="case-detail-panel" id="caseDetailPanel">
+        <div class="panel-header">
+            <div class="panel-title" id="panelTitle">用例详情</div>
+            <div class="panel-close" onclick="closeCaseDetail()">✕</div>
+        </div>
+        <div class="panel-body">
+            <div class="detail-section">
+                <div class="detail-section-title">基本信息</div>
+                <div class="detail-item">
+                    <span class="detail-label">用例名称</span>
+                    <span class="detail-value" id="detailName">用户登录 - 密码错误场景</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">执行状态</span>
+                    <span class="detail-value"><span class="status-badge failed" id="detailStatus">失败</span></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">执行耗时</span>
+                    <span class="detail-value" id="detailDuration">1.23s</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">开始时间</span>
+                    <span class="detail-value" id="detailStartTime">2025-12-29 15:32:10</span>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">执行步骤</div>
+                <div class="step-list" id="stepList">
+                    <div class="step-item passed">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <div class="step-name">发送登录请求</div>
+                            <div class="step-desc">POST /api/v1/login</div>
+                        </div>
+                    </div>
+                    <div class="step-item passed">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <div class="step-name">获取响应数据</div>
+                            <div class="step-desc">响应状态码: 200</div>
+                        </div>
+                    </div>
+                    <div class="step-item failed">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <div class="step-name">断言验证</div>
+                            <div class="step-desc">验证响应状态码</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section" id="errorSection">
+                <div class="detail-section-title">错误信息</div>
+                <div class="error-block">
+                    <div class="error-title">AssertionError</div>
+                    <div class="error-message" id="errorMessage">断言失败: 预期返回401，实际返回200
+
+Expected: status_code == 401
+Actual: status_code == 200
+
+at test_login_wrong_password (test_login.py:45)
+at pytest_runtest_call (runner.py:162)</div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">请求/响应</div>
+                <div style="background: #1e293b; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 12px; color: #e2e8f0; max-height: 200px; overflow: auto;">
+                    <div style="color: #7dd3fc; margin-bottom: 8px;">// Request</div>
+                    <div>POST /api/v1/login</div>
+                    <div>Content-Type: application/json</div>
+                    <div style="margin-top: 8px;">{"username": "admin", "password": "wrong_pwd"}</div>
+                    <div style="color: #7dd3fc; margin-top: 16px; margin-bottom: 8px;">// Response</div>
+                    <div>Status: 200 OK</div>
+                    <div style="margin-top: 8px;">{"code": 200, "msg": "登录成功", "data": {...}}</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="../proto-logic.js"></script>
     <script>
+        // 获取URL参数
         const id = getUrlParam('id');
         if (!id) {
             ProtoUI.toast('未指定计划ID', 'error');
         }
 
-        // Initialize Charts
-        const barChart = echarts.init(document.getElementById('barChart'));
-        const lineChart = echarts.init(document.getElementById('lineChart'));
+        // 主Tab切换
+        function switchMainTab(name) {
+            document.querySelectorAll('.main-tab-content').forEach(c => c.style.display = 'none');
+            document.querySelectorAll('.tab-nav-item').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + name).style.display = 'block';
+            event.currentTarget.classList.add('active');
 
-        const optionBar = {
-            tooltip: { trigger: 'axis' },
-            legend: { data: ['通过', '失败'] },
-            xAxis: { data: ['Run #20', 'Run #21', 'Run #22', 'Run #23', 'Run #24'] },
-            yAxis: {},
-            series: [
-                { name: '通过', type: 'bar', data: [120, 132, 101, 134, 150], itemStyle: { color: '#10b981' } },
-                { name: '失败', type: 'bar', data: [20, 12, 11, 14, 8], itemStyle: { color: '#ef4444' } }
-            ]
-        };
+            // 延迟初始化图表
+            if (name === 'overview') {
+                setTimeout(initOverviewCharts, 100);
+            } else if (name === 'history') {
+                setTimeout(initHistoryCharts, 100);
+            }
+        }
 
-        const optionLine = {
-            tooltip: { trigger: 'axis' },
-            xAxis: { type: 'category', data: ['Run #20', 'Run #21', 'Run #22', 'Run #23', 'Run #24'] },
-            yAxis: { type: 'value', name: 'ms' },
-            series: [{ data: [820, 932, 901, 934, 1290], type: 'line', smooth: true, itemStyle: { color: '#3b82f6' } }]
-        };
+        // 筛选用例
+        function filterCases(status) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            // 实际项目中这里会过滤表格数据
+            ProtoUI.toast(`筛选: ${status}`, 'success');
+        }
 
-        barChart.setOption(optionBar);
-        lineChart.setOption(optionLine);
+        // 打开用例详情
+        function openCaseDetail(caseId) {
+            document.getElementById('overlay').classList.add('open');
+            document.getElementById('caseDetailPanel').classList.add('open');
+        }
 
-        // Resize handling
-        window.addEventListener('resize', () => {
-            barChart.resize();
-            lineChart.resize();
-        });
+        // 关闭用例详情
+        function closeCaseDetail() {
+            document.getElementById('overlay').classList.remove('open');
+            document.getElementById('caseDetailPanel').classList.remove('open');
+        }
+
+        // 导出报告
+        function exportReport() {
+            ProtoUI.toast('正在生成报告...', 'success');
+            setTimeout(() => {
+                ProtoUI.toast('报告已生成，开始下载', 'success');
+            }, 1500);
+        }
+
+        // 重新执行
+        function rerunTest() {
+            if (confirm('确定要重新执行此测试计划吗？')) {
+                ProtoUI.toast('测试任务已提交，请稍后查看结果', 'success');
+            }
+        }
+
+        // 加载Allure报告
+        function loadAllureReport() {
+            const placeholder = event.currentTarget.parentElement.parentElement;
+            const frame = document.getElementById('allureFrame');
+            placeholder.style.display = 'none';
+            frame.style.display = 'block';
+            frame.src = 'about:blank'; // 实际项目中这里是真实的Allure报告URL
+            ProtoUI.toast('Allure报告加载中...', 'success');
+        }
+
+        // 新窗口打开Allure
+        function openAllureInNewTab() {
+            window.open('about:blank', '_blank');
+            ProtoUI.toast('已在新窗口打开', 'success');
+        }
+
+        // 生成用例表格数据
+        function generateCaseTable() {
+            const tbody = document.getElementById('caseTableBody');
+            const statuses = ['passed', 'passed', 'passed', 'passed', 'passed', 'passed', 'passed', 'passed', 'failed', 'broken', 'skipped'];
+            const cases = [
+                '用户登录 - 正常场景',
+                '用户登录 - 密码错误场景',
+                '用户注册 - 正常流程',
+                '商品列表 - 分页查询',
+                '商品详情 - 正常获取',
+                '购物车 - 添加商品',
+                '购物车 - 删除商品',
+                '订单创建 - 正常流程',
+                '订单创建 - 库存不足',
+                '支付回调 - 签名验证',
+                '优惠券核销 - 已过期'
+            ];
+
+            let html = '';
+            cases.forEach((name, i) => {
+                const status = statuses[i];
+                const statusText = { passed: '通过', failed: '失败', broken: '异常', skipped: '跳过' }[status];
+                const duration = (Math.random() * 3 + 0.1).toFixed(2) + 's';
+                html += `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td>${name}</td>
+                        <td><span class="status-badge ${status}">${statusText}</span></td>
+                        <td>${duration}</td>
+                        <td><a href="#" onclick="openCaseDetail(${i + 1})" style="color: #3b82f6;">详情</a></td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // 初始化概览图表
+        function initOverviewCharts() {
+            // 饼图
+            const pieChart = echarts.init(document.getElementById('pieChart'));
+            pieChart.setOption({
+                tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+                series: [{
+                    type: 'pie',
+                    radius: ['45%', '70%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+                    label: { show: true, formatter: '{b}\n{c}' },
+                    data: [
+                        { value: 145, name: '通过', itemStyle: { color: '#10b981' } },
+                        { value: 8, name: '失败', itemStyle: { color: '#ef4444' } },
+                        { value: 3, name: '异常', itemStyle: { color: '#f59e0b' } },
+                        { value: 2, name: '跳过', itemStyle: { color: '#94a3b8' } }
+                    ]
+                }]
+            });
+
+            // 耗时分布
+            const durationChart = echarts.init(document.getElementById('durationChart'));
+            durationChart.setOption({
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'value', name: '秒' },
+                yAxis: {
+                    type: 'category',
+                    data: ['订单创建-库存不足', '支付回调-签名验证', '商品搜索-特殊字符', '用户登录-密码错误', '购物车-添加商品',
+                        '订单详情-查询', '用户注册-正常', '商品列表-分页', '优惠券-核销', '购物车-删除']
+                },
+                series: [{
+                    type: 'bar',
+                    data: [3.2, 2.8, 2.5, 2.1, 1.8, 1.5, 1.2, 0.9, 0.7, 0.5],
+                    itemStyle: {
+                        color: function (params) {
+                            const colors = ['#ef4444', '#ef4444', '#f59e0b', '#ef4444', '#10b981',
+                                '#10b981', '#10b981', '#10b981', '#10b981', '#10b981'];
+                            return colors[params.dataIndex];
+                        }
+                    }
+                }]
+            });
+
+            window.addEventListener('resize', () => {
+                pieChart.resize();
+                durationChart.resize();
+            });
+        }
+
+        // 初始化历史图表
+        function initHistoryCharts() {
+            // 柱状图
+            const barChart = echarts.init(document.getElementById('barChart'));
+            barChart.setOption({
+                tooltip: { trigger: 'axis' },
+                legend: { data: ['通过', '失败', '异常', '跳过'], bottom: 0 },
+                grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+                xAxis: { data: ['Run #20', 'Run #21', 'Run #22', 'Run #23', 'Run #24'] },
+                yAxis: { type: 'value' },
+                series: [
+                    { name: '通过', type: 'bar', stack: 'total', data: [150, 145, 134, 148, 145], itemStyle: { color: '#10b981' } },
+                    { name: '失败', type: 'bar', stack: 'total', data: [5, 8, 18, 6, 8], itemStyle: { color: '#ef4444' } },
+                    { name: '异常', type: 'bar', stack: 'total', data: [2, 3, 4, 2, 3], itemStyle: { color: '#f59e0b' } },
+                    { name: '跳过', type: 'bar', stack: 'total', data: [1, 2, 2, 2, 2], itemStyle: { color: '#94a3b8' } }
+                ]
+            });
+
+            // 折线图
+            const lineChart = echarts.init(document.getElementById('lineChart'));
+            lineChart.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: ['#15', '#16', '#17', '#18', '#19', '#20', '#21', '#22', '#23', '#24'] },
+                yAxis: { type: 'value', name: '秒' },
+                series: [{
+                    data: [280, 295, 310, 298, 285, 296, 328, 394, 312, 348],
+                    type: 'line',
+                    smooth: true,
+                    areaStyle: { color: 'rgba(59, 130, 246, 0.1)' },
+                    itemStyle: { color: '#3b82f6' }
+                }]
+            });
+
+            window.addEventListener('resize', () => {
+                barChart.resize();
+                lineChart.resize();
+            });
+        }
+
+        // 初始化
+        generateCaseTable();
+        setTimeout(initOverviewCharts, 100);
     </script>
 </body>
 
