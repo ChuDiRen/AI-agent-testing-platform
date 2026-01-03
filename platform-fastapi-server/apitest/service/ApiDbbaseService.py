@@ -6,7 +6,7 @@ from typing import List, Optional, Dict, Any
 from sqlmodel import Session, select
 from core.logger import get_logger
 
-from ..model.ApiDbbaseModel import ApiDbBase
+from ..model.ApiDbBaseModel import ApiDbBase
 
 logger = get_logger(__name__)
 

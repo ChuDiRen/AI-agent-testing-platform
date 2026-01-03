@@ -48,7 +48,7 @@ if __name__ == "__main__":
             port=5000,
             reload=True,
             reload_excludes=["temp", "data", "*.log", "*.pyc", "__pycache__"],
-            reload_dirs=["plugin", "core", "apitest", "login", "sysmanage", "generator", "aiassistant", "msgmanage"],
+            reload_dirs=["core", "apitest", "login", "sysmanage", "generator", "aiassistant", "msgmanage"],
             log_level="info"
         )
     except Exception as e:

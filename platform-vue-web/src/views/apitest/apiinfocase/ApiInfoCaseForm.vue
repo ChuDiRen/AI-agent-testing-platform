@@ -12,20 +12,6 @@
         </div>
       </div>
       <div class="header-right">
-        <el-select 
-          v-model="currentExecutorCode" 
-          placeholder="选择执行器" 
-          style="width: 180px"
-          size="default"
-        >
-          <template #prefix><el-icon><VideoPlay /></el-icon></template>
-          <el-option
-            v-for="exe in executorList"
-            :key="exe.plugin_code"
-            :label="exe.plugin_name"
-            :value="exe.plugin_code"
-          />
-        </el-select>
         <el-button type="primary" @click="handleSubmit">保存用例</el-button>
         <el-button type="success" @click="handleExecute" :loading="executing">
           <el-icon class="el-icon--left"><VideoPlay /></el-icon>
@@ -274,7 +260,6 @@ import StepEditor from './components/StepEditor.vue'
 import ExecutionResultDialog from './components/ExecutionResultDialog.vue'
 import YamlImporter from './components/YamlImporter.vue'
 import ContextImporter from './components/ContextImporter.vue'
-import { listExecutors } from '~/views/apitest/task/apiTask.js'
 import { Delete, Plus } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -327,10 +312,6 @@ const projectList = ref([])
 const operationTypeList = ref([])
 const keywordList = ref([])
 
-// 执行器列表与当前选择
-const executorList = ref([])
-const currentExecutorCode = ref('')
-
 // 步骤编辑器
 const stepEditorVisible = ref(false)
 const currentStep = ref(null)
@@ -366,23 +347,6 @@ const loadKeywords = async () => {
 }
 
 // 加载执行器列表
-const loadExecutors = async () => {
-  try {
-    const res = await listExecutors()
-    if (res.data.code === 200) {
-      executorList.value = res.data.data || []
-      if (!currentExecutorCode.value && executorList.value.length > 0) {
-        currentExecutorCode.value = executorList.value[0].plugin_code
-      }
-    } else {
-      ElMessage.error(res.data.msg || '加载执行器列表失败')
-    }
-  } catch (error) {
-    console.error('加载执行器列表失败:', error)
-    ElMessage.error('加载执行器列表失败，请稍后重试')
-  }
-}
-
 // 获取操作类型名称
 const getOperationTypeName = (id) => {
   const type = operationTypeList.value.find(t => t.id === id)
@@ -620,20 +584,14 @@ const handleExecute = async () => {
     ElMessage.warning('请先添加测试步骤')
     return
   }
-  
-  if (!currentExecutorCode.value) {
-    ElMessage.warning('请选择执行器')
-    return
-  }
-  
+
   executing.value = true
   executeStatus.value = '正在提交...'
-  
+
   try {
     // 调用后端统一执行接口，只传 case_id，后端负责构建 YAML
     const res = await executeCase({
       case_id: caseId.value,
-      executor_code: currentExecutorCode.value,
       test_name: caseForm.case_name
     })
     
@@ -690,34 +648,12 @@ const loadCaseData = async (id) => {
         contextConfig[key] = value
       })
     }
-    
-    // 自动检测并设置执行器
-    await detectAndSetExecutor(id)
-  }
-}
-
-// 自动检测用例使用的引擎
-const detectAndSetExecutor = async (caseId) => {
-  try {
-    const res = await getCaseEngines(caseId)
-    if (res.data.code === 200 && res.data.data) {
-      const engines = res.data.data.engines || []
-      if (engines.length > 0) {
-        // 优先使用第一个检测到的引擎
-        const detectedEngine = engines[0].plugin_code
-        if (executorList.value.some(e => e.plugin_code === detectedEngine)) {
-          currentExecutorCode.value = detectedEngine
-        }
-      }
-    }
-  } catch (error) {
-    console.error('检测执行器失败:', error)
   }
 }
 
 onMounted(async () => {
-  await Promise.all([loadProjects(), loadOperationTypes(), loadKeywords(), loadExecutors()])
-  
+  await Promise.all([loadProjects(), loadOperationTypes(), loadKeywords()])
+
   const id = router.currentRoute.value.query.id
   if (id) {
     caseId.value = Number(id)

@@ -22,7 +22,6 @@ class TestTaskCreate(BaseModel):
     cron_expression: Optional[str] = Field(default=None, description='Cron表达式')
     plan_id: Optional[int] = Field(default=None, description='关联测试计划ID')
     case_ids: Optional[List[int]] = Field(default=None, description='关联用例ID列表')
-    executor_code: str = Field(default='api_engine', description='执行引擎代码')
     notify_config: Optional[Dict[str, Any]] = Field(default=None, description='通知配置')
     extra_config: Optional[Dict[str, Any]] = Field(default=None, description='额外配置')
 
@@ -37,7 +36,6 @@ class TestTaskUpdate(BaseModel):
     cron_expression: Optional[str] = Field(default=None, description='Cron表达式')
     plan_id: Optional[int] = Field(default=None, description='关联测试计划ID')
     case_ids: Optional[List[int]] = Field(default=None, description='关联用例ID列表')
-    executor_code: Optional[str] = Field(default=None, description='执行引擎代码')
     task_status: Optional[str] = Field(default=None, description='任务状态')
     notify_config: Optional[Dict[str, Any]] = Field(default=None, description='通知配置')
     extra_config: Optional[Dict[str, Any]] = Field(default=None, description='额外配置')

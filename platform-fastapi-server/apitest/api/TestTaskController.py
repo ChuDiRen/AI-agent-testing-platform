@@ -59,7 +59,6 @@ async def queryByPage(query: TestTaskQuery, session: Session = Depends(get_sessi
                 "plan_name": plan_name,
                 "case_ids": case_ids,
                 "case_count": len(case_ids) if case_ids else 0,
-                "executor_code": data.executor_code,
                 "task_status": data.task_status,
                 "last_run_time": TimeFormatter.format_datetime(data.last_run_time) if data.last_run_time else None,
                 "next_run_time": TimeFormatter.format_datetime(data.next_run_time) if data.next_run_time else None,
@@ -140,7 +139,6 @@ async def queryById(id: int = Query(...), session: Session = Depends(get_session
             "plan_info": plan_info,
             "case_ids": case_ids,
             "cases_info": cases_info,
-            "executor_code": task.executor_code,
             "task_status": task.task_status,
             "last_run_time": TimeFormatter.format_datetime(task.last_run_time) if task.last_run_time else None,
             "next_run_time": TimeFormatter.format_datetime(task.next_run_time) if task.next_run_time else None,
@@ -172,7 +170,6 @@ async def insert(data: TestTaskCreate, session: Session = Depends(get_session)):
             cron_expression=data.cron_expression,
             plan_id=data.plan_id,
             case_ids=json.dumps(data.case_ids, ensure_ascii=False) if data.case_ids else None,
-            executor_code=data.executor_code,
             task_status='pending',
             notify_config=json.dumps(data.notify_config, ensure_ascii=False) if data.notify_config else None,
             extra_config=json.dumps(data.extra_config, ensure_ascii=False) if data.extra_config else None,
@@ -219,8 +216,6 @@ async def update(data: TestTaskUpdate, session: Session = Depends(get_session)):
             task.plan_id = data.plan_id
         if data.case_ids is not None:
             task.case_ids = json.dumps(data.case_ids, ensure_ascii=False) if data.case_ids else None
-        if data.executor_code is not None:
-            task.executor_code = data.executor_code
         if data.task_status is not None:
             task.task_status = data.task_status
         if data.notify_config is not None:
@@ -309,14 +304,13 @@ async def execute(request: TestTaskExecuteRequest, session: Session = Depends(ge
         task.run_count += 1
         
         exec_service = ExecutionService(session)
-        
+
         # 根据任务配置执行
         total_cases = 0
         if task.plan_id:
             # 执行测试计划
             result = exec_service.execute_plan(
                 plan_id=task.plan_id,
-                executor_code=task.executor_code,
                 test_name=f"{task.task_name}_{execution_uuid[:8]}",
                 task_execution_id=execution.id
             )
@@ -328,7 +322,6 @@ async def execute(request: TestTaskExecuteRequest, session: Session = Depends(ge
                 # 只有第一个用例传递 task_execution_id，避免重复更新
                 exec_service.execute_case(
                     case_id=case_id,
-                    executor_code=task.executor_code,
                     test_name=f"{task.task_name}_{case_id}_{execution_uuid[:8]}",
                     context_vars=request.context_vars,
                     task_execution_id=execution.id if idx == len(case_ids) - 1 else None

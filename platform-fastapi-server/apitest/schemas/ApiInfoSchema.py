@@ -53,7 +53,6 @@ class ApiInfoCreate(BaseModel):
     request_www_form_datas: Optional[str] = Field(default=None, description='www-form-data')
     requests_json_data: Optional[str] = Field(default=None, description='json数据')
     request_files: Optional[str] = Field(default=None, description='json数据')
-    executor_code: Optional[str] = Field(default=None, max_length=100, description='执行器插件代码')
     sort_order: int = Field(default=0, ge=0, description='排序顺序')
     status: int = Field(default=1, ge=0, le=1, description='状态：1-启用，0-禁用')
     
@@ -96,7 +95,6 @@ class ApiInfoUpdate(BaseModel):
     request_www_form_datas: Optional[str] = Field(default=None, description='www-form-data')
     requests_json_data: Optional[str] = Field(default=None, description='json数据')
     request_files: Optional[str] = Field(default=None, description='json数据')
-    executor_code: Optional[str] = Field(default=None, max_length=100, description='执行器插件代码')
     sort_order: Optional[int] = Field(default=None, ge=0, description='排序顺序')
     status: Optional[int] = Field(default=None, ge=0, le=1, description='状态：1-启用，0-禁用')
     
@@ -160,7 +158,6 @@ class ApiInfoResponse(BaseModel):
     request_www_form_datas: Optional[str] = Field(default=None, description='www-form-data')
     requests_json_data: Optional[str] = Field(default=None, description='json数据')
     request_files: Optional[str] = Field(default=None, description='json数据')
-    executor_code: Optional[str] = Field(default=None, description='执行器插件代码')
     sort_order: int = Field(default=0, description='排序顺序')
     status: int = Field(default=1, description='状态')
     create_time: datetime = Field(default_factory=datetime.now, description='创建时间')

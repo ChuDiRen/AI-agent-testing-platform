@@ -16,7 +16,6 @@ class TestTask(SQLModel, table=True):
     cron_expression: Optional[str] = Field(default=None, max_length=100, description='Cron表达式(定时任务)')
     plan_id: Optional[int] = Field(default=None, description='关联测试计划ID')
     case_ids: Optional[str] = Field(default=None, description='关联用例ID列表JSON')
-    executor_code: str = Field(default='api_engine', max_length=50, description='执行引擎代码')
     task_status: str = Field(default='pending', max_length=20, description='任务状态：pending-待执行, running-执行中, completed-已完成, failed-失败, disabled-已禁用')
     last_run_time: Optional[datetime] = Field(default=None, description='上次执行时间')
     next_run_time: Optional[datetime] = Field(default=None, description='下次执行时间')

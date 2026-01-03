@@ -13,19 +13,6 @@
         <el-form-item label="计划名称" prop="plan_name">
           <el-input v-model="formData.plan_name" placeholder="请输入计划名称" />
         </el-form-item>
-        <el-form-item label="执行引擎" prop="plugin_code">
-          <el-select v-model="formData.plugin_code" placeholder="请选择执行引擎" style="width: 300px">
-            <el-option
-              v-for="item in pluginList"
-              :key="item.plugin_code"
-              :label="item.plugin_name"
-              :value="item.plugin_code"
-            >
-              <span>{{ item.plugin_name }}</span>
-              <span style="color: #999; margin-left: 10px; font-size: 12px">{{ item.plugin_code }}</span>
-            </el-option>
-          </el-select>
-        </el-form-item>
         <el-form-item label="计划描述">
           <el-input v-model="formData.plan_desc" type="textarea" :rows="3" placeholder="请输入计划描述" />
         </el-form-item>
@@ -172,7 +159,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Bell } from '@element-plus/icons-vue'
 import { insertData, updateData, queryById, removeCase, updateDdtData, getDdtTemplate, getPlanRobots, addPlanRobot, updatePlanRobot, removePlanRobot } from './testPlan'
 import JsonEditor from '~/components/JsonEditor.vue'
-import { queryAllExecutors } from '~/views/plugin/plugin.js'
+
 import { queryAll as queryAllRobots } from '~/views/msgmanage/robot/robotConfig.js'
 
 const router = useRouter()
@@ -183,12 +170,8 @@ const formData = ref({
   id: null,
   plan_name: '',
   plan_desc: '',
-  project_id: null,
-  plugin_code: 'api_engine'
+  project_id: null
 })
-
-// 插件列表
-const pluginList = ref([])
 
 const rules = {
   plan_name: [{ required: true, message: '请输入计划名称', trigger: 'blur' }]
@@ -240,18 +223,6 @@ const handleSelectionChange = (selection) => {
   selectedCases.value = selection
 }
 
-// 加载插件列表
-const loadPluginList = async () => {
-  try {
-    const res = await queryAllExecutors()
-    if (res.data.code === 200) {
-      pluginList.value = res.data.data || []
-    }
-  } catch (error) {
-    console.error('加载插件列表失败:', error)
-  }
-}
-
 // 加载详情
 const loadDetail = async (id) => {
   try {
@@ -262,8 +233,7 @@ const loadDetail = async (id) => {
         id: data.id,
         plan_name: data.plan_name,
         plan_desc: data.plan_desc,
-        project_id: data.project_id,
-        plugin_code: data.plugin_code || 'api_engine'
+        project_id: data.project_id
       }
       caseList.value = data.cases || []
     }
@@ -554,7 +524,6 @@ const getRobotTypeTag = (type) => {
 }
 
 onMounted(() => {
-  loadPluginList()
   loadAllRobots()
   if (route.query.id) {
     loadDetail(route.query.id)

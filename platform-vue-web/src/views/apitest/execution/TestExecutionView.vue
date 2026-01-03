@@ -21,18 +21,6 @@
       <el-form v-if="!executionId" class="test-config" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item label="执行器">
-              <el-select v-model="currentExecutorCode" placeholder="请选择执行器" style="width: 100%">
-                <el-option
-                  v-for="executor in executorList"
-                  :key="executor.plugin_code"
-                  :label="executor.plugin_name"
-                  :value="executor.plugin_code"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
             <el-form-item label="测试类型">
               <el-select v-model="testConfig.type" placeholder="请选择" style="width: 100%">
                 <el-option label="单个用例" value="case" />
@@ -46,14 +34,6 @@
             </el-form-item>
           </el-col>
         </el-row>
-        
-        <!-- 动态执行器参数配置 -->
-        <el-divider v-if="currentExecutorSchema" content-position="left">执行器参数</el-divider>
-        <ExecutorConfigForm
-          v-if="currentExecutorSchema"
-          :config-schema="currentExecutorSchema"
-          v-model="executorConfig"
-        />
       </el-form>
 
       <!-- 执行进度组件 -->
@@ -87,15 +67,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { VideoPlay, VideoPause } from '@element-plus/icons-vue'
 import TestExecutionProgress from '~/components/TestExecutionProgress.vue'
 import RealtimeLog from '~/components/RealtimeLog.vue'
-import ExecutorConfigForm from '~/components/ExecutorConfigForm.vue'
 import { executeCase } from '~/views/apitest/apiinfocase/apiInfoCase.js'
 import { executePlan } from '~/views/apitest/testplan/testPlan.js'
-import { listExecutors } from '~/views/apitest/task/apiTask.js'
 
 // 状态
 const executionId = ref('')
@@ -113,49 +91,6 @@ const testConfig = ref({
   id: ''
 })
 
-// 执行器列表
-const executorList = ref([])
-const currentExecutorCode = ref('')
-const executorConfig = ref({})
-
-// 当前执行器的配置 schema
-const currentExecutorSchema = computed(() => {
-  const executor = executorList.value.find(e => e.plugin_code === currentExecutorCode.value)
-  if (!executor) return null
-  // config_schema 可能是字符串或对象
-  if (typeof executor.config_schema === 'string') {
-    try {
-      return JSON.parse(executor.config_schema)
-    } catch {
-      return null
-    }
-  }
-  return executor.config_schema
-})
-
-// 当执行器变化时，重置配置
-watch(currentExecutorCode, () => {
-  executorConfig.value = {}
-})
-
-// 加载执行器
-const loadExecutors = async () => {
-  try {
-    const res = await listExecutors()
-    if (res.data.code === 200) {
-      executorList.value = res.data.data || []
-      if (executorList.value.length > 0) {
-        currentExecutorCode.value = executorList.value[0].plugin_code
-      }
-    }
-  } catch (error) {
-    console.error('加载执行器失败:', error)
-  }
-}
-
-// 初始化
-loadExecutors()
-
 // 开始测试（调用后端统一接口，后端负责 YAML 构建）
 const startNewTest = async () => {
   if (!testConfig.value.id) {
@@ -163,26 +98,19 @@ const startNewTest = async () => {
     return
   }
 
-  if (!currentExecutorCode.value) {
-    ElMessage.warning('没有可用的执行器')
-    return
-  }
-
   try {
     let response
-    
+
     // 根据类型调用不同的后端统一接口
     if (testConfig.value.type === 'case') {
       // 调用后端统一执行接口，只传 case_id
       response = await executeCase({
         case_id: Number(testConfig.value.id),
-        executor_code: currentExecutorCode.value,
         test_name: `用例执行-${Date.now()}`
       })
     } else if (testConfig.value.type === 'collection') {
       response = await executePlan({
         plan_id: Number(testConfig.value.id),
-        executor_code: currentExecutorCode.value,
         test_name: `集合执行-${Date.now()}`
       })
     }

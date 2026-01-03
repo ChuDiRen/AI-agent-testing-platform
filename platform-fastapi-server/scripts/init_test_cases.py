@@ -27,39 +27,13 @@ from apitest.model.ApiInfoCaseModel import ApiInfoCase
 from apitest.model.ApiInfoCaseStepModel import ApiInfoCaseStep
 from apitest.model.ApiKeyWordModel import ApiKeyWord
 from apitest.model.ApiOperationTypeModel import OperationType
-from plugin.model.PluginModel import Plugin
 
 
 def check_plugins():
-    """检查执行引擎插件是否已安装"""
-    print("\n=== 检查执行引擎插件 ===")
-    
-    with Session(engine) as session:
-        api_plugin = session.exec(
-            select(Plugin).where(Plugin.plugin_code == "api_engine")
-        ).first()
-        web_plugin = session.exec(
-            select(Plugin).where(Plugin.plugin_code == "web_engine")
-        ).first()
-        
-        missing = []
-        if not api_plugin:
-            missing.append("api_engine (API自动化引擎)")
-        else:
-            print(f"  ✓ api_engine 已安装")
-            
-        if not web_plugin:
-            missing.append("web_engine (Web自动化引擎)")
-        else:
-            print(f"  ✓ web_engine 已安装")
-        
-        if missing:
-            print(f"\n  ⚠️  缺少以下插件，请先在插件市场上传安装：")
-            for m in missing:
-                print(f"     - {m}")
-            return False
-        
-        return True
+    """检查执行引擎插件是否已安装（已废弃，直接返回 True）"""
+    print("\n=== 执行引擎检查 ===")
+    print("  ✓ 使用内置 API 测试引擎")
+    return True
 
 
 def get_keyword_by_func_name(session, func_name: str):
@@ -410,22 +384,9 @@ def check_keywords():
         
         if not keywords:
             print("  ⚠️  数据库中没有关键字")
-            print('     请先在关键字管理页面点击"从引擎同步"同步关键字')
             return False
-        
-        # 按引擎分组统计
-        api_count = len([k for k in keywords if k.plugin_code == "api_engine"])
-        web_count = len([k for k in keywords if k.plugin_code == "web_engine"])
         
         print(f"  ✓ 共 {len(keywords)} 个关键字")
-        print(f"    - api_engine: {api_count} 个")
-        print(f"    - web_engine: {web_count} 个")
-        
-        if api_count == 0 and web_count == 0:
-            print("\n  ⚠️  关键字未关联执行引擎")
-            print('     请先在关键字管理页面点击"从引擎同步"同步关键字')
-            return False
-        
         return True
 
 
@@ -436,18 +397,7 @@ def main():
     print("=" * 60)
     
     try:
-        # 1. 检查插件是否已安装
-        if not check_plugins():
-            print("\n" + "=" * 60)
-            print("  ✗ 前置条件不满足")
-            print("=" * 60)
-            print("\n请按以下步骤操作：")
-            print("  1. 在插件市场上传并安装 api_engine 和 web_engine")
-            print('  2. 在关键字管理页面点击"从引擎同步"')
-            print("  3. 重新运行此脚本")
-            return 1
-        
-        # 2. 检查关键字是否已同步
+        # 1. 检查关键字是否已同步
         if not check_keywords():
             print("\n" + "=" * 60)
             print("  ✗ 前置条件不满足")
@@ -457,7 +407,7 @@ def main():
             print("  2. 重新运行此脚本")
             return 1
         
-        # 3. 初始化项目
+        # 2. 初始化项目
         project_id = init_project()
         
         # 4. 初始化 API 测试用例

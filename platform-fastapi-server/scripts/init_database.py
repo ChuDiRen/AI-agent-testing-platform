@@ -241,9 +241,6 @@ class DatabaseManager:
         from aiassistant.model.AiModel import AiModel
         from aiassistant.model.TestCaseModel import TestCase
         from aiassistant.model.PromptTemplate import PromptTemplate
-        
-        # 插件模块
-        from plugin.model.PluginModel import Plugin
 
 
 def main():

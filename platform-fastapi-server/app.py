@@ -169,52 +169,52 @@ from sysmanage.api import DeptController
 application.include_router(DeptController.module_route)
 
 # API测试模块路由
-from apitest.api import ApiProjectController
+import apitest.api.ApiProjectController as ApiProjectController
 application.include_router(ApiProjectController.module_route)
 
-from apitest.api import ApiDbbaseController
-application.include_router(ApiDbbaseController.module_route)
+import apitest.api.ApiDbBaseController as ApiDbBaseController
+application.include_router(ApiDbBaseController.module_route)
 
-from apitest.api import ApiKeywordController
-application.include_router(ApiKeywordController.module_route)
+import apitest.api.ApiKeyWordController as ApiKeyWordController
+application.include_router(ApiKeyWordController.module_route)
 
-from apitest.api import ApiOperationTypeController
+import apitest.api.ApiOperationTypeController as ApiOperationTypeController
 application.include_router(ApiOperationTypeController.module_route)
 
-from apitest.api import ApiMetaController
+import apitest.api.ApiMetaController as ApiMetaController
 application.include_router(ApiMetaController.module_route)
 
-from apitest.api import ApiInfoController
+import apitest.api.ApiInfoController as ApiInfoController
 application.include_router(ApiInfoController.module_route)
 
-from apitest.api import ApiInfoCaseController
+import apitest.api.ApiInfoCaseController as ApiInfoCaseController
 application.include_router(ApiInfoCaseController.module_route)
 
-from apitest.api import ApiInfoCaseStepController
+import apitest.api.ApiInfoCaseStepController as ApiInfoCaseStepController
 application.include_router(ApiInfoCaseStepController.module_route)
 
-from apitest.api import ApiCollectionInfoController
+import apitest.api.ApiCollectionInfoController as ApiCollectionInfoController
 application.include_router(ApiCollectionInfoController.module_route)
 
-from apitest.api import ApiCollectionDetailController
+import apitest.api.ApiCollectionDetailController as ApiCollectionDetailController
 application.include_router(ApiCollectionDetailController.module_route)
 
-from apitest.api import ApiHistoryController
+import apitest.api.ApiHistoryController as ApiHistoryController
 application.include_router(ApiHistoryController.module_route)
 
-from apitest.api import ApiReportViewerController
+import apitest.api.ApiReportViewerController as ApiReportViewerController
 application.include_router(ApiReportViewerController.module_route)
 
-from apitest.api import TestTaskController
+import apitest.api.TestTaskController as TestTaskController
 application.include_router(TestTaskController.module_route)
 
-from apitest.api import ApiStatisticsController
+import apitest.api.ApiStatisticsController as ApiStatisticsController
 application.include_router(ApiStatisticsController.module_route)
 
-from apitest.api import ApiFolderController
+import apitest.api.ApiFolderController as ApiFolderController
 application.include_router(ApiFolderController.module_route)
 
-from apitest.api import ApiRequestHistoryController
+import apitest.api.ApiRequestHistoryController as ApiRequestHistoryController
 application.include_router(ApiRequestHistoryController.module_route)
 
 # 消息管理模块路由
@@ -233,12 +233,6 @@ application.include_router(AiModelController.module_route)  # AI模型管理（�
 application.include_router(PromptTemplateController.module_route)  # 提示词模板管理
 application.include_router(TestCaseController.module_route)  # 测试用例管理
 # 注意: AI对话能力通过独立的 LangGraph Server 提供 (langgraph dev/up, 端口2024)
-
-# 注册插件管理模块路由
-from plugin.api import PluginController
-from plugin.api import TaskController
-application.include_router(PluginController.module_route)  # 插件注册中心
-application.include_router(TaskController.router)  # 任务调度器
 
 # 注册代码生成器模块路由
 from generator.api import generator_route, gen_table_route

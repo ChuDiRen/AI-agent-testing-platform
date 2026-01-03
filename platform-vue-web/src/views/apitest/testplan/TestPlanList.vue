@@ -169,8 +169,7 @@ const handleExecute = async (row) => {
     })
     
     const res = await executePlan({ 
-      plan_id: row.id,
-      executor_code: 'api_engine'  // 默认使用 api_engine 执行器
+      plan_id: row.id
     })
     if (res.data.code === 200) {
       const data = res.data.data || {}

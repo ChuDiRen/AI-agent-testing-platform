@@ -37,16 +37,9 @@ module_route = APIRouter(prefix=f"/{module_name}", tags=["API测试历史管理"
 async def queryByPage(query: ApiTestHistoryQuery, session: Session = Depends(get_session)):
     """分页查询测试历史"""
     try:
-        service = HistoryService(session)
-        datas, total = service.query_by_page(
-            page=query.page,
-            page_size=query.pageSize,
-            project_id=query.project_id,
-            api_id=query.api_info_id,
-            case_id=query.plan_id,
-            execution_status=query.test_status,
-            start_time=query.start_date,
-            end_time=query.end_date
+        datas, total = HistoryService.query_by_page(
+            session=session,
+            query=query
         )
         return respModel.ok_resp_list(lst=datas, total=total)
     except Exception as e:
@@ -57,8 +50,7 @@ async def queryByPage(query: ApiTestHistoryQuery, session: Session = Depends(get
 async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询测试历史"""
     try:
-        service = HistoryService(session)
-        data = service.get_by_id(id)
+        data = HistoryService.query_by_id(session=session, id=id)
         if data:
             return respModel.ok_resp(obj=data)
         else:
@@ -71,8 +63,7 @@ async def queryById(id: int = Query(...), session: Session = Depends(get_session
 async def create(history_data: dict, session: Session = Depends(get_session)):
     """创建测试历史记录"""
     try:
-        service = HistoryService(session)
-        data = service.create(**history_data)
+        data = HistoryService.create(session=session, history_data=history_data)
         return respModel.ok_resp(msg="创建成功", dic_t={"id": data.id})
     except Exception as e:
         return respModel.error_resp(msg=f"创建失败: {e}")
@@ -81,8 +72,8 @@ async def create(history_data: dict, session: Session = Depends(get_session)):
 async def update(history_id: int, update_data: dict, session: Session = Depends(get_session)):
     """更新测试历史记录"""
     try:
-        service = HistoryService(session)
-        updated = service.update(history_id, update_data)
+        update_data['id'] = history_id
+        updated = HistoryService.update(session=session, history_data=update_data)
         if not updated:
             return respModel.error_resp("测试历史不存在")
         return respModel.ok_resp(msg="更新成功")
@@ -93,8 +84,7 @@ async def update(history_id: int, update_data: dict, session: Session = Depends(
 async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除测试历史记录"""
     try:
-        service = HistoryService(session)
-        if not service.delete(id):
+        if not HistoryService.delete(session=session, id=id):
             return respModel.error_resp("测试历史不存在")
         return respModel.ok_resp_text(msg="删除成功")
     except Exception as e:
@@ -104,8 +94,7 @@ async def delete(id: int = Query(...), session: Session = Depends(get_session)):
 async def getByProject(project_id: int = Query(...), limit: int = Query(100), session: Session = Depends(get_session)):
     """根据项目ID获取测试历史"""
     try:
-        service = HistoryService(session)
-        datas = service.query_by_project(project_id, limit)
+        datas = HistoryService.query_by_project(session=session, project_id=project_id, limit=limit)
         return respModel.ok_resp_list(lst=datas, total=len(datas))
     except Exception as e:
         return respModel.error_resp(f"查询失败: {e}")
@@ -114,8 +103,7 @@ async def getByProject(project_id: int = Query(...), limit: int = Query(100), se
 async def getByApi(api_id: int = Query(...), limit: int = Query(50), session: Session = Depends(get_session)):
     """根据接口ID获取测试历史"""
     try:
-        service = HistoryService(session)
-        datas = service.query_by_api(api_id, limit)
+        datas = HistoryService.query_by_api(session=session, api_id=api_id, limit=limit)
         return respModel.ok_resp_list(lst=datas, total=len(datas))
     except Exception as e:
         return respModel.error_resp(f"查询失败: {e}")
@@ -124,8 +112,7 @@ async def getByApi(api_id: int = Query(...), limit: int = Query(50), session: Se
 async def getByCase(case_id: int = Query(...), limit: int = Query(50), session: Session = Depends(get_session)):
     """根据用例ID获取测试历史"""
     try:
-        service = HistoryService(session)
-        datas = service.query_by_case(case_id, limit)
+        datas = HistoryService.query_by_case(session=session, case_id=case_id, limit=limit)
         return respModel.ok_resp_list(lst=datas, total=len(datas))
     except Exception as e:
         return respModel.error_resp(f"查询失败: {e}")
@@ -134,8 +121,7 @@ async def getByCase(case_id: int = Query(...), limit: int = Query(50), session: 
 async def batch_delete(history_ids: list[int], session: Session = Depends(get_session)):
     """批量删除测试历史"""
     try:
-        service = HistoryService(session)
-        deleted_count = service.batch_delete(history_ids)
+        deleted_count = HistoryService.batch_delete(session=session, history_ids=history_ids)
         return respModel.ok_resp(msg=f"成功删除 {deleted_count} 条记录")
     except Exception as e:
         return respModel.error_resp(msg=f"批量删除失败: {e}")
@@ -144,8 +130,7 @@ async def batch_delete(history_ids: list[int], session: Session = Depends(get_se
 async def clean_old_records(project_id: int = Query(...), days: int = Query(30), session: Session = Depends(get_session)):
     """清理旧的历史记录"""
     try:
-        service = HistoryService(session)
-        deleted_count = service.clean_old_records(project_id, days)
+        deleted_count = HistoryService.clean_old_records(session=session, project_id=project_id, days=days)
         return respModel.ok_resp(msg=f"成功清理 {deleted_count} 条旧记录")
     except Exception as e:
         return respModel.error_resp(msg=f"清理失败: {e}")
@@ -154,8 +139,7 @@ async def clean_old_records(project_id: int = Query(...), days: int = Query(30),
 async def getStatistics(project_id: int = Query(...), days: int = Query(7), session: Session = Depends(get_session)):
     """获取测试历史统计信息"""
     try:
-        service = HistoryService(session)
-        stats = service.get_statistics(project_id, days)
+        stats = HistoryService.get_statistics(session=session, project_id=project_id, days=days)
         return respModel.ok_resp(obj=stats)
     except Exception as e:
         return respModel.error_resp(f"查询失败: {e}")
@@ -164,8 +148,8 @@ async def getStatistics(project_id: int = Query(...), days: int = Query(7), sess
 async def execute_test(request: ApiTestExecuteRequest, session: Session = Depends(get_session)):
     """
     执行接口测试（基于 ApiInfo 模型）
-    
-    注意：此接口用于接口级别的快速测试，会自动生成 YAML 并通过统一的 TaskScheduler 执行。
+
+    注意：此接口用于接口级别的快速测试，会自动生成 YAML 并通过 pytest + allure 执行。
     如需执行用例级别测试，请使用 /ApiInfoCase/executeCase 接口。
     """
     try:
@@ -258,31 +242,54 @@ async def execute_test(request: ApiTestExecuteRequest, session: Session = Depend
         
         # 5. 提交后台执行任务
         def _run_api_test(test_id: int, workspace_path: str):
+            import subprocess
+            from pathlib import Path
             from core.database import engine
             from sqlmodel import Session as DBSession
-            
+
             db = DBSession(engine)
             try:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    result = loop.run_until_complete(
-                        task_scheduler.execute_test(
-                            session=db,
-                            plugin_code="api_engine",
-                            test_case_id=test_id,
-                            test_case_content=workspace_path,
-                            config={"is_directory": True}
-                        )
-                    )
-                finally:
-                    loop.close()
-                
+                workspace = Path(workspace_path)
+                allure_dir = workspace / "allure-results"
+                allure_dir.mkdir(parents=True, exist_ok=True)
+
+                # 使用 pytest 执行
+                cmd = [
+                    "pytest",
+                    str(workspace),
+                    "-v",
+                    "--alluredir",
+                    str(allure_dir),
+                    "--tb=short"
+                ]
+
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=600
+                )
+
+                # 生成 allure 报告
+                allure_report_dir = workspace / "allure-report"
+                subprocess.run(
+                    ["allure", "generate", str(allure_dir), "-o", str(allure_report_dir), "--clean"],
+                    capture_output=True
+                )
+
+                # 构建结果字典
+                result_dict = {
+                    "success": result.returncode == 0,
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                    "returncode": result.returncode
+                }
+
                 # 更新结果
                 collector = ResultCollector(db)
-                collector.update_single_case_result(test_id, result)
-                logger.info(f"接口测试完成: test_id={test_id}, success={result.get('success')}")
-                
+                collector.update_single_case_result(test_id, result_dict)
+                logger.info(f"接口测试完成: test_id={test_id}, success={result_dict.get('success')}")
+
             except Exception as e:
                 logger.error(f"接口测试失败: test_id={test_id}, 错误: {e}", exc_info=True)
                 try:

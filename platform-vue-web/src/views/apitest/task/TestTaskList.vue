@@ -57,13 +57,6 @@
         </template>
       </el-table-column>
       <el-table-column prop="case_count" label="用例数" width="80" align="center" />
-      <el-table-column prop="executor_code" label="执行引擎" width="110" align="center">
-        <template #default="scope">
-          <el-tag size="small" :type="getEngineTagType(scope.row.executor_code)">
-            {{ getEngineShortName(scope.row.executor_code) }}
-          </el-tag>
-        </template>
-      </el-table-column>
       <el-table-column prop="task_status" label="状态" width="90" align="center">
         <template #default="scope">
           <el-tag :type="getStatusType(scope.row.task_status)">

@@ -14,8 +14,7 @@ class ApiKeywordService:
         self.session = session
     
     def query_by_page(self, page: int, page_size: int,
-                     keyword_name: Optional[str] = None, operation_type_id: Optional[int] = None,
-                     plugin_id: Optional[int] = None, plugin_code: Optional[str] = None) -> tuple[List[ApiKeyWord], int]:
+                     keyword_name: Optional[str] = None, operation_type_id: Optional[int] = None) -> tuple[List[ApiKeyWord], int]:
         """分页查询关键字"""
         statement = select(ApiKeyWord)
         
@@ -24,10 +23,6 @@ class ApiKeywordService:
             statement = statement.where(ApiKeyWord.name.contains(keyword_name))
         if operation_type_id:
             statement = statement.where(ApiKeyWord.operation_type_id == operation_type_id)
-        if plugin_id:
-            statement = statement.where(ApiKeyWord.plugin_id == plugin_id)
-        if plugin_code:
-            statement = statement.where(ApiKeyWord.plugin_code == plugin_code)
         
         # 排序
         statement = statement.order_by(ApiKeyWord.id.desc())
@@ -38,10 +33,6 @@ class ApiKeywordService:
             total_statement = total_statement.where(ApiKeyWord.name.contains(keyword_name))
         if operation_type_id:
             total_statement = total_statement.where(ApiKeyWord.operation_type_id == operation_type_id)
-        if plugin_id:
-            total_statement = total_statement.where(ApiKeyWord.plugin_id == plugin_id)
-        if plugin_code:
-            total_statement = total_statement.where(ApiKeyWord.plugin_code == plugin_code)
         
         total = len(self.session.exec(total_statement).all())
         

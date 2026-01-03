@@ -10,14 +10,6 @@
             <span class="subtitle">{{ isEdit ? '修改现有API接口配置' : '创建新的API接口配置' }}</span>
           </div>
           <div class="header-right">
-            <el-select v-model="currentExecutorCode" placeholder="选择执行器" style="width: 160px; margin-right: 12px">
-              <el-option
-                v-for="exe in executorList"
-                :key="exe.plugin_code"
-                :label="exe.plugin_name"
-                :value="exe.plugin_code"
-              />
-            </el-select>
             <el-button type="primary" @click="submitForm" :loading="submitting">
               保存接口
             </el-button>
@@ -388,7 +380,6 @@ import { ref, reactive, onMounted } from "vue";
 import { Connection, ArrowDown } from '@element-plus/icons-vue';
 import { queryById, insertData, updateData, getMethods } from './apiinfo.js';
 import { queryByPage as getProjectList } from '~/views/apitest/project/apiProject.js';
-import { listExecutors, executeTask } from '~/views/apitest/task/apiTask.js';
 import { insertData as insertCaseData, updateData as updateCaseData, queryByPage as queryCaseList, queryKeywordsGroupedByEngine } from '~/views/apitest/apiinfocase/apiInfoCase.js';
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -407,10 +398,6 @@ const addingCase = ref(false);
 
 // 项目列表
 const projectList = ref([]);
-
-// 执行器列表与当前选择
-const executorList = ref([]);
-const currentExecutorCode = ref('');
 
 // 请求方法列表
 const methodList = ref(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']);
@@ -450,8 +437,7 @@ const ruleForm = reactive({
   request_form_datas: '',
   request_www_form_datas: '',
   requests_json_data: '',
-  request_files: '',
-  executor_code: ''
+  request_files: ''
 });
 
 // 加载项目列表
@@ -465,21 +451,6 @@ const loadProjectList = () => {
   });
 };
 
-// 加载执行器列表
-const loadExecutors = async () => {
-  try {
-    const res = await listExecutors();
-    if (res.data.code === 200) {
-      executorList.value = res.data.data || [];
-      if (!currentExecutorCode.value && executorList.value.length > 0) {
-        currentExecutorCode.value = executorList.value[0].plugin_code;
-      }
-    }
-  } catch (error) {
-    console.error('加载执行器列表失败:', error);
-  }
-};
-
 // 加载数据（编辑模式）
 const loadData = (id) => {
   queryById(id).then((res) => {
@@ -490,12 +461,7 @@ const loadData = (id) => {
           ruleForm[key] = data[key];
         }
       });
-      
-      // 恢复执行器选择
-      if (data.executor_code) {
-        currentExecutorCode.value = data.executor_code;
-      }
-      
+
       // 解析参数
       parseParams();
     } else {
@@ -644,9 +610,6 @@ const serializeParams = () => {
       });
       ruleForm.debug_vars = JSON.stringify(vars);
     }
-    
-    // 保存执行器选择
-    ruleForm.executor_code = currentExecutorCode.value || '';
   } catch (error) {
     console.error('序列化参数失败:', error);
   }
@@ -1396,8 +1359,7 @@ const goBack = () => {
 // 页面加载时执行
 onMounted(() => {
   loadProjectList();
-  loadExecutors();
-  
+
   // 检查是否为编辑模式
   const id = route.query.id;
   if (id) {

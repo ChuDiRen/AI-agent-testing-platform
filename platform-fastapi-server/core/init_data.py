@@ -295,20 +295,6 @@ def create_initial_menus():
                 {"id": 4031, "parent_id": 403, "menu_name": "历史查询", "path": None, "component": None, "query": None, "perms": "generator:history:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
                 {"id": 4032, "parent_id": 403, "menu_name": "历史删除", "path": None, "component": None, "query": None, "perms": "generator:history:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
 
-                # ================================
-                # 插件管理模块
-                # ================================
-                # 6. 插件管理（目录 M）
-                {"id": 600, "parent_id": 0, "menu_name": "插件管理", "path": "/plugin", "component": None, "query": None, "perms": None, "icon": "Setting", "menu_type": "M", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 6, "remark": "插件管理模块"},
-                
-                # 6.1 插件市场（菜单 C）
-                {"id": 601, "parent_id": 600, "menu_name": "插件市场", "path": "/plugin/market", "component": "plugin/PluginMarket", "query": None, "perms": "plugin:market:list", "icon": "Shop", "menu_type": "C", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": "插件市场"},
-                {"id": 6011, "parent_id": 601, "menu_name": "插件查询", "path": None, "component": None, "query": None, "perms": "plugin:market:query", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 1, "remark": None},
-                {"id": 6012, "parent_id": 601, "menu_name": "插件注册", "path": None, "component": None, "query": None, "perms": "plugin:market:register", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 2, "remark": None},
-                {"id": 6013, "parent_id": 601, "menu_name": "插件修改", "path": None, "component": None, "query": None, "perms": "plugin:market:edit", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 3, "remark": None},
-                {"id": 6014, "parent_id": 601, "menu_name": "插件删除", "path": None, "component": None, "query": None, "perms": "plugin:market:delete", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 4, "remark": None},
-                {"id": 6015, "parent_id": 601, "menu_name": "插件启用/禁用", "path": None, "component": None, "query": None, "perms": "plugin:market:toggle", "icon": None, "menu_type": "F", "visible": "0", "status": "0", "is_cache": "0", "is_frame": "1", "order_num": 5, "remark": None},
-
             ]
 
             for menu_data in api_menus:

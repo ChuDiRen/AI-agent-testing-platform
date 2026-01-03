@@ -311,8 +311,7 @@ class ApiCollectionInfoService:
             "api_endpoint": f"/api/ApiInfoCase/executeCase",
             "request_method": "POST",
             "request_body": {
-                "plan_id": plan.id,
-                "executor_code": "api-engine"
+                "plan_id": plan.id
             },
             "curl_command": f'curl -X POST "{{BASE_URL}}/api/ApiInfoCase/executeCase" -H "Content-Type: application/json" -H "Authorization: Bearer {{TOKEN}}" -d \'{{"plan_id": {plan.id}}}\'',
             "pipeline_script": f'''pipeline {{

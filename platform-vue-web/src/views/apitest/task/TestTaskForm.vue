@@ -37,12 +37,6 @@
           </el-tooltip>
         </el-form-item>
 
-        <el-form-item label="执行引擎" prop="executor_code">
-          <el-select v-model="formData.executor_code" placeholder="请选择执行引擎" style="width: 100%">
-            <el-option v-for="engine in engineList" :key="engine.plugin_code" :label="engine.plugin_name" :value="engine.plugin_code" />
-          </el-select>
-        </el-form-item>
-
         <el-divider content-position="left">测试内容配置</el-divider>
 
         <el-form-item label="配置方式">
@@ -122,7 +116,6 @@ import { queryById, insertData, updateData } from './testTask.js'
 import { queryAll as queryProjects } from '~/views/apitest/project/apiProject.js'
 import { queryByPage as queryPlans } from '~/views/apitest/testplan/testPlan.js'
 import { queryByPage as queryCases } from '~/views/apitest/apiinfocase/apiInfoCase.js'
-import { listExecutors } from './apiTask.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -143,7 +136,6 @@ const formData = reactive({
   cron_expression: '',
   plan_id: null,
   case_ids: [],
-  executor_code: 'api_engine',
   notify_config: null,
   extra_config: null
 })
@@ -161,7 +153,6 @@ const notifyEmail = ref('')
 const projectList = ref([])
 const planList = ref([])
 const caseList = ref([])
-const engineList = ref([])
 
 // 表单验证规则
 const rules = {
@@ -171,9 +162,6 @@ const rules = {
   ],
   task_type: [
     { required: true, message: '请选择任务类型', trigger: 'change' }
-  ],
-  executor_code: [
-    { required: true, message: '请选择执行引擎', trigger: 'change' }
   ],
   cron_expression: [
     { required: true, message: '请输入Cron表达式', trigger: 'blur' }
@@ -216,32 +204,6 @@ const loadCases = async () => {
   }
 }
 
-// 加载执行引擎列表
-const loadEngines = async () => {
-  try {
-    const res = await listExecutors()
-    if (res.data.code === 200) {
-      engineList.value = res.data.data || []
-      // 如果没有引擎数据，添加默认选项
-      if (engineList.value.length === 0) {
-        engineList.value = [
-          { plugin_code: 'api_engine', plugin_name: 'API测试引擎' },
-          { plugin_code: 'web_engine', plugin_name: 'Web测试引擎' },
-          { plugin_code: 'perf_engine', plugin_name: '性能测试引擎' }
-        ]
-      }
-    }
-  } catch (error) {
-    console.error('加载执行引擎列表失败:', error)
-    // 使用默认引擎列表
-    engineList.value = [
-      { plugin_code: 'api_engine', plugin_name: 'API测试引擎' },
-      { plugin_code: 'web_engine', plugin_name: 'Web测试引擎' },
-      { plugin_code: 'perf_engine', plugin_name: '性能测试引擎' }
-    ]
-  }
-}
-
 // 加载任务详情
 const loadTaskDetail = async () => {
   if (!route.query.id) return
@@ -258,7 +220,6 @@ const loadTaskDetail = async () => {
       formData.cron_expression = data.cron_expression
       formData.plan_id = data.plan_id
       formData.case_ids = data.case_ids || []
-      formData.executor_code = data.executor_code
       
       // 设置配置模式
       if (data.plan_id) {
@@ -362,7 +323,6 @@ onMounted(() => {
   loadProjects()
   loadPlans()
   loadCases()
-  loadEngines()
   if (isEdit.value) {
     loadTaskDetail()
   }
