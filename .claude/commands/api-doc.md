@@ -8,11 +8,15 @@
 /api-doc [--module <模块名>] [--format <格式>]
 ```
 
-## 参数说明
-- `--module`: 指定模块，不指定则生成全部
-- `--format`: 输出格式，可选：`markdown`、`openapi`、`html`
+## 参数
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--module` | 指定模块 | 全部模块 |
+| `--format` | `markdown`/`openapi`/`html` | `markdown` |
 
 ## 文档内容
+
+参考 `@templates/code-patterns.md` 中的接口规范生成文档。
 
 ### 接口信息
 - 接口路径

@@ -8,10 +8,12 @@
 /test <文件路径> [--type <测试类型>] [--coverage]
 ```
 
-## 参数说明
-- `文件路径`: 要生成测试的源文件
-- `--type`: 测试类型，可选：`unit`、`integration`、`e2e`
-- `--coverage`: 生成覆盖率报告
+## 参数
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `文件路径` | 要生成测试的源文件 | 必填 |
+| `--type` | `unit`/`integration`/`e2e` | `unit` |
+| `--coverage` | 生成覆盖率报告 | 否 |
 
 ## 测试类型
 
@@ -30,62 +32,44 @@
 - 使用 Playwright
 - 模拟真实用户操作
 
-## 生成示例
+## 代码模板
+
+参考 `@templates/code-patterns.md` 中的后端代码规范生成测试。
 
 ### Python 单元测试
 ```python
-# tests/unit/test_user_service.py
+# tests/unit/test_{module}_service.py
 import pytest
 from unittest.mock import Mock, patch
-from app.services.user import UserService
 
-class TestUserService:
+class TestXxxService:
     @pytest.fixture
-    def user_service(self):
-        return UserService()
+    def service(self, session):
+        return XxxService(session)
     
-    @pytest.fixture
-    def mock_repository(self):
-        with patch('app.services.user.UserRepository') as mock:
-            yield mock
-    
-    def test_get_user_by_id_success(self, user_service, mock_repository):
-        """测试获取用户成功"""
-        mock_repository.return_value.find_by_id.return_value = {
-            "id": 1,
-            "username": "test"
-        }
-        
-        result = user_service.get_user_by_id(1)
-        
+    def test_get_by_id_success(self, service):
+        """测试获取成功"""
+        result = service.get_by_id(1)
         assert result is not None
-        assert result["id"] == 1
     
-    def test_get_user_by_id_not_found(self, user_service, mock_repository):
-        """测试用户不存在"""
-        mock_repository.return_value.find_by_id.return_value = None
-        
-        result = user_service.get_user_by_id(999)
-        
+    def test_get_by_id_not_found(self, service):
+        """测试不存在"""
+        result = service.get_by_id(999)
         assert result is None
 ```
 
 ### API 集成测试
 ```python
-# tests/api/test_user_api.py
+# tests/api/test_{module}_api.py
 import pytest
 from httpx import AsyncClient
 
-class TestUserAPI:
+class TestXxxAPI:
     @pytest.mark.asyncio
-    async def test_list_users(self, auth_client: AsyncClient):
-        """测试获取用户列表"""
-        response = await auth_client.get("/api/users")
-        
+    async def test_query_by_page(self, auth_client: AsyncClient):
+        response = await auth_client.post("/api/Xxx/queryByPage", json={"page": 1, "pageSize": 10})
         assert response.status_code == 200
-        data = response.json()
-        assert data["code"] == 0
-        assert "list" in data["data"]
+        assert response.json()["code"] == 0
 ```
 
 ## 输出位置
@@ -93,13 +77,10 @@ class TestUserAPI:
 - 集成测试: `tests/api/test_{module}.py`
 - E2E 测试: `tests/e2e/test_{feature}.py`
 
-## 覆盖率报告
-使用 `--coverage` 参数生成覆盖率报告：
+## 示例
 ```bash
-pytest --cov=app --cov-report=html
+/test userService.py                    # 单元测试
+/test UserController.py --type integration  # 集成测试
+/test user --type e2e                   # E2E 测试
+/test userService.py --coverage         # 带覆盖率
 ```
-
-## 注意事项
-- 会分析源代码的函数签名和逻辑
-- 自动生成正向和异常测试用例
-- 遵循 AAA 模式（Arrange-Act-Assert）
