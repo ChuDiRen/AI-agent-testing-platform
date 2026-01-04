@@ -8,20 +8,17 @@
 3. ResultCollector 负责解析和持久化
 """
 import uuid
-import subprocess
 import logging
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from core.temp_manager import get_temp_subdir
 
 from ..model.ApiHistoryModel import ApiHistory
-from ..model.ApiInfoCaseStepModel import ApiInfoCaseStep
-from ..model.ApiKeyWordModel import ApiKeyWord
 from .case_yaml_builder import CaseYamlBuilder
 from .result_collector import ResultCollector
 
@@ -46,14 +43,6 @@ class ExecutionService:
 
     # ==================== 公开方法 ====================
 
-    def detect_executor_for_case(self, case_id: int) -> str:
-        """根据用例步骤中的关键字自动检测应使用的执行器（已废弃，直接返回 api_engine）"""
-        return "api_engine"
-
-    def get_case_engines(self, case_id: int) -> List[str]:
-        """获取用例使用的所有引擎列表（已废弃，返回默认引擎）"""
-        return ["api_engine"]
-    
     def execute_case(
         self,
         case_id: int,
@@ -241,7 +230,7 @@ def _run_execution(
     统一处理单用例和计划执行
 
     执行流程：
-    1. 使用 pytest + allure 执行测试
+    1. 直接调用执行引擎的 run() 方法
     2. 生成Allure报告
     3. 保存执行记录
     """
@@ -255,76 +244,103 @@ def _run_execution(
     try:
         logger.info(f"开始执行: test_id={test_id}, workspace={workspace}, 用例数={len(case_names)}")
 
-        # 执行测试（pytest + allure）
+        # 准备执行环境
         workspace_path = Path(workspace)
-        allure_dir = workspace_path / "allure-results"
-        allure_dir.mkdir(parents=True, exist_ok=True)
 
-        # 使用 pytest 执行
-        cmd = [
-            "pytest",
-            str(workspace_path),
-            "-v",
-            "--alluredir",
-            str(allure_dir),
-            "--tb=short"
-        ]
+        # 设置执行引擎环境
+        import sys
+        import os
 
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=600
-        )
+        # 添加执行引擎到 Python 路径
+        engine_path = Path(__file__).parent.parent.parent / "engine" / "api-engine"
+        if str(engine_path) not in sys.path:
+            sys.path.insert(0, str(engine_path))
 
-        # 生成 allure 报告
-        allure_report_dir = workspace_path / "allure-report"
-        subprocess.run(
-            ["allure", "generate", str(allure_dir), "-o", str(allure_report_dir), "--clean"],
-            capture_output=True
-        )
+        # 保存原始 sys.argv
+        original_argv = sys.argv.copy()
+        original_cwd = os.getcwd()
 
-        success = result.returncode == 0
+        try:
+            # 模拟命令行调用：设置 sys.argv
+            sys.argv = [
+                "cli.py",
+                "--type=yaml",
+                f"--cases={workspace_path}",
+                f"--reports={workspace_path}"
+            ]
 
-        # 解析 pytest 输出获取通过/失败数
-        output = result.stdout + result.stderr
-        passed_count = output.count("PASSED")
-        failed_count = output.count("FAILED")
+            logger.info(f"模拟命令行调用执行引擎，workspace={workspace_path}")
 
-        # 构建结果字典
-        result_dict = {
-            "success": success,
-            "stdout": result.stdout,
-            "stderr": result.stderr,
-            "returncode": result.returncode,
-            "passed": passed_count,
-            "failed": failed_count
-        }
+            # 直接调用 run()，参数通过 sys.argv 传递
+            from apirun.cli import run
+            exit_code = run()
 
-        # 更新结果
-        collector = ResultCollector(db)
-        if len(case_names) == 1:
-            history = collector.update_single_case_result(test_id, result_dict)
-        else:
-            history = collector.update_plan_result(
-                test_id, result_dict, case_names, len(case_names), plan_id=plan_id
-            )
+            success = exit_code == 0
 
-        # 更新 TestTaskExecution 记录（如果有）
-        if task_execution_id:
-            exec_status = 'completed' if success else 'failed'
-            collector.update_task_execution(
-                execution_id=task_execution_id,
-                status=exec_status,
-                passed_cases=passed_count,
-                failed_cases=failed_count,
-                report_path=workspace
-            )
+            # 解析 allure-results 获取通过/失败数
+            passed_count = 0
+            failed_count = 0
+            allure_results_dir = workspace_path / "allure-results"
+            if allure_results_dir.exists():
+                import json
+                for result_file in allure_results_dir.glob("*-result.json"):
+                    try:
+                        with open(result_file, 'r', encoding='utf-8') as f:
+                            result_data = json.load(f)
+                            # allure 结果中包含步骤信息
+                            for step in result_data.get('steps', []):
+                                if 'status' in step:
+                                    if step['status'] == 'passed':
+                                        passed_count += 1
+                                    elif step['status'] == 'failed':
+                                        failed_count += 1
+                            # 如果没有步骤，检查用例本身的状态
+                            if not result_data.get('steps') and 'status' in result_data:
+                                if result_data['status'] == 'passed':
+                                    passed_count += 1
+                                elif result_data['status'] == 'failed':
+                                    failed_count += 1
+                    except Exception as e:
+                        logger.warning(f"解析 allure 结果文件失败: {e}")
 
-        logger.info(f"执行完成: test_id={test_id}, success={success}")
+            # 构建结果字典
+            result_dict = {
+                "success": success,
+                "returncode": exit_code,
+                "passed": passed_count,
+                "failed": failed_count
+            }
+
+            # 更新结果
+            collector = ResultCollector(db)
+            if len(case_names) == 1:
+                history = collector.update_single_case_result(test_id, result_dict)
+            else:
+                history = collector.update_plan_result(
+                    test_id, result_dict, case_names, len(case_names), plan_id=plan_id
+                )
+
+            # 更新 TestTaskExecution 记录（如果有）
+            if task_execution_id:
+                exec_status = 'completed' if success else 'failed'
+                collector.update_task_execution(
+                    execution_id=task_execution_id,
+                    status=exec_status,
+                    passed_cases=passed_count,
+                    failed_cases=failed_count,
+                    report_path=workspace
+                )
+
+            logger.info(f"执行完成: test_id={test_id}, success={success}, passed={passed_count}, failed={failed_count}")
+
+        finally:
+            # 恢复 sys.argv 和工作目录
+            sys.argv = original_argv
+            os.chdir(original_cwd)
 
     except Exception as e:
         logger.error(f"执行失败: test_id={test_id}, 错误: {e}", exc_info=True)
+        success = False
         try:
             collector = ResultCollector(db)
             collector.mark_failed(test_id, str(e))

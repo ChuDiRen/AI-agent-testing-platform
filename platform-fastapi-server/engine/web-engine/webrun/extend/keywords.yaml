@@ -1,0 +1,256 @@
+# Web 自动化测试关键字参数配置
+# 用来维护关键字对应的参数列表
+
+# ================================
+# 浏览器操作类关键字
+# ================================
+open_browser:
+  - browser # chrome/firefox/edge (默认 chrome)
+  - headless # true/false (默认 false)
+  - implicit_wait # 等待时间（秒，默认 10）
+  - window_size # maximize/1920x1080/等 (默认 maximize)
+
+close_browser: [] # 无参数
+
+navigate_to:
+  - url # 目标 URL
+
+refresh_page: [] # 无参数
+
+back: [] # 浏览器后退
+
+forward: [] # 浏览器前进
+
+# ================================
+# 元素操作类关键字
+# ================================
+click_element:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - wait_time # 显式等待时间（秒，可选）
+
+input_text:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - text # 要输入的文本
+  - clear # true/false (是否先清空，默认 true)
+  - wait_time # 显式等待时间（秒，可选）
+
+clear_text:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - wait_time # 显式等待时间（秒，可选）
+
+get_text:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - variable_name # 保存到的变量名
+  - wait_time # 显式等待时间（秒，可选）
+
+get_attribute:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - attribute_name # 要获取的属性名
+  - variable_name # 保存到的变量名
+  - wait_time # 显式等待时间（秒，可选）
+
+select_dropdown:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - select_method # value/text/index
+  - option_value # 选项的值/文本/索引
+  - wait_time # 显式等待时间（秒，可选）
+
+# ================================
+# 等待操作类关键字
+# ================================
+wait_for_element:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - timeout # 超时时间（秒，默认 15）
+
+wait_for_element_visible:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - timeout # 超时时间（秒，默认 15）
+
+wait_for_element_clickable:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - timeout # 超时时间（秒，默认 15）
+
+sleep:
+  - time # 等待时间（秒）
+
+# ================================
+# 断言操作类关键字
+# ================================
+assert_element_visible:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - timeout # 超时时间（秒，默认 10）
+
+assert_element_not_visible:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - timeout # 超时时间（秒，默认 10）
+
+assert_text_equals:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - expected_text # 期望的文本
+  - wait_time # 显式等待时间（秒，可选）
+
+assert_text_contains:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - expected_text # 期望包含的文本
+  - wait_time # 显式等待时间（秒，可选）
+
+assert_title_equals:
+  - expected_title # 期望的标题
+
+assert_title_contains:
+  - expected_text # 期望包含的文本
+
+# ================================
+# 高级操作类关键字
+# ================================
+switch_to_frame:
+  - locator_type # id/name/xpath/css 等 (可选)
+  - element # 元素标识 (可选)
+  - index # frame 索引 (可选)
+
+switch_to_window:
+  - index # 窗口索引 (从 0 开始)
+  - handle # 窗口句柄 (可选)
+
+execute_script:
+  - script # JavaScript 代码
+  - variable_name # 保存返回值到变量 (可选)
+
+take_screenshot:
+  - filename # 截图文件名 (可选，默认自动生成)
+
+scroll_to_element:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - wait_time # 显式等待时间（秒，可选）
+
+hover_element:
+  - locator_type # id/name/xpath/css 等
+  - element # 元素标识
+  - wait_time # 显式等待时间（秒，可选）
+
+get_current_url:
+  - variable_name # 保存到的变量名 (可选)
+
+# ================================
+# Browser-Use AI 关键字
+# 基于 LLM 驱动的智能浏览器自动化
+# ================================
+
+# 配置与浏览器管理
+bu_configure:
+  - llm_provider # LLM 提供商: openai/deepseek/qwen/anthropic/siliconflow/browser_use
+  - llm_model # 模型名称 (可选)
+  - api_key # API 密钥 (可选，从环境变量读取)
+  - base_url # API 基础 URL (可选)
+  - headless # 是否无头模式 (默认 false)
+  - timeout # 超时时间秒数 (默认 60)
+  - max_steps # 最大步骤数 (默认 50)
+
+bu_open_browser:
+  - headless # 是否无头模式 (默认 false)
+  - llm_provider # LLM 提供商 (可选)
+  - llm_model # 模型名称 (可选)
+
+bu_close_browser: [] # 无参数
+
+# 核心 AI 任务
+bu_run_task:
+  - task # 任务描述 (自然语言)
+  - max_steps # 最大步骤数 (可选，默认 50)
+  - save_result # 是否保存结果到变量 (可选)
+  - variable_name # 保存结果的变量名 (可选)
+
+bu_navigate:
+  - url # 目标 URL
+
+bu_click:
+  - element_desc # 元素的自然语言描述
+
+bu_input:
+  - element_desc # 输入框的自然语言描述
+  - text # 要输入的文本
+  - clear_first # 是否先清空 (默认 true)
+
+bu_extract_text:
+  - text_desc # 要提取文本的描述
+  - variable_name # 保存到的变量名 (默认 bu_extracted_text)
+
+bu_scroll:
+  - direction # 滚动方向: up/down/top/bottom
+  - element_desc # 滚动到的元素描述 (可选)
+
+bu_hover:
+  - element_desc # 要悬停的元素描述
+
+bu_drag:
+  - source_desc # 源元素描述
+  - target_desc # 目标元素描述
+
+bu_select:
+  - element_desc # 下拉框描述
+  - option # 要选择的选项
+
+bu_upload_file:
+  - element_desc # 上传按钮/区域描述 (可选)
+  - file_path # 文件路径
+
+# 断言关键字
+bu_assert_visible:
+  - element_desc # 元素描述
+
+bu_assert_text_contains:
+  - element_desc # 元素描述 (可选，默认整个页面)
+  - expected_text # 期望包含的文本
+
+bu_assert_url_contains:
+  - expected_url # 期望 URL 包含的内容
+
+# 高级功能
+bu_fill_form:
+  - form_data # 表单数据字典 {字段描述: 值}
+
+bu_login:
+  - username # 用户名
+  - password # 密码
+  - username_field # 用户名字段描述 (可选)
+  - password_field # 密码字段描述 (可选)
+  - submit_button # 提交按钮描述 (可选)
+
+bu_search:
+  - keyword # 搜索关键词
+  - search_box # 搜索框描述 (可选)
+  - search_button # 搜索按钮描述 (可选)
+
+bu_screenshot:
+  - filename # 截图文件名 (可选)
+  - element_desc # 元素描述，只截取该元素 (可选)
+
+bu_wait:
+  - condition # 等待条件描述
+  - timeout # 超时时间秒数 (默认 30)
+
+bu_switch_tab:
+  - tab_desc # 标签页描述 (可选)
+  - index # 标签页索引 (可选，从 0 开始)
+
+bu_handle_alert:
+  - action # 操作类型: accept/dismiss/input
+  - input_text # 如果是输入型弹窗，要输入的文本 (可选)
+
+bu_execute_script:
+  - script # JavaScript 代码
+  - variable_name # 保存结果的变量名 (可选)

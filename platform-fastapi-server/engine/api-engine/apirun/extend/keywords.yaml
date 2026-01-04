@@ -1,0 +1,47 @@
+# 关键字配置文件
+# 仅包含 keywords.py 中实际实现的关键字
+
+# ================================
+# HTTP 请求关键字
+# ================================
+send_request:
+  - method # 请求方法 (GET, POST, PUT, DELETE, PATCH 等)
+  - url # 请求地址 (支持大写 URL)
+  - headers # 请求头 (支持大写 HEADERS)
+  - params # URL 参数 (支持大写 PARAMS)
+  - data # 表单数据 (支持大写 DATA)
+  - json # JSON 数据
+  - files # 上传文件 (支持大写 FILES)
+  - download # 是否下载响应内容到文件 (True/False)
+  - timeout # 超时时间
+
+# ================================
+# 数据提取关键字
+# ================================
+ex_jsonData:
+  - EXVALUE # JSONPath 表达式
+  - INDEX # 下标，默认 0
+  - VARNAME # 存储的变量名
+
+ex_reData:
+  - EXVALUE # 正则表达式
+  - INDEX # 下标，默认 0
+  - VARNAME # 存储的变量名
+
+ex_mysqlData:
+  - 数据库 # 数据库名称 (在 context.yaml 中配置)
+  - SQL # SQL 查询语句
+  - 引用变量 # 变量名列表，默认使用字段名
+
+# ================================
+# 断言关键字
+# ================================
+assert_text_comparators:
+  - VALUE # 实际值
+  - EXPECTED # 期望值
+  - OP_STR # 操作符 ('>', '<', '==', '>=', '<=', '!=')
+  - MESSAGE # 自定义错误消息 (可选)
+
+assert_files_by_md5_comparators:
+  - value # 预期的 MD5 值
+  - expected # 预期的 MD5 值 (用于比对)
