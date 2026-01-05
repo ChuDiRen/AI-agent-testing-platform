@@ -46,3 +46,22 @@ export function queryByPlugin(pluginId, pluginCode) {
     if (pluginCode) params.append('plugin_code', pluginCode)
     return axios.get(`/${module_name}/queryByPlugin?${params.toString()}&_alias=keyword-by-plugin`)
 }
+
+// 批量删除关键字
+export function batchDelete(ids) {
+    return axios.delete(`/${module_name}/batchDelete?ids=${ids}&_alias=keyword-batch-delete`)
+}
+
+// 批量导入关键字
+export function batchImport(fileContent) {
+    return axios.post(`/${module_name}/batchImport?file=${encodeURIComponent(fileContent)}&_alias=keyword-batch-import`)
+}
+
+// 批量导出关键字
+export function batchExport(ids = null, format = 'json') {
+    let url = `/${module_name}/batchExport?format=${format}&_alias=keyword-batch-export`
+    if (ids) {
+        url += `&ids=${ids}`
+    }
+    return axios.get(url)
+}

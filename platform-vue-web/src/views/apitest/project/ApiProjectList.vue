@@ -17,13 +17,24 @@
       :data="tableData" 
       :total="total" 
       :loading="loading"
-      v-model:pagination="pagination"
+      :pagination="pagination"
+      @update:pagination="pagination = $event"
       @refresh="loadData"
+      @selection-change="handleSelectionChange"
+      type="selection"
     >
       <template #header>
         <el-button type="primary" @click="onDataForm(-1)">
           <el-icon><Plus /></el-icon>
           新增项目
+        </el-button>
+        <el-button 
+          type="danger" 
+          @click="onBatchDelete"
+          :disabled="selectedRows.length === 0"
+        >
+          <el-icon><Delete /></el-icon>
+          批量删除 ({{ selectedRows.length > 0 ? selectedRows.length : 0 }})
         </el-button>
       </template>
 
@@ -172,11 +183,11 @@
   
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from "vue";
-import { queryByPage, deleteData } from "./apiProject.js";
+import { queryByPage, deleteData, batchDeleteData } from "./apiProject.js";
 import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus } from '@element-plus/icons-vue';
+import { Plus, Delete } from '@element-plus/icons-vue';
 import BaseTable from '~/components/BaseTable/index.vue';
 import BaseSearch from '~/components/BaseSearch/index.vue';
 
@@ -194,6 +205,9 @@ const searchForm = reactive({
 
 // 表格数据
 const tableData = ref([]);
+
+// 批量操作相关
+const selectedRows = ref([]);
 
 // 加载页面数据
 const loadData = () => {
@@ -262,6 +276,40 @@ const onDelete = (index: number) => {
     }).catch((error: any) => {
       console.error('删除失败:', error);
       ElMessage.error('删除失败，请稍后重试');
+    });
+  }).catch(() => {});
+};
+
+// 处理表格选择变化
+const handleSelectionChange = (selection: any[]) => {
+  selectedRows.value = selection;
+};
+
+// 批量删除项目
+const onBatchDelete = () => {
+  if (selectedRows.value.length === 0) {
+    ElMessage.warning('请选择要删除的项目');
+    return;
+  }
+
+  const projectNames = selectedRows.value.map(row => row.project_name).join('、');
+  ElMessageBox.confirm(`确定要删除以下${selectedRows.value.length}个项目吗？\n\n${projectNames}`, '批量删除确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
+    const ids = selectedRows.value.map(row => row.id);
+    batchDeleteData(ids).then((res: { data: { code: number; msg: string } }) => {
+      if (res.data.code === 200) {
+        ElMessage.success(res.data.msg || '批量删除成功');
+        selectedRows.value = []; // 清空选择
+        loadData();
+      } else {
+        ElMessage.error(res.data.msg || '批量删除失败');
+      }
+    }).catch((error: any) => {
+      console.error('批量删除失败:', error);
+      ElMessage.error('批量删除失败，请稍后重试');
     });
   }).catch(() => {});
 };
@@ -348,8 +396,9 @@ const onAddDbinfo = (index: number) => {
   }
 
   // 验证 JSON 格式
+  let dbConnectionInfo;
   try {
-    JSON.parse(ruleForm.db_info);
+    dbConnectionInfo = JSON.parse(ruleForm.db_info);
   } catch (e) {
     ElMessage.error('数据库连接信息格式错误，请输入有效的 JSON 格式');
     return;
@@ -358,7 +407,21 @@ const onAddDbinfo = (index: number) => {
   // 添加数据的时候，设置项目对应的值
   ruleForm.project_id = currentProjectId.value;
 
-  insertData(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
+  // 构造符合后端API期望的数据结构
+  const submitData = {
+    project_id: ruleForm.project_id,
+    name: ruleForm.name,
+    ref_name: ruleForm.ref_name,
+    db_type: ruleForm.db_type,
+    host: dbConnectionInfo.host || '',
+    port: dbConnectionInfo.port || 3306,
+    database: dbConnectionInfo.database || '',
+    username: dbConnectionInfo.username || '',
+    password: dbConnectionInfo.password || '',
+    is_enabled: ruleForm.is_enabled
+  };
+
+  insertData(submitData).then((res: { data: { code: number; msg: string; }; }) => {
     if (res.data.code == 200) {
       ElMessage.success('数据库配置添加成功');
       loadDbBaseManage(currentProjectId.value);

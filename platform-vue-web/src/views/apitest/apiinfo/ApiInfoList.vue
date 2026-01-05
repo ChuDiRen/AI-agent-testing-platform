@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <!-- 搜索区域 -->
-    <BaseSearch :model="searchForm" :loading="loading" @search="loadData" @reset="resetSearch">
+    <BaseSearch :model="searchForm" :loading="loading" @search="handleSearch" @reset="resetSearch">
       <el-form-item label="项目" prop="project_id">
         <el-select v-model="searchForm.project_id" placeholder="选择项目" clearable style="width: 160px">
           <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id"/>     
@@ -15,17 +15,27 @@
           <el-option v-for="method in methodList" :key="method" :label="method" :value="method"/>     
         </el-select>
       </el-form-item>
-      <template #actions>
-        <el-button type="success" @click="showImportDialog">
-          <el-icon><Upload /></el-icon>
-          导入Swagger
-        </el-button>
-        <el-button type="primary" @click="onDataForm(-1)">
-          <el-icon><Plus /></el-icon>
-          新增接口
-        </el-button>
-      </template>
     </BaseSearch>
+    
+    <!-- 表格操作按钮 -->
+    <div class="table-actions" style="margin-bottom: 16px;">
+      <el-button type="success" @click="showImportDialog">
+        <el-icon><Upload /></el-icon>
+        导入Swagger
+      </el-button>
+      <el-button type="primary" @click="onDataForm(-1)">
+        <el-icon><Plus /></el-icon>
+        新增接口
+      </el-button>
+      <el-button 
+        type="danger" 
+        @click="onBatchDelete"
+        :disabled="selectedRows.length === 0"
+      >
+        <el-icon><Delete /></el-icon>
+        批量删除 ({{ selectedRows.length > 0 ? selectedRows.length : 0 }})
+      </el-button>
+    </div>
 
     <!-- 表格区域 -->
     <BaseTable 
@@ -33,8 +43,11 @@
       :data="tableData" 
       :total="total" 
       :loading="loading"
-      v-model:pagination="pagination"
+      :pagination="pagination"
+      @pagination-change="handlePaginationChange"
       @refresh="loadData"
+      @selection-change="handleSelectionChange"
+      type="selection"
     >
       <el-table-column prop="id" label="编号" width="80" />
       <el-table-column prop="api_name" label="接口名称" min-width="180" show-overflow-tooltip />
@@ -92,13 +105,29 @@
           </div>
         </el-form-item>
         
-        <el-form-item v-if="importForm.importType === 'json'" label="Swagger JSON" required>
-          <el-input 
-            v-model="importForm.swagger_json_text" 
-            type="textarea"
-            :rows="8"
-            placeholder="粘贴Swagger JSON内容"
-          />
+        <el-form-item v-if="importForm.importType === 'json'" label="Swagger文件" required>
+          <el-upload
+            ref="uploadRef"
+            class="upload-demo"
+            drag
+            :auto-upload="false"
+            :show-file-list="true"
+            :limit="1"
+            accept=".json"
+            :on-change="handleFileChange"
+            :on-remove="handleFileRemove"
+            :file-list="fileList"
+          >
+            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+            <div class="el-upload__text">
+              将Swagger JSON文件拖拽到此处，或<em>点击上传</em>
+            </div>
+            <template #tip>
+              <div class="el-upload__tip">
+                只能上传.json格式的Swagger文件
+              </div>
+            </template>
+          </el-upload>
         </el-form-item>
         
         <el-form-item label="覆盖已存在">
@@ -119,12 +148,12 @@
 
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from "vue";
-import { queryByPage, deleteData, getMethods, importSwagger } from './apiinfo.js';
+import { queryByPage, deleteData, getMethods, importSwagger, batchDeleteData } from './apiinfo.js';
 import { queryByPage as getProjectList } from '~/views/apitest/project/apiProject.js';
 import { formatDateTime } from '~/utils/timeFormatter';
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Upload, Plus } from '@element-plus/icons-vue';
+import { Upload, Plus, UploadFilled, Delete } from '@element-plus/icons-vue';
 import BaseSearch from '~/components/BaseSearch/index.vue';
 import BaseTable from '~/components/BaseTable/index.vue';
 
@@ -145,6 +174,9 @@ const searchForm = reactive({
 // 表格数据
 const tableData = ref([]);
 
+// 批量操作相关
+const selectedRows = ref([]);
+
 // 项目列表
 const projectList = ref([]);
 
@@ -154,6 +186,8 @@ const methodList = ref([]);
 // 导入对话框
 const importDialogVisible = ref(false);
 const importing = ref(false);
+const uploadRef = ref();
+const fileList = ref([]);
 const importForm = reactive({
   project_id: null,
   importType: 'url',
@@ -162,11 +196,39 @@ const importForm = reactive({
   override_existing: false
 });
 
+// 文件选择变化处理
+const handleFileChange = (file: any) => {
+  fileList.value = [file];
+  // 读取文件内容
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const content = e.target?.result as string;
+      importForm.swagger_json_text = content;
+    } catch (error) {
+      ElMessage.error('文件读取失败');
+    }
+  };
+  reader.readAsText(file.raw);
+};
+
+// 文件移除处理
+const handleFileRemove = () => {
+  fileList.value = [];
+  importForm.swagger_json_text = '';
+};
+
 // 重置搜索
 const resetSearch = () => {
   searchForm.project_id = null;
   searchForm.api_name = null;
   searchForm.request_method = null;
+  pagination.value.page = 1;
+  loadData();
+};
+
+// 处理搜索
+const handleSearch = () => {
   pagination.value.page = 1;
   loadData();
 };
@@ -280,6 +342,47 @@ const onDelete = (index) => {
   });
 };
 
+// 处理表格选择变化
+const handleSelectionChange = (selection: any[]) => {
+  selectedRows.value = selection;
+};
+
+// 处理分页变化
+const handlePaginationChange = (pageInfo: any) => {
+  pagination.value = pageInfo;
+  loadData();
+};
+
+// 批量删除接口
+const onBatchDelete = () => {
+  if (selectedRows.value.length === 0) {
+    ElMessage.warning('请选择要删除的接口');
+    return;
+  }
+
+  const apiNames = selectedRows.value.map(row => row.api_name).join('、');
+  ElMessageBox.confirm(`确定要删除以下${selectedRows.value.length}个接口吗？\n\n${apiNames}`, '批量删除确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
+    const ids = selectedRows.value.map(row => row.id);
+    // 这里需要调用批量删除的API
+    batchDeleteData(ids).then((res: { data: { code: number; msg: string } }) => {
+      if (res.data.code === 200) {
+        ElMessage.success(res.data.msg || '批量删除成功');
+        selectedRows.value = []; // 清空选择
+        loadData();
+      } else {
+        ElMessage.error(res.data.msg || '批量删除失败');
+      }
+    }).catch((error: any) => {
+      console.error('批量删除失败:', error);
+      ElMessage.error('批量删除失败，请稍后重试');
+    });
+  }).catch(() => {});
+};
+
 // 显示导入对话框
 const showImportDialog = () => {
   importForm.project_id = searchForm.project_id || null;
@@ -287,6 +390,7 @@ const showImportDialog = () => {
   importForm.swagger_url = '';
   importForm.swagger_json_text = '';
   importForm.override_existing = false;
+  fileList.value = [];
   importDialogVisible.value = true;
 };
 
@@ -304,7 +408,7 @@ const handleImport = async () => {
   }
   
   if (importForm.importType === 'json' && !importForm.swagger_json_text) {
-    ElMessage.warning('请粘贴Swagger JSON内容');
+    ElMessage.warning('请上传Swagger JSON文件');
     return;
   }
   
@@ -313,7 +417,7 @@ const handleImport = async () => {
     
     const requestData: any = {
       project_id: importForm.project_id,
-      override_existing: importForm.override_existing
+      overwrite: importForm.override_existing  // 后端字段名是 overwrite
     };
     
     if (importForm.importType === 'url') {
@@ -322,7 +426,7 @@ const handleImport = async () => {
       try {
         requestData.swagger_json = JSON.parse(importForm.swagger_json_text);
       } catch (e) {
-        ElMessage.error('JSON格式错误,请检查');
+        ElMessage.error('上传的JSON文件格式错误,请检查文件内容');
         return;
       }
     }
@@ -362,5 +466,18 @@ onMounted(() => {
   :deep(.el-form-item) {
     margin-right: 24px;
   }
+}
+
+/* 上传组件样式 */
+.upload-demo {
+  width: 100%;
+}
+
+.upload-demo :deep(.el-upload) {
+  width: 100%;
+}
+
+.upload-demo :deep(.el-upload-dragger) {
+  width: 100%;
 }
 </style>

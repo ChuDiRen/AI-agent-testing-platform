@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
 from ..service.ApiProjectService import ApiProjectService
-from ..schemas.ApiProjectSchema import ApiProjectQuery, ApiProjectCreate, ApiProjectUpdate
+from ..schemas.ApiProjectSchema import ApiProjectQuery, ApiProjectCreate, ApiProjectUpdate, BatchDeleteRequest
 
 module_name = "ApiProject"
 module_route = APIRouter(prefix=f"/{module_name}", tags=["API项目管理"])
@@ -58,18 +58,31 @@ async def update(project: ApiProjectUpdate, session: Session = Depends(get_sessi
         logger.error(f"更新API项目失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
-@module_route.delete("/delete", summary="删除API项目", dependencies=[Depends(check_permission("apitest:project:delete"))])
+@module_route.delete("/delete", summary="删除项目", dependencies=[Depends(check_permission("apitest:project:delete"))])
 async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     try:
-        success = ApiProjectService.delete(session, id)
-        if success:
+        service = ApiProjectService(session)
+        if service.delete(id):
             return respModel.ok_resp(msg="删除成功")
         else:
             return respModel.error_resp(msg="项目不存在")
     except Exception as e:
         session.rollback()
-        logger.error(f"删除API项目失败: {e}", exc_info=True)
+        logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"服务器错误,删除失败：{e}")
+
+@module_route.delete("/batchDelete", summary="批量删除项目", dependencies=[Depends(check_permission("apitest:project:delete"))])
+async def batch_delete(request: BatchDeleteRequest, session: Session = Depends(get_session)):
+    try:
+        deleted_count = ApiProjectService.batch_delete(session, request.ids)
+        if deleted_count > 0:
+            return respModel.ok_resp(msg=f"成功删除{deleted_count}个项目")
+        else:
+            return respModel.error_resp(msg="没有找到要删除的项目")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"批量删除失败: {e}", exc_info=True)
+        return respModel.error_resp(msg=f"批量删除失败：{e}")
 
 @module_route.get("/queryAll", summary="查询所有API项目", dependencies=[Depends(check_permission("apitest:project:query"))])
 async def queryAll(session: Session = Depends(get_session)):

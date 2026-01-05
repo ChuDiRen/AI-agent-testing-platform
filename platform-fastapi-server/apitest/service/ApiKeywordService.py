@@ -18,21 +18,29 @@ class ApiKeywordService:
         """分页查询关键字"""
         statement = select(ApiKeyWord)
         
-        # 条件筛选
+        # 条件筛选 - 使用链式调用确保多个条件正确组合
+        conditions = []
         if keyword_name:
-            statement = statement.where(ApiKeyWord.name.contains(keyword_name))
+            conditions.append(ApiKeyWord.name.contains(keyword_name))
         if operation_type_id:
-            statement = statement.where(ApiKeyWord.operation_type_id == operation_type_id)
+            conditions.append(ApiKeyWord.operation_type_id == operation_type_id)
+        
+        if conditions:
+            if len(conditions) == 1:
+                statement = statement.where(conditions[0])
+            else:
+                statement = statement.where(and_(*conditions))
         
         # 排序
         statement = statement.order_by(ApiKeyWord.id.desc())
         
-        # 查询总数
+        # 查询总数 - 使用与主查询相同的条件逻辑
         total_statement = select(ApiKeyWord)
-        if keyword_name:
-            total_statement = total_statement.where(ApiKeyWord.name.contains(keyword_name))
-        if operation_type_id:
-            total_statement = total_statement.where(ApiKeyWord.operation_type_id == operation_type_id)
+        if conditions:
+            if len(conditions) == 1:
+                total_statement = total_statement.where(conditions[0])
+            else:
+                total_statement = total_statement.where(and_(*conditions))
         
         total = len(self.session.exec(total_statement).all())
         

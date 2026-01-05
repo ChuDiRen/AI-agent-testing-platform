@@ -24,6 +24,11 @@ export function deleteData(id) {
     return axios.delete(`/${module_name}/delete?id=${id}&_alias=project-delete`)
 }
 
+// 批量删除项目
+export function batchDeleteData(ids) {
+    return axios.delete(`/${module_name}/batchDelete?_alias=project-batch-delete`, { data: { ids } })
+}
+
 // 拓展其他方法
 export function queryAllProject() {
     return axios.get(`/${module_name}/queryAll?_alias=project-all`)

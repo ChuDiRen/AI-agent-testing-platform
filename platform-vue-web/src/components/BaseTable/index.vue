@@ -20,8 +20,10 @@
       :row-key="rowKey"
       style="width: 100%"
       border
+      @selection-change="handleSelectionChange"
       v-bind="$attrs"
     >
+      <el-table-column type="selection" width="55" v-if="$attrs.type === 'selection'" />
       <slot />
       <template #empty>
         <el-empty description="暂无数据" />
@@ -31,8 +33,9 @@
     <!-- Pagination -->
     <BasePagination
       v-if="showPagination"
-      v-model="paginationInfo"
+      :model-value="pagination"
       :total="total"
+      @update:model-value="val => emit('update:pagination', val)"
       @change="handlePaginationChange"
     />
   </div>
@@ -77,15 +80,17 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:pagination', 'refresh'])
+const emit = defineEmits(['update:pagination', 'refresh', 'selection-change', 'pagination-change'])
 
-const paginationInfo = computed({
-  get: () => props.pagination,
-  set: (val) => emit('update:pagination', val)
-})
+// 处理选择变化
+const handleSelectionChange = (selection) => {
+  emit('selection-change', selection)
+}
 
-const handlePaginationChange = () => {
-  emit('refresh')
+// 处理分页变化
+const handlePaginationChange = (val) => {
+  emit('update:pagination', val)
+  emit('pagination-change', val)
 }
 
 // 展开/折叠逻辑

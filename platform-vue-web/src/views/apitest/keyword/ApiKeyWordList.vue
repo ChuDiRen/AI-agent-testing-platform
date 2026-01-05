@@ -15,6 +15,18 @@
           <el-icon><Plus /></el-icon>
           新增关键字
         </el-button>
+        <el-button type="success" @click="onBatchImport">
+          <el-icon><Upload /></el-icon>
+          批量导入
+        </el-button>
+        <el-button type="warning" @click="onBatchExport">
+          <el-icon><Download /></el-icon>
+          批量导出
+        </el-button>
+        <el-button type="danger" @click="onBatchDelete" :disabled="selectedRows.length === 0">
+          <el-icon><Delete /></el-icon>
+          批量删除 ({{ selectedRows.length }})
+        </el-button>
       </template>
     </BaseSearch>
 
@@ -24,9 +36,11 @@
       :data="tableData" 
       :total="total" 
       :loading="loading"
-      v-model:pagination="pagination"
+      :pagination="pagination"
+      @update:pagination="pagination = $event"
       @refresh="loadData"
     >
+      <el-table-column type="selection" width="55" @selection-change="handleSelectionChange" />
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="name" label="关键字名称" show-overflow-tooltip>
         <template #default="scope">
@@ -60,15 +74,15 @@
     </BaseTable>
   </div>
 </template>
-  
+
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from "vue";
 import { formatDateTime } from '~/utils/timeFormatter';
-import { queryByPage, deleteData } from "./apiKeyWord.js";
+import { queryByPage, deleteData, batchDelete, batchImport, batchExport } from "./apiKeyWord.js";
 import { queryAll } from "./operationType.js";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus } from '@element-plus/icons-vue';
+import { Plus, Upload, Download, Delete } from '@element-plus/icons-vue';
 import BaseSearch from '~/components/BaseSearch/index.vue';
 import BaseTable from '~/components/BaseTable/index.vue';
 
@@ -87,6 +101,9 @@ const tableData = ref([]);
 
 // 操作类型列表
 const operationTypeList = ref<Array<{id: number, operation_type_name: string}>>([]);
+
+// 选中的行数据
+const selectedRows = ref([]);
 
 // 加载页面数据
 const loadData = () => {
@@ -164,8 +181,100 @@ onMounted(() => {
   loadData();
   getOperationTypeList();
 });
-</script>
 
+// 处理表格选择变化
+const handleSelectionChange = (selection: any[]) => {
+  selectedRows.value = selection;
+};
+
+// 批量删除
+const onBatchDelete = () => {
+  if (selectedRows.value.length === 0) {
+    ElMessage.warning('请先选择要删除的记录');
+    return;
+  }
+  
+  ElMessageBox.confirm(`确定要删除选中的${selectedRows.value.length}条记录吗？`, '批量删除确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
+    const ids = selectedRows.value.map(row => row.id).join(',');
+    batchDelete(ids).then((res: { data: { code: number; msg: string } }) => {
+      if (res.data.code === 200) {
+        ElMessage.success(res.data.msg || '批量删除成功');
+        selectedRows.value = [];
+        loadData();
+      } else {
+        ElMessage.error(res.data.msg || '批量删除失败');
+      }
+    }).catch((error: any) => {
+      console.error('批量删除失败:', error);
+      ElMessage.error('批量删除失败，请稍后重试');
+    });
+  }).catch(() => {});
+};
+
+// 批量导入
+const onBatchImport = () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,.csv';
+  input.onchange = (e: any) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      const content = e.target.result;
+      batchImport(content).then((res: { data: { code: number; msg: string } }) => {
+        if (res.data.code === 200) {
+          ElMessage.success(res.data.msg || '批量导入成功');
+          loadData();
+        } else {
+          ElMessage.error(res.data.msg || '批量导入失败');
+        }
+      }).catch((error: any) => {
+        console.error('批量导入失败:', error);
+        ElMessage.error('批量导入失败，请稍后重试');
+      });
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+};
+
+// 批量导出
+const onBatchExport = () => {
+  const ids = selectedRows.value.length > 0 ? selectedRows.value.map(row => row.id).join(',') : null;
+  
+  // 直接导出JSON格式
+  batchExport(ids, 'json').then((res: { data: { code: number; data: any; msg: string } }) => {
+    if (res.data.code === 200) {
+      downloadFile(res.data.data.content, res.data.data.filename);
+      ElMessage.success('导出成功');
+    } else {
+      ElMessage.error(res.data.msg || '导出失败');
+    }
+  }).catch((error: any) => {
+    console.error('导出失败:', error);
+    ElMessage.error('导出失败，请稍后重试');
+  });
+};
+
+// 下载文件
+const downloadFile = (content: string, filename: string) => {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+};
+</script>
 
 <style scoped>
 @import '~/styles/common-list.css';

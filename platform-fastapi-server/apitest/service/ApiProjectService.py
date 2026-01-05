@@ -83,3 +83,18 @@ class ApiProjectService:
         """查询所有API项目"""
         statement = select(ApiProject)
         return list(session.exec(statement).all())
+
+    @staticmethod
+    def batch_delete(session: Session, ids: List[int]) -> int:
+        """批量删除API项目"""
+        deleted_count = 0
+        for project_id in ids:
+            project = session.get(ApiProject, project_id)
+            if project:
+                session.delete(project)
+                deleted_count += 1
+        
+        if deleted_count > 0:
+            session.commit()
+        
+        return deleted_count

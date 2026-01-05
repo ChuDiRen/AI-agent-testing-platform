@@ -70,6 +70,30 @@ async def delete(id: int = Query(...), session: Session = Depends(get_session)):
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
+@module_route.post("/batchDelete", summary="批量删除API接口信息", dependencies=[Depends(check_permission("apitest:api:delete"))])
+async def batchDelete(request: dict, session: Session = Depends(get_session)):
+    try:
+        ids = request.get("ids", [])
+        if not ids:
+            return respModel.error_resp("请提供要删除的ID列表")
+        
+        success_count = 0
+        error_count = 0
+        
+        for id in ids:
+            if InfoService.delete(session, id):
+                success_count += 1
+            else:
+                error_count += 1
+        
+        if error_count == 0:
+            return respModel.ok_resp_text(msg=f"批量删除成功，共删除{success_count}条数据")
+        else:
+            return respModel.ok_resp_text(msg=f"批量删除完成，成功{success_count}条，失败{error_count}条")
+    except Exception as e:
+        logger.error(f"批量删除失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
 @module_route.get("/getByProject", summary="根据项目ID获取接口列表")
 async def getByProject(project_id: int = Query(...), session: Session = Depends(get_session)):
     try:
@@ -116,8 +140,8 @@ async def import_swagger(request: SwaggerImportRequest, session: Session = Depen
             return respModel.error_resp("请提供swagger_url或swagger_json")
 
         # 解析Swagger文档
-        parser = SwaggerParser(swagger_data)
-        apis = parser.parse()
+        parser = SwaggerParser(swagger_data, source_url)
+        apis = parser.parse_apis()
 
         # 导入统计
         total_apis = len(apis)
@@ -147,37 +171,58 @@ async def import_swagger(request: SwaggerImportRequest, session: Session = Depen
                     continue
 
                 # 创建或更新接口
+                api_create_data = {
+                    'project_id': request.project_id,
+                    'api_name': api.get('name', ''),
+                    'request_method': api.get('method', 'GET'),
+                    'request_url': api.get('url', ''),
+                }
+                
+                # 添加解析的参数数据
+                api_create_data.update({
+                    'request_params': api.get('request_params'),
+                    'request_headers': api.get('request_headers'),
+                    'request_form_datas': api.get('request_form_datas'),
+                    'requests_json_data': api.get('requests_json_data'),
+                    'request_www_form_datas': api.get('request_www_form_datas'),
+                })
+
                 if existing:
                     # 更新接口
-                    api_update = ApiInfoUpdate(
-                        id=existing.id,
-                        api_name=api.get('name', ''),
-                        request_method=api.get('method', 'GET'),
-                        request_url=api.get('url', ''),
-                        request_headers=api.get('headers'),
-                        request_params=api.get('params'),
-                        requests_json_data=api.get('body')
-                    )
-                    InfoService.update(session, api_update)
+                    api_create_data['id'] = existing.id
+                    api_update = ApiInfoUpdate(**api_create_data)
+                    if InfoService.update(session, api_update):
+                        imported_apis += 1
+                        details.append({
+                            "api_name": api.get('name', ''),
+                            "status": "updated",
+                            "reason": "更新成功"
+                        })
+                    else:
+                        failed_apis += 1
+                        details.append({
+                            "api_name": api.get('name', ''),
+                            "status": "failed",
+                            "reason": "更新失败"
+                        })
                 else:
-                    # 创建接口
-                    api_create = ApiInfoCreate(
-                        project_id=request.project_id,
-                        folder_id=request.folder_id or 0,
-                        api_name=api.get('name', ''),
-                        request_method=api.get('method', 'GET'),
-                        request_url=api.get('url', ''),
-                        request_headers=api.get('headers'),
-                        request_params=api.get('params'),
-                        requests_json_data=api.get('body')
-                    )
-                    InfoService.create(session, api_create)
-
-                imported_apis += 1
-                details.append({
-                    "api_name": api.get('name', ''),
-                    "status": "imported"
-                })
+                    # 新增接口
+                    api_create = ApiInfoCreate(**api_create_data)
+                    data = InfoService.create(session, api_create)
+                    if data:
+                        imported_apis += 1
+                        details.append({
+                            "api_name": api.get('name', ''),
+                            "status": "imported",
+                            "reason": "导入成功"
+                        })
+                    else:
+                        failed_apis += 1
+                        details.append({
+                            "api_name": api.get('name', ''),
+                            "status": "failed",
+                            "reason": "导入失败"
+                        })
 
             except Exception as e:
                 failed_apis += 1
@@ -186,6 +231,7 @@ async def import_swagger(request: SwaggerImportRequest, session: Session = Depen
                     "status": "failed",
                     "reason": str(e)
                 })
+                logger.error(f"导入API失败 {api.get('name', '')}: {e}")
 
         # 返回结果
         result = SwaggerImportResponse(
@@ -193,11 +239,11 @@ async def import_swagger(request: SwaggerImportRequest, session: Session = Depen
             imported_apis=imported_apis,
             skipped_apis=skipped_apis,
             failed_apis=failed_apis,
-            details=details[:100]
+            details=details[:100]  # 限制返回前100条详情
         )
-
-        msg = f"导入完成: 成功{imported_apis}个, 跳过{skipped_apis}个, 失败{failed_apis}个"
-        return respModel.ok_resp(obj=result.model_dump(), msg=msg)
+        
+        logger.info(f"Swagger导入完成 - 总计:{total_apis}, 成功:{imported_apis}, 跳过:{skipped_apis}, 失败:{failed_apis}")
+        return respModel.ok_resp(obj=result)
 
     except Exception as e:
         session.rollback()

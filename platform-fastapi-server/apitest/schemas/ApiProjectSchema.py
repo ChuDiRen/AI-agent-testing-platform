@@ -17,3 +17,6 @@ class ApiProjectUpdate(BaseModel): # API项目更新请求
     project_name: Optional[str] = None
     project_desc: Optional[str] = None
 
+class BatchDeleteRequest(BaseModel): # 批量删除请求
+    ids: list[int]
+

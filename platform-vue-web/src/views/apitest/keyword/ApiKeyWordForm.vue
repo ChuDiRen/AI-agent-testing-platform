@@ -308,6 +308,7 @@ const formatCode = () => {
 };
 //  --------------END 扩展功能： 格式化代码 -------
 
+
 //  --------------扩展功能： 增加示例代码 -------
 const code_example = () => {
 let code = `# -*- coding: UTF-8 -*-
@@ -315,16 +316,16 @@ let code = `# -*- coding: UTF-8 -*-
 from apprun.core.globalContext import g_context # 引入全局变量
 
 class assert_title: # class名称 必须与关键字名称一致
-def __init__(self,driver:appdriver): # 这里不用动，获取浏览器驱动的
-  self.driver = driver
+    def __init__(self, driver: appdriver): # 这里不用动，获取浏览器驱动的
+        self.driver = driver
 
-# 新增关键字: title断言
-def assert_title(self, **kwargs): # 方法名称 必须与关键字名称一致
-  # kwargs 是你要从外部接收的参数，可以理解为一个字典
-  # 1. 按需引入相关依赖包（如果是平台本身没有的，记得在平台上进行相关的安装 pip install ）
-  # from selenium.appdriver.common.by import By
-  # 2. 编写具体关键字内容
-  assert EC.title_is(kwargs['数据内容')(self.driver)
+    # 新增关键字: title断言
+    def assert_title(self, **kwargs): # 方法名称 必须与关键字名称一致
+        # kwargs 是你要从外部接收的参数，可以理解为一个字典
+        # 1. 按需引入相关依赖包（如果是平台本身没有的，记得在平台上进行相关的安装 pip install ）
+        # from selenium.appdriver.common.by import By
+        # 2. 编写具体关键字内容
+        assert EC.title_is(kwargs['数据内容'])(self.driver)
 `;
 ruleForm.keyword_value = code;
 };

@@ -27,6 +27,11 @@ export function deleteData(id) {
     return axios.delete(`/${module_name}/delete?id=${id}&_alias=apiinfo-delete`)
 }
 
+// 批量删除接口信息
+export function batchDeleteData(ids) {
+    return axios.post(`/${module_name}/batchDelete?_alias=apiinfo-batch-delete`, { ids })
+}
+
 // 根据项目ID获取接口列表
 export function getByProject(projectId) {
     return axios.get(`/${module_name}/getByProject?project_id=${projectId}&_alias=apiinfo-by-project`)
