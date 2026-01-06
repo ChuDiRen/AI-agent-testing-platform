@@ -166,8 +166,8 @@ const onSubmit = () => {
         }
       }
 
-      // 6. 跳转首页
-      router.replace("/Statistics");
+      // 6. 跳转工作台（卡片选择页面）
+      router.replace("/workspace");
     } catch (err) {
       console.error("登录错误:", err);
       ElNotification({

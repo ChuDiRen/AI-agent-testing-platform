@@ -223,11 +223,46 @@ async function loadMenuData() {
   }
 }
 
-// 菜单完全由后端生成，不包含任何静态菜单
+// 模块与顶级菜单名称的映射关系（精确匹配顶级菜单）
+// 每个模块可以包含多个顶级菜单
+// 测试计划和资源管理为公共模块，API 和 Web 共享
+const moduleMenuMap = {
+  'ai-assistant': ['AI配置'],
+  'api-test': ['API自动化', '资源管理', '测试计划'],  // API测试包含资源管理和测试计划
+  'web-test': ['Web自动化', '资源管理', '测试计划'],  // Web测试包含资源管理和测试计划（消息通知已集成在Web自动化内）
+  'system': ['系统管理'],
+  'generator': ['代码生成']
+}
+
+// 根据模块过滤顶级菜单
+function filterMenusByModule(menus, moduleKey) {
+  if (!moduleKey || !menus || menus.length === 0) {
+    return menus
+  }
+  
+  const allowedMenuNames = moduleMenuMap[moduleKey] || []
+  
+  // 只保留匹配的顶级菜单
+  return menus.filter(menu => {
+    return allowedMenuNames.includes(menu.name)
+  })
+}
+
+// 菜单完全由后端生成，根据当前模块过滤
 const asideMenus = computed(()=> {
   const menuTree = store.state.menuTree || []
   const transformed = transformMenuTree(menuTree)
-  return transformed
+  
+  // 获取当前选择的模块
+  const currentModule = store.state.currentModule
+  
+  // 如果没有选择模块，显示所有菜单
+  if (!currentModule) {
+    return transformed
+  }
+  
+  // 根据模块过滤顶级菜单
+  return filterMenusByModule(transformed, currentModule)
 })
 
 // 根据当前路由计算激活的菜单项

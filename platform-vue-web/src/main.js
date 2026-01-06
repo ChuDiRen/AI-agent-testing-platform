@@ -23,6 +23,15 @@ import './styles/common-form.css'
 import './agent-react/globals.css'
 
 const app = createApp(App)
+
+// 过滤 Element Plus 的 slot 警告（已知的兼容性问题，不影响功能）
+app.config.warnHandler = (msg, instance, trace) => {
+  if (msg.includes('Slot "default" invoked outside of the render function')) {
+    return // 忽略此警告
+  }
+  console.warn(`[Vue warn]: ${msg}${trace}`)
+}
+
 app.use(store)
 app.use(router)
 app.use(ElementPlus, {

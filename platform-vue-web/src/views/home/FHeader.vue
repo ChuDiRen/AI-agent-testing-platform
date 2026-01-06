@@ -1,6 +1,6 @@
 <template>
   <div class="f-header">
-    <span class="logo">
+    <span class="logo" @click="goToWorkspace">
       <el-icon class="logo-icon"><Opportunity /></el-icon>
       <span class="logo-text">大熊AI自动化测试平台</span>
     </span>
@@ -9,6 +9,15 @@
       <Fold v-if="asideWidth == '250px'"/>
       <Expand v-else/>
     </el-icon>
+
+    <!-- 当前模块标识 -->
+    <div class="current-module" v-if="currentModuleName">
+      <el-tag type="info" effect="dark" round>{{ currentModuleName }}</el-tag>
+      <el-button link class="back-btn" @click="goToWorkspace">
+        <el-icon><Back /></el-icon>
+        <span>返回工作台</span>
+      </el-button>
+    </div>
     
     <div class="ml-auto flex items-center" style="gap: 16px;">
       <!-- 主题切换按钮 -->
@@ -43,6 +52,7 @@ import { ElMessageBox } from 'element-plus'
 import { useRouter } from "vue-router"
 import { useStore } from 'vuex'
 import { getUserInfo } from '~/views/login/login'
+import { Back } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const store = useStore()
@@ -50,6 +60,27 @@ const asideWidth = computed(() => store.state.asideWidth)
 
 const handleAsideWidth = () => {
   store.commit('handleAsideWidth')
+}
+
+// 当前模块名称映射
+const moduleNameMap = {
+  'ai-assistant': 'AI智能助手',
+  'api-test': 'API自动化测试',
+  'web-test': 'Web UI自动化',
+  'system': '系统管理',
+  'message': '消息通知',
+  'generator': '代码生成器'
+}
+
+const currentModuleName = computed(() => {
+  const module = store.state.currentModule
+  return moduleNameMap[module] || ''
+})
+
+// 返回工作台
+const goToWorkspace = () => {
+  store.commit('setCurrentModule', '')
+  router.push('/workspace')
 }
 
 // 从 Vuex 获取用户头像
@@ -190,6 +221,23 @@ function showModal(content,type,title){
 :deep(.drop-down) {
   width: 150px;
   text-align: center;
+}
+
+/* 当前模块标识 */
+.current-module {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 24px;
+}
+
+.back-btn {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+}
+
+.back-btn:hover {
+  color: white;
 }
 
 /* 响应式 */

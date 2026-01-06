@@ -40,7 +40,8 @@ const store = createStore({
             userInfo: null, // 用户信息
             roles: [], // 用户角色
             permissions: [], // 用户权限
-            menuTree: [] // 用户菜单树
+            menuTree: [], // 用户菜单树
+            currentModule: localStorage.getItem('currentModule') || '' // 当前选择的功能模块
         }
     },
     mutations: {
@@ -122,14 +123,26 @@ const store = createStore({
             state.menuTree = menuTree
         },
 
+        // 设置当前模块
+        setCurrentModule(state, module) {
+            state.currentModule = module
+            if (module) {
+                localStorage.setItem('currentModule', module)
+            } else {
+                localStorage.removeItem('currentModule')
+            }
+        },
+
         // 清除用户信息
         clearUserInfo(state) {
             state.userInfo = null
             state.roles = []
             state.permissions = []
             state.menuTree = []
+            state.currentModule = ''
             localStorage.removeItem('token')
             localStorage.removeItem('username')
+            localStorage.removeItem('currentModule')
         }
     },
     actions: {
