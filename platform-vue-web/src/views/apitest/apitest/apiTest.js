@@ -206,7 +206,7 @@ export function getReportUrl(testId) {
  */
 export async function checkEngineAvailable() {
     try {
-        const response = await axios.get('/api/engine/health?_alias=engine-health')
+        const response = await axios.get('/ApiTest/engine/health?_alias=engine-health')
         return response.code === 200
     } catch {
         return false

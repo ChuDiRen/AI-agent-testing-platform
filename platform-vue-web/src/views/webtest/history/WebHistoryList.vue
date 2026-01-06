@@ -150,7 +150,13 @@ import { Loading } from '@element-plus/icons-vue'
 import BaseSearch from '~/components/BaseSearch/index.vue'
 import BaseTable from '~/components/BaseTable/index.vue'
 import { formatDateTime } from '~/utils/timeFormatter'
-import { getExecutionHistory, getExecutionDetail } from '../execution/webExecution'
+import { 
+  getExecutionHistory, 
+  getExecutionDetail, 
+  getExecutionCases,
+  deleteExecutionHistory,
+  batchDeleteExecutionHistory
+} from './webHistory'
 
 const route = useRoute()
 const router = useRouter()
@@ -220,11 +226,20 @@ const loadProjects = () => {
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getExecutionHistory({
-      ...searchForm,
+    // 构建查询参数
+    const queryParams = {
       page: pagination.value.page,
-      pageSize: pagination.value.limit
-    })
+      pageSize: pagination.value.limit,
+      ...searchForm
+    }
+    
+    // 处理日期范围
+    if (searchForm.date_range && searchForm.date_range.length === 2) {
+      queryParams.start_date = searchForm.date_range[0]
+      queryParams.end_date = searchForm.date_range[1]
+    }
+    
+    const res = await getExecutionHistory(queryParams)
     if (res?.data?.code === 200) {
       tableData.value = res.data.data || []
       total.value = res.data.total || 0
@@ -232,6 +247,7 @@ const loadData = async () => {
       mockData()
     }
   } catch (error) {
+    console.error('加载执行历史失败:', error)
     mockData()
   } finally {
     loading.value = false

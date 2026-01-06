@@ -202,6 +202,9 @@ application.include_router(ApiCollectionDetailController.module_route)
 import apitest.api.ApiHistoryController as ApiHistoryController
 application.include_router(ApiHistoryController.module_route)
 
+import apitest.api.ApiTestController as ApiTestController
+application.include_router(ApiTestController.module_route)
+
 import apitest.api.ApiReportViewerController as ApiReportViewerController
 application.include_router(ApiReportViewerController.module_route)
 
@@ -238,6 +241,19 @@ application.include_router(TestCaseController.module_route)  # 测试用例管�
 from generator.api import generator_route, gen_table_route
 application.include_router(generator_route)  # 代码生成器
 application.include_router(gen_table_route)  # 表配置管理
+
+# 注册Web测试模块路由
+from webtest.api.WebProjectController import module_route as web_project_route
+from webtest.api.WebCaseController import module_route as web_case_route
+from webtest.api.WebElementController import module_route as web_element_route
+from webtest.api.WebExecutionController import module_route as web_execution_route
+from webtest.api.WebKeywordController import module_route as web_keyword_route
+
+application.include_router(web_project_route)  # Web项目管理
+application.include_router(web_case_route)  # Web用例管理
+application.include_router(web_element_route)  # Web元素管理
+application.include_router(web_execution_route)  # Web执行管理
+application.include_router(web_keyword_route)  # Web关键字管理
 
 # WebSocket路由 - 测试执行实时进度推送
 from fastapi import WebSocket, WebSocketDisconnect

@@ -28,7 +28,7 @@
             <el-icon><Link /></el-icon>
             打开 Allure 报告
           </el-button>
-          <el-button @click="downloadReport">
+          <el-button @click="handleDownloadReport">
             <el-icon><Download /></el-icon>
             下载报告
           </el-button>
@@ -276,7 +276,7 @@ import {
   Document, CircleCheck, CircleClose, TrendCharts
 } from '@element-plus/icons-vue'
 import { formatDateTime } from '~/utils/timeFormatter'
-import { getReportUrl, getExecutionDetail } from '../execution/webExecution'
+import { getReportData, getAllureUrl, downloadReport } from './webReport'
 
 const route = useRoute()
 const router = useRouter()
@@ -335,25 +335,40 @@ const getStatusLabel = (status) => {
 }
 
 // 加载报告数据
-const loadReport = async () => {
+const loadReportData = async () => {
+  if (!executionId.value) {
+    ElMessage.error('缺少执行ID')
+    return
+  }
+  
   try {
-    const res = await getExecutionDetail(executionId.value)
+    const res = await getReportData(executionId.value)
     if (res?.data?.code === 200) {
-      reportData.value = res.data.data
+      Object.assign(reportData.value, res.data.data)
+      
+      // 加载Allure报告链接
+      await loadAllureUrl()
     } else {
       mockReport()
     }
-    
-    // 获取 Allure 报告 URL
-    const urlRes = await getReportUrl(executionId.value)
-    if (urlRes?.data?.code === 200) {
-      allureUrl.value = urlRes.data.data.url
+  } catch (error) {
+    console.error('加载报告数据失败:', error)
+    mockReport()
+  }
+}
+
+// 加载Allure报告链接
+const loadAllureUrl = async () => {
+  try {
+    const res = await getAllureUrl(executionId.value)
+    if (res?.data?.code === 200) {
+      allureUrl.value = res.data.data.url
     } else {
       allureUrl.value = `/allure-report/${executionId.value}/index.html`
     }
   } catch (error) {
-    mockReport()
-    allureUrl.value = ''
+    console.error('加载Allure链接失败:', error)
+    allureUrl.value = `/allure-report/${executionId.value}/index.html`
   }
 }
 
@@ -401,9 +416,24 @@ const openAllureReport = () => {
 }
 
 // 下载报告
-const downloadReport = () => {
-  ElMessage.success('报告下载中...')
-  // 实际下载逻辑
+const handleDownloadReport = async () => {
+  try {
+    const res = await downloadReport(executionId.value, 'html')
+    
+    // 创建下载链接
+    const blob = new Blob([res.data], { type: 'text/html' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${reportData.value.project_name}_${reportData.value.id}.html`
+    link.click()
+    window.URL.revokeObjectURL(url)
+    
+    ElMessage.success('报告下载成功')
+  } catch (error) {
+    console.error('下载报告失败:', error)
+    ElMessage.error('下载失败，请稍后重试')
+  }
 }
 
 // 刷新报告

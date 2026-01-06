@@ -24,7 +24,15 @@ langchain-anthropic>=0.1.0
 # ==================== RAG and Knowledge ====================
 chromadb>=0.4.22
 sentence-transformers>=2.3.1
-# anythingchatrag>=0.1.0  # Uncomment when available
+numpy>=1.24.0
+
+# ==================== Multi-modal Content Processing ====================
+# Uncomment when needed for full multi-modal support
+# PyMuPDF>=1.23.0  # PDF processing
+# python-docx>=1.1.0  # Word processing
+# pandas>=2.1.0  # Excel processing
+# Pillow>=10.2.0  # Image processing
+# pytesseract>=0.3.10  # OCR
 
 # ==================== API Testing ====================
 httpx>=0.26.0
@@ -43,6 +51,10 @@ python-dotenv>=1.0.0
 rich>=13.7.0
 typer>=0.9.0
 aiofiles>=23.2.1
+
+# ==================== Chart and Visualization ====================
+# Uncomment when AntV integration is needed
+# antv>=0.1.0  # When available
 
 # ==================== Optional: For Development ====================
 # Uncomment for development

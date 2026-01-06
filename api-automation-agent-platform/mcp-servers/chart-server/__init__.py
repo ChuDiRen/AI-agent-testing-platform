@@ -1,13 +1,33 @@
 """
-Chart MCP Server - Professional Data Visualization
+Chart MCP Server - Professional Data Visualization with AntV 5.x
 
-Based on AntV 5.x, supporting 25+ chart types with SSE streaming.
+This MCP server provides comprehensive chart generation capabilities using:
+- AntV 5.x engine with 25+ chart types
+- SSE streaming support for real-time updates
+- Advanced customization and theming
+- Export capabilities (PNG, SVG, PDF)
+- Template system for common chart types
 """
 from typing import Any, Dict, List, Optional
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 import json
+import uuid
+from datetime import datetime
+import sys
+from pathlib import Path
+
+# Add parent directory to path for core imports
+sys.path.append(str(Path(__file__).parent.parent.parent))
+
+# Import AntV engine
+try:
+    from core.antv_charts import AntVChartEngine, ChartType, get_antv_engine
+    ANTIV_AVAILABLE = True
+except ImportError:
+    ANTIV_AVAILABLE = False
+    print("Warning: AntV engine not available, using fallback implementation")
 
 # Create MCP server
 app = Server("chart-server")
@@ -192,26 +212,71 @@ async def call_tool(name: str, arguments: Any) -> List[TextContent]:
 
 
 async def chart_generate(arguments: Any) -> List[TextContent]:
-    """Generate a single chart"""
-
-    chart_type = arguments.get("chartType")
+    """Generate a chart using AntV engine"""
+    
+    chart_type = arguments.get("chartType", "line")
     data = arguments.get("data", [])
     config = arguments.get("config", {})
     options = arguments.get("options", {})
 
-    # Generate chart specification
-    chart_spec = await generate_chart_spec(chart_type, data, config, options)
+    if not data:
+        return [TextContent(
+            type="text",
+            text=json.dumps({"error": "Data parameter is required"}, indent=2)
+        )]
 
-    return [TextContent(
-        type="text",
-        text=json.dumps({
-            "status": "success",
-            "chartType": chart_type,
-            "spec": chart_spec,
-            "renderUrl": f"/render/{chart_type}",
-            "usage": generate_usage_guide(chart_type)
-        }, indent=2, ensure_ascii=False)
-    )]
+    try:
+        if ANTIV_AVAILABLE:
+            # Use AntV engine
+            engine = get_antv_engine()
+            
+            # Create chart
+            chart_spec = await engine.create_chart(
+                chart_type=chart_type,
+                data=data,
+                config=config,
+                options=options
+            )
+            
+            # Format response
+            response = {
+                "status": "success",
+                "chartId": chart_spec.chart_id,
+                "chartType": chart_spec.chart_type.value,
+                "spec": chart_spec.antv_spec,
+                "renderUrl": chart_spec.render_url,
+                "createdAt": chart_spec.created_at,
+                "usage": generate_usage_guide(chart_type),
+                "supportedFormats": ["png", "svg", "pdf"],
+                "streamUrl": f"{engine.base_url}/stream/{chart_spec.chart_id}"
+            }
+            
+        else:
+            # Fallback implementation
+            chart_spec = await generate_chart_spec(chart_type, data, config, options)
+            
+            response = {
+                "status": "success",
+                "chartType": chart_type,
+                "spec": chart_spec,
+                "renderUrl": f"/render/{chart_type}",
+                "usage": generate_usage_guide(chart_type)
+            }
+
+        return [TextContent(
+            type="text",
+            text=json.dumps(response, indent=2, ensure_ascii=False)
+        )]
+
+    except Exception as e:
+        return [TextContent(
+            type="text",
+            text=json.dumps({
+                "status": "error",
+                "error": str(e),
+                "chartType": chart_type
+            }, indent=2)
+        )]
 
 
 async def generate_chart_spec(
