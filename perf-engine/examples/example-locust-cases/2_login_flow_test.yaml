@@ -1,27 +1,34 @@
 # 登录流程性能测试
-# 模拟完整用户业务流程的性能表现
+# 演示事务控制、顺序任务、数据提取等高级特性
 
 name: 用户登录流程压测
 desc: 模拟用户登录、浏览、操作的完整业务流程
 
+# 用户启动时执行 (对应 Locust on_start)
+on_start:
+  - 初始化用户:
+      关键字: set_var
+      name: session_id
+      value: ""
+
+# 用例步骤
 steps:
-  # 事务开始 - 登录流程
+  # ========== 事务: 用户登录 ==========
   - 开始登录事务:
       关键字: start_transaction
       name: 用户登录
 
-  # 访问首页
   - 访问首页:
       关键字: get
-      url: /
+      url: /get
       name: 首页
+      params:
+        page: home
 
-  # 页面加载等待
-  - 页面加载:
-      关键字: think_time
+  - 页面加载等待:
+      关键字: wait
       seconds: 1
 
-  # 提交登录
   - 提交登录:
       关键字: post
       url: /post
@@ -29,53 +36,55 @@ steps:
       json:
         username: "{{username}}"
         password: "{{password}}"
+      catch_response: true
 
-  # 验证登录响应
-  - 验证登录:
-      关键字: check_status
+  - 验证登录成功:
+      关键字: assert_status
       expected: 200
+      fail_on_error: true
 
-  # 事务结束
+  # 提取 Token (模拟)
+  - 提取Token:
+      关键字: extract_json
+      path: $.json.username
+      var: logged_user
+
   - 结束登录事务:
       关键字: end_transaction
       success: true
 
-  # 用户浏览间隔
+  # ========== 浏览间隔 ==========
   - 浏览间隔:
-      关键字: think_time
+      关键字: wait
       min: 2
       max: 5
 
-  # 事务开始 - 数据获取
+  # ========== 事务: 获取数据 ==========
   - 开始数据事务:
       关键字: start_transaction
       name: 获取数据
 
-  # 获取用户信息
   - 获取用户信息:
       关键字: get
       url: /headers
       name: 用户信息
       headers:
-        Authorization: "Bearer token-123"
+        Authorization: "Bearer token-{{logged_user}}"
 
-  # 获取数据列表
   - 获取数据列表:
       关键字: get
       url: /json
       name: 数据列表
 
-  # 验证数据响应时间
   - 验证响应时间:
-      关键字: check_response_time
+      关键字: assert_response_time
       max_ms: 3000
 
-  # 事务结束
   - 结束数据事务:
       关键字: end_transaction
       success: true
 
-  # 记录日志
+  # ========== 日志 ==========
   - 记录完成:
       关键字: log
-      message: "用户 {{username}} 完成一次完整流程"
+      message: "用户 {{logged_user}} 完成一次完整流程"

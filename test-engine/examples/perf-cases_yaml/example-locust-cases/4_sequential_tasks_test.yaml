@@ -1,0 +1,83 @@
+# 顺序任务性能测试
+# 演示: 顺序任务集 (SequentialTaskSet)、事务块
+
+name: 顺序任务性能测试
+desc: 对应 Locust SequentialTaskSet
+
+steps:
+  # 顺序任务集 - 完整购物流程
+  - 购物流程:
+      关键字: sequential_tasks
+      name: 完整购物流程
+      loop: 1
+      steps:
+        - 1. 登录:
+            关键字: post
+            url: /api/login
+            name: 1. 登录
+            json:
+              username: testuser
+              password: password123
+
+        - 提取Token:
+            关键字: extract_json
+            path: $.token
+            var: token
+
+        - 2. 浏览商品:
+            关键字: get
+            url: /api/products
+            name: 2. 商品列表
+            headers:
+              Authorization: "Bearer {{token}}"
+
+        - 等待:
+            关键字: wait
+            min: 1
+            max: 2
+
+        - 3. 查看商品详情:
+            关键字: get
+            url: /api/products/12345
+            name: 3. 商品详情
+            headers:
+              Authorization: "Bearer {{token}}"
+
+        - 4. 加入购物车:
+            关键字: post
+            url: /api/cart
+            name: 4. 加入购物车
+            headers:
+              Authorization: "Bearer {{token}}"
+            json:
+              product_id: 12345
+              quantity: 1
+
+        - 5. 结算:
+            关键字: post
+            url: /api/checkout
+            name: 5. 结算
+            headers:
+              Authorization: "Bearer {{token}}"
+
+  # 事务块
+  - 支付事务:
+      关键字: transaction
+      name: 支付流程
+      steps:
+        - 创建订单:
+            关键字: post
+            url: /api/orders
+            name: 创建订单
+            json:
+              items:
+                - product_id: 12345
+                  quantity: 1
+
+        - 支付:
+            关键字: post
+            url: /api/pay
+            name: 支付
+            json:
+              order_id: "{{order_id}}"
+              payment_method: alipay

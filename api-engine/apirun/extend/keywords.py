@@ -256,6 +256,78 @@ class Keywords:
         print(g_context().show_dict())
         print("-----------------------")
 
+    # ==================== Python 脚本执行 ====================
+
+    @allure.step("执行Python脚本: {script_path}")
+    def run_script(self, **kwargs):
+        """
+        执行 Python 脚本文件
+        
+        参数:
+            script_path: 脚本文件路径（绝对路径或相对于用例目录的路径）
+            function_name: 要调用的函数名（可选，如果不指定则执行整个脚本）
+            variable_name: 保存返回值到变量（可选）
+            其他参数: 将作为函数参数传递
+        """
+        from .script.run_script import exec_script_file
+        
+        script_path = kwargs.pop("script_path", None)
+        function_name = kwargs.pop("function_name", None)
+        variable_name = kwargs.pop("variable_name", None)
+        kwargs.pop("关键字", None)
+        
+        if not script_path:
+            raise ValueError("必须指定 script_path 参数")
+        
+        # 获取上下文
+        context = g_context().show_dict()
+        
+        # 执行脚本
+        result = exec_script_file(
+            script_path=script_path,
+            context=context,
+            caseinfo=None,
+            function_name=function_name,
+            **kwargs
+        )
+        
+        # 保存返回值
+        if variable_name and result is not None:
+            g_context().set_dict(variable_name, result)
+            print(f"脚本返回值已保存到变量 {variable_name}: {result}")
+        
+        return result
+
+    @allure.step("执行Python代码")
+    def run_code(self, **kwargs):
+        """
+        执行 Python 代码片段
+        
+        参数:
+            code: Python 代码字符串
+            variable_name: 保存返回值到变量（可选，代码中使用 __result__ = xxx 设置返回值）
+        """
+        from .script.run_script import exec_script
+        
+        code = kwargs.get("code", "")
+        variable_name = kwargs.get("variable_name")
+        
+        if not code:
+            raise ValueError("必须指定 code 参数")
+        
+        # 获取上下文
+        context = g_context().show_dict()
+        
+        # 执行代码
+        result = exec_script(code, context)
+        
+        # 保存返回值
+        if variable_name and result is not None:
+            g_context().set_dict(variable_name, result)
+            print(f"代码返回值已保存到变量 {variable_name}: {result}")
+        
+        return result
+
     @allure.step("参数数据")
     def ex_reData(self, **kwargs):
         """
@@ -275,6 +347,78 @@ class Keywords:
         print("-----------------------")
         print(g_context().show_dict())
         print("-----------------------")
+
+    # ==================== Python 脚本执行 ====================
+
+    @allure.step("执行Python脚本: {script_path}")
+    def run_script(self, **kwargs):
+        """
+        执行 Python 脚本文件
+        
+        参数:
+            script_path: 脚本文件路径（绝对路径或相对于用例目录的路径）
+            function_name: 要调用的函数名（可选，如果不指定则执行整个脚本）
+            variable_name: 保存返回值到变量（可选）
+            其他参数: 将作为函数参数传递
+        """
+        from .script.run_script import exec_script_file
+        
+        script_path = kwargs.pop("script_path", None)
+        function_name = kwargs.pop("function_name", None)
+        variable_name = kwargs.pop("variable_name", None)
+        kwargs.pop("关键字", None)
+        
+        if not script_path:
+            raise ValueError("必须指定 script_path 参数")
+        
+        # 获取上下文
+        context = g_context().show_dict()
+        
+        # 执行脚本
+        result = exec_script_file(
+            script_path=script_path,
+            context=context,
+            caseinfo=None,
+            function_name=function_name,
+            **kwargs
+        )
+        
+        # 保存返回值
+        if variable_name and result is not None:
+            g_context().set_dict(variable_name, result)
+            print(f"脚本返回值已保存到变量 {variable_name}: {result}")
+        
+        return result
+
+    @allure.step("执行Python代码")
+    def run_code(self, **kwargs):
+        """
+        执行 Python 代码片段
+        
+        参数:
+            code: Python 代码字符串
+            variable_name: 保存返回值到变量（可选，代码中使用 __result__ = xxx 设置返回值）
+        """
+        from .script.run_script import exec_script
+        
+        code = kwargs.get("code", "")
+        variable_name = kwargs.get("variable_name")
+        
+        if not code:
+            raise ValueError("必须指定 code 参数")
+        
+        # 获取上下文
+        context = g_context().show_dict()
+        
+        # 执行代码
+        result = exec_script(code, context)
+        
+        # 保存返回值
+        if variable_name and result is not None:
+            g_context().set_dict(variable_name, result)
+            print(f"代码返回值已保存到变量 {variable_name}: {result}")
+        
+        return result
 
     @allure.step("参数数据")
     def ex_mysqlData(self, **kwargs):
@@ -406,6 +550,78 @@ class Keywords:
         print("-----------------------")
         print(g_context().show_dict())
         print("-----------------------")
+
+    # ==================== Python 脚本执行 ====================
+
+    @allure.step("执行Python脚本: {script_path}")
+    def run_script(self, **kwargs):
+        """
+        执行 Python 脚本文件
+        
+        参数:
+            script_path: 脚本文件路径（绝对路径或相对于用例目录的路径）
+            function_name: 要调用的函数名（可选，如果不指定则执行整个脚本）
+            variable_name: 保存返回值到变量（可选）
+            其他参数: 将作为函数参数传递
+        """
+        from .script.run_script import exec_script_file
+        
+        script_path = kwargs.pop("script_path", None)
+        function_name = kwargs.pop("function_name", None)
+        variable_name = kwargs.pop("variable_name", None)
+        kwargs.pop("关键字", None)
+        
+        if not script_path:
+            raise ValueError("必须指定 script_path 参数")
+        
+        # 获取上下文
+        context = g_context().show_dict()
+        
+        # 执行脚本
+        result = exec_script_file(
+            script_path=script_path,
+            context=context,
+            caseinfo=None,
+            function_name=function_name,
+            **kwargs
+        )
+        
+        # 保存返回值
+        if variable_name and result is not None:
+            g_context().set_dict(variable_name, result)
+            print(f"脚本返回值已保存到变量 {variable_name}: {result}")
+        
+        return result
+
+    @allure.step("执行Python代码")
+    def run_code(self, **kwargs):
+        """
+        执行 Python 代码片段
+        
+        参数:
+            code: Python 代码字符串
+            variable_name: 保存返回值到变量（可选，代码中使用 __result__ = xxx 设置返回值）
+        """
+        from .script.run_script import exec_script
+        
+        code = kwargs.get("code", "")
+        variable_name = kwargs.get("variable_name")
+        
+        if not code:
+            raise ValueError("必须指定 code 参数")
+        
+        # 获取上下文
+        context = g_context().show_dict()
+        
+        # 执行代码
+        result = exec_script(code, context)
+        
+        # 保存返回值
+        if variable_name and result is not None:
+            g_context().set_dict(variable_name, result)
+            print(f"代码返回值已保存到变量 {variable_name}: {result}")
+        
+        return result
 
 
 

@@ -1,0 +1,92 @@
+# 数据提取性能测试
+# 演示从响应中提取数据并在后续请求中使用
+
+name: 数据提取性能测试
+desc: 测试 JSONPath、正则表达式、响应头提取
+
+steps:
+  # ========== JSONPath 提取 ==========
+  - 请求JSON数据:
+      关键字: get
+      url: /json
+      name: GET /json
+
+  - 提取标题:
+      关键字: extract_json
+      path: $.slideshow.title
+      var: slide_title
+
+  - 提取作者:
+      关键字: extract_json
+      path: $.slideshow.author
+      var: slide_author
+
+  - 记录提取结果:
+      关键字: log
+      message: "提取到标题: {{slide_title}}, 作者: {{slide_author}}"
+
+  - 等待:
+      关键字: wait
+      seconds: 1
+
+  # ========== 正则表达式提取 ==========
+  - 请求HTML页面:
+      关键字: get
+      url: /html
+      name: GET /html
+
+  - 正则提取标题:
+      关键字: extract_regex
+      pattern: "<title>(.*?)</title>"
+      var: page_title
+      group: 1
+
+  - 记录正则提取:
+      关键字: log
+      message: "正则提取标题: {{page_title}}"
+
+  - 等待:
+      关键字: wait
+      seconds: 1
+
+  # ========== 响应头提取 ==========
+  - 请求并获取响应头:
+      关键字: get
+      url: /response-headers?Server=nginx&X-Request-Id=12345
+      name: GET /response-headers
+
+  - 提取服务器头:
+      关键字: extract_header
+      name: Server
+      var: server_name
+
+  - 提取请求ID:
+      关键字: extract_header
+      name: X-Request-Id
+      var: request_id
+
+  - 记录响应头:
+      关键字: log
+      message: "服务器: {{server_name}}, 请求ID: {{request_id}}"
+
+  - 等待:
+      关键字: wait
+      seconds: 1
+
+  # ========== 使用提取的数据 ==========
+  - 使用提取数据发送请求:
+      关键字: post
+      url: /post
+      name: POST with extracted data
+      json:
+        title: "{{slide_title}}"
+        author: "{{slide_author}}"
+        request_id: "{{request_id}}"
+
+  - 验证提交成功:
+      关键字: assert_status
+      expected: 200
+
+  - 记录完成:
+      关键字: log
+      message: "数据提取测试完成"

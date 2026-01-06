@@ -6,6 +6,7 @@
 
 - ✅ **关键字驱动**：70+ 内置关键字，覆盖移动端全部操作场景
 - ✅ **数据驱动**：支持 YAML/Excel 用例格式，支持 DDT 数据驱动测试
+- ✅ **原生 Pytest**：支持使用 Python pytest 脚本编写测试
 - ✅ **变量渲染**：Jinja2 模板引擎，支持 `{{variable}}` 语法
 - ✅ **生命周期**：context.yaml 全局上下文 + 用例级 context 覆盖 + pre_script/post_script
 - ✅ **Allure 报告**：自动生成 complete.html 单文件报告
@@ -27,16 +28,24 @@ pip install -e .
 
 ## 运行方式
 
-### Android（apk 路径）
+### YAML 用例
+
+#### Android（apk 路径）
 
 ```bash
-mobilerun --type=yaml --cases=./examples --platform=android --app=E:\\path\\to\\app.apk --udid=emulator-5554
+mobilerun --type=yaml --cases=./examples/example-mobile-cases --platform=android --app=E:\\path\\to\\app.apk --udid=emulator-5554
 ```
 
-### iOS（bundleId）
+#### iOS（bundleId）
 
 ```bash
-mobilerun --type=yaml --cases=./examples --platform=ios --bundleId=com.example.app --udid=00008110-...
+mobilerun --type=yaml --cases=./examples/example-mobile-cases --platform=ios --bundleId=com.example.app --udid=00008110-...
+```
+
+### Excel 用例
+
+```bash
+mobilerun --type=excel --cases=./examples/example-excel-cases --platform=android --udid=emulator-5554
 ```
 
 ### 完整参数
@@ -253,6 +262,34 @@ steps:
 | `set_variable` | 设置变量 | variable_name, value |
 | `get_variable` | 获取变量 | variable_name |
 
+### Python 脚本执行
+
+| 关键字 | 说明 | 参数 |
+|--------|------|------|
+| `run_script` | 执行 Python 脚本文件 | script_path, function_name, variable_name |
+| `run_code` | 执行 Python 代码片段 | code, variable_name |
+
+**run_script 示例**：
+
+```yaml
+- 执行自定义脚本:
+    关键字: run_script
+    script_path: scripts/my_script.py
+    function_name: process_data
+    variable_name: result
+```
+
+**run_code 示例**：
+
+```yaml
+- 执行Python代码:
+    关键字: run_code
+    code: |
+      import random
+      __result__ = random.randint(1, 100)
+    variable_name: random_number
+```
+
 ## 目录结构
 
 ```
@@ -262,11 +299,30 @@ mobile-engine/
 ├── requirements.txt     # 依赖
 ├── README.md            # 文档
 ├── examples/            # 示例用例
-│   ├── context.yaml     # 全局配置
-│   ├── 1_android_smoke.yaml
-│   ├── 2_ios_smoke.yaml
-│   ├── 3_login_flow.yaml
-│   └── ...
+│   ├── example-mobile-cases/    # YAML 格式用例示例
+│   │   ├── context.yaml             # 全局配置
+│   │   ├── 1_android_smoke.yaml     # Android 冒烟测试
+│   │   ├── 2_ios_smoke.yaml         # iOS 冒烟测试
+│   │   ├── 3_login_flow.yaml        # 登录流程测试
+│   │   ├── 4_element_operations.yaml # 元素操作测试
+│   │   ├── 5_swipe_scroll.yaml      # 滑动滚动测试
+│   │   ├── 6_device_operations.yaml # 设备操作测试
+│   │   ├── 7_app_management.yaml    # App 管理测试
+│   │   ├── 8_data_driven.yaml       # 数据驱动测试
+│   │   ├── 9_assertions.yaml        # 断言测试
+│   │   └── 10_clipboard_notifications.yaml # 剪贴板通知测试
+│   │
+│   ├── example-excel-cases/     # Excel 格式用例示例
+│   │   ├── context.xlsx             # 全局配置
+│   │   ├── 1_android_basic.xlsx     # Android 基础测试
+│   │   ├── 2_element_operations.xlsx # 元素操作测试
+│   │   ├── 3_swipe_operations.xlsx  # 滑动操作测试
+│   │   └── 4_assertions.xlsx        # 断言测试
+│   │
+│   └── example-pytest-scripts/  # Pytest 脚本示例
+│       ├── conftest.py          # Pytest 配置和 Fixtures
+│       ├── test_mobile_basic.py # 基础移动端测试
+│       └── test_mobile_advanced.py # 高级测试示例
 ├── mobilerun/           # 核心代码
 │   ├── cli.py           # 命令行入口
 │   ├── core/            # 核心模块
@@ -303,85 +359,105 @@ class my_keywords:
         pass
 ```
 
-## Mobile-Use AI 关键字
+## 原生 Pytest 支持
 
-基于 [mobile-use](https://github.com/minitap-ai/mobile-use) 的 AI 驱动移动端自动化，支持自然语言控制。
-
-### 安装 mobile-use
+### 快速开始
 
 ```bash
-pip install mobile-use
-# 或从源码安装
-git clone https://github.com/minitap-ai/mobile-use.git
-cd mobile-use && pip install -e .
+cd mobile-engine/examples/example-pytest-scripts
+pytest -v -s --platform=android --device-name="emulator-5554"
 ```
 
-### 配置 LLM
+### Fixtures 说明
 
-设置环境变量：
+#### driver
+
+自动管理 Appium driver 生命周期：
+
+```python
+def test_example(driver):
+    # driver 已自动创建
+    driver.find_element(...)
+    # 测试结束后自动关闭
+```
+
+#### mobile_keywords
+
+提供 Mobile 关键字实例（依赖 driver）：
+
+```python
+def test_example(mobile_keywords, driver):
+    mobile_keywords.click_element(定位方式="id", 元素="button")
+```
+
+#### mobile_keywords_no_driver
+
+提供 Mobile 关键字实例（不自动创建 driver）：
+
+```python
+def test_example(mobile_keywords_no_driver):
+    mobile_keywords_no_driver.open_app(platform="android", ...)
+    mobile_keywords_no_driver.close_app()
+```
+
+### 命令行参数
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--platform` | 移动平台 (android/ios) | android |
+| `--appium-server` | Appium 服务器地址 | http://127.0.0.1:4723 |
+| `--device-name` | 设备名称 | None |
+| `--app-package` | Android 应用包名 | None |
+| `--app-activity` | Android 入口 Activity | None |
+
+### Pytest 示例
+
+```python
+import pytest
+import allure
+
+@allure.feature("登录功能")
+def test_login(mobile_keywords_no_driver):
+    """测试登录流程"""
+    with allure.step("启动应用"):
+        mobile_keywords_no_driver.open_app(
+            platform="android",
+            app_package="com.example.app",
+            app_activity=".MainActivity"
+        )
+    
+    with allure.step("输入用户名"):
+        mobile_keywords_no_driver.input_text(
+            定位方式="id",
+            元素="username",
+            文本="testuser"
+        )
+    
+    with allure.step("关闭应用"):
+        mobile_keywords_no_driver.close_app()
+
+@pytest.mark.parametrize("keyword", ["苹果", "香蕉", "橙子"])
+def test_search(mobile_keywords, driver, keyword):
+    """参数化搜索测试"""
+    mobile_keywords.input_text(定位方式="id", 元素="search", 文本=keyword)
+    mobile_keywords.click_element(定位方式="id", 元素="search_btn")
+```
+
+### 运行选项
+
 ```bash
-export OPENAI_API_KEY=your_api_key
-# 或使用其他 LLM
-export DEEPSEEK_API_KEY=your_api_key
-export SILICONFLOW_API_KEY=your_api_key
-```
+# 运行所有测试
+pytest -v -s
 
-### AI 关键字列表
+# 运行冒烟测试
+pytest -v -s -m smoke
 
-| 关键字 | 说明 | 参数 |
-|--------|------|------|
-| `mu_configure` | 配置 Mobile-Use | llm_provider, llm_model, api_key, timeout, max_steps |
-| `mu_init_agent` | 初始化 AI Agent | platform, device_id, llm_provider, llm_model |
-| `mu_close_agent` | 关闭 AI Agent | - |
-| `mu_run_task` | 执行 AI 任务 | goal, output_description, max_steps, variable_name |
-| `mu_analyze_screen` | 分析屏幕 | prompt, variable_name |
-| `mu_tap` | AI 点击 | element_desc |
-| `mu_input` | AI 输入 | element_desc, text, clear_first |
-| `mu_swipe` | AI 滑动 | direction, element_desc |
-| `mu_back` | AI 返回 | - |
-| `mu_home` | AI 回主屏幕 | - |
-| `mu_open_app` | AI 打开应用 | app_name |
-| `mu_close_app` | AI 关闭应用 | app_name |
-| `mu_extract_data` | AI 数据抓取 | data_desc, output_format, variable_name |
-| `mu_get_text` | AI 获取文本 | element_desc, variable_name |
-| `mu_assert_visible` | AI 断言可见 | element_desc |
-| `mu_assert_text_contains` | AI 断言文本 | expected_text, element_desc |
-| `mu_login` | AI 智能登录 | username, password, app_name |
-| `mu_search` | AI 智能搜索 | keyword, app_name |
-| `mu_send_message` | AI 发送消息 | recipient, message, app_name |
-| `mu_screenshot` | AI 截图 | filename, description |
-| `mu_wait` | AI 等待条件 | condition, timeout |
+# 运行 Android 测试
+pytest -v -s -m android
 
-### AI 用例示例
-
-```yaml
-desc: AI 自动化测试
-steps:
-  - 配置 AI:
-      关键字: mu_configure
-      llm_provider: "openai"
-      llm_model: "gpt-4o"
-
-  - 启动应用:
-      关键字: open_app
-
-  - AI 执行任务:
-      关键字: mu_run_task
-      goal: "打开设置，查看电池电量"
-      variable_name: battery_info
-
-  - AI 数据抓取:
-      关键字: mu_extract_data
-      data_desc: "获取前3个联系人的姓名和电话"
-      output_format: "JSON 数组"
-      variable_name: contacts
-
-  - AI 断言:
-      关键字: mu_assert_visible
-      element_desc: "设置页面"
-
-  - 关闭应用:
-      关键字: close_app
+# 生成 Allure 报告
+pytest --alluredir=allure-results
+allure serve allure-results
 ```
 
 ## 与 web-engine 的对比
@@ -394,4 +470,4 @@ steps:
 | 变量渲染 | Jinja2 | Jinja2 |
 | 报告 | Allure | Allure |
 | 基础关键字 | 50+ | 70+ |
-| AI 关键字 | browser-use | mobile-use |
+| 脚本支持 | run_script / run_code | run_script / run_code |

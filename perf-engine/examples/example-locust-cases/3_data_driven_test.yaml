@@ -1,0 +1,118 @@
+# 数据驱动性能测试
+# 演示随机数据、循环数据、条件控制等数据驱动特性
+
+name: 数据驱动性能测试
+desc: 使用不同的测试数据进行性能测试
+
+steps:
+  # ========== 随机数据 ==========
+  - 随机选择用户:
+      关键字: random_data
+      source: list
+      data:
+        - username: user1
+          password: pass1
+        - username: user2
+          password: pass2
+        - username: user3
+          password: pass3
+        - username: admin
+          password: admin123
+      var: current_user
+
+  - 使用随机用户登录:
+      关键字: post
+      url: /post
+      name: POST /login (random)
+      json: "{{current_user}}"
+
+  - 等待:
+      关键字: wait
+      min: 0.5
+      max: 1.5
+
+  # ========== 循环数据 (轮询) ==========
+  - 轮询选择商品:
+      关键字: cycle_data
+      source: list
+      data:
+        - id: 1
+          name: iPhone
+        - id: 2
+          name: MacBook
+        - id: 3
+          name: iPad
+        - id: 4
+          name: AirPods
+      var: current_product
+
+  - 获取商品详情:
+      关键字: get
+      url: /get
+      name: GET /product
+      params:
+        product_id: "{{current_product.id}}"
+        product_name: "{{current_product.name}}"
+
+  # ========== 条件控制 ==========
+  - 设置VIP标识:
+      关键字: set_var
+      name: is_vip
+      value: true
+
+  - 条件请求:
+      关键字: if_condition
+      condition: "is_vip == True"
+      then:
+        - VIP专属请求:
+            关键字: get
+            url: /get
+            name: GET /vip-content
+            params:
+              type: vip
+      else:
+        - 普通请求:
+            关键字: get
+            url: /get
+            name: GET /normal-content
+            params:
+              type: normal
+
+  # ========== 循环请求 ==========
+  - 批量获取数据:
+      关键字: loop
+      count: 3
+      delay: 0.2
+      steps:
+        - 获取分页数据:
+            关键字: get
+            url: /get
+            name: GET /list
+            params:
+              page: "{{_loop_index}}"
+
+  # ========== 遍历请求 ==========
+  - 设置分类列表:
+      关键字: set_var
+      name: categories
+      value:
+        - electronics
+        - clothing
+        - books
+        - food
+
+  - 遍历分类:
+      关键字: foreach
+      items: categories
+      var: category
+      steps:
+        - 获取分类商品:
+            关键字: get
+            url: /get
+            name: GET /category
+            params:
+              category: "{{category}}"
+
+  - 记录完成:
+      关键字: log
+      message: "数据驱动测试完成，当前用户: {{current_user.username}}"

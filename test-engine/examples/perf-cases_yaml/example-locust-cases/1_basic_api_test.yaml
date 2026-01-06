@@ -1,44 +1,49 @@
 # 基础 API 性能测试
-# 使用 Locust 性能测试关键字
+# 演示: HTTP 请求、等待时间、响应验证
 
-name: 基础API负载测试
-desc: 测试 API 在并发负载下的性能表现
+name: 基础 API 性能测试
+desc: 测试用户列表接口的性能
 
 steps:
-  # GET 请求 - 获取数据
-  - 获取数据:
+  # GET 请求
+  - 获取用户列表:
       关键字: get
-      url: /get
-      name: GET /get
-      params:
-        user: "{{username}}"
+      url: /api/users
+      name: GET /api/users
+      headers:
+        Content-Type: application/json
 
-  # 检查响应
-  - 验证状态码:
-      关键字: check_status
-      expected: 200
-
-  # 检查响应时间
-  - 验证响应时间:
-      关键字: check_response_time
-      max_ms: 2000
-
-  # 思考时间 - 模拟用户行为
+  # 等待时间 (随机 1-3 秒)
   - 用户思考:
-      关键字: think_time
+      关键字: wait
       min: 1
       max: 3
 
-  # POST 请求 - 提交数据
-  - 提交数据:
-      关键字: post
-      url: /post
-      name: POST /post
-      json:
-        username: "{{username}}"
-        action: load_test
+  # 验证状态码
+  - 验证状态码:
+      关键字: assert_status
+      expected: 200
 
-  # 验证响应包含内容
-  - 验证响应内容:
-      关键字: check_contains
-      text: "{{username}}"
+  # 验证响应时间
+  - 验证响应时间:
+      关键字: assert_response_time
+      max_ms: 1000
+
+  # POST 请求
+  - 创建用户:
+      关键字: post
+      url: /api/users
+      name: POST /api/users
+      json:
+        username: "testuser_{{_loop_index}}"
+        email: "test@example.com"
+
+  # 固定等待
+  - 固定等待:
+      关键字: wait
+      seconds: 2
+
+  # 验证响应包含
+  - 验证响应:
+      关键字: assert_contains
+      text: "id"

@@ -6,7 +6,7 @@
 
 - 🚀 **Locust 引擎**：基于 Locust，支持高并发和分布式测试
 - 📝 **YAML 用例**：使用 YAML 编写测试场景，简单直观
-- 🐍 **原生 Locust**：支持使用 Python Locust 脚本编写测试
+- 🐍 **原生 Locust**：支持使用标准 Locust 脚本编写测试（HttpUser、@task 等）
 - ⏱️ **性能专用关键字**：思考时间、事务控制、响应时间检查
 - 📊 **HTML 报告**：自动生成可视化性能报告
 - 🔄 **变量支持**：支持参数化和变量替换
@@ -46,9 +46,14 @@ perf-engine/
 │       └── VarRender.py          # 变量渲染工具
 │
 ├── examples/                 # 示例用例目录
-│   └── example-locust-cases/     # YAML 格式用例示例
-│       ├── context.yaml              # 全局配置（URL、变量等）
-│       └── *.yaml                    # 测试用例文件
+│   ├── example-locust-cases/     # YAML 格式用例示例
+│   │   ├── context.yaml              # 全局配置（URL、变量等）
+│   │   └── *.yaml                    # 测试用例文件
+│   │
+│   └── example-locust-scripts/   # 原生 Locust 脚本示例
+│       ├── locustfile_basic.py       # 基础性能测试
+│       ├── locustfile_login_flow.py  # 登录流程测试
+│       └── locustfile_advanced.py    # 高级特性示例
 │
 └── reports/                  # 测试报告目录（运行时自动生成）
     └── report_*.html             # HTML 可视化报告
@@ -101,8 +106,19 @@ python cli.py --cases=../examples/example-locust-cases --host=https://httpbin.or
 #### 方式二：运行原生 Locust 脚本
 
 ```bash
-cd examples
-locust -f my_locustfile.py --host=https://httpbin.org
+cd examples/example-locust-scripts
+
+# 启动 Locust Web UI（默认 http://localhost:8089）
+locust -f locustfile_basic.py --host=https://httpbin.org
+
+# 无界面模式运行
+locust -f locustfile_basic.py --host=https://httpbin.org --headless -u 10 -r 2 -t 60s
+
+# 运行登录流程测试
+locust -f locustfile_login_flow.py --host=https://httpbin.org
+
+# 运行高级特性测试（带标签过滤）
+locust -f locustfile_advanced.py --host=https://httpbin.org --tags smoke
 ```
 
 ### 3. 查看测试报告
@@ -155,99 +171,237 @@ steps:
         user: "{{username}}"
 ```
 
-### 原生 Locust 测试
+### 原生 Locust 脚本
 
 **适用场景**：
 
 - 开发人员或熟悉 Python 的测试人员
 - 需要复杂逻辑的测试场景
-- 需要使用 Locust 高级特性
+- 需要使用 Locust 高级特性（事件钩子、响应验证等）
 
-**示例**：
+**基础示例**：
 
 ```python
 from locust import HttpUser, task, between
 
 class WebsiteUser(HttpUser):
-    wait_time = between(1, 3)
+    """模拟网站用户"""
+    wait_time = between(1, 3)  # 任务间等待 1-3 秒
+    host = "https://httpbin.org"
+    
+    @task(3)  # 权重 3
+    def get_data(self):
+        self.client.get("/get", name="GET /get")
+    
+    @task(1)  # 权重 1
+    def post_data(self):
+        self.client.post("/post", json={"user": "test"}, name="POST /post")
+    
+    def on_start(self):
+        """用户启动时执行（如登录）"""
+        self.client.post("/post", json={"action": "login"})
+```
+
+**响应验证示例**：
+
+```python
+@task
+def validate_response(self):
+    with self.client.get("/get", catch_response=True) as response:
+        if response.status_code == 200:
+            response.success()
+        else:
+            response.failure(f"Got status {response.status_code}")
+```
+
+**顺序任务示例**：
+
+```python
+from locust import HttpUser, SequentialTaskSet, task
+
+class LoginFlow(SequentialTaskSet):
+    @task
+    def login(self):
+        self.client.post("/post", json={"action": "login"})
     
     @task
-    def load_test(self):
-        self.client.get("/api/users")
-        
-    @task(3)
-    def submit_data(self):
-        self.client.post("/api/data", json={"user": "test"})
+    def browse(self):
+        self.client.get("/get")
+    
+    @task
+    def logout(self):
+        self.client.post("/post", json={"action": "logout"})
+        self.interrupt()  # 结束任务集
+
+class FlowUser(HttpUser):
+    tasks = [LoginFlow]
+    wait_time = between(1, 2)
 ```
 
 ## 关键字说明
 
+基于 Locust 语法设计的关键字驱动系统，完整映射 Locust 核心特性。
+
 ### HTTP 请求
 
-| 关键字   | 说明        | 参数                         |
-| -------- | ----------- | ---------------------------- |
-| `get`    | GET 请求    | url, name, params, headers   |
-| `post`   | POST 请求   | url, name, json, data, headers |
-| `put`    | PUT 请求    | url, name, json, data, headers |
-| `delete` | DELETE 请求 | url, name, headers           |
+| 关键字   | 说明        | 参数                                    |
+| -------- | ----------- | --------------------------------------- |
+| `get`    | GET 请求    | url, name, params, headers, catch_response |
+| `post`   | POST 请求   | url, name, json, data, headers, catch_response |
+| `put`    | PUT 请求    | url, name, json, data, headers, catch_response |
+| `delete` | DELETE 请求 | url, name, headers, catch_response      |
+| `patch`  | PATCH 请求  | url, name, json, headers, catch_response |
 
 **参数说明**：
 
 - `url`: 请求路径（相对于 host）
-- `name`: 请求名称（用于报告分组）
+- `name`: 请求名称（用于 Locust 报告分组）
 - `params`: URL 参数
 - `headers`: 请求头
 - `json`: JSON 数据
 - `data`: 表单数据
+- `catch_response`: 启用响应验证模式（对应 Locust `catch_response=True`）
 
-### 思考时间
+### 等待时间
 
-| 关键字           | 说明           | 参数              |
-| ---------------- | -------------- | ----------------- |
-| `think_time`     | 模拟用户思考   | seconds, min, max |
-| `constant_pacing`| 固定间隔       | seconds           |
+| 关键字           | 说明                    | 参数              |
+| ---------------- | ----------------------- | ----------------- |
+| `wait`           | 等待时间（兼容 think_time）| seconds, min, max |
+| `constant_pacing`| 固定节奏间隔            | seconds           |
 
-**参数说明**：
+**对应 Locust**：
 
-- `seconds`: 固定等待秒数
-- `min`: 最小秒数（随机等待）
-- `max`: 最大秒数（随机等待）
+```python
+wait_time = between(min, max)  # 对应 wait: min/max
+wait_time = constant(seconds)  # 对应 wait: seconds
+```
 
-### 响应验证
+### 响应验证 (catch_response 模式)
 
-| 关键字              | 说明           | 参数          |
-| ------------------- | -------------- | ------------- |
-| `check_status`      | 检查状态码     | expected      |
-| `check_response_time` | 检查响应时间 | max_ms        |
-| `check_contains`    | 检查包含文本   | text          |
-| `validate_json`     | 验证 JSON      | path, expected |
+| 关键字              | 说明           | 参数                          |
+| ------------------- | -------------- | ----------------------------- |
+| `assert_status`     | 断言状态码     | expected, fail_on_error       |
+| `assert_response_time` | 断言响应时间 | max_ms, fail_on_error         |
+| `assert_contains`   | 断言包含文本   | text, fail_on_error           |
+| `assert_json`       | 断言 JSON      | path, expected, operator, fail_on_error |
+| `assert_header`     | 断言响应头     | name, expected, fail_on_error |
+| `mark_success`      | 标记请求成功   | message                       |
+| `mark_failure`      | 标记请求失败   | message                       |
+
+**对应 Locust**：
+
+```python
+with self.client.get("/api", catch_response=True) as response:
+    if response.status_code == 200:
+        response.success()
+    else:
+        response.failure("Error message")
+```
 
 ### 事务控制
 
-| 关键字            | 说明     | 参数    |
-| ----------------- | -------- | ------- |
-| `start_transaction` | 开始事务 | name    |
-| `end_transaction` | 结束事务 | success |
+| 关键字            | 说明       | 参数          |
+| ----------------- | ---------- | ------------- |
+| `transaction`     | 事务块     | name, steps   |
+| `start_transaction` | 开始事务 | name          |
+| `end_transaction` | 结束事务   | success       |
+
+### 顺序任务集
+
+| 关键字            | 说明                      | 参数               |
+| ----------------- | ------------------------- | ------------------ |
+| `sequential_tasks`| 顺序任务集                | name, steps, loop  |
+| `interrupt`       | 中断任务集                | message            |
+
+**对应 Locust**：
+
+```python
+class LoginFlow(SequentialTaskSet):
+    @task
+    def step1(self): ...
+    @task
+    def step2(self): ...
+    @task
+    def step3(self):
+        self.interrupt()  # 结束任务集
+```
 
 ### 数据操作
 
-| 关键字        | 说明         | 参数        |
-| ------------- | ------------ | ----------- |
-| `set_var`     | 设置变量     | name, value |
-| `extract_json`| 提取 JSON    | path, var   |
-| `log`         | 打印日志     | message     |
+| 关键字          | 说明           | 参数                |
+| --------------- | -------------- | ------------------- |
+| `set_var`       | 设置变量       | name, value         |
+| `extract_json`  | 提取 JSON      | path, var, index    |
+| `extract_regex` | 正则提取       | pattern, var, group |
+| `extract_header`| 提取响应头     | name, var           |
+
+### 数据驱动
+
+| 关键字        | 说明           | 参数                    |
+| ------------- | -------------- | ----------------------- |
+| `random_data` | 随机数据       | source, data, file, var |
+| `cycle_data`  | 循环数据（轮询）| source, data, file, var |
+
+**对应 Locust**：
+
+```python
+users = [{"username": "user1"}, {"username": "user2"}]
+user = random.choice(users)  # 对应 random_data
+```
+
+### 条件与循环
+
+| 关键字        | 说明       | 参数                    |
+| ------------- | ---------- | ----------------------- |
+| `if_condition`| 条件控制   | condition, then, else   |
+| `loop`        | 循环执行   | count, steps, delay     |
+| `foreach`     | 遍历执行   | items, var, steps       |
+
+### 生命周期钩子
+
+| 关键字      | 说明             | 参数   |
+| ----------- | ---------------- | ------ |
+| `on_start`  | 用户启动时执行   | steps  |
+| `on_stop`   | 用户停止时执行   | steps  |
+
+**对应 Locust**：
+
+```python
+class User(HttpUser):
+    def on_start(self):
+        # 登录等初始化操作
+        pass
+    
+    def on_stop(self):
+        # 清理操作
+        pass
+```
+
+### 日志与调试
+
+| 关键字          | 说明         | 参数           |
+| --------------- | ------------ | -------------- |
+| `log`           | 打印日志     | message, level |
+| `print_response`| 打印响应     | format         |
 
 ## YAML 用例编写
+
+### 示例用例文件
+
+| 文件 | 说明 |
+|------|------|
+| `1_basic_api_test.yaml` | 基础 HTTP 请求、等待时间、响应验证 |
+| `2_login_flow_test.yaml` | 事务控制、数据提取、生命周期钩子 |
+| `3_data_driven_test.yaml` | 随机数据、循环数据、条件控制、循环 |
+| `4_sequential_tasks_test.yaml` | 顺序任务集、事务块 |
+| `5_response_validation_test.yaml` | catch_response 模式响应验证 |
+| `6_extract_data_test.yaml` | JSONPath、正则、响应头提取 |
 
 ### 基础用例
 
 ```yaml
 name: 基础性能测试
 desc: 测试用户接口性能
-
-context:
-  base_url: https://api.example.com
-  username: testuser
 
 steps:
   - 发送GET请求:
@@ -258,29 +412,125 @@ steps:
         Authorization: "Bearer {{token}}"
 
   - 用户思考:
-      关键字: think_time
+      关键字: wait
       min: 1
       max: 3
 
   - 验证状态码:
-      关键字: check_status
+      关键字: assert_status
       expected: 200
 ```
 
-### 带事务的用例
+### 响应验证用例 (catch_response 模式)
 
 ```yaml
-name: 事务性能测试
-desc: 测试登录到下单完整流程
+name: 响应验证测试
+desc: 对应 Locust catch_response=True 模式
 
 steps:
-  - 开始登录事务:
-      关键字: start_transaction
-      name: 用户登录
+  - 请求并验证:
+      关键字: get
+      url: /api/users
+      name: 获取用户
+      catch_response: true  # 启用响应验证模式
 
-  - 登录请求:
+  - 验证状态码:
+      关键字: assert_status
+      expected: 200
+      fail_on_error: true  # 失败时标记请求失败
+
+  - 验证JSON:
+      关键字: assert_json
+      path: $.data[0].id
+      expected: 1
+      operator: eq
+```
+
+### 顺序任务用例
+
+```yaml
+name: 顺序任务测试
+desc: 对应 Locust SequentialTaskSet
+
+steps:
+  - 购物流程:
+      关键字: sequential_tasks
+      name: 完整购物流程
+      loop: 1
+      steps:
+        - 登录:
+            关键字: post
+            url: /login
+            name: 1. 登录
+            json:
+              username: testuser
+              password: password123
+
+        - 浏览商品:
+            关键字: get
+            url: /products
+            name: 2. 商品列表
+
+        - 加入购物车:
+            关键字: post
+            url: /cart
+            name: 3. 加入购物车
+            json:
+              product_id: 12345
+
+        - 结算:
+            关键字: post
+            url: /checkout
+            name: 4. 结算
+```
+
+### 数据驱动用例
+
+```yaml
+name: 数据驱动测试
+desc: 随机数据和循环数据
+
+steps:
+  - 随机选择用户:
+      关键字: random_data
+      source: list
+      data:
+        - username: user1
+          password: pass1
+        - username: user2
+          password: pass2
+      var: current_user
+
+  - 使用随机用户登录:
       关键字: post
-      url: /api/login
+      url: /login
+      name: POST /login
+      json: "{{current_user}}"
+
+  - 循环请求:
+      关键字: loop
+      count: 3
+      delay: 0.5
+      steps:
+        - 获取分页数据:
+            关键字: get
+            url: /list
+            name: GET /list
+            params:
+              page: "{{_loop_index}}"
+```
+
+### 带生命周期钩子的用例
+
+```yaml
+name: 生命周期测试
+desc: 对应 Locust on_start/on_stop
+
+# 用户启动时执行 (登录)
+on_start:
+  - 初始化:
+      关键字: post
+      url: /login
       name: 登录
       json:
         username: "{{username}}"
@@ -291,13 +541,20 @@ steps:
       path: $.token
       var: auth_token
 
-  - 结束登录事务:
-      关键字: end_transaction
-      success: true
+# 用户停止时执行 (登出)
+on_stop:
+  - 登出:
+      关键字: post
+      url: /logout
+      name: 登出
 
-  - 用户思考:
-      关键字: think_time
-      seconds: 2
+steps:
+  - 业务操作:
+      关键字: get
+      url: /api/data
+      name: 获取数据
+      headers:
+        Authorization: "Bearer {{auth_token}}"
 ```
 
 ## 配置文件
@@ -361,6 +618,52 @@ python -m perfrun.cli --cases=examples/example-locust-cases --host=https://httpb
 
 - **YAML**：适合简单测试、数据驱动、非编程人员
 - **Locust 脚本**：适合复杂逻辑、需要编程灵活性、开发人员
+
+## 原生 Locust 脚本说明
+
+### 示例文件
+
+| 文件 | 说明 |
+|------|------|
+| `locustfile_basic.py` | 基础用法：HttpUser、@task、wait_time |
+| `locustfile_login_flow.py` | 登录流程：SequentialTaskSet、用户权重 |
+| `locustfile_advanced.py` | 高级特性：事件钩子、响应验证、标签过滤 |
+
+### 运行命令
+
+```bash
+cd examples/example-locust-scripts
+
+# Web UI 模式（浏览器访问 http://localhost:8089）
+locust -f locustfile_basic.py
+
+# 无界面模式
+locust -f locustfile_basic.py --headless -u 100 -r 10 -t 5m --host=https://httpbin.org
+
+# 指定用户类
+locust -f locustfile_basic.py --class-picker
+
+# 标签过滤
+locust -f locustfile_advanced.py --tags smoke --exclude-tags slow
+
+# 生成 HTML 报告
+locust -f locustfile_basic.py --headless -u 10 -r 2 -t 60s --html=report.html
+```
+
+### Locust 命令行参数
+
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| `-f` | 指定 locustfile | `-f locustfile.py` |
+| `--host` | 目标主机 | `--host=https://api.example.com` |
+| `-u` | 并发用户数 | `-u 100` |
+| `-r` | 每秒启动用户数 | `-r 10` |
+| `-t` | 运行时长 | `-t 5m` 或 `-t 300s` |
+| `--headless` | 无界面模式 | `--headless` |
+| `--html` | 生成 HTML 报告 | `--html=report.html` |
+| `--csv` | 生成 CSV 报告 | `--csv=results` |
+| `--tags` | 只运行指定标签 | `--tags smoke,critical` |
+| `--exclude-tags` | 排除指定标签 | `--exclude-tags slow` |
 
 ### 4. 如何设置不同的并发模式？
 

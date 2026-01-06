@@ -1,16 +1,15 @@
 # Web Engine - Web 自动化测试引擎
 
-基于 Playwright + Browser-Use 的 Web 自动化测试引擎，采用关键字驱动和数据驱动的设计理念。
+基于 Playwright 的 Web 自动化测试引擎，采用关键字驱动和数据驱动的设计理念。
 
 ## 特性
 
 - ✨ **关键字驱动**：丰富的 Playwright 关键字库，简化测试用例编写
-- 🚀 **Browser-Use AI**：基于 LLM 的智能浏览器自动化，支持复杂多步骤任务
 - 📝 **YAML 格式**：使用 YAML 编写测试用例，清晰易读
-- 🐍 **原生 Pytest**：支持使用 Python pytest 脚本编写测试
+- 🐍 **原生 Python**：支持在步骤中执行 Python 脚本，灵活扩展
 - 🔄 **数据驱动**：支持 DDT 数据驱动测试，一个用例多组数据
-- 🌐 **多浏览器**：支持 Chrome、Firefox、Edge 浏览器
-- 🎯 **智能等待**：支持隐式等待和显式等待策略
+- 🌐 **多浏览器**：支持 Chromium、Firefox、WebKit、Edge 浏览器
+- 🎯 **智能等待**：Playwright 自动等待机制
 - 📊 **Allure 报告**：集成 Allure 测试报告，美观详细
 - 🔧 **易扩展**：支持自定义关键字扩展
 - 📸 **自动截图**：失败时自动截图，方便问题定位
@@ -62,6 +61,12 @@ web-engine/
 │   │   ├── 3_ddt_search_test.yaml        # 数据驱动搜索测试
 │   │   ├── 4_advanced_operations_test.yaml # 高级操作测试
 │   │   └── 5_wait_and_assert_test.yaml   # 等待和断言测试
+│   │
+│   ├── example-excel-cases/      # Excel 格式用例示例
+│   │   ├── context.xlsx              # 全局配置
+│   │   ├── 1_baidu_search.xlsx       # 百度搜索测试
+│   │   ├── 2_element_operations.xlsx # 元素操作测试
+│   │   └── 3_wait_and_assert.xlsx    # 等待断言测试
 │   │
 │   └── example-pytest-scripts/   # Pytest 脚本示例
 │       ├── conftest.py               # Pytest 配置和 Fixtures
@@ -222,44 +227,32 @@ allure generate -c -o reports/allure-report reports/allure-results
 | `hover_element`     | 鼠标悬停        | 定位方式, 元素, 等待时间 |
 | `get_current_url`   | 获取当前 URL    | 变量名                   |
 
-### Browser-Use AI 操作 🚀
+### Python 脚本执行
 
-| 关键字             | 说明             | 参数                            |
-| ------------------ | ---------------- | ------------------------------- |
-| `bu_configure`     | 配置 Browser-Use | llm_provider, headless, timeout |
-| `bu_open_browser`  | 启动 AI 浏览器   | headless, llm_provider          |
-| `bu_close_browser` | 关闭浏览器       | -                               |
-| `bu_run_task`      | 执行复杂 AI 任务 | task (自然语言描述)             |
-| `bu_click`         | AI 点击元素      | element_desc                    |
-| `bu_input`         | AI 输入文本      | element_desc, text              |
-| `bu_login`         | AI 智能登录      | username, password              |
-| `bu_search`        | AI 智能搜索      | keyword                         |
-| `bu_fill_form`     | AI 表单填写      | form_data                       |
+| 关键字       | 说明               | 参数                               |
+| ------------ | ------------------ | ---------------------------------- |
+| `run_script` | 执行 Python 脚本文件 | script_path, function_name, variable_name |
+| `run_code`   | 执行 Python 代码片段 | code, variable_name                |
 
-**Browser-Use 特点**：
-
-- ✅ 使用 LLM 驱动，支持复杂多步骤任务
-- ✅ 支持多种 LLM：OpenAI、DeepSeek、Qwen、Claude
-- ✅ 自然语言描述任务，AI 自动规划执行
-- ✅ 与 Playwright 关键字可混合使用
-- 📖 详细文档请参考：[BROWSER_USE_README.md](BROWSER_USE_README.md)
-
-**快速示例**：
+**run_script 示例**：
 
 ```yaml
-- 配置AI引擎:
-    关键字: bu_configure
-    llm_provider: deepseek
+- 执行自定义脚本:
+    关键字: run_script
+    script_path: scripts/my_script.py
+    function_name: process_data
+    variable_name: result
+```
 
-- 启动浏览器:
-    关键字: bu_open_browser
+**run_code 示例**：
 
-- AI执行复杂任务:
-    关键字: bu_run_task
-    task: "打开百度，搜索 Python，点击第一个结果"
-
-- 关闭浏览器:
-    关键字: bu_close_browser
+```yaml
+- 执行Python代码:
+    关键字: run_code
+    code: |
+      import random
+      __result__ = random.randint(1, 100)
+    variable_name: random_number
 ```
 
 ## 定位方式

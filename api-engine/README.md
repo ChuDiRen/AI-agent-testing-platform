@@ -6,6 +6,7 @@
 
 - ✨ **关键字驱动**：丰富的 API 关键字库，简化测试用例编写
 - 📝 **YAML 格式**：使用 YAML 编写测试用例，清晰易读
+- 📊 **Excel 格式**：支持 Excel 编写测试用例，便于非技术人员使用
 - 🐍 **原生 Pytest**：支持使用 Python pytest 脚本编写测试
 - 🔄 **数据驱动**：支持 DDT 数据驱动测试，一个用例多组数据
 - 📊 **Allure 报告**：集成 Allure 测试报告，美观详细
@@ -66,6 +67,12 @@ api-engine/
 │   │   ├── 5_download_image_comparison.yaml       # 文件下载用例
 │   │   └── P1.png                    # 测试图片资源
 │   │
+│   ├── example-excel-cases/      # Excel 格式用例示例
+│   │   ├── context.xlsx              # 全局配置（变量、数据库等）
+│   │   ├── 1_basic_api_test.xlsx     # 基础 API 测试
+│   │   ├── 2_login_flow.xlsx         # 登录流程测试
+│   │   └── 3_data_extraction.xlsx    # 数据提取测试
+│   │
 │   └── example-pytest-scripts/   # Pytest 脚本示例
 │       ├── conftest.py               # Pytest 配置和 Fixtures
 │       ├── test_api_basic.py         # 基础 API 测试
@@ -108,24 +115,31 @@ pip install -r requirements.txt
 
 ```bash
 cd apirun
-python cli.py --type=yaml --cases=../examples/example-api-cases_yaml
+python cli.py --type=yaml --cases=../examples/example-api-cases
 ```
 
 **模块方式运行**:
 
 ```bash
 cd api-engine
-python -m apirun.cli --type=yaml --cases=examples/example-api-cases_yaml
+python -m apirun.cli --type=yaml --cases=examples/example-api-cases
 ```
 
 **使用 pytest 直接运行**:
 
 ```bash
 cd apirun
-pytest core/ApiTestRunner.py --type=yaml --cases=../examples/example-api-cases_yaml
+pytest core/ApiTestRunner.py --type=yaml --cases=../examples/example-api-cases
 ```
 
-#### 方式二：运行 Pytest 脚本
+#### 方式二：运行 Excel 用例
+
+```bash
+cd apirun
+python cli.py --type=excel --cases=../examples/example-excel-cases
+```
+
+#### 方式三：运行 Pytest 脚本
 
 ```bash
 cd examples/example-pytest-scripts
@@ -363,9 +377,64 @@ _database:
 
 ## 命令行参数
 
-- `--type`: 用例类型（yaml/pytest）
+- `--type`: 用例类型（yaml/excel/pytest）
 - `--cases`: 用例目录路径
 - `--keyDir`: 自定义关键字目录
+
+## Excel 用例编写
+
+### 文件结构
+
+Excel 用例需要放在同一个文件夹下：
+
+```
+example-excel-cases/
+├── context.xlsx          # 全局配置（必需）
+├── 1_basic_api_test.xlsx # 测试用例（数字开头）
+├── 2_login_flow.xlsx
+└── 3_data_extraction.xlsx
+```
+
+### context.xlsx 格式
+
+| 类型 | 变量描述 | 变量值 |
+|------|----------|--------|
+| 变量 | URL | https://httpbin.org |
+| 变量 | username | admin |
+| 变量 | password | admin123 |
+| 数据库 | mysql001 | {"host":"localhost","port":3306,...} |
+
+### 用例文件格式
+
+| 测试用例标题 | 用例等级 | 步骤描述 | 关键字 | 参数_1 | 参数_2 | 参数_3 | ... |
+|-------------|---------|---------|--------|--------|--------|--------|-----|
+| GET 请求测试 | P1 | 发送 GET 请求 | send_request | GET | {{URL}}/get | {'Content-Type': 'application/json'} | ... |
+| | | 提取响应数据 | ex_jsonData | $.args.name | 0 | resp_name | |
+| | | 断言响应数据 | assert_text_comparators | {{resp_name}} | test | == | |
+| POST 请求测试 | P1 | 发送 POST 请求 | send_request | POST | {{URL}}/post | ... | |
+
+**说明**：
+- 第一列 `测试用例标题` 有值表示新用例开始
+- 同一用例的后续步骤该列留空
+- `参数_1`、`参数_2` 等列对应 `keywords.yaml` 中定义的参数顺序
+
+### 参数对应关系
+
+参数列的顺序对应 `keywords.yaml` 中关键字的参数定义：
+
+```yaml
+# keywords.yaml
+send_request:
+  - method      # 参数_1
+  - url         # 参数_2
+  - headers     # 参数_3
+  - params      # 参数_4
+  - data        # 参数_5
+  - json        # 参数_6
+  - files       # 参数_7
+  - download    # 参数_8
+  - timeout     # 参数_9
+```
 
 ## 自定义关键字
 
@@ -400,9 +469,10 @@ cd api-engine
 python -m apirun.cli --type=yaml --cases=examples/example-api-cases_yaml
 ```
 
-### 3. 如何在 YAML 和 Pytest 之间选择？
+### 3. 如何在 YAML、Excel 和 Pytest 之间选择？
 
 - **YAML**：适合简单测试、数据驱动、非编程人员
+- **Excel**：适合测试人员、便于批量管理用例、支持表格化编辑
 - **Pytest**：适合复杂逻辑、需要编程灵活性、开发人员
 
 ### 4. Pytest 脚本可以使用 g_context 吗？

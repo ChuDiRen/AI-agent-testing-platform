@@ -1,16 +1,23 @@
 """
 Perf Engine 性能测试关键字
-基于 Locust 实现的统一关键字库
+基于 Locust 语法设计的关键字驱动库
 
-使用方式:
-1. YAML 模式: 在 Locust User 类中使用，需要设置 client
-2. Pytest 模式: 使用 @perf.task() 装饰器定义任务，调用 run_test() 运行
-
-两种模式使用同一套关键字 API (get/post/check_status 等)
+核心特性:
+- 完整支持 Locust HttpUser 行为模拟
+- catch_response 模式的响应验证
+- 事务控制与统计
+- 顺序任务集 (SequentialTaskSet)
+- 数据驱动测试
+- 生命周期钩子
+- Pytest 模式支持
 """
 import time
 import random
-from typing import Dict, Any, Optional, List, Callable
+import re
+import csv
+import json
+from pathlib import Path
+from typing import Dict, Any, Optional, List, Callable, Union
 from dataclasses import dataclass, field
 
 from ..core.globalContext import g_context
@@ -23,7 +30,6 @@ try:
     from locust.stats import RequestStats
     import gevent
     from gevent import monkey
-    # 确保 gevent monkey patch
     if not monkey.is_module_patched('socket'):
         monkey.patch_all()
     LOCUST_AVAILABLE = True
@@ -39,7 +45,7 @@ class PerfTestConfig:
     host: str = "http://localhost"
     users: int = 10
     spawn_rate: int = 1
-    run_time: int = 60  # 秒
+    run_time: int = 60
     wait_time_min: float = 1.0
     wait_time_max: float = 3.0
 
@@ -57,8 +63,6 @@ class PerfTestResult:
     p99_response_time: float = 0.0
     requests_per_second: float = 0.0
     failure_rate: float = 0.0
-    
-    # 详细数据
     request_stats: List[Dict] = field(default_factory=list)
     errors: List[Dict] = field(default_factory=list)
 
@@ -67,72 +71,47 @@ class PerfTestResult:
 
 class PerfKeywords:
     """
-    性能测试统一关键字类
+    性能测试关键字类
     
-    两种模式使用同一套关键字 API:
-    
-    1. YAML 模式 (在 Locust User 中使用):
-    ```python
-    class MyUser(HttpUser):
-        def on_start(self):
-            self.kw = PerfKeywords(client=self.client)
-        
-        @task
-        def my_task(self):
-            self.kw.get(url="/users")
-            self.kw.check_status(expected=200)
-    ```
-    
-    2. Pytest 模式 (装饰器方式):
-    ```python
-    perf = PerfKeywords()
-    
-    @perf.task(weight=3)
-    def get_users(kw):  # kw 是 PerfKeywords 实例
-        kw.get(url="/users")
-        kw.check_status(expected=200)
-    
-    result = perf.run_test(host="https://api.example.com", users=50)
-    ```
+    基于 Locust 语法设计，支持:
+    - HTTP 请求 (get/post/put/delete/patch)
+    - 等待时间 (wait/constant_pacing)
+    - 响应验证 (assert_status/assert_json/assert_contains)
+    - 事务控制 (transaction/start_transaction/end_transaction)
+    - 顺序任务 (sequential_tasks)
+    - 数据驱动 (random_data/cycle_data)
+    - 条件控制 (if_condition)
+    - 循环 (loop/foreach)
+    - 生命周期钩子 (on_start/on_stop)
     """
     
     def __init__(self, client=None):
-        """
-        初始化关键字
-        
-        Args:
-            client: Locust HttpSession (YAML 模式需要传入)
-        """
         self.client = client
         self.context = {}
         self.last_response = None
+        self._catch_response_ctx = None
+        self._transaction_stack = []
+        self._data_iterators = {}
+        self._user_weight = 1
+        self._wait_time_config = None
         
-        # Pytest 模式的任务列表
+        # Pytest 模式
         self._tasks: List[Dict] = []
         self._on_start_func: Optional[Callable] = None
         self._on_stop_func: Optional[Callable] = None
         self._config: Optional[PerfTestConfig] = None
         self._result: Optional[PerfTestResult] = None
     
-    # ==================== 客户端管理 ====================
-    
     def set_client(self, client):
-        """设置 Locust client (YAML 模式)"""
+        """设置 Locust client"""
         self.client = client
     
     def set_context(self, context: Dict[str, Any] = None, **kwargs):
-        """
-        设置上下文变量
-        
-        Args:
-            context: 上下文字典
-            **kwargs: 关键字参数
-        """
+        """设置上下文变量"""
         if context:
             self.context.update(context)
         if kwargs:
             self.context.update(kwargs)
-        # 同步到全局上下文
         g_context().set_by_dict(self.context)
     
     def _render(self, value: Any) -> Any:
@@ -149,79 +128,83 @@ class PerfKeywords:
             return [self._render(i) for i in value]
         return value
     
-    # ==================== HTTP 请求关键字 (YAML 模式) ====================
+    def _pop_keyword(self, kwargs: dict) -> dict:
+        """移除关键字标识"""
+        kwargs.pop("关键字", None)
+        kwargs.pop("keyword", None)
+        return kwargs
+
+    # ==================== 用户行为配置 ====================
+    
+    def user_config(self, **kwargs):
+        """
+        用户行为配置
+        对应 Locust: HttpUser 类属性
+        """
+        self._pop_keyword(kwargs)
+        if "wait_time" in kwargs:
+            self._wait_time_config = kwargs["wait_time"]
+        if "weight" in kwargs:
+            self._user_weight = int(kwargs["weight"])
+        if "host" in kwargs:
+            self.context["_host"] = self._render(kwargs["host"])
+
+    # ==================== HTTP 请求 ====================
     
     def get(self, **kwargs) -> Optional[Any]:
-        """
-        GET 请求
-        
-        参数:
-        - url: 请求路径
-        - name: 请求名称 (报告分组)
-        - params: URL 参数
-        - headers: 请求头
-        """
-        kwargs.pop("关键字", None)
-        return self._request("GET", **kwargs)
+        """GET 请求"""
+        return self._request("GET", **self._pop_keyword(kwargs))
     
     def post(self, **kwargs) -> Optional[Any]:
-        """
-        POST 请求
-        
-        参数:
-        - url: 请求路径
-        - name: 请求名称
-        - json: JSON 数据
-        - data: 表单数据
-        - headers: 请求头
-        """
-        kwargs.pop("关键字", None)
-        return self._request("POST", **kwargs)
+        """POST 请求"""
+        return self._request("POST", **self._pop_keyword(kwargs))
     
     def put(self, **kwargs) -> Optional[Any]:
         """PUT 请求"""
-        kwargs.pop("关键字", None)
-        return self._request("PUT", **kwargs)
+        return self._request("PUT", **self._pop_keyword(kwargs))
     
     def delete(self, **kwargs) -> Optional[Any]:
         """DELETE 请求"""
-        kwargs.pop("关键字", None)
-        return self._request("DELETE", **kwargs)
+        return self._request("DELETE", **self._pop_keyword(kwargs))
+    
+    def patch(self, **kwargs) -> Optional[Any]:
+        """PATCH 请求"""
+        return self._request("PATCH", **self._pop_keyword(kwargs))
     
     def _request(self, method: str, **kwargs) -> Optional[Any]:
-        """发送 HTTP 请求 (YAML 模式)"""
+        """发送 HTTP 请求"""
         if not self.client:
-            raise RuntimeError("Locust client 未初始化，请先调用 set_client() 或使用 Pytest 模式")
+            raise RuntimeError("Locust client 未初始化")
         
         url = self._render(kwargs.pop("url", "/"))
         name = kwargs.pop("name", None)
+        catch_response = kwargs.pop("catch_response", False)
         
-        # 渲染参数
         req_kwargs = {}
         if name:
             req_kwargs["name"] = name
-        for key in ["headers", "params", "data", "json"]:
+        if catch_response:
+            req_kwargs["catch_response"] = True
+        
+        for key in ["headers", "params", "data", "json", "files"]:
             if key in kwargs:
                 req_kwargs[key] = self._render(kwargs[key])
         
-        # 发送请求
         func = getattr(self.client, method.lower())
-        self.last_response = func(url, **req_kwargs)
+        
+        if catch_response:
+            self._catch_response_ctx = func(url, **req_kwargs)
+            self.last_response = self._catch_response_ctx.__enter__()
+        else:
+            self.last_response = func(url, **req_kwargs)
+        
         return self.last_response
+
+    # ==================== 等待时间 ====================
     
-    # ==================== 思考时间关键字 ====================
-    
-    def think_time(self, **kwargs):
-        """
-        思考时间 - 模拟用户操作间隔
-        
-        参数:
-        - seconds: 固定等待秒数
-        - min: 最小秒数 (随机)
-        - max: 最大秒数 (随机)
-        """
-        kwargs.pop("关键字", None)
-        
+    def wait(self, **kwargs):
+        """等待时间"""
+        self._pop_keyword(kwargs)
         seconds = kwargs.get("seconds")
         if seconds is not None:
             time.sleep(float(seconds))
@@ -230,75 +213,76 @@ class PerfKeywords:
             max_s = float(kwargs.get("max", min_s))
             time.sleep(random.uniform(min_s, max_s))
     
+    think_time = wait
+    
     def constant_pacing(self, **kwargs):
-        """
-        固定节奏 - 确保任务以固定间隔执行
-        
-        参数:
-        - seconds: 间隔秒数
-        """
-        kwargs.pop("关键字", None)
+        """固定节奏等待"""
+        self._pop_keyword(kwargs)
         seconds = float(kwargs.get("seconds", 1))
         time.sleep(seconds)
+
+    # ==================== 响应验证 (catch_response 模式) ====================
     
-    # ==================== 响应验证关键字 ====================
-    
-    def check_status(self, **kwargs) -> bool:
-        """
-        检查状态码
-        
-        参数:
-        - expected: 期望状态码 (默认 200)
-        """
-        kwargs.pop("关键字", None)
-        
+    def assert_status(self, **kwargs):
+        """断言状态码"""
+        self._pop_keyword(kwargs)
         if not self.last_response:
             return False
         
         expected = int(kwargs.get("expected", 200))
-        return self.last_response.status_code == expected
+        fail_on_error = kwargs.get("fail_on_error", True)
+        actual = self.last_response.status_code
+        
+        if actual == expected:
+            self._mark_success()
+            return True
+        else:
+            if fail_on_error:
+                self._mark_failure(f"Expected status {expected}, got {actual}")
+            return False
     
-    def check_response_time(self, **kwargs) -> bool:
-        """
-        检查响应时间
-        
-        参数:
-        - max_ms: 最大响应时间 (毫秒)
-        """
-        kwargs.pop("关键字", None)
-        
+    check_status = assert_status
+    
+    def assert_response_time(self, **kwargs):
+        """断言响应时间"""
+        self._pop_keyword(kwargs)
         if not self.last_response:
             return False
         
         max_ms = float(kwargs.get("max_ms", 1000))
+        fail_on_error = kwargs.get("fail_on_error", True)
         actual_ms = self.last_response.elapsed.total_seconds() * 1000
-        return actual_ms <= max_ms
+        
+        if actual_ms <= max_ms:
+            return True
+        else:
+            if fail_on_error:
+                self._mark_failure(f"Response time {actual_ms:.0f}ms > {max_ms}ms")
+            return False
     
-    def check_contains(self, **kwargs) -> bool:
-        """
-        检查响应包含文本
-        
-        参数:
-        - text: 期望包含的文本
-        """
-        kwargs.pop("关键字", None)
-        
+    check_response_time = assert_response_time
+    
+    def assert_contains(self, **kwargs):
+        """断言响应包含文本"""
+        self._pop_keyword(kwargs)
         if not self.last_response:
             return False
         
-        text = kwargs.get("text", "")
-        return text in self.last_response.text
+        text = self._render(kwargs.get("text", ""))
+        fail_on_error = kwargs.get("fail_on_error", True)
+        
+        if text in self.last_response.text:
+            return True
+        else:
+            if fail_on_error:
+                self._mark_failure(f"Response does not contain: {text}")
+            return False
     
-    def validate_json(self, **kwargs) -> bool:
-        """
-        验证 JSON 响应
-        
-        参数:
-        - path: JSONPath 表达式
-        - expected: 期望值
-        """
-        kwargs.pop("关键字", None)
-        
+    check_contains = assert_contains
+    
+    def assert_json(self, **kwargs):
+        """断言 JSON 响应"""
+        self._pop_keyword(kwargs)
         if not self.last_response:
             return False
         
@@ -306,73 +290,192 @@ class PerfKeywords:
             import jsonpath
             data = self.last_response.json()
             path = kwargs.get("path", "$")
-            expected = kwargs.get("expected")
+            expected = self._render(kwargs.get("expected"))
+            operator = kwargs.get("operator", "eq")
+            fail_on_error = kwargs.get("fail_on_error", True)
             
             result = jsonpath.jsonpath(data, path)
-            if result and expected is not None:
-                actual = result[0] if isinstance(result, list) else result
+            if not result:
+                if fail_on_error:
+                    self._mark_failure(f"JSONPath {path} not found")
+                return False
+            
+            actual = result[0] if isinstance(result, list) else result
+            passed = self._compare(actual, expected, operator)
+            
+            if not passed and fail_on_error:
+                self._mark_failure(f"JSON assert failed: {actual} {operator} {expected}")
+            
+            return passed
+        except Exception as e:
+            if kwargs.get("fail_on_error", True):
+                self._mark_failure(f"JSON parse error: {e}")
+            return False
+    
+    validate_json = assert_json
+    
+    def assert_header(self, **kwargs):
+        """断言响应头"""
+        self._pop_keyword(kwargs)
+        if not self.last_response:
+            return False
+        
+        header_name = kwargs.get("name", "")
+        expected = self._render(kwargs.get("expected", ""))
+        fail_on_error = kwargs.get("fail_on_error", True)
+        
+        actual = self.last_response.headers.get(header_name, "")
+        
+        if str(actual) == str(expected):
+            return True
+        else:
+            if fail_on_error:
+                self._mark_failure(f"Header {header_name}: expected {expected}, got {actual}")
+            return False
+    
+    def _compare(self, actual, expected, operator: str) -> bool:
+        """比较操作"""
+        try:
+            if operator == "eq":
                 return str(actual) == str(expected)
-            return result is not False
+            elif operator == "ne":
+                return str(actual) != str(expected)
+            elif operator == "gt":
+                return float(actual) > float(expected)
+            elif operator == "lt":
+                return float(actual) < float(expected)
+            elif operator == "gte":
+                return float(actual) >= float(expected)
+            elif operator == "lte":
+                return float(actual) <= float(expected)
+            elif operator == "contains":
+                return str(expected) in str(actual)
+            else:
+                return str(actual) == str(expected)
         except:
             return False
     
-    # ==================== 事务控制关键字 ====================
+    def mark_success(self, **kwargs):
+        """标记请求成功"""
+        self._pop_keyword(kwargs)
+        message = kwargs.get("message", "")
+        self._mark_success(message)
+    
+    def mark_failure(self, **kwargs):
+        """标记请求失败"""
+        self._pop_keyword(kwargs)
+        message = kwargs.get("message", "Unknown error")
+        self._mark_failure(message)
+    
+    def _mark_success(self, message: str = ""):
+        """内部：标记成功"""
+        if self._catch_response_ctx and self.last_response:
+            self.last_response.success()
+    
+    def _mark_failure(self, message: str):
+        """内部：标记失败"""
+        if self._catch_response_ctx and self.last_response:
+            self.last_response.failure(message)
+        else:
+            print(f"[FAIL] {message}")
+    
+    def _close_catch_response(self):
+        """关闭 catch_response 上下文"""
+        if self._catch_response_ctx:
+            try:
+                self._catch_response_ctx.__exit__(None, None, None)
+            except:
+                pass
+            self._catch_response_ctx = None
+
+    # ==================== 事务控制 ====================
+    
+    def transaction(self, **kwargs):
+        """事务块"""
+        self._pop_keyword(kwargs)
+        name = kwargs.get("name", "transaction")
+        steps = kwargs.get("steps", [])
+        
+        self.start_transaction(name=name)
+        try:
+            for step in steps:
+                self._execute_step(step)
+            self.end_transaction(success=True)
+        except Exception as e:
+            self.end_transaction(success=False)
+            raise
     
     def start_transaction(self, **kwargs):
-        """
-        开始事务 - 用于分组统计
-        
-        参数:
-        - name: 事务名称
-        """
-        kwargs.pop("关键字", None)
+        """开始事务"""
+        self._pop_keyword(kwargs)
         name = kwargs.get("name", "transaction")
-        self.context["_transaction_start"] = time.time()
-        self.context["_transaction_name"] = name
+        self._transaction_stack.append({
+            "name": name,
+            "start_time": time.time()
+        })
     
     def end_transaction(self, **kwargs):
-        """
-        结束事务
-        
-        参数:
-        - success: 是否成功 (默认 True)
-        """
-        kwargs.pop("关键字", None)
-        
-        start = self.context.get("_transaction_start")
-        name = self.context.get("_transaction_name", "transaction")
+        """结束事务"""
+        self._pop_keyword(kwargs)
         success = kwargs.get("success", True)
         
-        if start:
-            duration = (time.time() - start) * 1000  # ms
-            print(f"事务 [{name}]: {duration:.2f}ms - {'成功' if success else '失败'}")
+        if self._transaction_stack:
+            tx = self._transaction_stack.pop()
+            duration = (time.time() - tx["start_time"]) * 1000
+            status = "✓" if success else "✗"
+            print(f"[TX] {status} {tx['name']}: {duration:.0f}ms")
+
+    # ==================== 顺序任务集 ====================
     
-    # ==================== 数据操作关键字 ====================
+    def sequential_tasks(self, **kwargs):
+        """顺序任务集"""
+        self._pop_keyword(kwargs)
+        name = kwargs.get("name", "sequential")
+        steps = kwargs.get("steps", [])
+        loop_count = int(kwargs.get("loop", 1))
+        
+        for i in range(loop_count):
+            for step in steps:
+                self._execute_step(step)
+    
+    def interrupt(self, **kwargs):
+        """中断任务集"""
+        self._pop_keyword(kwargs)
+        message = kwargs.get("message", "Task interrupted")
+        print(f"[INTERRUPT] {message}")
+        raise StopIteration(message)
+
+    # ==================== 任务权重 ====================
+    
+    def task_def(self, **kwargs):
+        """定义带权重的任务"""
+        self._pop_keyword(kwargs)
+        name = kwargs.get("name", "task")
+        weight = int(kwargs.get("weight", 1))
+        steps = kwargs.get("steps", [])
+        tags = kwargs.get("tags", [])
+        
+        self.context.setdefault("_tasks", []).append({
+            "name": name,
+            "weight": weight,
+            "steps": steps,
+            "tags": tags
+        })
+
+    # ==================== 数据操作 ====================
     
     def set_var(self, **kwargs):
-        """
-        设置变量
-        
-        参数:
-        - name: 变量名
-        - value: 变量值
-        """
-        kwargs.pop("关键字", None)
+        """设置变量"""
+        self._pop_keyword(kwargs)
         name = kwargs.get("name")
         value = kwargs.get("value")
         if name:
             self.context[name] = self._render(value)
+            g_context().set_dict(name, self.context[name])
     
-    def extract_json(self, **kwargs) -> Optional[Any]:
-        """
-        从响应提取 JSON 数据
-        
-        参数:
-        - path: JSONPath 表达式
-        - var: 存储的变量名
-        """
-        kwargs.pop("关键字", None)
-        
+    def extract_json(self, **kwargs):
+        """从响应提取 JSON 数据"""
+        self._pop_keyword(kwargs)
         if not self.last_response:
             return None
         
@@ -381,46 +484,285 @@ class PerfKeywords:
             data = self.last_response.json()
             path = kwargs.get("path", "$")
             var = kwargs.get("var", "extracted")
+            index = int(kwargs.get("index", 0))
             
             result = jsonpath.jsonpath(data, path)
             if result:
-                value = result[0] if isinstance(result, list) else result
+                value = result[index] if isinstance(result, list) and len(result) > index else result
                 self.context[var] = value
+                g_context().set_dict(var, value)
                 return value
-        except:
-            pass
+        except Exception as e:
+            print(f"[EXTRACT] JSON error: {e}")
         return None
     
-    def log(self, **kwargs):
-        """
-        打印日志
+    def extract_regex(self, **kwargs):
+        """从响应提取正则匹配"""
+        self._pop_keyword(kwargs)
+        if not self.last_response:
+            return None
         
-        参数:
-        - message: 日志消息
-        """
-        kwargs.pop("关键字", None)
-        message = self._render(kwargs.get("message", ""))
-        print(f"[PERF] {message}")
+        try:
+            pattern = kwargs.get("pattern", "")
+            var = kwargs.get("var", "extracted")
+            group = int(kwargs.get("group", 1))
+            
+            match = re.search(pattern, self.last_response.text)
+            if match:
+                value = match.group(group)
+                self.context[var] = value
+                g_context().set_dict(var, value)
+                return value
+        except Exception as e:
+            print(f"[EXTRACT] Regex error: {e}")
+        return None
     
+    def extract_header(self, **kwargs):
+        """从响应提取响应头"""
+        self._pop_keyword(kwargs)
+        if not self.last_response:
+            return None
+        
+        header_name = kwargs.get("name", "")
+        var = kwargs.get("var", "extracted")
+        
+        value = self.last_response.headers.get(header_name, "")
+        self.context[var] = value
+        g_context().set_dict(var, value)
+        return value
+
+    # ==================== 数据驱动 ====================
+    
+    def random_data(self, **kwargs):
+        """随机数据"""
+        self._pop_keyword(kwargs)
+        source = kwargs.get("source", "list")
+        var = kwargs.get("var", "random_item")
+        
+        data_list = self._get_data_list(source, kwargs)
+        if data_list:
+            value = random.choice(data_list)
+            self.context[var] = value
+            g_context().set_dict(var, value)
+            return value
+        return None
+    
+    def cycle_data(self, **kwargs):
+        """循环数据（轮询）"""
+        self._pop_keyword(kwargs)
+        source = kwargs.get("source", "list")
+        var = kwargs.get("var", "cycle_item")
+        
+        key = f"_cycle_{var}"
+        if key not in self._data_iterators:
+            data_list = self._get_data_list(source, kwargs)
+            self._data_iterators[key] = {"data": data_list, "index": 0}
+        
+        iterator = self._data_iterators[key]
+        if iterator["data"]:
+            value = iterator["data"][iterator["index"] % len(iterator["data"])]
+            iterator["index"] += 1
+            self.context[var] = value
+            g_context().set_dict(var, value)
+            return value
+        return None
+    
+    def _get_data_list(self, source: str, kwargs: dict) -> List:
+        """获取数据列表"""
+        if source == "list":
+            return kwargs.get("data", [])
+        elif source in ("file", "csv"):
+            file_path = kwargs.get("file", "")
+            if file_path and Path(file_path).exists():
+                with open(file_path, "r", encoding="utf-8") as f:
+                    if source == "csv":
+                        return list(csv.DictReader(f))
+                    else:
+                        return json.load(f)
+        return []
+
+    # ==================== 条件控制 ====================
+    
+    def if_condition(self, **kwargs):
+        """条件控制"""
+        self._pop_keyword(kwargs)
+        condition = self._render(kwargs.get("condition", ""))
+        then_steps = kwargs.get("then", [])
+        else_steps = kwargs.get("else", [])
+        
+        try:
+            result = eval(condition, {"__builtins__": {}}, self.context)
+        except:
+            result = False
+        
+        steps = then_steps if result else else_steps
+        for step in steps:
+            self._execute_step(step)
+
+    # ==================== 循环 ====================
+    
+    def loop(self, **kwargs):
+        """循环执行"""
+        self._pop_keyword(kwargs)
+        count = int(kwargs.get("count", 1))
+        steps = kwargs.get("steps", [])
+        delay = float(kwargs.get("delay", 0))
+        
+        for i in range(count):
+            self.context["_loop_index"] = i
+            for step in steps:
+                self._execute_step(step)
+            if delay > 0:
+                time.sleep(delay)
+    
+    def foreach(self, **kwargs):
+        """遍历执行"""
+        self._pop_keyword(kwargs)
+        items = kwargs.get("items", [])
+        if isinstance(items, str):
+            items = self.context.get(items, [])
+        items = self._render(items)
+        
+        var = kwargs.get("var", "item")
+        steps = kwargs.get("steps", [])
+        
+        for i, item in enumerate(items):
+            self.context[var] = item
+            self.context["_foreach_index"] = i
+            for step in steps:
+                self._execute_step(step)
+    
+    def _execute_step(self, step: dict):
+        """执行单个步骤"""
+        if isinstance(step, dict):
+            for name, data in step.items():
+                if isinstance(data, dict):
+                    keyword = data.get("关键字") or data.get("keyword", "")
+                    if keyword and hasattr(self, keyword):
+                        try:
+                            getattr(self, keyword)(**data)
+                        except StopIteration:
+                            raise
+                        except Exception as e:
+                            print(f"[ERROR] Step '{name}': {e}")
+
+    # ==================== 日志与调试 ====================
+    
+    def log(self, **kwargs):
+        """打印日志"""
+        self._pop_keyword(kwargs)
+        message = self._render(kwargs.get("message", ""))
+        level = kwargs.get("level", "info").upper()
+        print(f"[{level}] {message}")
+    
+    def print_response(self, **kwargs):
+        """打印响应内容"""
+        self._pop_keyword(kwargs)
+        if not self.last_response:
+            print("[RESPONSE] No response")
+            return
+        
+        fmt = kwargs.get("format", "json")
+        
+        if fmt == "json":
+            try:
+                print(json.dumps(self.last_response.json(), indent=2, ensure_ascii=False))
+            except:
+                print(self.last_response.text)
+        elif fmt == "text":
+            print(self.last_response.text)
+        elif fmt == "headers":
+            print(dict(self.last_response.headers))
+        elif fmt == "all":
+            print(f"Status: {self.last_response.status_code}")
+            print(f"Headers: {dict(self.last_response.headers)}")
+            print(f"Body: {self.last_response.text[:500]}")
+
+    # ==================== 生命周期钩子 ====================
+    
+    def on_start(self, func_or_kwargs=None, **kwargs):
+        """用户启动时执行"""
+        # 装饰器模式
+        if callable(func_or_kwargs):
+            self._on_start_func = func_or_kwargs
+            return func_or_kwargs
+        
+        # YAML 关键字模式
+        if func_or_kwargs is None:
+            func_or_kwargs = kwargs
+        self._pop_keyword(func_or_kwargs)
+        steps = func_or_kwargs.get("steps", [])
+        for step in steps:
+            self._execute_step(step)
+    
+    def on_stop(self, func_or_kwargs=None, **kwargs):
+        """用户停止时执行"""
+        # 装饰器模式
+        if callable(func_or_kwargs):
+            self._on_stop_func = func_or_kwargs
+            return func_or_kwargs
+        
+        # YAML 关键字模式
+        if func_or_kwargs is None:
+            func_or_kwargs = kwargs
+        self._pop_keyword(func_or_kwargs)
+        steps = func_or_kwargs.get("steps", [])
+        for step in steps:
+            self._execute_step(step)
+
+    # ==================== Python 脚本执行 ====================
+
+    def run_script(self, **kwargs):
+        """执行 Python 脚本文件"""
+        from .script.run_script import exec_script_file
+        
+        script_path = kwargs.pop("script_path", None)
+        function_name = kwargs.pop("function_name", None)
+        variable_name = kwargs.pop("variable_name", None)
+        self._pop_keyword(kwargs)
+        
+        if not script_path:
+            raise ValueError("必须指定 script_path 参数")
+        
+        context = {**g_context().show_dict(), **self.context}
+        
+        result = exec_script_file(
+            script_path=script_path,
+            context=context,
+            caseinfo=None,
+            function_name=function_name,
+            **kwargs
+        )
+        
+        if variable_name and result is not None:
+            self.context[variable_name] = result
+            g_context().set_dict(variable_name, result)
+        
+        return result
+
+    def run_code(self, **kwargs):
+        """执行 Python 代码片段"""
+        from .script.run_script import exec_script
+        
+        code = kwargs.get("code", "")
+        variable_name = kwargs.get("variable_name")
+        
+        if not code:
+            raise ValueError("必须指定 code 参数")
+        
+        context = {**g_context().show_dict(), **self.context}
+        result = exec_script(code, context)
+        
+        if variable_name and result is not None:
+            self.context[variable_name] = result
+            g_context().set_dict(variable_name, result)
+        
+        return result
+
     # ==================== Pytest 模式 API ====================
     
     def task(self, weight: int = 1):
-        """
-        装饰器：定义用户任务 (Pytest 模式)
-        
-        参数:
-            weight: 任务权重，数值越大执行频率越高
-        
-        示例:
-        ```python
-        perf = PerfKeywords()
-        
-        @perf.task(weight=3)
-        def get_users(kw):  # kw 是 PerfKeywords 实例，已设置好 client
-            kw.get(url="/users")
-            kw.check_status(expected=200)
-        ```
-        """
+        """装饰器：定义用户任务 (Pytest 模式)"""
         if not LOCUST_AVAILABLE:
             raise ImportError("Locust 未安装，请执行: pip install locust")
         
@@ -433,27 +775,6 @@ class PerfKeywords:
             return func
         return decorator
     
-    def on_start(self, func: Callable):
-        """
-        装饰器：用户启动时执行 (Pytest 模式)
-        
-        示例:
-        ```python
-        @perf.on_start
-        def login(kw):  # kw 是 PerfKeywords 实例
-            kw.post(url="/login", json={"user": "test", "pass": "123"})
-        ```
-        """
-        self._on_start_func = func
-        return func
-    
-    def on_stop(self, func: Callable):
-        """
-        装饰器：用户停止时执行 (Pytest 模式)
-        """
-        self._on_stop_func = func
-        return func
-    
     def run_test(
         self,
         host: str,
@@ -463,20 +784,7 @@ class PerfKeywords:
         wait_time_min: float = 1.0,
         wait_time_max: float = 3.0
     ) -> PerfTestResult:
-        """
-        运行性能测试 (Pytest 模式)
-        
-        参数:
-            host: 目标主机 URL
-            users: 并发用户数
-            spawn_rate: 用户生成速率 (用户/秒)
-            run_time: 运行时间 (秒)
-            wait_time_min: 最小等待时间 (秒)
-            wait_time_max: 最大等待时间 (秒)
-        
-        返回:
-            PerfTestResult: 性能测试结果
-        """
+        """运行性能测试 (Pytest 模式)"""
         if not LOCUST_AVAILABLE:
             raise ImportError("Locust 未安装，请执行: pip install locust")
         
@@ -492,16 +800,10 @@ class PerfKeywords:
             wait_time_max=wait_time_max
         )
         
-        # 动态创建 User 类
         user_class = self._create_user_class()
-        
-        # 创建 Locust 环境
         env = Environment(user_classes=[user_class])
-        
-        # 创建本地 runner
         runner = env.create_local_runner()
         
-        # 启动测试
         print(f"\n{'='*60}")
         print(f"Locust Performance Test")
         print(f"{'='*60}")
@@ -512,16 +814,10 @@ class PerfKeywords:
         print(f"{'='*60}\n")
         
         runner.start(user_count=users, spawn_rate=spawn_rate)
-        
-        # 运行指定时间
         gevent.sleep(run_time)
-        
-        # 停止测试
         runner.quit()
         
-        # 收集结果
         self._result = self._collect_results(env.stats)
-        
         return self._result
     
     def _create_user_class(self) -> type:
@@ -537,7 +833,6 @@ class PerfKeywords:
             wait_time = between(config.wait_time_min, config.wait_time_max)
             
             def on_start(self):
-                # 创建 PerfKeywords 实例并设置 client
                 self.kw = PerfKeywords(client=self.client)
                 self.kw.context = context.copy()
                 if on_start_func:
@@ -547,12 +842,10 @@ class PerfKeywords:
                 if on_stop_func:
                     on_stop_func(self.kw)
         
-        # 动态添加任务
         for task_info in tasks:
             func = task_info["func"]
             weight = task_info["weight"]
             
-            # 创建任务方法，传入 PerfKeywords 实例
             def make_task(f):
                 def task_method(user_self):
                     f(user_self.kw)
@@ -561,7 +854,6 @@ class PerfKeywords:
             task_method = make_task(func)
             task_method.__name__ = func.__name__
             
-            # 添加 @task 装饰器
             decorated = task(weight)(task_method)
             setattr(DynamicUser, func.__name__, decorated)
         
@@ -584,7 +876,6 @@ class PerfKeywords:
             failure_rate=total.fail_ratio
         )
         
-        # 收集各请求的详细统计
         for entry in stats.entries.values():
             result.request_stats.append({
                 "name": entry.name,
@@ -599,7 +890,6 @@ class PerfKeywords:
                 "rps": entry.total_rps
             })
         
-        # 收集错误信息
         for error in stats.errors.values():
             result.errors.append({
                 "method": error.method,
@@ -611,7 +901,7 @@ class PerfKeywords:
         return result
     
     def clear(self):
-        """清除所有任务和配置 (Pytest 模式)"""
+        """清除所有任务和配置"""
         self._tasks.clear()
         self._on_start_func = None
         self._on_stop_func = None
@@ -627,5 +917,5 @@ def create_perf_test() -> PerfKeywords:
     return PerfKeywords()
 
 
-# 全局实例 (YAML 模式使用)
+# 全局实例
 keywords = PerfKeywords()

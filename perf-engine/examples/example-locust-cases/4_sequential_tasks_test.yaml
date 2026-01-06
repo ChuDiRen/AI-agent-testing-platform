@@ -1,0 +1,97 @@
+# 顺序任务性能测试
+# 演示顺序任务集 (对应 Locust SequentialTaskSet)
+
+name: 顺序任务性能测试
+desc: 模拟必须按顺序执行的业务流程
+
+steps:
+  # ========== 顺序任务集: 完整购物流程 ==========
+  - 购物流程:
+      关键字: sequential_tasks
+      name: 完整购物流程
+      loop: 1
+      steps:
+        # 步骤1: 登录
+        - 登录:
+            关键字: post
+            url: /post
+            name: 1. 登录
+            json:
+              username: testuser
+              password: password123
+
+        - 登录等待:
+            关键字: wait
+            seconds: 0.5
+
+        # 步骤2: 浏览商品
+        - 浏览商品列表:
+            关键字: get
+            url: /get
+            name: 2. 商品列表
+            params:
+              category: electronics
+
+        - 浏览等待:
+            关键字: wait
+            min: 1
+            max: 2
+
+        # 步骤3: 查看商品详情
+        - 查看商品详情:
+            关键字: get
+            url: /get
+            name: 3. 商品详情
+            params:
+              product_id: 12345
+
+        - 详情等待:
+            关键字: wait
+            seconds: 1
+
+        # 步骤4: 加入购物车
+        - 加入购物车:
+            关键字: post
+            url: /post
+            name: 4. 加入购物车
+            json:
+              product_id: 12345
+              quantity: 1
+
+        # 步骤5: 结算
+        - 结算:
+            关键字: post
+            url: /post
+            name: 5. 结算
+            json:
+              cart_id: cart_001
+              payment_method: credit_card
+
+        - 验证结算成功:
+            关键字: assert_status
+            expected: 200
+
+  # ========== 事务块 ==========
+  - 事务块测试:
+      关键字: transaction
+      name: 搜索事务
+      steps:
+        - 搜索商品:
+            关键字: get
+            url: /get
+            name: 搜索
+            params:
+              q: iPhone
+
+        - 筛选结果:
+            关键字: get
+            url: /get
+            name: 筛选
+            params:
+              q: iPhone
+              price_min: 1000
+              price_max: 5000
+
+  - 记录完成:
+      关键字: log
+      message: "顺序任务测试完成"

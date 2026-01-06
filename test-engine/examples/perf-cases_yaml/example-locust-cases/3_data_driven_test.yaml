@@ -1,0 +1,73 @@
+# 数据驱动性能测试
+# 演示: 随机数据、循环数据、条件控制、循环
+
+name: 数据驱动性能测试
+desc: 使用不同数据进行压力测试
+
+steps:
+  # 随机选择用户
+  - 随机选择用户:
+      关键字: random_data
+      source: list
+      data:
+        - username: user1
+          password: pass1
+        - username: user2
+          password: pass2
+        - username: user3
+          password: pass3
+      var: current_user
+
+  # 使用随机用户登录
+  - 使用随机用户登录:
+      关键字: post
+      url: /api/login
+      name: POST /login (random)
+      json: "{{current_user}}"
+
+  # 循环数据 (轮询)
+  - 轮询商品ID:
+      关键字: cycle_data
+      source: list
+      data:
+        - product_id: 1001
+        - product_id: 1002
+        - product_id: 1003
+      var: current_product
+
+  # 查询商品详情
+  - 查询商品详情:
+      关键字: get
+      url: /api/products/{{current_product.product_id}}
+      name: GET /products/:id
+
+  # 条件控制
+  - 条件判断:
+      关键字: if_condition
+      condition: "current_product.get('product_id') == 1001"
+      then:
+        - 添加到购物车:
+            关键字: post
+            url: /api/cart
+            name: POST /cart
+            json:
+              product_id: "{{current_product.product_id}}"
+              quantity: 1
+      else:
+        - 记录日志:
+            关键字: log
+            message: "跳过商品 {{current_product.product_id}}"
+
+  # 循环请求
+  - 分页查询:
+      关键字: loop
+      count: 3
+      delay: 0.5
+      steps:
+        - 获取分页数据:
+            关键字: get
+            url: /api/products
+            name: GET /products (page)
+            params:
+              page: "{{_loop_index}}"
+              size: 10

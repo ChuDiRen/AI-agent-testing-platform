@@ -1,4 +1,14 @@
 # 全局上下文配置
-host: https://httpbin.org
+# 性能测试公共变量
+
+# 用户凭证
 username: testuser
-password: testpass
+password: password123
+
+# API 配置
+api_version: v1
+timeout: 30
+
+# 测试数据
+default_page_size: 10
+max_retry: 3

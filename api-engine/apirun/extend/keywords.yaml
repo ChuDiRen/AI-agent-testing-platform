@@ -45,3 +45,16 @@ assert_text_comparators:
 assert_files_by_md5_comparators:
   - value # 预期的 MD5 值
   - expected # 预期的 MD5 值 (用于比对)
+
+# ================================
+# Python 脚本执行关键字
+# ================================
+run_script:
+  - script_path # 脚本文件路径（绝对路径或相对于用例目录）
+  - function_name # 要调用的函数名（可选，不指定则执行整个脚本）
+  - variable_name # 保存返回值到变量（可选）
+  # 其他参数将作为函数参数传递
+
+run_code:
+  - code # Python 代码字符串
+  - variable_name # 保存返回值到变量（可选，代码中使用 __result__ = xxx 设置返回值）

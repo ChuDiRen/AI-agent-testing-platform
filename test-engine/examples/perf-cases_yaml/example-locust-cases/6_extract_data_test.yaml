@@ -1,0 +1,80 @@
+# 数据提取性能测试
+# 演示: JSONPath、正则、响应头提取
+
+name: 数据提取性能测试
+desc: 从响应中提取数据用于后续请求
+
+steps:
+  # 登录获取 Token
+  - 登录:
+      关键字: post
+      url: /api/login
+      name: POST /login
+      json:
+        username: testuser
+        password: password123
+
+  # JSONPath 提取
+  - 提取Token:
+      关键字: extract_json
+      path: $.token
+      var: auth_token
+      index: 0
+
+  - 提取用户ID:
+      关键字: extract_json
+      path: $.user.id
+      var: user_id
+
+  # 使用提取的数据
+  - 查询用户信息:
+      关键字: get
+      url: /api/users/{{user_id}}
+      name: GET /users/:id
+      headers:
+        Authorization: "Bearer {{auth_token}}"
+
+  # 正则提取
+  - 提取会话ID:
+      关键字: extract_regex
+      pattern: "session_id=([a-zA-Z0-9]+)"
+      var: session_id
+      group: 1
+
+  # 响应头提取
+  - 提取请求ID:
+      关键字: extract_header
+      name: X-Request-ID
+      var: request_id
+
+  # 打印提取的数据
+  - 打印日志:
+      关键字: log
+      message: "Token: {{auth_token}}, User: {{user_id}}, Session: {{session_id}}"
+      level: info
+
+  # 打印响应
+  - 打印响应:
+      关键字: print_response
+      format: json
+
+  # 遍历列表
+  - 获取商品列表:
+      关键字: get
+      url: /api/products
+      name: GET /products
+
+  - 提取商品列表:
+      关键字: extract_json
+      path: $.data[*]
+      var: products
+
+  - 遍历商品:
+      关键字: foreach
+      items: products
+      var: product
+      steps:
+        - 查看商品:
+            关键字: get
+            url: /api/products/{{product.id}}
+            name: GET /products/:id (foreach)

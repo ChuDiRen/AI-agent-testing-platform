@@ -1,35 +1,37 @@
 # 基础 API 性能测试
-# 使用 Locust 性能测试关键字
+# 演示 HTTP 请求、等待时间、响应验证等基础关键字
 
-name: 基础API负载测试
+name: 基础API性能测试
 desc: 测试 API 在并发负载下的性能表现
 
+# 用例步骤
 steps:
-  # GET 请求 - 获取数据
+  # ========== GET 请求 ==========
   - 获取数据:
       关键字: get
       url: /get
       name: GET /get
       params:
         user: "{{username}}"
+        page: 1
 
-  # 检查响应
+  # 验证状态码
   - 验证状态码:
-      关键字: check_status
+      关键字: assert_status
       expected: 200
 
-  # 检查响应时间
+  # 验证响应时间
   - 验证响应时间:
-      关键字: check_response_time
+      关键字: assert_response_time
       max_ms: 2000
 
-  # 思考时间 - 模拟用户行为
+  # ========== 等待时间 (模拟用户行为) ==========
   - 用户思考:
-      关键字: think_time
+      关键字: wait
       min: 1
       max: 3
 
-  # POST 请求 - 提交数据
+  # ========== POST 请求 ==========
   - 提交数据:
       关键字: post
       url: /post
@@ -37,8 +39,35 @@ steps:
       json:
         username: "{{username}}"
         action: load_test
+        timestamp: "{{timestamp}}"
 
   # 验证响应包含内容
   - 验证响应内容:
-      关键字: check_contains
+      关键字: assert_contains
       text: "{{username}}"
+
+  # ========== 固定等待 ==========
+  - 固定等待:
+      关键字: wait
+      seconds: 2
+
+  # ========== PUT 请求 ==========
+  - 更新数据:
+      关键字: put
+      url: /put
+      name: PUT /put
+      json:
+        id: 1
+        status: updated
+
+  # ========== DELETE 请求 ==========
+  - 删除数据:
+      关键字: delete
+      url: /delete
+      name: DELETE /delete
+
+  # ========== 日志记录 ==========
+  - 记录完成:
+      关键字: log
+      message: "用户 {{username}} 完成一次基础测试"
+      level: info

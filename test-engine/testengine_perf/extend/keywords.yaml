@@ -1,80 +1,234 @@
 # Perf Engine 关键字配置文件
-# 基于 Locust 的性能测试专用关键字
+# 基于 Locust 语法设计的完整关键字驱动库
 
 # ================================
 # HTTP 请求关键字
 # ================================
 get:
-  - url         # 请求路径
-  - name        # 请求名称 (报告分组)
-  - params      # URL 参数
-  - headers     # 请求头
+  - url                 # 请求路径（相对于 host）
+  - name                # 请求名称（用于 Locust 报告分组）
+  - params              # URL 参数
+  - headers             # 请求头
+  - catch_response      # 启用响应验证模式（对应 Locust catch_response=True）
 
 post:
-  - url         # 请求路径
-  - name        # 请求名称
-  - json        # JSON 数据
-  - data        # 表单数据
-  - headers     # 请求头
+  - url                 # 请求路径
+  - name                # 请求名称
+  - json                # JSON 数据
+  - data                # 表单数据
+  - headers             # 请求头
+  - files               # 文件上传
+  - catch_response      # 启用响应验证模式
 
 put:
-  - url         # 请求路径
-  - name        # 请求名称
-  - json        # JSON 数据
-  - data        # 表单数据
-  - headers     # 请求头
+  - url                 # 请求路径
+  - name                # 请求名称
+  - json                # JSON 数据
+  - data                # 表单数据
+  - headers             # 请求头
+  - catch_response      # 启用响应验证模式
 
 delete:
-  - url         # 请求路径
-  - name        # 请求名称
-  - headers     # 请求头
+  - url                 # 请求路径
+  - name                # 请求名称
+  - headers             # 请求头
+  - catch_response      # 启用响应验证模式
+
+patch:
+  - url                 # 请求路径
+  - name                # 请求名称
+  - json                # JSON 数据
+  - headers             # 请求头
+  - catch_response      # 启用响应验证模式
 
 # ================================
-# 思考时间关键字
+# 等待时间关键字
 # ================================
-think_time:
-  - seconds     # 固定等待秒数
-  - min         # 最小秒数 (随机)
-  - max         # 最大秒数 (随机)
+wait:
+  - seconds             # 固定等待秒数
+  - min                 # 最小秒数（随机等待）
+  - max                 # 最大秒数（随机等待）
+
+think_time:             # wait 的别名
+  - seconds
+  - min
+  - max
 
 constant_pacing:
-  - seconds     # 固定间隔秒数
+  - seconds             # 固定节奏间隔秒数
 
 # ================================
-# 响应验证关键字
+# 响应验证关键字 (catch_response 模式)
 # ================================
-check_status:
-  - expected    # 期望状态码 (默认 200)
+assert_status:
+  - expected            # 期望状态码（默认 200）
+  - fail_on_error       # 失败时标记请求失败（默认 True）
 
-check_response_time:
-  - max_ms      # 最大响应时间 (毫秒)
+check_status:           # assert_status 的别名
+  - expected
+  - fail_on_error
 
-check_contains:
-  - text        # 期望包含的文本
+assert_response_time:
+  - max_ms              # 最大响应时间（毫秒）
+  - fail_on_error       # 超时标记失败（默认 True）
 
-validate_json:
-  - path        # JSONPath 表达式
-  - expected    # 期望值
+check_response_time:    # assert_response_time 的别名
+  - max_ms
+  - fail_on_error
+
+assert_contains:
+  - text                # 期望包含的文本
+  - fail_on_error       # 不包含时标记失败（默认 True）
+
+check_contains:         # assert_contains 的别名
+  - text
+  - fail_on_error
+
+assert_json:
+  - path                # JSONPath 表达式
+  - expected            # 期望值
+  - operator            # 比较操作符（eq, ne, gt, lt, gte, lte, contains）
+  - fail_on_error       # 验证失败标记失败（默认 True）
+
+validate_json:          # assert_json 的别名
+  - path
+  - expected
+  - operator
+  - fail_on_error
+
+assert_header:
+  - name                # 响应头名称
+  - expected            # 期望值
+  - fail_on_error       # 验证失败标记失败（默认 True）
+
+mark_success:
+  - message             # 成功消息
+
+mark_failure:
+  - message             # 失败消息
 
 # ================================
 # 事务控制关键字
 # ================================
+transaction:
+  - name                # 事务名称
+  - steps               # 事务内的步骤列表
+
 start_transaction:
-  - name        # 事务名称
+  - name                # 事务名称
 
 end_transaction:
-  - success     # 是否成功 (默认 True)
+  - success             # 是否成功（默认 True）
+
+# ================================
+# 顺序任务集关键字
+# ================================
+sequential_tasks:
+  - name                # 任务集名称
+  - steps               # 顺序执行的步骤列表
+  - loop                # 循环次数（默认 1）
+
+interrupt:
+  - message             # 中断消息
+
+# ================================
+# 任务权重关键字
+# ================================
+task:
+  - name                # 任务名称
+  - weight              # 任务权重（默认 1）
+  - steps               # 任务步骤列表
+  - tags                # 任务标签列表
 
 # ================================
 # 数据操作关键字
 # ================================
 set_var:
-  - name        # 变量名
-  - value       # 变量值
+  - name                # 变量名
+  - value               # 变量值
 
 extract_json:
-  - path        # JSONPath 表达式
-  - var         # 存储的变量名
+  - path                # JSONPath 表达式
+  - var                 # 存储的变量名
+  - index               # 结果索引（默认 0）
 
+extract_regex:
+  - pattern             # 正则表达式
+  - var                 # 存储的变量名
+  - group               # 捕获组索引（默认 1）
+
+extract_header:
+  - name                # 响应头名称
+  - var                 # 存储的变量名
+
+# ================================
+# 数据驱动关键字
+# ================================
+random_data:
+  - source              # 数据源（list | file | csv）
+  - data                # 数据列表（source=list）
+  - file                # 文件路径（source=file/csv）
+  - var                 # 存储的变量名
+
+cycle_data:
+  - source              # 数据源（list | file | csv）
+  - data                # 数据列表
+  - file                # 文件路径
+  - var                 # 存储的变量名
+
+# ================================
+# 条件与循环关键字
+# ================================
+if_condition:
+  - condition           # 条件表达式
+  - then                # 条件为真时执行的步骤
+  - else                # 条件为假时执行的步骤（可选）
+
+loop:
+  - count               # 循环次数
+  - steps               # 循环执行的步骤
+  - delay               # 每次循环后延迟（秒）
+
+foreach:
+  - items               # 遍历的列表或变量名
+  - var                 # 当前项变量名
+  - steps               # 每项执行的步骤
+
+# ================================
+# 生命周期钩子
+# ================================
+on_start:
+  - steps               # 用户启动时执行的步骤
+
+on_stop:
+  - steps               # 用户停止时执行的步骤
+
+# ================================
+# 用户行为配置
+# ================================
+user_config:
+  - wait_time           # 等待时间策略 "between(1,3)" | "constant(2)"
+  - weight              # 用户权重
+  - host                # 目标主机
+
+# ================================
+# 日志与调试关键字
+# ================================
 log:
-  - message     # 日志消息
+  - message             # 日志消息
+  - level               # 日志级别（info, debug, warning, error）
+
+print_response:
+  - format              # 输出格式（json, text, headers, all）
+
+# ================================
+# Python 脚本执行
+# ================================
+run_script:
+  - script_path         # 脚本文件路径
+  - function_name       # 函数名（可选）
+  - variable_name       # 结果存储变量名（可选）
+
+run_code:
+  - code                # Python 代码片段
+  - variable_name       # 结果存储变量名（可选）

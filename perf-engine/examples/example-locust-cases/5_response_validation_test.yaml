@@ -1,0 +1,110 @@
+# 响应验证性能测试
+# 演示 catch_response 模式的响应验证 (对应 Locust catch_response=True)
+
+name: 响应验证性能测试
+desc: 测试各种响应验证场景
+
+steps:
+  # ========== 状态码验证 ==========
+  - 请求并验证状态码:
+      关键字: get
+      url: /status/200
+      name: Validate Status 200
+      catch_response: true
+
+  - 验证200状态:
+      关键字: assert_status
+      expected: 200
+      fail_on_error: true
+
+  - 等待:
+      关键字: wait
+      seconds: 1
+
+  # ========== JSON 验证 ==========
+  - 请求JSON数据:
+      关键字: get
+      url: /json
+      name: Validate JSON
+      catch_response: true
+
+  - 验证JSON包含字段:
+      关键字: assert_json
+      path: $.slideshow.title
+      expected: "Sample Slide Show"
+      operator: eq
+      fail_on_error: true
+
+  - 等待:
+      关键字: wait
+      seconds: 1
+
+  # ========== 响应时间验证 ==========
+  - 请求并验证响应时间:
+      关键字: get
+      url: /delay/1
+      name: Validate Response Time
+      catch_response: true
+
+  - 验证响应时间:
+      关键字: assert_response_time
+      max_ms: 3000
+      fail_on_error: true
+
+  - 等待:
+      关键字: wait
+      seconds: 1
+
+  # ========== 响应内容验证 ==========
+  - 请求并验证内容:
+      关键字: get
+      url: /html
+      name: Validate Content
+      catch_response: true
+
+  - 验证包含HTML:
+      关键字: assert_contains
+      text: "Herman Melville"
+      fail_on_error: true
+
+  - 等待:
+      关键字: wait
+      seconds: 1
+
+  # ========== 响应头验证 ==========
+  - 请求并验证响应头:
+      关键字: get
+      url: /response-headers?X-Custom-Header=test-value
+      name: Validate Headers
+      catch_response: true
+
+  - 验证自定义响应头:
+      关键字: assert_header
+      name: X-Custom-Header
+      expected: test-value
+      fail_on_error: true
+
+  # ========== 手动标记成功/失败 ==========
+  - 自定义验证请求:
+      关键字: get
+      url: /get
+      name: Custom Validation
+      catch_response: true
+
+  - 提取并验证:
+      关键字: extract_json
+      path: $.url
+      var: response_url
+
+  - 设置验证结果:
+      关键字: set_var
+      name: is_valid
+      value: true
+
+  - 手动标记成功:
+      关键字: mark_success
+      message: "自定义验证通过"
+
+  - 记录完成:
+      关键字: log
+      message: "响应验证测试完成"

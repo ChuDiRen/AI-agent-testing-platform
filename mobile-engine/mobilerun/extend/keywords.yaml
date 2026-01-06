@@ -308,101 +308,14 @@ get_variable:
   - variable_name
 
 # ================================
-# Mobile-Use AI 关键字
-# 基于 LLM 驱动的智能移动端自动化
+# Python 脚本执行关键字
 # ================================
+run_script:
+  - script_path # 脚本文件路径（绝对路径或相对于用例目录）
+  - function_name # 要调用的函数名（可选，不指定则执行整个脚本）
+  - variable_name # 保存返回值到变量（可选）
+  # 其他参数将作为函数参数传递
 
-# 配置与初始化
-mu_configure:
-  - llm_provider
-  - llm_model
-  - api_key
-  - base_url
-  - platform
-  - device_id
-  - timeout
-  - max_steps
-  - minitap_api_key
-
-mu_init_agent:
-  - platform
-  - device_id
-  - llm_provider
-  - llm_model
-
-mu_close_agent: []
-
-# 核心 AI 任务
-mu_run_task:
-  - goal
-  - output_description
-  - max_steps
-  - save_result
-  - variable_name
-
-mu_analyze_screen:
-  - prompt
-  - variable_name
-
-mu_tap:
-  - element_desc
-
-mu_input:
-  - element_desc
-  - text
-  - clear_first
-
-mu_swipe:
-  - direction
-  - element_desc
-
-mu_back: []
-
-mu_home: []
-
-mu_open_app:
-  - app_name
-
-mu_close_app:
-  - app_name
-
-# 数据抓取
-mu_extract_data:
-  - data_desc
-  - output_format
-  - variable_name
-
-mu_get_text:
-  - element_desc
-  - variable_name
-
-# AI 断言
-mu_assert_visible:
-  - element_desc
-
-mu_assert_text_contains:
-  - expected_text
-  - element_desc
-
-# 高级功能
-mu_login:
-  - username
-  - password
-  - app_name
-
-mu_search:
-  - keyword
-  - app_name
-
-mu_send_message:
-  - recipient
-  - message
-  - app_name
-
-mu_screenshot:
-  - filename
-  - description
-
-mu_wait:
-  - condition
-  - timeout
+run_code:
+  - code # Python 代码字符串
+  - variable_name # 保存返回值到变量（可选，代码中使用 __result__ = xxx 设置返回值）

@@ -1,81 +1,67 @@
 # 登录流程性能测试
-# 模拟完整用户业务流程的性能表现
+# 演示: 事务控制、数据提取、生命周期钩子
 
-name: 用户登录流程压测
-desc: 模拟用户登录、浏览、操作的完整业务流程
+name: 登录流程性能测试
+desc: 测试完整的登录流程性能
 
-steps:
-  # 事务开始 - 登录流程
-  - 开始登录事务:
-      关键字: start_transaction
-      name: 用户登录
-
-  # 访问首页
-  - 访问首页:
-      关键字: get
-      url: /
-      name: 首页
-
-  # 页面加载等待
-  - 页面加载:
-      关键字: think_time
-      seconds: 1
-
-  # 提交登录
-  - 提交登录:
+# 用户启动时执行 (登录)
+on_start:
+  - 用户登录:
       关键字: post
-      url: /post
-      name: 登录接口
+      url: /api/login
+      name: 登录
       json:
         username: "{{username}}"
         password: "{{password}}"
 
-  # 验证登录响应
-  - 验证登录:
-      关键字: check_status
+  - 提取Token:
+      关键字: extract_json
+      path: $.token
+      var: auth_token
+
+# 用户停止时执行 (登出)
+on_stop:
+  - 用户登出:
+      关键字: post
+      url: /api/logout
+      name: 登出
+      headers:
+        Authorization: "Bearer {{auth_token}}"
+
+steps:
+  # 开始事务
+  - 开始查询事务:
+      关键字: start_transaction
+      name: 用户信息查询
+
+  # 查询用户信息
+  - 查询用户信息:
+      关键字: get
+      url: /api/user/profile
+      name: 获取用户信息
+      headers:
+        Authorization: "Bearer {{auth_token}}"
+
+  # 验证状态码
+  - 验证状态码:
+      关键字: assert_status
       expected: 200
 
-  # 事务结束
-  - 结束登录事务:
+  # 结束事务
+  - 结束查询事务:
       关键字: end_transaction
       success: true
 
-  # 用户浏览间隔
-  - 浏览间隔:
-      关键字: think_time
-      min: 2
-      max: 5
+  # 用户思考
+  - 用户思考:
+      关键字: wait
+      min: 1
+      max: 2
 
-  # 事务开始 - 数据获取
-  - 开始数据事务:
-      关键字: start_transaction
-      name: 获取数据
-
-  # 获取用户信息
-  - 获取用户信息:
+  # 查询订单列表
+  - 查询订单列表:
       关键字: get
-      url: /headers
-      name: 用户信息
+      url: /api/orders
+      name: 获取订单列表
       headers:
-        Authorization: "Bearer token-123"
-
-  # 获取数据列表
-  - 获取数据列表:
-      关键字: get
-      url: /json
-      name: 数据列表
-
-  # 验证数据响应时间
-  - 验证响应时间:
-      关键字: check_response_time
-      max_ms: 3000
-
-  # 事务结束
-  - 结束数据事务:
-      关键字: end_transaction
-      success: true
-
-  # 记录日志
-  - 记录完成:
-      关键字: log
-      message: "用户 {{username}} 完成一次完整流程"
+        Authorization: "Bearer {{auth_token}}"

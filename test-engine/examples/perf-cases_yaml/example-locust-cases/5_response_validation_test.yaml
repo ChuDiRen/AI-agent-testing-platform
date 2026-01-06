@@ -1,0 +1,59 @@
+# 响应验证性能测试
+# 演示: catch_response 模式的响应验证
+
+name: 响应验证性能测试
+desc: 对应 Locust catch_response=True 模式
+
+steps:
+  # 启用 catch_response 模式
+  - 请求并验证:
+      关键字: get
+      url: /api/users
+      name: GET /users (validated)
+      catch_response: true
+
+  # 验证状态码 (失败时标记请求失败)
+  - 验证状态码:
+      关键字: assert_status
+      expected: 200
+      fail_on_error: true
+
+  # 验证响应时间
+  - 验证响应时间:
+      关键字: assert_response_time
+      max_ms: 500
+      fail_on_error: true
+
+  # 验证 JSON 响应
+  - 验证JSON数据:
+      关键字: assert_json
+      path: $.data[0].id
+      expected: 1
+      operator: eq
+      fail_on_error: true
+
+  # 验证响应头
+  - 验证响应头:
+      关键字: assert_header
+      name: Content-Type
+      expected: application/json
+      fail_on_error: false
+
+  # 验证响应包含文本
+  - 验证响应内容:
+      关键字: assert_contains
+      text: "success"
+      fail_on_error: true
+
+  # 手动标记成功/失败
+  - 条件标记:
+      关键字: if_condition
+      condition: "True"
+      then:
+        - 标记成功:
+            关键字: mark_success
+            message: "所有验证通过"
+      else:
+        - 标记失败:
+            关键字: mark_failure
+            message: "验证失败"
