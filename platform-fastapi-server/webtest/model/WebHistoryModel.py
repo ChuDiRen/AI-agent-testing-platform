@@ -49,7 +49,7 @@ class WebHistory(SQLModel, table=True):
     class Config:
         """模型配置"""
         use_enum_values = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "id": "exec_20260106_001",
                 "project_id": 1,
@@ -89,7 +89,7 @@ class WebHistoryCase(SQLModel, table=True):
     class Config:
         """模型配置"""
         use_enum_values = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "execution_id": "exec_20260106_001",
                 "case_id": 1,

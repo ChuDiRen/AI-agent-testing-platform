@@ -42,7 +42,7 @@ class ApiInfo(SQLModel, table=True): # API接口信息表
     class Config:
         """模型配置"""
         use_enum_values = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "project_id": 1,
                 "folder_id": 0,

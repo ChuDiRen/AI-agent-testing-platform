@@ -25,7 +25,7 @@ class ApiInfoQuery(BaseModel):
     
     class Config:
         """Schema配置"""
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "page": 1,
                 "pageSize": 10,
@@ -65,7 +65,7 @@ class ApiInfoCreate(BaseModel):
     
     class Config:
         """Schema配置"""
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "project_id": 1,
                 "folder_id": 0,
@@ -107,7 +107,7 @@ class ApiInfoUpdate(BaseModel):
     
     class Config:
         """Schema配置"""
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "id": 1,
                 "api_name": "用户登录接口（更新）",
@@ -129,7 +129,7 @@ class ApiTestExecute(BaseModel):
     
     class Config:
         """Schema配置"""
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "api_info_id": 1,
                 "test_name": "用户登录测试",
@@ -165,7 +165,7 @@ class ApiInfoResponse(BaseModel):
     
     class Config:
         """Schema配置"""
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "id": 1,
                 "project_id": 1,
@@ -197,7 +197,7 @@ class ApiDebugRequest(BaseModel):
     
     class Config:
         """Schema配置"""
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "request_method": "POST",
                 "request_url": "/api/auth/login",
@@ -223,7 +223,7 @@ class ApiDebugResponse(BaseModel):
     
     class Config:
         """Schema配置"""
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "success": True,
                 "status_code": 200,

@@ -49,7 +49,7 @@ class WebReport(SQLModel, table=True):
     class Config:
         """模型配置"""
         use_enum_values = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "id": "report_20260106_001",
                 "execution_id": "exec_20260106_001",
@@ -84,7 +84,7 @@ class WebReportTemplate(SQLModel, table=True):
     class Config:
         """模型配置"""
         use_enum_values = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "name": "标准HTML报告模板",
                 "description": "包含统计图表和详细用例信息的标准报告模板",

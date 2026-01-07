@@ -30,7 +30,7 @@ class WebHistoryQuery(BaseModel):
     
     class Config:
         """Schema配置"""
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "page": 1,
                 "pageSize": 10,
@@ -62,7 +62,7 @@ class WebHistoryCreate(BaseModel):
     class Config:
         """Schema配置"""
         use_enum_values = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "project_id": 1,
                 "project_name": "商城系统 Web 测试",
@@ -92,7 +92,7 @@ class WebHistoryUpdate(BaseModel):
     class Config:
         """Schema配置"""
         use_enum_values = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "id": "exec_20260106_001",
                 "status": "success",

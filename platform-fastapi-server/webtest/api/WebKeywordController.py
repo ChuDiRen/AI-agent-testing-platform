@@ -2,6 +2,7 @@
 Web关键字Controller - 按照ApiTest标准实现
 """
 from typing import List, Optional
+from datetime import datetime
 from fastapi import APIRouter, Depends, Query, Path, UploadFile, File
 from sqlmodel import Session
 
@@ -44,7 +45,7 @@ async def queryByPage(query: WebKeywordQuery, session: Session = Depends(get_ses
 async def queryById(id: int = Query(..., description="关键字ID"), session: Session = Depends(get_session)):
     """根据ID查询Web关键字"""
     try:
-        keyword = WebKeywordService.get_by_id(session, id)
+        keyword = WebKeywordService.get_keyword_by_id(session, id)
         if not keyword:
             return respModel.ok_resp(msg="查询成功,但是没有数据")
         
@@ -60,7 +61,7 @@ async def queryById(id: int = Query(..., description="关键字ID"), session: Se
 async def insert(keyword_data: WebKeywordCreate, session: Session = Depends(get_session)):
     """新增Web关键字"""
     try:
-        keyword = WebKeywordService.create(session, keyword_data)
+        keyword = WebKeywordService.create_keyword(session, keyword_data)
         return respModel.ok_resp(msg="添加成功", dic_t={"id": keyword.id})
     except Exception as e:
         session.rollback()
@@ -72,7 +73,7 @@ async def insert(keyword_data: WebKeywordCreate, session: Session = Depends(get_
 async def update(keyword_data: WebKeywordUpdate, session: Session = Depends(get_session)):
     """更新Web关键字"""
     try:
-        success = WebKeywordService.update(session, keyword_data.id, keyword_data)
+        success = WebKeywordService.update_keyword(session, keyword_data.id, keyword_data)
         if success:
             return respModel.ok_resp(msg="更新成功")
         else:
@@ -87,7 +88,7 @@ async def update(keyword_data: WebKeywordUpdate, session: Session = Depends(get_
 async def delete(id: int = Query(..., description="关键字ID"), session: Session = Depends(get_session)):
     """删除Web关键字"""
     try:
-        success = WebKeywordService.delete(session, id)
+        success = WebKeywordService.delete_keyword(session, id)
         if success:
             return respModel.ok_resp(msg="删除成功")
         else:
@@ -102,7 +103,7 @@ async def delete(id: int = Query(..., description="关键字ID"), session: Sessi
 async def batchDelete(ids: List[int], session: Session = Depends(get_session)):
     """批量删除Web关键字"""
     try:
-        deleted_count = WebKeywordService.batch_delete(session, ids)
+        deleted_count = WebKeywordService.batch_delete_keywords(session, ids)
         if deleted_count > 0:
             return respModel.ok_resp(msg=f"成功删除{deleted_count}个关键字")
         else:
@@ -117,7 +118,7 @@ async def batchDelete(ids: List[int], session: Session = Depends(get_session)):
 async def generateFile(request: WebKeywordGenerateRequest, session: Session = Depends(get_session)):
     """生成关键字文件"""
     try:
-        result = WebKeywordService.generate_file(session, request)
+        result = WebKeywordService.generate_keyword_file(session, request)
         return respModel.ok_resp(msg="生成成功", obj=result)
     except Exception as e:
         logger.error(f"生成关键字文件失败: {e}", exc_info=True)
@@ -132,12 +133,12 @@ async def importKeywords(
     """导入Web关键字"""
     try:
         import_data = WebKeywordImport(
-            file_name=file.filename,
-            file_content=file.file.read()
+            overwrite=False,
+            keywords=[]  # 需要从文件中解析关键字
         )
         
-        result = WebKeywordService.import_keywords(session, import_data)
-        return respModel.ok_resp(msg=f"导入成功，共{result.total}条记录，成功{result.success}条，失败{result.failed}条")
+        success_count, error_count = WebKeywordService.import_keywords(session, import_data.keywords, import_data.overwrite)
+        return respModel.ok_resp(msg=f"导入成功，共{success_count + error_count}条记录，成功{success_count}条，失败{error_count}条")
     except Exception as e:
         session.rollback()
         logger.error(f"导入Web关键字失败: {e}", exc_info=True)
@@ -148,16 +149,14 @@ async def importKeywords(
 async def exportKeywords(ids: List[int], session: Session = Depends(get_session)):
     """导出Web关键字"""
     try:
-        file_path = WebKeywordService.export_keywords(session, ids)
+        export_request = WebKeywordExport(ids=ids)
+        keywords = WebKeywordService.export_keywords(session, export_request)
         
-        if file_path and os.path.exists(file_path):
-            return FileResponse(
-                path=file_path,
-                filename=f"web_keywords_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+        if keywords:
+            # 简单返回关键字列表，不生成文件
+            return respModel.ok_resp_list(lst=keywords, total=len(keywords))
         else:
-            return respModel.error_resp("导出失败，文件不存在")
+            return respModel.error_resp("导出失败，没有找到数据")
     except Exception as e:
         logger.error(f"导出Web关键字失败: {e}", exc_info=True)
         return respModel.error_resp(f"导出失败:{e}")

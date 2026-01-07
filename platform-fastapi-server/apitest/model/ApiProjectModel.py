@@ -14,7 +14,7 @@ class ApiProject(SQLModel, table=True): # API项目表
     
     class Config:
         """模型配置"""
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "project_name": "测试项目",
                 "project_desc": "这是一个API测试项目"

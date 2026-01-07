@@ -30,7 +30,7 @@ class WebReportQuery(BaseModel):
     
     class Config:
         """Schema配置"""
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "page": 1,
                 "pageSize": 10,
@@ -56,7 +56,7 @@ class WebReportCreate(BaseModel):
     class Config:
         """Schema配置"""
         use_enum_values = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "execution_id": "exec_20260106_001",
                 "project_id": 1,
@@ -88,7 +88,7 @@ class WebReportUpdate(BaseModel):
     class Config:
         """Schema配置"""
         use_enum_values = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "id": "report_20260106_001",
                 "status": "completed",
@@ -185,7 +185,7 @@ class WebReportStatistics(BaseModel):
     latest_report: Optional[WebReportResponse] = Field(default=None, description='最新报告')
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "total_reports": 25,
                 "completed_reports": 20,

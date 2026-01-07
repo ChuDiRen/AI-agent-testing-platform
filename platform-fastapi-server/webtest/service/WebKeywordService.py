@@ -354,7 +354,7 @@ class WebKeywordService:
             '    /**',
             '     * 构造函数',
             '     * @param {object} driver - WebDriver instance',
-            '     */
+            '     */',
             '    constructor(driver) {',
             '        this.driver = driver;',
             '        this.wait = new driver.wait(10000); // 10秒等待',
