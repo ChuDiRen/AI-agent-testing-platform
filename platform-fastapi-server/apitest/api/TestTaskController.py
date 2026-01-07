@@ -162,22 +162,9 @@ async def queryById(id: int = Query(...), session: Session = Depends(get_session
 async def insert(data: TestTaskCreate, session: Session = Depends(get_session)):
     """新增测试任务"""
     try:
-        task = module_model(
-            project_id=data.project_id,
-            task_name=data.task_name,
-            task_desc=data.task_desc,
-            task_type=data.task_type,
-            cron_expression=data.cron_expression,
-            plan_id=data.plan_id,
-            case_ids=json.dumps(data.case_ids, ensure_ascii=False) if data.case_ids else None,
-            task_status='pending',
-            notify_config=json.dumps(data.notify_config, ensure_ascii=False) if data.notify_config else None,
-            extra_config=json.dumps(data.extra_config, ensure_ascii=False) if data.extra_config else None,
-            create_time=datetime.now(),
-            update_time=datetime.now()
-        )
-        session.add(task)
-        session.commit()
+        service = TestTaskService(session)
+        task = service.create(data)
+        logger.info(f"新增测试任务成功: ID={task.id}, 名称={task.task_name}")
 
         # 如果是定时任务，添加到调度器
         if task.task_type == 'scheduled' and task.cron_expression:
@@ -252,10 +239,10 @@ async def update(data: TestTaskUpdate, session: Session = Depends(get_session)):
 async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除测试任务"""
     try:
-        obj = session.get(module_model, id)
-        if obj:
-            session.delete(obj)
-            session.commit()
+        service = TestTaskService(session)
+        success = service.delete(id)
+        if success:
+            logger.info(f"删除测试任务成功: ID={id}")
 
             # 从调度器移除
             try:
@@ -265,6 +252,7 @@ async def delete(id: int = Query(...), session: Session = Depends(get_session)):
                 logger.warning(f"从调度器移除任务失败: {e}")
 
             return respModel.ok_resp_text(msg="删除成功")
+        logger.warning(f"删除测试任务失败，任务不存在: ID={id}")
         return respModel.error_resp("数据不存在")
     except Exception as e:
         session.rollback()

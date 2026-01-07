@@ -17,6 +17,7 @@ from ..model.GenTable import GenTable
 from ..model.GenTableColumn import GenTableColumn
 from ..schemas.generator_schema import GenerateRequest, GeneratePreviewRequest, GenerateBatchRequest
 from ..service.ASTCodeGenerator import ASTCodeGenerator
+from ..service.GeneratorService import GeneratorService
 
 module_route = APIRouter(prefix="/Generator", tags=["代码生成器"])
 logger = get_logger(__name__)
@@ -46,17 +47,16 @@ async def preview(request: GeneratePreviewRequest, session: Session = Depends(ge
         
         # 保存生成历史
         try:
-            history = GenHistory(
+            gen_service = GeneratorService(session)
+            gen_service.create_history(
                 table_id=request.table_id,
                 table_name=table.table_name,
                 gen_type='0',
                 gen_content=str(code_files),
                 file_count=len(code_files),
-                status='1',
-                create_time=datetime.now()
+                status='1'
             )
-            session.add(history)
-            session.commit()
+            logger.info(f"保存代码生成历史成功: table_id={request.table_id}")
         except Exception as e:
             logger.warning(f"保存生成历史失败: {e}")
         

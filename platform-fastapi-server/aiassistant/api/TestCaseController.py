@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlmodel import Session
 
 from ..schemas.test_case_schema import TestCaseQuery, TestCaseCreate, TestCaseUpdate, BatchInsertRequest
-from ..services.TestCaseService import TestCaseService
+from ..service.TestCaseService import TestCaseService
 
 logger = logging.getLogger(__name__)
 

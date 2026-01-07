@@ -42,7 +42,8 @@
       :data="tableData"
       :loading="loading"
       :total="total"
-      v-model:pagination="paginationModel"
+      :pagination="paginationModel"
+      @update:pagination="paginationModel = $event"
       @refresh="loadData"
     >
       <template #header>
@@ -116,7 +117,7 @@
             size="small"
             style="margin-right: 5px; margin-bottom: 5px"
           >
-            {{ `{{${variable.name}}}}: ${variable.desc}` }}
+            {{ '{' + '{' + variable.name + '}' + '}' + ': ' + variable.desc }}
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="示例参数">

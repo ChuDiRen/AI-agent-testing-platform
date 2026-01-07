@@ -10,7 +10,7 @@ from sqlmodel import Session, select, func
 
 from ..model.AiModel import AiModel
 from ..schemas.ai_model_schema import AiModelQuery, AiModelCreate, AiModelUpdate
-from ..services.AiModelService import AiModelService
+from ..service.AiModelService import AiModelService
 
 logger = logging.getLogger(__name__)
 

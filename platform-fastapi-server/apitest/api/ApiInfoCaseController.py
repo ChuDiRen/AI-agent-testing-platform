@@ -98,20 +98,10 @@ async def insert(case_data: ApiInfoCaseCreate, session: Session = Depends(get_se
     """新增用例（含步骤）"""
     try:
         # 创建用例
-        new_case = ApiInfoCase(
-            project_id=case_data.project_id,
-            case_name=case_data.case_name,
-            case_desc=case_data.case_desc,
-            context_config=json.dumps(case_data.context_config, ensure_ascii=False) if case_data.context_config else None,
-            ddts=json.dumps(case_data.ddts, ensure_ascii=False) if case_data.ddts else None,
-            pre_request=case_data.pre_request,
-            post_request=case_data.post_request,
-            create_time=datetime.now(),
-            update_time=datetime.now()
-        )
-        session.add(new_case)
-        session.flush()
-        
+        service = InfoCaseService(session)
+        new_case = service.create(case_data)
+        logger.info(f"新增API用例成功: ID={new_case.id}, 名称={new_case.case_name}")
+
         # 创建步骤
         if case_data.steps:
             for step in case_data.steps:
@@ -126,7 +116,7 @@ async def insert(case_data: ApiInfoCaseCreate, session: Session = Depends(get_se
                     create_time=datetime.now()
                 )
                 session.add(new_step)
-        
+
         session.commit()
         return respModel.ok_resp(obj={"id": new_case.id}, msg="新增成功")
     except Exception as e:

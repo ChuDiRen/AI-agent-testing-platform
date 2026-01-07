@@ -9,7 +9,6 @@ import Forbidden from '~/views/403.vue'
 import ServerError from '~/views/500.vue'
 import Login from '~/views/login/login.vue'
 import Home from '~/views/home/home.vue'
-import Workspace from '~/views/workspace/Workspace.vue'
 import Statistics from '~/views/statistics/statistics.vue'
 import AgentChatIntegrated from '~/views/aiassistant/agentchat/AgentChatIntegrated.vue'
 
@@ -25,17 +24,10 @@ function getToken() {
 const routes = [
     {
         path: '/',
-        redirect: '/login'
+        redirect: '/home'
     }, {
         path: "/login",
         component: Login
-    }, {
-        path: "/workspace",
-        name: 'workspace',
-        component: Workspace,
-        meta: {
-            title: "工作台"
-        }
     }, {
         path: "/home",
         name: 'home',

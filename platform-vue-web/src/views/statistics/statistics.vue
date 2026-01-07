@@ -63,60 +63,6 @@
             </div>
         </div>
 
-        <!-- 快速导航 -->
-        <div class="quick-nav-section">
-            <h2>快速导航</h2>
-            <div class="nav-grid">
-                <div class="nav-item" @click="navigateTo('/ApiProjectList')">
-                    <div class="nav-icon projects">
-                        <el-icon><FolderOpened /></el-icon>
-                    </div>
-                    <h4>项目管理</h4>
-                    <p>创建和管理测试项目</p>
-                </div>
-
-                <div class="nav-item" @click="navigateTo('/ApiInfoList')">
-                    <div class="nav-icon apis">
-                        <el-icon><Connection /></el-icon>
-                    </div>
-                    <h4>接口管理</h4>
-                    <p>定义和编辑测试接口</p>
-                </div>
-
-                <div class="nav-item" @click="navigateTo('/ApiInfoCaseList')">
-                    <div class="nav-icon tests">
-                        <el-icon><CollectionTag /></el-icon>
-                    </div>
-                    <h4>测试用例</h4>
-                    <p>编写和执行测试用例</p>
-                </div>
-
-                <div class="nav-item" @click="navigateTo('/AgentChatIntegrated')">
-                    <div class="nav-icon ai">
-                        <el-icon><ChatDotRound /></el-icon>
-                    </div>
-                    <h4>LangGraph 智能对话</h4>
-                    <p>使用AI生成测试用例</p>
-                </div>
-
-                <div class="nav-item" @click="navigateTo('/AiModelList')">
-                    <div class="nav-icon config">
-                        <el-icon><Setting /></el-icon>
-                    </div>
-                    <h4>AI模型配置</h4>
-                    <p>管理AI模型和API密钥</p>
-                </div>
-
-                <div class="nav-item" @click="navigateTo('/userList')">
-                    <div class="nav-icon user">
-                        <el-icon><User /></el-icon>
-                    </div>
-                    <h4>用户管理</h4>
-                    <p>管理系统用户和权限</p>
-                </div>
-            </div>
-        </div>
-
         <!-- 功能介绍 -->
         <div class="features-section">
             <h2>核心功能</h2>
@@ -351,14 +297,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { 
-    DataAnalysis, FolderOpened, Connection, CollectionTag, ChatDotRound, Setting, User,
+    DataAnalysis, 
     TrendCharts, Timer, WarningFilled, Calendar, Refresh
 } from '@element-plus/icons-vue'
 import { getOverview, getExecutionTrend, getTimeTrend, getFailedTop5, getDailyStats } from './statistics.js'
 
-const router = useRouter()
 const currentTime = ref('')
 const loading = ref(false)
 
@@ -526,11 +470,6 @@ const formatDate = (dateStr) => {
 const getDailyBarWidth = (value, total) => {
     if (!total || total === 0) return '0%'
     return `${(value / total) * 100}%`
-}
-
-// 导航函数
-const navigateTo = (path) => {
-    router.push(path)
 }
 
 // 更新时间
@@ -704,12 +643,15 @@ onMounted(() => {
     color: #999;
 }
 
-/* 快速导航 */
-.quick-nav-section {
+/* 功能介绍 */
+.features-section {
+    background: white;
+    border-radius: 12px;
+    padding: 32px;
     margin-bottom: 32px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
-.quick-nav-section h2,
 .features-section h2 {
     font-size: 24px;
     color: #333;
@@ -719,91 +661,12 @@ onMounted(() => {
     gap: 12px;
 }
 
-.quick-nav-section h2::before,
 .features-section h2::before {
     content: '';
     width: 4px;
     height: 24px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 2px;
-}
-
-.nav-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-}
-
-.nav-item {
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-}
-
-.nav-item:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
-
-.nav-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    color: white;
-    margin: 0 auto 12px;
-}
-
-.nav-icon.projects {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.nav-icon.apis {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.nav-icon.tests {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-.nav-icon.ai {
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-}
-
-.nav-icon.config {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-}
-
-.nav-icon.user {
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-}
-
-.nav-item h4 {
-    font-size: 16px;
-    color: #333;
-    margin: 12px 0 8px 0;
-}
-
-.nav-item p {
-    font-size: 12px;
-    color: #999;
-    margin: 0;
-}
-
-/* 功能介绍 */
-.features-section {
-    background: white;
-    border-radius: 12px;
-    padding: 32px;
-    margin-bottom: 32px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 .feature-card {
@@ -1213,10 +1076,6 @@ onMounted(() => {
 
     .stat-card {
         padding: 16px;
-    }
-
-    .nav-grid {
-        grid-template-columns: repeat(2, 1fr);
     }
 
     .features-section {

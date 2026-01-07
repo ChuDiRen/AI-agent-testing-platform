@@ -15,7 +15,8 @@
       :data="tableData"
       :loading="loading"
       :total="total"
-      v-model:pagination="pagination"
+      :pagination="pagination"
+      @update:pagination="pagination = $event"
       @refresh="loadData"
     >
       <template #header>

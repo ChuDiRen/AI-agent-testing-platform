@@ -92,69 +92,12 @@ async def batchAdd(collection_info_id: int, case_ids: List[int], session: Sessio
     try:
         import re
         
-        # 不需要参数化的字段
-        skip_fields = {'URL', 'url', 'METHOD', 'method', 'Content-Type', 'content-type'}
-        
-        def extract_ddt_from_case(case_id: int) -> str:
-            """从用例步骤中提取数据驱动配置"""
-            variables = {}
-            
-            def extract_all_fields(data):
-                if isinstance(data, dict):
-                    for key, value in data.items():
-                        if key in skip_fields:
-                            continue
-                        if isinstance(value, dict):
-                            extract_all_fields(value)
-                        elif isinstance(value, list):
-                            extract_all_fields(value)
-                        elif isinstance(value, (str, int, float, bool)):
-                            variables[key] = value if isinstance(value, str) else str(value)
-                elif isinstance(data, list):
-                    for item in data:
-                        extract_all_fields(item)
-            
-            # 获取用例步骤
-            steps = session.exec(
-                select(ApiInfoCaseStep).where(ApiInfoCaseStep.case_info_id == case_id)
-            ).all()
-            
-            for step in steps:
-                if step.step_data:
-                    try:
-                        step_dict = json.loads(step.step_data)
-                        extract_all_fields(step_dict)
-                    except:
-                        pass
-            
-            # 获取用例名称
-            case_info = session.get(ApiInfoCase, case_id)
-            case_name = case_info.case_name if case_info else f"用例{case_id}"
-            
-            if variables:
-                template = [{"desc": f"{case_name}_数据1", **variables}]
-                return json.dumps(template, ensure_ascii=False)
-            return None
-        
-        # 获取当前最大的run_order
-        statement = select(module_model).where(module_model.collection_info_id == collection_info_id)
-        existing = session.exec(statement).all()
-        max_order = max([d.run_order for d in existing], default=0)
-        
+
         # 批量添加，自动配置数据驱动
-        for idx, case_id in enumerate(case_ids, 1):
-            ddt_data = extract_ddt_from_case(case_id)
-            detail = module_model(
-                collection_info_id=collection_info_id,
-                case_info_id=case_id,
-                run_order=max_order + idx,
-                ddt_data=ddt_data,
-                create_time=datetime.now()
-            )
-            session.add(detail)
-        
-        session.commit()
-        return respModel.ok_resp(msg=f"成功添加{len(case_ids)}个用例")
+        service = ApiCollectionDetailService(session)
+        added_count = service.batch_add_cases(collection_info_id, case_ids)
+        logger.info(f"批量添加用例成功: 集合ID={collection_info_id}, 添加{added_count}个用例")
+        return respModel.ok_resp(msg=f"成功添加{added_count}个用例")
     except Exception as e:
         session.rollback()
         logger.error(f"批量添加用例失败: {e}", exc_info=True)

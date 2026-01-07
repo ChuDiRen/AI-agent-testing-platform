@@ -23,7 +23,8 @@
       :data="tableData" 
       :total="total" 
       :loading="loading"
-      v-model:pagination="pagination"
+      :pagination="pagination"
+      @update:pagination="pagination = $event"
       @refresh="handleQuery"
     >
       <el-table-column prop="id" label="ID" width="80" />

@@ -157,20 +157,16 @@ async def execute_test(request: ApiTestExecuteRequest, session: Session = Depend
         api_info = session.get(ApiInfo, request.api_info_id)
         if not api_info:
             return respModel.error_resp("接口信息不存在")
-        
+
         # 2. 创建测试历史记录
         test_name = request.test_name or f"接口测试_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        test_history = module_model(
+        service = HistoryService(session)
+        test_history = service.create(
             api_info_id=request.api_info_id,
             project_id=api_info.project_id or 0,
             test_name=test_name,
-            test_status="running",
-            create_time=datetime.now(),
-            update_time=datetime.now()
+            test_status="running"
         )
-        session.add(test_history)
-        session.commit()
-        session.refresh(test_history)
         
         # 3. 生成 YAML 测试用例
         def _parse_json(field_value):
@@ -337,11 +333,12 @@ async def get_test_status(test_id: int = Query(...), session: Session = Depends(
 async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除测试历史"""
     try:
-        obj = session.get(module_model, id)
-        if obj:
-            session.delete(obj)
-            session.commit()
+        service = HistoryService(session)
+        success = service.delete(id)
+        if success:
+            logger.info(f"删除测试历史成功: ID={id}")
             return respModel.ok_resp_text(msg="删除成功")
+        logger.warning(f"删除测试历史失败，数据不存在: ID={id}")
         return respModel.error_resp("数据不存在")
     except Exception as e:
         session.rollback()

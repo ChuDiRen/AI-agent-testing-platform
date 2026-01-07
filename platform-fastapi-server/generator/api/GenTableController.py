@@ -13,6 +13,7 @@ from ..model.GenTable import GenTable
 from ..model.GenTableColumn import GenTableColumn
 from ..schemas.gen_table_schema import GenTableQuery, GenTableUpdate, GenTableImport
 from ..service.DbMetaService import DbMetaService
+from ..service.GenTableService import GenTableService
 
 module_name = "GenTable" # 模块名称
 module_model = GenTable
@@ -57,37 +58,27 @@ async def importTables(request: GenTableImport, session: Session = Depends(get_s
             if not table_info:
                 logger.error(f"获取表{table_name}信息失败")
                 continue
-            
+
             # 生成类名和业务名
             class_name = ''.join(x.title() for x in table_name.split('_'))
             business_name = table_name.lower()
-            
-            # 创建表配置
-            gen_table = GenTable(
-                table_name=table_name,
-                table_comment=table_info.get('table_comment', ''),
-                class_name=class_name,
-                module_name='generator',
-                business_name=business_name,
-                function_name=table_info.get('table_comment', table_name),
-                create_time=datetime.now()
-            )
-            session.add(gen_table)
-            session.flush() # 获取gen_table.id
-            
-            # 创建字段配置
-            columns = db_service.get_column_details(table_name)
-            for col in columns:
-                gen_column = GenTableColumn(
-                    table_id=gen_table.id,
-                    **col,
-                    create_time=datetime.now()
-                )
-                session.add(gen_column)
-            
-            imported_count += 1
-        
-        session.commit()
+
+            # 准备表数据
+            table_data = {
+                'table_name': table_name,
+                'table_comment': table_info.get('table_comment', ''),
+                'class_name': class_name,
+                'business_name': business_name,
+                'function_name': table_info.get('table_comment', table_name),
+                'columns': db_service.get_column_details(table_name)
+            }
+
+            tables_data_list.append(table_data)
+
+        # 使用Service批量导入
+        gen_service = GenTableService(session)
+        imported_count = gen_service.batch_import_tables(tables_data_list)
+        logger.info(f"批量导入表配置成功: 导入{imported_count}张表")
         return respModel.ok_resp_text(msg=f"成功导入{imported_count}张表配置")
     except Exception as e:
         session.rollback()

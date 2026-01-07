@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
 from ..schemas.prompt_template_schema import PromptTemplateQuery, PromptTemplateCreate, PromptTemplateUpdate
-from ..services.PromptTemplateService import PromptTemplateService
+from ..service.PromptTemplateService import PromptTemplateService
 
 logger = logging.getLogger(__name__)
 

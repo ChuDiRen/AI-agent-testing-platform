@@ -17,6 +17,7 @@ from ..schemas.robot_config_schema import (
     RobotConfigQuery, RobotConfigCreate, RobotConfigUpdate,
     RobotTestRequest
 )
+from ..service.RobotConfigService import RobotConfigService
 
 module_name = "RobotConfig"
 module_model = RobotConfig
@@ -28,29 +29,15 @@ logger = get_logger(__name__)
 async def queryByPage(query: RobotConfigQuery, session: Session = Depends(get_session)):
     """分页查询机器人配置"""
     try:
-        offset = (query.page - 1) * query.pageSize
-        statement = select(module_model).limit(query.pageSize).offset(offset)
-        
-        # 添加过滤条件
-        if query.robot_type:
-            statement = statement.where(module_model.robot_type == query.robot_type)
-        if query.robot_name:
-            statement = statement.where(module_model.robot_name.contains(query.robot_name))
-        if query.is_enabled is not None:
-            statement = statement.where(module_model.is_enabled == query.is_enabled)
-        
-        robots = session.exec(statement).all()
-        
-        # 计算总数
-        count_statement = select(module_model)
-        if query.robot_type:
-            count_statement = count_statement.where(module_model.robot_type == query.robot_type)
-        if query.robot_name:
-            count_statement = count_statement.where(module_model.robot_name.contains(query.robot_name))
-        if query.is_enabled is not None:
-            count_statement = count_statement.where(module_model.is_enabled == query.is_enabled)
-        
-        total = len(session.exec(count_statement).all())
+        service = RobotConfigService(session)
+        robots, total = service.query_by_page(
+            page=query.page,
+            page_size=query.pageSize,
+            robot_type=query.robot_type,
+            robot_name=query.robot_name,
+            is_enabled=query.is_enabled
+        )
+        logger.info(f"分页查询机器人配置成功，共{total}条记录")
         return respModel.ok_resp_list(lst=robots, total=total)
     except Exception as e:
         logger.error(f"分页查询机器人配置失败: {e}", exc_info=True)
@@ -61,11 +48,13 @@ async def queryByPage(query: RobotConfigQuery, session: Session = Depends(get_se
 async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
     """根据ID查询机器人配置"""
     try:
-        statement = select(module_model).where(module_model.id == id)
-        robot = session.exec(statement).first()
+        service = RobotConfigService(session)
+        robot = service.get_by_id(id)
         if robot:
+            logger.info(f"查询机器人配置成功: ID={id}")
             return respModel.ok_resp(obj=robot)
         else:
+            logger.warning(f"查询机器人配置不存在: ID={id}")
             return respModel.ok_resp(msg="查询成功,但是没有数据")
     except Exception as e:
         logger.error(f"根据ID查询机器人配置失败: {e}", exc_info=True)
@@ -76,8 +65,9 @@ async def queryById(id: int = Query(...), session: Session = Depends(get_session
 async def queryAll(session: Session = Depends(get_session)):
     """查询所有启用的机器人配置"""
     try:
-        statement = select(module_model).where(module_model.is_enabled == True)
-        robots = session.exec(statement).all()
+        service = RobotConfigService(session)
+        robots = service.query_all()
+        logger.info(f"查询所有机器人配置成功，共{len(robots)}条记录")
         return respModel.ok_resp_list(lst=robots, msg="查询成功")
     except Exception as e:
         logger.error(f"查询所有机器人配置失败: {e}", exc_info=True)
@@ -88,10 +78,9 @@ async def queryAll(session: Session = Depends(get_session)):
 async def insert(robot: RobotConfigCreate, session: Session = Depends(get_session)):
     """新增机器人配置"""
     try:
-        data = module_model(**robot.model_dump(), create_time=datetime.now())
-        session.add(data)
-        session.commit()
-        session.refresh(data)
+        service = RobotConfigService(session)
+        data = service.create(**robot.model_dump())
+        logger.info(f"新增机器人配置成功: ID={data.id}, 名称={data.robot_name}")
         return respModel.ok_resp(msg="添加成功", dic_t={"id": data.id})
     except Exception as e:
         session.rollback()
@@ -103,17 +92,14 @@ async def insert(robot: RobotConfigCreate, session: Session = Depends(get_sessio
 async def update(robot: RobotConfigUpdate, session: Session = Depends(get_session)):
     """更新机器人配置"""
     try:
-        statement = select(module_model).where(module_model.id == robot.id)
-        db_robot = session.exec(statement).first()
-        if db_robot:
-            update_data = robot.model_dump(exclude_unset=True, exclude={'id'})
-            update_data['update_time'] = datetime.now()
-            
-            for key, value in update_data.items():
-                setattr(db_robot, key, value)
-            session.commit()
+        service = RobotConfigService(session)
+        update_data = robot.model_dump(exclude_unset=True, exclude={'id'})
+        success = service.update(robot.id, update_data)
+        if success:
+            logger.info(f"更新机器人配置成功: ID={robot.id}")
             return respModel.ok_resp(msg="修改成功")
         else:
+            logger.warning(f"更新机器人配置失败，配置不存在: ID={robot.id}")
             return respModel.error_resp(msg="机器人配置不存在")
     except Exception as e:
         session.rollback()
@@ -125,13 +111,13 @@ async def update(robot: RobotConfigUpdate, session: Session = Depends(get_sessio
 async def delete(id: int = Query(...), session: Session = Depends(get_session)):
     """删除机器人配置"""
     try:
-        statement = select(module_model).where(module_model.id == id)
-        robot = session.exec(statement).first()
-        if robot:
-            session.delete(robot)
-            session.commit()
+        service = RobotConfigService(session)
+        success = service.delete(id)
+        if success:
+            logger.info(f"删除机器人配置成功: ID={id}")
             return respModel.ok_resp(msg="删除成功")
         else:
+            logger.warning(f"删除机器人配置失败，配置不存在: ID={id}")
             return respModel.error_resp(msg="机器人配置不存在")
     except Exception as e:
         session.rollback()

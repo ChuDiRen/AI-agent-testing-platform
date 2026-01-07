@@ -87,66 +87,65 @@ async def insert(keyword: ApiKeyWordCreate, session: Session = Depends(get_sessi
         logger.error(f"操作失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"添加失败:{e}")
 
-@module_route.put("/update", summary="更新关键字", dependencies=[Depends(check_permission("apitest:keyword:edit"))]) # 更新关键字
+@module_route.put("/update", summary="更新关键字", dependencies=[Depends(check_permission("apitest:keyword:edit"))])
 async def update(keyword: ApiKeyWordUpdate, session: Session = Depends(get_session)):
+    """更新关键字"""
     try:
+        service = ApiKeywordService(session)
         # 检查关键字方法名是否与其他记录重复
         if keyword.keyword_fun_name:
             check_statement = select(module_model).where(module_model.keyword_fun_name == keyword.keyword_fun_name)
             existing = session.exec(check_statement).first()
             if existing and existing.id != keyword.id:
+                logger.warning(f"关键字方法名重复: {keyword.keyword_fun_name}")
                 return respModel.error_resp(msg="数据库已存在重复的关键字方法，请重新输入")
-        statement = select(module_model).where(module_model.id == keyword.id)
-        db_data = session.exec(statement).first()
-        if db_data:
-            update_data = keyword.model_dump(exclude_unset=True, exclude={'id'})
-            for key, value in update_data.items():
-                setattr(db_data, key, value)
-            session.commit()
+
+        update_data = keyword.model_dump(exclude_unset=True, exclude={'id'})
+        success = service.update(keyword.id, update_data)
+        if success:
+            logger.info(f"更新关键字成功: ID={keyword.id}")
             return respModel.ok_resp(msg="修改成功")
         else:
+            logger.warning(f"更新关键字失败，关键字不存在: ID={keyword.id}")
             return respModel.error_resp(msg="关键字不存在")
     except Exception as e:
         session.rollback()
-        logger.error(f"操作失败: {e}", exc_info=True)
+        logger.error(f"更新关键字失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
 
-@module_route.delete("/delete", summary="删除关键字", dependencies=[Depends(check_permission("apitest:keyword:delete"))]) # 删除关键字
+@module_route.delete("/delete", summary="删除关键字", dependencies=[Depends(check_permission("apitest:keyword:delete"))])
 async def delete(id: int = Query(...), session: Session = Depends(get_session)):
+    """删除关键字"""
     try:
-        statement = select(module_model).where(module_model.id == id)
-        data = session.exec(statement).first()
-        if data:
-            session.delete(data)
-            session.commit()
+        service = ApiKeywordService(session)
+        success = service.delete(id)
+        if success:
+            logger.info(f"删除关键字成功: ID={id}")
             return respModel.ok_resp(msg="删除成功")
         else:
+            logger.warning(f"删除关键字失败，关键字不存在: ID={id}")
             return respModel.error_resp(msg="关键字不存在")
     except Exception as e:
         session.rollback()
-        logger.error(f"操作失败: {e}", exc_info=True)
+        logger.error(f"删除关键字失败: ID={id}, 错误: {e}", exc_info=True)
         return respModel.error_resp(msg=f"服务器错误,删除失败：{e}")
 
-@module_route.delete("/batchDelete", summary="批量删除关键字", dependencies=[Depends(check_permission("apitest:keyword:delete"))]) # 批量删除关键字
+@module_route.delete("/batchDelete", summary="批量删除关键字", dependencies=[Depends(check_permission("apitest:keyword:delete"))])
 async def batchDelete(ids: str = Query(..., description="逗号分隔的ID列表"), session: Session = Depends(get_session)):
+    """批量删除关键字"""
     try:
         id_list = [int(id.strip()) for id in ids.split(',') if id.strip()]
         if not id_list:
+            logger.warning("批量删除失败：未提供有效的ID列表")
             return respModel.error_resp(msg="请提供有效的ID列表")
-        
-        deleted_count = 0
-        for keyword_id in id_list:
-            statement = select(module_model).where(module_model.id == keyword_id)
-            data = session.exec(statement).first()
-            if data:
-                session.delete(data)
-                deleted_count += 1
-        
-        session.commit()
+
+        service = ApiKeywordService(session)
+        deleted_count = service.batch_delete(id_list)
+        logger.info(f"批量删除关键字成功，共删除{deleted_count}条记录")
         return respModel.ok_resp(msg=f"批量删除成功，共删除{deleted_count}条记录")
     except Exception as e:
         session.rollback()
-        logger.error(f"批量删除失败: {e}", exc_info=True)
+        logger.error(f"批量删除关键字失败: {e}", exc_info=True)
         return respModel.error_resp(msg=f"批量删除失败：{e}")
 
 @module_route.post("/keywordFile", summary="生成关键字文件", dependencies=[Depends(check_permission("apitest:keyword:generate"))]) # 生成关键字文件
@@ -318,53 +317,58 @@ async def batchImport(file: str = Query(..., description="文件内容"), sessio
                     })
             except Exception as e:
                 return respModel.error_resp(msg=f"文件格式错误，仅支持JSON或CSV格式: {e}")
-        
+
         if not keywords_data:
+            logger.warning("批量导入失败：文件中没有有效数据")
             return respModel.error_resp(msg="文件中没有有效数据")
-        
-        imported_count = 0
+
+        service = ApiKeywordService(session)
+        imported_keywords = []
         errors = []
-        
+
         for i, keyword_data in enumerate(keywords_data):
             try:
                 # 验证必填字段
                 if not keyword_data.get("name") or not keyword_data.get("keyword_fun_name"):
                     errors.append(f"第{i+1}行：关键字名称和函数名不能为空")
                     continue
-                
+
                 # 检查函数名是否重复
                 check_statement = select(module_model).where(module_model.keyword_fun_name == keyword_data["keyword_fun_name"])
                 existing = session.exec(check_statement).first()
                 if existing:
                     errors.append(f"第{i+1}行：函数名'{keyword_data['keyword_fun_name']}'已存在")
                     continue
-                
-                # 创建关键字
-                new_keyword = ApiKeyWord(
-                    name=keyword_data["name"],
-                    keyword_fun_name=keyword_data["keyword_fun_name"],
-                    keyword_value=keyword_data.get("keyword_value", ""),
-                    keyword_desc=keyword_data.get("keyword_desc", "[]"),
-                    operation_type_id=keyword_data.get("operation_type_id", 0),
-                    is_enabled=keyword_data.get("is_enabled", "1"),
-                    category=keyword_data.get("category", "")
-                )
-                session.add(new_keyword)
-                imported_count += 1
-                
+
+                # 准备关键字数据
+                keyword_dict = {
+                    "name": keyword_data["name"],
+                    "keyword_fun_name": keyword_data["keyword_fun_name"],
+                    "keyword_value": keyword_data.get("keyword_value", ""),
+                    "keyword_desc": keyword_data.get("keyword_desc", "[]"),
+                    "operation_type_id": keyword_data.get("operation_type_id", 0),
+                    "is_enabled": keyword_data.get("is_enabled", "1"),
+                    "category": keyword_data.get("category", "")
+                }
+                imported_keywords.append(keyword_dict)
+
             except Exception as e:
                 errors.append(f"第{i+1}行：{str(e)}")
                 continue
-        
-        if imported_count > 0:
-            session.commit()
-        
+
+        # 批量创建
+        imported_count = 0
+        if imported_keywords:
+            created_keywords = service.batch_create(imported_keywords)
+            imported_count = len(created_keywords)
+
         result_msg = f"批量导入完成，成功导入{imported_count}条记录"
         if errors:
             result_msg += f"，失败{len(errors)}条。错误详情：{'; '.join(errors[:5])}"
             if len(errors) > 5:
                 result_msg += f"等{len(errors)}个错误"
-        
+
+        logger.info(f"批量导入关键字完成: 成功{imported_count}条, 失败{len(errors)}条")
         return respModel.ok_resp(msg=result_msg, dic_t={"imported_count": imported_count, "errors": errors})
         
     except Exception as e:
