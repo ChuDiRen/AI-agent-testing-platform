@@ -226,7 +226,25 @@ async function loadMenuData() {
 // 菜单完全由后端生成
 const asideMenus = computed(()=> {
   const menuTree = store.state.menuTree || []
-  return transformMenuTree(menuTree)
+  const transformedMenus = transformMenuTree(menuTree)
+  
+  // 确保"主页信息"菜单项始终存在
+  const hasStatistics = transformedMenus.some(menu => 
+    menu.frontpath === '/Statistics' || 
+    (menu.child && menu.child.some(child => child.frontpath === '/Statistics'))
+  )
+  
+  if (!hasStatistics) {
+    // 添加"主页信息"菜单项到顶部
+    transformedMenus.unshift({
+      name: '主页信息',
+      icon: 'DataAnalysis',
+      frontpath: '/Statistics',
+      child: []
+    })
+  }
+  
+  return transformedMenus
 })
 
 // 根据当前路由计算激活的菜单项

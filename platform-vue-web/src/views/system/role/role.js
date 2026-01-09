@@ -1,6 +1,6 @@
 import axios from "~/axios"
 
-const module_name = "role" // 模块名
+const module_name = "roles" // 模块名
 
 // 分页查询角色
 export function queryByPage(data) {

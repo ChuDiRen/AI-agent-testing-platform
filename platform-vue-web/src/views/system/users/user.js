@@ -1,7 +1,7 @@
 import axios from "~/axios"
 
 // 模块名 - 和后台对应
-const module_name = "user"
+const module_name = "users"
 
 // 标准 - 增删改查接口调用
 export function queryByPage(data) {

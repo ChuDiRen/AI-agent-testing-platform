@@ -10,7 +10,6 @@ import ServerError from '~/views/500.vue'
 import Login from '~/views/login/login.vue'
 import Home from '~/views/home/home.vue'
 import Statistics from '~/views/statistics/statistics.vue'
-import AgentChatIntegrated from '~/views/aiassistant/agentchat/AgentChatIntegrated.vue'
 
 // 动态导入所有 views 目录下的 .vue 文件
 const modules = import.meta.glob('../views/**/*.vue')
@@ -38,13 +37,6 @@ const routes = [
             component: Statistics,
             meta: {
                 title: "主页信息"
-            }
-        }, {
-            // AI智能体聊天页面 - 静态路由
-            path: "/AgentChatIntegrated",
-            component: AgentChatIntegrated,
-            meta: {
-                title: "AI智能体聊天"
             }
         }]
     },
@@ -74,10 +66,7 @@ const router = createRouter({
 })
 
 // 已添加的动态路由路径集合（防止重复添加）
-const addedRoutes = new Set(['/Statistics', '/AgentChatIntegrated'])
-
-// 已删除的路由列表
-const deletedRoutes = ['/ai-chat', '/langgraph-chat']
+const addedRoutes = new Set(['/Statistics'])
 
 // 标记动态路由是否已加载
 let dynamicRoutesLoaded = false
@@ -97,10 +86,7 @@ export function addDynamicRoutes(menus) {
     flatMenus.forEach(menu => {
         // 只处理菜单类型(C)，跳过目录(M)和按钮(F)
         if (menu.menu_type !== 'C') return
-        
-        // 跳过已删除的路由
-        if (deletedRoutes.includes(menu.path)) return
-        
+
         // 获取路由路径
         const routePath = getRoutePath(menu)
         if (!routePath) return
@@ -111,10 +97,9 @@ export function addDynamicRoutes(menus) {
         // 获取组件
         const component = getComponent(menu.component)
         if (!component) {
-            console.warn(`组件未找到: ${menu.component}`)
             return
         }
-        
+
         // 添加路由
         router.addRoute('home', {
             path: routePath,
@@ -124,9 +109,8 @@ export function addDynamicRoutes(menus) {
                 permission: menu.perms
             }
         })
-        
+
         addedRoutes.add(routePath)
-        console.log(`动态添加路由: ${routePath} -> ${menu.component}`)
     })
     
     // 标记动态路由已加载
@@ -165,7 +149,7 @@ function getRoutePath(menu) {
     
     // 否则根据 component 生成路径
     if (menu.component) {
-        // component 格式可能是 "ApiProjectList" 或 "apitest/project/ApiProjectList"
+        // component 格式可能是 "userList" 或 "system/users/userList"
         // 提取最后的组件名作为路径
         const parts = menu.component.split('/')
         const componentName = parts[parts.length - 1]
@@ -178,8 +162,7 @@ function getRoutePath(menu) {
 /**
  * 根据 component 字符串获取组件
  * 支持多种格式：
- * - "ApiProjectList" -> views/apitest/project/ApiProjectList.vue 或其他匹配
- * - "apitest/project/ApiProjectList" -> views/apitest/project/ApiProjectList.vue
+ * - "userList" -> views/system/users/userList.vue 或其他匹配
  * - "system/users/userList" -> views/system/users/userList.vue
  */
 function getComponent(componentStr) {
@@ -197,6 +180,20 @@ function getComponent(componentStr) {
         for (const path in modules) {
             if (path.endsWith(`/${componentStr}.vue`)) {
                 return modules[path]
+            }
+        }
+        
+        // 如果没找到，尝试常见的系统管理路径
+        const systemPaths = [
+            `../views/system/users/${componentStr}.vue`,
+            `../views/system/role/${componentStr}.vue`, 
+            `../views/system/menu/${componentStr}.vue`,
+            `../views/system/dept/${componentStr}.vue`
+        ]
+        
+        for (const tryPath of systemPaths) {
+            if (modules[tryPath]) {
+                return modules[tryPath]
             }
         }
     }
@@ -237,12 +234,10 @@ async function loadAndRegisterRoutes() {
     
     isLoadingRoutes = true
     try {
-        // 获取全量菜单树
-        const res = await axios.get('/menu/tree?_alias=menu-tree')
+        const res = await axios.get('/menus/tree?_alias=menu-tree')
         if (res?.data?.code === 200) {
             const menuData = res.data.data || []
             addDynamicRoutes(menuData)
-            console.log('动态路由加载完成')
         }
     } catch (e) {
         console.error('加载动态路由失败:', e)
@@ -254,13 +249,7 @@ async function loadAndRegisterRoutes() {
 // 导航守卫
 router.beforeEach(async (to, from, next) => {
     const token = getToken()
-    
-    // 如果访问已删除的路由，重定向到首页
-    if (deletedRoutes.includes(to.path)) {
-        next('/Statistics')
-        return
-    }
-    
+
     if (to.path === '/login') {
         next()
     } else {
@@ -280,7 +269,6 @@ router.beforeEach(async (to, from, next) => {
             // 检查权限
             if (to.meta.permission) {
                 if (!checkPermission(to.meta.permission)) {
-                    console.warn(`权限不足: 需要 ${to.meta.permission}`)
                     next('/403')
                     return
                 }
@@ -288,7 +276,7 @@ router.beforeEach(async (to, from, next) => {
             
             // 设置页面标题
             if (to.meta.title) {
-                document.title = `${to.meta.title} - AI Agent Testing Platform`
+                document.title = `${to.meta.title} - 大熊AI代码生成器`
             }
             
             next()

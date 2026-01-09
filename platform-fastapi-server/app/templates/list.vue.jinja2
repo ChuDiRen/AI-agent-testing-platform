@@ -1,0 +1,263 @@
+<template>
+  <div class="page-container">
+    <BaseSearch
+      :model="searchForm"
+      @search="loadData"
+      @reset="resetSearch"
+    >
+      {%- for column in columns %}
+      {%- if column.is_query == "1" %}
+      <el-form-item label="{{ column.column_comment or column.column_name }}">
+        {%- if column.query_type == 'LIKE' %}
+        <el-input v-model="searchForm.{{ column.python_field }}" placeholder="根据{{ column.column_comment or column.column_name }}筛选" clearable />
+        {%- elif column.python_type == 'int' %}
+        <el-input-number v-model="searchForm.{{ column.python_field }}" :controls="false" placeholder="请输入" clearable />
+        {%- elif column.python_type == 'datetime' %}
+        <el-date-picker
+          v-model="searchForm.{{ column.python_field }}"
+          type="datetime"
+          placeholder="选择日期时间"
+          value-format="YYYY-MM-DD HH:mm:ss"
+          clearable
+        />
+        {%- elif column.python_field in ['status', 'ssex'] %}
+        <el-select v-model="searchForm.{{ column.python_field }}" placeholder="请选择" clearable>
+          {%- if column.python_field == 'status' %}
+          <el-option label="有效" value="1" />
+          <el-option label="禁用" value="0" />
+          {%- elif column.python_field == 'ssex' %}
+          <el-option label="男" value="0" />
+          <el-option label="女" value="1" />
+          <el-option label="保密" value="2" />
+          {%- endif %}
+        </el-select>
+        {%- else %}
+        <el-input v-model="searchForm.{{ column.python_field }}" placeholder="请输入" clearable />
+        {%- endif %}
+      </el-form-item>
+      {%- endif %}
+      {%- endfor %}
+    </BaseSearch>
+
+    <BaseTable
+      title="{{ table_comment or function_name }}"
+      :data="tableData"
+      :loading="loading"
+      :total="total"
+      :pagination="pagination"
+      @update:pagination="pagination = $event"
+      @refresh="loadData"
+    >
+      <template #header>
+        <el-button type="primary" v-permission="'{{ business_name }}:add'" @click="onDataForm(-1)">
+          <el-icon><Plus /></el-icon>
+          新增
+        </el-button>
+      </template>
+
+      <!-- 数据列 -->
+      {%- for column in columns %}
+      {%- if column.is_list == "1" %}
+      <el-table-column prop="{{ column.python_field }}" label="{{ column.column_comment or column.column_name }}"{% if column.column_length and column.column_length < 50 %} width="120"{% endif %}{% if column.column_length and column.column_length >= 50 and column.column_length < 100 %} width="200"{% endif %}{% if column.column_length and column.column_length >= 100 %} width="300" show-overflow-tooltip{% endif %}>
+        {%- if column.python_type == 'datetime' %}
+        <template #default="scope">
+          {{ formatDateTime(scope.row.{{ column.python_field }}) }}
+        </template>
+        {%- elif column.python_field == 'status' %}
+        <template #default="scope">
+          <el-tag :type="scope.row.{{ column.python_field }} === '1' ? 'success' : 'warning'">
+            {{ scope.row.{{ column.python_field }} === '1' ? '有效' : '禁用' }}
+          </el-tag>
+        </template>
+        {%- elif column.python_field == 'ssex' %}
+        <template #default="scope">
+          {{ genderMap[scope.row.{{ column.python_field }}] || '未知' }}
+        </template>
+        {%- elif column.python_field in ['email', 'mobile', 'avatar', 'description'] %}
+        <template #default="scope">
+          {{ scope.row.{{ column.python_field }} || '-' }}
+        </template>
+        {%- endif %}
+      </el-table-column>
+      {%- endif %}
+      {%- endfor %}
+
+      <!-- 操作 -->
+      <el-table-column fixed="right" label="操作" width="220">
+        <template #default="scope">
+          <el-button link type="primary" size="small" @click.prevent="onDataView(scope.$index)">
+            查看
+          </el-button>
+          <el-button link type="success" size="small" v-permission="'{{ business_name }}:edit'" @click.prevent="onDataForm(scope.$index)">
+            编辑
+          </el-button>
+          <el-button link type="danger" size="small" v-permission="'{{ business_name }}:remove'" @click.prevent="onDelete(scope.$index)">
+            删除
+          </el-button>
+        </template>
+      </el-table-column>
+    </BaseTable>
+  </div>
+</template>
+
+<script lang="ts" setup>
+import { ref, reactive, onMounted } from "vue"
+import { queryByPage, deleteData } from './{{ business_name }}'
+import { useRouter } from "vue-router";
+import { formatDateTime } from '~/utils/timeFormatter'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import BaseSearch from '~/components/BaseSearch/index.vue'
+import BaseTable from '~/components/BaseTable/index.vue'
+
+const router = useRouter()
+
+// 分页参数
+const pagination = reactive({
+  page: 1,
+  pageSize: 10
+})
+const total = ref(0)
+const loading = ref(false)
+
+// 搜索功能 - 筛选表单
+const searchForm = reactive({{% for column in columns %}{%- if column.is_query == "1" %}{{ column.python_field }}: null{% if not loop.last %}, {% endif %}{%- endif %}{%- endfor %}})
+
+// 数据字典映射
+const genderMap = {
+    '0': '男',
+    '1': '女',
+    '2': '保密'
+}
+
+// 表格数据
+const tableData = ref([])
+
+// 加载页面数据
+const loadData = () => {
+    loading.value = true
+    let searchData = { ...searchForm }
+    searchData["page"] = pagination.page
+    searchData["pageSize"] = pagination.pageSize
+
+    queryByPage(searchData).then((res: { data: { code: number; data: never[]; total: number; msg: string }; }) => {
+        if (res.data.code === 200) {
+            tableData.value = res.data.data || []
+            total.value = res.data.total || 0
+        } else {
+            ElMessage.error(res.data.msg || '查询失败')
+        }
+    }).catch(() => {
+        ElMessage.error('查询失败，请稍后重试')
+    }).finally(() => {
+        loading.value = false
+    })
+}
+
+// 重置搜索
+const resetSearch = () => {
+    {% for column in columns %}{%- if column.is_query == "1" %}searchForm.{{ column.python_field }} = null{% if not loop.last %}
+    {% endif %}{%- endif %}{%- endfor %}
+    pagination.page = 1
+    loadData()
+}
+
+// 页面初始化
+onMounted(() => {
+    loadData()
+})
+
+// 查看数据详情
+const onDataView = (index: number) => {
+    {%- set pk_field = columns | selectattr('is_pk', 'equalto', '1') | list | first %}
+    {%- if pk_field %}
+    const item = tableData.value[index]
+    router.push({
+        path: '{{ business_name }}Form',
+        query: {
+            {{ pk_field.python_field }}: item.{{ pk_field.python_field }},
+            view: 'true'
+        }
+    })
+    {%- endif %}
+}
+
+// 打开表单（编辑/新增）
+const onDataForm = (index: number) => {
+    let params_data = {}
+    if (index >= 0) {
+        {%- set pk_field = columns | selectattr('is_pk', 'equalto', '1') | list | first %}
+        {%- if pk_field %}
+        params_data = {
+            {{ pk_field.python_field }}: tableData.value[index]["{{ pk_field.python_field }}"]
+        }
+        {%- endif %}
+    }
+    router.push({
+        path: '{{ business_name }}Form',
+        query: params_data
+    });
+}
+
+// 删除数据
+const onDelete = (index: number) => {
+    const item = tableData.value[index]
+    {%- set name_field = columns | selectattr('is_query', 'equalto', '1') | selectattr('query_type', 'equalto', 'LIKE') | list | first %}
+    {%- if name_field %}
+    ElMessageBox.confirm(
+        `确定要删除"${item.{{ name_field.python_field }}}"吗？`,
+        '删除确认',
+        {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+        }
+    ).then(() => {
+        {%- set pk_field = columns | selectattr('is_pk', 'equalto', '1') | list | first %}
+        {%- if pk_field %}
+        deleteData(item.{{ pk_field.python_field }}).then((res: { data: { code: number; msg: string } }) => {
+            if (res.data.code === 200) {
+                ElMessage.success('删除成功')
+                loadData()
+            } else {
+                ElMessage.error(res.data.msg || '删除失败')
+            }
+        }).catch(() => {
+            ElMessage.error('删除失败，请稍后重试')
+        })
+        {%- endif %}
+    }).catch(() => {
+        ElMessage.info('已取消删除')
+    })
+    {%- else %}
+    ElMessageBox.confirm(
+        `确定要删除吗？`,
+        '删除确认',
+        {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+        }
+    ).then(() => {
+        {%- set pk_field = columns | selectattr('is_pk', 'equalto', '1') | list | first %}
+        {%- if pk_field %}
+        deleteData(item.{{ pk_field.python_field }}).then((res: { data: { code: number; msg: string } }) => {
+            if (res.data.code === 200) {
+                ElMessage.success('删除成功')
+                loadData()
+            } else {
+                ElMessage.error(res.data.msg || '删除失败')
+            }
+        }).catch(() => {
+            ElMessage.error('删除失败，请稍后重试')
+        })
+        {%- endif %}
+    }).catch(() => {
+        ElMessage.info('已取消删除')
+    })
+    {%- endif %}
+}
+</script>
+
+<style scoped>
+/* 移除原来的样式引用，因为组件内部已经包含了必要的样式 */
+</style>

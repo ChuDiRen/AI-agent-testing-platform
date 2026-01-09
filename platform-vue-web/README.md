@@ -1,6 +1,6 @@
-# AI Agent Testing Platform - Vue Frontend
+# 大熊AI代码生成器 - Vue Frontend
 
-基于 Vue 3 + Element Plus 的 AI 智能体测试平台前端
+基于 Vue 3 + Element Plus 的 AI 代码生成器前端
 
 ## 技术栈
 

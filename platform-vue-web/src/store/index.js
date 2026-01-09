@@ -39,7 +39,7 @@ const store = createStore({
             theme: localStorage.getItem('theme') || 'light', // 主题模式
             userInfo: null, // 用户信息
             roles: [], // 用户角色
-            permissions: [], // 用户权限
+            permissions: JSON.parse(localStorage.getItem('permissions') || '[]'), // 用户权限（从 localStorage 恢复）
             menuTree: [] // 用户菜单树
         }
     },
@@ -130,6 +130,7 @@ const store = createStore({
             state.menuTree = []
             localStorage.removeItem('token')
             localStorage.removeItem('username')
+            localStorage.removeItem('permissions')
         }
     },
     actions: {

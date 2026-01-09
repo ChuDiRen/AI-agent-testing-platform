@@ -1,6 +1,6 @@
 import axios from "~/axios"
 
-const module_name = "menu" // 模块名
+const module_name = "menus" // 模块名
 
 // 获取菜单树
 export function getMenuTree() {

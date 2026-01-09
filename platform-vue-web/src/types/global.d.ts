@@ -17,9 +17,3 @@ declare module '~/components/BaseTable/index.vue' {
   const component: DefineComponent;
   export default component;
 }
-
-declare module '~/components/CodeEditor.vue' {
-  import { DefineComponent } from 'vue';
-  const component: DefineComponent;
-  export default component;
-}

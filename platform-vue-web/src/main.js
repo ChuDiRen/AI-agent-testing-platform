@@ -11,16 +11,11 @@ import directives from './directives/permission.js'
 
 // 引入 Element-Plus-X 组件
 import ElementPlusX from 'vue-element-plus-x'
-// 注意：CSS 样式通过 Vite 插件在 vite.config.js 中注入，避免 exports 限制问题
-// import 'vue-element-plus-x/dist/index.css'
 
 // 引入自定义主题和样式
 import './styles/theme.css'
 import './styles/common-list.css'
 import './styles/common-form.css'
-
-// 引入 Agent React 组件的全局样式
-import './agent-react/globals.css'
 
 const app = createApp(App)
 

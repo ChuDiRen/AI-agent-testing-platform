@@ -2,7 +2,7 @@
   <div class="f-header">
     <span class="logo">
       <el-icon class="logo-icon"><Opportunity /></el-icon>
-      <span class="logo-text">大熊AI自动化测试平台</span>
+      <span class="logo-text">大熊AI代码生成器</span>
     </span>
     
     <el-icon class="icon-btn" @click="handleAsideWidth">

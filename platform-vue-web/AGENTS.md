@@ -1,10 +1,10 @@
-# AGENTS.md - AI Agent Testing Platform Frontend
+# AGENTS.md - 大熊AI代码生成器 Frontend
 
 > 本文档为 AI 助手提供项目上下文和开发指南，遵循 [agents.md](https://github.com/agentsmd/agents.md) 规范。
 
 ## 项目概述
 
-基于 **Vue 3 + Element Plus** 的 AI 智能体测试平台前端，支持 Vue 和 React 混合开发（通过 veaury 实现互操作）。
+基于 **Vue 3 + Element Plus** 的 AI 代码生成器前端，支持 Vue 和 React 混合开发（通过 veaury 实现互操作）。
 
 ### 技术栈
 
@@ -610,38 +610,42 @@ addDynamicRoutes(menuTree)
 | 测试用例 | TestCaseList.vue, TestCaseForm.vue | AI 测试用例 |
 | 机器人 | RobotConfigList.vue, RobotConfigForm.vue | 机器人配置 |
 | 消息 | RobotMsgConfigList.vue, RobotMsgConfigForm.vue | 消息模板 |
-| 插件 | PluginMarket.vue | 插件市场 |
-| 生成器 | GenTableList.vue, GeneratorCode.vue, GenHistory.vue | 代码生成 |
+ | 插件 | PluginMarket.vue | 插件市场 |
+ | 生成器 | GenTableList.vue, GeneratorCode.vue, GenHistory.vue | 代码生成 |
+ | 生成器 | GenTableForm.vue | 表配置表单 |
 
-### API 请求文件 (34个)
+### API 请求文件 (35个)
 
-| 文件 | 说明 |
-|------|------|
-| login.js | 登录认证 |
-| user.js | 用户管理 |
-| role.js | 角色管理 |
-| menu.js | 菜单管理 |
-| dept.js | 部门管理 |
-| apiProject.js | 项目管理 |
-| apiinfo.js | 接口管理 |
-| apiInfoCase.js | 用例管理 |
-| testPlan.js | 测试计划 |
-| testTask.js | 测试任务 |
-| apiHistory.js | 测试历史 |
-| apiEnvironment.js | 环境管理 |
-| apiFolder.js | 文件夹管理 |
-| apiKeyWord.js | 关键字管理 |
-| apiMock.js | Mock 服务 |
-| apiDoc.js | 文档导入 |
-| apiMeta.js | 元数据管理 |
-| dbBase.js | 数据库配置 |
-| aimodel.js | AI 模型 |
-| prompttemplate.js | 提示词模板 |
-| testcase.js | 测试用例 |
-| robotConfig.js | 机器人配置 |
-| robotMsgConfig.js | 消息模板 |
-| plugin.js | 插件管理 |
-| statistics.js | 统计数据 |
+ | 文件 | 说明 |
+ |------|------|
+ | login.js | 登录认证 |
+ | user.js | 用户管理 |
+ | role.js | 角色管理 |
+ | menu.js | 菜单管理 |
+ | dept.js | 部门管理 |
+ | apiProject.js | 项目管理 |
+ | apiinfo.js | 接口管理 |
+ | apiInfoCase.js | 用例管理 |
+ | testPlan.js | 测试计划 |
+ | testTask.js | 测试任务 |
+ | apiHistory.js | 测试历史 |
+ | apiEnvironment.js | 环境管理 |
+ | apiFolder.js | 文件夹管理 |
+ | apiKeyWord.js | 关键字管理 |
+ | apiMock.js | Mock 服务 |
+ | apiDoc.js | 文档导入 |
+ | apiMeta.js | 元数据管理 |
+ | dbBase.js | 数据库配置 |
+ | aimodel.js | AI 模型 |
+ | prompttemplate.js | 提示词模板 |
+ | testcase.js | 测试用例 |
+ | robotConfig.js | 机器人配置 |
+ | robotMsgConfig.js | 消息模板 |
+ | plugin.js | 插件管理 |
+ | statistics.js | 统计数据 |
+ | gentable.js | 表配置管理 |
+ | generator.js | 代码生成 |
+ | genhistory.js | 生成历史 |
 
 ---
 

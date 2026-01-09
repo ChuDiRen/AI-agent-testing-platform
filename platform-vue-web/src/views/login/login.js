@@ -1,7 +1,7 @@
 import axios from "~/axios"
 
 // 模块名 - 和后台对应
-const module_name = "login"
+const module_name = "auth"
 
 /**
  * 用户登录 - 只返回 access_token
@@ -9,7 +9,7 @@ const module_name = "login"
  * @param {String} password - 密码
  */
 export function login(username, password) {
-    return axios.post(`/${module_name}?_alias=user-login`, {
+    return axios.post(`/${module_name}/login?_alias=user-login`, {
         username,
         password
     })
@@ -19,5 +19,5 @@ export function login(username, password) {
  * 获取当前用户信息 - 通过 token 获取
  */
 export function getUserInfo() {
-    return axios.get('/userinfo')
+    return axios.get(`/${module_name}/userinfo`)
 }

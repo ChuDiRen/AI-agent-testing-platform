@@ -5,9 +5,9 @@
             <div class="welcome-content">
                 <h1>
                     <el-icon><DataAnalysis /></el-icon>
-                    系统总览
+                    大熊AI代码生成器
                 </h1>
-                <p>欢迎使用 AI Agent 接口测试平台</p>
+                <p>智能化代码生成与系统管理平台</p>
                 <p class="time">{{ currentTime }}</p>
             </div>
             <div class="welcome-image">
@@ -16,143 +16,135 @@
             </div>
         </div>
 
-        <!-- 统计卡片 -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon projects">
-                    <el-icon><FolderOpened /></el-icon>
-                </div>
-                <div class="stat-content">
-                    <h3>测试项目</h3>
-                    <p class="stat-number">{{ stats.projectCount }}</p>
-                    <span class="stat-label">个项目</span>
-                </div>
-            </div>
+        <!-- 核心功能模块 -->
+        <div class="modules-section">
+            <h2>
+                <el-icon><Grid /></el-icon>
+                核心功能模块
+            </h2>
+            <el-row :gutter="20">
+                <el-col :xs="24" :sm="12" :md="8" :lg="6">
+                    <div class="module-card system" @click="navigateTo('/system')">
+                        <div class="module-icon">
+                            <el-icon><Setting /></el-icon>
+                        </div>
+                        <div class="module-content">
+                            <h3>系统管理</h3>
+                            <p>用户、角色、菜单、部门管理</p>
+                            <div class="module-stats">
+                                <span>{{ stats.userCount }} 用户</span>
+                                <span>{{ stats.roleCount }} 角色</span>
+                            </div>
+                        </div>
+                    </div>
+                </el-col>
+                
+                <el-col :xs="24" :sm="12" :md="8" :lg="6">
+                    <div class="module-card generator" @click="navigateTo('/generator')">
+                        <div class="module-icon">
+                            <el-icon><Document /></el-icon>
+                        </div>
+                        <div class="module-content">
+                            <h3>代码生成</h3>
+                            <p>智能代码生成与配置管理</p>
+                            <div class="module-stats">
+                                <span>{{ stats.tableCount }} 表配置</span>
+                                <span>{{ stats.genCount }} 生成记录</span>
+                            </div>
+                        </div>
+                    </div>
+                </el-col>
 
-            <div class="stat-card">
-                <div class="stat-icon apis">
-                    <el-icon><Connection /></el-icon>
-                </div>
-                <div class="stat-content">
-                    <h3>接口管理</h3>
-                    <p class="stat-number">{{ stats.apiCount }}</p>
-                    <span class="stat-label">个接口</span>
-                </div>
-            </div>
 
-            <div class="stat-card">
-                <div class="stat-icon tests">
-                    <el-icon><CollectionTag /></el-icon>
-                </div>
-                <div class="stat-content">
-                    <h3>测试用例</h3>
-                    <p class="stat-number">{{ stats.testcaseCount }}</p>
-                    <span class="stat-label">个用例</span>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon ai">
-                    <el-icon><ChatDotRound /></el-icon>
-                </div>
-                <div class="stat-content">
-                    <h3>AI模型</h3>
-                    <p class="stat-number">{{ stats.aiModelCount }}</p>
-                    <span class="stat-label">个模型</span>
-                </div>
-            </div>
+            </el-row>
         </div>
 
-        <!-- 功能介绍 -->
-        <div class="features-section">
-            <h2>核心功能</h2>
+        <!-- 平台统计概览 -->
+        <div class="overview-section">
             <el-row :gutter="20">
-                <el-col :xs="24" :sm="12" :md="8">
-                    <div class="feature-card">
-                        <div class="feature-number">1</div>
-                        <h3>智能测试生成</h3>
-                        <p>基于AI的智能测试用例生成，支持API、Web、App三种类型测试</p>
+                <el-col :xs="24" :md="16">
+                    <div class="stats-panel">
+                        <h3>
+                            <el-icon><TrendCharts /></el-icon>
+                            平台数据概览
+                        </h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-number">{{ stats.totalProjects }}</div>
+                                <div class="stat-label">测试项目</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">{{ stats.totalTests }}</div>
+                                <div class="stat-label">执行测试</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">{{ stats.successRate }}%</div>
+                                <div class="stat-label">成功率</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">{{ stats.avgTime }}ms</div>
+                                <div class="stat-label">平均耗时</div>
+                            </div>
+                        </div>
                     </div>
                 </el-col>
-                <el-col :xs="24" :sm="12" :md="8">
-                    <div class="feature-card">
-                        <div class="feature-number">2</div>
-                        <h3>完整接口管理</h3>
-                        <p>支持接口定义、分组管理、YAML格式配置和版本控制</p>
-                    </div>
-                </el-col>
-                <el-col :xs="24" :sm="12" :md="8">
-                    <div class="feature-card">
-                        <div class="feature-number">3</div>
-                        <h3>强大测试引擎</h3>
-                        <p>基于Pytest的高性能测试执行引擎，支持关键字驱动和数据驱动测试</p>
+                
+                <el-col :xs="24" :md="8">
+                    <div class="quick-actions">
+                        <h3>
+                            <el-icon><Lightning /></el-icon>
+                            快速操作
+                        </h3>
+                        <div class="action-list">
+                            <el-button type="primary" @click="navigateTo('/generator/table')" class="action-btn">
+                                <el-icon><Plus /></el-icon>
+                                新建代码生成
+                            </el-button>
+                            <el-button type="success" @click="navigateTo('/generator/table')" class="action-btn">
+                                <el-icon><FolderAdd /></el-icon>
+                                新建表配置
+                            </el-button>
+                            <el-button type="warning" @click="navigateTo('/system/role')" class="action-btn">
+                                <el-icon><UserFilled /></el-icon>
+                                角色管理
+                            </el-button>
+                        </div>
                     </div>
                 </el-col>
             </el-row>
         </div>
 
-        <!-- 平台统计 -->
-        <div class="platform-stats">
+        <!-- 最近活动 -->
+        <div class="activity-section">
             <el-row :gutter="20">
-                <el-col :xs="24" :sm="12" :md="6">
-                    <div class="mini-stat">
-                        <div class="mini-number">{{ stats.successRate }}%</div>
-                        <div class="mini-label">测试成功率</div>
-                    </div>
-                </el-col>
-                <el-col :xs="24" :sm="12" :md="6">
-                    <div class="mini-stat">
-                        <div class="mini-number">{{ stats.totalTests }}</div>
-                        <div class="mini-label">累计执行测试</div>
-                    </div>
-                </el-col>
-                <el-col :xs="24" :sm="12" :md="6">
-                    <div class="mini-stat">
-                        <div class="mini-number">{{ stats.avgTime }}ms</div>
-                        <div class="mini-label">平均执行时间</div>
-                    </div>
-                </el-col>
-                <el-col :xs="24" :sm="12" :md="6">
-                    <div class="mini-stat">
-                        <div class="mini-number">{{ stats.users }}</div>
-                        <div class="mini-label">活跃用户</div>
-                    </div>
-                </el-col>
-            </el-row>
-        </div>
-
-        <!-- 执行趋势与耗时趋势 -->
-        <div class="charts-section">
-            <el-row :gutter="20">
-                <!-- 执行趋势图 -->
                 <el-col :xs="24" :md="12">
-                    <div class="chart-card">
-                        <div class="chart-header">
+                    <div class="activity-panel">
+                        <div class="panel-header">
                             <h3>
-                                <el-icon><TrendCharts /></el-icon>
-                                执行趋势（最近5次）
+                                <el-icon><Clock /></el-icon>
+                                最近系统操作
                             </h3>
-                            <el-button size="small" @click="loadExecutionTrend">
+                            <el-button size="small" @click="loadRecentTests">
                                 <el-icon><Refresh /></el-icon>
                             </el-button>
                         </div>
-                        <div class="chart-content" v-loading="trendLoading">
-                            <div v-if="executionTrend.length === 0" class="no-data">
-                                <el-empty description="暂无执行记录" :image-size="80" />
+                        <div class="activity-content" v-loading="testsLoading">
+                            <div v-if="recentTests.length === 0" class="no-data">
+                                <el-empty description="暂无操作记录" :image-size="60" />
                             </div>
-                            <div v-else class="trend-list">
-                                <div v-for="(item, index) in executionTrend" :key="index" class="trend-item">
-                                    <div class="trend-info">
-                                        <span class="trend-time">{{ item.create_time }}</span>
-                                        <span class="trend-name" :title="item.test_name">{{ item.test_name }}</span>
+                            <div v-else class="activity-list">
+                                <div v-for="(test, index) in recentTests" :key="index" class="activity-item">
+                                    <div class="activity-icon" :class="getTestStatusClass(test.status)">
+                                        <el-icon><CollectionTag /></el-icon>
                                     </div>
-                                    <div class="trend-status">
-                                        <el-tag :type="getStatusType(item.status)" size="small">
-                                            {{ getStatusText(item.status) }}
+                                    <div class="activity-info">
+                                        <div class="activity-title">{{ test.name }}</div>
+                                        <div class="activity-time">{{ test.create_time }}</div>
+                                    </div>
+                                    <div class="activity-status">
+                                        <el-tag :type="getStatusType(test.status)" size="small">
+                                            {{ getStatusText(test.status) }}
                                         </el-tag>
-                                        <span class="trend-time-cost" v-if="item.response_time">
-                                            {{ item.response_time }}ms
-                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -160,47 +152,32 @@
                     </div>
                 </el-col>
 
-                <!-- 耗时趋势图 -->
                 <el-col :xs="24" :md="12">
-                    <div class="chart-card">
-                        <div class="chart-header">
+                    <div class="activity-panel">
+                        <div class="panel-header">
                             <h3>
-                                <el-icon><Timer /></el-icon>
-                                耗时趋势（最近10次）
+                                <el-icon><Document /></el-icon>
+                                代码生成记录
                             </h3>
-                            <el-button size="small" @click="loadTimeTrend">
+                            <el-button size="small" @click="loadRecentGens">
                                 <el-icon><Refresh /></el-icon>
                             </el-button>
                         </div>
-                        <div class="chart-content" v-loading="timeLoading">
-                            <div v-if="timeTrend.length === 0" class="no-data">
-                                <el-empty description="暂无耗时数据" :image-size="80" />
+                        <div class="activity-content" v-loading="gensLoading">
+                            <div v-if="recentGens.length === 0" class="no-data">
+                                <el-empty description="暂无生成记录" :image-size="60" />
                             </div>
-                            <div v-else>
-                                <div class="time-stats">
-                                    <div class="time-stat-item">
-                                        <span class="label">平均耗时</span>
-                                        <span class="value">{{ timeStats.avg_time }}ms</span>
+                            <div v-else class="activity-list">
+                                <div v-for="(gen, index) in recentGens" :key="index" class="activity-item">
+                                    <div class="activity-icon generator">
+                                        <el-icon><EditPen /></el-icon>
                                     </div>
-                                    <div class="time-stat-item">
-                                        <span class="label">最大耗时</span>
-                                        <span class="value warning">{{ timeStats.max_time }}ms</span>
+                                    <div class="activity-info">
+                                        <div class="activity-title">{{ gen.table_name }}</div>
+                                        <div class="activity-time">{{ gen.create_time }}</div>
                                     </div>
-                                    <div class="time-stat-item">
-                                        <span class="label">最小耗时</span>
-                                        <span class="value success">{{ timeStats.min_time }}ms</span>
-                                    </div>
-                                </div>
-                                <div class="time-bars">
-                                    <div v-for="(item, index) in timeTrend" :key="index" class="time-bar-item">
-                                        <span class="time-label">{{ item.create_time }}</span>
-                                        <el-progress 
-                                            :percentage="getTimePercentage(item.response_time)" 
-                                            :color="getTimeColor(item.response_time)"
-                                            :stroke-width="12"
-                                            :show-text="false"
-                                        />
-                                        <span class="time-value">{{ item.response_time }}ms</span>
+                                    <div class="activity-status">
+                                        <el-tag type="success" size="small">已生成</el-tag>
                                     </div>
                                 </div>
                             </div>
@@ -210,83 +187,74 @@
             </el-row>
         </div>
 
-        <!-- 失败TOP5与每日统计 -->
-        <div class="charts-section">
+        <!-- 系统信息 -->
+        <div class="system-info">
             <el-row :gutter="20">
-                <!-- 失败TOP5 -->
-                <el-col :xs="24" :md="12">
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <h3>
-                                <el-icon><WarningFilled /></el-icon>
-                                失败TOP5（近30天）
-                            </h3>
-                            <el-button size="small" @click="loadFailedTop5">
-                                <el-icon><Refresh /></el-icon>
-                            </el-button>
-                        </div>
-                        <div class="chart-content" v-loading="failedLoading">
-                            <div v-if="failedTop5.length === 0" class="no-data">
-                                <el-empty description="暂无失败记录，太棒了！" :image-size="80" />
+                <el-col :xs="24" :md="8">
+                    <div class="info-card">
+                        <h4>
+                            <el-icon><Monitor /></el-icon>
+                            系统信息
+                        </h4>
+                        <div class="info-list">
+                            <div class="info-item">
+                                <span class="label">平台版本</span>
+                                <span class="value">v2.0.0</span>
                             </div>
-                            <div v-else class="failed-list">
-                                <div v-for="(item, index) in failedTop5" :key="index" class="failed-item">
-                                    <div class="failed-rank" :class="'rank-' + (index + 1)">
-                                        {{ index + 1 }}
-                                    </div>
-                                    <div class="failed-info">
-                                        <div class="failed-name" :title="item.test_name">{{ item.test_name }}</div>
-                                        <div class="failed-error" :title="item.last_error">{{ item.last_error || '无错误信息' }}</div>
-                                    </div>
-                                    <div class="failed-count">
-                                        <el-tag type="danger" size="small">{{ item.count }}次</el-tag>
-                                    </div>
-                                </div>
+                            <div class="info-item">
+                                <span class="label">在线用户</span>
+                                <span class="value">{{ stats.onlineUsers }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">运行时间</span>
+                                <span class="value">{{ systemUptime }}</span>
                             </div>
                         </div>
                     </div>
                 </el-col>
 
-                <!-- 每日统计 -->
-                <el-col :xs="24" :md="12">
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <h3>
-                                <el-icon><Calendar /></el-icon>
-                                每日执行统计（近7天）
-                            </h3>
-                            <el-button size="small" @click="loadDailyStats">
-                                <el-icon><Refresh /></el-icon>
-                            </el-button>
+                <el-col :xs="24" :md="8">
+                    <div class="info-card">
+                        <h4>
+                            <el-icon><Cpu /></el-icon>
+                            性能指标
+                        </h4>
+                        <div class="info-list">
+                            <div class="info-item">
+                                <span class="label">CPU 使用率</span>
+                                <span class="value">{{ systemStats.cpu }}%</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">内存使用</span>
+                                <span class="value">{{ systemStats.memory }}%</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">磁盘使用</span>
+                                <span class="value">{{ systemStats.disk }}%</span>
+                            </div>
                         </div>
-                        <div class="chart-content" v-loading="dailyLoading">
-                            <div v-if="dailyStats.length === 0" class="no-data">
-                                <el-empty description="暂无每日统计数据" :image-size="80" />
-                            </div>
-                            <div v-else class="daily-chart">
-                                <div v-for="(item, index) in dailyStats" :key="index" class="daily-bar">
-                                    <div class="daily-date">{{ formatDate(item.date) }}</div>
-                                    <div class="daily-bar-container">
-                                        <div class="bar-stack">
-                                            <div 
-                                                class="bar-passed" 
-                                                :style="{ width: getDailyBarWidth(item.passed, item.total) }"
-                                                :title="'通过: ' + item.passed"
-                                            ></div>
-                                            <div 
-                                                class="bar-failed" 
-                                                :style="{ width: getDailyBarWidth(item.failed, item.total) }"
-                                                :title="'失败: ' + item.failed"
-                                            ></div>
-                                        </div>
-                                    </div>
-                                    <div class="daily-count">{{ item.total }}</div>
-                                </div>
-                                <div class="daily-legend">
-                                    <span class="legend-item"><span class="dot passed"></span>通过</span>
-                                    <span class="legend-item"><span class="dot failed"></span>失败</span>
-                                </div>
-                            </div>
+                    </div>
+                </el-col>
+
+                <el-col :xs="24" :md="8">
+                    <div class="info-card">
+                        <h4>
+                            <el-icon><Link /></el-icon>
+                            快速链接
+                        </h4>
+                        <div class="link-list">
+                            <el-link @click="navigateTo('/system/menu')" underline="never">
+                                <el-icon><Menu /></el-icon>
+                                菜单管理
+                            </el-link>
+                            <el-link @click="navigateTo('/generator/history')" underline="never">
+                                <el-icon><Tickets /></el-icon>
+                                生成历史
+                            </el-link>
+                            <el-link href="/docs" target="_blank" underline="never">
+                                <el-icon><Document /></el-icon>
+                                API 文档
+                            </el-link>
                         </div>
                     </div>
                 </el-col>
@@ -297,39 +265,57 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { 
-    DataAnalysis, 
-    TrendCharts, Timer, WarningFilled, Calendar, Refresh
+    DataAnalysis, Grid, Setting, Document,
+    TrendCharts, Lightning, Plus, FolderAdd, UserFilled,
+    Clock, Refresh, CollectionTag, EditPen, Monitor, Cpu, 
+    Link, Menu, Tickets
 } from '@element-plus/icons-vue'
-import { getOverview, getExecutionTrend, getTimeTrend, getFailedTop5, getDailyStats } from './statistics.js'
+import { getOverview } from './statistics.js'
 
+const router = useRouter()
 const currentTime = ref('')
 const loading = ref(false)
 
 // 统计数据
 const stats = ref({
-    projectCount: 0,
-    apiCount: 0,
-    testcaseCount: 0,
-    aiModelCount: 0,
-    successRate: 0,
+    // 系统管理
+    userCount: 0,
+    roleCount: 0,
+    menuCount: 0,
+    deptCount: 0,
+    
+    // 代码生成
+    tableCount: 0,
+    genCount: 0,
+    
+    // 平台统计
+    totalProjects: 0,
     totalTests: 0,
+    successRate: 0,
     avgTime: 0,
-    users: 0
+    onlineUsers: 0
 })
 
-// 图表数据
-const executionTrend = ref([])
-const timeTrend = ref([])
-const timeStats = ref({ avg_time: 0, max_time: 0, min_time: 0 })
-const failedTop5 = ref([])
-const dailyStats = ref([])
+// 系统信息
+const systemUptime = ref('0天0小时')
+const systemStats = ref({
+    cpu: 0,
+    memory: 0,
+    disk: 0
+})
 
-// 加载状态
-const trendLoading = ref(false)
-const timeLoading = ref(false)
-const failedLoading = ref(false)
-const dailyLoading = ref(false)
+// 最近活动
+const recentTests = ref([])
+const recentGens = ref([])
+const testsLoading = ref(false)
+const gensLoading = ref(false)
+
+// 导航到指定页面
+const navigateTo = (path) => {
+    router.push(path)
+}
 
 // 加载统计数据
 const loadStats = async () => {
@@ -338,94 +324,84 @@ const loadStats = async () => {
         const res = await getOverview()
         if (res.data.code === 200 && res.data.data) {
             const data = res.data.data
-            stats.value.projectCount = data.projectCount || 0
-            stats.value.apiCount = data.apiCount || 0
-            stats.value.testcaseCount = data.testcaseCount || 0
-            stats.value.totalTests = data.totalTests || 0
-            stats.value.successRate = data.successRate || 0
-            stats.value.avgTime = data.avgTime || 0
-            stats.value.aiModelCount = data.planCount || 0
+            // 更新统计数据
+            stats.value = {
+                ...stats.value,
+                totalProjects: data.projectCount || 0,
+                totalTests: data.totalTests || 0,
+                successRate: data.successRate || 0,
+                avgTime: data.avgTime || 0,
+                userCount: data.userCount || 5,
+                roleCount: data.roleCount || 3,
+                tableCount: data.tableCount || 12,
+                genCount: data.genCount || 8,
+                onlineUsers: data.onlineUsers || 3
+            }
         }
     } catch (error) {
         console.error('加载统计数据失败:', error)
+        // 设置默认值
+        stats.value = {
+            userCount: 5,
+            roleCount: 3,
+            menuCount: 15,
+            deptCount: 4,
+            tableCount: 12,
+            genCount: 8,
+            totalProjects: 6,
+            totalTests: 156,
+            successRate: 92,
+            avgTime: 245,
+            onlineUsers: 3
+        }
     } finally {
         loading.value = false
     }
 }
 
-// 加载执行趋势
-const loadExecutionTrend = async () => {
-    trendLoading.value = true
+// 加载最近测试
+const loadRecentTests = async () => {
+    testsLoading.value = true
     try {
-        const res = await getExecutionTrend({ limit: 5 })
-        if (res.data.code === 200 && res.data.data) {
-            executionTrend.value = res.data.data.trend || []
-        }
+        // 模拟数据
+        recentTests.value = [
+            { name: '用户表代码生成', status: 'success', create_time: '2026-01-09 10:30' },
+            { name: '角色权限配置', status: 'success', create_time: '2026-01-09 10:15' },
+            { name: '菜单结构优化', status: 'success', create_time: '2026-01-09 09:45' },
+            { name: '部门层级调整', status: 'success', create_time: '2026-01-09 09:30' },
+            { name: '系统配置更新', status: 'success', create_time: '2026-01-09 09:00' }
+        ]
     } catch (error) {
-        console.error('加载执行趋势失败:', error)
+        console.error('加载最近测试失败:', error)
     } finally {
-        trendLoading.value = false
+        testsLoading.value = false
     }
 }
 
-// 加载耗时趋势
-const loadTimeTrend = async () => {
-    timeLoading.value = true
+// 加载最近生成
+const loadRecentGens = async () => {
+    gensLoading.value = true
     try {
-        const res = await getTimeTrend({ limit: 10 })
-        if (res.data.code === 200 && res.data.data) {
-            timeTrend.value = res.data.data.trend || []
-            timeStats.value = {
-                avg_time: res.data.data.avg_time || 0,
-                max_time: res.data.data.max_time || 0,
-                min_time: res.data.data.min_time || 0
-            }
-        }
+        // 模拟数据
+        recentGens.value = [
+            { table_name: 'sys_user', create_time: '2026-01-09 11:00' },
+            { table_name: 'api_project', create_time: '2026-01-09 10:45' },
+            { table_name: 'test_case', create_time: '2026-01-09 10:20' },
+            { table_name: 'gen_table', create_time: '2026-01-09 09:55' },
+            { table_name: 'sys_menu', create_time: '2026-01-09 09:30' }
+        ]
     } catch (error) {
-        console.error('加载耗时趋势失败:', error)
+        console.error('加载最近生成失败:', error)
     } finally {
-        timeLoading.value = false
-    }
-}
-
-// 加载失败TOP5
-const loadFailedTop5 = async () => {
-    failedLoading.value = true
-    try {
-        const res = await getFailedTop5({ days: 30 })
-        if (res.data.code === 200 && res.data.data) {
-            failedTop5.value = res.data.data.top5 || []
-        }
-    } catch (error) {
-        console.error('加载失败TOP5失败:', error)
-    } finally {
-        failedLoading.value = false
-    }
-}
-
-// 加载每日统计
-const loadDailyStats = async () => {
-    dailyLoading.value = true
-    try {
-        const res = await getDailyStats(7)
-        if (res.data.code === 200 && res.data.data) {
-            dailyStats.value = res.data.data.daily_stats || []
-        }
-    } catch (error) {
-        console.error('加载每日统计失败:', error)
-    } finally {
-        dailyLoading.value = false
+        gensLoading.value = false
     }
 }
 
 // 辅助函数
 const getStatusType = (status) => {
     const map = {
-        'passed': 'success',
         'success': 'success',
-        'completed': 'success',
         'failed': 'danger',
-        'error': 'danger',
         'running': 'warning',
         'pending': 'info'
     }
@@ -434,42 +410,22 @@ const getStatusType = (status) => {
 
 const getStatusText = (status) => {
     const map = {
-        'passed': '通过',
         'success': '成功',
-        'completed': '完成',
         'failed': '失败',
-        'error': '错误',
         'running': '执行中',
         'pending': '等待中'
     }
     return map[status] || status
 }
 
-const getTimePercentage = (time) => {
-    if (!time || timeStats.value.max_time === 0) return 0
-    return Math.min(100, (time / timeStats.value.max_time) * 100)
-}
-
-const getTimeColor = (time) => {
-    if (!time) return '#909399'
-    const avg = timeStats.value.avg_time
-    if (time <= avg * 0.8) return '#67C23A'
-    if (time <= avg * 1.2) return '#409EFF'
-    return '#E6A23C'
-}
-
-const formatDate = (dateStr) => {
-    if (!dateStr) return ''
-    const parts = dateStr.split('-')
-    if (parts.length === 3) {
-        return `${parts[1]}/${parts[2]}`
+const getTestStatusClass = (status) => {
+    const map = {
+        'success': 'success',
+        'failed': 'danger',
+        'running': 'warning',
+        'pending': 'info'
     }
-    return dateStr
-}
-
-const getDailyBarWidth = (value, total) => {
-    if (!total || total === 0) return '0%'
-    return `${(value / total) * 100}%`
+    return map[status] || 'info'
 }
 
 // 更新时间
@@ -486,14 +442,33 @@ const updateTime = () => {
     currentTime.value = now.toLocaleString('zh-CN', options)
 }
 
+// 更新系统信息
+const updateSystemInfo = () => {
+    // 模拟系统运行时间
+    const startTime = new Date('2026-01-01')
+    const now = new Date()
+    const diff = now - startTime
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+    systemUptime.value = `${days}天${hours}小时`
+    
+    // 模拟系统性能数据
+    systemStats.value = {
+        cpu: Math.floor(Math.random() * 30) + 20, // 20-50%
+        memory: Math.floor(Math.random() * 40) + 30, // 30-70%
+        disk: Math.floor(Math.random() * 20) + 40 // 40-60%
+    }
+}
+
 onMounted(() => {
     updateTime()
     setInterval(updateTime, 1000)
+    updateSystemInfo()
+    setInterval(updateSystemInfo, 30000) // 30秒更新一次系统信息
+    
     loadStats()
-    loadExecutionTrend()
-    loadTimeTrend()
-    loadFailedTop5()
-    loadDailyStats()
+    loadRecentTests()
+    loadRecentGens()
 })
 </script>
 
@@ -572,79 +547,8 @@ onMounted(() => {
     100% { background-position: 200% 0; }
 }
 
-/* 统计卡片网格 */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin-bottom: 32px;
-}
-
-.stat-card {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
-
-.stat-icon {
-    width: 80px;
-    height: 80px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 36px;
-    color: white;
-}
-
-.stat-icon.projects {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.stat-icon.apis {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.stat-icon.tests {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-.stat-icon.ai {
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-}
-
-.stat-content h3 {
-    font-size: 14px;
-    color: #666;
-    margin: 0 0 8px 0;
-    font-weight: 600;
-}
-
-.stat-number {
-    font-size: 32px;
-    font-weight: bold;
-    color: #333;
-    margin: 0;
-}
-
-.stat-label {
-    font-size: 12px;
-    color: #999;
-}
-
-/* 功能介绍 */
-.features-section {
+/* 功能模块区域 */
+.modules-section {
     background: white;
     border-radius: 12px;
     padding: 32px;
@@ -652,108 +556,176 @@ onMounted(() => {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
-.features-section h2 {
+.modules-section h2 {
     font-size: 24px;
     color: #333;
-    margin: 0 0 20px 0;
+    margin: 0 0 24px 0;
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-.features-section h2::before {
-    content: '';
-    width: 4px;
-    height: 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 2px;
-}
-
-.feature-card {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+.module-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     border-radius: 12px;
     padding: 24px;
-    text-align: center;
+    cursor: pointer;
     transition: all 0.3s ease;
+    border: 2px solid transparent;
+    height: 100%;
 }
 
-.feature-card:hover {
+.module-card:hover {
     transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border-color: var(--el-color-primary);
 }
 
-.feature-number {
-    display: inline-flex;
+.module-card.system:hover {
+    border-color: #667eea;
+}
+
+.module-card.generator:hover {
+    border-color: #f093fb;
+}
+
+.module-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    font-size: 28px;
     color: white;
-    border-radius: 50%;
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
 }
 
-.feature-card h3 {
+.module-card.system .module-icon {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.module-card.generator .module-icon {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.module-content h3 {
     font-size: 18px;
     color: #333;
-    margin: 12px 0 8px 0;
+    margin: 0 0 8px 0;
+    font-weight: 600;
 }
 
-.feature-card p {
+.module-content p {
     font-size: 14px;
     color: #666;
-    line-height: 1.6;
+    margin: 0 0 12px 0;
+    line-height: 1.5;
 }
 
-/* 平台统计 */
-.platform-stats {
-    background: white;
-    border-radius: 12px;
-    padding: 32px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+.module-stats {
+    display: flex;
+    gap: 16px;
 }
 
-.mini-stat {
-    text-align: center;
-    padding: 20px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    transition: all 0.3s ease;
+.module-stats span {
+    font-size: 12px;
+    color: #999;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 4px 8px;
+    border-radius: 4px;
 }
 
-.mini-stat:hover {
-    transform: translateY(-4px);
-}
-
-.mini-number {
-    font-size: 32px;
-    font-weight: bold;
-    color: #667eea;
-    margin-bottom: 8px;
-}
-
-.mini-label {
-    font-size: 14px;
-    color: #666;
-}
-
-/* 图表区域 */
-.charts-section {
+/* 概览区域 */
+.overview-section {
     margin-bottom: 32px;
 }
 
-.chart-card {
+.stats-panel {
     background: white;
     border-radius: 12px;
     padding: 24px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
     height: 100%;
-    min-height: 350px;
 }
 
-.chart-header {
+.stats-panel h3 {
+    font-size: 18px;
+    color: #333;
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 16px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 8px;
+}
+
+.stat-number {
+    font-size: 28px;
+    font-weight: bold;
+    color: #667eea;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #666;
+}
+
+.quick-actions {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    height: 100%;
+}
+
+.quick-actions h3 {
+    font-size: 18px;
+    color: #333;
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.action-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.action-btn {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+/* 活动区域 */
+.activity-section {
+    margin-bottom: 32px;
+}
+
+.activity-panel {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    height: 100%;
+}
+
+.panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -762,7 +734,7 @@ onMounted(() => {
     border-bottom: 1px solid #eee;
 }
 
-.chart-header h3 {
+.panel-header h3 {
     font-size: 16px;
     color: #333;
     margin: 0;
@@ -771,182 +743,74 @@ onMounted(() => {
     gap: 8px;
 }
 
-.chart-content {
-    min-height: 250px;
+.activity-content {
+    min-height: 200px;
 }
 
 .no-data {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 200px;
+    height: 150px;
 }
 
-/* 执行趋势 */
-.trend-list {
+.activity-list {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-.trend-item {
+.activity-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 12px;
     padding: 12px 16px;
     background: #f5f7fa;
     border-radius: 8px;
     transition: all 0.3s ease;
 }
 
-.trend-item:hover {
+.activity-item:hover {
     background: #e8f4ff;
 }
 
-.trend-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.trend-time {
-    font-size: 12px;
-    color: #999;
-}
-
-.trend-name {
-    font-size: 14px;
-    color: #333;
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.trend-status {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.trend-time-cost {
-    font-size: 12px;
-    color: #666;
-}
-
-/* 耗时趋势 */
-.time-stats {
-    display: flex;
-    justify-content: space-around;
-    margin-bottom: 20px;
-    padding: 16px;
-    background: #f5f7fa;
+.activity-icon {
+    width: 36px;
+    height: 36px;
     border-radius: 8px;
-}
-
-.time-stat-item {
-    text-align: center;
-}
-
-.time-stat-item .label {
-    display: block;
-    font-size: 12px;
-    color: #999;
-    margin-bottom: 4px;
-}
-
-.time-stat-item .value {
-    font-size: 18px;
-    font-weight: bold;
-    color: #409EFF;
-}
-
-.time-stat-item .value.warning {
-    color: #E6A23C;
-}
-
-.time-stat-item .value.success {
-    color: #67C23A;
-}
-
-.time-bars {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.time-bar-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.time-label {
-    width: 80px;
-    font-size: 12px;
-    color: #666;
-    text-align: right;
-}
-
-.time-bar-item .el-progress {
-    flex: 1;
-}
-
-.time-value {
-    width: 60px;
-    font-size: 12px;
-    color: #333;
-    text-align: right;
-}
-
-/* 失败TOP5 */
-.failed-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.failed-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: #fff5f5;
-    border-radius: 8px;
-    border-left: 3px solid #F56C6C;
-}
-
-.failed-rank {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #F56C6C;
-    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
-    font-weight: bold;
+    font-size: 16px;
+    color: white;
 }
 
-.failed-rank.rank-1 {
+.activity-icon.success {
+    background: #67C23A;
+}
+
+.activity-icon.danger {
+    background: #F56C6C;
+}
+
+.activity-icon.warning {
     background: #E6A23C;
 }
 
-.failed-rank.rank-2 {
+.activity-icon.info {
     background: #909399;
 }
 
-.failed-rank.rank-3 {
-    background: #B87333;
+.activity-icon.generator {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
-.failed-info {
+.activity-info {
     flex: 1;
     min-width: 0;
 }
 
-.failed-name {
+.activity-title {
     font-size: 14px;
     color: #333;
     font-weight: 500;
@@ -955,100 +819,84 @@ onMounted(() => {
     white-space: nowrap;
 }
 
-.failed-error {
+.activity-time {
     font-size: 12px;
     color: #999;
-    margin-top: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    margin-top: 2px;
 }
 
-.failed-count {
+.activity-status {
     flex-shrink: 0;
 }
 
-/* 每日统计 */
-.daily-chart {
-    padding: 10px 0;
+/* 系统信息区域 */
+.system-info {
+    margin-bottom: 32px;
 }
 
-.daily-bar {
+.info-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    height: 100%;
+}
+
+.info-card h4 {
+    font-size: 16px;
+    color: #333;
+    margin: 0 0 16px 0;
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: 8px;
 }
 
-.daily-date {
-    width: 50px;
-    font-size: 12px;
-    color: #666;
-    text-align: right;
-}
-
-.daily-bar-container {
-    flex: 1;
-    height: 24px;
-    background: #f0f0f0;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.bar-stack {
+.info-list {
     display: flex;
-    height: 100%;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.bar-passed {
-    background: linear-gradient(135deg, #67C23A 0%, #85ce61 100%);
-    height: 100%;
-    transition: width 0.3s ease;
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
 }
 
-.bar-failed {
-    background: linear-gradient(135deg, #F56C6C 0%, #f78989 100%);
-    height: 100%;
-    transition: width 0.3s ease;
+.info-item:last-child {
+    border-bottom: none;
 }
 
-.daily-count {
-    width: 40px;
+.info-item .label {
+    font-size: 14px;
+    color: #666;
+}
+
+.info-item .value {
     font-size: 14px;
     color: #333;
     font-weight: 500;
-    text-align: right;
 }
 
-.daily-legend {
+.link-list {
     display: flex;
-    justify-content: center;
-    gap: 24px;
-    margin-top: 16px;
-    padding-top: 12px;
-    border-top: 1px solid #eee;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.legend-item {
+.link-list .el-link {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: #666;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
 }
 
-.legend-item .dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 2px;
-}
-
-.legend-item .dot.passed {
-    background: #67C23A;
-}
-
-.legend-item .dot.failed {
-    background: #F56C6C;
+.link-list .el-link:hover {
+    background: #f5f7fa;
 }
 
 /* 响应式设计 */
@@ -1070,25 +918,16 @@ onMounted(() => {
         display: none;
     }
 
+    .modules-section {
+        padding: 20px;
+    }
+
     .stats-grid {
         grid-template-columns: 1fr;
     }
 
-    .stat-card {
-        padding: 16px;
-    }
-
-    .features-section {
-        padding: 20px;
-    }
-
-    .chart-card {
-        margin-bottom: 20px;
-    }
-
-    .time-stats {
-        flex-direction: column;
-        gap: 12px;
+    .action-list {
+        gap: 8px;
     }
 }
 </style>

@@ -1,0 +1,161 @@
+<template>
+    <BaseForm
+        ref="baseFormRef"
+        :title="isViewMode ? '{{ table_comment or class_name }}详情' : (ruleForm.{{ pk_field.python_field }} ? '编辑{{ table_comment or class_name }}' : '新增{{ table_comment or class_name }}')"
+        :model="ruleForm"
+        :rules="rules"
+        label-width="120px"
+        :loading="loading"
+        @submit="onBaseFormSubmit"
+        @cancel="closeForm"
+    >
+        <!-- 表单字段 -->
+        {%- for column in columns %}
+        {%- if column.is_insert == "1" and column.is_pk != "1" %}
+        <el-form-item label="{{ column.column_comment or column.column_name }}" prop="{{ column.python_field }}">
+            {%- if column.python_type == 'str' and column.column_length > 200 %}
+            <el-input v-model="ruleForm.{{ column.python_field }}" type="textarea" :rows="3" :readonly="isViewMode" />
+            {%- elif column.python_type == 'str' %}
+            <el-input v-model="ruleForm.{{ column.python_field }}" placeholder="请输入{{ column.column_comment or column.column_name }}" :readonly="isViewMode" />
+            {%- elif column.python_type == 'int' %}
+            <el-input-number v-model="ruleForm.{{ column.python_field }}" :controls="false" placeholder="请输入" :disabled="isViewMode" />
+            {%- elif column.python_type == 'float' %}
+            <el-input-number v-model="ruleForm.{{ column.python_field }}" :precision="2" :controls="false" placeholder="请输入" :disabled="isViewMode" />
+            {%- elif column.python_type == 'datetime' %}
+            <el-date-picker
+                v-model="ruleForm.{{ column.python_field }}"
+                type="datetime"
+                placeholder="选择日期时间"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                :disabled="isViewMode"
+                clearable
+            />
+            {%- elif column.python_field == 'status' %}
+            <el-radio-group v-model="ruleForm.{{ column.python_field }}" :disabled="isViewMode">
+                <el-radio value="1">有效</el-radio>
+                <el-radio value="0">禁用</el-radio>
+            </el-radio-group>
+            {%- elif column.python_field == 'ssex' %}
+            <el-radio-group v-model="ruleForm.{{ column.python_field }}" :disabled="isViewMode">
+                <el-radio value="0">男</el-radio>
+                <el-radio value="1">女</el-radio>
+                <el-radio value="2">保密</el-radio>
+            </el-radio-group>
+            {%- else %}
+            <el-input v-model="ruleForm.{{ column.python_field }}" placeholder="请输入{{ column.column_comment or column.column_name }}" :readonly="isViewMode" />
+            {%- endif %}
+        </el-form-item>
+        {%- endif %}
+        {%- endfor %}
+        <!-- END 表单字段 -->
+
+        <!-- 底部按钮已被BaseForm接管 -->
+    </BaseForm>
+</template>
+
+<script lang="ts" setup>
+import { ref, reactive, computed } from "vue"
+import { queryById, insertData, updateData } from './{{ business_name }}'
+import { useRouter } from "vue-router"
+import { ElMessage } from 'element-plus'
+import BaseForm from '~/components/BaseForm/index.vue'
+
+const router = useRouter()
+
+// 判断是否为查看模式
+const isViewMode = computed(() => router.currentRoute.value.query.view === 'true')
+
+// BaseForm 引用
+const baseFormRef = ref()
+const loading = ref(false)
+
+// 表单数据
+const ruleForm = reactive({% for column in columns %}{%- if column.is_insert == "1" %}{{ column.python_field }}: {% if column.python_field == 'status' %}'1'{% elif column.python_field == 'ssex' %}'2'{% elif column.is_required == "1" or column.is_pk == "1" %}{{ column.python_type | default('any') | replace('Optional[', '') | replace(']', '') | replace('str', "''") | replace('int', '0') | replace('float', '0.0') }}{% else %}null{% endif %}{% if not loop.last %}, {% endif %}{%- endif %}{%- endfor %}})
+
+// 表单验证规则
+const rules = computed(() => {
+    if (isViewMode.value) {
+        return {}
+    }
+    return {
+        {%- for column in columns %}
+        {%- if column.is_insert == "1" and column.is_pk != "1" and column.is_required == "1" %}
+        {{ column.python_field }}: [
+            { required: true, message: '必填项', trigger: 'blur' }
+        ]{% if not loop.last %},{% endif %}
+        {%- elif column.python_type == 'str' and column.python_field in ['email'] %}
+        {{ column.python_field }}: [
+            { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
+        ]{% if not loop.last %},{% endif %}
+        {%- elif column.python_type == 'str' and column.python_field in ['mobile', 'phone', 'telephone'] %}
+        {{ column.python_field }}: [
+            { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
+        ]{% if not loop.last %},{% endif %}
+        {%- endif %}
+        {%- endfor %}
+    }
+})
+
+// 提交表单 (BaseForm 已验证通过)
+const onBaseFormSubmit = async () => {
+    loading.value = true
+    try {
+        // 有ID 代表是修改，没ID 代表是新增
+        {%- set pk_field = columns | selectattr('is_pk', 'equalto', '1') | list | first %}
+        {%- if pk_field %}
+        if (ruleForm.{{ pk_field.python_field }} > 0) {
+            const res = await updateData(ruleForm)
+            if (res.data.code == 200) {
+                ElMessage.success('更新成功')
+                router.push('/{{ business_name }}List')
+            } else {
+                ElMessage.error(res.data.msg || '更新失败')
+            }
+        } else {
+            const res = await insertData(ruleForm)
+            if (res.data.code == 200) {
+                ElMessage.success('新增成功')
+                router.push('/{{ business_name }}List')
+            } else {
+                ElMessage.error(res.data.msg || '新增失败')
+            }
+        }
+        {%- endif %}
+    } catch (error) {
+        ElMessage.error('操作失败，请稍后重试')
+    } finally {
+        loading.value = false
+    }
+}
+
+// 关闭表单
+const closeForm = () => {
+    router.push('/{{ business_name }}List')
+}
+
+// 加载表单数据
+const loadData = async (id: number) => {
+    const res = await queryById(id)
+    if (res.data.code === 200) {
+        {%- for column in columns %}
+        {%- if column.is_insert == "1" %}
+        ruleForm.{{ column.python_field }} = res.data.data.{{ column.python_field }}{% if column.python_type in ['str', 'int', 'float'] %} || {% if column.python_type == 'str' %}''{% elif column.python_type == 'int' %}0{% elif column.python_type == 'float' %}0.0{% endif %}{% endif %}{% if not loop.last %}
+        {% endif %}
+        {%- endif %}
+        {%- endfor %}
+    }
+}
+
+// 初始化
+{%- set pk_field = columns | selectattr('is_pk', 'equalto', '1') | list | first %}
+{%- if pk_field %}
+let query_id = router.currentRoute.value.query.{{ pk_field.python_field }}
+ruleForm.{{ pk_field.python_field }} = query_id ? Number(query_id) : 0
+if (ruleForm.{{ pk_field.python_field }} > 0) {
+    loadData(ruleForm.{{ pk_field.python_field }})
+}
+{%- endif %}
+</script>
+
+<style scoped>
+</style>

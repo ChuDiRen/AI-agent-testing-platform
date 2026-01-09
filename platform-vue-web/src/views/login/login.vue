@@ -7,7 +7,7 @@
       <div class="left">
         <div>
           <div>欢迎光临大熊AI</div>
-          <div>欢迎使用大熊AI自动化测试平台</div>
+          <div>欢迎使用大熊AI代码生成器</div>
         </div>
       </div>
       <!-- 右侧登录表单 -->
@@ -69,6 +69,26 @@ import { getUserMenus, getMenuTree } from "~/views/system/menu/menu";
 
 const router = useRouter();
 const store = useStore();
+
+/**
+ * 从菜单树中递归提取所有权限标识
+ */
+function extractPermissions(menuTree, permissions = []) {
+  if (!menuTree || !Array.isArray(menuTree)) return permissions;
+  
+  menuTree.forEach(menu => {
+    // 提取当前菜单的权限
+    if (menu.perms) {
+      permissions.push(menu.perms);
+    }
+    // 递归处理子菜单
+    if (menu.children && menu.children.length > 0) {
+      extractPermissions(menu.children, permissions);
+    }
+  });
+  
+  return permissions;
+}
 
 // token 存储到 localStorage
 function setToken(token) {
@@ -145,28 +165,32 @@ const onSubmit = () => {
         try {
           const menuRes = await getUserMenus(userId);
           if (menuRes?.data?.code === 200) {
-            const tree = menuRes.data.data || [];
+            let tree = menuRes.data.data || [];
             console.log("登录时获取的用户菜单数据:", tree);
-            if (tree.length > 0) {
-              console.log("设置用户菜单，菜单数量:", tree.length);
-              store.commit("setMenuTree", tree);
-            } else {
+            if (tree.length === 0) {
               // 兜底：用户无绑定权限，展示全量菜单树
               console.log("用户菜单为空，获取全量菜单");
               const allRes = await getMenuTree();
               if (allRes?.data?.code === 200) {
-                const allMenuData = allRes.data.data || [];
-                console.log("设置全量菜单，菜单数量:", allMenuData.length);
-                store.commit("setMenuTree", allMenuData);
+                tree = allRes.data.data || [];
               }
             }
+            
+            console.log("设置用户菜单，菜单数量:", tree.length);
+            store.commit("setMenuTree", tree);
+            
+            // 6. 从菜单树中提取权限列表
+            const permissions = extractPermissions(tree);
+            console.log("提取的权限列表:", permissions);
+            store.commit("setPermissions", permissions);
+            localStorage.setItem("permissions", JSON.stringify(permissions));
           }
         } catch (e) {
           console.error("处理菜单数据失败:", e);
         }
       }
 
-      // 6. 跳转到主页
+      // 7. 跳转到主页
       router.replace("/home");
     } catch (err) {
       console.error("登录错误:", err);

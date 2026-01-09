@@ -19,24 +19,6 @@ declare module '~/components/BaseTable/index.vue' {
   export default component;
 }
 
-declare module '~/components/CodeEditor.vue' {
-  import { DefineComponent } from 'vue';
-  const component: DefineComponent;
-  export default component;
-}
-
-declare module '~/components/JsonViewer.vue' {
-  import { DefineComponent } from 'vue';
-  const component: DefineComponent;
-  export default component;
-}
-
-declare module '~/components/YamlViewer.vue' {
-  import { DefineComponent } from 'vue';
-  const component: DefineComponent;
-  export default component;
-}
-
 // 声明工具函数模块类型
 declare module '~/utils/timeFormatter' {
   export function formatDateTime(timestamp: string | number | Date): string;
@@ -58,12 +40,4 @@ declare module '~/views/system/menu/menu' {
 
 declare module '~/views/system/dept/dept' {
   export function getDeptTree(): Promise<any>;
-}
-
-declare module '~/views/apitest/project/apiProject' {
-  export function queryAllProject(): Promise<any>;
-}
-
-declare module '~/views/apitest/project/apiProject.js' {
-  export function queryAllProject(): Promise<any>;
 }

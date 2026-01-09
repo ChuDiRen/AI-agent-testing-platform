@@ -2,8 +2,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "~/*": ["src/*"],
-      "@/*": ["src/agent-react/*"]
+      "~/*": ["src/*"]
     },
     "jsx": "preserve",
     "module": "ESNext",

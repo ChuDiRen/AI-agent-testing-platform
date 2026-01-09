@@ -1,0 +1,118 @@
+# -*- coding: utf-8 -*-
+"""{{ table_comment or class_name }}控制器"""
+from fastapi import APIRouter, Depends
+from app.database.database import get_session
+from app.responses.resp_model import respModel
+from app.logger.logger import get_logger
+from app.dependencies.dependencies import check_permission
+from {{ module_name }}.services.{{ class_name }}Service import {{ class_name }}Service
+from {{ module_name }}.schemas.{{ class_name }}Schema import (
+    {{ class_name }}Query,
+    {{ class_name }}Create,
+    {{ class_name }}Update
+)
+from sqlmodel import Session
+from typing import List
+
+module_name = "{{ business_name }}"
+module_model = {{ class_name }}
+logger = get_logger(__name__)
+router = APIRouter(prefix=f"/{module_name}", tags=["{{ table_comment or function_name }}"])
+
+
+@router.post("/queryByPage", dependencies=[Depends(check_permission(f"{module_name}:list"))])
+async def queryByPage(query: {{ class_name }}Query, session: Session = Depends(get_session)):
+    """分页查询{{ table_comment or function_name }}"""
+    try:
+        {%- if tpl_category == 'tree' %}
+        datas, total = {{ class_name }}Service.query_by_page(session, query)
+        # 构建树形结构
+        def build_tree(items, parent_id=None):
+            tree = []
+            for item in items:
+                # 将SQLModel对象转换为字典
+                item_dict = item.model_dump()
+                if item_dict.get('{{ tree_parent_code }}') == parent_id:
+                    children = build_tree(items, item_dict.get('{{ tree_code }}'))
+                    if children:
+                        item_dict['children'] = children
+                    tree.append(item_dict)
+            return tree
+
+        tree_data = build_tree(datas, None if not datas else 0) # 假设根节点parent_id为0或None
+        return respModel.ok_resp(obj=tree_data, msg="查询成功")
+        {%- else %}
+        datas, total = {{ class_name }}Service.query_by_page(session, query)
+        return respModel.ok_resp_list(lst=datas, total=total)
+        {%- endif %}
+    except Exception as e:
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
+
+@router.get("/queryById", dependencies=[Depends(check_permission(f"{module_name}:query"))])
+async def queryById(id: int = Depends(...), session: Session = Depends(get_session)):
+    """根据ID查询{{ table_comment or function_name }}"""
+    try:
+        data = {{ class_name }}Service.query_by_id(session, id)
+        if data:
+            return respModel.ok_resp(obj=data)
+        else:
+            return respModel.ok_resp(msg="查询成功,但是没有数据")
+    except Exception as e:
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
+
+@router.post("/insert", dependencies=[Depends(check_permission(f"{module_name}:add"))])
+async def insert(create_data: {{ class_name }}Create, session: Session = Depends(get_session)):
+    """新增{{ table_comment or function_name }}"""
+    try:
+        data = {{ class_name }}Service.create(session, create_data)
+        return respModel.ok_resp(msg="添加成功", dic_t={"id": data.id})
+    except Exception as e:
+        session.rollback()
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(msg=f"添加失败:{e}")
+
+
+@router.put("/update", dependencies=[Depends(check_permission(f"{module_name}:edit"))])
+async def update(update_data: {{ class_name }}Update, session: Session = Depends(get_session)):
+    """更新{{ table_comment or function_name }}"""
+    try:
+        db_data = {{ class_name }}Service.update(session, update_data)
+        if db_data:
+            return respModel.ok_resp(msg="修改成功")
+        else:
+            return respModel.error_resp(msg="数据不存在")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(msg=f"修改失败，请联系管理员:{e}")
+
+
+@router.delete("/delete", dependencies=[Depends(check_permission(f"{module_name}:remove"))])
+async def delete(id: int = Depends(...), session: Session = Depends(get_session)):
+    """删除{{ table_comment or function_name }}"""
+    try:
+        success = {{ class_name }}Service.delete(session, id)
+        if success:
+            return respModel.ok_resp(msg="删除成功")
+        else:
+            return respModel.error_resp(msg="数据不存在")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(msg=f"服务器错误,删除失败：{e}")
+
+
+@router.delete("/batchDelete", dependencies=[Depends(check_permission(f"{module_name}:remove"))])
+async def batchDelete(ids: List[int] = Depends(...), session: Session = Depends(get_session)):
+    """批量删除{{ table_comment or function_name }}"""
+    try:
+        count = {{ class_name }}Service.batch_delete(session, ids)
+        return respModel.ok_resp_text(msg=f"成功删除{count}条记录")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")

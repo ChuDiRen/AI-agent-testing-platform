@@ -1,167 +1,134 @@
-# AI Agent Testing Platform - FastAPI Backend
+# 大熊AI代码生成器 - FastAPI Backend
 
-基于 FastAPI + SQLModel 的 AI 智能体测试平台后端服务
+基于 **FastAPI + SQLModel** 的 AI 代码生成器后端服务，提供完整的 RBAC 权限管理和基于 AST 的智能代码生成器功能。
 
 ## 技术栈
 
-- **Web框架**: FastAPI 0.104.1
-- **ORM**: SQLModel 0.0.14
-- **数据库**: MySQL / SQLite (可配置切换)
-- **认证**: python-jose (JWT)
-- **对象存储**: MinIO
-- **配置管理**: Pydantic Settings
+| 类别 | 技术 |
+|------|------|
+| Web 框架 | FastAPI >= 0.115.0 |
+| ORM | SQLModel >= 0.0.16 |
+| 数据库 | MySQL / SQLite (可配置切换) |
+| 认证 | python-jose (JWT) |
+| 配置管理 | Pydantic Settings |
+| 模板引擎 | Jinja2 |
 
 ## 项目结构
 
 ```
 platform-fastapi-server/
-├── app.py                 # FastAPI应用入口
+├── app/                     # 应用主目录
+│   ├── main.py             # FastAPI 应用入口
+│   ├── api/                 # API 路由层
+│   │   └── v1/             # API v1 版本
+│   │       └── endpoints/   # 端点控制器
+│   │           ├── AuthController.py       # 认证控制器
+│   │           ├── UsersController.py      # 用户管理
+│   │           ├── RolesController.py      # 角色管理
+│   │           ├── MenusController.py      # 菜单管理
+│   │           ├── DepartmentsController.py # 部门管理
+│   │           ├── GenTablesController.py  # 代码生成-表配置
+│   │           └── GeneratorController.py  # 代码生成器
+│   ├── config/             # 配置文件
+│   │   ├── dev_settings.py   # 开发环境配置
+│   │   ├── test_settings.py  # 测试环境配置
+│   │   └── prod_settings.py  # 生产环境配置
+│   ├── database/           # 数据库模块
+│   │   ├── database.py       # 数据库连接和会话管理
+│   │   └── init_data.py      # 初始化数据
+│   ├── dependencies/       # 依赖注入
+│   │   └── dependencies.py   # JWT认证、权限检查等
+│   ├── exceptions/         # 异常处理
+│   │   └── exceptions.py     # 自定义异常
+│   ├── logger/             # 日志模块
+│   │   └── logger.py         # 日志配置
+│   ├── middleware/         # 中间件
+│   │   └── middleware.py     # TraceID、CORS等
+│   ├── models/             # 数据模型 (SQLModel)
+│   │   ├── UserModel.py             # 用户模型
+│   │   ├── RoleModel.py             # 角色模型
+│   │   ├── MenuModel.py             # 菜单模型
+│   │   ├── DeptModel.py             # 部门模型
+│   │   ├── UserRoleModel.py         # 用户角色关联
+│   │   ├── RoleMenuModel.py         # 角色菜单关联
+│   │   ├── GenTable.py              # 代码生成-表配置
+│   │   ├── GenTableColumn.py        # 代码生成-字段配置
+│   │   └── GenHistory.py            # 代码生成-生成历史
+│   ├── responses/          # 响应模型
+│   │   └── resp_model.py     # 统一响应格式
+│   ├── schemas/            # 请求/响应 Schema (Pydantic)
+│   │   ├── LoginSchema.py           # 登录相关
+│   │   ├── UserSchema.py            # 用户相关
+│   │   ├── RoleSchema.py            # 角色相关
+│   │   ├── MenuSchema.py            # 菜单相关
+│   │   ├── DeptSchema.py            # 部门相关
+│   │   ├── GenTableSchema.py        # 代码生成-表配置
+│   │   └── GeneratorSchema.py       # 代码生成-生成请求
+│   ├── security/           # 安全模块
+│   │   └── JwtUtil.py         # JWT 工具类
+│   ├── services/           # 业务服务层
+│   │   ├── UserService.py          # 用户服务
+│   │   ├── RoleService.py          # 角色服务
+│   │   ├── MenuService.py          # 菜单服务
+│   │   ├── DeptService.py          # 部门服务
+│   │   ├── GenTableService.py      # 代码生成-表配置服务
+│   │   ├── GeneratorService.py     # 代码生成服务
+│   │   ├── DbMetaService.py        # 数据库元数据服务
+│   │   ├── ASTCodeGenerator.py     # AST 代码生成器
+│   │   └── TemplateManager.py      # 模板管理器
+│   ├── templates/          # Jinja2 模板
+│   │   ├── controller.jinja2       # Controller 层模板
+│   │   ├── model.jinja2            # Model 层模板
+│   │   └── schema.jinja2           # Schema 层模板
+│   ├── tests/              # 测试目录
+│   └── utils/              # 工具模块
+│       └── time_utils.py       # 时间工具类
 ├── run.py                 # 启动脚本
-├── requirements.txt       # 项目依赖
-├── config/               # 配置文件
-│   ├── dev_settings.py   # 开发环境配置
-│   ├── test_settings.py  # 测试环境配置
-│   └── prod_settings.py  # 生产环境配置
-├── core/                 # 核心模块
-│   ├── database.py       # 数据库连接和会话管理
-│   ├── dependencies.py   # 依赖注入函数
-│   ├── JwtUtil.py        # JWT工具类
-│   ├── MinioUtils.py     # MinIO对象存储工具
-│   ├── resp_model.py     # 统一响应模型
-│   ├── AiStreamService.py      # AI流式调用服务
-│   ├── ConversationService.py  # 对话上下文管理
-│   ├── StreamTestCaseParser.py # 流式测试用例解析器
-│   ├── PromptService.py        # 提示词渲染服务
-│   ├── FileService.py          # 文件处理服务
-│   └── init_ai_data.py         # AI数据初始化
-├── login/                # 登录模块
-│   └── api/
-│       └── LoginController.py
-├── sysmanage/            # 系统管理模块
-│   ├── model/
-│   │   ├── user.py       # 用户模型
-│   │   ├── role.py       # 角色模型
-│   │   ├── menu.py       # 菜单模型
-│   │   └── dept.py       # 部门模型
-│   └── api/
-│       ├── UserController.py
-│       ├── RoleController.py
-│       ├── MenuController.py
-│       └── DeptController.py
-├── generator/            # ⭐ 代码生成器模块 (新增)
-│   ├── model/           # 数据模型
-│   │   ├── GenTable.py           # 表配置模型
-│   │   ├── GenTableColumn.py     # 字段配置模型
-│   │   └── GenHistory.py         # 生成历史模型
-│   ├── api/             # API控制器
-│   │   ├── GeneratorController.py   # 代码生成控制器
-│   │   └── GenTableController.py    # 表配置管理控制器
-│   ├── service/         # 业务服务
-│   │   ├── DbMetaService.py         # 数据库元数据解析
-│   │   ├── ASTCodeGenerator.py      # 基于AST的代码生成器
-│   │   └── TemplateManager.py       # 模板管理器
-│   ├── templates/       # 代码模板
-│   │   ├── model.jinja2             # Model层模板
-│   │   ├── schema.jinja2            # Schema层模板
-│   │   ├── controller.jinja2        # Controller层模板
-│   │   └── README.jinja2            # README模板
-│   ├── tests/           # 测试文件
-│   │   ├── init_test_database.py    # 数据库初始化
-│   │   └── test_final_validation.py # 完整功能验证
-│   ├── GENERATOR_GUIDE.md           # 使用指南
-│   ├── QUICK_TEST.md                # 快速测试指南
-│   └── TEST_VALIDATION_REPORT.md    # 测试验证报告
-├── apitest/              # API测试模块
-│   ├── model/            # 数据模型
-│   │   ├── ApiProjectModel.py
-│   │   ├── ApiDbBaseModel.py
-│   │   ├── ApiKeyWordModel.py
-│   │   ├── ApiMetaModel.py
-│   │   ├── ApiInfoModel.py
-│   │   └── ApiOperationTypeModel.py
-│   └── api/              # 接口控制器
-│       ├── ApiProjectContoller.py
-│       ├── ApiDbBaseController.py
-│       ├── ApiKeyWordController.py
-│       ├── ApiMetaController.py
-│       ├── ApiInfoController.py
-│       └── ApiOperationTypeController.py
-└── aiassistant/          # AI测试助手模块 ⭐新增
-    ├── model/            # 数据模型
-    │   ├── AiModel.py            # AI模型配置
-    │   ├── PromptTemplate.py     # 提示词模板
-    │   ├── AiGenerateHistory.py  # 生成历史记录
-    │   ├── TestCaseModel.py      # AI生成的测试用例
-    │   └── LangGraphCheckpointModel.py  # LangGraph检查点
-    ├── api/              # 接口控制器
-    │   ├── AiModelController.py          # AI模型管理
-    │   ├── PromptTemplateController.py   # 提示词模板管理
-    │   ├── TestCaseController.py         # 测试用例管理
-    │   ├── LangGraphController.py        # LangGraph多智能体
-    │   └── LangGraphServerController.py  # LangGraph Server API
-    └── schemas/          # Schema定义
-        ├── ai_model_schema.py
-        ├── prompt_template_schema.py
-        └── test_case_schema.py
+└── requirements.txt       # 项目依赖
 ```
 
-## 安装依赖
+## 快速开始
+
+### 1. 安装依赖
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## 配置说明
+### 2. 配置说明
 
-### 数据库配置（支持MySQL和SQLite切换）
+#### 数据库配置（支持 MySQL 和 SQLite 切换）
 
-编辑 `config/dev_settings.py` 配置文件：
+编辑 `app/config/dev_settings.py` 配置文件：
 
-**使用SQLite（默认，开箱即用）**：
+**使用 SQLite（默认，开箱即用）**：
 ```python
-DB_TYPE = "sqlite"  # 使用SQLite
-SQLITE_DATABASE = "./data/ai_agent.db"  # SQLite数据库文件路径
+DB_TYPE = "sqlite"  # 使用 SQLite
+SQLITE_DATABASE = "./data/ai_agent.db"  # SQLite 数据库文件路径
 ```
 
-**使用MySQL**：
+**使用 MySQL**：
 ```python
-DB_TYPE = "mysql"  # 使用MySQL
+DB_TYPE = "mysql"  # 使用 MySQL
 MYSQL_HOST = "localhost"
 MYSQL_PORT = 3306
 MYSQL_USER = "root"
 MYSQL_PASSWORD = "root"
-MYSQL_DATABASE = "platfrom_back"
+MYSQL_DATABASE = "platform_back"
 ```
 
-### 其他配置
+#### 其他配置
 
 ```python
-# JWT密钥配置
-SECRET_KEY = "your-secret-key"
+# JWT 密钥配置
+SECRET_KEY = "your-secret-key-change-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
-
-# MinIO配置
-# 注意：9000是API端口（SDK连接），9001是控制台端口（浏览器访问）
-MINIO_CLIENT_URL = "http://192.168.163.128:9000"
-MINIO_ENDPOINT = "192.168.163.128:9000"
-MINIO_ACCESS_KEY = "admin"
-MINIO_SECRET_KEY = "12345678"
-MINIO_SECURE = False
-
-# 关键字文件目录
-KEYWORDS_DIR = "./keywords"
 ```
 
-### 环境切换
+### 3. 启动应用
 
-- **开发环境**: 使用 `config/dev_settings.py` (默认SQLite)
-- **测试环境**: 使用 `config/test_settings.py` (默认SQLite)
-- **生产环境**: 使用 `config/prod_settings.py` (默认MySQL)
-
-## 启动应用
-
-### 开发模式（热重载）
+#### 开发模式（热重载）
 
 ```bash
 python run.py
@@ -170,487 +137,226 @@ python run.py
 或
 
 ```bash
-python app.py
+uvicorn app.main:application --host 0.0.0.0 --port 5000 --reload
 ```
 
-### 生产模式
+#### 生产模式
 
 ```bash
-uvicorn app:application --host 0.0.0.0 --port 8000 --workers 4
+uvicorn app.main:application --host 0.0.0.0 --port 5000 --workers 4
 ```
 
-## API文档
+### 4. 访问 API 文档
 
 启动应用后访问：
 
-- **交互式文档 (Swagger UI)**: http://localhost:8000/docs
-- **备选文档 (ReDoc)**: http://localhost:8000/redoc
-- **OpenAPI JSON**: http://localhost:8000/openapi.json
+- **交互式文档 (Swagger UI)**: http://localhost:5000/docs
+- **备选文档 (ReDoc)**: http://localhost:5000/redoc
+- **OpenAPI JSON**: http://localhost:5000/openapi.json
+
+### 5. 默认账号
+
+- **用户名**: `admin`
+- **密码**: `admin123`
+
+---
 
 ## 主要功能模块
 
 ### 1. 用户认证
 
-- `POST /login` - 用户登录
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| POST /auth/login | 登录 | 用户登录获取 Token |
+| GET /auth/userinfo | 用户信息 | 获取当前登录用户信息 |
 
-### 2. AI测试助手模块 ⭐新增
+### 2. RBAC 权限管理系统
 
-完整的AI驱动测试用例生成系统，支持ChatGPT风格的对话式交互。
+#### 2.1 用户管理
 
-#### 2.1 AI模型管理
-
-- `GET /AiModel/queryByPage` - 分页查询AI模型
-- `GET /AiModel/queryById/{id}` - 根据ID查询AI模型
-- `POST /AiModel/insert` - 新增AI模型
-- `PUT /AiModel/update` - 更新AI模型
-- `DELETE /AiModel/delete/{id}` - 删除AI模型
-- `PUT /AiModel/toggle/{id}` - 启用/禁用AI模型
-- `POST /AiModel/test/{id}` - 测试AI模型连接
-
-**AI模型配置字段**：
-- `model_name`: 模型名称（如：DeepSeek-Chat）
-- `model_code`: 模型代码（如：deepseek-chat）
-- `provider`: 提供商（如：DeepSeek、阿里云）
-- `api_url`: API接口地址
-- `api_key`: API密钥
-- `is_enabled`: 是否启用
-- `description`: 模型描述
-
-#### 2.2 提示词模板管理
-
-- `GET /PromptTemplate/queryByPage` - 分页查询提示词模板
-- `GET /PromptTemplate/queryById/{id}` - 根据ID查询模板
-- `POST /PromptTemplate/insert` - 新增提示词模板
-- `PUT /PromptTemplate/update` - 更新提示词模板
-- `DELETE /PromptTemplate/delete/{id}` - 删除提示词模板
-- `PUT /PromptTemplate/toggle/{id}` - 激活/停用模板
-- `GET /PromptTemplate/by-test-type` - 按测试类型查询模板
-
-**提示词模板字段**：
-- `name`: 模板名称
-- `template_type`: 模板类型（system/user/assistant）
-- `test_type`: 测试类型（API/Web/App/通用）
-- `content`: 模板内容（支持变量替换）
-- `variables`: 模板变量（JSON格式）
-- `is_active`: 是否激活
-
-#### 2.3 测试用例管理
-
-- `GET /TestCase/queryByPage` - 分页查询测试用例
-- `GET /TestCase/queryById/{id}` - 根据ID查询测试用例
-- `POST /TestCase/insert` - 新增测试用例
-- `PUT /TestCase/update` - 更新测试用例
-- `DELETE /TestCase/delete/{id}` - 删除测试用例
-- `POST /TestCase/batch-insert` - 批量保存测试用例
-- `GET /TestCase/export-yaml/{id}` - 导出单个用例为YAML
-- `POST /TestCase/export-batch-yaml` - 批量导出用例为YAML
-
-**测试用例字段**：
-- `case_name`: 用例名称
-- `test_type`: 测试类型（API/Web/App）
-- `priority`: 优先级（P0/P1/P2/P3）
-- `test_steps_json`: 测试步骤（JSON格式）
-- `test_steps_yaml`: 测试步骤（YAML格式）
-- `expected_result`: 预期结果
-- `tags`: 标签
-- `project_id`: 所属项目
-
-#### 2.4 LangGraph多智能体接口（核心功能）
-
-- `POST /langgraph/generate` - 多智能体测试用例生成
-- `GET /api/langgraph/threads` - 获取对话线程列表
-- `POST /api/langgraph/threads` - 创建新对话线程
-- `POST /api/langgraph/threads/{thread_id}/runs/stream` - 流式对话接口
-
-**LangGraph特性**：
-- ✅ 基于LangGraph的多智能体协作
-- ✅ 支持流式输出（SSE）
-- ✅ 对话状态持久化（数据库checkpointer）
-- ✅ 支持多种AI模型配置
-- ✅ 自动生成测试用例
-- `error`: 错误信息
-- `done`: 生成完成
-
-### 3. RBAC权限管理系统 🆕
-
-#### 3.1 用户管理
-
-- `POST /user/queryByPage` - 分页查询用户（支持按用户名、部门、状态过滤）
-- `GET /user/queryById` - 根据ID查询用户
-- `POST /user/insert` - 新增用户
-- `PUT /user/update` - 更新用户
-- `DELETE /user/delete` - 删除用户
-- `POST /user/assignRoles` - 为用户分配角色 🆕
-- `GET /user/roles/{user_id}` - 获取用户的角色 🆕
-- `PUT /user/updateStatus` - 更新用户状态（锁定/启用）🆕
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| POST /api/v1/users/queryByPage | 分页查询 | 分页查询用户列表 |
+| GET /api/v1/users/queryById | 查询详情 | 根据 ID 查询用户 |
+| POST /api/v1/users/insert | 新增 | 新增用户 |
+| PUT /api/v1/users/update | 更新 | 更新用户信息 |
+| DELETE /api/v1/users/delete | 删除 | 删除用户 |
+| POST /api/v1/users/assignRoles | 分配角色 | 为用户分配角色 |
+| GET /api/v1/users/roles/{user_id} | 查询角色 | 获取用户的角色列表 |
+| PUT /api/v1/users/updateStatus | 更新状态 | 更新用户锁定/启用状态 |
 
 **用户字段说明**：
-- `id`: 用户ID（主键）
-- `username`: 用户名（唯一索引）
-- `password`: 密码（加密存储）
-- `dept_id`: 部门ID
-- `email`: 邮箱
-- `mobile`: 联系电话
-- `status`: 状态（0锁定 1有效）
-- `ssex`: 性别（0男 1女 2保密）
-- `avatar`: 头像URL
-- `description`: 描述
-- `create_time`: 创建时间
-- `modify_time`: 修改时间
-- `last_login_time`: 最近访问时间
 
-#### 3.2 角色管理 🆕
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | int | 用户 ID（主键） |
+| username | str | 用户名（唯一索引） |
+| password | str | 密码（加密存储） |
+| dept_id | int | 部门 ID |
+| email | str | 邮箱 |
+| mobile | str | 联系电话 |
+| status | int | 状态（0 锁定 1 有效） |
+| ssex | int | 性别（0 男 1 女 2 保密） |
+| avatar | str | 头像 URL |
+| description | str | 描述 |
+| create_time | datetime | 创建时间 |
+| modify_time | datetime | 修改时间 |
+| last_login_time | datetime | 最近访问时间 |
 
-- `POST /role/queryByPage` - 分页查询角色
-- `GET /role/queryById` - 根据ID查询角色
-- `POST /role/insert` - 新增角色
-- `PUT /role/update` - 更新角色
-- `DELETE /role/delete` - 删除角色
-- `POST /role/assignMenus` - 为角色分配菜单权限
-- `GET /role/menus/{role_id}` - 获取角色的菜单权限
+#### 2.2 角色管理
 
-#### 3.3 菜单/权限管理 🆕
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| POST /api/v1/roles/queryByPage | 分页查询 | 分页查询角色列表 |
+| GET /api/v1/roles/queryById | 查询详情 | 根据 ID 查询角色 |
+| POST /api/v1/roles/insert | 新增 | 新增角色 |
+| PUT /api/v1/roles/update | 更新 | 更新角色信息 |
+| DELETE /api/v1/roles/delete | 删除 | 删除角色 |
+| POST /api/v1/roles/assignMenus | 分配菜单 | 为角色分配菜单权限 |
+| GET /api/v1/roles/menus/{role_id} | 查询菜单 | 获取角色的菜单权限 |
 
-- `GET /menu/tree` - 获取菜单树
-- `GET /menu/queryById` - 根据ID查询菜单
-- `POST /menu/insert` - 新增菜单
-- `PUT /menu/update` - 更新菜单
-- `DELETE /menu/delete` - 删除菜单
-- `GET /menu/user/{user_id}` - 获取用户的菜单权限（用于前端动态路由）
+#### 2.3 菜单/权限管理
 
-#### 3.4 部门管理 🆕
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| GET /api/v1/menus/tree | 查询树 | 获取菜单树 |
+| GET /api/v1/menus/queryById | 查询详情 | 根据 ID 查询菜单 |
+| POST /api/v1/menus/insert | 新增 | 新增菜单 |
+| PUT /api/v1/menus/update | 更新 | 更新菜单信息 |
+| DELETE /api/v1/menus/delete | 删除 | 删除菜单 |
+| GET /api/v1/menus/user/{user_id} | 用户菜单 | 获取用户的菜单权限（用于前端动态路由） |
 
-- `GET /dept/tree` - 获取部门树
-- `GET /dept/queryById` - 根据ID查询部门
-- `POST /dept/insert` - 新增部门
-- `PUT /dept/update` - 更新部门
-- `DELETE /dept/delete` - 删除部门
+#### 2.4 部门管理
 
-### 3. 初始数据 🆕
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| GET /api/v1/departments/tree | 查询树 | 获取部门树 |
+| GET /api/v1/departments/queryById | 查询详情 | 根据 ID 查询部门 |
+| POST /api/v1/departments/insert | 新增 | 新增部门 |
+| PUT /api/v1/departments/update | 更新 | 更新部门信息 |
+| DELETE /api/v1/departments/delete | 删除 | 删除部门 |
 
-首次启动时，系统会自动初始化以下RBAC数据：
+### 3. 代码生成器
 
-**默认账号**：
-- 用户名：`admin`
-- 密码：`admin123`
-- 角色：超级管理员
+基于 **AST + Jinja2 模板** 的智能代码生成器，支持数据库表反向工程，快速生成高质量 CRUD 代码。
 
-**默认部门**：
-- 总公司（顶级部门）
-  - 技术部
-  - 产品部
-  - 运营部
+#### 3.1 核心特性
 
-**默认角色**：
-- 超级管理员（拥有所有权限）
-- 管理员（拥有部分管理权限）
-- 普通用户（拥有基本权限）
-
-**默认菜单**：
-- 系统管理
-  - 用户管理（含增删改查、分配角色按钮权限）
-  - 角色管理（含增删改查、分配权限按钮权限）
-  - 菜单管理（含增删改查按钮权限）
-  - 部门管理（含增删改查按钮权限）
-- API测试
-  - 项目管理
-  - 用例管理
-
-### 4. API项目管理
-
-- `POST /ApiProject/queryByPage` - 分页查询项目
-- `GET /ApiProject/queryById` - 根据ID查询项目
-- `GET /ApiProject/queryAll` - 查询所有项目
-- `POST /ApiProject/insert` - 新增项目
-- `PUT /ApiProject/update` - 更新项目
-- `DELETE /ApiProject/delete` - 删除项目
-
-### 5. API数据库配置管理
-
-- `POST /ApiDbBase/queryByPage` - 分页查询数据库配置
-- `GET /ApiDbBase/queryById` - 根据ID查询配置
-- `POST /ApiDbBase/insert` - 新增配置（带唯一性校验）
-- `PUT /ApiDbBase/update` - 更新配置
-- `DELETE /ApiDbBase/delete` - 删除配置
-
-### 6. API关键字管理
-
-- `GET /ApiKeyWord/queryAll` - 查询所有关键字
-- `POST /ApiKeyWord/queryByPage` - 分页查询关键字
-- `GET /ApiKeyWord/queryById` - 根据ID查询关键字
-- `POST /ApiKeyWord/insert` - 新增关键字（带唯一性校验）
-- `PUT /ApiKeyWord/update` - 更新关键字（带唯一性校验）
-- `DELETE /ApiKeyWord/delete` - 删除关键字
-- `POST /ApiKeyWord/keywordFile` - 生成关键字文件
-
-### 7. API元数据管理（文件管理）
-
-- `GET /ApiMeta/queryAll` - 查询所有元数据
-- `POST /ApiMeta/queryByPage` - 分页查询元数据
-- `GET /ApiMeta/queryById` - 根据ID查询元数据
-- `POST /ApiMeta/insert` - 上传文件并新增元数据
-- `PUT /ApiMeta/update` - 更新元数据
-- `DELETE /ApiMeta/delete` - 删除元数据
-- `GET /ApiMeta/downloadFile` - 获取文件下载地址
-
-### 8. 操作类型管理
-
-- `GET /OperationType/queryAll` - 查询所有操作类型
-- `POST /OperationType/queryByPage` - 分页查询操作类型
-- `GET /OperationType/queryById` - 根据ID查询操作类型
-- `POST /OperationType/insert` - 新增操作类型
-- `PUT /OperationType/update` - 更新操作类型
-- `DELETE /OperationType/delete` - 删除操作类型
-
-### 9. API测试完整模块 🆕
-
-#### 9.1 API接口管理
-- `POST /ApiInfo/queryByPage` - 分页查询接口
-- `GET /ApiInfo/queryById` - 根据ID查询接口
-- `POST /ApiInfo/insert` - 新增接口
-- `PUT /ApiInfo/update` - 更新接口
-- `DELETE /ApiInfo/delete` - 删除接口
-- `POST /ApiInfo/execute` - 执行单个接口测试
-
-#### 9.2 API用例管理
-- `POST /ApiInfoCase/queryByPage` - 分页查询用例
-- `GET /ApiInfoCase/queryById` - 根据ID查询用例
-- `POST /ApiInfoCase/insert` - 新增用例(含步骤)
-- `PUT /ApiInfoCase/update` - 更新用例(含步骤)
-- `DELETE /ApiInfoCase/delete` - 删除用例
-- `POST /ApiInfoCase/execute` - 执行测试用例
-- `POST /ApiInfoCase/generateYaml` - 生成YAML测试文件
-
-#### 9.3 API测试集合管理
-- `POST /ApiCollectionInfo/queryByPage` - 分页查询测试集合
-- `GET /ApiCollectionInfo/queryById` - 根据ID查询集合
-- `POST /ApiCollectionInfo/insert` - 新增测试集合
-- `PUT /ApiCollectionInfo/update` - 更新测试集合
-- `DELETE /ApiCollectionInfo/delete` - 删除测试集合
-- `POST /ApiCollectionInfo/addCase` - 添加用例到集合
-- `POST /ApiCollectionInfo/batchAddCases` - 批量添加用例
-- `DELETE /ApiCollectionInfo/removeCase` - 从集合移除用例
-- `POST /ApiCollectionInfo/executePlan` - 执行测试集合
-
-#### 9.4 API测试历史
-- `POST /ApiHistory/queryByPage` - 分页查询测试历史
-- `GET /ApiHistory/queryById` - 根据ID查询历史详情
-- `DELETE /ApiHistory/delete` - 删除测试历史
-
-#### 9.5 API测试报告查看器 🆕
-- `GET /ApiReportViewer/view` - 查看Allure测试报告(公开访问)
-- `GET /ApiReportViewer/download` - 下载测试报告压缩包(公开访问)
-- `GET /ApiReportViewer/list` - 列出所有可用报告(公开访问)
-
-**报告查看器特性**:
-- ✅ 支持多种访问方式(history_id/execution_uuid/report_path)
-- ✅ 路径遍历安全防护
-- ✅ 美化的404/500错误页面
-- ✅ 一键下载报告压缩包
-- ✅ 无需登录即可查看报告
-
-### 9. AI测试助手 🆕🔥
-
-#### 9.1 AI模型管理
-
-- `GET /AiModel/list` - 获取AI模型列表（分页）
-- `GET /AiModel/enabled` - 获取所有已启用的模型
-- `GET /AiModel/{model_id}` - 获取单个AI模型详情
-- `POST /AiModel/create` - 创建AI模型
-- `PUT /AiModel/{model_id}` - 更新AI模型
-- `DELETE /AiModel/{model_id}` - 删除AI模型
-- `POST /AiModel/{model_id}/toggle` - 切换模型启用/禁用状态
-- `POST /AiModel/{model_id}/test` - 测试模型API连接
-- `GET /AiModel/providers/list` - 获取所有提供商列表
-
-#### 9.2 提示词模板管理
-
-- `GET /PromptTemplate/list` - 获取提示词模板列表（分页）
-- `GET /PromptTemplate/by-type/{test_type}` - 按测试类型获取所有激活的模板
-- `GET /PromptTemplate/{template_id}` - 获取单个提示词模板详情
-- `POST /PromptTemplate/create` - 创建提示词模板
-- `PUT /PromptTemplate/{template_id}` - 更新提示词模板
-- `DELETE /PromptTemplate/{template_id}` - 删除提示词模板
-- `POST /PromptTemplate/{template_id}/toggle` - 切换模板激活/停用状态
-
-#### 9.3 测试用例管理
-
-- `GET /TestCase/list` - 获取测试用例列表（分页）
-- `GET /TestCase/{case_id}` - 获取单个测试用例详情
-- `POST /TestCase/create` - 创建测试用例
-- `POST /TestCase/batch-insert` - 批量插入测试用例
-- `PUT /TestCase/{case_id}` - 更新测试用例
-- `DELETE /TestCase/{case_id}` - 删除测试用例
-- `GET /TestCase/{case_id}/export-yaml` - 导出单个测试用例为YAML格式
-- `POST /TestCase/export-batch-yaml` - 批量导出测试用例为YAML格式
-
-#### 9.4 AI对话接口（核心）
-
-- `POST /chat` - 流式对话接口（SSE推送实时生成的内容）
-- `POST /create` - 创建新对话
-- `GET /list` - 获取用户对话列表
-- `GET /{conversation_id}/messages` - 获取对话消息历史
-- `DELETE /{conversation_id}` - 删除对话
-- `PUT /{conversation_id}/title` - 更新对话标题
-
-#### 特性说明
-
-**🎯 完整的ChatGPT风格对话界面**：
-- 实时流式输出（SSE技术）
-- 消息气泡形式展示
-- 测试用例卡片化显示
-- 支持编辑、保存、复制操作
-
-**🤖 多模型支持**：
-- DeepSeek（推荐，高性价比）
-- 通义千问（阿里云）
-- ChatGPT-4/3.5（OpenAI）
-- Kimi、智谱AI、文心一言、讯飞星火、Claude-3
-- 支持自定义添加AI模型
-
-**📝 可配置提示词**：
-- 4种测试类型模板（API/Web/App/通用）
-- 支持变量替换（`{case_count}`、`{test_type}`）
-- 可自定义编辑提示词内容
-
-**💬 多轮对话**：
-- 会话自动保存
-- 上下文记忆（最近10条消息）
-- 支持追加需求、调整参数
-- 会话管理（切换、重命名、删除）
-
-**📂 文件上传**：
-- 支持TXT/Word/PDF格式
-- AI根据文档内容生成测试用例
-- 自动提取文本内容
-
-**⚡ 快捷命令**：
-- `/generate N` - 生成N个测试用例
-- `/format yaml` - 切换YAML格式
-- `/save` - 保存当前所有用例
-- `/clear` - 清空对话
-
-**初始化数据**：
-- 10个主流AI模型配置（需配置API Key）
-- 4个提示词模板（开箱即用）
-- AI功能菜单权限
-
-详见: [QUICK_START_AI_TESTCASE.md](QUICK_START_AI_TESTCASE.md)
-
-## 代码生成器 ⭐新增
-
-### 10. 代码生成器模块
-
-基于AST的智能代码生成器,支持数据库表反向工程,快速生成高质量CRUD代码。
-
-#### 10.1 核心特性
-
-**✅ 智能分析**:
-- 数据库表结构自动解析(MySQL/SQLite)
-- 字段类型智能映射(数据库类型→Python类型)
+**智能分析**：
+- 数据库表结构自动解析（MySQL/SQLite）
+- 字段类型智能映射（数据库类型 → Python 类型）
 - 外键关联关系识别
 - 主键、索引、注释自动提取
 
-**✅ 高质量代码生成**:
-- 基于AST生成规范的Python代码
-- SQLModel数据模型(完整字段定义)
-- Pydantic Schema(查询/创建/更新模型)
-- FastAPI控制器(完整CRUD接口)
+**高质量代码生成**：
+- 基于 Jinja2 模板生成规范的 Python 代码
+- SQLModel 数据模型（完整字段定义）
+- Pydantic Schema（查询/创建/更新模型）
+- FastAPI 控制器（完整 CRUD 接口）
 - 代码格式化与类型注解
 
-**✅ 灵活配置**:
+**灵活配置**：
 - 自定义类名、模块名、业务名
-- 字段级别配置(是否查询、是否编辑等)
-- 查询方式配置(等于/模糊/范围)
+- 字段级别配置（是否查询、是否编辑等）
+- 查询方式配置（等于/模糊/范围）
 - 生成路径自定义
 
-**✅ 多种生成方式**:
-- 代码预览(实时查看生成效果)
-- ZIP压缩包下载(包含README)
-- 批量生成(一键生成多表)
+**多种生成方式**：
+- 代码预览（实时查看生成效果）
+- ZIP 压缩包下载（包含 README）
+- 批量生成（一键生成多表）
 - 生成历史追溯
 
-#### 10.2 表配置管理
+#### 3.2 表配置管理
 
-- `GET /GenTable/dbTables` - 获取数据库表列表(可导入的表)
-- `POST /GenTable/importTables` - 批量导入表配置
-- `POST /GenTable/queryByPage` - 分页查询表配置
-- `GET /GenTable/queryById` - 根据ID查询表配置(含字段)
-- `PUT /GenTable/update` - 更新表配置
-- `DELETE /GenTable/delete` - 删除表配置
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| GET /GenTable/dbTables | 获取表列表 | 获取数据库可导入的表列表 |
+| POST /GenTable/importTables | 导入表 | 批量导入表配置 |
+| POST /GenTable/queryByPage | 分页查询 | 分页查询表配置 |
+| GET /GenTable/queryById | 查询详情 | 根据 ID 查询表配置（含字段） |
+| PUT /GenTable/update | 更新 | 更新表配置 |
+| DELETE /GenTable/delete | 删除 | 删除表配置 |
 
-#### 10.3 代码生成
+#### 3.3 代码生成
 
-- `POST /Generator/preview` - 预览生成代码
-- `POST /Generator/download` - 下载生成代码(ZIP)
-- `POST /Generator/batchDownload` - 批量下载代码
-- `GET /Generator/history` - 获取生成历史记录
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| POST /Generator/preview | 预览 | 预览生成代码 |
+| POST /Generator/download | 下载 | 下载生成代码（ZIP） |
+| POST /Generator/batchDownload | 批量下载 | 批量下载生成代码 |
+| GET /Generator/history | 历史 | 获取生成历史记录 |
 
-#### 10.4 使用流程
+#### 3.4 使用流程
 
-1. **导入表配置**:
-   ```bash
-   # 获取数据库表列表
-   GET /GenTable/dbTables
-   
-   # 批量导入表
-   POST /GenTable/importTables
-   {
-     "table_names": ["t_user", "t_role"]
-   }
-   ```
+1. **导入表配置**：
 
-2. **配置表信息**(可选):
-   ```bash
-   # 修改类名、模块名等配置
-   PUT /GenTable/update
-   {
-     "id": 1,
-     "class_name": "User",
-     "module_name": "sysmanage",
-     "business_name": "user",
-     "function_name": "用户管理"
-   }
-   ```
+```bash
+# 获取数据库表列表
+GET /GenTable/dbTables
 
-3. **预览代码**:
-   ```bash
-   POST /Generator/preview
-   {
-     "table_id": 1
-   }
-   ```
+# 批量导入表
+POST /GenTable/importTables
+{
+  "table_names": ["t_user", "t_role"]
+}
+```
 
-4. **下载代码**:
-   ```bash
-   POST /Generator/download
-   {
-     "table_id": 1,
-     "gen_type": "1"
-   }
-   ```
+2. **配置表信息**（可选）：
 
-5. **集成到项目**:
-   - 解压下载的ZIP文件
+```bash
+# 修改类名、模块名等配置
+PUT /GenTable/update
+{
+  "id": 1,
+  "class_name": "User",
+  "module_name": "sysmanage",
+  "business_name": "user",
+  "function_name": "用户管理"
+}
+```
+
+3. **预览代码**：
+
+```bash
+POST /Generator/preview
+{
+  "table_id": 1
+}
+```
+
+4. **下载代码**：
+
+```bash
+POST /Generator/download
+{
+  "table_id": 1,
+  "gen_type": "1"
+}
+```
+
+5. **集成到项目**：
+   - 解压下载的 ZIP 文件
    - 复制文件到对应模块目录
-   - 在`app.py`中注册路由
+   - 在 `app/main.py` 中注册路由
    - 重启应用即可使用
 
-#### 10.5 生成的代码结构
+#### 3.5 生成的代码结构
 
 ```
 {module_name}/
 ├── model/
-│   └── {ClassName}.py          # SQLModel数据模型
+│   └── {ClassName}.py          # SQLModel 数据模型
 ├── schemas/
 │   └── {business_name}_schema.py  # Pydantic Schema
 └── api/
-    └── {ClassName}Controller.py   # FastAPI控制器
+    └── {ClassName}Controller.py   # FastAPI 控制器
 ```
 
-#### 10.6 代码示例
+#### 3.6 代码示例
 
-**生成的Model**:
+**生成的 Model**：
+
 ```python
 from sqlmodel import SQLModel, Field
 from typing import Optional
@@ -666,212 +372,149 @@ class User(SQLModel, table=True):
     create_time: Optional[datetime] = Field(default_factory=datetime.now)
 ```
 
-**生成的Controller**:
+**生成的 Controller**：
+
 ```python
-@module_route.post("/queryByPage")
-def queryByPage(query: UserQuery, session: Session = Depends(get_session)):
+@router.post("/queryByPage")
+async def queryByPage(query: UserQuery, session: Session = Depends(get_session)):
     # 完整的分页查询实现
     ...
 
-@module_route.get("/queryById")
-def queryById(id: int = Query(...), session: Session = Depends(get_session)):
-    # 根据ID查询实现
+@router.get("/queryById")
+async def queryById(id: int = Query(...), session: Session = Depends(get_session)):
+    # 根据 ID 查询实现
     ...
 ```
 
-#### 10.7 权限控制
+#### 3.7 权限控制
 
-代码生成器模块已集成RBAC权限控制:
+代码生成器模块已集成 RBAC 权限控制：
 
-- `generator:table:list` - 查看表配置列表
-- `generator:table:query` - 查询表配置详情
-- `generator:table:import` - 导入表配置
-- `generator:table:edit` - 修改表配置
-- `generator:table:delete` - 删除表配置
-- `generator:code:generate` - 生成代码
-- `generator:code:preview` - 预览代码
-- `generator:code:download` - 下载代码
-- `generator:code:batch` - 批量生成
-- `generator:history:list` - 查看生成历史
-- `generator:history:query` - 查询历史详情
+| 权限标识 | 说明 |
+|----------|------|
+| generator:table:list | 查看表配置列表 |
+| generator:table:query | 查询表配置详情 |
+| generator:table:import | 导入表配置 |
+| generator:table:edit | 修改表配置 |
+| generator:table:delete | 删除表配置 |
+| generator:code:generate | 生成代码 |
+| generator:code:preview | 预览代码 |
+| generator:code:download | 下载代码 |
+| generator:code:batch | 批量生成 |
+| generator:history:list | 查看生成历史 |
+| generator:history:query | 查询历史详情 |
 
-**默认权限分配**:
-- 超级管理员:所有权限
-- 管理员:所有代码生成器权限
-- 普通用户:无权限(需单独授权)
+**默认权限分配**：
+- 超级管理员：所有权限
+- 管理员：所有代码生成器权限
+- 普通用户：无权限（需单独授权）
 
-#### 10.8 技术亮点
+#### 3.8 技术亮点
 
-- ✅ 基于AST确保代码质量和规范性
-- ✅ 智能类型映射(支持datetime/int/float/str等)
+- ✅ 基于 Jinja2 模板确保代码质量和规范性
+- ✅ 智能类型映射（支持 datetime/int/float/str 等）
 - ✅ 驼峰命名自动转换
 - ✅ 完整的字段注释和文档
-- ✅ 支持复杂查询条件(模糊查询/范围查询)
+- ✅ 支持复杂查询条件（模糊查询/范围查询）
 - ✅ 代码生成历史记录
 - ✅ 批量生成提升效率
-- ✅ ZIP压缩包包含README使用说明
+- ✅ ZIP 压缩包包含 README 使用说明
 
-详见: [QUICK_START_AI_TESTCASE.md](QUICK_START_AI_TESTCASE.md)
+---
 
-## 数据库初始化 🆕
+## 数据库初始化
 
-### 方式1: 自动初始化(推荐)
+首次启动时，应用会自动创建所有数据表并初始化基础数据。
 
-首次启动时，应用会自动创建所有数据表。
+---
 
-### 方式2: 使用CLI工具
+## 统一响应格式
 
-```bash
-# 初始化数据库(创建表+初始数据)
-python scripts/init_database.py init
-
-# 仅创建表结构
-python scripts/init_database.py create-tables
-
-# 仅初始化数据
-python scripts/init_database.py init-data
-
-# 重置数据库(危险操作)
-python scripts/init_database.py reset
-
-# 备份数据库
-python scripts/init_database.py backup
-
-# 恢复数据库
-python scripts/init_database.py restore backup_20231122.db
-
-# 查看数据库信息
-python scripts/init_database.py info
+```json
+{
+  "code": 200,
+  "msg": "操作成功",
+  "data": {},
+  "total": 0,
+  "trace_id": "xxx"
+}
 ```
 
-### 方式3: 使用SQL脚本
+**响应类型**：
 
-```bash
-# SQLite
-sqlite3 data/ai_agent.db < scripts/migrations/001_init_sqlite.sql
+| 方法 | 说明 |
+|------|------|
+| ok_resp | 单条数据响应 |
+| ok_resp_list | 列表数据响应（带分页） |
+| ok_resp_simple | 简单数据响应 |
+| ok_resp_tree | 树形数据响应 |
+| error_resp | 错误响应 |
 
-# MySQL
-mysql -u root -p platfrom_back < scripts/migrations/001_init_mysql.sql
-```
+---
 
-详见: [scripts/README.md](scripts/README.md)
+## 开发规范
 
-## 环境变量
+- **注释**：所有注释位于代码右侧，格式为 `# 注释内容`
+- **类型注解**：所有函数必须有类型注解
+- **异步模式**：Controller 使用 `async def`
+- **遵循 PEP 8 规范**
+- **权限控制**：使用 `check_permission("xxx:xxx:xxx")`
+- **主键命名**：所有 RBAC 模型统一使用 `id` 作为主键
 
-支持通过 `.env` 文件配置环境变量：
-
-```env
-# 数据库类型选择
-DB_TYPE=sqlite
-
-# SQLite配置（DB_TYPE=sqlite时使用）
-SQLITE_DATABASE=./data/ai_agent.db
-
-# MySQL配置（DB_TYPE=mysql时使用）
-MYSQL_HOST=localhost
-MYSQL_PORT=3306
-MYSQL_USER=root
-MYSQL_PASSWORD=root
-MYSQL_DATABASE=platfrom_back
-
-# JWT配置
-SECRET_KEY=your-secret-key
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=60
-
-# MinIO配置
-# 注意：9000是API端口（SDK连接），9001是控制台端口（浏览器访问）
-MINIO_ENDPOINT=192.168.163.128:9000
-MINIO_ACCESS_KEY=admin
-MINIO_SECRET_KEY=12345678
-MINIO_SECURE=False
-```
-
-## 测试 🆕
-
-### 单元测试
-
-```bash
-# 运行所有测试
-pytest tests/ -v
-
-# 运行特定测试文件
-pytest tests/test_api_project_controller.py -v
-
-# 生成覆盖率报告
-pytest tests/ --cov=. --cov-report=html --cov-report=term
-
-# 使用测试脚本
-python run_tests.py
-python run_tests.py --coverage
-```
-
-**测试覆盖**:
-- ✅ 13个控制器单元测试(77个测试用例)
-- ✅ WebSocket集成测试(10个测试)
-- ✅ RabbitMQ集成测试(20个测试)
-- ✅ 总计107个测试用例
-- ✅ 核心业务80%+覆盖率
-
-详见: [tests/README.md](tests/README.md)
+---
 
 ## 技术特性
 
-- ✅ 同步SQLModel，保持与原Flask代码接近
-- ✅ 支持MySQL和SQLite数据库切换
-- ✅ **完整RBAC权限管理系统** 🆕
+- ✅ **FastAPI + SQLModel**：现代化高性能框架组合
+- ✅ **同步 SQLModel**：保持与原 Flask 代码接近
+- ✅ **支持 MySQL 和 SQLite 数据库切换**
+- ✅ **完整 RBAC 权限管理系统**
   - 用户-角色-菜单权限模型
   - 部门管理（树形结构）
   - 菜单管理（支持菜单和按钮级权限）
   - 用户状态管理（启用/锁定）
-  - 数据权限支持
   - **统一主键命名**（简洁高效）
-    * 所有 RBAC 模型（User、Role、Menu、Dept）统一使用 `id` 作为主键
-    * 简化前后端字段映射，提升开发效率
-- ✅ 依赖注入（数据库会话、JWT认证、MinIO客户端）
-- ✅ 统一响应格式
-- ✅ 自动API文档生成
-- ✅ 数据验证（Pydantic）
-- ✅ 类型提示
-- ✅ 文件上传下载
-- ✅ JWT认证
-- ✅ CORS支持
-- ✅ 唯一性校验
-- ✅ 自动初始化RBAC数据
+- ✅ **依赖注入**：数据库会话、JWT 认证、权限检查
+- ✅ **统一响应格式**：标准化的 API 响应结构
+- ✅ **自动 API 文档生成**：Swagger UI / ReDoc
+- ✅ **数据验证**：Pydantic 字段验证
+- ✅ **类型提示**：完整的类型注解
+- ✅ **JWT 认证**：安全的用户认证机制
+- ✅ **CORS 支持**：跨域资源共享
+- ✅ **请求追踪**：TraceID 日志追踪
+- ✅ **自动初始化**：启动时自动创建表和基础数据
 
-## 开发规范
-
-- 所有注释位于代码右侧，格式为 `# 注释`
-- 使用类型注解
-- 遵循PEP 8规范
-- 保持代码简洁高效
+---
 
 ## 版本信息
 
-- **版本**: 2.0.0
-- **框架**: FastAPI
-- **ORM**: SQLModel
-- **Python**: 3.8+
+| 项目 | 版本 |
+|------|------|
+| 版本 | 2.0.0 |
+| 框架 | FastAPI |
+| ORM | SQLModel |
+| Python | 3.8+ |
+
+---
 
 ## 注意事项
 
 1. **数据库选择**：
-   - 开发/测试环境推荐使用SQLite（开箱即用，无需安装）
-   - 生产环境推荐使用MySQL（性能更好，支持并发）
-2. 使用MySQL时，确保MySQL数据库已启动并可访问
-3. 确保MinIO服务已启动（如使用文件上传功能）
-4. 生产环境请修改CORS配置，指定具体允许的域名
-5. 生产环境请使用强密码和安全的SECRET_KEY
-6. 建议使用虚拟环境进行开发
+   - 开发/测试环境推荐使用 SQLite（开箱即用，无需安装）
+   - 生产环境推荐使用 MySQL（性能更好，支持并发）
 
-## 迁移说明
+2. **MySQL 配置**：使用 MySQL 时，确保数据库已启动并可访问
 
-本项目已从 Flask + Flask-SQLAlchemy 迁移至 FastAPI + SQLModel：
+3. **生产环境**：
+   - 修改 CORS 配置，指定具体允许的域名
+   - 使用强密码和安全的 SECRET_KEY
+   - 建议使用虚拟环境进行开发
 
-- ✅ 保持原有功能不变
-- ✅ 保持原有目录结构
-- ✅ 保持原有API路径
-- ✅ 保持原有响应格式
-- ✅ 使用同步方式，降低迁移成本
-- ✅ 所有业务逻辑保持一致
+4. **权限标识**：权限检查使用 `check_permission("系统:模块:操作")` 格式
 
+---
+
+## 相关文档
+
+- [AGENTS.md](./AGENTS.md) - AI 助手开发指南
+- [API 文档](http://localhost:5000/docs) - Swagger UI（启动后访问）

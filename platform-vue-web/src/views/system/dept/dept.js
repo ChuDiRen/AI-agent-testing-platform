@@ -1,6 +1,6 @@
 import axios from "~/axios"
 
-const module_name = "dept" // 模块名
+const module_name = "departments" // 模块名
 
 // 获取部门树
 export function getDeptTree() {

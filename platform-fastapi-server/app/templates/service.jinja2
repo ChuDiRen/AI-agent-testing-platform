@@ -1,0 +1,159 @@
+# -*- coding: utf-8 -*-
+"""{{ table_comment or class_name }}服务层"""
+from datetime import datetime
+from typing import List, Optional, Tuple
+from sqlmodel import Session, select
+
+{%- if has_relations %}
+from {{ module_name }}.model.{{ class_name }}Model import {{ class_name }}
+from {{ module_name }}.model.{{ rel.link_model }}Model import {{ rel.link_model }}
+{%- else %}
+from {{ module_name }}.model.{{ class_name }}Model import {{ class_name }}
+{%- endif %}
+from {{ module_name }}.schemas.{{ class_name }}Schema import {{ class_name }}Query, {{ class_name }}Create, {{ class_name }}Update
+
+
+class {{ class_name }}Service:
+    """{{ table_comment or class_name }}服务类"""
+
+    @staticmethod
+    def query_by_page(session: Session, query: {{ class_name }}Query) -> Tuple[List[{{ class_name }}], int]:
+        """分页查询{{ table_comment or class_name }}"""
+        {%- if tpl_category == 'tree' %}
+        statement = select({{ class_name }})
+
+        # 构建查询条件
+        {%- for column in columns %}
+        {%- if column.is_query == "1" %}
+        if query.{{ column.python_field }}:
+            statement = statement.where({{ class_name }}.{{ column.python_field }} == query.{{ column.python_field }})
+        {%- endif %}
+        {%- endfor %}
+
+        results = session.exec(statement).all()
+        return results, len(results)
+        {%- else %}
+        offset = (query.page - 1) * query.pageSize
+        statement = select({{ class_name }})
+
+        # 构建查询条件
+        {%- for column in columns %}
+        {%- if column.is_query == "1" %}
+        {%- if column.query_type == 'LIKE' %}
+        if query.{{ column.python_field }}:
+            statement = statement.where({{ class_name }}.{{ column.python_field }}.like(f"%{query.{{ column.python_field }}}%"))
+        {%- elif column.query_type == 'BETWEEN' %}
+        if query.{{ column.python_field }}_start:
+            statement = statement.where({{ class_name }}.{{ column.python_field }} >= query.{{ column.python_field }}_start)
+        if query.{{ column.python_field }}_end:
+            statement = statement.where({{ class_name }}.{{ column.python_field }} <= query.{{ column.python_field }}_end)
+        {%- else %}
+        if query.{{ column.python_field }} is not None:
+            statement = statement.where({{ class_name }}.{{ column.python_field }} == query.{{ column.python_field }})
+        {%- endif %}
+        {%- endif %}
+        {%- endfor %}
+
+        statement = statement.limit(query.pageSize).offset(offset)
+        results = session.exec(statement).all()
+
+        # 统计总数
+        count_statement = select({{ class_name }})
+        {%- for column in columns %}
+        {%- if column.is_query == "1" %}
+        {%- if column.query_type == 'LIKE' %}
+        if query.{{ column.python_field }}:
+            count_statement = count_statement.where({{ class_name }}.{{ column.python_field }}.like(f"%{query.{{ column.python_field }}}%"))
+        {%- elif column.query_type == 'BETWEEN' %}
+        if query.{{ column.python_field }}_start:
+            count_statement = count_statement.where({{ class_name }}.{{ column.python_field }} >= query.{{ column.python_field }}_start)
+        if query.{{ column.python_field }}_end:
+            count_statement = count_statement.where({{ class_name }}.{{ column.python_field }} <= query.{{ column.python_field }}_end)
+        {%- else %}
+        if query.{{ column.python_field }} is not None:
+            count_statement = count_statement.where({{ class_name }}.{{ column.python_field }} == query.{{ column.python_field }})
+        {%- endif %}
+        {%- endif %}
+        {%- endfor %}
+        total = len(session.exec(count_statement).all())
+
+        return results, total
+        {%- endif %}
+
+    @staticmethod
+    def query_by_id(session: Session, {{ class_name | lower }}_id: int) -> Optional[{{ class_name }}]:
+        """根据ID查询{{ table_comment or class_name }}"""
+        {%- set pk_field = columns | selectattr('is_pk', 'equalto', '1') | list | first %}
+        {%- if pk_field %}
+        statement = select({{ class_name }}).where({{ class_name }}.{{ pk_field.python_field }} == {{ class_name | lower }}_id)
+        {%- endif %}
+        return session.exec(statement).first()
+
+    @staticmethod
+    def create(session: Session, {{ class_name | lower }}: {{ class_name }}Create) -> {{ class_name }}:
+        """新增{{ table_comment or class_name }}"""
+        data_dict = {{ class_name | lower }}.model_dump()
+        {%- if 'create_time' in columns | map(attribute='python_field') | list %}
+        if 'create_time' not in data_dict or data_dict.get('create_time') is None:
+            data_dict['create_time'] = datetime.now()
+        {%- endif %}
+        data = {{ class_name }}(**data_dict)
+        session.add(data)
+        session.commit()
+        session.refresh(data)
+        return data
+
+    @staticmethod
+    def update(session: Session, {{ class_name | lower }}: {{ class_name }}Update) -> Optional[{{ class_name }}]:
+        """更新{{ table_comment or class_name }}"""
+        {%- set pk_field = columns | selectattr('is_pk', 'equalto', '1') | list | first %}
+        {%- if pk_field %}
+        statement = select({{ class_name }}).where({{ class_name }}.{{ pk_field.python_field }} == {{ class_name | lower }}.{{ pk_field.python_field }})
+        {%- endif %}
+        record = session.exec(statement).first()
+
+        if not record:
+            return None
+
+        update_data = {{ class_name | lower }}.model_dump(exclude_unset=True, exclude={%- if pk_field %}{% raw %}{{'{{ pk_field.python_field }}'}}{% endraw %}{% endif %})
+        for key, value in update_data.items():
+            setattr(record, key, value)
+        {%- if 'modify_time' in columns | map(attribute='python_field') | list or 'update_time' in columns | map(attribute='python_field') | list %}
+        if 'modify_time' in dir(record):
+            record.modify_time = datetime.now()
+        elif 'update_time' in dir(record):
+            record.update_time = datetime.now()
+        {%- endif %}
+        session.commit()
+        return record
+
+    @staticmethod
+    def delete(session: Session, {{ class_name | lower }}_id: int) -> bool:
+        """删除{{ table_comment or class_name }}"""
+        {%- set pk_field = columns | selectattr('is_pk', 'equalto', '1') | list | first %}
+        {%- if pk_field %}
+        statement = select({{ class_name }}).where({{ class_name }}.{{ pk_field.python_field }} == {{ class_name | lower }}_id)
+        {%- endif %}
+        record = session.exec(statement).first()
+
+        if not record:
+            return False
+
+        session.delete(record)
+        session.commit()
+        return True
+
+    @staticmethod
+    def batch_delete(session: Session, {{ class_name | lower }}_ids: List[int]) -> int:
+        """批量删除{{ table_comment or class_name }}"""
+        {%- set pk_field = columns | selectattr('is_pk', 'equalto', '1') | list | first %}
+        {%- if pk_field %}
+        statement = select({{ class_name }}).where({{ class_name }}.{{ pk_field.python_field }}.in_({{ class_name | lower }}_ids))
+        {%- endif %}
+        records = session.exec(statement).all()
+
+        for record in records:
+            session.delete(record)
+
+        session.commit()
+        return len(records)
