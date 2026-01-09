@@ -72,8 +72,8 @@
   </div>
 </template>
 
-<script lang="ts" setup>
-import { ref, reactive } from "vue"
+<script setup>
+import { ref, reactive, nextTick, watch } from "vue"
 import { queryByPage, deleteData, assignMenus, getRoleMenus } from './role'
 import { getMenuTree } from '~/views/system/menu/menu'
 import { formatDateTime } from '~/utils/timeFormatter'
@@ -82,7 +82,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import BaseSearch from '~/components/BaseSearch/index.vue'
 import BaseTable from '~/components/BaseTable/index.vue'
 
+// 明确类型声明
 const router = useRouter()
+
+// ========== 变量定义 ==========
 
 // 分页参数
 const pagination = reactive({
@@ -98,6 +101,15 @@ const searchForm = reactive({ "role_name": null })
 // 表格数据
 const tableData = ref([])
 
+// 权限分配相关
+const menuDialogVisible = ref(false)
+const menuTreeRef = ref(null)
+const menuTree = ref([])
+const currentRoleId = ref(null)
+const selectedMenuIds = ref([])
+
+// ========== 函数定义 ==========
+
 // 加载页面数据
 const loadData = () => {
     loading.value = true
@@ -105,21 +117,20 @@ const loadData = () => {
     searchData["page"] = pagination.page
     searchData["pageSize"] = pagination.limit
 
-    queryByPage(searchData).then((res: { data: { code: number; data: never[]; total: number; msg: string }; }) => {
+    queryByPage(searchData).then((res) => {
         if (res.data.code === 200) {
             tableData.value = res.data.data || []
             total.value = res.data.total || 0
         } else {
             ElMessage.error(res.data.msg || '查询失败')
         }
-    }).catch((error: any) => {
+    }).catch((error) => {
         console.error('查询失败:', error)
         ElMessage.error('查询失败，请稍后重试')
     }).finally(() => {
         loading.value = false
     })
 }
-loadData()
 
 // 重置搜索
 const resetSearch = () => {
@@ -129,7 +140,7 @@ const resetSearch = () => {
 }
 
 // 查看角色详情
-const onDataView = (index: number) => {
+const onDataView = (index) => {
     const item = tableData.value[index]
     router.push({
         path: '/roleForm',
@@ -141,7 +152,7 @@ const onDataView = (index: number) => {
 }
 
 // 打开表单 （编辑/新增）
-const onDataForm = (index: number) => {
+const onDataForm = (index) => {
     let params_data = {}
     if (index >= 0) {
         params_data = {
@@ -155,7 +166,7 @@ const onDataForm = (index: number) => {
 }
 
 // 删除数据
-const onDelete = (index: number) => {
+const onDelete = (index) => {
     const item = tableData.value[index]
     ElMessageBox.confirm(
         `确定要删除角色"${item.role_name}"吗？`,
@@ -166,30 +177,22 @@ const onDelete = (index: number) => {
             type: 'warning',
         }
     ).then(() => {
-        deleteData(item.id).then((res: { data: { code: number; msg: string } }) => {
+        deleteData(item.id).then((res) => {
             if (res.data.code === 200) {
                 ElMessage.success('删除成功')
                 loadData()
             } else {
                 ElMessage.error(res.data.msg || '删除失败')
             }
-        }).catch((error: any) => {
-            console.error('删除失败:', error)
-            ElMessage.error('删除失败，请稍后重试')
+        }).catch(() => {
+            ElMessage.info('已取消删除')
         })
-    }).catch(() => {
-        ElMessage.info('已取消删除')
     })
 }
 
 // 权限分配相关
-const menuDialogVisible = ref(false)
-const menuTreeRef = ref(null)
-const menuTree = ref([])
-const currentRoleId = ref(null)
-
 // 打开权限分配对话框
-const onAssignMenus = async (index: number) => {
+const onAssignMenus = async (index) => {
     currentRoleId.value = tableData.value[index]["id"]
     
     // 加载菜单树
@@ -201,18 +204,31 @@ const onAssignMenus = async (index: number) => {
     // 加载角色已有权限
     const roleMenuRes = await getRoleMenus(currentRoleId.value)
     if (roleMenuRes.data.code === 200) {
-        menuTreeRef.value?.setCheckedKeys(roleMenuRes.data.data)
+        // 保存权限数据，在对话框打开后再设置
+        selectedMenuIds.value = roleMenuRes.data.data
     }
     
     menuDialogVisible.value = true
 }
+
+// 监听对话框显示状态
+watch(menuDialogVisible, async (visible) => {
+    if (visible && selectedMenuIds.value.length > 0) {
+        // 等待DOM更新完成
+        await nextTick()
+        // 延迟一点时间确保树组件完全渲染
+        setTimeout(() => {
+            menuTreeRef.value?.setCheckedKeys(selectedMenuIds.value)
+        }, 100)
+    }
+})
 
 // 保存菜单权限
 const handleSaveMenus = async () => {
     const checkedKeys = menuTreeRef.value.getCheckedKeys()
     const halfCheckedKeys = menuTreeRef.value.getHalfCheckedKeys()
     // 合并全选和半选的节点，并过滤掉null值，确保都是整数
-    const menuIds = [...checkedKeys, ...halfCheckedKeys].filter(id => id !== null && id !== undefined)
+    const menuIds = [...checkedKeys, ...halfCheckedKeys].filter((id) => id !== null && id !== undefined)
     
     try {
         const res = await assignMenus({
@@ -231,9 +247,11 @@ const handleSaveMenus = async () => {
         ElMessage.error('分配权限失败，请稍后重试')
     }
 }
+
+// 初始化加载数据
+loadData()
 </script>
 
 <style scoped>
 /* 移除原有的样式引用 */
 </style>
-

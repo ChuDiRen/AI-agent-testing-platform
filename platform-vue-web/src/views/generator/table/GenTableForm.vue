@@ -53,7 +53,7 @@
   </BaseForm>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { ref, reactive, computed } from "vue"
 import { queryById, updateData } from './gentable'
 import { useRouter } from "vue-router"
@@ -147,7 +147,7 @@ const closeForm = () => {
 }
 
 // 加载表单数据
-const loadData = async (id: number) => {
+const loadData = async (id) => {
   const res = await queryById(id)
   if (res.data.code === 200) {
     const table = res.data.data.table

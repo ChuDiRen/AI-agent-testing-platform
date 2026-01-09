@@ -52,7 +52,7 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { ref, reactive, onMounted } from "vue"
 import { queryById } from '../table/gentable'
 import { previewCode as previewCodeApi, downloadCode as downloadCodeApi } from './generator'
@@ -62,9 +62,9 @@ import { ElMessage } from 'element-plus'
 const router = useRouter()
 
 const tableId = ref(router.currentRoute.value.query.table_id)
-const tableInfo = ref<any>(null)
+const tableInfo = ref(null)
 const showPreviewDialog = ref(false)
-const previewCode = ref<any>({})
+const previewCode = ref({})
 const activeTab = ref('')
 const previewLoading = ref(false)
 const downloadLoading = ref(false)

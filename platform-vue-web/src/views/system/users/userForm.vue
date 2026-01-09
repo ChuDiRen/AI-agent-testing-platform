@@ -25,6 +25,11 @@
         <el-form-item label="联系电话" prop="mobile">
             <el-input v-model="ruleForm.mobile" :readonly="isViewMode" />
         </el-form-item>
+        <el-form-item label="角色" prop="role_ids">
+            <el-select v-model="ruleForm.role_ids" placeholder="请选择角色" multiple :disabled="isViewMode">
+                <el-option v-for="role in roleOptions" :key="role.id" :label="role.role_name" :value="role.id" />
+            </el-select>
+        </el-form-item>
         <el-form-item label="部门" prop="dept_id">
             <el-select v-model="ruleForm.dept_id" placeholder="请选择部门" clearable :disabled="isViewMode">
                 <el-option v-for="dept in deptOptions" :key="dept.id" :label="dept.name" :value="dept.id" />
@@ -59,10 +64,11 @@
     </BaseForm>
 </template>
   
-<script lang="ts" setup>
+<script setup>
 import { ref, reactive, computed } from "vue"
 import { queryById, insertData, updateData } from './user'
 import { getDeptTree } from '~/views/system/dept/dept'
+import { queryByPage as getRoleList } from '~/views/system/role/role'
 import { useRouter } from "vue-router"
 import { useStore } from 'vuex'
 import { ElMessage } from 'element-plus'
@@ -79,7 +85,9 @@ const baseFormRef = ref()
 const loading = ref(false)
 
 // 部门选项列表
-const deptOptions = ref<any[]>([])
+const deptOptions = ref([])
+// 角色选项列表
+const roleOptions = ref([])
 // 表单数据
 const ruleForm = reactive({
     id: 0,
@@ -88,6 +96,7 @@ const ruleForm = reactive({
     email: '',
     mobile: '',
     dept_id: null,
+    role_ids: [],
     ssex: '2',
     status: '1',
     avatar: '',
@@ -164,7 +173,7 @@ const loadDeptData = async () => {
         const res = await getDeptTree()
         if (res.data.code === 200) {
             const depts = res.data.data
-            const flattenDepts = (deptList: any[], options: any[] = []) => {
+            const flattenDepts = (deptList, options = []) => {
                 if (!deptList || !Array.isArray(deptList)) {
                     return options
                 }
@@ -183,8 +192,18 @@ const loadDeptData = async () => {
     } catch (error) { }
 }
 
+// 加载角色数据
+const loadRoleData = async () => {
+    try {
+        const res = await getRoleList({ page: 1, pageSize: 100 })
+        if (res.data.code === 200) {
+            roleOptions.value = res.data.data || []
+        }
+    } catch (error) { }
+}
+
 // 加载表单数据
-const loadData = async (id: number) => {
+const loadData = async (id) => {
     const res = await queryById(id)
     ruleForm.id = res.data.data.id
     ruleForm.username = res.data.data.username
@@ -192,6 +211,7 @@ const loadData = async (id: number) => {
     ruleForm.email = res.data.data.email || ''
     ruleForm.mobile = res.data.data.mobile || ''
     ruleForm.dept_id = res.data.data.dept_id
+    ruleForm.role_ids = res.data.data.roles || []
     ruleForm.ssex = res.data.data.ssex || '2'
     ruleForm.status = res.data.data.status || '1'
     ruleForm.avatar = res.data.data.avatar || ''
@@ -200,6 +220,7 @@ const loadData = async (id: number) => {
 
 // 初始化
 loadDeptData()
+loadRoleData()
 
 let query_id = router.currentRoute.value.query.id
 ruleForm.id = query_id ? Number(query_id) : 0

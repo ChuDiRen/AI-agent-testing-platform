@@ -47,7 +47,7 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { ref } from "vue"
 import { getDeptTree, deleteData } from './dept'
 import { formatDateTime } from '~/utils/timeFormatter'
@@ -64,13 +64,13 @@ const loading = ref(false)
 // 加载页面数据（树形结构）
 const loadData = () => {
     loading.value = true
-    getDeptTree().then((res: { data: { code: number; data: never[]; msg: string }; }) => {
+    getDeptTree().then((res) => {
         if (res.data.code === 200) {
             tableData.value = res.data.data || []
         } else {
             ElMessage.error(res.data.msg || '查询失败')
         }
-    }).catch((error: any) => {
+    }).catch((error) => {
         console.error('查询失败:', error)
         ElMessage.error('查询失败，请稍后重试')
     }).finally(() => {
@@ -82,7 +82,7 @@ loadData()
 // 打开表单 （编辑/新增）
 // deptId: 要编辑的部门ID，-1表示新增
 // parentId: 上级部门ID，用于新增时设置父部门
-const onDataForm = (deptId: number, parentId: number | null) => {
+const onDataForm = (deptId, parentId) => {
     let params_data = {}
     if (deptId > 0) {
         // 编辑
@@ -98,7 +98,7 @@ const onDataForm = (deptId: number, parentId: number | null) => {
 }
 
 // 删除数据
-const onDelete = (deptId: number) => {
+const onDelete = (deptId) => {
     ElMessageBox.confirm(
         '确定要删除该部门吗？',
         '删除确认',
@@ -108,7 +108,7 @@ const onDelete = (deptId: number) => {
             type: 'warning',
         }
     ).then(() => {
-        deleteData(deptId).then((res: { data: { code: number; msg: string } }) => {
+        deleteData(deptId).then((res) => {
             if (res.data.code === 200) {
                 ElMessage.success('删除成功')
                 loadData()

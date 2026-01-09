@@ -31,6 +31,14 @@
       <el-table-column prop="username" label="用户名" width="120" show-overflow-tooltip />
       <el-table-column prop="email" label="邮箱" width="200" show-overflow-tooltip />
       <el-table-column prop="mobile" label="联系电话" width="130" />
+      <el-table-column prop="roles" label="角色" width="150">
+        <template #default="scope">
+          <el-tag v-for="role in scope.row.roles" :key="role" size="small" style="margin-right: 4px;">
+            {{ role }}
+          </el-tag>
+          <span v-if="!scope.row.roles || scope.row.roles.length === 0" style="color: #999;">无角色</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="dept_id" label="部门" width="120">
         <template #default="scope">
           {{ deptMap[scope.row.dept_id] || scope.row.dept_id }}
@@ -72,7 +80,7 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { ref, reactive, onMounted } from "vue"
 import { queryByPage, deleteData } from './user'
 import { getDeptTree } from '~/views/system/dept/dept'
@@ -143,7 +151,7 @@ const loadData = () => {
     searchData["page"] = pagination.page
     searchData["pageSize"] = pagination.limit
 
-    queryByPage(searchData).then((res: { data: { code: number; data: never[]; total: number; msg: string }; }) => {
+    queryByPage(searchData).then((res) => {
         if (res.data.code === 200) {
             tableData.value = res.data.data || []
             total.value = res.data.total || 0
@@ -171,7 +179,7 @@ onMounted(() => {
 })
 
 // 查看用户详情
-const onDataView = (index: number) => {
+const onDataView = (index) => {
     const item = tableData.value[index]
     router.push({
         path: 'userForm',
@@ -183,7 +191,7 @@ const onDataView = (index: number) => {
 }
 
 // 打开表单 （编辑/新增）
-const onDataForm = (index: number) => {
+const onDataForm = (index) => {
     let params_data = {}
     if (index >= 0) {
         params_data = {
@@ -196,7 +204,7 @@ const onDataForm = (index: number) => {
     });
 }
 // 删除数据
-const onDelete = (index: number) => {
+const onDelete = (index) => {
     const item = tableData.value[index]
     ElMessageBox.confirm(
         `确定要删除用户"${item.username}"吗？`,
@@ -207,7 +215,7 @@ const onDelete = (index: number) => {
             type: 'warning',
         }
     ).then(() => {
-        deleteData(item.id).then((res: { data: { code: number; msg: string } }) => {
+        deleteData(item.id).then((res) => {
             if (res.data.code === 200) {
                 ElMessage.success('删除成功')
                 loadData()

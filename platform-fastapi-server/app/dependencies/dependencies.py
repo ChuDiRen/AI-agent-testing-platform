@@ -37,6 +37,33 @@ def get_current_user(
             detail="无效的认证凭证",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    # 获取用户权限信息
+    user_id = int(payload.get("sub", 0))
+    if user_id > 0:
+        from app.database.database import engine
+        from sqlmodel import Session, select
+        from app.models.UserRoleModel import UserRole
+        from app.models.RoleMenuModel import RoleMenu
+        from app.models.MenuModel import Menu
+        
+        with Session(engine) as session:
+            # 获取用户角色
+            user_roles = session.exec(select(UserRole).where(UserRole.user_id == user_id)).all()
+            role_ids = [ur.role_id for ur in user_roles]
+            
+            # 获取角色菜单权限
+            permissions = []
+            if role_ids:
+                role_menus = session.exec(select(RoleMenu).where(RoleMenu.role_id.in_(role_ids))).all()
+                menu_ids = [rm.menu_id for rm in role_menus]
+                if menu_ids:
+                    menus = session.exec(select(Menu).where(Menu.id.in_(menu_ids))).all()
+                    permissions = [menu.perms for menu in menus if menu.perms]
+            
+            payload["permissions"] = permissions
+            payload["id"] = user_id
+    
     return payload
 
 def check_permission(permission: str): # 权限检查依赖

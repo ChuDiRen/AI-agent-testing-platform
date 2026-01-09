@@ -124,7 +124,7 @@
     </BaseForm>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { ref, reactive } from "vue"
 import { queryById, insertData, updateData, getMenuTree } from './menu'
 import { useRouter } from "vue-router"
@@ -174,7 +174,7 @@ const rules = reactive<any>({
 })
 
 // 菜单类型变化时的处理
-const onMenuTypeChange = (value: string) => {
+const onMenuTypeChange = (value) => {
     // 清空某些字段
     if (value === 'F') {
         // 按钮不需要路由相关信息
@@ -235,7 +235,7 @@ const closeForm = () => {
 }
 
 // 加载表单数据
-const loadData = async (id: number) => {
+const loadData = async (id) => {
     const res = await queryById(id)
     ruleForm.id = res.data.data.id
     ruleForm.parent_id = res.data.data.parent_id

@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => ({
     __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'true'
   },
   resolve: {
-    extensions: ['.mjs', '.js', '.ts', '.json', '.vue'],
+    extensions: ['.mjs', '.js', '.json', '.vue'],
     alias: {
       // ~ 别名指向 src
       '~': path.resolve(__dirname, 'src'),

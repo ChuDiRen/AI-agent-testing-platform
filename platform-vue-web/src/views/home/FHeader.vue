@@ -37,7 +37,7 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { computed, onMounted } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useRouter } from "vue-router"

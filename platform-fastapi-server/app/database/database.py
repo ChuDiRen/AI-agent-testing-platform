@@ -87,7 +87,7 @@ def sync_frontend_views():
         # 计算前端 views 目录路径
         # 当前文件: platform-fastapi-server/app/database/database.py
         # views 目录: platform-vue-web/src/views
-        current_dir = Path(__file__).parent
+        current_dir = Path(__file__).parent  # platform-fastapi-server/app/database
         project_root = current_dir.parent.parent.parent  # AI-agent-testing-platform
         views_path = project_root / "platform-vue-web" / "src" / "views"
         

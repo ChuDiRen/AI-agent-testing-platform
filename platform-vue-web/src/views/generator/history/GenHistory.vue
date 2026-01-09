@@ -59,7 +59,7 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { ref, reactive, onMounted } from "vue"
 import { queryByPage, deleteData } from './genhistory'
 import { useRouter } from "vue-router";
@@ -85,7 +85,7 @@ const searchForm = reactive({
 
 // 表格数据
 const tableData = ref([])
-const selectedRows = ref<any[]>([])
+const selectedRows = ref([])
 
 // 加载页面数据
 const loadData = () => {
@@ -94,7 +94,7 @@ const loadData = () => {
   searchData["page"] = pagination.page
   searchData["pageSize"] = pagination.pageSize
 
-  queryByPage(searchData).then((res: { data: { code: number; data: never[]; total: number; msg: string }; }) => {
+  queryByPage(searchData).then((res) => {
     if (res.data.code === 200) {
       tableData.value = res.data.data || []
       total.value = res.data.total || 0
@@ -116,18 +116,18 @@ const resetSearch = () => {
 }
 
 // 选择变化
-const handleSelectionChange = (selection: any[]) => {
+const handleSelectionChange = (selection) => {
   selectedRows.value = selection
 }
 
 // 下载历史代码
-const onDownload = (index: number) => {
+const onDownload = (index) => {
   const item = tableData.value[index]
   ElMessage.info('下载功能需要后端支持文件存储')
 }
 
 // 删除历史记录
-const onDelete = (index: number) => {
+const onDelete = (index) => {
   const item = tableData.value[index]
   ElMessageBox.confirm(
     `确定要删除"${item.table_name}"的生成历史吗？`,
@@ -138,7 +138,7 @@ const onDelete = (index: number) => {
       type: 'warning',
     }
   ).then(() => {
-    deleteData(item.id).then((res: { data: { code: number; msg: string } }) => {
+    deleteData(item.id).then((res) => {
       if (res.data.code === 200) {
         ElMessage.success('删除成功')
         loadData()
@@ -168,7 +168,7 @@ const batchDelete = () => {
       type: 'warning',
     }
   ).then(() => {
-    const ids = selectedRows.value.map((row: any) => row.id)
+    const ids = selectedRows.value.map((row) => row.id)
     // 这里需要后端支持批量删除接口
     ElMessage.info('批量删除功能需要后端支持')
   }).catch(() => {

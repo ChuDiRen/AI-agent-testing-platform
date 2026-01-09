@@ -12,7 +12,7 @@
       :collapse-transition="false">
       <template v-for="(item,index) in asideMenus">
         <el-sub-menu
-          v-if="item.child && item.child.length > 0" :key="item.frontpath || item.name" :index="item.name">
+          v-if="item.child && item.child.length > 0" :key="'sub-' + (item.frontpath || item.name)" :index="item.name">
           <template #title>
             <el-icon>
               <component :is="item.icon"></component>
@@ -228,21 +228,8 @@ const asideMenus = computed(()=> {
   const menuTree = store.state.menuTree || []
   const transformedMenus = transformMenuTree(menuTree)
   
-  // 确保"主页信息"菜单项始终存在
-  const hasStatistics = transformedMenus.some(menu => 
-    menu.frontpath === '/Statistics' || 
-    (menu.child && menu.child.some(child => child.frontpath === '/Statistics'))
-  )
-  
-  if (!hasStatistics) {
-    // 添加"主页信息"菜单项到顶部
-    transformedMenus.unshift({
-      name: '主页信息',
-      icon: 'DataAnalysis',
-      frontpath: '/Statistics',
-      child: []
-    })
-  }
+  // 不再强制添加"主页信息"菜单，完全依赖后端数据
+  // 如果需要确保某个菜单存在，应该在后端菜单配置中处理
   
   return transformedMenus
 })

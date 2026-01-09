@@ -127,7 +127,7 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { ref, reactive, onMounted } from "vue"
 import { queryByPage, deleteData, getDbTables, importTables as importTablesApi, uploadSqlFile } from './gentable.js'
 import { useRouter } from "vue-router";
@@ -165,7 +165,7 @@ const importLoading = ref(false)
 // 上传SQL文件对话框
 const showUploadDialog = ref(false)
 const uploadLoading = ref(false)
-const selectedFile = ref<File | null>(null)
+const selectedFile = ref(null)
 const uploadRef = ref()
 
 // 加载页面数据
@@ -175,7 +175,7 @@ const loadData = () => {
   searchData["page"] = pagination.page
   searchData["pageSize"] = pagination.pageSize
 
-  queryByPage(searchData).then((res: { data: { code: number; data: never[]; total: number; msg: string }; }) => {
+  queryByPage(searchData).then((res) => {
     if (res.data.code === 200) {
       tableData.value = res.data.data || []
       total.value = res.data.total || 0
@@ -203,7 +203,7 @@ onMounted(() => {
 })
 
 // 查看表配置详情
-const onDataView = (index: number) => {
+const onDataView = (index) => {
   const item = tableData.value[index]
   router.push({
     path: '/GenTableForm',
@@ -215,7 +215,7 @@ const onDataView = (index: number) => {
 }
 
 // 编辑表配置
-const onDataEdit = (index: number) => {
+const onDataEdit = (index) => {
   const item = tableData.value[index]
   router.push({
     path: '/GenTableForm',
@@ -226,7 +226,7 @@ const onDataEdit = (index: number) => {
 }
 
 // 生成代码
-const onGenerateCode = (index: number) => {
+const onGenerateCode = (index) => {
   const item = tableData.value[index]
   router.push({
     path: 'GeneratorCode',
@@ -237,7 +237,7 @@ const onGenerateCode = (index: number) => {
 }
 
 // 删除表配置
-const onDelete = (index: number) => {
+const onDelete = (index) => {
   const item = tableData.value[index]
   ElMessageBox.confirm(
     `确定要删除表配置"${item.table_name}"吗？`,
@@ -248,7 +248,7 @@ const onDelete = (index: number) => {
       type: 'warning',
     }
   ).then(() => {
-    deleteData(item.id).then((res: { data: { code: number; msg: string } }) => {
+    deleteData(item.id).then((res) => {
       if (res.data.code === 200) {
         ElMessage.success('删除成功')
         loadData()
@@ -276,7 +276,7 @@ const loadDbTables = async () => {
 }
 
 // 选择表变化
-const handleSelectionChange = (selection: any[]) => {
+const handleSelectionChange = (selection) => {
   selectedTables.value = selection
 }
 
@@ -288,7 +288,7 @@ const importTables = async () => {
   }
   importLoading.value = true
   try {
-    const tableNames = selectedTables.value.map((item: any) => item.table_name)
+    const tableNames = selectedTables.value.map((item) => item.table_name)
     const res = await importTablesApi(tableNames)
     if (res.data.code === 200) {
       ElMessage.success(`成功导入 ${res.data.data} 个表`)
@@ -317,7 +317,7 @@ const openImportDialog = () => {
 }
 
 // 处理文件选择变化
-const handleFileChange = (file: any) => {
+const handleFileChange = (file) => {
   selectedFile.value = file.raw
 }
 
@@ -352,7 +352,7 @@ const submitUpload = async () => {
     } else {
       ElMessage.error(res.data.msg || '导入失败')
     }
-  } catch (error: any) {
+  } catch (error) {
     ElMessage.error(error?.response?.data?.msg || '上传失败，请稍后重试')
   } finally {
     uploadLoading.value = false

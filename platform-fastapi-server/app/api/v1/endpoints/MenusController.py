@@ -1,5 +1,5 @@
 from app.database.database import get_session
-from app.dependencies.dependencies import check_permission
+from app.dependencies.dependencies import check_permission, get_current_user
 from app.logger.logger import get_logger
 from app.responses.resp_model import respModel
 from fastapi import APIRouter, Depends
@@ -76,10 +76,16 @@ async def delete(id: int, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 
-@router.get("/user/{user_id}", summary="获取用户菜单权限", dependencies=[Depends(check_permission("system:menu:query"))])
-async def getUserMenus(user_id: int, session: Session = Depends(get_session)):
+@router.get("/user/{user_id}", summary="获取用户菜单权限")
+async def getUserMenus(user_id: int, current_user: dict = Depends(get_current_user), session: Session = Depends(get_session)):
     """获取用户的菜单权限（用于前端路由）"""
     try:
+        # 检查权限：用户只能获取自己的菜单，或者需要有菜单查询权限
+        if current_user.get("id") != user_id:
+            # 不是自己的菜单，需要检查权限
+            from app.dependencies.dependencies import check_permission
+            check_permission("system:menu:query")(current_user)
+        
         tree = MenuService.get_user_menus(session, user_id, logger=logger)
         return respModel.ok_resp_tree(treeData=tree, msg="查询成功")
     except Exception as e:

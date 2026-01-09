@@ -1,11 +1,12 @@
 """用户管理 Service 层"""
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Any
 
 from sqlmodel import Session, select
 
 from app.models.UserModel import User
 from app.models.UserRoleModel import UserRole
+from app.models.RoleModel import Role
 from app.schemas.UserSchema import UserQuery, UserCreate, UserUpdate, UserRoleAssign, UserStatusUpdate
 
 
@@ -13,8 +14,8 @@ class UserService:
     """用户管理服务类"""
 
     @staticmethod
-    def query_by_page(session: Session, query: UserQuery) -> Tuple[List[User], int]:
-        """分页查询用户"""
+    def query_by_page(session: Session, query: UserQuery) -> Tuple[List[Dict[str, Any]], int]:
+        """分页查询用户（包含角色信息）"""
         offset = (query.page - 1) * query.pageSize
         statement = select(User)
         
@@ -26,7 +27,22 @@ class UserService:
             statement = statement.where(User.status == query.status)
         
         statement = statement.limit(query.pageSize).offset(offset)
-        datas = session.exec(statement).all()
+        users = session.exec(statement).all()
+        
+        # 为每个用户添加角色信息
+        user_data_list = []
+        for user in users:
+            user_dict = user.model_dump()
+            # 获取用户角色
+            role_ids = UserService.get_roles(session, user.id)
+            if role_ids:
+                # 获取角色名称
+                role_statement = select(Role).where(Role.id.in_(role_ids))
+                roles = session.exec(role_statement).all()
+                user_dict['roles'] = [role.role_name for role in roles]
+            else:
+                user_dict['roles'] = []
+            user_data_list.append(user_dict)
         
         # 统计总数
         count_statement = select(User)
@@ -38,13 +54,28 @@ class UserService:
             count_statement = count_statement.where(User.status == query.status)
         total = len(session.exec(count_statement).all())
         
-        return datas, total
+        return user_data_list, total
 
     @staticmethod
-    def query_by_id(session: Session, user_id: int) -> Optional[User]:
-        """根据ID查询用户"""
+    def query_by_id(session: Session, user_id: int) -> Optional[Dict[str, Any]]:
+        """根据ID查询用户（包含角色信息）"""
         statement = select(User).where(User.id == user_id)
-        return session.exec(statement).first()
+        user = session.exec(statement).first()
+        if not user:
+            return None
+        
+        user_dict = user.model_dump()
+        # 获取用户角色
+        role_ids = UserService.get_roles(session, user.id)
+        if role_ids:
+            # 获取角色名称
+            role_statement = select(Role).where(Role.id.in_(role_ids))
+            roles = session.exec(role_statement).all()
+            user_dict['roles'] = [role.role_name for role in roles]
+        else:
+            user_dict['roles'] = []
+        
+        return user_dict
 
     @staticmethod
     def create(session: Session, user: UserCreate) -> User:

@@ -51,6 +51,53 @@ class ViewScanService:
         'history': ('生成历史', 'Tickets', 'history'),
     }
     
+    # 按钮权限配置：子模块名 -> [(权限后缀, 显示名称, 图标), ...]
+    BUTTON_PERMISSIONS_CONFIG = {
+        'users': [
+            ('add', '新增用户', 'Plus'),
+            ('edit', '编辑用户', 'Edit'),
+            ('delete', '删除用户', 'Delete'),
+            ('query', '查看用户', 'View'),
+        ],
+        'role': [
+            ('add', '新增角色', 'Plus'),
+            ('edit', '编辑角色', 'Edit'),
+            ('delete', '删除角色', 'Delete'),
+            ('assign', '分配权限', 'Key'),
+            ('query', '查看角色', 'View'),
+        ],
+        'menu': [
+            ('add', '新增菜单', 'Plus'),
+            ('edit', '编辑菜单', 'Edit'),
+            ('delete', '删除菜单', 'Delete'),
+            ('query', '查看菜单', 'View'),
+        ],
+        'dept': [
+            ('add', '新增部门', 'Plus'),
+            ('edit', '编辑部门', 'Edit'),
+            ('delete', '删除部门', 'Delete'),
+            ('query', '查看部门', 'View'),
+        ],
+        'table': [
+            ('query', '表配置查询', 'Search'),
+            ('add', '表配置新增', 'Plus'),
+            ('edit', '表配置编辑', 'Edit'),
+            ('delete', '表配置删除', 'Delete'),
+            ('import', '表配置导入', 'Upload'),
+        ],
+        'code': [
+            ('preview', '代码预览', 'View'),
+            ('download', '代码下载', 'Download'),
+            ('batchDownload', '批量下载', 'Download'),
+        ],
+        'history': [
+            ('query', '历史查询', 'Search'),
+        ],
+        'statistics': [
+            ('query', '统计查询', 'DataAnalysis'),
+        ],
+    }
+    
     def __init__(self, views_path: str):
         """
         初始化视图扫描服务
@@ -248,6 +295,13 @@ class ViewScanService:
                 next_id = self._create_root_view_menu(
                     session, view, next_id, admin_role_id, stats
                 )
+            else:
+                # 如果根视图已存在，也要创建按钮权限
+                existing_menu = existing_menus[view['component']]
+                next_id = self._create_button_permissions(
+                    session, view['name'], view['name'], 
+                    existing_menu.id, next_id, admin_role_id, stats
+                )
         
         # 2. 处理模块
         for module in scan_result['modules']:
@@ -267,6 +321,7 @@ class ViewScanService:
                 # 找到 List 页面作为子模块的主菜单
                 list_view = None
                 form_views = []
+                page_views = []
                 
                 for view in sub_module['views']:
                     stats['scanned_views'] += 1
@@ -275,8 +330,8 @@ class ViewScanService:
                     elif view['type'] == 'form':
                         form_views.append(view)
                     else:
-                        # 其他类型页面
-                        form_views.append(view)
+                        # 其他类型页面（如 page）
+                        page_views.append(view)
                 
                 # 创建 List 页面菜单（作为子模块主菜单）
                 list_menu_id = None
@@ -288,13 +343,38 @@ class ViewScanService:
                 elif list_view:
                     list_menu_id = existing_menus[list_view['component']].id
                 
-                # 创建 Form 页面菜单（隐藏，挂在 List 下面）
+                # 如果没有 List 页面但有 Page 页面，使用第一个 Page 页面作为主菜单
+                if not list_view and page_views:
+                    main_page = page_views[0]
+                    if main_page['component'] not in existing_menus:
+                        list_menu_id, next_id = self._create_page_menu(
+                            session, main_page, sub_module, module,
+                            module_menu_id, next_id, sub_order, admin_role_id, stats
+                        )
+                    else:
+                        list_menu_id = existing_menus[main_page['component']].id
+                    # 剩余的 page 视图作为子菜单
+                    for page_view in page_views[1:]:
+                        if page_view['component'] not in existing_menus:
+                            next_id = self._create_form_menu(
+                                session, page_view, sub_module, module,
+                                list_menu_id or module_menu_id, next_id, admin_role_id, stats
+                            )
+                
+                # 创建 Form 页面菜单（隐藏，挂在 List 或 Page 下面）
                 for form_view in form_views:
                     if form_view['component'] not in existing_menus:
                         next_id = self._create_form_menu(
                             session, form_view, sub_module, module,
                             list_menu_id or module_menu_id, next_id, admin_role_id, stats
                         )
+                
+                # 创建按钮权限（挂在子模块主菜单下）
+                parent_menu_id = list_menu_id or module_menu_id
+                next_id = self._create_button_permissions(
+                    session, sub_module['name'], module['name'], 
+                    parent_menu_id, next_id, admin_role_id, stats
+                )
                 
                 sub_order += 1
         
@@ -332,7 +412,14 @@ class ViewScanService:
         stats['details'].append(f"添加根菜单: {view['display_name']}")
         logger.info(f"创建根菜单: {view['display_name']} (ID: {next_id})")
         
-        return next_id + 1
+        # 为根视图创建按钮权限
+        button_next_id = next_id + 1
+        button_next_id = self._create_button_permissions(
+            session, view['name'], view['name'], 
+            next_id, button_next_id, admin_role_id, stats
+        )
+        
+        return button_next_id
     
     def _find_or_create_module_menu(
         self, session: Session, module: Dict,
@@ -345,6 +432,8 @@ class ViewScanService:
         statement = select(Menu).where(Menu.path == module_path, Menu.menu_type == 'M')
         existing = session.exec(statement).first()
         if existing:
+            # 确保管理员角色有权限访问此模块菜单
+            self._add_role_menu_permission(session, 1, existing.id, stats)
             return existing.id
         
         # 创建模块目录菜单
@@ -368,6 +457,7 @@ class ViewScanService:
         )
         
         session.add(menu)
+        self._add_role_menu_permission(session, 1, next_id, stats)
         stats['added_menus'] += 1
         stats['details'].append(f"添加模块目录: {module['display_name']}")
         logger.info(f"创建模块目录菜单: {module['display_name']} (ID: {next_id})")
@@ -407,6 +497,42 @@ class ViewScanService:
         stats['added_menus'] += 1
         stats['details'].append(f"添加列表菜单: {display_name}")
         logger.info(f"创建列表菜单: {display_name} (ID: {next_id})")
+        
+        return next_id, next_id + 1
+    
+    def _create_page_menu(
+        self, session: Session, view: Dict, sub_module: Dict, module: Dict,
+        parent_id: int, next_id: int, order_num: int,
+        admin_role_id: int, stats: Dict
+    ) -> Tuple[int, int]:
+        """创建 Page 页面菜单（作为子模块主菜单）"""
+        display_name = f"{sub_module['display_name']}"
+        perm_prefix = f"{module['name']}:{sub_module['perm_prefix']}"
+        
+        menu = Menu(
+            id=next_id,
+            parent_id=parent_id,
+            menu_name=display_name,
+            path=f"/{module['name']}/{sub_module['name']}",
+            component=view['component'],
+            perms=f"{perm_prefix}:list",
+            icon=sub_module['icon'],
+            menu_type='C',
+            visible='0',
+            status='0',
+            is_cache='0',
+            is_frame='1',
+            order_num=order_num,
+            remark=f"{display_name}页面",
+            create_time=datetime.now(),
+            modify_time=datetime.now()
+        )
+        
+        session.add(menu)
+        self._add_role_menu_permission(session, admin_role_id, next_id, stats)
+        stats['added_menus'] += 1
+        stats['details'].append(f"添加页面菜单: {display_name}")
+        logger.info(f"创建页面菜单: {display_name} (ID: {next_id})")
         
         return next_id, next_id + 1
     
@@ -457,3 +583,58 @@ class ViewScanService:
             role_menu = RoleMenu(role_id=role_id, menu_id=menu_id)
             session.add(role_menu)
             stats['added_permissions'] += 1
+    
+    def _create_button_permissions(
+        self, session: Session, sub_module_name: str, module_name: str,
+        parent_menu_id: int, next_id: int, admin_role_id: int, stats: Dict
+    ) -> int:
+        """创建按钮权限"""
+        # 获取该子模块的按钮权限配置
+        # 对于根视图，使用system作为前缀
+        config_key = sub_module_name
+        if sub_module_name == module_name:  # 根视图的情况
+            config_key = sub_module_name
+            perm_prefix = f"system:{sub_module_name}"
+        else:
+            config_key = sub_module_name
+            perm_prefix = f"{module_name}:{sub_module_name}"
+        
+        button_configs = self.BUTTON_PERMISSIONS_CONFIG.get(config_key, [])
+        
+        for perm_suffix, display_name, icon in button_configs:
+            perm_code = f"{perm_prefix}:{perm_suffix}"
+            
+            # 检查是否已存在
+            existing = session.exec(select(Menu).where(Menu.perms == perm_code)).first()
+            if existing:
+                continue
+            
+            # 创建按钮权限菜单
+            button_menu = Menu(
+                id=next_id,
+                parent_id=parent_menu_id,
+                menu_name=display_name,
+                path='',
+                component='',
+                perms=perm_code,
+                icon=icon,
+                menu_type='F',  # 按钮类型
+                visible='1',  # 隐藏
+                status='0',   # 停用
+                is_cache='0',
+                is_frame='1',
+                order_num=next_id,
+                remark=f"{display_name}权限",
+                create_time=datetime.now(),
+                modify_time=datetime.now()
+            )
+            
+            session.add(button_menu)
+            self._add_role_menu_permission(session, admin_role_id, next_id, stats)
+            stats['added_menus'] += 1
+            stats['details'].append(f"添加按钮权限: {display_name}")
+            logger.info(f"创建按钮权限: {display_name} ({perm_code}, ID: {next_id})")
+            
+            next_id += 1
+        
+        return next_id

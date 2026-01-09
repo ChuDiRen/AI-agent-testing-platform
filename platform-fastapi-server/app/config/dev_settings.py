@@ -111,5 +111,6 @@ class Settings(BaseSettings): # 开发环境配置
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "allow"  # 允许额外的环境变量
 
 settings = Settings() # 全局配置实例

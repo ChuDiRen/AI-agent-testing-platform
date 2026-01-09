@@ -21,7 +21,7 @@
     </BaseForm>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { ref, reactive, computed } from "vue"
 import { queryById, insertData, updateData } from './role'
 import { useRouter } from "vue-router"
@@ -92,7 +92,7 @@ const closeForm = () => {
 }
 
 // 加载表单数据
-const loadData = async (id: number) => {
+const loadData = async (id) => {
     try {
         const res = await queryById(id)
         ruleForm.id = res.data.data.id

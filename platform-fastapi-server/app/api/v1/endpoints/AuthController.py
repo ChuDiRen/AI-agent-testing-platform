@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 
 from app.security.JwtUtil import JwtUtils
 from app.database.database import get_session
+from app.dependencies.dependencies import check_permission, get_current_user
 from app.logger.logger import get_logger
 from app.responses.resp_model import respModel
 from app.models.UserModel import User
@@ -27,20 +28,15 @@ async def login(request: LoginRequest, session: Session = Depends(get_session)):
         return respModel.error_resp("登录失败，用户名或密码错误")
 
 
-@router.get("/userinfo", summary="获取当前用户信息")
-async def get_userinfo(authorization: Optional[str] = Header(default=None), session: Session = Depends(get_session)):
+@router.get("/userinfo", summary="获取当前用户信息", dependencies=[Depends(get_current_user)])
+async def get_userinfo(current_user: dict = Depends(get_current_user), session: Session = Depends(get_session)):
     """通过 token 获取当前登录用户的信息"""
-    logger.info(f"userinfo 接口被调用, authorization={authorization}")
-    if not authorization:
-        logger.warning("缺少 authorization header")
-        return respModel.error_resp("请先登录")
+    logger.info(f"userinfo 接口被调用, user_id={current_user.get('id')}")
     
     try:
-        token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
-        
-        user_id = JwtUtils.get_user_id_from_token(token)
+        user_id = current_user.get("id")
         if not user_id:
-            return respModel.error_resp("登录已过期，请重新登录")
+            return respModel.error_resp("用户ID不存在")
         
         user = session.get(User, user_id)
         if not user:
@@ -61,7 +57,8 @@ async def get_userinfo(authorization: Optional[str] = Header(default=None), sess
         }
         return respModel.ok_resp(obj=user_dict, msg="获取用户信息成功")
     except Exception as e:
-        return respModel.error_resp("Token无效，请重新登录")
+        logger.error(f"获取用户信息失败: {e}", exc_info=True)
+        return respModel.error_resp(f"获取用户信息失败: {e}")
 
 
 @router.post("/refreshToken", summary="刷新Token")

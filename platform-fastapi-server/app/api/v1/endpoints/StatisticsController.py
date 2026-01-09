@@ -4,6 +4,7 @@ from sqlmodel import Session, select, func
 from fastapi import APIRouter, Depends
 
 from app.database.database import get_session
+from app.dependencies.dependencies import check_permission
 from app.logger.logger import get_logger
 from app.responses.resp_model import respModel
 from app.models.UserModel import User
@@ -16,7 +17,7 @@ from app.models.GenHistory import GenHistory
 router = APIRouter(prefix="/ApiStatistics", tags=["系统统计"])
 logger = get_logger(__name__)
 
-@router.get("/overview", summary="获取系统总览统计")
+@router.get("/overview", summary="获取系统总览统计", dependencies=[Depends(check_permission("system:statistics:query"))])
 async def get_overview(session: Session = Depends(get_session)):
     """获取系统总览统计数据"""
     try:

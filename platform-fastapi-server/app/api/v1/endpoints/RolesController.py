@@ -83,7 +83,7 @@ async def delete(id: int, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 
-@router.post("/assignMenus", summary="为角色分配菜单权限", dependencies=[Depends(check_permission("system:role:edit"))])
+@router.post("/assignMenus", summary="为角色分配菜单权限", dependencies=[Depends(check_permission("system:role:assign"))])
 async def assignMenus(request: RoleMenuAssign, session: Session = Depends(get_session)):
     """为角色分配菜单权限"""
     try:

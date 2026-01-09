@@ -72,7 +72,7 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { ref } from "vue"
 import { getMenuTree, deleteData } from './menu'
 import { useRouter } from "vue-router"
@@ -88,13 +88,13 @@ const loading = ref(false)
 // 加载页面数据（树形结构）
 const loadData = () => {
     loading.value = true
-    getMenuTree().then((res: { data: { code: number; data: never[]; msg: string }; }) => {
+    getMenuTree().then((res) => {
         if (res.data.code === 200) {
             tableData.value = res.data.data || []
         } else {
             ElMessage.error(res.data.msg || '查询失败')
         }
-    }).catch((error: any) => {
+    }).catch((error) => {
         console.error('查询失败:', error)
         ElMessage.error('查询失败，请稍后重试')
     }).finally(() => {
@@ -106,7 +106,7 @@ loadData()
 // 打开表单 （编辑/新增）
 // menuId: 要编辑的菜单ID，-1表示新增
 // parentId: 上级菜单ID，用于新增时设置父菜单
-const onDataForm = (menuId: number, parentId: number | null) => {
+const onDataForm = (menuId, parentId) => {
     let params_data = {}
     if (menuId > 0) {
         // 编辑
@@ -122,7 +122,7 @@ const onDataForm = (menuId: number, parentId: number | null) => {
 }
 
 // 删除数据
-const onDelete = (menuId: number) => {
+const onDelete = (menuId) => {
     ElMessageBox.confirm(
         '确定要删除该菜单吗？',
         '删除确认',
@@ -132,7 +132,7 @@ const onDelete = (menuId: number) => {
             type: 'warning',
         }
     ).then(() => {
-        deleteData(menuId).then((res: { data: { code: number; msg: string } }) => {
+        deleteData(menuId).then((res) => {
             if (res.data.code === 200) {
                 ElMessage.success('删除成功')
                 loadData()
