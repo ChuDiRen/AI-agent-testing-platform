@@ -161,7 +161,7 @@ const ruleForm = reactive({
 })
 
 // 表单验证规则
-const rules = reactive<any>({
+const rules = reactive({
     menu_name: [
         { required: true, message: '请输入菜单名称', trigger: 'blur' }
     ],

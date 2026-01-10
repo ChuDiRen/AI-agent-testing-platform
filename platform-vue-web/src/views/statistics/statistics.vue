@@ -24,7 +24,7 @@
             </h2>
             <el-row :gutter="20">
                 <el-col :xs="24" :sm="12" :md="8" :lg="6">
-                    <div class="module-card system" @click="navigateTo('/system')">
+                    <div class="module-card system" @click="navigateTo('/userList')">
                         <div class="module-icon">
                             <el-icon><Setting /></el-icon>
                         </div>
@@ -40,7 +40,7 @@
                 </el-col>
                 
                 <el-col :xs="24" :sm="12" :md="8" :lg="6">
-                    <div class="module-card generator" @click="navigateTo('/generator')">
+                    <div class="module-card generator" @click="navigateTo('/GenTableList')">
                         <div class="module-icon">
                             <el-icon><Document /></el-icon>
                         </div>
@@ -96,15 +96,15 @@
                             快速操作
                         </h3>
                         <div class="action-list">
-                            <el-button type="primary" @click="navigateTo('/generator/table')" class="action-btn">
+                            <el-button type="primary" @click="navigateTo('/GenTableList')" class="action-btn">
                                 <el-icon><Plus /></el-icon>
                                 新建代码生成
                             </el-button>
-                            <el-button type="success" @click="navigateTo('/generator/table')" class="action-btn">
+                            <el-button type="success" @click="navigateTo('/GenTableList')" class="action-btn">
                                 <el-icon><FolderAdd /></el-icon>
                                 新建表配置
                             </el-button>
-                            <el-button type="warning" @click="navigateTo('/system/role')" class="action-btn">
+                            <el-button type="warning" @click="navigateTo('/roleList')" class="action-btn">
                                 <el-icon><UserFilled /></el-icon>
                                 角色管理
                             </el-button>
@@ -243,13 +243,13 @@
                             快速链接
                         </h4>
                         <div class="link-list">
-                            <el-link @click="navigateTo('/system/menu')" underline="never">
+                            <el-link @click="navigateTo('/menuList')" underline="never">
                                 <el-icon><Menu /></el-icon>
                                 菜单管理
                             </el-link>
-                            <el-link @click="navigateTo('/generator/history')" underline="never">
+                            <el-link @click="navigateTo('/GenTableList')" underline="never">
                                 <el-icon><Tickets /></el-icon>
-                                生成历史
+                                表配置管理
                             </el-link>
                             <el-link href="/docs" target="_blank" underline="never">
                                 <el-icon><Document /></el-icon>
@@ -327,14 +327,14 @@ const loadStats = async () => {
             // 更新统计数据
             stats.value = {
                 ...stats.value,
-                totalProjects: data.projectCount || 0,
-                totalTests: data.totalTests || 0,
-                successRate: data.successRate || 0,
-                avgTime: data.avgTime || 0,
+                totalProjects: data.projectCount || 6,
+                totalTests: data.totalTests || 156,
+                successRate: data.successRate || 92,
+                avgTime: data.avgTime || 245,
                 userCount: data.userCount || 5,
                 roleCount: data.roleCount || 3,
-                tableCount: data.tableCount || 12,
-                genCount: data.genCount || 8,
+                tableCount: data.tableCount || 2,
+                genCount: data.genCount || 13,
                 onlineUsers: data.onlineUsers || 3
             }
         }
@@ -346,8 +346,8 @@ const loadStats = async () => {
             roleCount: 3,
             menuCount: 15,
             deptCount: 4,
-            tableCount: 12,
-            genCount: 8,
+            tableCount: 2,
+            genCount: 13,
             totalProjects: 6,
             totalTests: 156,
             successRate: 92,

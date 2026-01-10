@@ -61,7 +61,7 @@ import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 
-const tableId = ref(router.currentRoute.value.query.table_id)
+const tableId = ref(new URLSearchParams(window.location.search).get('table_id') || router.currentRoute.value.query.table_id)
 const tableInfo = ref(null)
 const showPreviewDialog = ref(false)
 const previewCode = ref({})
@@ -91,7 +91,7 @@ const loadTableInfo = async () => {
 const onPreview = async () => {
   previewLoading.value = true
   try {
-    const res = await previewCodeApi({ table_id: tableId.value })
+    const res = await previewCodeApi({ table_id: parseInt(tableId.value) })
     if (res.data.code === 200) {
       previewCode.value = res.data.data
       if (Object.keys(previewCode.value).length > 0) {
@@ -114,7 +114,7 @@ const onPreview = async () => {
 const onDownload = async () => {
   downloadLoading.value = true
   try {
-    const res = await downloadCodeApi({ table_id: tableId.value, gen_type: tableInfo.value?.gen_type || '0' })
+    const res = await downloadCodeApi({ table_id: parseInt(tableId.value), gen_type: tableInfo.value?.gen_type || '0' })
     if (res) {
       // 创建blob链接
       const blob = new Blob([res], { type: 'application/zip' })

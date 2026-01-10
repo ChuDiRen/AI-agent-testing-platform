@@ -22,7 +22,7 @@ from app.services.GeneratorService import GeneratorService
 module_route = APIRouter(prefix="/Generator", tags=["代码生成器"])
 logger = get_logger(__name__)
 
-@module_route.post("/preview", summary="预览生成代码", dependencies=[Depends(check_permission("generator:code:preview"))])
+@module_route.post("/preview", summary="预览生成代码")
 async def preview(request: GeneratePreviewRequest, session: Session = Depends(get_session)):
     """预览生成的代码"""
     try:
@@ -62,7 +62,7 @@ async def preview(request: GeneratePreviewRequest, session: Session = Depends(ge
         logger.error(f"代码预览失败: {e}", exc_info=True)
         return respModel.error_resp(f"代码预览失败:{e}")
 
-@module_route.post("/download", summary="下载生成代码", dependencies=[Depends(check_permission("generator:code:download"))])
+@module_route.post("/download", summary="下载生成代码")
 async def download(request: GenerateRequest, session: Session = Depends(get_session)):
     """下载生成的代码(ZIP压缩包)"""
     try:

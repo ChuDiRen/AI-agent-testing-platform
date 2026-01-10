@@ -62,7 +62,7 @@
           <el-button link type="primary" size="small" @click.prevent="onDataView(scope.$index)">
             查看
           </el-button>
-          <el-button link type="success" size="small" v-permission="'generator:code:generate'" @click.prevent="onGenerateCode(scope.$index)">
+          <el-button link type="success" size="small" v-permission="'generator:code:preview'" @click.prevent="onGenerateCode(scope.$index)">
             生成代码
           </el-button>
           <el-button link type="warning" size="small" v-permission="'generator:table:edit'" @click.prevent="onDataEdit(scope.$index)">
@@ -229,7 +229,7 @@ const onDataEdit = (index) => {
 const onGenerateCode = (index) => {
   const item = tableData.value[index]
   router.push({
-    path: 'GeneratorCode',
+    path: '/GeneratorCode',
     query: {
       table_id: item.id
     }

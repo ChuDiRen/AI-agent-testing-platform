@@ -55,7 +55,7 @@ const ruleForm = reactive({
 })
 
 // 表单验证规则
-const rules = reactive<any>({
+const rules = reactive({
     dept_name: [
         { required: true, message: '请输入部门名称', trigger: 'blur' }
     ]

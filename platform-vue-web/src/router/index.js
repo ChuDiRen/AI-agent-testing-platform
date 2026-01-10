@@ -9,7 +9,7 @@ import Forbidden from '~/views/403.vue'
 import ServerError from '~/views/500.vue'
 import Login from '~/views/login/login.vue'
 import Home from '~/views/home/home.vue'
-import Statistics from '~/views/statistics/statistics.vue'
+import Statistics from '../views/statistics/statistics.vue'
 
 // 动态导入所有 views 目录下的 .vue 文件
 const modules = import.meta.glob('../views/**/*.vue')
@@ -66,7 +66,7 @@ const router = createRouter({
 })
 
 // 已添加的动态路由路径集合（防止重复添加）
-const addedRoutes = new Set(['/Statistics'])
+const addedRoutes = new Set(['/Statistics', '/GenHistory'])
 
 // 标记动态路由是否已加载
 let dynamicRoutesLoaded = false
@@ -238,6 +238,25 @@ async function loadAndRegisterRoutes() {
         if (res?.data?.code === 200) {
             const menuData = res.data.data || []
             addDynamicRoutes(menuData)
+            
+            // 添加生成历史路由（如果没有在菜单中配置）
+            if (!addedRoutes.has('/GenHistory')) {
+                try {
+                    const GenHistory = modules['../views/generator/history/GenHistory.vue']
+                    if (GenHistory) {
+                        router.addRoute('home', {
+                            path: '/GenHistory',
+                            component: GenHistory,
+                            meta: {
+                                title: '生成历史'
+                            }
+                        })
+                        addedRoutes.add('/GenHistory')
+                    }
+                } catch (e) {
+                    console.warn('生成历史页面组件未找到:', e)
+                }
+            }
         }
     } catch (e) {
         console.error('加载动态路由失败:', e)
