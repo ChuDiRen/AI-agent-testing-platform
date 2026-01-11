@@ -19,7 +19,7 @@ sys.path.insert(0, str(project_root))
 
 from core.config import get_config, PlatformConfig, validate_environment, create_sample_env_file
 from core.logging_config import setup_logging
-from examples.complete_workflow_example import APITestAutomationPlatform
+# from examples.complete_workflow_example import APITestAutomationPlatform
 
 
 class PlatformManager:
@@ -45,7 +45,12 @@ class PlatformManager:
             return False
         
         # Setup logging
-        setup_logging(self.config.logging)
+        logging_config = self.config.logging
+        setup_logging(
+            level=logging_config.level.value if logging_config.level else "INFO",
+            log_file=logging_config.file_path,
+            json_output=False
+        )
         
         # Initialize platform
         self.platform = APITestAutomationPlatform()

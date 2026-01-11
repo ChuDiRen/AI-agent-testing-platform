@@ -7,59 +7,13 @@ python-multipart>=0.0.6
 pydantic>=2.5.0
 pydantic-settings>=2.1.0
 
-# ==================== Database ====================
-sqlmodel>=0.0.14
-aiosqlite>=0.19.0
-
-# ==================== MCP Protocol ====================
-mcp>=0.9.0
-
 # ==================== LLM and AI ====================
 openai>=1.10.0
-anthropic>=0.18.0
 langchain>=0.1.0
 langchain-openai>=0.0.5
-langchain-anthropic>=0.1.0
-
-# ==================== RAG and Knowledge ====================
-chromadb>=0.4.22
-sentence-transformers>=2.3.1
-numpy>=1.24.0
-
-# ==================== Multi-modal Content Processing ====================
-# Uncomment when needed for full multi-modal support
-# PyMuPDF>=1.23.0  # PDF processing
-# python-docx>=1.1.0  # Word processing
-# pandas>=2.1.0  # Excel processing
-# Pillow>=10.2.0  # Image processing
-# pytesseract>=0.3.10  # OCR
-
-# ==================== API Testing ====================
-httpx>=0.26.0
-playwright>=1.40.0
-pytest>=8.0.0
-pytest-asyncio>=0.23.0
-pytest-playwright>=0.4.0
-
-# ==================== Data Processing ====================
-pyyaml>=6.0.1
-jsonschema>=4.21.0
-python-json-logger>=2.0.7
 
 # ==================== Utils ====================
 python-dotenv>=1.0.0
 rich>=13.7.0
 typer>=0.9.0
 aiofiles>=23.2.1
-
-# ==================== Chart and Visualization ====================
-# Uncomment when AntV integration is needed
-# antv>=0.1.0  # When available
-
-# ==================== Optional: For Development ====================
-# Uncomment for development
-# black>=24.1.0
-# ruff>=0.2.0
-# mypy>=1.8.0
-# pre-commit>=3.6.0
-# pytest-cov>=4.1.0

@@ -10,7 +10,8 @@ API自动化智能体平台 - 完整配置管理
 from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
 import os
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings
 from enum import Enum
 
 
@@ -50,9 +51,9 @@ class DatabaseConfig(BaseSettings):
 class LLMConfig(BaseSettings):
     """LLM配置"""
     provider: LLMProvider = Field(default=LLMProvider.OPENAI, env="LLM_PROVIDER", description="LLM提供商")
-    model: str = Field(default="gpt-4-turbo-preview", env="LLM_MODEL", description="模型名称")
+    model: str = Field(default="deepseek-chat", env="LLM_MODEL", description="模型名称")
     api_key: str = Field(default="", env="OPENAI_API_KEY", description="API密钥")
-    api_base: Optional[str] = Field(default=None, env="OPENAI_API_BASE", description="API基础URL")
+    api_base: Optional[str] = Field(default="https://api.siliconflow.cn/v1", env="OPENAI_API_BASE", description="API基础URL")
     temperature: float = Field(default=0.3, env="LLM_TEMPERATURE", description="温度参数 0-1")
     max_tokens: int = Field(default=4000, env="LLM_MAX_TOKENS", description="最大token数")
     timeout: int = Field(default=60, env="LLM_TIMEOUT", description="超时时间（秒）")
@@ -154,6 +155,7 @@ class PlatformConfig(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        extra = "allow"  # 允许额外的环境变量
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -231,11 +233,11 @@ class PlatformConfig(BaseSettings):
         """验证配置并返回问题列表"""
         issues = []
 
-        # 检查必需的API密钥
-        if self.llm.provider == LLMProvider.OPENAI and not self.llm.api_key:
+        # 检查必需的API密钥（开发环境允许为空）
+        if self.llm.provider == LLMProvider.OPENAI and not self.llm.api_key and self.environment.value != "development":
             issues.append("使用OpenAI提供商时需要API密钥")
 
-        if self.llm.provider == LLMProvider.ANTHROPIC and not self.llm.api_key:
+        if self.llm.provider == LLMProvider.ANTHROPIC and not self.llm.api_key and self.environment.value != "development":
             issues.append("使用Anthropic提供商时需要API密钥")
 
         # 检查生产环境的安全设置
@@ -261,6 +263,9 @@ def get_config(**kwargs) -> PlatformConfig:
     """获取全局配置实例"""
     global config
     if config is None:
+        # 确保环境变量被加载
+        from dotenv import load_dotenv
+        load_dotenv()
         config = PlatformConfig(**kwargs)
     return config
 
