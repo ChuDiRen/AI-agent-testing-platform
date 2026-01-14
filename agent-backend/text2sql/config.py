@@ -10,9 +10,11 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
+
+# 导入自定义的模型加载工具（支持国产大模型）
+from examples.utils import load_chat_model
 
 
 # ==================== 数据路径配置 ====================
@@ -186,9 +188,9 @@ def get_model(config: Optional[LLMConfig] = None) -> BaseChatModel:
             max_retries=config.max_retries
         )
     
-    # 其他提供商使用langchain的init_chat_model
+    # 其他提供商使用自定义的 load_chat_model
     model_str = f"{config.provider}:{config.model_name}"
-    return init_chat_model(
+    return load_chat_model(
         model_str,
         temperature=config.temperature,
         max_tokens=config.max_tokens,

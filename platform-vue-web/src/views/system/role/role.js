@@ -37,3 +37,13 @@ export function getRoleMenus(roleId) {
     return axios.get(`/${module_name}/menus/${roleId}?_alias=role-menus`)
 }
 
+// 复制角色
+export function copyRole(data) {
+    return axios.post(`/${module_name}/copy?_alias=role-copy`, data)
+}
+
+// 批量删除角色
+export function batchDelete(data) {
+    return axios.post(`/${module_name}/batchDelete?_alias=role-batch-delete`, data)
+}
+

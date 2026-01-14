@@ -5,9 +5,11 @@ from functools import cached_property
 from pathlib import Path
 from typing import Optional
 
-from langchain.chat_models import init_chat_model
 from langchain_openai import ChatOpenAI
 from langchain_core.language_models import BaseChatModel
+
+# 导入自定义的模型加载工具（支持国产大模型）
+from examples.utils import load_chat_model
 
 
 @dataclass(frozen=True)
@@ -74,8 +76,8 @@ def get_model(config: LLMConfig = None) -> BaseChatModel:
             streaming=config.streaming,
         )
     
-    # 其他模型使用 init_chat_model
-    return init_chat_model(model_str, temperature=config.temperature)
+    # 其他模型使用自定义的 load_chat_model
+    return load_chat_model(model_str, temperature=config.temperature)
 
 
 def load_prompt(prompt_name: str, **kwargs) -> str:

@@ -22,8 +22,6 @@ from ..database.db_manager import get_database_manager
 
 def _create_bound_schema_tools(connection_id: int) -> List:
     """创建绑定了 connection_id 的 schema 工具（带长期记忆支持）"""
-    from memory import get_memory_manager
-    
     manager = get_database_manager(connection_id)
     
     @tool
@@ -38,7 +36,9 @@ def _create_bound_schema_tools(connection_id: int) -> List:
         return table_info.to_dict()
     
     @tool
-    def get_database_schema() -> Dict[str, Any]:
+    async def get_database_schema(
+        store: Annotated[BaseStore, InjectedToolArg],
+    ) -> Dict[str, Any]:
         """获取完整的数据库 Schema（优先使用缓存）
         
         首先检查长期记忆中是否有缓存的 Schema，
@@ -47,13 +47,9 @@ def _create_bound_schema_tools(connection_id: int) -> List:
         """
         from datetime import datetime, timedelta
         
-        # 获取记忆管理器
-        memory_manager = get_memory_manager()
-        store = memory_manager.store
-        
         # 1. 尝试从长期记忆获取缓存
         namespace = ("schema_cache", str(connection_id))
-        cached = store.get(namespace, "schema")
+        cached = await store.get(namespace, "schema")
         
         if cached is not None:
             cached_at = cached.value.get("cached_at")
@@ -76,7 +72,7 @@ def _create_bound_schema_tools(connection_id: int) -> List:
         schema_dict = schema.to_dict()
         
         # 3. 保存到长期记忆
-        store.put(namespace, "schema", {
+        await store.put(namespace, "schema", {
             "data": schema_dict,
             "cached_at": datetime.now().isoformat(),
             "ttl_hours": 24
@@ -99,15 +95,15 @@ def _create_bound_schema_tools(connection_id: int) -> List:
         return []
     
     @tool
-    def invalidate_schema_cache() -> str:
+    async def invalidate_schema_cache(
+        store: Annotated[BaseStore, InjectedToolArg],
+    ) -> str:
         """使 Schema 缓存失效
         
         当数据库结构发生变化时调用此工具清除缓存。
         """
-        memory_manager = get_memory_manager()
-        store = memory_manager.store
         namespace = ("schema_cache", str(connection_id))
-        store.delete(namespace, "schema")
+        await store.delete(namespace, "schema")
         return f"数据库 {connection_id} 的 Schema 缓存已清除"
     
     @tool

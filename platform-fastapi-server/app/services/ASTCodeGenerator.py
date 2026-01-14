@@ -34,7 +34,7 @@ class ASTCodeGenerator:
             
             code_files = {}
             
-            # 如果是纯中间表，只生成Model
+            # 如果是纯中间表,只生成Model
             if gen_table.tpl_category == 'link_table':
                 code_files["model"] = self.template_manager.render_template("model.jinja2", context)
             else:
@@ -42,7 +42,18 @@ class ASTCodeGenerator:
                 code_files = {
                     "model": self.template_manager.render_template("model.jinja2", context),
                     "schema": self.template_manager.render_template("schema.jinja2", context),
-                    "controller": self.template_manager.render_template("controller.jinja2", context)
+                    "service": self.template_manager.render_template("service.jinja2", context),
+                    "controller": self.template_manager.render_template("controller.jinja2", context),
+                    "list.vue": self.template_manager.render_template("list.vue.jinja2", context),
+                    "form.vue": self.template_manager.render_template("form.vue.jinja2", context),
+                    "api.js": self.template_manager.render_template("api.js.jinja2", context),
+                    # 前端公共组件
+                    "BaseSearch.vue": self.template_manager.render_template("BaseSearch.vue.jinja2", {}),
+                    "BaseTable.vue": self.template_manager.render_template("BaseTable.vue.jinja2", {}),
+                    "BasePagination.vue": self.template_manager.render_template("BasePagination.vue.jinja2", {}),
+                    "BaseForm.vue": self.template_manager.render_template("BaseForm.vue.jinja2", {}),
+                    # 工具函数
+                    "timeFormatter.js": self.template_manager.render_template("timeFormatter.js.jinja2", {})
                 }
             
             logger.info(f"代码生成成功: {gen_table.table_name} -> {len(code_files)}个文件")

@@ -23,6 +23,10 @@ class DeptService:
                     "id": dept.id,
                     "parent_id": dept.parent_id,
                     "dept_name": dept.dept_name,
+                    "leader": dept.leader,
+                    "phone": dept.phone,
+                    "email": dept.email,
+                    "status": dept.status,
                     "order_num": dept.order_num,
                     "create_time": TimeFormatter.format_datetime(dept.create_time),
                     "modify_time": TimeFormatter.format_datetime(dept.modify_time),
@@ -87,3 +91,4 @@ class DeptService:
         session.delete(obj)
         session.commit()
         return None
+

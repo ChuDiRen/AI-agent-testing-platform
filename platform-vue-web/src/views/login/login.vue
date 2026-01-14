@@ -64,11 +64,13 @@ import { reactive, ref } from "vue";
 import { login, getUserInfo } from "./login.js";
 import { ElNotification } from "element-plus";
 import { useRouter } from "vue-router";
-import { useStore } from "vuex";
-import { getUserMenus, getMenuTree } from "~/views/system/menu/menu";
+import { useUserStore, useMenuStore, usePermissionStore } from '~/stores/index.js'
+import { setToken } from '~/axios'
 
 const router = useRouter();
-const store = useStore();
+const userStore = useUserStore();
+const menuStore = useMenuStore();
+const permissionStore = usePermissionStore();
 
 /**
  * 从菜单树中递归提取所有权限标识
@@ -90,12 +92,30 @@ function extractPermissions(menuTree, permissions = []) {
   return permissions;
 }
 
-// token 存储到 localStorage
-function setToken(token) {
-    localStorage.setItem('token', token);
+/**
+ * 从后端菜单格式转换为权限列表（兼容处理）
+ */
+function extractPermissionsFromBackend(menuTree, permissions = []) {
+  if (!menuTree || !Array.isArray(menuTree)) return permissions;
+  
+  menuTree.forEach(menu => {
+    // 提取当前菜单的权限（后端使用 perms 字段）
+    if (menu.perms) {
+      // 如果 perms 是逗号分隔的字符串，拆分处理
+      const permsList = menu.perms.split(',').filter(p => p.trim())
+      permissions.push(...permsList)
+    }
+    // 递归处理子菜单
+    if (menu.children && menu.children.length > 0) {
+      extractPermissionsFromBackend(menu.children, permissions);
+    }
+  });
+  
+  // 去重
+  return [...new Set(permissions)]
 }
 
-// do not use same name with ref
+// do not use same name as ref
 const form = reactive({
   username: "",
   password: "",
@@ -147,10 +167,13 @@ const onSubmit = () => {
       }
 
       const userInfo = userRes.data.data;
-      
+
       // 4. 保存用户信息到全局状态
-      store.commit("setUserInfo", userInfo);
+      userStore.setUserInfo(userInfo);
+      userStore.setRoles(userInfo.roles || []);
+      userStore.setPermissions(userInfo.permissions || []);
       localStorage.setItem("username", userInfo.username);
+      localStorage.setItem("permissions", JSON.stringify(userInfo.permissions || []));
 
       ElNotification({
         title: "Success",
@@ -159,35 +182,18 @@ const onSubmit = () => {
         duration: 2000,
       });
 
-      // 5. 拉取用户菜单
-      const userId = userInfo.id;
-      if (userId) {
-        try {
-          const menuRes = await getUserMenus(userId);
-          if (menuRes?.data?.code === 200) {
-            let tree = menuRes.data.data || [];
-            console.log("登录时获取的用户菜单数据:", tree);
-            if (tree.length === 0) {
-              // 兜底：用户无绑定权限，展示全量菜单树
-              console.log("用户菜单为空，获取全量菜单");
-              const allRes = await getMenuTree();
-              if (allRes?.data?.code === 200) {
-                tree = allRes.data.data || [];
-              }
-            }
-            
-            console.log("设置用户菜单，菜单数量:", tree.length);
-            store.commit("setMenuTree", tree);
-            
-            // 6. 从菜单树中提取权限列表
-            const permissions = extractPermissions(tree);
-            console.log("提取的权限列表:", permissions);
-            store.commit("setPermissions", permissions);
-            localStorage.setItem("permissions", JSON.stringify(permissions));
-          }
-        } catch (e) {
-          console.error("处理菜单数据失败:", e);
+      // 5. 获取用户菜单（用于前端动态显示菜单）
+      try {
+        const menus = await menuStore.fetchUserMenus()
+        console.log("登录成功，获取到用户菜单:", menus)
+
+        // 6. 生成动态路由
+        if (menus && menus.length > 0) {
+          permissionStore.generateRoutes(menus)
+          console.log("动态路由生成成功")
         }
+      } catch (e) {
+        console.error("获取菜单数据失败:", e)
       }
 
       // 7. 跳转到主页

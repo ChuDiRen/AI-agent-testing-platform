@@ -1,8 +1,48 @@
 <template>
-  <router-view v-slot="{ Component }">
-    <component :is="Component" />
-  </router-view>
+  <div>
+    <router-view v-slot="{ Component, route }">
+      <transition
+        :name="transitionName"
+        mode="out-in"
+        @before-enter="handleBeforeEnter"
+        @after-enter="handleAfterEnter"
+      >
+        <component :is="Component" :key="route.path" />
+      </transition>
+    </router-view>
+    
+    <!-- 全局加载状态 -->
+    <GlobalLoading ref="loadingRef" />
+  </div>
 </template>
+
+<script setup>
+import { ref } from 'vue'
+import GlobalLoading from '~/components/GlobalLoading/index.vue'
+
+const loadingRef = ref(null)
+
+// 页面过渡动画名称
+const transitionName = ref('fade-slide')
+
+// 路由进入前的处理
+const handleBeforeEnter = () => {
+  // 显示加载状态
+  if (loadingRef.value) {
+    loadingRef.value.show()
+  }
+}
+
+// 路由进入后的处理
+const handleAfterEnter = () => {
+  // 隐藏加载状态
+  if (loadingRef.value) {
+    setTimeout(() => {
+      loadingRef.value.hide()
+    }, 300) // 延迟隐藏，确保内容已渲染
+  }
+}
+</script>
 
 <style>
 /* 全局样式 */

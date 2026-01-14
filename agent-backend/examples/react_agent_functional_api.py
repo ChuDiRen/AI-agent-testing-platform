@@ -5,11 +5,11 @@ import sys
 
 # 添加父目录到路径，以便导入自定义工具
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import init_chat_model  # 使用自定义的init_chat_model（支持硅基流动）
+from utils import load_chat_model  # 使用自定义的load_chat_model（支持硅基流动）
 from langchain.tools import tool
 
 os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem"
-model = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
+model = load_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
 
 # 步骤2: 定义工具函数
 @tool
@@ -134,6 +134,20 @@ def agent(state: MessagesState) -> MessagesState:
     
     # 返回完整状态（关键：必须返回包含 messages 的字典）
     return {"messages": final_messages}
+
+
+# ============ LangGraph API 工厂函数 ============
+
+def get_agent_func():
+    """
+    工厂函数 - 返回 React Agent (Functional API)
+
+    供 LangGraph API 使用
+
+    Returns:
+        Agent 函数
+    """
+    return agent
 
 
 # 调用示例

@@ -16,7 +16,7 @@ from langchain.agents import create_agent
 
 # 添加父目录到路径，以便导入自定义工具
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import init_chat_model  # 使用自定义的init_chat_model（支持硅基流动）
+from utils import load_chat_model  # 使用自定义的load_chat_model（支持硅基流动）
 from langchain_core.tools import tool
 
 
@@ -325,7 +325,7 @@ tools = [
 
 # 初始化 LLM
 os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem"
-model = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
+model = load_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
 
 # 注意：checkpointer 和 store 由 langgraph.json 配置，LangGraph 服务器自动注入
 
@@ -376,7 +376,50 @@ async def get_agent_auto():
     return _agent_auto
 
 
-# 导出给 langgraph.json 使用
-async def agent_auto():
-    """Agent工厂函数，返回API agent"""
-    return await get_agent_auto()
+# ============ 主函数 ============
+
+if __name__ == "__main__":
+    import asyncio
+    
+    async def main():
+        """主函数 - 演示 API Agent 的使用"""
+        print("=" * 60)
+        print("🚀 API Agent 演示")
+        print("=" * 60)
+        
+        # 获取 agent 实例
+        agent_instance = await get_agent_auto()
+        
+        # 测试查询列表
+        test_queries = [
+            "帮我查看所有可用的 API 端点",
+            "我想查看宠物信息，应该用哪个 API？",
+            "帮我获取 ID 为 1 的宠物信息",
+            "查看所有可用的宠物"
+        ]
+        
+        for query in test_queries:
+            print(f"\n🧪 测试查询: {query}")
+            print("-" * 50)
+            
+            try:
+                # 使用 stream 方式输出
+                for event in agent_instance.stream(
+                    {"messages": [{"role": "user", "content": query}]},
+                    stream_mode="values",
+                ):
+                    event["messages"][-1].pretty_print()
+            except Exception as e:
+                print(f"❌ 错误: {e}")
+            
+            print("-" * 50)
+        
+        print("\n" + "=" * 60)
+        print("✨ 演示完成！")
+        print("=" * 60)
+    
+    # 运行主函数
+    asyncio.run(main())
+
+
+

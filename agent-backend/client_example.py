@@ -11,12 +11,14 @@ client = get_client(url="http://localhost:2025")
 # - Album, Artist, Customer, Employee, Genre, Invoice, InvoiceLine
 # - MediaType, Playlist, PlaylistTrack, Track
 AGENT_TESTS = [
-    ("sql_agent", "显示数据库中的表列表"),
-    ("sql_agent_hitl", "查询每个客户的订单数量"),
-    ("sql_agent_graph", "哪个音乐类型的曲目平均时长最长？"),
-    ("api_agent", "获取宠物店 API 的信息"),
-    ("text2sql_agent", "查询销售额最高的前5位艺术家"),
-    ("text2case_agent", "根据登录功能生成测试用例"),
+    ("sql_agent_hitl", "查询每个客户的订单数量"),  # SQL Agent with Human-in-the-Loop
+    ("sql_agent_graph", "哪个音乐类型的曲目平均时长最长？"),  # SQL Agent Graph
+    ("api_agent", "获取宠物店 API 的信息"),  # API Agent
+    ("text2sql_agent", "查询销售额最高的前5位艺术家"),  # Text-to-SQL Agent
+    ("text2case_agent", "根据登录功能生成测试用例"),  # Text-to-Case Agent
+    ("rag_agent", "什么是机器学习？"),  # RAG Agent
+    ("react_agent_func", "计算 2 + 2 的结果"),  # ReAct Agent (Functional API)
+    ("supervisor_agent", "帮我查询数据库中有多少个客户"),  # Supervisor Agent
 ]
 
 
@@ -31,53 +33,29 @@ class AgentStep:
 
 @dataclass
 class TestResult:
-    """测试结果"""
+    """测试结果（独立测试版本）"""
     question: str
     final_answer: str = ""
     steps: List[AgentStep] = field(default_factory=list)
     total_tokens: int = 0
     success: bool = True
     error: str = ""
-    thread_id: str = ""
 
 
-async def get_or_create_thread(thread_id: Optional[str] = None) -> str:
-    """获取或创建持久化 thread
-    
-    Args:
-        thread_id: 可选的 thread_id，如果提供则尝试使用现有 thread
-        
-    Returns:
-        thread_id
-    """
-    if thread_id:
-        # 尝试获取现有 thread
-        try:
-            thread = await client.threads.get(thread_id)
-            return thread["thread_id"]
-        except Exception:
-            pass
-    
-    # 创建新 thread
-    thread = await client.threads.create()
-    return thread["thread_id"]
+
 
 
 async def run_agent_test(
     agent_name: str, 
     question: str, 
-    verbose: bool = False,
-    thread_id: Optional[str] = None,
-    use_persistent_thread: bool = True
+    verbose: bool = False
 ) -> TestResult:
-    """通用的 Agent 测试函数
+    """独立的 Agent 测试函数（无线程依赖）
     
     Args:
         agent_name: Agent 名称
         question: 测试问题
         verbose: 是否输出详细日志
-        thread_id: 可选的 thread_id（用于会话持久化）
-        use_persistent_thread: 是否使用持久化 thread
         
     Returns:
         测试结果
@@ -89,16 +67,10 @@ async def run_agent_test(
     print(f"❓ 问题: {question}")
     print("-" * 70)
     
-    # 获取或创建 thread
-    if use_persistent_thread:
-        result.thread_id = await get_or_create_thread(thread_id)
-        print(f"📌 Thread ID: {result.thread_id}")
-    else:
-        result.thread_id = ""
-    
     try:
+        # 使用 threadless 运行模式，每个测试完全独立
         async for chunk in client.runs.stream(
-            result.thread_id if use_persistent_thread else None,
+            None,  # Threadless run
             agent_name,
             input={
                 "messages": [{
@@ -107,6 +79,11 @@ async def run_agent_test(
                 }],
             },
         ):
+            if verbose:
+                print(f"Receiving new event of type: {chunk.event}...")
+                print(chunk.data)
+                print("\n")
+            
             if chunk.event == "values":
                 messages = chunk.data.get("messages", [])
                 if messages:
@@ -159,7 +136,7 @@ async def run_agent_test(
 
 
 def print_result(result: TestResult, agent_name: str):
-    """打印测试结果"""
+    """打印测试结果（独立测试版本）"""
     print("\n" + "=" * 70)
     print("📊 测试结果摘要")
     print("=" * 70)
@@ -167,10 +144,6 @@ def print_result(result: TestResult, agent_name: str):
     # 状态
     status = "✅ 成功" if result.success else f"❌ 失败: {result.error}"
     print(f"状态: {status}")
-    
-    # Thread ID
-    if result.thread_id:
-        print(f"Thread ID: {result.thread_id}")
     
     # 执行流程
     print(f"\n📍 执行流程 ({len(result.steps)} 步):")
@@ -234,76 +207,198 @@ def print_result(result: TestResult, agent_name: str):
     print("\n" + "=" * 70)
 
 
-async def test_all_agents():
-    """依次测试所有 Agent"""
-    for agent_name, question in AGENT_TESTS:
-        result = await run_agent_test(agent_name, question, use_persistent_thread=True)
+async def test_single_agent(agent_name: str, question: str = None, verbose: bool = True):
+    """单独测试某个特定的 Agent
+    
+    Args:
+        agent_name: Agent 名称
+        question: 测试问题（如果为 None，则使用默认问题）
+        verbose: 是否输出详细日志
+        
+    Returns:
+        TestResult: 测试结果
+    """
+    # 如果没有提供问题，从 AGENT_TESTS 中找到对应的问题
+    if question is None:
+        for name, default_question in AGENT_TESTS:
+            if name == agent_name:
+                question = default_question
+                break
+        else:
+            question = "测试智能体功能"  # 默认问题
+    
+    print(f"\n{'='*70}")
+    print(f"🎯 单独测试 Agent: {agent_name}")
+    print(f"❓ 问题: {question}")
+    print("=" * 70)
+    
+    # 运行测试
+    result = await run_agent_test(agent_name, question, verbose=verbose)
+    
+    # 打印结果
+    print_result(result, agent_name)
+    
+    return result
+
+
+# 每个智能体的独立测试方法
+def create_agent_test_function(agent_name: str, default_question: str):
+    """为特定智能体创建测试函数"""
+    async def test_function(custom_question: str = None, verbose: bool = True):
+        """测试 {agent_name} 智能体
+        
+        Args:
+            custom_question: 自定义问题（如果为 None，使用默认问题）
+            verbose: 是否输出详细日志
+            
+        Returns:
+            TestResult: 测试结果
+        """
+        question = custom_question if custom_question is not None else default_question
+        print(f"\n{'='*70}")
+        print(f"🎯 测试 {agent_name} 智能体")
+        print(f"❓ 问题: {question}")
+        print("=" * 70)
+        
+        result = await run_agent_test(agent_name, question, verbose=verbose)
         print_result(result, agent_name)
+        return result
+    
+    # 设置函数名称和文档字符串
+    test_function.__name__ = f"test_{agent_name}"
+    test_function.__doc__ = f"""测试 {agent_name} 智能体
+    
+    Args:
+        custom_question: 自定义问题（如果为 None，使用默认问题 '{default_question}'）
+        verbose: 是否输出详细日志
+        
+    Returns:
+        TestResult: 测试结果
+    """
+    return test_function
+
+# 为每个智能体创建独立的测试函数
+test_sql_agent_hitl = create_agent_test_function("sql_agent_hitl", "查询每个客户的订单数量")
+test_sql_agent_graph = create_agent_test_function("sql_agent_graph", "哪个音乐类型的曲目平均时长最长？")
+test_api_agent = create_agent_test_function("api_agent", "获取宠物店 API 的信息")
+test_text2sql_agent = create_agent_test_function("text2sql_agent", "查询销售额最高的前5位艺术家")
+test_text2case_agent = create_agent_test_function("text2case_agent", "根据登录功能生成测试用例")
+test_rag_agent = create_agent_test_function("rag_agent", "什么是机器学习？")
+test_react_agent_func = create_agent_test_function("react_agent_func", "计算 2 + 2 的结果")
+test_supervisor_agent = create_agent_test_function("supervisor_agent", "帮我查询数据库中有多少个客户")
+
+# 智能体测试映射表
+AGENT_TEST_FUNCTIONS = {
+    "sql_agent_hitl": test_sql_agent_hitl,
+    "sql_agent_graph": test_sql_agent_graph,
+    "api_agent": test_api_agent,
+    "text2sql_agent": test_text2sql_agent,
+    "text2case_agent": test_text2case_agent,
+    "rag_agent": test_rag_agent,
+    "react_agent_func": test_react_agent_func,
+    "supervisor_agent": test_supervisor_agent,
+}
 
 
 async def test_conversation_memory(agent_name: str = "text2sql_agent"):
-    """测试会话记忆功能
+    """测试会话记忆功能（已废弃 - 需要持久化线程）
     
-    连续发送多个问题到同一个 thread，验证记忆是否生效
+    注意：此函数需要持久化线程支持，与新版本的独立测试模式不兼容。
+    如需测试会话记忆，请使用支持线程的旧版本代码。
     """
     print(f"\n{'='*70}")
-    print(f"🧠 测试会话记忆 - {agent_name}")
+    print(f"⚠️ 会话记忆测试已废弃")
+    print("=" * 70)
+    print("此功能需要持久化线程支持，当前版本使用独立测试模式。")
+    print("如需测试会话记忆功能，请使用支持线程的旧版本代码。")
+
+
+async def demo_single_agent_testing():
+    """演示如何单独测试特定智能体"""
+    print(f"\n{'='*70}")
+    print("🎯 单独智能体测试演示")
     print("=" * 70)
     
-    # 创建一个持久化 thread
-    thread = await client.threads.create()
-    thread_id = thread["thread_id"]
-    print(f"📌 创建 Thread: {thread_id}")
+    # 示例1：测试 ReAct Agent 的数学计算能力
+    print("\n📍 示例1：测试 ReAct Agent 的数学计算能力")
+    await test_single_agent("react_agent_func", "计算 2 + 2 的结果")
     
-    # 连续发送多个相关问题
-    questions = [
-        "查询所有艺术家的名称",
-        "上一个查询返回了多少条记录？",  # 这个问题需要记忆才能回答
-        "帮我筛选出名字以 A 开头的艺术家",
-    ]
+    # 示例2：测试 Text-to-SQL Agent 的数据库查询能力
+    print(f"\n{'='*70}")
+    print("📍 示例2：测试 Text-to-SQL Agent 的数据库查询能力")
+    await test_single_agent("text2sql_agent", "查询销售额最高的前3位艺术家")
     
-    for i, question in enumerate(questions, 1):
-        print(f"\n--- 第 {i} 轮对话 ---")
-        result = await run_agent_test(
-            agent_name, 
-            question, 
-            verbose=True,
-            thread_id=thread_id,
-            use_persistent_thread=True
-        )
-        print(f"答案: {result.final_answer[:200] if result.final_answer else '(无)'}")
+    # 示例3：测试 RAG Agent 的知识问答能力
+    print(f"\n{'='*70}")
+    print("📍 示例3：测试 RAG Agent 的知识问答能力")
+    await test_single_agent("rag_agent", "什么是机器学习？")
     
-    print(f"\n✅ 会话记忆测试完成，Thread ID: {thread_id}")
-    print("   可以使用此 Thread ID 继续对话")
+    # 示例4：使用自定义问题测试任意智能体
+    print(f"\n{'='*70}")
+    print("📍 示例4：使用自定义问题测试任意智能体")
+    await test_single_agent("supervisor_agent", "帮我查询数据库中有多少个客户", verbose=True)
+
+
+async def test_all_agents():
+    """场景化测试所有智能体"""
+    print("🎯 场景化测试所有智能体")
+    print("=" * 70)
+    
+    # 按场景顺序测试所有智能体
+    await test_sql_agent_hitl()
+    await test_sql_agent_graph()
+    await test_api_agent()
+    await test_text2sql_agent()
+    await test_text2case_agent()
+    await test_rag_agent()
+    await test_react_agent_func()
+    await test_supervisor_agent()
 
 
 async def main():
-    """主函数"""
+    """主函数 - 支持场景化单独测试或全部测试"""
+    import sys
+    
     print("🎯 LangGraph 客户端测试")
     print("📍 服务器地址: http://localhost:2025")
-    print("📚 可用 Agents: sql_agent, sql_agent_hitl, sql_agent_graph, api_agent, text2sql_agent, text2case_agent")
+    print("📚 可用 Agents: sql_agent_hitl, sql_agent_graph, api_agent, text2sql_agent, text2case_agent, rag_agent, react_agent_func, supervisor_agent")
+    print("")
     
-    # 单独测试某个 Agent（使用 Chinook 数据库相关问题）
-    # 可选问题：
-    # - "查询销售额最高的前5位艺术家"
-    # - "哪个音乐类型的曲目平均时长最长？"
-    # - "查询每个客户的订单数量"
-    # - "列出所有专辑及其艺术家名称"
-    # - "查询2010年的总销售额"
-    
-    # 测试 text2sql（带持久化记忆）
-    # result = await run_agent_test("text2sql_agent", "查询销售额最高的前5位艺术家", verbose=True)
-    # print_result(result, "text2sql_agent")
-    
-    # 测试 text2case（带持久化记忆）
-    # result = await run_agent_test("text2case_agent", "根据登录功能生成测试用例", verbose=True)
-    # print_result(result, "text2case_agent")
-    
-    # 测试会话记忆
-    await test_conversation_memory("text2sql_agent")
-    
-    # 测试所有 Agent
-    # await test_all_agents()
+    # 解析命令行参数
+    if len(sys.argv) > 1:
+        agent_name = sys.argv[1]
+        
+        # 检查是否请求演示模式
+        if agent_name == "--demo":
+            print("🎭 运行单独智能体测试演示...")
+            await demo_single_agent_testing()
+            return
+        
+        # 检查是否请求特定智能体测试
+        if agent_name in AGENT_TEST_FUNCTIONS:
+            test_function = AGENT_TEST_FUNCTIONS[agent_name]
+            print(f"🎯 场景化测试智能体: {agent_name}")
+            
+            # 检查是否有自定义问题
+            if len(sys.argv) > 2:
+                custom_question = " ".join(sys.argv[2:])
+                await test_function(custom_question, verbose=True)
+            else:
+                await test_function(verbose=True)
+        else:
+            print(f"❌ 未知的智能体: {agent_name}")
+            print("可用的智能体:")
+            for name, question in AGENT_TESTS:
+                print(f"  - {name}: {question}")
+            print("\n使用方法:")
+            print("  python client_example.py                    # 场景化测试所有智能体")
+            print("  python client_example.py agent_name         # 场景化测试特定智能体")
+            print("  python client_example.py agent_name '问题'  # 使用自定义问题场景化测试")
+            print("  python client_example.py --demo             # 运行演示模式")
+    else:
+        # 没有参数，场景化测试所有智能体
+        print("🎯 场景化测试所有智能体（每个 Agent 都是独立的场景）")
+        await test_all_agents()
 
 
 if __name__ == "__main__":

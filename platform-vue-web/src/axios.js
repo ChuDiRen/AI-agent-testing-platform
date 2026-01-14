@@ -1,175 +1,220 @@
-import axios from "axios" // 修复循环导入问题
-import { ref } from "vue"
+import axios from "axios"
 import { ElLoading, ElMessage } from 'element-plus'
 import router from './router/index.js'
+import { useUserStore } from '~/stores/index.js'
 
 const service = axios.create({
-    baseURL: "/api"
+    baseURL: "/api",
+    timeout: 30000 // 30秒超时
 })
-const nums = ref(0)
-const loading = ref(null)
 
-// 是否正在刷新 token
-let isRefreshing = false
-// 等待刷新 token 的请求队列
-let requestsQueue = []
+// Loading 状态管理
+let loadingInstance = null
+let requestCount = 0
 
-function open() {
-    if (nums.value <= 0) {
-        loading.value = ElLoading.service({
+/**
+ * 显示 Loading
+ */
+function showLoading() {
+    requestCount++
+    if (requestCount === 1) {
+        loadingInstance = ElLoading.service({
             lock: true,
-            text: '加载中',
+            text: '加载中...',
             background: 'rgba(0, 0, 0, 0.05)',
+            spinner: 'el-icon-loading'
         })
     }
-    nums.value++
 }
 
-function close() {
-    nums.value--
-    if (nums.value <= 0) {
-        nums.value = 0
-        loading.value?.close()
+/**
+ * 关闭 Loading
+ */
+function hideLoading() {
+    requestCount--
+    if (requestCount === 0 && loadingInstance) {
+        loadingInstance.close()
+        loadingInstance = null
+    }
+    if (requestCount < 0) {
+        requestCount = 0
     }
 }
 
-// 获取 token
-function getToken() {
+/**
+ * 获取 Token
+ */
+export function getToken() {
     return localStorage.getItem('token')
 }
 
-// 设置 token
-function setToken(token) {
-    localStorage.setItem('token', token)
-}
-
-// 刷新 token
-async function refreshToken() {
-    const token = getToken()
-    if (!token) return null
-
-    try {
-        const response = await axios.post('/api/refreshToken', {}, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        })
-        if (response.data.code === 200 && response.data.data?.access_token) {
-            const newToken = response.data.data.access_token
-            setToken(newToken)
-            return newToken
-        }
-        return null
-    } catch (error) {
-        console.error('刷新 token 失败:', error)
-        return null
-    }
-}
-
-// 添加请求拦截器
-service.interceptors.request.use(config => {
-    open()
-    // 自动添加 token
-    const token = getToken()
+/**
+ * 设置 Token
+ */
+export function setToken(token) {
     if (token) {
-        config.headers['Authorization'] = `Bearer ${token}`
+        localStorage.setItem('token', token)
+    } else {
+        localStorage.removeItem('token')
     }
-    return config
-}, error => {
-    close()
-    ElMessage.error('网络异常，请稍后再试')
-    return Promise.reject(error)
-})
+}
 
-// 添加响应拦截器
-service.interceptors.response.use(response => {
-    close()
-    if (response.data.code != 200) {
-        // 401 表示 token 过期，但不在这里处理（在 error 中处理 HTTP 401）
-        if (response.data.code !== 401) {
-            ElMessage.error(response.data.msg + ',状态码:' + response.data.code)
-        }
+/**
+ * 从响应中提取新的 Token
+ */
+function extractTokenFromResponse(response) {
+    const token = response.data?.data?.access_token || response.data?.data?.token
+    if (token) {
+        setToken(token)
+        return token
     }
-    return response
-}, async error => {
-    close()
+    return null
+}
 
-    const originalRequest = error.config
-
-    // 处理 401 错误（token 过期）
-    if (error.response?.status === 401 && !originalRequest._retry) {
-        // 如果是刷新 token 请求本身失败，直接跳转登录
-        if (originalRequest.url?.includes('/refreshToken')) {
-            ElMessage.error('登录已过期，请重新登录')
-            router.push('/login')
-            return Promise.reject(error)
-        }
-
-        // 标记为已重试，避免无限循环
-        originalRequest._retry = true
-
-        // 如果正在刷新 token，将请求加入队列等待
-        if (isRefreshing) {
-            return new Promise((resolve, reject) => {
-                requestsQueue.push({ resolve, reject, config: originalRequest })
-            })
-        }
-
-        isRefreshing = true
-
-        try {
-            // 刷新 token
-            const newToken = await refreshToken()
-
-            if (newToken) {
-                // 更新原请求的 token
-                originalRequest.headers['Authorization'] = `Bearer ${newToken}`
-
-                // 重新发送队列中的请求
-                requestsQueue.forEach(({ resolve, config }) => {
-                    config.headers['Authorization'] = `Bearer ${newToken}`
-                    resolve(service(config))
-                })
-                requestsQueue = []
-
-                // 重新发送原请求
-                return service(originalRequest)
-            } else {
-                // 刷新失败，跳转登录
-                ElMessage.error('登录已过期，请重新登录')
-                router.push('/login')
-                return Promise.reject(error)
-            }
-        } catch (refreshError) {
-            // 刷新失败，跳转登录
-            ElMessage.error('登录已过期，请重新登录')
-            router.push('/login')
-            return Promise.reject(refreshError)
-        } finally {
-            isRefreshing = false
-        }
-    }
-
-    // 处理其他 HTTP 错误
-    if (error.response) {
-        switch (error.response.status) {
-            case 403:
-                ElMessage.error('无权限访问')
-                router.push('/403')
-                break
-            case 500:
-                ElMessage.error('服务器错误')
-                router.push('/500')
-                break
-            case 404:
-                ElMessage.error('请求的资源不存在')
-                break
-            default:
-                ElMessage.error('网络异常，请稍后再试')
-        }
+/**
+ * 显示错误消息
+ */
+function showError(error) {
+    // 优先使用后端返回的错误消息
+    if (error.response?.data?.msg) {
+        ElMessage.error(error.response.data.msg)
+    } else if (error.message) {
+        ElMessage.error(error.message)
     } else {
         ElMessage.error('网络异常，请稍后再试')
     }
+}
 
-    return Promise.reject(error)
-})
+/**
+ * 处理 HTTP 状态码错误
+ */
+function handleHttpError(error) {
+    const status = error.response?.status
+
+    switch (status) {
+        case 401:
+            // Token 过期或无效，在拦截器中统一处理
+            break
+        case 403:
+            ElMessage.error('无权限访问')
+            router.push('/403')
+            break
+        case 404:
+            ElMessage.error('请求的资源不存在')
+            break
+        case 500:
+            ElMessage.error('服务器错误')
+            router.push('/500')
+            break
+        case 502:
+        case 503:
+        case 504:
+            ElMessage.error('服务暂时不可用，请稍后再试')
+            break
+        default:
+            if (status && status >= 500) {
+                ElMessage.error('服务器错误，请稍后再试')
+            }
+    }
+}
+
+/**
+ * 检查是否需要跳转到登录页
+ */
+function shouldRedirectToLogin(error) {
+    const status = error.response?.status
+    const url = error.config?.url
+
+    // 401 错误（Token 过期）但不是刷新 Token 的请求
+    if (status === 401 && !url?.includes('/refreshToken')) {
+        return true
+    }
+
+    return false
+}
+
+/**
+ * 清除用户信息并跳转到登录页
+ */
+function clearUserAndRedirect() {
+    const userStore = useUserStore()
+    userStore.clearUserInfo()
+    ElMessage.warning('登录已过期，请重新登录')
+    router.push('/login')
+}
+
+// 请求拦截器
+service.interceptors.request.use(
+    config => {
+        // 显示 Loading（可以在特定请求中通过 skipLoading: true 跳过）
+        if (!config.skipLoading) {
+            showLoading()
+        }
+
+        // 自动添加 Token
+        const token = getToken()
+        if (token) {
+            config.headers = config.headers || {}
+            config.headers['Authorization'] = `Bearer ${token}`
+        }
+
+        return config
+    },
+    error => {
+        hideLoading()
+        ElMessage.error('网络异常，请稍后再试')
+        return Promise.reject(error)
+    }
+)
+
+// 响应拦截器
+service.interceptors.response.use(
+    response => {
+        hideLoading()
+
+        // 提取并保存新的 Token（如果有的话）
+        const newToken = extractTokenFromResponse(response)
+        if (newToken) {
+            console.log('Token 已刷新')
+        }
+
+        // 检查业务状态码
+        if (response.data?.code && response.data.code !== 200) {
+            // 401 表示 Token 过期
+            if (response.data.code === 401) {
+                clearUserAndRedirect()
+                return Promise.reject(new Error('Token 已过期'))
+            }
+
+            // 其他业务错误
+            const errorMsg = response.data.msg || '操作失败'
+            if (response.data.code !== 401) {
+                ElMessage.error(errorMsg)
+            }
+
+            return Promise.reject(new Error(errorMsg))
+        }
+
+        return response
+    },
+    error => {
+        hideLoading()
+
+        // 处理 HTTP 错误
+        if (error.response) {
+            handleHttpError(error)
+
+            // 检查是否需要跳转到登录页
+            if (shouldRedirectToLogin(error)) {
+                clearUserAndRedirect()
+            }
+        } else {
+            // 网络错误或超时
+            showError(error)
+        }
+
+        return Promise.reject(error)
+    }
+)
 
 export default service

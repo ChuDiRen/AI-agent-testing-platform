@@ -5,11 +5,11 @@ import sys
 
 # 添加父目录到路径，以便导入自定义工具
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import init_chat_model  # 使用自定义的init_chat_model（支持硅基流动）
+from utils import load_chat_model  # 使用自定义的load_chat_model（支持硅基流动）
 from langchain.tools import tool
 
 os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem"
-model = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
+model = load_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
 # 定义工具函数
 @tool
 def multiply(a: int, b: int) -> int:
@@ -51,7 +51,7 @@ model_with_tools = model.bind_tools(tools)
 
 # 步骤2: 定义状态
 
-from langchain.messages import AnyMessage
+from langchain.messages import AnyMessage, HumanMessage
 from typing_extensions import TypedDict, Annotated
 import operator
 
@@ -137,3 +137,24 @@ agent_builder.add_edge("tool_node", "llm_call")
 
 # 编译智能体
 graph = agent_builder.compile()
+
+
+# ============ LangGraph API 工厂函数 ============
+
+def get_graph():
+    """
+    工厂函数 - 返回 React Agent Graph
+
+    供 LangGraph API 使用
+
+    Returns:
+        编译好的 React Agent Graph
+    """
+    return graph
+
+# 调用示例
+if __name__ == "__main__":
+    agent = get_graph()
+    question = "计算 3 加 4"
+    for step in agent.stream({"messages": [HumanMessage(content=question)]}, stream_mode="values"):
+        step["messages"][-1].pretty_print()

@@ -38,3 +38,13 @@ export function getUserRoles(userId) {
 export function updateStatus(data) {
     return axios.put(`/${module_name}/updateStatus?_alias=user-status`, data)
 }
+
+// 批量更新用户状态
+export function batchUpdateStatus(data) {
+    return axios.post(`/${module_name}/batchUpdateStatus?_alias=user-batch-status`, data)
+}
+
+// 批量删除用户
+export function batchDelete(data) {
+    return axios.post(`/${module_name}/batchDelete?_alias=user-batch-delete`, data)
+}

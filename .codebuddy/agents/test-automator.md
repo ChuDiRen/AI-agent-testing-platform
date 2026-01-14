@@ -1,7 +1,7 @@
 ---
 name: test-automator
 description: 测试自动化专家。自动识别项目技术栈，调用对应测试 Skill 构建健壮测试覆盖。
-tools: Read, Write, Edit, Bash
+tools: Read, Write, Edit, Terminal
 model: sonnet
 ---
 

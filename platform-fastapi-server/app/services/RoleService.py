@@ -6,7 +6,10 @@ from sqlmodel import Session, select
 
 from app.models.RoleModel import Role
 from app.models.RoleMenuModel import RoleMenu
-from app.schemas.RoleSchema import RoleQuery, RoleCreate, RoleUpdate, RoleMenuAssign
+from app.schemas.RoleSchema import (
+    RoleQuery, RoleCreate, RoleUpdate, RoleMenuAssign, 
+    RoleCopy, BatchRoleDelete
+)
 
 
 class RoleService:
@@ -114,3 +117,54 @@ class RoleService:
         statement = select(RoleMenu).where(RoleMenu.role_id == role_id)
         role_menus = session.exec(statement).all()
         return [rm.menu_id for rm in role_menus]
+
+    @staticmethod
+    def copy_role(session: Session, request: RoleCopy) -> Role:
+        """复制角色及其权限"""
+        # 获取源角色
+        source_role = session.get(Role, request.source_role_id)
+        if not source_role:
+            raise ValueError("源角色不存在")
+        
+        # 创建新角色
+        new_role = Role(
+            role_name=request.role_name,
+            role_key=request.role_key,
+            remark=request.remark or f"从{source_role.role_name}复制",
+            role_sort=source_role.role_sort,
+            data_scope=source_role.data_scope,
+            status=source_role.status,
+            create_time=datetime.now()
+        )
+        session.add(new_role)
+        session.flush()  # 获取新角色的ID
+        
+        # 复制菜单权限
+        source_menus = RoleService.get_menus(session, request.source_role_id)
+        for menu_id in source_menus:
+            role_menu = RoleMenu(role_id=new_role.id, menu_id=menu_id)
+            session.add(role_menu)
+        
+        session.commit()
+        session.refresh(new_role)
+        return new_role
+
+    @staticmethod
+    def batch_delete(session: Session, request: BatchRoleDelete) -> int:
+        """批量删除角色"""
+        count = 0
+        for role_id in request.role_ids:
+            # 删除角色关联的菜单权限
+            statement = select(RoleMenu).where(RoleMenu.role_id == role_id)
+            role_menus = session.exec(statement).all()
+            for rm in role_menus:
+                session.delete(rm)
+            
+            # 删除角色
+            role = session.get(Role, role_id)
+            if role:
+                session.delete(role)
+                count += 1
+        
+        session.commit()
+        return count

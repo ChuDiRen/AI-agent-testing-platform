@@ -4,13 +4,13 @@
 使用 Supervisor + ReAct Agents 模式
 
 使用方式:
-    # 同步调用（简单模式）
-    from text2case.chat_graph import run_text2case_sync
-    result = run_text2case_sync("用户登录接口...", test_type="API")
-    
-    # 异步调用（带记忆）
+    # 异步调用（推荐）
     from text2case.chat_graph import run_text2case
     result = await run_text2case("用户登录接口...", thread_id="session_123")
+    
+    # 创建图实例
+    from text2case.chat_graph import create_text2case_graph
+    graph = await create_text2case_graph()
 """
 import sys
 import os
@@ -27,10 +27,7 @@ from .config import LLMConfig, get_model
 from .chat_graph import (
     create_text2case_graph,
     run_text2case,
-    run_text2case_sync,
-    graph,
     get_app,
-    get_app_simple,
 )
 from .models import TestCaseState, TestCaseSuite, TestCaseModule, TestCaseItem
 
@@ -40,12 +37,9 @@ __all__ = [
     'get_model',
     # 图工厂
     'create_text2case_graph',
-    'graph',
     'get_app',
-    'get_app_simple',
     # 便捷函数
     'run_text2case',
-    'run_text2case_sync',
     # 数据模型
     'TestCaseState',
     'TestCaseSuite',

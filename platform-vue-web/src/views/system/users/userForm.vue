@@ -70,12 +70,12 @@ import { queryById, insertData, updateData } from './user'
 import { getDeptTree } from '~/views/system/dept/dept'
 import { queryByPage as getRoleList } from '~/views/system/role/role'
 import { useRouter } from "vue-router"
-import { useStore } from 'vuex'
+import { useUserStore } from '~/stores/index.js'
 import { ElMessage } from 'element-plus'
 import BaseForm from '~/components/BaseForm/index.vue'
 
 const router = useRouter()
-const store = useStore()
+const userStore = useUserStore()
 
 // 判断是否为查看模式
 const isViewMode = computed(() => router.currentRoute.value.query.view === 'true')
@@ -133,12 +133,12 @@ const onBaseFormSubmit = async () => {
             const res = await updateData(ruleForm)
             if (res.data.code == 200) {
                 ElMessage.success('更新成功')
-                // 如果修改的是当前登录用户，重新获取完整的用户信息并更新 Vuex
-                if (store.state.userInfo && store.state.userInfo.id === ruleForm.id) {
+                // 如果修改的是当前登录用户，重新获取完整的用户信息并更新 Pinia store
+                if (userStore.userInfo && userStore.userInfo.id === ruleForm.id) {
                     try {
                         const userRes = await queryById(ruleForm.id)
                         if (userRes.data.code === 200) {
-                            store.commit('setUserInfo', userRes.data.data)
+                            userStore.setUserInfo(userRes.data.data)
                         }
                     } catch (error) { }
                 }
@@ -211,7 +211,15 @@ const loadData = async (id) => {
     ruleForm.email = res.data.data.email || ''
     ruleForm.mobile = res.data.data.mobile || ''
     ruleForm.dept_id = res.data.data.dept_id
-    ruleForm.role_ids = res.data.data.roles || []
+    // 后端返回的是角色名称数组，需要转换为角色ID数组
+    if (res.data.data.roles && Array.isArray(res.data.data.roles)) {
+        // 通过角色名称找到对应的角色ID
+        ruleForm.role_ids = roleOptions.value
+            .filter(role => res.data.data.roles.includes(role.role_name))
+            .map(role => role.id)
+    } else {
+        ruleForm.role_ids = []
+    }
     ruleForm.ssex = res.data.data.ssex || '2'
     ruleForm.status = res.data.data.status || '1'
     ruleForm.avatar = res.data.data.avatar || ''

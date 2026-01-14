@@ -5,6 +5,7 @@ LangGraph Dev 入口
 """
 
 import sys
+import asyncio
 from pathlib import Path
 
 # 添加父目录到 sys.path 以支持绝对导入
@@ -20,8 +21,8 @@ db_path = setup_chinook()
 config = DatabaseConfig(db_type="sqlite", database=str(db_path))
 register_connection(0, config)
 
-# 导出完整版图（Supervisor 多代理架构）
-graph = create_text2sql_graph(
+# 导出完整版图（Supervisor 多代理架构）- 异步创建
+graph = asyncio.run(create_text2sql_graph(
     connection_id=0,
     dialect="sqlite"
-)
+))

@@ -1,7 +1,7 @@
 ---
 name: data-scientist
 description: SQL查询和数据洞察的数据分析专家。主动用于数据分析任务和查询。
-tools: Bash, Read, Write
+tools: Terminal, Read, Write
 model: sonnet
 ---
 

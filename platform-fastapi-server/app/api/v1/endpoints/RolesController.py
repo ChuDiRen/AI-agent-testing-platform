@@ -5,7 +5,10 @@ from app.responses.resp_model import respModel
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
-from app.schemas.RoleSchema import RoleQuery, RoleCreate, RoleUpdate, RoleMenuAssign
+from app.schemas.RoleSchema import (
+    RoleQuery, RoleCreate, RoleUpdate, RoleMenuAssign, 
+    RoleCopy, BatchRoleDelete
+)
 from app.services.RoleService import RoleService
 
 logger = get_logger(__name__)
@@ -83,7 +86,7 @@ async def delete(id: int, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 
-@router.post("/assignMenus", summary="为角色分配菜单权限", dependencies=[Depends(check_permission("system:role:assign"))])
+@router.post("/assignMenus", summary="为角色分配菜单权限", dependencies=[Depends(check_permission("system:role:edit"))])
 async def assignMenus(request: RoleMenuAssign, session: Session = Depends(get_session)):
     """为角色分配菜单权限"""
     try:
@@ -106,4 +109,34 @@ async def getMenus(role_id: int, session: Session = Depends(get_session)):
         return respModel.ok_resp_simple(lst=menu_ids, msg="查询成功")
     except Exception as e:
         logger.error(f"操作失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
+
+@router.post("/copy", summary="复制角色", dependencies=[Depends(check_permission("system:role:add"))])
+async def copyRole(request: RoleCopy, session: Session = Depends(get_session)):
+    """复制角色及其权限"""
+    try:
+        # 检查新角色名是否已存在
+        if RoleService.check_name_exists(session, request.role_name):
+            return respModel.error_resp("角色名称已存在")
+        
+        new_role = RoleService.copy_role(session, request)
+        return respModel.ok_resp(obj=new_role, msg="角色复制成功")
+    except ValueError as e:
+        return respModel.error_resp(str(e))
+    except Exception as e:
+        session.rollback()
+        logger.error(f"复制角色失败: {e}", exc_info=True)
+        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
+
+@router.post("/batchDelete", summary="批量删除角色", dependencies=[Depends(check_permission("system:role:delete"))])
+async def batchDelete(request: BatchRoleDelete, session: Session = Depends(get_session)):
+    """批量删除角色"""
+    try:
+        count = RoleService.batch_delete(session, request)
+        return respModel.ok_resp_text(msg=f"批量删除成功，共{count}条记录")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"批量删除失败: {e}", exc_info=True)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")

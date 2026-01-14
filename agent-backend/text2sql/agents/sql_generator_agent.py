@@ -20,12 +20,11 @@ from ..tools.sql_tools import SQL_TOOLS
 
 def _create_memory_aware_sql_tools(dialect: str = "mysql") -> List:
     """创建带长期记忆支持的 SQL 工具"""
-    from memory import get_memory_manager
-    
     @tool
-    def get_similar_patterns(
+    async def get_similar_patterns(
         user_id: str,
         current_query: str,
+        store: Annotated[BaseStore, InjectedToolArg],
         limit: int = 5
     ) -> List[Dict[str, Any]]:
         """从长期记忆中获取相似的历史查询模式
@@ -40,11 +39,8 @@ def _create_memory_aware_sql_tools(dialect: str = "mysql") -> List:
         Returns:
             相似查询模式列表
         """
-        memory_manager = get_memory_manager()
-        store = memory_manager.store
-        
         namespace = ("query_patterns", user_id)
-        items = store.search(namespace, query=current_query, limit=limit)
+        items = await store.search(namespace, query=current_query, limit=limit)
         
         print(f"[Query Patterns] 搜索 '{current_query[:30]}...'，找到 {len(items)} 个相似模式")
         
@@ -60,10 +56,11 @@ def _create_memory_aware_sql_tools(dialect: str = "mysql") -> List:
         ]
     
     @tool
-    def save_generated_sql(
+    async def save_generated_sql(
         user_id: str,
         natural_query: str,
         sql: str,
+        store: Annotated[BaseStore, InjectedToolArg],
         schema_tables: Optional[List[str]] = None
     ) -> str:
         """保存生成的 SQL 到长期记忆
@@ -82,9 +79,6 @@ def _create_memory_aware_sql_tools(dialect: str = "mysql") -> List:
         import hashlib
         from datetime import datetime
         
-        memory_manager = get_memory_manager()
-        store = memory_manager.store
-        
         pattern_id = hashlib.md5(
             f"{user_id}:{natural_query}".encode()
         ).hexdigest()[:12]
@@ -92,12 +86,12 @@ def _create_memory_aware_sql_tools(dialect: str = "mysql") -> List:
         namespace = ("query_patterns", user_id)
         
         # 检查是否已存在
-        existing = store.get(namespace, pattern_id)
+        existing = await store.get(namespace, pattern_id)
         use_count = 1
         if existing:
             use_count = existing.value.get("use_count", 0) + 1
         
-        store.put(namespace, pattern_id, {
+        await store.put(namespace, pattern_id, {
             "natural_query": natural_query,
             "sql": sql,
             "dialect": dialect,
@@ -112,8 +106,9 @@ def _create_memory_aware_sql_tools(dialect: str = "mysql") -> List:
         return f"SQL 模式已保存，ID: {pattern_id}"
     
     @tool
-    def get_user_sql_preferences(
-        user_id: str
+    async def get_user_sql_preferences(
+        user_id: str,
+        store: Annotated[BaseStore, InjectedToolArg],
     ) -> Dict[str, Any]:
         """获取用户的 SQL 偏好设置
         
@@ -125,16 +120,13 @@ def _create_memory_aware_sql_tools(dialect: str = "mysql") -> List:
         Returns:
             用户偏好字典
         """
-        memory_manager = get_memory_manager()
-        store = memory_manager.store
-        
         namespace = ("user_preferences", user_id)
         
         # 获取 SQL 相关偏好
         preferences = {}
         
         for key in ["default_limit", "preferred_order", "date_format", "null_handling"]:
-            item = store.get(namespace, key)
+            item = await store.get(namespace, key)
             if item:
                 preferences[key] = item.value.get("value")
         

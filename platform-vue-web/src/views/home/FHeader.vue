@@ -41,31 +41,33 @@
 import { computed, onMounted } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useRouter } from "vue-router"
-import { useStore } from 'vuex'
+import { useAppStore, useUserStore, usePermissionStore } from '~/stores/index.js'
 import { getUserInfo } from '~/views/login/login'
 
 const router = useRouter()
-const store = useStore()
-const asideWidth = computed(() => store.state.asideWidth)
+const appStore = useAppStore()
+const userStore = useUserStore()
+const permissionStore = usePermissionStore()
+const asideWidth = computed(() => appStore.asideWidth)
 
 const handleAsideWidth = () => {
-  store.commit('handleAsideWidth')
+  appStore.handleAsideWidth()
 }
 
-// 从 Vuex 获取用户头像
+// 从 Pinia store 获取用户头像
 const circleUrl = computed(() => {
-  return store.state.userInfo?.avatar || ''
+  return userStore.userInfo?.avatar || ''
 })
 
 // 页面加载时获取用户信息
 onMounted(async () => {
-  // 如果 Vuex 中没有用户信息，但有 token，则通过 token 重新获取
+  // 如果 Pinia store 中没有用户信息，但有 token，则通过 token 重新获取
   const token = localStorage.getItem('token')
-  if (!store.state.userInfo && token) {
+  if (!userStore.userInfo && token) {
     try {
       const res = await getUserInfo()
       if (res.data.code === 200) {
-        store.commit('setUserInfo', res.data.data)
+        userStore.setUserInfo(res.data.data)
       }
     } catch (error) {
       // 静默处理错误
@@ -74,17 +76,23 @@ onMounted(async () => {
 })
 
 // 主题相关
-const isDark = computed(() => store.state.theme === 'dark')
+const isDark = computed(() => appStore.theme === 'dark')
 
 const toggleTheme = () => {
-  store.commit('toggleTheme')
+  appStore.toggleTheme()
 }
 
 function handleLogout() {
   showModal("是否要退出登录？", "warning", "").then((res) => {
+    // 清除动态路由
+    permissionStore.clearRoutes()
+    
+    // 清除用户信息
     localStorage.removeItem('token')
     localStorage.removeItem('username')
-    store.commit('clearUserInfo')
+    userStore.clearUserInfo()
+    
+    // 跳转到登录页
     router.push("/login");
   });
 }
@@ -128,6 +136,7 @@ function showModal(content,type,title){
   cursor: pointer;
   transition: all 0.3s ease;
   min-width: 250px;
+  white-space: nowrap;
 }
 
 .logo:hover {
@@ -137,6 +146,7 @@ function showModal(content,type,title){
 .logo-icon {
   font-size: 28px;
   animation: rotate 20s linear infinite;
+  flex-shrink: 0;
 }
 
 @keyframes rotate {
@@ -151,6 +161,7 @@ function showModal(content,type,title){
   padding: 8px;
   border-radius: 8px;
   transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
 .icon-btn:hover {
@@ -166,6 +177,7 @@ function showModal(content,type,title){
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .theme-toggle:hover {
@@ -181,6 +193,7 @@ function showModal(content,type,title){
   padding: 4px 8px;
   border-radius: 8px;
   transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
 .user-dropdown:hover {
@@ -204,6 +217,39 @@ function showModal(content,type,title){
   
   .f-header {
     padding: 0 16px;
+    gap: 12px;
+  }
+  
+  .icon-btn {
+    margin-left: 12px;
+    padding: 6px;
+  }
+  
+  .theme-toggle,
+  .user-dropdown {
+    padding: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .f-header {
+    padding: 0 12px;
+    height: 56px;
+  }
+  
+  .logo-icon {
+    font-size: 24px;
+  }
+  
+  .icon-btn {
+    margin-left: 8px;
+    font-size: 20px;
+    padding: 5px;
+  }
+  
+  .theme-toggle,
+  .user-dropdown {
+    padding: 5px;
   }
 }
 </style>

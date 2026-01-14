@@ -1,0 +1,71 @@
+<template>
+  <div class="base-pagination">
+    <el-pagination
+      v-model:current-page="currentPage"
+      v-model:page-size="currentPageSize"
+      :page-sizes="[10, 20, 50, 100]"
+      :total="total"
+      layout="total, sizes, prev, pager, next, jumper"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+    />
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({
+  modelValue: {
+    type: Object,
+    default: () => ({ page: 1, pageSize: 10 })
+  },
+  total: {
+    type: Number,
+    default: 0
+  }
+})
+
+const emit = defineEmits(['update:modelValue', 'change'])
+
+const currentPage = computed({
+  get: () => props.modelValue.page,
+  set: (val) => {
+    emit('update:modelValue', { ...props.modelValue, page: val })
+  }
+})
+
+const currentPageSize = computed({
+  get: () => props.modelValue.pageSize,
+  set: (val) => {
+    emit('update:modelValue', { ...props.modelValue, pageSize: val })
+  }
+})
+
+const handleSizeChange = (pageSize) => {
+  const newValue = { page: 1, pageSize }
+  emit('update:modelValue', newValue)
+  emit('change', newValue)
+}
+
+const handleCurrentChange = (page) => {
+  const newValue = { ...props.modelValue, page }
+  emit('update:modelValue', newValue)
+  emit('change', newValue)
+}
+</script>
+
+<style scoped>
+.base-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+/* 大屏幕适配 */
+@media (min-width: 1920px) {
+  .base-pagination {
+    margin-top: 24px;
+  }
+}
+</style>

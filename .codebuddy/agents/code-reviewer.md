@@ -1,7 +1,7 @@
 ---
 name: code-reviewer
 description: 专家代码审查专家。主动审查代码的质量、安全性和可维护性。在编写或修改代码后立即使用。
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Terminal
 model: inherit
 ---
 

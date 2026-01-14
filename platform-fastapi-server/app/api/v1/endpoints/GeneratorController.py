@@ -110,24 +110,102 @@ async def download(request: GenerateRequest, session: Session = Depends(get_sess
         
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            # 后端代码
             if 'model' in code_files:
-                zip_file.writestr(f"{table.module_name}/model/{table.class_name}.py", code_files['model'])
+                zip_file.writestr(f"backend/{table.module_name}/models/{table.class_name}Model.py", code_files['model'])
             
             if 'schema' in code_files:
-                zip_file.writestr(f"{table.module_name}/schemas/{table.business_name}_schema.py", code_files['schema'])
+                zip_file.writestr(f"backend/{table.module_name}/schemas/{table.class_name}Schema.py", code_files['schema'])
+            
+            if 'service' in code_files:
+                zip_file.writestr(f"backend/{table.module_name}/services/{table.class_name}Service.py", code_files['service'])
             
             if 'controller' in code_files:
-                zip_file.writestr(f"{table.module_name}/api/{table.class_name}Controller.py", code_files['controller'])
+                zip_file.writestr(f"backend/{table.module_name}/api/{table.class_name}Controller.py", code_files['controller'])
             
-            if 'readme' in code_files:
-                zip_file.writestr("README.md", code_files['readme'])
+            # 前端代码
+            if 'list.vue' in code_files:
+                zip_file.writestr(f"frontend/{table.business_name}/{table.business_name}List.vue", code_files['list.vue'])
+            
+            if 'form.vue' in code_files:
+                zip_file.writestr(f"frontend/{table.business_name}/{table.business_name}Form.vue", code_files['form.vue'])
+            
+            if 'api.js' in code_files:
+                zip_file.writestr(f"frontend/{table.business_name}/{table.business_name}.js", code_files['api.js'])
+            
+            # 前端公共组件
+            if 'BaseSearch.vue' in code_files:
+                zip_file.writestr(f"frontend/components/BaseSearch/index.vue", code_files['BaseSearch.vue'])
+            
+            if 'BaseTable.vue' in code_files:
+                zip_file.writestr(f"frontend/components/BaseTable/index.vue", code_files['BaseTable.vue'])
+            
+            if 'BasePagination.vue' in code_files:
+                zip_file.writestr(f"frontend/components/BasePagination/index.vue", code_files['BasePagination.vue'])
+            
+            if 'BaseForm.vue' in code_files:
+                zip_file.writestr(f"frontend/components/BaseForm/index.vue", code_files['BaseForm.vue'])
+            
+            # 工具函数
+            if 'timeFormatter.js' in code_files:
+                zip_file.writestr(f"frontend/utils/timeFormatter.js", code_files['timeFormatter.js'])
+            
+            # README
+            readme_content = f"""# {table.function_name} 代码生成说明
+
+## 表信息
+- 表名: {table.table_name}
+- 类名: {table.class_name}
+- 模块名: {table.module_name}
+- 业务名: {table.business_name}
+
+## 后端文件
+- Model: backend/{table.module_name}/models/{table.class_name}Model.py
+- Schema: backend/{table.module_name}/schemas/{table.class_name}Schema.py
+- Service: backend/{table.module_name}/services/{table.class_name}Service.py
+- Controller: backend/{table.module_name}/api/{table.class_name}Controller.py
+
+## 前端文件
+- 列表页: frontend/{table.business_name}/{table.business_name}List.vue
+- 表单页: frontend/{table.business_name}/{table.business_name}Form.vue
+- API: frontend/{table.business_name}/{table.business_name}.js
+
+## 前端公共组件
+- BaseSearch: frontend/components/BaseSearch/index.vue
+- BaseTable: frontend/components/BaseTable/index.vue
+- BasePagination: frontend/components/BasePagination/index.vue
+- BaseForm: frontend/components/BaseForm/index.vue
+
+## 前端文件
+- 列表页: frontend/{table.business_name}/{table.business_name}List.vue
+- 表单页: frontend/{table.business_name}/{table.business_name}Form.vue
+- API: frontend/{table.business_name}/{table.business_name}.js
+
+## 前端公共组件
+- BaseSearch: frontend/components/BaseSearch/index.vue
+- BaseTable: frontend/components/BaseTable/index.vue
+- BasePagination: frontend/components/BasePagination/index.vue
+- BaseForm: frontend/components/BaseForm/index.vue
+
+## 工具函数
+- timeFormatter: frontend/utils/timeFormatter.js
+
+## 使用说明
+1. 将后端文件复制到对应目录
+2. 将前端文件复制到对应目录
+3. **将公共组件复制到 src/components 目录**
+4. **将工具函数复制到 src/utils 目录**
+5. 根据实际需求调整代码
+6. 测试功能是否正常
+"""
+            zip_file.writestr("README.md", readme_content)
         
         try:
             history = GenHistory(
                 table_id=request.table_id,
                 table_name=table.table_name,
                 gen_type='1',
-                file_count=4,
+                file_count=len(code_files),
                 status='1',
                 create_time=datetime.now()
             )
@@ -176,14 +254,36 @@ async def batchDownload(request: GenerateBatchRequest, session: Session = Depend
                     logger.warning(f"表{table.table_name}代码生成失败,跳过")
                     continue
                 
+                # 后端代码
                 if 'model' in code_files:
-                    zip_file.writestr(f"{table.business_name}/model/{table.class_name}.py", code_files['model'])
+                    zip_file.writestr(f"{table.business_name}/backend/models/{table.class_name}Model.py", code_files['model'])
                 if 'schema' in code_files:
-                    zip_file.writestr(f"{table.business_name}/schemas/{table.business_name}_schema.py", code_files['schema'])
+                    zip_file.writestr(f"{table.business_name}/backend/schemas/{table.class_name}Schema.py", code_files['schema'])
+                if 'service' in code_files:
+                    zip_file.writestr(f"{table.business_name}/backend/services/{table.class_name}Service.py", code_files['service'])
                 if 'controller' in code_files:
-                    zip_file.writestr(f"{table.business_name}/api/{table.class_name}Controller.py", code_files['controller'])
-                if 'readme' in code_files:
-                    zip_file.writestr(f"{table.business_name}/README.md", code_files['readme'])
+                    zip_file.writestr(f"{table.business_name}/backend/api/{table.class_name}Controller.py", code_files['controller'])
+                
+                # 前端代码
+                if 'list.vue' in code_files:
+                    zip_file.writestr(f"{table.business_name}/frontend/{table.business_name}List.vue", code_files['list.vue'])
+                if 'form.vue' in code_files:
+                    zip_file.writestr(f"{table.business_name}/frontend/{table.business_name}Form.vue", code_files['form.vue'])
+                if 'api.js' in code_files:
+                    zip_file.writestr(f"{table.business_name}/frontend/{table.business_name}.js", code_files['api.js'])
+                
+                # 前端公共组件(只在第一个表时生成一次)
+                if table_id == request.table_ids[0]:
+                    if 'BaseSearch.vue' in code_files:
+                        zip_file.writestr(f"frontend-components/BaseSearch/index.vue", code_files['BaseSearch.vue'])
+                    if 'BaseTable.vue' in code_files:
+                        zip_file.writestr(f"frontend-components/BaseTable/index.vue", code_files['BaseTable.vue'])
+                    if 'BasePagination.vue' in code_files:
+                        zip_file.writestr(f"frontend-components/BasePagination/index.vue", code_files['BasePagination.vue'])
+                    if 'BaseForm.vue' in code_files:
+                        zip_file.writestr(f"frontend-components/BaseForm/index.vue", code_files['BaseForm.vue'])
+                    if 'timeFormatter.js' in code_files:
+                        zip_file.writestr(f"frontend-utils/timeFormatter.js", code_files['timeFormatter.js'])
                 
                 try:
                     history = GenHistory(

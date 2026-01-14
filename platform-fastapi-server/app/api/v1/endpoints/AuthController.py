@@ -53,7 +53,9 @@ async def get_userinfo(current_user: dict = Depends(get_current_user), session: 
             "avatar": user.avatar,
             "description": user.description,
             "create_time": user.create_time.isoformat() if user.create_time else None,
-            "last_login_time": user.last_login_time.isoformat() if user.last_login_time else None
+            "last_login_time": user.last_login_time.isoformat() if user.last_login_time else None,
+            "permissions": current_user.get("permissions", []),
+            "roles": current_user.get("user_roles", [])
         }
         return respModel.ok_resp(obj=user_dict, msg="获取用户信息成功")
     except Exception as e:

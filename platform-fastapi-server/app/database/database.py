@@ -67,48 +67,4 @@ def init_data(): # 初始化数据库数据
         else:
             logger.warning("开发环境数据初始化失败,应用继续启动")
             # 开发环境允许继续启动,方便调试
-    
-    # 自动同步前端视图到菜单
-    sync_frontend_views()
-
-
-def sync_frontend_views():
-    """
-    自动扫描前端视图目录，同步菜单数据到数据库
-    
-    - 扫描 platform-vue-web/src/views 目录
-    - 自动创建缺失的菜单项
-    - Form 页面自动设为隐藏
-    - 自动为管理员角色分配权限
-    """
-    try:
-        from pathlib import Path
-        
-        # 计算前端 views 目录路径
-        # 当前文件: platform-fastapi-server/app/database/database.py
-        # views 目录: platform-vue-web/src/views
-        current_dir = Path(__file__).parent  # platform-fastapi-server/app/database
-        project_root = current_dir.parent.parent.parent  # AI-agent-testing-platform
-        views_path = project_root / "platform-vue-web" / "src" / "views"
-        
-        if not views_path.exists():
-            logger.warning(f"前端 views 目录不存在，跳过菜单同步: {views_path}")
-            return
-        
-        logger.info(f"开始同步前端视图到菜单: {views_path}")
-        
-        from app.services.ViewScanService import ViewScanService
-        
-        with Session(engine) as session:
-            service = ViewScanService(str(views_path))
-            stats = service.sync_to_database(session, admin_role_id=1)
-            
-            if stats['added_menus'] > 0:
-                logger.info(f"✓ 菜单同步完成: 添加 {stats['added_menus']} 个菜单, {stats['added_permissions']} 条权限")
-            else:
-                logger.info("✓ 菜单已是最新状态，无需同步")
-                
-    except Exception as e:
-        logger.error(f"前端视图同步失败: {e}", exc_info=True)
-        # 同步失败不影响应用启动
 

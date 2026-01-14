@@ -4,12 +4,17 @@
     "."
   ],
   "graphs": {
-    "sql_agent": "./examples/sql_agent.py:agent_old",
     "sql_agent_hitl": "./examples/sql_agent.py:agent_hitl",
-    "sql_agent_graph": "./examples/sql_agent_graph.py:agent_old",
-    "api_agent": "./examples/api_agent.py:agent_auto",
+    "sql_agent_graph": "./examples/sql_agent_graph.py:get_graph",
+    "sql_agent_skills": "./examples/sql_agent_skills/logic/agent.py:create_skills_agent",
+    "api_agent": "./examples/api_agent.py:get_agent_auto",
     "text2sql_agent": "./text2sql/chat_graph.py:get_app",
-    "text2case_agent": "./text2case/chat_graph.py:get_app"
+    "text2case_agent": "./text2case/chat_graph.py:get_app",
+    "rag_agent": "./examples/rag_agent.py:get_rag_agent",
+    "rag_agent_graph": "./examples/rag_agent_graph.py:get_graph",
+    "react_agent_func": "./examples/react_agent_functional_api.py:get_agent_func",
+    "react_agent_graph": "./examples/react_agent_graph_api.py:get_graph",
+    "supervisor_agent": "./examples/supervisor_agent.py:get_supervisor_agent"
   },
   "env": ".env",
   "store": {

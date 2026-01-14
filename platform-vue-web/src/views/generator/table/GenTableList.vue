@@ -59,7 +59,7 @@
       <!-- 操作 -->
       <el-table-column fixed="right" label="操作" width="300">
         <template #default="scope">
-          <el-button link type="primary" size="small" @click.prevent="onDataView(scope.$index)">
+          <el-button link type="primary" size="small" v-permission="'generator:table:view'" @click.prevent="onDataView(scope.$index)">
             查看
           </el-button>
           <el-button link type="success" size="small" v-permission="'generator:code:preview'" @click.prevent="onGenerateCode(scope.$index)">

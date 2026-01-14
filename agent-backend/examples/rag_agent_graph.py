@@ -19,12 +19,12 @@ from pydantic import BaseModel, Field
 
 # 添加父目录到路径，以便导入自定义工具
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import init_chat_model  # 使用自定义的init_chat_model（支持硅基流动）
+from utils import load_chat_model  # 使用自定义的load_chat_model（支持硅基流动）
 from langchain_core.embeddings import DeterministicFakeEmbedding
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_classic.tools.retriever import create_retriever_tool
+from langchain_core.tools import tool
 from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.messages import HumanMessage
@@ -35,8 +35,8 @@ from langchain_core.messages import HumanMessage
 os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem"
 
 # 初始化 DeepSeek 聊天模型
-response_model = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp", temperature=0)
-grader_model = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp", temperature=0)
+response_model = load_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp", temperature=0)
+grader_model = load_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp", temperature=0)
 
 
 # ============ 第一步：预处理文档 ============
@@ -86,11 +86,11 @@ vectorstore = InMemoryVectorStore.from_documents(
 retriever = vectorstore.as_retriever(k=3)  # 每次检索返回3个最相关的文档
 
 # 创建检索工具
-retriever_tool = create_retriever_tool(
-    retriever,
-    "retrieve_blog_posts",
-    "搜索并返回关于 Lilian Weng 博客文章的信息。当需要回答关于 AI、LLM、提示工程、代理等主题的问题时使用此工具。",
-)
+@tool
+def retriever_tool(query: str) -> str:
+    """搜索并返回关于 Lilian Weng 博客文章的信息。当需要回答关于 AI、LLM、提示工程、代理等主题的问题时使用此工具。"""
+    docs = retriever.invoke(query)
+    return "\n\n".join(doc.page_content for doc in docs)
 
 print("✅ 检索工具创建完成")
 
@@ -135,7 +135,10 @@ GRADE_PROMPT = (
 # 定义评分数据模型
 class GradeDocuments(BaseModel):
     """使用二元评分检查文档相关性。"""
-    binary_score: str = Field(
+    reasoning: str = Field(
+        description="评估文档相关性的推理过程"
+    )
+    answer: str = Field(
         description="相关性评分：'yes' 表示相关，'no' 表示不相关"
     )
 
@@ -160,14 +163,27 @@ def grade_documents(
     # 构建评估提示
     prompt = GRADE_PROMPT.format(question=question, context=context)
     
-    # 调用模型进行评分
-    response = (
-        grader_model
-        .with_structured_output(GradeDocuments)
-        .invoke([{"role": "user", "content": prompt}])
-    )
-    
-    score = response.binary_score
+    try:
+        # 调用模型进行评分
+        response = (
+            grader_model
+            .with_structured_output(GradeDocuments)
+            .invoke([{"role": "user", "content": prompt}])
+        )
+        
+        score = response.answer
+        
+    except Exception as e:
+        print(f"⚠️ 结构化输出失败，尝试解析文本响应: {e}")
+        # 如果结构化输出失败，尝试获取文本响应并手动解析
+        text_response = grader_model.invoke([{"role": "user", "content": prompt}])
+        
+        # 简单的文本解析来提取 yes/no
+        content = text_response.content.lower()
+        if "yes" in content or "相关" in content:
+            score = "yes"
+        else:
+            score = "no"
     
     if score == "yes":
         print("✅ 文档相关，继续生成答案")
@@ -292,6 +308,20 @@ workflow.add_edge("rewrite_question", "generate_query_or_respond")  # 重写问�
 graph = workflow.compile()
 
 print("✅ Agentic RAG 图构建完成！")
+
+
+# ============ LangGraph API 工厂函数 ============
+
+def get_graph():
+    """
+    工厂函数 - 返回 Agentic RAG Agent Graph
+
+    供 LangGraph API 使用
+
+    Returns:
+        编译好的 Agentic RAG Agent Graph
+    """
+    return graph
 
 
 # ============ 第八步：运行 Agentic RAG ============

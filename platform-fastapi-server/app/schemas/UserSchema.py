@@ -20,6 +20,7 @@ class UserCreate(BaseModel): # 用户创建请求
     ssex: Optional[str] = "2"
     avatar: Optional[str] = None
     description: Optional[str] = None
+    role_ids: Optional[List[int]] = []  # 角色ID列表
 
 class UserUpdate(BaseModel): # 用户更新请求
     id: int
@@ -32,6 +33,7 @@ class UserUpdate(BaseModel): # 用户更新请求
     ssex: Optional[str] = None
     avatar: Optional[str] = None
     description: Optional[str] = None
+    role_ids: Optional[List[int]] = None  # 角色ID列表（可选）
 
 class UserRoleAssign(BaseModel): # 用户分配角色
     id: int  # 用户ID
@@ -40,4 +42,11 @@ class UserRoleAssign(BaseModel): # 用户分配角色
 class UserStatusUpdate(BaseModel): # 用户状态更新
     id: int
     status: str # 0锁定 1有效
+
+class BatchUserStatusUpdate(BaseModel): # 批量用户状态更新
+    user_ids: List[int]
+    status: str # 0锁定 1有效
+
+class BatchUserDelete(BaseModel): # 批量删除用户
+    user_ids: List[int]
 

@@ -13,9 +13,12 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/menus", tags=["菜单管理"])
 
 
-@router.get("/tree", summary="获取菜单树", dependencies=[Depends(check_permission("system:menu:query"))])
+@router.get("/tree", summary="获取菜单树（仅用于菜单配置管理）", dependencies=[Depends(check_permission("system:menu:query"))])
 async def getTree(session: Session = Depends(get_session)):
-    """获取菜单树"""
+    """
+    获取菜单树
+    注意: 前端已使用静态菜单配置，此接口仅用于后台菜单管理功能
+    """
     try:
         tree = MenuService.get_tree(session, logger=logger)
         return respModel.ok_resp_tree(treeData=tree, msg="查询成功")
@@ -76,18 +79,23 @@ async def delete(id: int, session: Session = Depends(get_session)):
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
 
 
-@router.get("/user/{user_id}", summary="获取用户菜单权限")
-async def getUserMenus(user_id: int, current_user: dict = Depends(get_current_user), session: Session = Depends(get_session)):
-    """获取用户的菜单权限（用于前端路由）"""
+@router.get("/user/menus", summary="获取当前用户的菜单树（用于前端动态菜单）")
+async def get_user_menus(current_user: dict = Depends(get_current_user), session: Session = Depends(get_session)):
+    """获取当前登录用户有权限的菜单树（用于前端动态菜单）"""
     try:
-        # 检查权限：用户只能获取自己的菜单，或者需要有菜单查询权限
-        if current_user.get("id") != user_id:
-            # 不是自己的菜单，需要检查权限
-            from app.dependencies.dependencies import check_permission
-            check_permission("system:menu:query")(current_user)
+        # 从 current_user 中获取角色ID列表
+        user_roles = current_user.get("user_roles", [])
+        role_ids = [ur["role_id"] for ur in user_roles] if user_roles else []
         
-        tree = MenuService.get_user_menus(session, user_id, logger=logger)
+        # 如果没有角色，返回空菜单
+        if not role_ids:
+            return respModel.ok_resp_tree(treeData=[], msg="查询成功")
+        
+        # 获取用户菜单树
+        tree = MenuService.get_user_menu_tree(session, role_ids, logger=logger)
         return respModel.ok_resp_tree(treeData=tree, msg="查询成功")
     except Exception as e:
-        logger.error(f"操作失败: {e}", exc_info=True)
-        return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+        logger.error(f"获取用户菜单失败: {e}", exc_info=True)
+        return respModel.error_resp(f"获取用户菜单失败: {e}")
+
+

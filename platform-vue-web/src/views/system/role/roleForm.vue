@@ -15,6 +15,27 @@
         <el-form-item label="角色名称" prop="role_name">
             <el-input v-model="ruleForm.role_name" placeholder="请输入角色名称" :readonly="isViewMode" />
         </el-form-item>
+        <el-form-item label="角色标识" prop="role_key">
+            <el-input v-model="ruleForm.role_key" placeholder="请输入角色标识(如:admin,user)" :readonly="isViewMode" />
+        </el-form-item>
+        <el-form-item label="显示排序" prop="role_sort">
+            <el-input-number v-model="ruleForm.role_sort" :min="0" :readonly="isViewMode" />
+        </el-form-item>
+        <el-form-item label="数据权限" prop="data_scope">
+            <el-select v-model="ruleForm.data_scope" placeholder="请选择数据权限范围" :disabled="isViewMode">
+                <el-option label="全部数据权限" value="1" />
+                <el-option label="自定义数据权限" value="2" />
+                <el-option label="本部门数据权限" value="3" />
+                <el-option label="本部门及以下数据权限" value="4" />
+                <el-option label="仅本人数据权限" value="5" />
+            </el-select>
+        </el-form-item>
+        <el-form-item label="状态" prop="status">
+            <el-radio-group v-model="ruleForm.status" :disabled="isViewMode">
+                <el-radio label="1">正常</el-radio>
+                <el-radio label="0">停用</el-radio>
+            </el-radio-group>
+        </el-form-item>
         <el-form-item label="角色描述" prop="remark">
             <el-input type="textarea" v-model="ruleForm.remark" placeholder="请输入角色描述" :readonly="isViewMode" />
         </el-form-item>
@@ -41,6 +62,10 @@ const loading = ref(false)
 const ruleForm = reactive({
     id: 0,
     role_name: '',
+    role_key: '',
+    role_sort: 0,
+    data_scope: '1',
+    status: '1',
     remark: ''
 })
 
@@ -95,9 +120,14 @@ const closeForm = () => {
 const loadData = async (id) => {
     try {
         const res = await queryById(id)
-        ruleForm.id = res.data.data.id
-        ruleForm.role_name = res.data.data.role_name
-        ruleForm.remark = res.data.data.remark || ''
+        const data = res.data.data
+        ruleForm.id = data.id
+        ruleForm.role_name = data.role_name
+        ruleForm.role_key = data.role_key || ''
+        ruleForm.role_sort = data.role_sort || 0
+        ruleForm.data_scope = data.data_scope || '1'
+        ruleForm.status = data.status || '1'
+        ruleForm.remark = data.remark || ''
     } catch (error) {
         console.error('加载数据失败:', error)
         ElMessage.error('加载数据失败，请稍后重试')

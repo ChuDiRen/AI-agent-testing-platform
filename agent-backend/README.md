@@ -20,19 +20,29 @@ REDIS_URI=fake
 LANGGRAPH_RUNTIME_EDITION=community
 ```
 
-### 3. 运行方式
-
-#### 方式 1: 本地开发模式（SQLite 持久化）⭐ 推荐
+### 3. 启动服务
 
 ```bash
-python agent-backend_run.py
+python unified_server.py
 ```
 
-- 访问：http://localhost:2024
-- 特点：**使用社区版 LangGraph CLI，数据完全持久化到 SQLite**
-- 数据库：`sqlite_storage/data/` 目录
-- 无需 Docker、PostgreSQL、Redis
-- 详细说明：[README_NEW_STARTUP.md](README_NEW_STARTUP.md)
+**特点：**
+- ✅ 完美支持自定义长期记忆和短期记忆
+- ✅ 数据持久化到 SQLite (data/agent_memory.db)
+- ✅ 启动时自动健康检查和诊断
+- ✅ 不依赖 Monkey Patch，更稳定
+
+**访问地址：**
+- API Server: http://localhost:2025
+- API 文档: http://localhost:2025/docs
+- Studio UI: http://localhost:2025/ui
+
+**命令参数：**
+```bash
+python unified_server.py          # 开发模式（默认）
+python unified_server.py prod     # 生产模式
+python unified_server.py --port 8080  # 自定义端口
+```
 
 #### 方式 2: 运行具体示例
 

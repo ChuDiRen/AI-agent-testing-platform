@@ -5,17 +5,20 @@
     </el-header>
     
     <el-container class="main-container">
-      <el-aside :width="$store.state.asideWidth" :class="{ 'mobile-menu': isMobile, 'show': isMobile && menuVisible }">
+      <el-aside :width="appStore.asideWidth" :class="{ 'mobile-menu': isMobile, 'show': isMobile && menuVisible }">
         <f-menu />
       </el-aside>
-      
-      <el-main class="main-content" :style="{ marginLeft: isMobile ? '0' : $store.state.asideWidth }">
+
+      <el-main class="main-content" :style="{ marginLeft: isMobile ? '0' : appStore.asideWidth }">
         <f-tag-list />
-        <router-view v-slot="{ Component }">
-          <transition name="fade-slide" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
+        <div class="content-wrapper">
+          <f-breadcrumb />
+          <router-view v-slot="{ Component }">
+            <transition name="fade-slide" mode="out-in">
+              <component :is="Component" />
+            </transition>
+          </router-view>
+        </div>
       </el-main>
     </el-container>
     
@@ -25,41 +28,49 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useStore } from 'vuex'
+import { computed, onMounted, onUnmounted } from 'vue'
+import { useAppStore } from '~/stores/index.js'
 import FHeader from './FHeader.vue'
 import FMenu from './FMenu.vue'
 import FTagList from './FTagList.vue'
+import FBreadcrumb from './FBreadcrumb.vue'
 
-const store = useStore()
-const windowWidth = ref(window.innerWidth)
+const appStore = useAppStore()
 
 // 监听窗口大小变化
 const handleResize = () => {
-  windowWidth.value = window.innerWidth
+  const width = window.innerWidth
+  const height = window.innerHeight
+  
+  // 更新 store 中的窗口尺寸
+  appStore.updateWindowSize(width, height)
+  
   // 响应式调整侧边栏宽度
-  store.commit('adjustAsideWidth')
+  appStore.adjustAsideWidth()
 }
 
 onMounted(() => {
   window.addEventListener('resize', handleResize)
+  // 初始化窗口尺寸
+  appStore.updateWindowSize(window.innerWidth, window.innerHeight)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
 })
 
-const isMobile = computed(() => windowWidth.value < 768)
+// 使用 store 的响应式状态
+const isMobile = computed(() => appStore.isMobile)
 const menuVisible = computed(() => {
   if (isMobile.value) {
-    return store.state.asideWidth !== '0px'
+    return appStore.asideWidth !== '0px'
   }
   return true
 })
 
 const closeMenu = () => {
   if (isMobile.value) {
-    store.commit('handleAsideWidth')
+    appStore.handleAsideWidth()
   }
 }
 </script>
@@ -97,18 +108,22 @@ const closeMenu = () => {
 .main-content {
   background: var(--bg-secondary);
   min-height: calc(100vh - 64px);
-  padding: 20px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* 匹配侧边栏动画 */
-  overflow-x: hidden; /* 防止水平滚动 */
+  padding: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden;
   width: 100%;
   box-sizing: border-box;
-  /* margin-left 通过内联样式动态设置 */
+}
+
+.content-wrapper {
+  padding: 20px;
+  overflow-x: hidden;
 }
 
 /* 笔记本电脑适配 (1024px-1366px) */
 @media (min-width: 769px) and (max-width: 1366px) {
-  .main-content {
-    padding: 16px 12px;
+  .content-wrapper {
+    padding: 18px 16px;
   }
 }
 
@@ -146,7 +161,7 @@ const closeMenu = () => {
 
 /* 平板适配 */
 @media (max-width: 1024px) {
-  .main-content {
+  .content-wrapper {
     padding: 16px;
   }
 }
@@ -164,30 +179,33 @@ const closeMenu = () => {
   }
   
   .main-content {
-    padding: 12px 8px;
     margin-left: 0 !important;
     width: 100%;
     overflow-x: hidden;
+  }
+  
+  .content-wrapper {
+    padding: 14px 12px;
   }
 }
 
 /* 小屏幕手机适配 */
 @media (max-width: 480px) {
-  .main-content {
-    padding: 8px 4px;
+  .content-wrapper {
+    padding: 12px 8px;
   }
 }
 
 /* 大屏幕适配 (1920px+) */
 @media (min-width: 1920px) {
-  .main-content {
+  .content-wrapper {
     padding: 24px 32px;
   }
 }
 
 /* 超大屏幕适配 (2K+) */
 @media (min-width: 2560px) {
-  .main-content {
+  .content-wrapper {
     padding: 32px 48px;
   }
 }

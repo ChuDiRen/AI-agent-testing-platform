@@ -7,15 +7,19 @@ from sqlmodel import Session, select
 from app.models.UserModel import User
 from app.models.UserRoleModel import UserRole
 from app.models.RoleModel import Role
-from app.schemas.UserSchema import UserQuery, UserCreate, UserUpdate, UserRoleAssign, UserStatusUpdate
+from app.schemas.UserSchema import (
+    UserQuery, UserCreate, UserUpdate, UserRoleAssign, 
+    UserStatusUpdate, BatchUserStatusUpdate, BatchUserDelete
+)
+from app.utils.data_scope import apply_data_scope_filter
 
 
 class UserService:
     """用户管理服务类"""
 
     @staticmethod
-    def query_by_page(session: Session, query: UserQuery) -> Tuple[List[Dict[str, Any]], int]:
-        """分页查询用户（包含角色信息）"""
+    def query_by_page(session: Session, query: UserQuery, current_user_id: Optional[int] = None) -> Tuple[List[Dict[str, Any]], int]:
+        """分页查询用户（包含角色信息，应用数据权限过滤）"""
         offset = (query.page - 1) * query.pageSize
         statement = select(User)
         
@@ -25,6 +29,17 @@ class UserService:
             statement = statement.where(User.dept_id == query.dept_id)
         if query.status:
             statement = statement.where(User.status == query.status)
+        
+        # 应用数据权限过滤
+        if current_user_id:
+            statement = apply_data_scope_filter(
+                statement=statement,
+                user_id=current_user_id,
+                session=session,
+                model_class=User,
+                user_id_field='id',
+                dept_id_field='dept_id'
+            )
         
         statement = statement.limit(query.pageSize).offset(offset)
         users = session.exec(statement).all()
@@ -52,6 +67,18 @@ class UserService:
             count_statement = count_statement.where(User.dept_id == query.dept_id)
         if query.status:
             count_statement = count_statement.where(User.status == query.status)
+        
+        # 应用数据权限过滤
+        if current_user_id:
+            count_statement = apply_data_scope_filter(
+                statement=count_statement,
+                user_id=current_user_id,
+                session=session,
+                model_class=User,
+                user_id_field='id',
+                dept_id_field='dept_id'
+            )
+        
         total = len(session.exec(count_statement).all())
         
         return user_data_list, total
@@ -80,10 +107,20 @@ class UserService:
     @staticmethod
     def create(session: Session, user: UserCreate) -> User:
         """新增用户"""
-        data = User(**user.model_dump(), create_time=datetime.now())
+        # 排除 role_ids 字段，因为 User 模型中没有这个字段
+        user_data = user.model_dump(exclude={'role_ids'})
+        data = User(**user_data, create_time=datetime.now())
         session.add(data)
         session.commit()
         session.refresh(data)
+        
+        # 如果指定了角色，为用户分配角色
+        if user.role_ids and len(user.role_ids) > 0:
+            for role_id in user.role_ids:
+                user_role = UserRole(user_id=data.id, role_id=role_id)
+                session.add(user_role)
+            session.commit()
+        
         return data
 
     @staticmethod
@@ -94,10 +131,27 @@ class UserService:
         if not db_user:
             return None
         
-        update_data = user.model_dump(exclude_unset=True, exclude={'id'})
+        # 排除 role_ids 和 id 字段
+        update_data = user.model_dump(exclude_unset=True, exclude={'id', 'role_ids'})
         for key, value in update_data.items():
             setattr(db_user, key, value)
         session.commit()
+        
+        # 如果指定了角色，为用户分配角色
+        if user.role_ids is not None:  # 允许空数组，表示清除所有角色
+            # 删除用户原有的角色
+            old_role_statement = select(UserRole).where(UserRole.user_id == user.id)
+            old_user_roles = session.exec(old_role_statement).all()
+            for ur in old_user_roles:
+                session.delete(ur)
+            
+            # 添加新的角色
+            for role_id in user.role_ids:
+                user_role = UserRole(user_id=user.id, role_id=role_id)
+                session.add(user_role)
+            
+            session.commit()
+        
         return db_user
 
     @staticmethod
@@ -119,11 +173,15 @@ class UserService:
         return True
 
     @staticmethod
-    def assign_roles(session: Session, request: UserRoleAssign) -> bool:
-        """为用户分配角色"""
+    def assign_roles(session: Session, request: UserRoleAssign) -> Tuple[bool, str]:
+        """为用户分配角色，返回 (成功状态, 消息)"""
         user = session.get(User, request.id)
         if not user:
-            return False
+            return False, "用户不存在"
+        
+        # 检查是否是超级管理员（用户名为 admin）
+        if user.username == 'admin':
+            return False, "超级管理员角色不允许修改"
         
         # 删除用户原有的角色
         statement = select(UserRole).where(UserRole.user_id == request.id)
@@ -137,7 +195,7 @@ class UserService:
             session.add(user_role)
         
         session.commit()
-        return True
+        return True, "角色分配成功"
 
     @staticmethod
     def get_roles(session: Session, user_id: int) -> List[int]:
@@ -159,3 +217,37 @@ class UserService:
         session.commit()
         
         return "启用" if request.status == "1" else "锁定"
+
+    @staticmethod
+    def batch_update_status(session: Session, request: BatchUserStatusUpdate) -> int:
+        """批量更新用户状态"""
+        count = 0
+        for user_id in request.user_ids:
+            user = session.get(User, user_id)
+            if user:
+                user.status = request.status
+                user.modify_time = datetime.now()
+                session.add(user)
+                count += 1
+        session.commit()
+        return count
+
+    @staticmethod
+    def batch_delete(session: Session, request: BatchUserDelete) -> int:
+        """批量删除用户"""
+        count = 0
+        for user_id in request.user_ids:
+            # 删除用户的角色关联
+            statement = select(UserRole).where(UserRole.user_id == user_id)
+            user_roles = session.exec(statement).all()
+            for ur in user_roles:
+                session.delete(ur)
+            
+            # 删除用户
+            user = session.get(User, user_id)
+            if user:
+                session.delete(user)
+                count += 1
+        
+        session.commit()
+        return count

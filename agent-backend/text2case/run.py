@@ -18,7 +18,7 @@ if sys.platform == 'win32':
     if hasattr(sys.stderr, 'reconfigure'):
         sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
-from .chat_graph import run_text2case_sync, run_text2case
+from .chat_graph import run_text2case
 
 
 # 默认演示需求
@@ -57,7 +57,7 @@ async def _run_async(
             ),
             timeout=480.0,
         )
-        
+
         print(f"\n{'='*60}\n测试用例\n{'='*60}")
         print(f"{result.get('content', '')}\n{'='*60}")
 
@@ -78,23 +78,22 @@ def _run_sync(
     user_id: str = "default",
     use_memory: bool = True,
 ) -> None:
-    """同步执行生成流程"""
+    """同步执行生成流程 - 使用 asyncio.run（兼容性）"""
     print(f"\n{'='*60}\nAI测试用例生成器 ({test_type}) - 新架构\n{'='*60}")
     print(f"需求:\n{requirement.strip()}\n")
     if use_memory:
         print(f"📌 Thread ID: {thread_id}")
 
     try:
-        result = run_text2case_sync(
+        result = asyncio.run(run_text2case(
             requirement=requirement,
             test_type=test_type,
             thread_id=thread_id,
             user_id=user_id,
             enable_review=enable_review,
             enable_export=enable_export,
-            use_memory=use_memory,
-        )
-        
+        ))
+
         print(f"\n{'='*60}\n测试用例\n{'='*60}")
         print(f"{result.get('content', '')}\n{'='*60}")
 
@@ -112,11 +111,10 @@ def demo(
 ) -> None:
     """运行默认演示"""
     _run_sync(
-        DEFAULT_REQUIREMENT, 
-        enable_review=enable_review, 
+        DEFAULT_REQUIREMENT,
+        enable_review=enable_review,
         enable_export=enable_export,
         thread_id=thread_id,
-        use_memory=not no_memory,
     )
 
 
@@ -133,15 +131,14 @@ def generate(
     """生成测试用例"""
     if not requirement_text and not requirement_file:
         raise typer.BadParameter("请提供 --text 或 --file")
-    
+
     requirement = requirement_text or requirement_file.read_text(encoding='utf-8')
     _run_sync(
-        requirement, 
-        test_type=test_type, 
-        enable_review=enable_review, 
+        requirement,
+        test_type=test_type,
+        enable_review=enable_review,
         enable_export=enable_export,
         thread_id=thread_id,
-        use_memory=not no_memory,
     )
 
 
@@ -158,7 +155,7 @@ def async_generate(
     """异步生成测试用例（带持久化记忆）"""
     if not requirement_text and not requirement_file:
         raise typer.BadParameter("请提供 --text 或 --file")
-    
+
     requirement = requirement_text or requirement_file.read_text(encoding='utf-8')
     asyncio.run(_run_async(
         requirement,

@@ -27,8 +27,8 @@ export function deleteData(id) {
     return axios.delete(`/${module_name}/delete?id=${id}&_alias=menu-delete`)
 }
 
-// 获取用户的菜单权限（用于动态路由）
-export function getUserMenus(userId) {
-    return axios.get(`/${module_name}/user/${userId}?_alias=user-menus`)
+// 获取当前登录用户的菜单树（用于前端动态菜单）
+export function getCurrentUserMenus() {
+    return axios.get(`/${module_name}/user/menus?_alias=current-user-menus`)
 }
 

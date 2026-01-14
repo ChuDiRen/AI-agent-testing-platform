@@ -25,21 +25,46 @@ app = FastAPI(title="Text2SQL Extensions", version="1.0.0", lifespan=lifespan)
 @app.get("/memory/stats")
 async def memory_stats():
     """记忆系统统计"""
-    from memory import get_memory_manager
-    mm = get_memory_manager()
+    from memory.config import MEMORY_CONFIG
+    from memory.plugins.manager import MemoryPluginManager
+    from memory.plugins.checkpointer_plugin import CheckpointerPlugin
+    from memory.plugins.store_plugin import StorePlugin
+
+    mgr = MemoryPluginManager(MEMORY_CONFIG.db_path)
+    if "checkpointer" not in [p["name"] for p in mgr.list_plugins()]:
+        mgr.register(CheckpointerPlugin)
+    if "store" not in [p["name"] for p in mgr.list_plugins()]:
+        mgr.register(StorePlugin)
+    await mgr.enable_plugin("checkpointer")
+    await mgr.enable_plugin("store")
+
+    checkpointer_plugin = mgr.get("checkpointer")
+    store = mgr.get("store")
+
+    sessions = await checkpointer_plugin.list_threads()
+    schema = await store.get(("schema_cache", "0"), "schema")
+    checkpointer = await checkpointer_plugin.get_saver()
     return {
-        "sessions_count": len(mm.list_sessions()),
-        "schema_cached": mm.get_cached_schema(0) is not None,
-        "checkpointer_type": type(mm.checkpointer).__name__,
-        "store_type": type(mm.store).__name__
+        "sessions_count": len(sessions),
+        "schema_cached": schema is not None,
+        "checkpointer_type": type(checkpointer).__name__,
+        "store_type": type(store).__name__
     }
 
 
 @app.post("/memory/schema/{connection_id}/invalidate")
 async def invalidate_schema(connection_id: int):
     """清除 Schema 缓存"""
-    from memory import get_memory_manager
-    get_memory_manager().invalidate_schema_cache(connection_id)
+    from memory.config import MEMORY_CONFIG
+    from memory.plugins.manager import MemoryPluginManager
+    from memory.plugins.store_plugin import StorePlugin
+
+    mgr = MemoryPluginManager(MEMORY_CONFIG.db_path)
+    if "store" not in [p["name"] for p in mgr.list_plugins()]:
+        mgr.register(StorePlugin)
+    await mgr.enable_plugin("store")
+    store = mgr.get("store")
+    await store.delete(("schema_cache", str(connection_id)), "schema")
     return {"ok": True}
 
 
@@ -48,10 +73,10 @@ async def simple_query(query: str, thread_id: str = None, user_id: str = "defaul
     """简化查询接口"""
     import uuid
     from text2sql.chat_graph import create_text2sql_graph
-    
+
     thread_id = thread_id or str(uuid.uuid4())
-    graph = create_text2sql_graph(connection_id=0, dialect="sqlite")
-    
+    graph = await create_text2sql_graph(connection_id=0, dialect="sqlite")
+
     result = graph.invoke(
         {"messages": [{"role": "user", "content": query}]},
         {"configurable": {"thread_id": thread_id, "user_id": user_id}}

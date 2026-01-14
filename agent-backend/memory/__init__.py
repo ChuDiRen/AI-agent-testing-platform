@@ -1,71 +1,39 @@
 """
-公用记忆服务模块
+记忆插件系统 - v2.0
 
-提供统一的记忆管理接口，可被多个模块使用：
-|- server.py (LangGraph API Server)
-|- text2sql
-|- text2case
-|- 等等
+基于插件式架构的记忆系统，支持：
+- 短期记忆（Checkpointer）- 会话状态检查点
+- 长期记忆（Store）- 知识存储
+- 用户记忆（UserMemory）- 用户画像和语义记忆
 
-存储配置说明：
-=============
-
-1. 使用 `langgraph dev` 命令时：
-   - LangGraph API 服务器会读取 langgraph.json 中的 checkpointer 和 store 配置
-   - 配置的工厂函数（get_checkpointer, get_store）会被调用
-   - 数据保存在 data/agent_memory.db（SQLite）
-   
-2. 使用 `langgraph up` 命令时（Docker）：
-   - 同样读取 langgraph.json 配置
-   - 可配置 PostgreSQL 等其他存储后端
-
-3. 直接在 Python 中使用图时（如 run_text2case_sync）：
-   - 需要手动传入 checkpointer 和 store
-   - 或使用 MemorySaver 等内存存储
-
-langgraph.json 配置示例：
-========================
-{
-  "store": {
-    "path": "./memory/store.py:get_store",
-    "ttl": { ... }
-  },
-  "checkpointer": {
-    "path": "./memory/checkpointer.py:get_checkpointer",
-    "ttl": { ... }
-  }
-}
-
-重要：图工厂函数（get_app）必须返回未编译的 StateGraph，
-让 LangGraph API 服务器负责编译并注入 checkpointer 和 store。
-
-使用示例:
-    from memory import get_memory_manager, MemoryManager
-
-    # 获取全局单例
-    memory = get_memory_manager()
-
-    # 在 LangGraph 图中使用（直接调用时）
-    graph = workflow.compile(
-        checkpointer=memory.checkpointer,
-        store=memory.store
-    )
+全部使用 SQLite 持久化，兼容 langgraph dev
 """
 
-from .manager import MemoryManager, get_memory_manager, reset_memory_manager
-from .store import PersistentStore
-from .checkpointer import CheckpointerManager, checkpointer_context
-from .runtime_patch import patch_runtime_checkpointer, unpatch_runtime_checkpointer, auto_patch
+from memory.plugins.base import MemoryPlugin, PluginState
+from memory.plugins.manager import MemoryPluginManager
+from memory.plugins.checkpointer_plugin import CheckpointerPlugin
+from memory.plugins.store_plugin import StorePlugin
+from memory.plugins.user_memory_plugin import UserMemoryPlugin
+from memory.checkpointer import get_checkpointer
+from memory.store import get_store
+from memory.config import MemoryPluginConfig, MEMORY_CONFIG
 
 __all__ = [
-    "MemoryManager",
-    "get_memory_manager",
-    "reset_memory_manager",
-    "PersistentStore",
-    "CheckpointerManager",
-    "checkpointer_context",
-    # Runtime patch for langgraph dev
-    "patch_runtime_checkpointer",
-    "unpatch_runtime_checkpointer",
-    "auto_patch",
+    # 插件基础
+    "MemoryPlugin",
+    "PluginState", 
+    "MemoryPluginManager",
+    
+    # 具体插件
+    "CheckpointerPlugin",
+    "StorePlugin", 
+    "UserMemoryPlugin",
+    
+    # 工厂函数
+    "get_checkpointer",
+    "get_store",
+    
+    # 配置
+    "MemoryPluginConfig",
+    "MEMORY_CONFIG",
 ]

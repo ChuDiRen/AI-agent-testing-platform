@@ -5,7 +5,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import init_chat_model  # 使用自定义的init_chat_model（支持硅基流动）
+from utils import load_chat_model  # 使用自定义的load_chat_model（支持硅基流动）
 from langchain_core.tools import tool  # 导入工具装饰器，用于创建代理可以使用的工具
 from langchain.agents import create_agent  # 导入创建代理的函数
 from langchain.agents.middleware import HumanInTheLoopMiddleware  # 导入人机交互中间件
@@ -15,7 +15,7 @@ from langgraph.types import Command  # 导入命令类型，用于恢复中断�
 # 设置 DeepSeek API 密钥（这是一个大语言模型服务）
 os.environ["SILICONFLOW_API_KEY"] = "sk-rmcrubplntqwdjumperktjbnepklekynmnmianaxtkneocem"
 # 初始化 DeepSeek 聊天模型，这个模型将被所有代理使用
-model = init_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
+model = load_chat_model("siliconflow:deepseek-ai/DeepSeek-V3.2-Exp")
 
 
 # ============ 基础工具函数 ============
@@ -179,6 +179,20 @@ supervisor_agent = create_agent(
     system_prompt=SUPERVISOR_PROMPT,    # 监督者的系统提示词
     checkpointer=InMemorySaver(),       # 添加检查点保存器，用于保存执行状态
 )
+
+
+# ============ LangGraph API 工厂函数 ============
+
+def get_supervisor_agent():
+    """
+    工厂函数 - 返回 Supervisor Agent
+
+    供 LangGraph API 使用
+
+    Returns:
+        Supervisor Agent 实例
+    """
+    return supervisor_agent
 
 
 # ============ 主程序 ============

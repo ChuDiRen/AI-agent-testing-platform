@@ -52,6 +52,9 @@ def get_current_user(
             user_roles = session.exec(select(UserRole).where(UserRole.user_id == user_id)).all()
             role_ids = [ur.role_id for ur in user_roles]
             
+            # 添加用户角色信息到payload（用于菜单接口）
+            payload["user_roles"] = [{"role_id": ur.role_id} for ur in user_roles]
+            
             # 获取角色菜单权限
             permissions = []
             if role_ids:

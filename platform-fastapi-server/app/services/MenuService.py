@@ -6,7 +6,6 @@ from sqlmodel import Session, select
 
 from app.models.MenuModel import Menu
 from app.models.RoleMenuModel import RoleMenu
-from app.models.UserRoleModel import UserRole
 from app.schemas.MenuSchema import MenuCreate, MenuUpdate
 
 
@@ -53,8 +52,31 @@ class MenuService:
 
     @staticmethod
     def get_tree(session: Session, logger=None) -> List[Dict[str, Any]]:
-        """获取菜单树"""
+        """获取菜单树（用于菜单配置管理）"""
         statement = select(Menu)
+        menus = session.exec(statement).all()
+        return MenuService._build_tree(menus, logger=logger)
+
+    @staticmethod
+    def get_user_menu_tree(session: Session, role_ids: List[int], logger=None) -> List[Dict[str, Any]]:
+        """获取用户有权限的菜单树（用于前端动态菜单）"""
+        from sqlmodel import select
+        from app.models.RoleMenuModel import RoleMenu
+        
+        # 获取角色关联的菜单ID
+        statement = select(RoleMenu.menu_id).where(RoleMenu.role_id.in_(role_ids))
+        menu_ids = session.exec(statement).all()
+        
+        if not menu_ids:
+            return []
+        
+        # 获取这些菜单的详细信息（只显示可见且启用的菜单）
+        statement = select(Menu).where(
+            Menu.id.in_(menu_ids),
+            Menu.visible == '0',  # 0显示 1隐藏
+            Menu.status == '0'    # 0正常 1停用
+        ).order_by(Menu.order_num)
+        
         menus = session.exec(statement).all()
         return MenuService._build_tree(menus, logger=logger)
 
@@ -108,24 +130,3 @@ class MenuService:
         session.commit()
         return None
 
-    @staticmethod
-    def get_user_menus(session: Session, user_id: int, logger=None) -> List[Dict[str, Any]]:
-        """获取用户的菜单权限"""
-        statement = select(UserRole).where(UserRole.user_id == user_id)
-        user_roles = session.exec(statement).all()
-        role_ids = [ur.role_id for ur in user_roles]
-        
-        if not role_ids:
-            return []
-        
-        statement = select(RoleMenu).where(RoleMenu.role_id.in_(role_ids))
-        role_menus = session.exec(statement).all()
-        menu_ids = list(set([rm.menu_id for rm in role_menus]))
-        
-        if not menu_ids:
-            return []
-        
-        statement = select(Menu).where(Menu.id.in_(menu_ids))
-        menus = session.exec(statement).all()
-        
-        return MenuService._build_tree(menus, logger=logger)
