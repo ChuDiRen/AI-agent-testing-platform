@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # 应用服务
+  app:
+    build: .
+    container_name: admin-platform
+    ports:
+      - "9999:80"
+    environment:
+      - APP_ENV=production
+      - DATABASE_URL=mysql+aiomysql://root:password@mysql:3306/admin_platform
+      - SECRET_KEY=change-this-secret-key-in-production
+    depends_on:
+      - mysql
+    restart: always
+    networks:
+      - admin-network
+
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: admin-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=admin_platform
+      - MYSQL_CHARACTER_SET_SERVER=utf8mb4
+      - MYSQL_COLLATION_SERVER=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    restart: always
+    networks:
+      - admin-network
+
+  # MinIO 对象存储 (可选)
+  minio:
+    image: minio/minio:latest
+    container_name: admin-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    restart: always
+    networks:
+      - admin-network
+
+networks:
+  admin-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  minio-data:
