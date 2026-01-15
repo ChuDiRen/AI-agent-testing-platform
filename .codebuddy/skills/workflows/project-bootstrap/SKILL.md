@@ -18,7 +18,7 @@ description: 项目启动工作流。当用户需要从零开始启动一个完�
 
 ## ⚠️ 文件操作规范
 
-**优先使用 Write 工具：**
+**优先使用文件操作工具：**
 
 1. **创建新文件**：使用 `write_to_file` 工具
    ```python
@@ -37,18 +37,66 @@ description: 项目启动工作流。当用户需要从零开始启动一个完�
    )
    ```
 
-3. **创建目录**：使用 `execute_command` + PowerShell
+3. **读取文件**：使用 `read_file` 工具
    ```python
-   execute_command(
-       command='New-Item -ItemType Directory -Force -Path "doc", "sql"',
-       requires_approval=False
-   )
+   read_file(filePath="文件路径")
    ```
 
-**注意事项：**
-- IDE 可能会弹出文件操作确认弹窗，这是正常的安全机制
-- 用户需要手动确认文件写入操作
-- 目录创建不需要确认
+**关键原则：**
+- 始终优先使用文件操作工具，而非命令行
+- 使用 `write_to_file` 创建文件时，目录会自动创建
+- 避免不必要的命令执行
+- 使用绝对路径，避免相对路径问题
+
+---
+
+## ⚠️ 文件集中管理规则（关键）
+
+### 核心原则
+
+**当用户指定了具体项目目录时，所有生成的文档必须在该目录下！**
+
+例如用户说 "根据 cyberpunk-backend/xxx.md 进行开发"，则：
+- 项目目录 = `cyberpunk-backend/`
+- 所有 docs、sql、prototype 必须在 `cyberpunk-backend/` 下
+
+### 标准目录结构
+
+```
+{项目目录}/                      # 用户指定的目录，如 cyberpunk-backend/
+├── docs/                        # 📁 文档集中目录
+│   ├── PRD.md
+│   ├── architecture.md
+│   ├── database-design.md
+│   ├── frontend-tasks.md
+│   ├── backend-tasks.md
+│   ├── func.md
+│   └── api/
+│       ├── index.md
+│       └── ...
+├── sql/                         # 📁 数据库脚本
+│   ├── schema.sql
+│   └── init-data.sql
+└── prototype/                   # 📁 原型页面（必须生成）
+    ├── index.html
+    ├── dashboard.html
+    ├── css/styles.css
+    ├── js/main.js
+    └── README.md
+```
+
+### ❌ 禁止行为
+
+- ❌ 在工作区根目录创建分散的 docs/、sql/ 目录
+- ❌ 跳过原型设计阶段
+- ❌ 文档分散在多个位置
+
+### ✅ 必须遵守
+
+- ✅ 检测用户指定的项目目录
+- ✅ 所有文档集中到 `{项目目录}/docs/` 下
+- ✅ **必须生成原型页面** 到 `{项目目录}/prototype/` 下
+- ✅ SQL 脚本放到 `{项目目录}/sql/` 下
 
 ---
 
@@ -63,6 +111,8 @@ description: 项目启动工作流。当用户需要从零开始启动一个完�
 | 设计风格 | 需要选择 | **自动推断** |
 | 执行方式 | 分阶段停顿 | **一次性完成** |
 | 架构图 | 无/可选 | **必须含Mermaid** |
+| 原型设计 | 可选 | **必须生成** |
+| 文件路径 | 分散 | **集中到项目目录** |
 | 文件操作 | - | **Write工具（可能需要确认）** |
 
 ### 关键行为规则变更
@@ -81,7 +131,8 @@ description: 项目启动工作流。当用户需要从零开始启动一个完�
 - ❌ 要求用户确认 PRD 内容
 - ❌ 要求用户选择设计风格
 - ❌ 要求用户确认开发方案
-- ❌ 使用 Write/Edit 工具（会触发 IDE 确认弹窗）
+
+**说明：** 文件写入优先使用 `write_to_file` / `replace_in_file` 工具。
 
 #### 新规则2：智能推断
 
@@ -313,6 +364,47 @@ else:
 
 ---
 
+### 阶段2：确定项目目录（关键步骤）
+
+**任务：** 准确识别项目目录，确保所有文件生成到正确位置
+
+**项目目录识别规则（必须严格遵守）：**
+
+| 用户输入示例 | 项目目录 | 说明 |
+|-------------|----------|------|
+| `/start 订单管理系统` | `当前工作目录/` | 在工作区根目录创建 |
+| `/start @/path/to/需求.md` | `/path/to/` | 需求文档所在目录 |
+| `在 cyberpunk-backend/ 下开发` | `cyberpunk-backend/` | 用户指定的目录 |
+| `基于 /d:/project/xxx.md` | `d:/project/` | 绝对路径所在目录 |
+
+**关键原则：**
+1. ✅ **检测 @ 符号路径**：如果使用 `/start @/path/to/file.md`，项目目录 = `path/to/`
+2. ✅ **检测目录提及**：如果用户说"在 xxx/ 下开发"，项目目录 = `xxx/`
+3. ✅ **使用绝对路径**：所有文件路径使用 `项目根目录/{文件相对路径}` 格式
+4. ✅ **一致性原则**：一旦确定项目目录，所有阶段都使用同一个目录
+
+**项目目录确定后的输出格式：**
+```
+【项目目录已确定】
+📁 项目根目录：{绝对路径}
+📁 文档目录：{项目根目录}/docs/
+📁 SQL目录：{项目根目录}/sql/
+📁 原型目录：{项目根目录}/prototype/
+```
+
+**示例：**
+```
+用户输入：/start @/d:/AI-agent-testing-platform/cyberpunk-backend/需求文档.md
+
+识别结果：
+📁 项目根目录：d:/AI-agent-testing-platform/cyberpunk-backend/
+📁 文档目录：d:/AI-agent-testing-platform/cyberpunk-backend/docs/
+📁 SQL目录：d:/AI-agent-testing-platform/cyberpunk-backend/sql/
+📁 原型目录：d:/AI-agent-testing-platform/cyberpunk-backend/prototype/
+```
+
+---
+
 ### 阶段3：自动全流程执行
 
 **执行原则：** 一次性完成所有阶段，无需中途确认
@@ -327,34 +419,47 @@ else:
 7. ⚡ **优先使用 Write 工具**（write_to_file/replace_in_file）
 8. ⚡ **仅在创建目录时使用 execute_command**
 9. 🚨 **任务清单生成规则**：所有子任务必须使用 `[ ]`（待办状态），严禁使用 `[x]`（已完成状态）
+10. 🎯 **文件路径规则**：所有文件路径必须使用 `{项目根目录}/docs/...` 格式
 
-**文件操作规范：**
+**文件操作规范（关键）：**
 
 ```python
+# ✅ 正确方式：使用项目根目录的绝对路径
+PROJECT_ROOT = "d:/AI-agent-testing-platform/cyberpunk-backend/"  # 在阶段2确定
+
 # 创建目录（使用 execute_command）
 execute_command(
-    command='New-Item -ItemType Directory -Force -Path "doc", "sql", "prototype"',
+    command='New-Item -ItemType Directory -Force -Path "docs", "sql", "prototype"',
     requires_approval=False
 )
 
-# 写入新文件（使用 write_to_file）
+# 写入新文件（使用 write_to_file，使用绝对路径）
 write_to_file(
-    filePath="doc/PRD.md",
+    filePath=f"{PROJECT_ROOT}docs/PRD.md",
     content="# PRD 文档\n\n## 1. 概述\n内容..."
 )
 
-# 编辑已有文件（使用 replace_in_file）
+# 编辑已有文件（使用 replace_in_file，使用绝对路径）
 replace_in_file(
-    filePath="doc/PRD.md",
+    filePath=f"{PROJECT_ROOT}docs/PRD.md",
     old_str="旧内容",
     new_str="新内容"
 )
 ```
 
+**❌ 错误方式：**
+```python
+# ❌ 错误：使用相对路径，可能在错误的目录生成文件
+write_to_file(
+    filePath="docs/PRD.md",  # 会在当前工作目录生成，而非项目目录
+    content="..."
+)
+```
+
 **子 skills 调用规范：**
 - 使用 `use_skill` 命令调用
-- 在 prompt 参数中明确传递所有必要信息
-- 示例：`use_skill(command="skill-name", prompt="明确的指示和要求")`
+- 在 prompt 中明确传递项目根目录路径
+- 示例：`use_skill(command="skill-name", prompt="项目根目录为：{PROJECT_ROOT}，请生成...")`
 
 #### 子阶段3-1：生成详尽 PRD
 
@@ -428,7 +533,7 @@ replace_in_file(
 ```
 
 **文件输出：**
-- `doc/PRD.md` - 详尽完整的产品需求文档
+- `{PROJECT_ROOT}docs/PRD.md` - 详尽完整的产品需求文档（PROJECT_ROOT 在阶段2确定）
 
 ---
 
@@ -437,18 +542,18 @@ replace_in_file(
 **调用 Skill：** `database-design`
 
 ⚠️ **关键执行要求**：
-调用时使用 `use_skill` 命令，无需确认，直接生成数据库设计：
+调用时使用 `use_skill` 命令，无需确认，直接生成数据库设计。必须明确传递项目根目录：
 
 ```
-use_skill(command="database-design", prompt="请根据 PRD 生成 {项目名称} 的数据库设计。要求：生成完整的表结构设计文档（doc/database-design.md）、建表脚本（sql/schema.sql）和初始化数据（sql/init-data.sql），确保所有功能模块的数据模型都已定义，包含完整的索引设计和外键约束。")
+use_skill(command="database-design", prompt="项目根目录：{PROJECT_ROOT}。请根据 PRD 生成 {项目名称} 的数据库设计。要求：生成完整的表结构设计文档（{PROJECT_ROOT}docs/database-design.md）、建表脚本（{PROJECT_ROOT}sql/schema.sql）和初始化数据（{PROJECT_ROOT}sql/init-data.sql），确保所有功能模块的数据模型都已定义，包含完整的索引设计和外键约束。")
 ```
 
 **前置检查：**
 ```bash
 检查文件存在性：
-- doc/database-design.md → 跳过/创建
-- sql/schema.sql → 跳过/创建
-- sql/init-data.sql → 跳过/创建
+- {PROJECT_ROOT}docs/database-design.md → 跳过/创建
+- {PROJECT_ROOT}sql/schema.sql → 跳过/创建
+- {PROJECT_ROOT}sql/init-data.sql → 跳过/创建
 ```
 
 **设计标准：**
@@ -462,9 +567,9 @@ use_skill(command="database-design", prompt="请根据 PRD 生成 {项目名称}
 | 测试数据 | 包含至少10条记录 |
 
 **文件输出：**
-- `doc/database-design.md` - 数据库设计文档
-- `sql/schema.sql` - 建表脚本
-- `sql/init-data.sql` - 初始化数据
+- `{PROJECT_ROOT}docs/database-design.md` - 数据库设计文档
+- `{PROJECT_ROOT}sql/schema.sql` - 建表脚本
+- `{PROJECT_ROOT}sql/init-data.sql` - 初始化数据
 
 ---
 
@@ -473,10 +578,10 @@ use_skill(command="database-design", prompt="请根据 PRD 生成 {项目名称}
 **调用 Skill：** `prototype-design`
 
 ⚠️ **关键执行要求**：
-调用时必须使用 `use_skill` 命令，并在 prompt 中明确指定设计风格，避免询问用户确认：
+调用时必须使用 `use_skill` 命令，在 prompt 中明确指定项目根目录和设计风格，避免询问用户确认：
 
 ```
-use_skill(command="prototype-design", prompt="请为 {项目名称} 生成高保真原型页面。设计风格：简约现代风格（蓝灰配色，Element Plus）。要求：直接生成所有页面，无需询问用户确认，确保所有 PRD 定义的页面都已生成，保持设计风格一致性。")
+use_skill(command="prototype-design", prompt="项目根目录：{PROJECT_ROOT}。请为 {项目名称} 生成高保真原型页面。设计风格：简约现代风格（蓝灰配色，Element Plus）。要求：直接生成所有页面到 {PROJECT_ROOT}prototype/ 目录下，无需询问用户确认，确保所有 PRD 定义的页面都已生成，保持设计风格一致性。")
 ```
 
 **设计风格自动选择：**
@@ -498,7 +603,7 @@ use_skill(command="prototype-design", prompt="请为 {项目名称} 生成高保
 
 **文件输出：**
 ```
-prototype/
+{PROJECT_ROOT}prototype/
 ├── index.html          # 前台入口（电商前台）或唯一入口（管理后台）
 ├── admin.html          # 后台入口（如需前后台分离）
 ├── css/
@@ -568,8 +673,8 @@ prototype/
 - 验收标准使用 `[ ]`，方便后续追踪
 
 **文件输出：**
-- `doc/frontend-tasks.md` - 前端任务清单
-- `doc/backend-tasks.md` - 后端任务清单
+- `{PROJECT_ROOT}docs/frontend-tasks.md` - 前端任务清单
+- `{PROJECT_ROOT}docs/backend-tasks.md` - 后端任务清单
 
 ---
 
@@ -578,10 +683,10 @@ prototype/
 **调用 Skill：** `api-documentation`
 
 ⚠️ **关键执行要求**：
-调用时使用 `use_skill` 命令，无需确认，直接生成 API 文档：
+调用时使用 `use_skill` 命令，无需确认，直接生成 API 文档。必须明确传递项目根目录：
 
 ```
-use_skill(command="api-documentation", prompt="请根据 {项目名称} 的功能模块生成完整的 API 文档。要求：覆盖所有功能模块，每个接口包含请求方式、URL、参数说明、响应示例、错误码说明，生成到 doc/api/ 目录下。")
+use_skill(command="api-documentation", prompt="项目根目录：{PROJECT_ROOT}。请根据 {项目名称} 的功能模块生成完整的 API 文档。要求：覆盖所有功能模块，每个接口包含请求方式、URL、参数说明、响应示例、错误码说明，生成到 {PROJECT_ROOT}docs/api/ 目录下。")
 ```
 
 **文档标准：**
@@ -596,12 +701,12 @@ use_skill(command="api-documentation", prompt="请根据 {项目名称} 的功�
 
 **文件输出：**
 ```
-doc/api/
+{PROJECT_ROOT}docs/api/
 ├── index.md          # API索引
-├── auth.md          # 认证模块
-├── orders.md        # 订单模块
-├── products.md      # 商品模块
-├── customers.md     # 客户模块
+├── auth-api.md       # 认证模块
+├── orders-api.md     # 订单模块
+├── products-api.md   # 商品模块
+├── customers-api.md  # 客户模块
 ...
 ```
 
@@ -680,7 +785,7 @@ doc/api/
 
 #### 子阶段3-6：系统架构图（强制要求）
 
-**文件：** `doc/architecture.md`
+**文件：** `{PROJECT_ROOT}docs/architecture.md`
 
 **必须包含以下4个Mermaid图：**
 
@@ -851,25 +956,26 @@ graph TB
 ```bash
 📁 生成的文件清单
 
-📝 doc/
+📝 docs/
   ✅ PRD.md (详尽完整，≥30功能点)
   ✅ architecture.md (包含4个Mermaid图)
   ✅ database-design.md (≥10张表)
   ✅ frontend-tasks.md (≥40个任务)
   ✅ backend-tasks.md (≥50个任务)
   ✅ func.md (功能清单与状态)
+  ✅ archive/ (文档归档，带时间戳)
 
-📝 doc/api/
+📝 docs/api/
   ✅ index.md (API索引)
-  ✅ auth.md (认证模块)
-  ✅ orders.md (订单模块)
-  ✅ products.md (商品模块)
-  ✅ customers.md (客户模块)
-  ✅ payments.md (支付模块)
-  ✅ shipments.md (物流模块)
-  ✅ statistics.md (统计模块)
-  ✅ users-roles.md (权限模块)
-  ✅ system.md (系统功能)
+  ✅ auth-api.md (认证模块)
+  ✅ orders-api.md (订单模块)
+  ✅ products-api.md (商品模块)
+  ✅ customers-api.md (客户模块)
+  ✅ payments-api.md (支付模块)
+  ✅ shipments-api.md (物流模块)
+  ✅ statistics-api.md (统计模块)
+  ✅ users-roles-api.md (权限模块)
+  ✅ system-api.md (系统功能)
 
 💾 sql/
   ✅ schema.sql (建表脚本)
@@ -910,18 +1016,19 @@ graph TB
 ```
 {project-name}/
 ├── README.md
-├── doc/
-│   ├── PRD.md                  ✅ 详尽完整的产品需求文档
+├── docs/
+│   ├── PRD.md                   ✅ 详尽完整的产品需求文档
 │   ├── architecture.md          ✅ 系统架构（含4个Mermaid可视化图）
 │   ├── database-design.md       ✅ 数据库设计
-│   ├── frontend-tasks.md       ✅ 前端任务清单
-│   ├── backend-tasks.md        ✅ 后端任务清单
-│   ├── func.md               ✅ 功能清单与状态
-│   └── api/                   ✅ API文档集中管理
-│       ├── index.md           - API索引
-│       ├── auth.md            - 认证模块
-│       ├── orders.md          - 订单模块
-│       └── ...
+│   ├── frontend-tasks.md        ✅ 前端任务清单
+│   ├── backend-tasks.md         ✅ 后端任务清单
+│   ├── func.md                  ✅ 功能清单与状态
+│   ├── api/                     ✅ API文档集中管理
+│   │   ├── index.md             - API索引
+│   │   ├── auth-api.md          - 认证模块
+│   │   ├── orders-api.md        - 订单模块
+│   │   └── ...
+│   └── archive/                 - 文档归档（带时间戳）
 ├── sql/
 │   ├── schema.sql             ✅ 建表脚本（{N}张表）
 │   └── init-data.sql          ✅ 初始化数据
@@ -1008,9 +1115,9 @@ python -m http.server 8080
 ```
 
 **选项4：查看文档**
-- 查看详尽PRD：`cat doc/PRD.md`
-- 查看架构图：`cat doc/architecture.md`
-- 查看任务清单：`cat doc/frontend-tasks.md`
+- 查看详尽PRD：`cat docs/PRD.md`
+- 查看架构图：`cat docs/architecture.md`
+- 查看任务清单：`cat docs/frontend-tasks.md`
 
 ---
 

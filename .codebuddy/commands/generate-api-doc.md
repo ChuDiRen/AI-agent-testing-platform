@@ -33,7 +33,7 @@ description: API 文档生成。调用 api-documentation Skill，从后端代码
 │       │       └── 错误码                                                     │
 │       │                                                                     │
 │       └── 3. 文档生成                                                        │
-│               └── 输出到 doc/api/ 目录                                       │
+│               └── 输出到 docs/api/ 目录                                      │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -62,6 +62,6 @@ description: API 文档生成。调用 api-documentation Skill，从后端代码
 
 ## 输出
 
-- 文档保存到 `doc/api/` 目录
+- 文档保存到 `docs/api/` 目录
 - 命名规则：`{模块名}-api.md`
 - 示例：`user-api.md`、`order-api.md`

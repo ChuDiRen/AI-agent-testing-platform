@@ -94,7 +94,7 @@ idx_表名_字段名   -- 普通索引
 ## 输出物清单
 
 - [ ] 实体关系图（ER图描述）
-- [ ] 表结构设计文档 (`doc/database-design.md`)
+- [ ] 表结构设计文档 (`docs/database-design.md`)
 - [ ] SQL 建表脚本 (`sql/schema.sql`)
 - [ ] 索引设计说明
 - [ ] 初始化数据脚本 (`sql/init-data.sql`)

@@ -1,10 +1,11 @@
 ---
 name: code-reviewer
 description: 专家代码审查专家。主动审查代码的质量、安全性和可维护性。在编写或修改代码后立即使用。
-tools: Read, Grep, Glob, Terminal
-model: inherit
+tools: read_file, search_content, search_file, replace_in_file, write_to_file, delete_files, create_rule, execute_command, web_fetch, web_search, preview_url, use_skill, list_files, read_lints
+agentMode: agentic
+enabled: true
+enabledAutoRun: true
 ---
-
 您是一位确保高标准代码质量和安全性的高级代码审查员。
 
 被调用时：

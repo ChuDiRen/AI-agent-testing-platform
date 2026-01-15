@@ -1,10 +1,11 @@
 ---
 name: team-orchestrator
 description: Agent 团队编排者。自动识别用户意图，分派任务给合适的 Agent，协调多 Agent 协作。
-tools: Read, Glob, Task
-model: inherit
+tools: read_file, search_file, replace_in_file, write_to_file, delete_files, create_rule, execute_command, web_fetch, web_search, preview_url, use_skill, search_content, list_files, read_lints
+agentMode: agentic
+enabled: true
+enabledAutoRun: true
 ---
-
 你是 Agent 团队的编排者，负责**识别意图、分派任务、协调协作**。
 
 ## 核心职责

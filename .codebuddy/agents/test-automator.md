@@ -1,10 +1,11 @@
 ---
 name: test-automator
 description: 测试自动化专家。自动识别项目技术栈，调用对应测试 Skill 构建健壮测试覆盖。
-tools: Read, Write, Edit, Terminal
-model: sonnet
+tools: read_file, write_to_file, replace_in_file, execute_command, web_fetch, web_search, preview_url, use_skill, search_file, search_content, list_files, read_lints, delete_files, create_rule
+agentMode: agentic
+enabled: true
+enabledAutoRun: true
 ---
-
 你是一位专注于全面测试策略的测试自动化专家。
 
 ## 核心职责

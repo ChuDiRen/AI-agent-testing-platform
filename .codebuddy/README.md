@@ -4,8 +4,9 @@
 
 ```
 .codebuddy/
-├── agents/                    # AI 角色代理（7个）
+├── agents/                    # AI 角色代理（8个）
 │   ├── project-bootstrapper.md    # 项目启动专家
+│   ├── team-orchestrator.md       # Agent 团队编排者（意图识别/分派）
 │   ├── frontend-developer.md      # 前端开发专家
 │   ├── backend-developer.md       # 后端开发专家（自动识别技术栈）
 │   ├── code-reviewer.md           # 代码审查专家
@@ -13,17 +14,22 @@
 │   ├── data-scientist.md          # 数据分析专家
 │   └── test-automator.md          # 测试自动化专家（调用测试 Skills）
 │
-├── commands/                  # 快捷命令（3个，调用对应 Skills）
+├── commands/                  # 快捷命令（7个）
+│   ├── start.md                   # 项目启动（一次确认后全自动）
+│   ├── dev.md                     # 快速开发（自动识别前/后端并可并行）
+│   ├── fullstack.md               # 全栈开发（前后端并行 + 审查）
+│   ├── optimize.md                # 流程优化（检查并修正 .codebuddy 配置）
 │   ├── code-review.md             # 代码审查
 │   ├── generate-api-doc.md        # API 文档生成（调用 api-documentation）
 │   └── generate-tests.md          # 测试生成（调用 api-testing/webapp-testing）
 │
-├── rules/                     # 规则（3个）
+├── rules/                     # 规则（4个）
 │   ├── code-reuse-check.mdc       # always: 代码复用检查
-│   ├── file-naming.mdc            # always: 文件命名规范
+│   ├── file-naming.mdc            # always: 核心入口固定命名 + 归档时间戳
+│   ├── self-optimize.mdc          # always: 任务完成后自动流程优化
 │   └── task-splitting.mdc         # requested: 任务拆分
 │
-└── skills/                    # 技能知识库（8个）
+└── skills/                    # 技能知识库（9个，含教程/示例）
     ├── design/                    # 设计规范
     │   ├── api-documentation/     # API 文档规范
     │   ├── database-design/       # 数据库设计
@@ -55,6 +61,21 @@ Skills (技能)      →  定义"怎么做"的规范和工具
 在 Chat 中直接输入命令：
 
 ```bash
+# 项目启动（一次确认后全自动）
+/start 订单管理系统
+
+# 快速开发（自动识别前/后端；可并行）
+/dev 实现用户登录 API
+/dev 实现用户列表页面
+
+# 全栈开发（强制前后端并行 + 自动审查）
+/fullstack 用户管理功能
+
+# 流程优化（检查并修正 .codebuddy 配置）
+/optimize
+/optimize --check-only
+/optimize --force
+
 # 代码审查
 /code-review app/routes/user.py
 /code-review internal/handler/
@@ -76,6 +97,7 @@ Skills (技能)      →  定义"怎么做"的规范和工具
 
 ```
 @project-bootstrapper 启动一个用户管理系统项目
+@team-orchestrator 识别需求并分派合适的 Agent 执行
 @frontend-developer 创建一个数据表格组件
 @backend-developer 设计用户管理 API
 @code-reviewer 审查 app/routes/user.py
@@ -133,6 +155,10 @@ use skill prototype-design
 
 | Command | 用途 | 调用 Skill |
 |---------|------|-----------|
+| `/start` | 项目启动（一次确认后全自动） | `project-bootstrap`（由 project-bootstrapper 编排） |
+| `/dev` | 快速开发（自动识别前/后端） | - |
+| `/fullstack` | 全栈开发（前后端并行 + 审查） | - |
+| `/optimize` | 流程优化（检查并修正 .codebuddy 配置） | - |
 | `/code-review` | 代码审查 | - |
 | `/generate-api-doc` | API 文档生成 | `api-documentation` |
 | `/generate-tests` | 测试生成 | `api-testing` / `webapp-testing` |
@@ -142,6 +168,7 @@ use skill prototype-design
 | Agent | 用途 | 调用 Skill |
 |-------|------|-----------|
 | project-bootstrapper | 项目启动 | `project-bootstrap` |
+| team-orchestrator | 意图识别与任务分派 | - |
 | frontend-developer | 前端开发 | - |
 | backend-developer | 后端开发 | - |
 | code-reviewer | 代码审查 | - |
@@ -153,9 +180,10 @@ use skill prototype-design
 
 | Rule | 类型 | 用途 |
 |------|------|------|
-| code-reuse-check | always | 开发前自动检查可复用代码 |
-| file-naming | always | 生成文件使用"文件名+时间戳"命名 |
-| task-splitting | requested | 按需进行任务拆分（前后端分离） |
+| `code-reuse-check` | always | alwaysApply: true |
+| `file-naming` | always | 文件命名规则。核心入口文件固定命名，归档副本使用“文件名+时间戳”。 |
+| `self-optimize` | always | 流程自优化规则。每次任务执行完成后自动触发，评估并优化 .codebuddy 配置。 |
+| `task-splitting` | requested | 任务拆分规则。当用户需要将产品需求拆分为可执行的开发任务时使用。 |
 
 ## 🎯 最佳实践
 

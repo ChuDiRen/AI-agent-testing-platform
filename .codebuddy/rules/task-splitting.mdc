@@ -154,9 +154,13 @@ alwaysApply: false
 ### 第三阶段：任务细化
 
 7. **为每个任务定义验收标准**
-8. **创建任务清单文件**，按类型分别保存（遵循 `file-naming` 规则）：
-   - 前端任务：`doc/frontend-tasks-{timestamp}.md`
-   - 后端任务：`doc/backend-tasks-{timestamp}.md`
+8. **创建任务清单文件**（遵循 `file-naming` 规则）：
+   - 核心入口（固定命名）：
+     - 前端任务：`docs/frontend-tasks.md`
+     - 后端任务：`docs/backend-tasks.md`
+   - 归档副本（带时间戳）：
+     - 前端任务：`docs/archive/frontend-tasks-{timestamp}.md`
+     - 后端任务：`docs/archive/backend-tasks-{timestamp}.md`
 
 ## 拆分检查点
 

@@ -1,5 +1,5 @@
 ---
-description: 文件命名规则。所有生成的输出文件必须使用"文件名+时间戳"格式命名。
+description: 文件命名规则。核心入口文件固定命名，归档副本使用“文件名+时间戳”。
 globs:
 alwaysApply: true
 ---
@@ -8,31 +8,41 @@ alwaysApply: true
 
 ## 核心原则
 
-> **所有生成的输出文件必须使用"文件名+时间戳"格式命名，确保版本可追溯。**
+- **核心入口文件固定命名**：便于 Commands/Agents 稳定读取与增量更新。
+- **归档副本带时间戳**：用于版本追溯与回滚。
 
-## 命名格式
+## 文档目录
+
+- **统一使用**：`docs/`
+- **归档目录**：`docs/archive/`
+
+## 核心入口文件（固定命名）
+
+以下文件允许（且推荐）固定命名：
+
+- **PRD**：`docs/PRD.md`
+- **架构**：`docs/architecture.md`
+- **数据库设计**：`docs/database-design.md`
+- **功能清单**：`docs/func.md`
+- **前端任务清单**：`docs/frontend-tasks.md`
+- **后端任务清单**：`docs/backend-tasks.md`
+- **API 文档目录**：`docs/api/`（例如：`docs/api/user-api.md`）
+
+## 归档副本（带时间戳）
+
+当生成/更新上述核心文档时，**同时**在 `docs/archive/` 生成一份归档副本：
 
 ```
 {filename}-{timestamp}.{ext}
 ```
 
-| 组成部分 | 说明 | 示例 |
-|---------|------|------|
-| `filename` | 文件名（不含扩展名） | `frontend-tasks`、`api-doc` |
-| `timestamp` | 时间戳 `YYYYMMDD-HHmmss` | `20251218-143052` |
-| `ext` | 文件扩展名 | `md`、`json`、`yaml` |
+- **timestamp**：`YYYYMMDD-HHmmss`
 
-## 适用范围
+### 示例
 
-| 文件类型 | 命名示例 |
-|---------|---------|
-| 前端任务清单 | `doc/frontend-tasks-20251218-143052.md` |
-| 后端任务清单 | `doc/backend-tasks-20251218-143052.md` |
-| API 文档 | `doc/api-doc-20251218-143052.md` |
-| 测试报告 | `doc/test-report-20251218-143052.md` |
-| 代码审查报告 | `doc/code-review-20251218-143052.md` |
-| 数据库设计文档 | `doc/database-design-20251218-143052.md` |
-| 原型设计文档 | `doc/prototype-design-20251218-143052.md` |
+- PRD 归档：`docs/archive/PRD-20260115-103012.md`
+- 前端任务归档：`docs/archive/frontend-tasks-20260115-103012.md`
+- API 索引归档：`docs/archive/api-index-20260115-103012.md`
 
 ## 不适用范围
 
@@ -43,18 +53,3 @@ alwaysApply: true
 - 代码源文件（如 `*.py`、`*.vue`、`*.ts`）
 - Agent 定义文件
 - Command 定义文件
-
-## 实现说明
-
-生成文件时，使用当前时间生成时间戳：
-
-```python
-from datetime import datetime
-timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-filename = f"frontend-tasks-{timestamp}.md"
-```
-
-```javascript
-const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15).replace(/(\d{8})(\d{6})/, '$1-$2');
-const filename = `frontend-tasks-${timestamp}.md`;
-```
