@@ -64,39 +64,45 @@ description: 项目启动工作流。当用户需要从零开始启动一个完�
 
 ```
 {项目目录}/                      # 用户指定的目录，如 cyberpunk-backend/
-├── docs/                        # 📁 文档集中目录
-│   ├── PRD.md
-│   ├── architecture.md
-│   ├── database-design.md
-│   ├── frontend-tasks.md
-│   ├── backend-tasks.md
-│   ├── func.md
-│   └── api/
-│       ├── index.md
-│       └── ...
-├── sql/                         # 📁 数据库脚本
-│   ├── schema.sql
-│   └── init-data.sql
-└── prototype/                   # 📁 原型页面（必须生成）
-    ├── index.html
-    ├── dashboard.html
-    ├── css/styles.css
-    ├── js/main.js
-    └── README.md
+└── docs/                        # 📁 文档根目录
+    └── {timestamp}/            # 📁 时间戳子目录（如：20260115-143000）
+        ├── PRD.md                  # 产品需求文档
+        ├── architecture.md         # 系统架构（含Mermaid图）
+        ├── database-design.md      # 数据库设计
+        ├── frontend-tasks.md       # 前端任务清单
+        ├── backend-tasks.md        # 后端任务清单
+        ├── func.md                 # 功能清单与状态
+        ├── api/                    # API文档集中管理
+        │   ├── index.md
+        │   └── ...
+        ├── sql/                    # 📁 数据库脚本（在时间戳目录下）
+        │   ├── schema.sql
+        │   └── init-data.sql
+        └── prototype/              # 📁 原型页面（在时间戳目录下）
+            ├── index.html
+            ├── dashboard.html
+            ├── css/styles.css
+            ├── js/main.js
+            └── README.md
 ```
 
 ### ❌ 禁止行为
 
 - ❌ 在工作区根目录创建分散的 docs/、sql/ 目录
+- ❌ 在项目根目录单独创建 sql/、prototype/ 目录（必须在 docs/{timestamp}/ 下）
 - ❌ 跳过原型设计阶段
 - ❌ 文档分散在多个位置
+- ❌ 覆盖之前的时间戳目录（每次必须生成新的时间戳）
 
 ### ✅ 必须遵守
 
 - ✅ 检测用户指定的项目目录
-- ✅ 所有文档集中到 `{项目目录}/docs/` 下
-- ✅ **必须生成原型页面** 到 `{项目目录}/prototype/` 下
-- ✅ SQL 脚本放到 `{项目目录}/sql/` 下
+- ✅ 生成当前时间戳（格式：YYYYMMDD-HHmmss）
+- ✅ **所有内容集中到 `{项目目录}/docs/{timestamp}/` 下**（文档、原型、SQL都在此目录）
+- ✅ 原型页面生成到 `{项目目录}/docs/{timestamp}/prototype/` 下
+- ✅ SQL 脚本放到 `{项目目录}/docs/{timestamp}/sql/` 下
+- ✅ 每次生成独立的时间戳目录，避免覆盖之前的内容
+- ✅ 时间戳必须是当前时间，不得手动指定
 
 ---
 
@@ -387,20 +393,18 @@ else:
 ```
 【项目目录已确定】
 📁 项目根目录：{绝对路径}
-📁 文档目录：{项目根目录}/docs/
-📁 SQL目录：{项目根目录}/sql/
-📁 原型目录：{项目根目录}/prototype/
+📁 集中目录：{项目根目录}/docs/{timestamp}/（所有文档、原型、SQL都在此目录下）
+📝 时间戳：YYYYMMDD-HHmmss（如：20260115-143000）
 ```
 
 **示例：**
 ```
-用户输入：/start @/d:/AI-agent-testing-platform/cyberpunk-backend/需求文档.md
+用户输入：/start 订单管理系统
 
 识别结果：
-📁 项目根目录：d:/AI-agent-testing-platform/cyberpunk-backend/
-📁 文档目录：d:/AI-agent-testing-platform/cyberpunk-backend/docs/
-📁 SQL目录：d:/AI-agent-testing-platform/cyberpunk-backend/sql/
-📁 原型目录：d:/AI-agent-testing-platform/cyberpunk-backend/prototype/
+📁 项目根目录：当前工作目录（如：d:/project/backend/）
+📁 集中目录：{项目根目录}/docs/{timestamp}/（所有文档、原型、SQL都在此目录下）
+📝 时间戳：20260115-143000（示例）
 ```
 
 ---
@@ -424,24 +428,25 @@ else:
 **文件操作规范（关键）：**
 
 ```python
-# ✅ 正确方式：使用项目根目录的绝对路径
-PROJECT_ROOT = "d:/AI-agent-testing-platform/cyberpunk-backend/"  # 在阶段2确定
+# ✅ 正确方式：使用项目根目录的绝对路径和时间戳
+PROJECT_ROOT = 当前工作目录  # 在阶段2根据用户输入动态确定
+TIMESTAMP = "20260115-143000"  # 当前时间戳（格式：YYYYMMDD-HHmmss）
 
 # 创建目录（使用 execute_command）
 execute_command(
-    command='New-Item -ItemType Directory -Force -Path "docs", "sql", "prototype"',
+    command=f'New-Item -ItemType Directory -Force -Path "docs/{TIMESTAMP}", "docs/{TIMESTAMP}/sql", "docs/{TIMESTAMP}/prototype"',
     requires_approval=False
 )
 
-# 写入新文件（使用 write_to_file，使用绝对路径）
+# 写入新文件（使用 write_to_file，使用绝对路径和时间戳）
 write_to_file(
-    filePath=f"{PROJECT_ROOT}docs/PRD.md",
+    filePath=f"{PROJECT_ROOT}docs/{TIMESTAMP}/PRD.md",
     content="# PRD 文档\n\n## 1. 概述\n内容..."
 )
 
-# 编辑已有文件（使用 replace_in_file，使用绝对路径）
+# 编辑已有文件（使用 replace_in_file，使用绝对路径和时间戳）
 replace_in_file(
-    filePath=f"{PROJECT_ROOT}docs/PRD.md",
+    filePath=f"{PROJECT_ROOT}docs/{TIMESTAMP}/PRD.md",
     old_str="旧内容",
     new_str="新内容"
 )
@@ -533,7 +538,9 @@ write_to_file(
 ```
 
 **文件输出：**
-- `{PROJECT_ROOT}docs/PRD.md` - 详尽完整的产品需求文档（PROJECT_ROOT 在阶段2确定）
+- `{PROJECT_ROOT}docs/{timestamp}/PRD.md` - 详尽完整的产品需求文档（PROJECT_ROOT 和 timestamp 在阶段2确定）
+  - 迭代模式：包含所有模块（已开发+新模块）
+  - 新模块功能点标记为 `待开发`
 
 ---
 
@@ -545,15 +552,15 @@ write_to_file(
 调用时使用 `use_skill` 命令，无需确认，直接生成数据库设计。必须明确传递项目根目录：
 
 ```
-use_skill(command="database-design", prompt="项目根目录：{PROJECT_ROOT}。请根据 PRD 生成 {项目名称} 的数据库设计。要求：生成完整的表结构设计文档（{PROJECT_ROOT}docs/database-design.md）、建表脚本（{PROJECT_ROOT}sql/schema.sql）和初始化数据（{PROJECT_ROOT}sql/init-data.sql），确保所有功能模块的数据模型都已定义，包含完整的索引设计和外键约束。")
+use_skill(command="database-design", prompt="项目根目录：{PROJECT_ROOT}，时间戳：{timestamp}。请根据 PRD 生成 {项目名称} 的数据库设计。要求：生成完整的表结构设计文档（{PROJECT_ROOT}docs/{timestamp}/database-design.md）、建表脚本（{PROJECT_ROOT}docs/{timestamp}/sql/schema.sql）和初始化数据（{PROJECT_ROOT}docs/{timestamp}/sql/init-data.sql），确保所有功能模块的数据模型都已定义，包含完整的索引设计和外键约束。")
 ```
 
 **前置检查：**
 ```bash
 检查文件存在性：
-- {PROJECT_ROOT}docs/database-design.md → 跳过/创建
-- {PROJECT_ROOT}sql/schema.sql → 跳过/创建
-- {PROJECT_ROOT}sql/init-data.sql → 跳过/创建
+- {PROJECT_ROOT}docs/{timestamp}/database-design.md → 跳过/创建
+- {PROJECT_ROOT}docs/{timestamp}/sql/schema.sql → 跳过/创建
+- {PROJECT_ROOT}docs/{timestamp}/sql/init-data.sql → 跳过/创建
 ```
 
 **设计标准：**
@@ -567,21 +574,21 @@ use_skill(command="database-design", prompt="项目根目录：{PROJECT_ROOT}。
 | 测试数据 | 包含至少10条记录 |
 
 **文件输出：**
-- `{PROJECT_ROOT}docs/database-design.md` - 数据库设计文档
-- `{PROJECT_ROOT}sql/schema.sql` - 建表脚本
-- `{PROJECT_ROOT}sql/init-data.sql` - 初始化数据
+- `{PROJECT_ROOT}docs/{timestamp}/database-design.md` - 数据库设计文档
+- `{PROJECT_ROOT}docs/{timestamp}/sql/schema.sql` - 建表脚本
+- `{PROJECT_ROOT}docs/{timestamp}/sql/init-data.sql` - 初始化数据
 
 ---
 
 #### 子阶段3-3：原型设计
 
-**调用 Skill：** `prototype-design`
+**调用 Skill：** `frontend-design`
 
 ⚠️ **关键执行要求**：
 调用时必须使用 `use_skill` 命令，在 prompt 中明确指定项目根目录和设计风格，避免询问用户确认：
 
 ```
-use_skill(command="prototype-design", prompt="项目根目录：{PROJECT_ROOT}。请为 {项目名称} 生成高保真原型页面。设计风格：简约现代风格（蓝灰配色，Element Plus）。要求：直接生成所有页面到 {PROJECT_ROOT}prototype/ 目录下，无需询问用户确认，确保所有 PRD 定义的页面都已生成，保持设计风格一致性。")
+use_skill(command="frontend-design", prompt="项目根目录：{PROJECT_ROOT}，时间戳：{timestamp}。请为 {项目名称} 生成高保真原型页面。设计风格：简约现代风格（蓝灰配色，Element Plus）。要求：直接生成所有页面到 {PROJECT_ROOT}docs/{timestamp}/prototype/ 目录下，无需询问用户确认，确保所有 PRD 定义的页面都已生成，保持设计风格一致性。")
 ```
 
 **设计风格自动选择：**
@@ -673,8 +680,8 @@ use_skill(command="prototype-design", prompt="项目根目录：{PROJECT_ROOT}�
 - 验收标准使用 `[ ]`，方便后续追踪
 
 **文件输出：**
-- `{PROJECT_ROOT}docs/frontend-tasks.md` - 前端任务清单
-- `{PROJECT_ROOT}docs/backend-tasks.md` - 后端任务清单
+- `{PROJECT_ROOT}docs/{timestamp}/frontend-tasks.md` - 前端任务清单
+- `{PROJECT_ROOT}docs/{timestamp}/backend-tasks.md` - 后端任务清单
 
 ---
 
@@ -686,7 +693,7 @@ use_skill(command="prototype-design", prompt="项目根目录：{PROJECT_ROOT}�
 调用时使用 `use_skill` 命令，无需确认，直接生成 API 文档。必须明确传递项目根目录：
 
 ```
-use_skill(command="api-documentation", prompt="项目根目录：{PROJECT_ROOT}。请根据 {项目名称} 的功能模块生成完整的 API 文档。要求：覆盖所有功能模块，每个接口包含请求方式、URL、参数说明、响应示例、错误码说明，生成到 {PROJECT_ROOT}docs/api/ 目录下。")
+use_skill(command="api-documentation", prompt="项目根目录：{PROJECT_ROOT}，时间戳：{timestamp}。请根据 {项目名称} 的功能模块生成完整的 API 文档。要求：覆盖所有功能模块，每个接口包含请求方式、URL、参数说明、响应示例、错误码说明，生成到 {PROJECT_ROOT}docs/{timestamp}/api/ 目录下。")
 ```
 
 **文档标准：**
@@ -701,7 +708,7 @@ use_skill(command="api-documentation", prompt="项目根目录：{PROJECT_ROOT}�
 
 **文件输出：**
 ```
-{PROJECT_ROOT}docs/api/
+{PROJECT_ROOT}docs/{timestamp}/api/
 ├── index.md          # API索引
 ├── auth-api.md       # 认证模块
 ├── orders-api.md     # 订单模块
@@ -785,7 +792,7 @@ use_skill(command="api-documentation", prompt="项目根目录：{PROJECT_ROOT}�
 
 #### 子阶段3-6：系统架构图（强制要求）
 
-**文件：** `{PROJECT_ROOT}docs/architecture.md`
+**文件：** `{PROJECT_ROOT}docs/{timestamp}/architecture.md`
 
 **必须包含以下4个Mermaid图：**
 
@@ -977,11 +984,11 @@ graph TB
   ✅ users-roles-api.md (权限模块)
   ✅ system-api.md (系统功能)
 
-💾 sql/
+💾 sql/ (在 {timestamp} 目录下)
   ✅ schema.sql (建表脚本)
   ✅ init-data.sql (初始化数据)
 
-🎨 prototype/
+🎨 prototype/ (在 {timestamp} 目录下)
   ✅ index.html (前台入口)
   ✅ admin.html (后台入口)
   ✅ css/styles.css (全局样式)
@@ -1017,22 +1024,22 @@ graph TB
 {project-name}/
 ├── README.md
 ├── docs/
-│   ├── PRD.md                   ✅ 详尽完整的产品需求文档
-│   ├── architecture.md          ✅ 系统架构（含4个Mermaid可视化图）
-│   ├── database-design.md       ✅ 数据库设计
-│   ├── frontend-tasks.md        ✅ 前端任务清单
-│   ├── backend-tasks.md         ✅ 后端任务清单
-│   ├── func.md                  ✅ 功能清单与状态
-│   ├── api/                     ✅ API文档集中管理
-│   │   ├── index.md             - API索引
-│   │   ├── auth-api.md          - 认证模块
-│   │   ├── orders-api.md        - 订单模块
-│   │   └── ...
-│   └── archive/                 - 文档归档（带时间戳）
-├── sql/
-│   ├── schema.sql             ✅ 建表脚本（{N}张表）
-│   └── init-data.sql          ✅ 初始化数据
-└── prototype/
+│   └── {timestamp}/               📁 时间戳目录（如：20260115-143000）
+│       ├── PRD.md                   ✅ 详尽完整的产品需求文档
+│       ├── architecture.md          ✅ 系统架构（含4个Mermaid可视化图）
+│       ├── database-design.md       ✅ 数据库设计
+│       ├── frontend-tasks.md        ✅ 前端任务清单
+│       ├── backend-tasks.md         ✅ 后端任务清单
+│       ├── func.md                  ✅ 功能清单与状态
+│       ├── api/                     ✅ API文档集中管理
+│       │   ├── index.md             - API索引
+│       │   ├── auth-api.md          - 认证模块
+│       │   ├── orders-api.md        - 订单模块
+│       │   └── ...
+│       ├── sql/                    ✅ 数据库脚本（在时间戳目录下）
+│       │   ├── schema.sql          - 建表脚本（{N}张表）
+│       │   └── init-data.sql       - 初始化数据
+│       └── prototype/              ✅ 原型页面（在时间戳目录下）
     ├── index.html             ✅ 电商前台入口
     ├── admin.html             ✅ 管理后台入口
     ├── css/
@@ -1141,7 +1148,7 @@ python -m http.server 8080
 | Skill | 调用阶段 | 用途 |
 |-------|---------|------|
 | `database-design` | 子阶段3-2 | 生成数据库设计文档和 SQL |
-| `prototype-design` | 子阶段3-3 | 生成原型页面 |
+| `frontend-design` | 子阶段3-3 | 生成原型页面 |
 | `api-documentation` | 子阶段3-5 | 生成 API 文档 |
 
 ---

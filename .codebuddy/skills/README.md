@@ -9,8 +9,7 @@ skills/
 ├── design/              # 设计类技能
 │   ├── api-documentation/   # API 文档生成
 │   ├── database-design/     # 数据库设计
-│   ├── frontend-design/     # 前端界面设计
-│   └── prototype-design/    # 原型设计
+│   └── frontend-design/     # 前端界面设计
 │
 ├── development/         # 开发类技能
 │   └── mcp-builder/         # MCP 服务器开发
@@ -24,14 +23,13 @@ skills/
     └── skill-creator/       # 技能创建
 ```
 
-## Skills 清单（9 个）
+## Skills 清单（8 个）
 
 | 分类 | Skill | 描述 |
 |------|-------|------|
 | **design** | api-documentation | API 文档生成工具 |
 | | database-design | 数据库表结构设计 |
-| | frontend-design | 高质量前端界面设计 |
-| | prototype-design | 原型界面设计 |
+| | frontend-design | 高质量前端界面设计与原型设计 |
 | **development** | mcp-builder | MCP 服务器开发指南 |
 | **testing** | api-testing | pytest + httpx API 测试 ⭐ |
 | | webapp-testing | Playwright Web 测试 ⭐ |

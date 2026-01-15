@@ -1,55 +1,786 @@
 ---
-description: 文件命名规则。核心入口文件固定命名，归档副本使用“文件名+时间戳”。
-globs:
-alwaysApply: true
+name: file-naming-v3
+description: 文件命名规范v3.0。核心文档固定位置增量更新，原型页面统一管理，历史版本完整归档。
 ---
 
-# 文件命名规则
+# 文件命名规范 v3.0（最终优化版）
 
 ## 核心原则
 
-- **核心入口文件固定命名**：便于 Commands/Agents 稳定读取与增量更新。
-- **归档副本带时间戳**：用于版本追溯与回滚。
+1. **核心文档固定位置** - 保持在 `docs/` 根目录下，每次迭代增量更新
+2. **原型页面统一管理** - 所有原型页面集中在 `docs/prototype/` 下，使用版本后缀
+3. **历史版本完整归档** - 每次迭代将整个 `docs/` 归档到 `docs/archive/`
+4. **增量更新内容** - 在文档中标注新增/修改的内容
+5. **变更日志记录** - 详细记录每次迭代的变更内容
 
-## 文档目录
+---
 
-- **统一使用**：`docs/`
-- **归档目录**：`docs/archive/`
+## 目录结构
 
-## 核心入口文件（固定命名）
-
-以下文件允许（且推荐）固定命名：
-
-- **PRD**：`docs/PRD.md`
-- **架构**：`docs/architecture.md`
-- **数据库设计**：`docs/database-design.md`
-- **功能清单**：`docs/func.md`
-- **前端任务清单**：`docs/frontend-tasks.md`
-- **后端任务清单**：`docs/backend-tasks.md`
-- **API 文档目录**：`docs/api/`（例如：`docs/api/user-api.md`）
-
-## 归档副本（带时间戳）
-
-当生成/更新上述核心文档时，**同时**在 `docs/archive/` 生成一份归档副本：
+### 核心文档结构（固定位置）
 
 ```
-{filename}-{timestamp}.{ext}
+docs/                          # 📁 文档根目录（固定位置）
+├── PRD.md                     # ✅ 产品需求文档（固定，增量更新）
+├── architecture.md             # ✅ 系统架构文档（固定，增量更新）
+├── database-design.md          # ✅ 数据库设计（固定，增量更新）
+├── frontend-tasks.md          # ✅ 前端任务清单（固定，增量更新）
+├── backend-tasks.md           # ✅ 后端任务清单（固定，增量更新）
+├── func.md                    # ✅ 功能清单（固定，增量更新）
+├── CHANGELOG.md               # ✅ 变更日志（记录所有迭代变更）
+│
+├── api/                       # ✅ API文档目录（固定）
+│   ├── index.md               # API索引（固定）
+│   ├── orders-api.md          # 订单API（固定）
+│   ├── products-api.md        # 商品API（固定）
+│   └── ...
+│
+├── sql/                       # ✅ SQL脚本目录（固定）
+│   ├── schema.sql            # 建表脚本（固定，增量更新）
+│   └── init-data.sql         # 初始化数据（固定，增量更新）
+│
+├── prototype/                 # ✅ 原型页面目录（固定，统一管理）
+│   ├── index.html            # 主入口页（固定）
+│   ├── order-list.html       # 订单列表页（固定）
+│   ├── order-detail.html     # 订单详情页（固定）
+│   ├── product-list.html     # 商品列表页（固定）
+│   ├── product-categories.html # 商品分类页（固定）
+│   ├── css/
+│   │   ├── styles.css       # 全局样式（固定）
+│   │   └── ...
+│   └── js/
+│       ├── main.js          # 交互逻辑（固定）
+│       └── ...
+│
+└── archive/                   # 📁 归档目录（每次迭代归档）
+    ├── 20260115-143000/     # 第一次迭代完整备份
+    ├── 20260115-162000/     # 第二次迭代完整备份
+    └── ...
 ```
 
-- **timestamp**：`YYYYMMDD-HHmmss`
+### 归档目录结构
 
-### 示例
+```
+docs/archive/
+├── 20260115-143000/         # 第一次迭代
+│   ├── PRD.md
+│   ├── architecture.md
+│   ├── database-design.md
+│   ├── frontend-tasks.md
+│   ├── backend-tasks.md
+│   ├── func.md
+│   ├── CHANGELOG.md
+│   ├── api/
+│   ├── sql/
+│   └── prototype/
+│
+└── 20260115-162000/         # 第二次迭代
+    ├── PRD.md                # 完整的PRD（订单+商品）
+    ├── database-design.md     # 完整的数据库设计（订单+商品）
+    ├── frontend-tasks.md     # 完整的任务清单
+    └── ...
+```
 
-- PRD 归档：`docs/archive/PRD-20260115-103012.md`
-- 前端任务归档：`docs/archive/frontend-tasks-20260115-103012.md`
-- API 索引归档：`docs/archive/api-index-20260115-103012.md`
+---
 
-## 不适用范围
+## 文件命名规范
 
-以下文件**不使用**时间戳命名：
+### 核心文档（固定命名）
 
-- 配置文件（如 `SKILL.md`、`README.md`）
-- 规则文件（如 `*.mdc`）
-- 代码源文件（如 `*.py`、`*.vue`、`*.ts`）
-- Agent 定义文件
-- Command 定义文件
+| 文件 | 位置 | 命名 | 说明 |
+|------|------|------|------|
+| PRD | `docs/PRD.md` | 固定 | 产品需求文档 |
+| 架构文档 | `docs/architecture.md` | 固定 | 系统架构文档 |
+| 数据库设计 | `docs/database-design.md` | 固定 | 数据库设计文档 |
+| 前端任务 | `docs/frontend-tasks.md` | 固定 | 前端任务清单 |
+| 后端任务 | `docs/backend-tasks.md` | 固定 | 后端任务清单 |
+| 功能清单 | `docs/func.md` | 固定 | 功能清单与状态 |
+| 变更日志 | `docs/CHANGELOG.md` | 固定 | 迭代变更日志 |
+
+### API文档（固定命名）
+
+| 文件 | 位置 | 命名 | 说明 |
+|------|------|------|------|
+| API索引 | `docs/api/index.md` | 固定 | API接口索引 |
+| 订单API | `docs/api/orders-api.md` | 固定 | 订单管理API |
+| 商品API | `docs/api/products-api.md` | 固定 | 商品管理API |
+| 客户API | `docs/api/customers-api.md` | 固定 | 客户管理API |
+
+### SQL脚本（固定命名）
+
+| 文件 | 位置 | 命名 | 说明 |
+|------|------|------|------|
+| 建表脚本 | `docs/sql/schema.sql` | 固定 | 数据库建表脚本 |
+| 初始化数据 | `docs/sql/init-data.sql` | 固定 | 初始化数据脚本 |
+
+### 原型页面（固定命名）
+
+| 文件 | 位置 | 命名 | 说明 |
+|------|------|------|------|
+| 主入口页 | `docs/prototype/index.html` | 固定 | 原型主入口 |
+| 订单列表 | `docs/prototype/order-list.html` | 固定 | 订单列表页 |
+| 订单详情 | `docs/prototype/order-detail.html` | 固定 | 订单详情页 |
+| 商品列表 | `docs/prototype/product-list.html` | 固定 | 商品列表页 |
+| 商品分类 | `docs/prototype/product-categories.html` | 固定 | 商品分类页 |
+| 全局样式 | `docs/prototype/css/styles.css` | 固定 | 全局样式 |
+| 交互逻辑 | `docs/prototype/js/main.js` | 固定 | 主交互逻辑 |
+
+### 归档文件（时间戳命名）
+
+```
+docs/archive/{timestamp}/
+├── PRD.md
+├── architecture.md
+├── database-design.md
+├── frontend-tasks.md
+├── backend-tasks.md
+├── func.md
+├── CHANGELOG.md
+├── api/
+├── sql/
+└── prototype/
+```
+
+**时间戳格式：** `YYYYMMDD-HHmmss`
+
+---
+
+## 迭代模式执行流程
+
+### 第1步：归档当前版本
+
+**生成当前时间戳：**
+```python
+TIMESTAMP = datetime.now().strftime('%Y%m%d-%H%M%S')
+# 示例：20260115-162000
+```
+
+**归档整个 `docs/` 目录：**
+```python
+# 归档核心文档
+copy_to_archive('docs/PRD.md', f'docs/archive/{TIMESTAMP}/PRD.md')
+copy_to_archive('docs/architecture.md', f'docs/archive/{TIMESTAMP}/architecture.md')
+copy_to_archive('docs/database-design.md', f'docs/archive/{TIMESTAMP}/database-design.md')
+copy_to_archive('docs/frontend-tasks.md', f'docs/archive/{TIMESTAMP}/frontend-tasks.md')
+copy_to_archive('docs/backend-tasks.md', f'docs/archive/{TIMESTAMP}/backend-tasks.md')
+copy_to_archive('docs/func.md', f'docs/archive/{TIMESTAMP}/func.md')
+copy_to_archive('docs/CHANGELOG.md', f'docs/archive/{TIMESTAMP}/CHANGELOG.md')
+
+# 归档 API文档
+copy_dir_to_archive('docs/api/', f'docs/archive/{TIMESTAMP}/api/')
+
+# 归档 SQL脚本
+copy_dir_to_archive('docs/sql/', f'docs/archive/{TIMESTAMP}/sql/')
+
+# 归档原型页面
+copy_dir_to_archive('docs/prototype/', f'docs/archive/{TIMESTAMP}/prototype/')
+```
+
+### 第2步：增量更新核心文档
+
+**更新 PRD.md（增量模式）：**
+
+```python
+# 读取当前PRD
+current_prd = read_file('docs/PRD.md')
+
+# 在适当位置追加新模块内容
+new_module_content = """
+---
+
+### 2.{next_module_number} {新模块名称}
+
+#### 功能概述
+{新模块概述}
+
+#### 用户故事
+{用户故事}
+
+#### 功能点
+- [ ] 功能点1 | 优先级：P0 | 状态：待开发
+- [ ] 功能点2 | 优先级：P0 | 状态：待开发
+...
+
+---
+
+**🆕 新增（v2.0）**：以上为本次迭代新增的{新模块名称}模块
+"""
+
+# 在 "## 3. 非功能需求" 之前插入新模块
+updated_prd = insert_before(current_prd, "## 3. 非功能需求", new_module_content)
+
+# 更新版本号
+updated_prd = update_version(updated_prd, "v2.0")
+
+# 写入更新
+write_to_file(filePath='docs/PRD.md', content=updated_prd)
+```
+
+**关键规则：**
+- ✅ 只添加新模块的内容，不重复已有内容
+- ✅ 在文档中标注 `🆕 新增` 标记
+- ✅ 更新文档版本号
+- ✅ 更新文档更新时间
+
+**示例：**
+```markdown
+# 订单管理系统 产品需求文档 v2.0
+
+**更新时间：** 2026-01-15 16:20:00
+
+## 2. 功能需求
+
+### 2.1 订单管理模块（已完成）
+#### 功能概述
+...
+#### 功能点
+- [x] 订单创建 | 优先级：P0 | 状态：已完成
+...
+
+### 2.2 商品管理模块 🆕 新增（v2.0）
+
+#### 功能概述
+...
+
+#### 功能点
+- [ ] 商品列表 | 优先级：P0 | 状态：待开发
+- [ ] 商品新增 | 优先级：P0 | 状态：待开发
+...
+
+**🆕 新增（v2.0）**：以上为本次迭代新增的商品管理模块
+
+---
+
+## 3. 非功能需求
+...
+```
+
+### 第3步：更新功能清单（增量模式）
+
+**更新 func.md：**
+
+```python
+# 读取当前功能清单
+current_func = read_file('docs/func.md')
+
+# 追加新模块功能清单
+new_func_content = """
+---
+
+### 2. 商品管理模块（6个功能点）🆕 新增（v2.0）
+
+| 功能点 | 状态 | 优先级 | 交付时间 |
+|--------|------|--------|----------|
+| 商品列表 | ⏸️ 待开发 | P0 | - |
+| 商品新增 | ⏸️ 待开发 | P0 | - |
+...
+"""
+
+# 在文档末尾追加
+updated_func = current_func + new_func_content
+
+# 更新统计
+updated_func = update_stats(updated_func)
+
+# 写入更新
+write_to_file(filePath='docs/func.md', content=updated_func)
+```
+
+### 第4步：更新数据库设计（增量模式）
+
+**更新 database-design.md：**
+
+```python
+# 读取当前数据库设计
+current_db = read_file('docs/database-design.md')
+
+# 在表清单中添加新表
+new_table_list = """
+| product | 商品表 | 10万+ | 5 | 🆕 新增（v2.0）|
+| product_category | 商品分类表 | 1000+ | 3 | 🆕 新增（v2.0）|
+| product_log | 商品操作日志表 | 100万+ | 2 | 🆕 新增（v2.0）|
+"""
+
+# 在表结构设计中添加新表
+new_table_structure = """
+---
+
+### 3.{next_table_number} product (商品表) 🆕 新增（v2.0）
+
+| 字段名 | 类型 | ... |
+...
+
+### 3.{next_table_number+1} product_category (商品分类表) 🆕 新增（v2.0）
+...
+
+**🆕 新增（v2.0）**：以上为本次迭代新增的商品相关表
+"""
+
+# 更新文档
+updated_db = update_table_list(current_db, new_table_list)
+updated_db = insert_table_structure(updated_db, new_table_structure)
+
+# 写入更新
+write_to_file(filePath='docs/database-design.md', content=updated_db)
+```
+
+### 第5步：更新SQL脚本（增量模式）
+
+**更新 sql/schema.sql（增量模式）：**
+
+```python
+# 读取当前 schema.sql
+current_schema = read_file('docs/sql/schema.sql')
+
+# 在文件末尾追加新表的创建语句
+new_tables_sql = """
+
+-- ========================================
+-- 商品管理相关表 🆕 新增（v2.0）
+-- ========================================
+CREATE TABLE product_category (
+    ...
+);
+
+CREATE TABLE product (
+    ...
+);
+
+CREATE TABLE product_log (
+    ...
+);
+"""
+
+updated_schema = current_schema + new_tables_sql
+
+# 写入更新
+write_to_file(filePath='docs/sql/schema.sql', content=updated_schema)
+```
+
+**更新 sql/init-data.sql（增量模式）：**
+
+```python
+# 读取当前 init-data.sql
+current_init = read_file('docs/sql/init-data.sql')
+
+# 在文件末尾追加新表的初始化数据
+new_init_data = """
+
+-- ========================================
+-- 商品管理初始化数据 🆕 新增（v2.0）
+-- ========================================
+INSERT INTO product_category (...) VALUES (...);
+INSERT INTO product (...) VALUES (...);
+INSERT INTO product_log (...) VALUES (...);
+"""
+
+updated_init = current_init + new_init_data
+
+# 写入更新
+write_to_file(filePath='docs/sql/init-data.sql', content=updated_init)
+```
+
+### 第6步：更新任务清单（增量模式）
+
+**更新 frontend-tasks.md（增量模式）：**
+
+```python
+# 读取当前前端任务清单
+current_tasks = read_file('docs/frontend-tasks.md')
+
+# 在项目概述中更新统计
+updated_tasks = update_task_stats(current_tasks, old_task_count, new_task_count)
+
+# 在文档末尾追加新模块的任务
+new_tasks_content = """
+
+---
+
+## 模块3：商品管理模块（25个任务）🆕 新增（v2.0）
+
+### 任务1：商品列表页开发 (P0, 6h)
+- [ ] 实现商品列表页面布局
+- [ ] 实现分页功能
+...
+
+**验收标准：**
+- [ ] 能够正常展示商品列表
+- [ ] 分页功能正常
+
+### 任务2：商品新增功能 (P0, 4h)
+- [ ] 实现商品新增表单
+...
+"""
+
+updated_tasks = current_tasks + new_tasks_content
+
+# 写入更新
+write_to_file(filePath='docs/frontend-tasks.md', content=updated_tasks)
+```
+
+**更新 backend-tasks.md（增量模式）：**
+
+```python
+# 同 frontend-tasks.md 的增量更新方式
+# 在文档末尾追加新模块的任务
+write_to_file(filePath='docs/backend-tasks.md', content=updated_tasks)
+```
+
+### 第7步：更新/新增原型页面
+
+**新增新模块的原型页面：**
+
+```python
+# 新增商品列表页
+product_list_html = """<!DOCTYPE html>
+...
+"""
+write_to_file(filePath='docs/prototype/product-list.html', content=product_list_html)
+
+# 新增商品分类页
+product_categories_html = """<!DOCTYPE html>
+...
+"""
+write_to_file(filePath='docs/prototype/product-categories.html', content=product_categories_html)
+
+# 更新主入口页（index.html），添加新模块的导航
+updated_index = update_navigation('docs/prototype/index.html', new_module_links)
+write_to_file(filePath='docs/prototype/index.html', content=updated_index)
+```
+
+**关键规则：**
+- ✅ 只新增新模块的页面，不重复已有页面
+- ✅ 更新主入口页，添加新模块的导航链接
+- ✅ 所有原型页面在 `docs/prototype/` 目录下统一管理
+
+### 第8步：新增API文档
+
+**新增新模块的API文档：**
+
+```python
+# 新增商品API文档
+products_api_content = """
+# 商品管理 API 文档
+
+## 1. 概述
+
+## 2. 接口列表
+...
+
+## 3. 数据模型
+...
+"""
+
+write_to_file(filePath='docs/api/products-api.md', content=products_api_content)
+
+# 更新API索引（index.md）
+updated_api_index = update_api_index('docs/api/index.md', new_module='products-api.md')
+write_to_file(filePath='docs/api/index.md', content=updated_api_index)
+```
+
+### 第9步：记录变更日志
+
+**更新 CHANGELOG.md：**
+
+```python
+current_changelog = read_file('docs/CHANGELOG.md')
+
+new_entry = """
+## [v2.0] - 2026-01-15 16:20:00
+
+### 新增功能
+- 商品管理模块（6个功能点）
+  - 商品列表
+  - 商品新增
+  - 商品编辑
+  - 商品上下架
+  - 库存管理
+  - 商品分类
+
+### 新增页面
+- 商品列表页 (`product-list.html`)
+- 商品分类管理页 (`product-categories.html`)
+
+### 新增API接口
+- 商品管理API（14个接口）
+  - 获取商品列表
+  - 获取商品详情
+  - 创建商品
+  - 更新商品
+  - 商品上架
+  - 商品下架
+  - 批量上下架
+  - 库存调整
+  - 批量调整库存
+  - 删除商品
+  - 获取分类列表
+  - 创建分类
+  - 更新分类
+  - 删除分类
+
+### 数据库变更
+- 新增表（3张）
+  - product（商品表）
+  - product_category（商品分类表）
+  - product_log（商品操作日志表）
+
+### 文档变更
+- 更新 PRD.md（新增商品管理模块）
+- 更新 database-design.md（新增商品相关表）
+- 更新 frontend-tasks.md（新增商品管理任务）
+- 更新 backend-tasks.md（新增商品管理任务）
+- 更新 func.md（新增商品管理功能清单）
+- 更新 sql/schema.sql（新增商品表）
+- 更新 sql/init-data.sql（新增商品数据）
+
+### 归档
+- 归档v1.0版本到 `docs/archive/20260115-143000/`
+
+---
+
+"""
+
+updated_changelog = new_entry + current_changelog
+
+write_to_file(filePath='docs/CHANGELOG.md', content=updated_changelog)
+```
+
+---
+
+## Token消耗优化
+
+### v2.0 方案（时间戳目录）
+
+```
+Token消耗 = 基础消耗 * 迭代次数
+```
+
+**示例：**
+- 第一次迭代：1000 tokens（订单管理）
+- 第二次迭代：2000 tokens（订单+商品，重复订单部分）
+- 第三次迭代：3000 tokens（订单+商品+客户，重复前两部分）
+
+**问题：**
+- ❌ 文档重复，每次都生成完整内容
+- ❌ Token消耗随着迭代次数线性增长
+- ❌ 原型页面重复，占用空间
+
+### v3.0 方案（增量更新）
+
+```
+Token消耗 = 基础消耗 + 增量消耗 * 迭代次数
+```
+
+**示例：**
+- 第一次迭代：1000 tokens（订单管理）
+- 第二次迭代：1200 tokens（商品管理增量）
+- 第三次迭代：1400 tokens（客户管理增量）
+
+**优势：**
+- ✅ 文档增量更新，只生成新内容
+- ✅ Token消耗增长缓慢
+- ✅ 原型页面统一管理，不重复
+- ✅ 功能演示方便，所有原型在统一目录
+
+---
+
+## 功能演示优化
+
+### v2.0 方案（原型分散）
+
+```
+# 第一次迭代原型
+cd docs/20260115-143000/prototype
+python -m http.server 8080
+# 访问 http://localhost:8080/index.html
+# 只能演示订单管理功能
+
+# 第二次迭代原型
+cd docs/20260115-162000/prototype
+python -m http.server 8080
+# 访问 http://localhost:8080/index.html
+# 可以演示订单+商品管理功能
+```
+
+**问题：**
+- ❌ 需要切换目录
+- ❌ 历史版本和当前版本分散
+- ❌ 不方便演示整个系统
+
+### v3.0 方案（原型统一）
+
+```
+# 所有迭代原型统一位置
+cd docs/prototype
+python -m http.server 8080
+# 访问 http://localhost:8080/index.html
+# 可以演示所有已开发的功能（订单+商品+客户+...）
+
+# 查看历史版本
+cd docs/archive/20260115-143000/prototype
+python -m http.server 8081
+# 访问 http://localhost:8081/index.html
+# 可以查看第一次迭代的原型
+```
+
+**优势：**
+- ✅ 所有原型在统一目录
+- ✅ 一次启动演示所有功能
+- ✅ 历史版本归档保存
+- ✅ 方便对比不同版本
+
+---
+
+## 执行检查清单
+
+**在迭代开始前：**
+- [ ] 生成当前时间戳（YYYYMMDD-HHmmss）
+- [ ] 创建归档目录 `docs/archive/{timestamp}/`
+- [ ] 读取当前核心文档
+
+**在迭代过程中：**
+- [ ] 归档整个 `docs/` 到 `docs/archive/{timestamp}/`
+- [ ] 增量更新 PRD.md（添加新模块，标注 🆕）
+- [ ] 增量更新 database-design.md（添加新表，标注 🆕）
+- [ ] 增量更新 frontend-tasks.md（添加新任务，标注 🆕）
+- [ ] 增量更新 backend-tasks.md（添加新任务，标注 🆕）
+- [ ] 增量更新 func.md（添加新功能，标注 🆕）
+- [ ] 增量更新 sql/schema.sql（追加新表，标注 🆕）
+- [ ] 增量更新 sql/init-data.sql（追加新数据，标注 🆕）
+- [ ] 新增 API 文档（新模块）
+- [ ] 更新 API 索引
+- [ ] 新增原型页面（新模块）
+- [ ] 更新原型主入口页
+- [ ] 记录变更日志 CHANGELOG.md
+
+**在迭代完成后：**
+- [ ] 确认所有核心文档已更新
+- [ ] 确认新模块功能状态为 `⏸️ 待开发`
+- [ ] 确认原型页面可以正常访问
+- [ ] 确认归档目录包含完整的历史版本
+
+---
+
+## 常见错误
+
+### ❌ 错误1：在旧时间戳目录下增量更新
+
+**错误示例：**
+```
+docs/20260115-143000/PRD.md    # 只更新这个文件
+```
+
+**正确做法：**
+```
+docs/PRD.md                        # ✅ 在固定位置更新
+docs/archive/20260115-143000/PRD.md    # 归档旧版本
+```
+
+### ❌ 错误2：生成完整文档而非增量更新
+
+**错误示例：**
+```python
+# 读取旧PRD
+old_prd = read_file('docs/PRD.md')
+
+# 直接覆盖（错误！）
+new_prd = f"# 完整PRD\n\n{所有模块内容}"
+write_to_file(filePath='docs/PRD.md', content=new_prd)
+```
+
+**正确做法：**
+```python
+# 读取旧PRD
+old_prd = read_file('docs/PRD.md')
+
+# 增量追加（正确！）
+new_module = f"\n### 新模块内容\n..."
+updated_prd = insert_content(old_prd, new_module)
+write_to_file(filePath='docs/PRD.md', content=updated_prd)
+```
+
+### ❌ 错误3：原型页面重复生成
+
+**错误示例：**
+```
+docs/prototype/
+├── index.html
+├── order-list.html
+
+docs/20260115-162000/prototype/    # ❌ 错误！重复生成
+├── index.html
+├── order-list.html     # 重复！
+├── product-list.html    # 新增
+```
+
+**正确做法：**
+```
+docs/prototype/              # ✅ 统一管理
+├── index.html
+├── order-list.html
+├── product-list.html    # 新增
+└── ...
+
+docs/archive/20260115-162000/prototype/    # 归档
+├── index.html
+├── order-list.html
+└── ...
+```
+
+### ❌ 错误4：没有标注新增内容
+
+**错误示例：**
+```markdown
+### 2.2 商品管理模块
+
+#### 功能概述
+商品管理模块提供商品的完整生命周期管理能力...
+```
+
+**正确做法：**
+```markdown
+### 2.2 商品管理模块 🆕 新增（v2.0）
+
+#### 功能概述
+商品管理模块提供商品的完整生命周期管理能力...
+
+**🆕 新增（v2.0）**：以上为本次迭代新增的商品管理模块
+```
+
+---
+
+## 总结
+
+**核心原则：**
+1. ✅ 核心文档固定位置（`docs/` 根目录）
+2. ✅ 原型页面统一管理（`docs/prototype/`）
+3. ✅ 历史版本完整归档（`docs/archive/{timestamp}/`）
+4. ✅ 增量更新内容（标注 `🆕 新增`）
+5. ✅ 变更日志记录（`CHANGELOG.md`）
+
+**执行流程：**
+```
+迭代开始
+    ↓
+1. 生成时间戳
+    ↓
+2. 归档整个 docs/ 到 archive/
+    ↓
+3. 增量更新核心文档（PRD, DB设计, 任务清单...）
+    ↓
+4. 新增原型页面（只新增，不重复）
+    ↓
+5. 新增API文档
+    ↓
+6. 记录变更日志
+    ↓
+7. 完成迭代
+```
+
+**Token消耗优化：**
+- v2.0（时间戳目录）：线性增长（1000 → 2000 → 3000 → ...）
+- v3.0（增量更新）：缓慢增长（1000 → 1200 → 1400 → ...）
+
+**功能演示优化：**
+- v2.0：原型分散，需要切换目录
+- v3.0：原型统一，一次演示所有功能
