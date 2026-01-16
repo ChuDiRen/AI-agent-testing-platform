@@ -9,34 +9,34 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/db-config")
+@RequestMapping("/api/v1/ApiDbBase")
 public class ApiDbBaseController {
     
     @Autowired
     private ApiDbBaseService apiDbBaseService;
     
-    @GetMapping("/list")
+    @GetMapping("/queryAll")
     public Result<List<ApiDbBase>> getDbConfigList(@RequestParam Long projectId) {
         return apiDbBaseService.getDbConfigList(projectId);
     }
     
-    @GetMapping("/{id}")
-    public Result<ApiDbBase> getDbConfigById(@PathVariable Long id) {
+    @GetMapping("/queryById")
+    public Result<ApiDbBase> getDbConfigById(@RequestParam Long id) {
         return apiDbBaseService.getDbConfigById(id);
     }
     
-    @PostMapping("/create")
-    public Result<String> createDbConfig(@RequestBody ApiDbBase config) {
+    @PostMapping("/insert")
+    public Result<String> insert(@RequestBody ApiDbBase config) {
         return apiDbBaseService.createDbConfig(config);
     }
     
     @PutMapping("/update")
-    public Result<String> updateDbConfig(@RequestBody ApiDbBase config) {
-        return apiDbBaseService.updateDbConfig(config);
+    public Result<String> updateDbConfig(@RequestParam Long id, @RequestBody ApiDbBase config) {
+        return apiDbBaseService.updateDbConfig(id, config);
     }
     
-    @DeleteMapping("/delete/{id}")
-    public Result<String> deleteDbConfig(@PathVariable Long id) {
+    @DeleteMapping("/delete")
+    public Result<String> deleteDbConfig(@RequestParam Long id) {
         return apiDbBaseService.deleteDbConfig(id);
     }
 }

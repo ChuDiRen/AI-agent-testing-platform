@@ -10,6 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 public class UserService {
     
@@ -19,7 +23,7 @@ public class UserService {
     @Autowired
     private JwtUtil jwtUtil;
     
-    public Result<String> login(String username, String password) {
+    public Result<Map<String, Object>> login(String username, String password) {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("username", username);
         User user = userMapper.selectOne(queryWrapper);
@@ -34,7 +38,18 @@ public class UserService {
         }
         
         String token = jwtUtil.generateToken(user.getId(), user.getUsername());
-        return Result.success(token);
+        
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("id", user.getId());
+        userData.put("username", user.getUsername());
+        userData.put("create_time", user.getCreateTime() != null ? 
+            user.getCreateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : "");
+        
+        Map<String, Object> resultData = new HashMap<>();
+        resultData.put("data", userData);
+        resultData.put("token", token);
+        
+        return Result.success(resultData, "登录成功");
     }
     
     public Result<String> register(User user) {

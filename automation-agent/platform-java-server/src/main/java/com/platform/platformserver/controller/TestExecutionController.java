@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/test-execution")
+@RequestMapping("/api/v1/test-execution")
 public class TestExecutionController {
     
     @Autowired

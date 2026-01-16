@@ -1,67 +1,30 @@
 package com.platform.platformserver.service;
 
 import com.platform.platformserver.common.Result;
-import com.platform.platformserver.entity.ApiHistory;
-import com.platform.platformserver.entity.ApiInfo;
-import com.platform.platformserver.entity.ApiInfoCase;
-import com.platform.platformserver.mapper.ApiHistoryMapper;
-import com.platform.platformserver.mapper.ApiInfoCaseMapper;
-import com.platform.platformserver.mapper.ApiInfoMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
+@Slf4j
 @Service
 public class TestExecutionService {
     
     @Autowired
-    private ApiInfoCaseMapper apiInfoCaseMapper;
-    
-    @Autowired
-    private ApiInfoMapper apiInfoMapper;
-    
-    @Autowired
-    private ApiHistoryMapper apiHistoryMapper;
-    
-    @Autowired
     private RabbitMQProducer rabbitMQProducer;
     
+    @Autowired
+    private RealTestExecutionService realTestExecutionService;
+    
     public Result<Map<String, Object>> executeTestCase(Long caseId) {
-        ApiInfoCase testCase = apiInfoCaseMapper.selectById(caseId);
-        if (testCase == null) {
-            return Result.error("测试用例不存在");
+        try {
+            // 使用真实的CLI执行功能
+            return realTestExecutionService.executeTestCase(caseId);
+        } catch (Exception e) {
+            log.error("测试用例执行失败: caseId={}", caseId, e);
+            return Result.error("测试用例执行失败: " + e.getMessage());
         }
-        
-        ApiInfo apiInfo = apiInfoMapper.selectById(testCase.getApiId());
-        if (apiInfo == null) {
-            return Result.error("API信息不存在");
-        }
-        
-        // 模拟测试执行
-        Map<String, Object> result = new HashMap<>();
-        result.put("caseId", caseId);
-        result.put("status", "success");
-        result.put("responseTime", 150);
-        result.put("responseCode", 200);
-        result.put("responseBody", "{\"message\":\"测试成功\"}");
-        
-        // 记录历史
-        ApiHistory history = new ApiHistory();
-        history.setCaseId(caseId);
-        history.setStatus("success");
-        history.setResponseTime(150L);
-        history.setResponseCode(200);
-        history.setResponseBody("{\"message\":\"测试成功\"}");
-        history.setExecuteTime(LocalDateTime.now());
-        apiHistoryMapper.insert(history);
-        
-        // 发送RabbitMQ消息
-        rabbitMQProducer.sendTestResultMessage(caseId, "success", "{\"message\":\"测试成功\"}");
-        
-        return Result.success(result);
     }
     
     public Result<String> sendTestExecutionMessage(Long caseId, String testType) {
@@ -74,14 +37,32 @@ public class TestExecutionService {
     }
     
     public Result<Map<String, Object>> executeBatchTest(String testPlan) {
-        // 批量测试执行逻辑
-        Map<String, Object> result = new HashMap<>();
-        result.put("testPlan", testPlan);
-        result.put("totalCases", 10);
-        result.put("passedCases", 8);
-        result.put("failedCases", 2);
-        result.put("executionTime", 1200);
-        
-        return Result.success(result);
+        try {
+            // 解析测试计划中的用例ID列表
+            List<Long> caseIds = parseTestPlan(testPlan);
+            
+            // 使用真实的批量执行功能
+            return realTestExecutionService.executeBatchTest(caseIds);
+            
+        } catch (Exception e) {
+            log.error("批量测试执行失败: testPlan={}", testPlan, e);
+            return Result.error("批量测试执行失败: " + e.getMessage());
+        }
+    }
+    
+    private List<Long> parseTestPlan(String testPlan) {
+        // 简单的测试计划解析，实际项目中可能需要更复杂的解析逻辑
+        List<Long> caseIds = new ArrayList<>();
+        if (testPlan != null && !testPlan.trim().isEmpty()) {
+            String[] ids = testPlan.split(",");
+            for (String id : ids) {
+                try {
+                    caseIds.add(Long.parseLong(id.trim()));
+                } catch (NumberFormatException e) {
+                    log.warn("无效的用例ID: {}", id);
+                }
+            }
+        }
+        return caseIds;
     }
 }

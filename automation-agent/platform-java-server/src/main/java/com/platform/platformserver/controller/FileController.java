@@ -10,7 +10,7 @@ import java.io.InputStream;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/file")
+@RequestMapping("/api/v1/file")
 public class FileController {
     
     @Autowired

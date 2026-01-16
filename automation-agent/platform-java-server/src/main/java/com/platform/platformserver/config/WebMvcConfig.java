@@ -18,8 +18,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/api/**")
                 .excludePathPatterns(
-                        "/api/auth/**",
-                        "/api/public/**",
+                        "/api/v1/login",  // 与FastAPI保持一致
+                        "/docs",
+                        "/openapi.json", 
+                        "/redoc",
+                        "/health",
+                        "/",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/swagger-resources/**",

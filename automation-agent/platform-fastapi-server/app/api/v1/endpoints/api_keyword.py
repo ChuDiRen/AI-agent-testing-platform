@@ -120,3 +120,76 @@ async def delete(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
+
+
+@router.post("/keywordFile", response_model=respModel)
+async def keyword_file(
+    *,
+    keyword_fun_name: str = Query(..., description='方法名'),
+    keyword_value: str = Query(..., description='方法体'),
+    db: AsyncSession = Depends(get_db)
+):
+    """生成关键字Python文件"""
+    try:
+        import os
+        
+        # 关键字目录
+        key_words_dir = os.path.join(os.getcwd(), "keywords")
+        os.makedirs(key_words_dir, exist_ok=True)
+        
+        # 生成Python文件
+        file_path = os.path.join(key_words_dir, f"{keyword_fun_name}.py")
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(keyword_value)
+        
+        return respModel().ok_resp(
+            dic_t={"id": keyword_fun_name},
+            msg="生成文件成功"
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"生成文件失败: {str(e)}")
+
+
+@router.get("/queryAllKeyWordList", response_model=respModel)
+async def query_all_keyword_list(db: AsyncSession = Depends(get_db)):
+    """查询所有关键字数据，生成联级数据"""
+    try:
+        from app.models.api_operation_type import ApiOperationType
+        
+        # 获取所有操作类型
+        result = await db.execute(select(ApiOperationType))
+        all_operation_types = result.scalars().all()
+        
+        all_datas = []
+        
+        for operation_type in all_operation_types:
+            # 初始数据
+            apidata = {
+                "id": operation_type.id,
+                "value": operation_type.ex_fun_name,
+                "label": operation_type.operation_type_name,
+                "children": []
+            }
+            
+            # 查询当前操作类型对应的关键字
+            keyword_result = await db.execute(
+                select(ApiKeyWord).where(ApiKeyWord.operation_type_id == operation_type.id)
+            )
+            keyword_data = keyword_result.scalars().all()
+            
+            for keyword in keyword_data:
+                child_data = {
+                    "id": keyword.id,
+                    "value": keyword.keyword_fun_name,
+                    "label": keyword.name,
+                    "keyword_desc": keyword.keyword_desc
+                }
+                apidata["children"].append(child_data)
+            
+            all_datas.append(apidata)
+        
+        return respModel().ok_resp_listdata(lst=all_datas, msg="查询成功")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"查询失败: {str(e)}")

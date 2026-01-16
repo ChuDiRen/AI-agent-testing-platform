@@ -11,10 +11,10 @@ import lombok.EqualsAndHashCode;
 public class ApiInfo extends BaseEntity {
     
     @TableField("project_id")
-    private Integer projectId;
+    private Long projectId;
     
     @TableField("module_id")
-    private Integer moduleId;
+    private Long moduleId;
     
     @TableField("api_name")
     private String apiName;

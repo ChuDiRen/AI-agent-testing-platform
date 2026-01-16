@@ -9,13 +9,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/project")
+@RequestMapping("/api/v1/ApiProject")
 public class ApiProjectController {
     
     @Autowired
     private ApiProjectService apiProjectService;
     
-    @GetMapping("/list")
+    @GetMapping("/queryAll")
     public Result<List<ApiProject>> getProjectList() {
         return apiProjectService.getProjectList();
     }
@@ -25,8 +25,8 @@ public class ApiProjectController {
         return apiProjectService.getProjectById(id);
     }
     
-    @PostMapping("/create")
-    public Result<String> createProject(@RequestBody ApiProject project) {
+    @PostMapping("/insert")
+    public Result<String> insert(@RequestBody ApiProject project) {
         return apiProjectService.createProject(project);
     }
     

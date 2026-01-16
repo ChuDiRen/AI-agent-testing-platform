@@ -19,14 +19,11 @@ public class JwtInterceptor implements HandlerInterceptor {
     
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        String token = request.getHeader("Authorization");
+        // 从token字段获取Token（与FastAPI保持一致）
+        String token = request.getHeader("token");
         
         if (token == null || token.isEmpty()) {
             throw new BusinessException(ResultCode.UNAUTHORIZED);
-        }
-        
-        if (token.startsWith("Bearer ")) {
-            token = token.substring(7);
         }
         
         if (!jwtUtil.validateToken(token)) {

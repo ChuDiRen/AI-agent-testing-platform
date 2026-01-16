@@ -149,3 +149,88 @@ async def delete(
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
+
+
+@router.post("/queryAllTree", response_model=respModel)
+async def query_all_tree(
+    *,
+    page: int = Query(1, ge=1, description='页码'),
+    page_size: int = Query(10, ge=1, le=100, description='每页数量'),
+    api_case_info_id: Optional[int] = Query(None, description='测试用例ID'),
+    db: AsyncSession = Depends(get_db)
+):
+    """查询测试用例步骤树形结构数据"""
+    try:
+        from app.models.api_keyword import ApiKeyWord
+        from app.models.api_operation_type import ApiOperationType
+        
+        # 构建查询条件
+        query = select(ApiInfoCaseStep).order_by(ApiInfoCaseStep.run_order.asc())
+        
+        if api_case_info_id and api_case_info_id > 0:
+            query = query.where(ApiInfoCaseStep.api_case_info_id == api_case_info_id)
+        
+        # 分页查询
+        result = await db.execute(
+            query.limit(page_size).offset((page - 1) * page_size)
+        )
+        datas = result.scalars().all()
+        
+        # 构建树形结构数据
+        all_datas = []
+        for data in datas:
+            step_data = {
+                "id": data.id,
+                "api_case_info_id": data.api_case_info_id,
+                "key_word_id": data.key_word_id,
+                "value": [],
+                "step_desc": data.step_desc,
+                "ref_variable": data.ref_variable,
+                "run_order": data.run_order
+            }
+            
+            # 获取关键字信息
+            keyword_result = await db.execute(
+                select(ApiKeyWord).where(ApiKeyWord.id == data.key_word_id)
+            )
+            keyword_data = keyword_result.scalars().first()
+            
+            if keyword_data:
+                # 获取操作类型信息
+                operation_result = await db.execute(
+                    select(ApiOperationType).where(ApiOperationType.id == keyword_data.operation_type_id)
+                )
+                operation_data = operation_result.scalars().first()
+                
+                # 构建value数组：[操作对象的值，关键字的值]
+                value_list = []
+                
+                # 添加操作对象
+                if operation_data:
+                    value_list.append({
+                        "id": operation_data.id,
+                        "operation_name": operation_data.operation_name,
+                        "operation_desc": operation_data.operation_desc
+                    })
+                
+                # 添加关键字值
+                try:
+                    ref_variable_data = json.loads(data.ref_variable) if data.ref_variable else {}
+                    value_list.append(ref_variable_data)
+                except:
+                    value_list.append({})
+                
+                step_data["value"] = value_list
+                step_data["keyword_info"] = {
+                    "id": keyword_data.id,
+                    "keyword_fun_name": keyword_data.keyword_fun_name,
+                    "keyword_desc": keyword_data.keyword_desc,
+                    "operation_type_id": keyword_data.operation_type_id
+                }
+            
+            all_datas.append(step_data)
+        
+        return respModel().ok_resp_list(lst=all_datas, msg="查询成功")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")

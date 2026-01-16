@@ -120,3 +120,39 @@ async def delete(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
+
+
+@router.get("/downloadFile", response_model=respModel)
+async def download_file(
+    *,
+    id: int = Query(..., ge=1, description='元数据ID'),
+    db: AsyncSession = Depends(get_db)
+):
+    """下载MinIO文件"""
+    try:
+        # 获取元数据信息
+        result = await db.execute(select(ApiMeta).where(ApiMeta.id == id))
+        data = result.scalars().first()
+        
+        if not data:
+            raise NotFoundException("元数据不存在")
+        
+        # 获取object_url
+        object_url = data.object_url
+        if not object_url:
+            raise BadRequestException("获取下载地址失败，文件不存在")
+        
+        # MinIO客户端URL配置
+        minio_client_url = "http://localhost:9000"  # 可以从配置中获取
+        
+        return respModel().ok_resp(
+            dic_t={
+                "downloadUrl": f"{minio_client_url}{object_url}"
+            },
+            msg="获取到下载地址"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"下载失败: {str(e)}")

@@ -12,14 +12,12 @@ spring:
   
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/platform_java?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
-    username: root
-    password: root
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:./data/platform_java.db
     druid:
-      initial-size: 5
-      min-idle: 5
-      max-active: 20
+      initial-size: 2
+      min-idle: 2
+      max-active: 10
       max-wait: 60000
       time-between-eviction-runs-millis: 60000
       min-evictable-idle-time-millis: 300000
@@ -44,10 +42,10 @@ spring:
   
   data:
     redis:
-      host: 192.168.1.120
-      port: 6379
-      database: 1
-      password:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      password: ${REDIS_PASSWORD:}
       lettuce:
         pool:
           max-active: 8
@@ -56,10 +54,10 @@ spring:
           max-wait: -1ms
   
   rabbitmq:
-    host: 192.168.1.120
-    port: 5672
-    username: admin
-    password: admin
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
     virtual-host: /
     listener:
       simple:

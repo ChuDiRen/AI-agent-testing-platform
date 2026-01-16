@@ -9,24 +9,35 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/api-history")
+@RequestMapping("/api/v1/ApiHistory")
 public class ApiHistoryController {
     
     @Autowired
     private ApiHistoryService apiHistoryService;
     
-    @GetMapping("/list")
+    @GetMapping("/queryAll")
     public Result<List<ApiHistory>> getHistoryList(@RequestParam(required = false) Long caseId) {
         return apiHistoryService.getHistoryList(caseId);
     }
     
-    @GetMapping("/{id}")
-    public Result<ApiHistory> getHistoryById(@PathVariable Long id) {
+    @GetMapping("/queryById")
+    public Result<ApiHistory> getHistoryById(@RequestParam Long id) {
         return apiHistoryService.getHistoryById(id);
     }
     
-    @DeleteMapping("/delete/{id}")
-    public Result<String> deleteHistory(@PathVariable Long id) {
+    @PostMapping("/insert")
+    public Result<String> insert(@RequestBody ApiHistory history) {
+        return apiHistoryService.createHistory(history);
+    }
+    
+    @PutMapping("/update")
+    public Result<String> update(@RequestParam Long id, @RequestBody ApiHistory history) {
+        history.setId(id);
+        return apiHistoryService.updateHistory(history);
+    }
+    
+    @DeleteMapping("/delete")
+    public Result<String> deleteHistory(@RequestParam Long id) {
         return apiHistoryService.deleteHistory(id);
     }
 }

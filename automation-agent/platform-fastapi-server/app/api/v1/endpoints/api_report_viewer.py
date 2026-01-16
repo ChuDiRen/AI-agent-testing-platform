@@ -3,6 +3,7 @@ API 报告查看器端点
 从 Flask 迁移到 FastAPI
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from app.core.deps import get_db
@@ -11,6 +12,7 @@ from app.core.exceptions import NotFoundException, BadRequestException
 from sqlalchemy import select
 from datetime import datetime
 import json
+import os
 
 router = APIRouter(prefix="/ApiReportViewer", tags=["API报告查看器"])
 
@@ -164,3 +166,32 @@ async def download_report(
         return respModel().ok_resp(dic_t=report_data, msg="报告下载链接已生成")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"报告下载失败: {str(e)}")
+
+
+@router.get("/{dir}/{filename}")
+async def report_viewer(dir: str, filename: str):
+    """静态文件服务 - 查看报告文件"""
+    try:
+        # 报告根目录
+        report_root_dir = os.path.join(os.getcwd(), "report")
+        file_path = os.path.join(report_root_dir, dir, filename)
+        
+        # 检查文件是否存在
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="文件不存在")
+        
+        # 检查是否为目录（防止路径遍历攻击）
+        if not os.path.isfile(file_path):
+            raise HTTPException(status_code=400, detail="无效的文件路径")
+        
+        # 返回文件
+        return FileResponse(
+            path=file_path,
+            filename=filename,
+            media_type='application/octet-stream'
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"文件访问失败: {str(e)}")

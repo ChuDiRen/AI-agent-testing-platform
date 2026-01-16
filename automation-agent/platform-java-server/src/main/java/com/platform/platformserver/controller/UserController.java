@@ -6,15 +6,17 @@ import com.platform.platformserver.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/user")
 public class UserController {
     
     @Autowired
     private UserService userService;
     
     @PostMapping("/login")
-    public Result<String> login(@RequestParam String username, @RequestParam String password) {
+    public Result<Map<String, Object>> login(@RequestParam String username, @RequestParam String password) {
         return userService.login(username, password);
     }
     

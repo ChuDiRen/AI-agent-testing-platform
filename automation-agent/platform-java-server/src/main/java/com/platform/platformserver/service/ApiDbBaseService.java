@@ -36,7 +36,8 @@ public class ApiDbBaseService {
         return Result.success("数据库配置创建成功");
     }
     
-    public Result<String> updateDbConfig(ApiDbBase config) {
+    public Result<String> updateDbConfig(Long id, ApiDbBase config) {
+        config.setId(id);
         apiDbBaseMapper.updateById(config);
         return Result.success("数据库配置更新成功");
     }

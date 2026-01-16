@@ -1,0 +1,30 @@
+# 测试执行配置
+test:
+  execution:
+    # 是否启用CLI执行功能（生产环境建议设为false）
+    enabled: true
+    
+    # 命令执行超时时间（秒）
+    timeout: 300
+    
+    # 允许执行的命令列表（逗号分隔）
+    allowed-commands: huace-apirun,allure
+    
+    # 基础目录（用于安全检查）
+    base-dir: /tmp
+    
+    # 临时文件目录
+    temp-dir: /tmp/test-execution
+    
+    # 关键字文件目录
+    keywords-dir: /tmp/keywords
+    
+    # 测试报告目录
+    report-dir: /tmp/reports
+
+# 日志配置
+logging:
+  level:
+    com.platform.platformserver.utils.SafeCommandExecutor: INFO
+    com.platform.platformserver.service.RealTestExecutionService: INFO
+    com.platform.platformserver.service.TestExecutionService: INFO
