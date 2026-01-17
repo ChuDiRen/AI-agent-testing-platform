@@ -6,6 +6,58 @@ const service = axios.create({
     baseURL: "/api"
 })
 
+// token 刷新相关变量
+let isRefreshing = false; // 是否正在刷新 token
+let refreshSubscribers = []; // 存储待重试的请求
+
+// 添加订阅者（等待 token 刷新完成后重试的请求）
+function subscribeTokenRefresh(callback) {
+  refreshSubscribers.push(callback);
+}
+
+// 通知所有订阅者 token 已刷新
+function onTokenRefreshed(newToken) {
+  refreshSubscribers.forEach(callback => callback(newToken));
+  refreshSubscribers = [];
+}
+
+// 刷新 token 的函数
+async function refreshToken() {
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (!refreshToken) {
+    console.log('没有 refreshToken，无法刷新');
+    return null;
+  }
+
+  try {
+    // 使用原始 axios 实例，避免触发拦截器导致循环
+    const response = await axios.create({
+      baseURL: '/api'
+    }).post('/refresh', {
+      refreshToken: refreshToken
+    });
+
+    console.log('刷新 token 响应:', response.data);
+
+    if (response.data.code === 200) {
+      const responseData = response.data.data || response.data;
+      const { token, refreshToken: newRefreshToken } = responseData;
+      
+      if (token && newRefreshToken) {
+        // 保存新的 token
+        localStorage.setItem('token', token);
+        localStorage.setItem('refreshToken', newRefreshToken);
+        console.log('Token 刷新成功');
+        return token;
+      }
+    }
+    console.log('Token 刷新失败: 响应格式不正确');
+    return null;
+  } catch (error) {
+    console.error('刷新 token 失败:', error);
+    return null;
+  }
+}
 
 // 请求拦截器：添加令牌到请求头
 service.interceptors.request.use(
@@ -27,7 +79,6 @@ service.interceptors.request.use(
 
 // 添加响应拦截器
 service.interceptors.response.use(response => {
-    close()
     if(response.data.code != 200) {
         ElMessage.error(response.data.msg + '，状态码:' + response.data.code)
     } else {
@@ -40,24 +91,87 @@ service.interceptors.response.use(response => {
         }
     }
     return response
-}, error => {
-    // close()
+}, async error => {
+    const originalRequest = error.config;
 
-    // 处理401未授权错误
+    // 处理401未授权错误 - 尝试刷新 token
     if (error.response && error.response.status === 401) {
-      ElMessage.error('网络异常，请稍后再试')
-      // 清除本地token
-      localStorage.removeItem('token');
-      // 跳转到登录页
-      window.location.href = '/login';
-      // 清除cookie中的tabList数据
-      // 注意：这里需要引入useCookies 来进行清除
-      clearAllCookies();
+      // 防止无限重试 - 如果已经重试过，直接跳转登录
+      if (originalRequest._retry) {
+        console.log('Token 刷新后仍然失败，跳转登录');
+        ElMessage.error('登录已过期，请重新登录');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+        clearAllCookies();
+        return Promise.reject(error);
+      }
+
+      // 如果是刷新 token 接口返回 401，直接跳转登录
+      if (originalRequest.url.includes('/refresh')) {
+        console.log('刷新接口返回401，跳转登录');
+        ElMessage.error('登录已过期，请重新登录');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+        clearAllCookies();
+        return Promise.reject(error);
+      }
+
+      // 标记该请求已经重试过
+      originalRequest._retry = true;
+
+      // 如果正在刷新 token，将请求加入队列
+      if (isRefreshing) {
+        console.log('正在刷新 token，将请求加入队列');
+        return new Promise(resolve => {
+          subscribeTokenRefresh(newToken => {
+            originalRequest.headers.token = newToken;
+            resolve(service(originalRequest));
+          });
+        });
+      }
+
+      // 开始刷新 token
+      console.log('开始刷新 token');
+      isRefreshing = true;
+      
+      try {
+        const newToken = await refreshToken();
+        
+        if (newToken) {
+          console.log('Token 刷新成功，重试原请求');
+          // token 刷新成功，更新请求头并重试原请求
+          originalRequest.headers.token = newToken;
+          // 通知所有等待的请求
+          onTokenRefreshed(newToken);
+          isRefreshing = false;
+          return service(originalRequest);
+        } else {
+          // token 刷新失败，跳转到登录页
+          console.log('Token 刷新失败，跳转登录');
+          ElMessage.error('登录已过期，请重新登录');
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          window.location.href = '/login';
+          clearAllCookies();
+          isRefreshing = false;
+          return Promise.reject(error);
+        }
+      } catch (refreshError) {
+        console.error('Token 刷新异常:', refreshError);
+        ElMessage.error('登录已过期，请重新登录');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+        clearAllCookies();
+        isRefreshing = false;
+        return Promise.reject(refreshError);
+      }
     }
     
     return Promise.reject(error)
 })
-
 
 // 清除所有cookie的函数
 import { useCookies } from '@vueuse/integrations/useCookies';

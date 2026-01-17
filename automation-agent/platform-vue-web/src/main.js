@@ -9,6 +9,8 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 // 导入import 'virtual:windi.css'样式
 import 'virtual:windi.css'
+// 导入全局设计系统
+import './styles/design-system.css'
 // 导入图标的第三包
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 // 引入 store

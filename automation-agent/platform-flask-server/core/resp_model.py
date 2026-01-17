@@ -108,7 +108,12 @@ class respModel():
         if isinstance(obj, dict):
             attributes = obj.items()  # 字典直接遍历键值对
         else:
-            attributes = vars(obj).items()  # 其他对象使用 vars
+            # 使用 getattr 安全获取属性，处理没有 __dict__ 的对象
+            try:
+                attributes = vars(obj).items()
+            except (TypeError, AttributeError):
+                # 如果对象没有 __dict__，尝试使用 dir() 获取属性
+                attributes = [(attr, getattr(obj, attr, None)) for attr in dir(obj)]
 
         # 过滤掉内置属性和方法
         for attribute, value in attributes:

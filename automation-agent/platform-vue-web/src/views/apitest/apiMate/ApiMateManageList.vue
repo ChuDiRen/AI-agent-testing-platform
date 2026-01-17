@@ -26,7 +26,7 @@
         :prop="col.prop"
         :label="col.label"
         :key="col.prop"
-        show-overflow-tooltip="true"
+        :show-overflow-tooltip="true"
       />
 
       <!-- 操作 -->

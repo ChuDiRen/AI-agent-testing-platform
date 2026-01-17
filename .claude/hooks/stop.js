@@ -8,7 +8,10 @@ const { execSync } = require('child_process');
 
 function getCodeChanges() {
   try {
-    const status = execSync('git status --porcelain', { encoding: 'utf8' });
+    const status = execSync('git status --porcelain', { 
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'ignore']
+    });
     if (!status.trim()) {
       return { hasChanges: false, files: [] };
     }

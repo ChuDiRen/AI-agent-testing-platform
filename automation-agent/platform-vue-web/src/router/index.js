@@ -16,6 +16,24 @@ import Statistics from '../views/statistics/statistics.vue'
 import userList from '~/views/users/userList.vue'
 import userForm from '~/views/users/userForm.vue'
 
+// RBAC 权限管理导入
+import roleList from '~/views/roles/roleList.vue'
+import roleForm from '~/views/roles/roleForm.vue'
+import roleMenu from '~/views/roles/roleMenu.vue'
+import roleApi from '~/views/roles/roleApi.vue'
+import rolePermission from '~/views/roles/rolePermission.vue'
+
+import menuList from '~/views/menus/menuList.vue'
+import menuForm from '~/views/menus/menuForm.vue'
+
+import deptList from '~/views/depts/deptList.vue'
+import deptForm from '~/views/depts/deptForm.vue'
+
+import apiList from '~/views/apis/apiList.vue'
+import apiForm from '~/views/apis/apiForm.vue'
+
+import auditLogList from '~/views/auditlogs/auditLogList.vue'
+
 // API相关导入
 import ApiProjectList from '~/views/apitest/project/ApiProjectList.vue'
 import ApiProjectForm from '~/views/apitest/project/ApiProjectForm.vue'
@@ -62,12 +80,25 @@ const routes = [
   }, {
     path: '/home',      
     component: Home,
+    redirect: '/Statistics',  // 默认重定向到统计页面
     //子路由概念，后续所有的子页面都要放在这里
     children: [{
             path: "/Statistics",
             component: Statistics,
             meta: {
-                title: "主页信息"
+                title: "数据统计"
+            }
+        },{
+            path: "/profile",
+            component: () => import('~/views/profile/profile.vue'),
+            meta: {
+                title: "个人中心"
+            }
+        },{
+            path: "/settings",
+            component: () => import('~/views/settings/settings.vue'),
+            meta: {
+                title: "系统设置"
             }
         },{
             path: "/userList",
@@ -195,11 +226,83 @@ const routes = [
             meta: {
                 title: "测试计划报表页面"
             }
-        }]  
-  },{
+        }, {
+            path: "/roleList",
+            component: roleList,
+            meta: {
+                title: "角色管理"
+            }
+        }, {
+            path: "/roleForm",
+            component: roleForm,
+            meta: {
+                title: "角色编辑页"
+            }
+        }, {
+            path: "/roleMenu",
+            component: roleMenu,
+            meta: {
+                title: "角色菜单配置"
+            }
+        }, {
+            path: "/roleApi",
+            component: roleApi,
+            meta: {
+                title: "角色API配置"
+            }
+        }, {
+            path: "/rolePermission",
+            component: rolePermission,
+            meta: {
+                title: "角色权限配置"
+            }
+        }, {
+            path: "/menuList",
+            component: menuList,
+            meta: {
+                title: "菜单管理"
+            }
+        }, {
+            path: "/menuForm",
+            component: menuForm,
+            meta: {
+                title: "菜单编辑页"
+            }
+        }, {
+            path: "/deptList",
+            component: deptList,
+            meta: {
+                title: "部门管理"
+            }
+        }, {
+            path: "/deptForm",
+            component: deptForm,
+            meta: {
+                title: "部门编辑页"
+            }
+        }, {
+            path: "/apiList",
+            component: apiList,
+            meta: {
+                title: "API管理"
+            }
+        }, {
+            path: "/apiForm",
+            component: apiForm,
+            meta: {
+                title: "API编辑页"
+            }
+        }, {
+            path: "/auditLogList",
+            component: auditLogList,
+            meta: {
+                title: "审计日志"
+            }
+        }]
+  }, {
     // 通配符路由，匹配所有未定义的路径
     // 404页面必须放在最后
-    path: '/:pathMatch(.*)*',  // 特殊语法，匹配任意路径
+    path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: NotFound
   }

@@ -25,7 +25,7 @@
     <el-table :data="tableData" style="width: 100%;" max-height="500">
       <!-- 数据列 -->
       <el-table-column v-for="col in columnList" :prop="col.prop" :label="col.label" :key="col.prop"
-        show-overflow-tooltip="true" />
+        :show-overflow-tooltip="true" />
       <!-- 操作 -->
       <el-table-column fixed="right" label="操作">
         <template #default="scope">
@@ -172,6 +172,11 @@ function getProjectList() {
 }
 getProjectList();
 
+// 项目选择变化时的处理
+const projectChange = () => {
+  console.log("项目选择变化:", searchForm.project_id);
+  // 可以在这里添加额外的逻辑，比如清空模块选择等
+};
 
 //------------------------------------------拓展功能-swagger导入----------------------------------------------------------------------------
 // Swagger 导入弹窗相关

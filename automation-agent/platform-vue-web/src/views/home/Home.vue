@@ -4,30 +4,33 @@
          <f-header/>
     </el-header>
     <el-container>
-      <el-aside :width="$store.state.asideWidth">
-      <!-- <el-aside style="width: 250px;" > -->
-        <!-- 应用菜单cass -->
-        <!-- <f-menu/> -->
-        <f-menu v-show="$store.state.asideWidth !== '20px'"/> 
+      <el-aside :width="asideWidth">
+        <f-menu v-if="!isCollapsed"/> 
       </el-aside>
       <el-main>
         <f-tag-list/>
-        <!-- 结合对应的路由进行显示 -->
-        <router-view></router-view>  
+        <router-view v-slot="{ Component }">
+          <transition name="fade" mode="out-in">
+            <component :is="Component" :key="$route.fullPath" />
+          </transition>
+        </router-view>
       </el-main>
     </el-container>
   </el-container>
 </template>
 
 <script setup>
+import { computed } from 'vue';
+import { useStore } from 'vuex';
 import FHeader from './FHeader.vue'
 import FMenu from './FMenu.vue'; 
-import FTagList from './FTagList.vue'; // 导入头部的Tag
+import FTagList from './FTagList.vue';
 
-// 打印$store.state.asideWidth的值
+const store = useStore();
 
-
-
+// 使用计算属性避免响应式问题
+const asideWidth = computed(() => store.state.asideWidth || '250px');
+const isCollapsed = computed(() => store.state.asideWidth === '20px');
 </script>
 
 <style scoped>

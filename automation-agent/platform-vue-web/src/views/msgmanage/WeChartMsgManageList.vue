@@ -18,7 +18,7 @@
         <!-- 数据列 -->
         <!-- 默认情况下，如果单元格内容过长，会占用多行显示。 若需要单行显示可以使用 show-overflow-tooltip -->
         <el-table-column v-for="col in columnList" :prop="col.prop" :label="col.label" :key="col.prop"
-            show-overflow-tooltip="true" />
+            :show-overflow-tooltip="true" />
         <!-- 操作 -->
         <el-table-column fixed="right" label="操作">
             <template #default="scope">

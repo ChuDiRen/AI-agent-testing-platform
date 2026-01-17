@@ -42,42 +42,54 @@ class RabbitMQManager:
         启动一个消费者线程，监听指定的队列
         :param routing_key: 队列名
         """
-        # print(f"[√] 启动消费者线程监听队列: {routing_key}")
-        try:
-            credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
-            connection = pika.BlockingConnection(
-                pika.ConnectionParameters(
-                    host=RABBITMQ_HOST,
-                    port=RABBITMQ_PORT,
-                    credentials=credentials
+        max_retries = 3  # 最大重试次数
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
+                connection = pika.BlockingConnection(
+                    pika.ConnectionParameters(
+                        host=RABBITMQ_HOST,
+                        port=RABBITMQ_PORT,
+                        credentials=credentials,
+                        connection_attempts=3,
+                        retry_delay=2
+                    )
                 )
-            )
-            channel = connection.channel()
+                channel = connection.channel()
 
-            # 交换机的命名：{队列名}_exchange
-            exchange = f"{routing_key}_exchange"
+                # 交换机的命名：{队列名}_exchange
+                exchange = f"{routing_key}_exchange"
 
-            # 第一行：声明交换机
-            channel.exchange_declare(exchange=exchange, exchange_type='direct', durable=True)
-            # 第二行：声明队列
-            channel.queue_declare(queue=routing_key)
-            # 第三行：绑定队列到交换机-这样我们才知道消息投递到哪个队列
-            channel.queue_bind(exchange=exchange, queue=routing_key, routing_key=routing_key)
+                # 第一行：声明交换机
+                channel.exchange_declare(exchange=exchange, exchange_type='direct', durable=True)
+                # 第二行：声明队列
+                channel.queue_declare(queue=routing_key)
+                # 第三行：绑定队列到交换机-这样我们才知道消息投递到哪个队列
+                channel.queue_bind(exchange=exchange, queue=routing_key, routing_key=routing_key)
 
-            def on_message(ch, method, properties, body):
-                print(f"[x] 收到消息 来自于 {routing_key}: {body.decode()}")
-                # TODO 1 : 真正触发回调,拿到用例数据我们就可以就可以进行测试用例执行
-                self.excuteReport(body)  # 真正触发回调
+                def on_message(ch, method, properties, body):
+                    print(f"[x] 收到消息 来自于 {routing_key}: {body.decode()}")
+                    # TODO 1 : 真正触发回调,拿到用例数据我们就可以就可以进行测试用例执行
+                    self.excuteReport(body)  # 真正触发回调
 
-            # ✅ 绑定回调函数
-            channel.basic_consume(queue=routing_key, on_message_callback=on_message, auto_ack=True)
+                # 绑定回调函数
+                channel.basic_consume(queue=routing_key, on_message_callback=on_message, auto_ack=True)
 
-            # print(f"[x] Worker {threading.get_ident()} 开始监听队列: {routing_key}")
-            channel.start_consuming()  # ✅ 取消注释并放在这里
-
-        except Exception as e:
-            print(f"消费者线程异常: {e}")
-            time.sleep(5)  # 出错后等待几秒再重连
+                # print(f"[x] Worker {threading.get_ident()} 开始监听队列: {routing_key}")
+                channel.start_consuming()  # 取消注释并放在这里
+                
+            except pika.exceptions.AMQPConnectionError as e:
+                retry_count += 1
+                if retry_count >= max_retries:
+                    print(f" RabbitMQ 连接失败，已达到最大重试次数 ({max_retries})，队列 {routing_key} 停止监听")
+                    return  # 停止重试
+                print(f" RabbitMQ 连接失败，5秒后重试 ({retry_count}/{max_retries})...")
+                time.sleep(5)
+            except Exception as e:
+                print(f" 消费者线程异常: {e}")
+                return  # 其他异常直接退出
 
     def excuteReport(self,body):
         """

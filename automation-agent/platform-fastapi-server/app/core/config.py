@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     """应用配置类"""
     
     # ========== 数据库配置 ==========
-    DATABASE_URL: str = "sqlite+aiosqlite:///./platform_fastapi.db"
+    DATABASE_URL: str = "mysql+aiomysql://root:admin123456@192.168.111.128:3306/testdb"
     SQLALCHEMY_ECHO: bool = True
     
     # ========== JWT 配置 ==========
@@ -26,17 +26,17 @@ class Settings(BaseSettings):
     REPORT_APP_URL: str = "http://127.0.0.1:8000"
     
     # ========== RabbitMQ 配置 ==========
-    RABBITMQ_HOST: str = "192.168.1.120"
+    RABBITMQ_HOST: str = "192.168.111.128"
     RABBITMQ_PORT: int = 5672
     RABBITMQ_USER: str = "admin"
     RABBITMQ_PASSWORD: str = "admin"
     QUEUE_LIST: list = [("web_queue", 3), ("app_queue", 3), ("api_queue", 6)]
-    
+
     # ========== Redis 配置 ==========
-    REDIS_HOST: str = "192.168.1.120"
+    REDIS_HOST: str = "192.168.111.128"
     REDIS_PORT: int = 6379
     REDIS_DB: int = 1
-    REDIS_PASSWORD: Optional[str] = None
+    REDIS_PASSWORD: str = "admin123456"
     
     # ========== MinIO 配置 ==========
     MINIO_ENDPOINT: str = "localhost:9000"

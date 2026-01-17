@@ -75,7 +75,8 @@ async function main() {
     }
     
     process.exit(0);
-  } catch {
+  } catch (error) {
+    // 静默失败,不阻塞工具执行
     process.exit(0);
   }
 }

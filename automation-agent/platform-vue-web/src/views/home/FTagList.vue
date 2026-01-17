@@ -1,5 +1,5 @@
 <template>
-    <div class="f-tag-list" :style="{ left:$store.state.asideWidth }">
+    <div class="f-tag-list" :style="{ left: asideWidth }">
         <!-- 使用<v-model>绑定对应的对象-->
         <el-tabs v-model="activeTab" type="card" class="flex-1"  @tab-remove="removeTab" style="min-width:100px;" @tab-change="changeTab">
             <!-- v-for 表示循环，自动生成对应的面板，:closable表示为/的路径不允许屏蔽-->
@@ -27,16 +27,18 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-//这里要后期绑定对应的跳转流程，所以这里需要写下来
-import { useRoute,onBeforeRouteUpdate,useRouter } from 'vue-router';
-//引入cookie用来保存已经打开的页签
+import { ref, computed } from 'vue'
+import { useRoute, onBeforeRouteUpdate, useRouter } from 'vue-router';
 import { useCookies } from '@vueuse/integrations/useCookies';
+import { useStore } from 'vuex';
 
 const route = useRoute()
 const cookies = useCookies()
 const router = useRouter()
+const store = useStore()
 
+// 计算侧边栏宽度
+const asideWidth = computed(() => store.state.asideWidth || '250px')
 
 // 定义好当前绑定的数据就是route中的path
 const activeTab = ref(route.path)

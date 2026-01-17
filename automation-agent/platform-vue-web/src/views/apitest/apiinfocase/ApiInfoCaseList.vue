@@ -214,6 +214,11 @@ function getProjectList() {
 }
 getProjectList();
 
+// 处理导入下拉菜单的命令
+const handleImportCommand = (command: string) => {
+  console.log("导入命令:", command);
+  // 这里可以根据需要添加额外的处理逻辑
+};
 
 //------------------------------------拓展功能6- 添加文件上传函数----------------------------------------------
 const fileInputRef = ref(); // 绑定隐藏的 input[type='file']

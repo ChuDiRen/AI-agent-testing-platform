@@ -1,11 +1,18 @@
-
 <template>
+  <div>
     <!-- 面包屑导航 -->
     <Breadcrumb />
     <!-- 搜索表单 -->
     <el-form :inline="true" :model="searchForm" class="demo-form-inline">
         <el-form-item label="用户名">
             <el-input v-model="searchForm.username" placeholder="根据用户名筛选" />
+        </el-form-item>
+        <el-form-item label="邮箱">
+            <el-input v-model="searchForm.email" placeholder="根据邮箱筛选" />
+        </el-form-item>
+        <el-form-item label="部门">
+            <el-tree-select v-model="searchForm.dept_id" :data="deptOptions" :props="{ label: 'name', value: 'id' }"
+                placeholder="选择部门" clearable check-strictly />
         </el-form-item>
         <el-row class="mb-4" type="flex" justify="end"> <!-- 居右 type="flex" justify="end" -->
             <el-button type="primary" @click="loadData()">查询</el-button>
@@ -18,16 +25,47 @@
     <el-table :data="tableData" style="width: 100%;" max-height="500">
         <!-- 数据列 -->
         <!-- 默认情况下，如果单元格内容过长，会占用多行显示。 若需要单行显示可以使用 show-overflow-tooltip -->
-        <el-table-column v-for="col in columnList" :prop="col.prop" :label="col.label" :key="col.prop"
-            show-overflow-tooltip="true" />
-        <!-- 操作 -->
-        <el-table-column fixed="right" label="操作">
+        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column prop="username" label="用户名" width="120" />
+        <el-table-column prop="alias" label="姓名" width="120" />
+        <el-table-column prop="email" label="邮箱" width="200" />
+        <el-table-column label="角色" width="200">
+            <template #default="scope">
+                <el-tag v-for="role in scope.row.roles" :key="role.id" type="info" style="margin: 2px">
+                    {{ role.name }}
+                </el-tag>
+            </template>
+        </el-table-column>
+        <el-table-column label="部门" width="150">
+            <template #default="scope">
+                {{ scope.row.dept?.name || '-' }}
+            </template>
+        </el-table-column>
+        <el-table-column label="超级用户" width="100" align="center">
+            <template #default="scope">
+                <el-tag :type="scope.row.is_superuser ? 'success' : 'info'">
+                    {{ scope.row.is_superuser ? '是' : '否' }}
+                </el-tag>
+            </template>
+        </el-table-column>
+        <el-table-column label="状态" width="100" align="center">
+            <template #default="scope">
+                <el-switch v-model="scope.row.is_active" :active-value="true" :inactive-value="false"
+                    @change="handleStatusChange(scope.row)" />
+            </template>
+        </el-table-column>
+        <el-table-column prop="last_login" label="最后登录" width="180" />
+        <el-table-column fixed="right" label="操作" width="280">
             <template #default="scope">
                 <el-button link type="primary" size="small" @click.prevent="onDataForm(scope.$index)">
                     编辑
                 </el-button>
                 <el-button link type="primary" size="small" @click.prevent="onDelete(scope.$index)">
                     删除
+                </el-button>
+                <el-button v-if="!scope.row.is_superuser" link type="warning" size="small"
+                    @click.prevent="onResetPassword(scope.$index)">
+                    重置密码
                 </el-button>
             </template>
         </el-table-column>
@@ -45,89 +83,117 @@
         @current-change="handleCurrentChange" />
     </div>
     <!-- END 分页 -->
-
+  </div>
 </template>
 
-
-<script lang="ts" setup>
-import { ref, reactive } from "vue"
-import { useRouter } from "vue-router";
-import { queryByPage, deleteData } from './user' // 不同页面不同的接口
-import Breadcrumb from "../Breadcrumb.vue"; // 面包屑导航，导入
+<script setup>
+import { ref, reactive, onMounted } from "vue"
+import { useRouter } from "vue-router"
+import { ElMessage, ElMessageBox } from 'element-plus'
+import userApi from './userApi'
+import deptApi from '../depts/deptApi'
+import Breadcrumb from "../Breadcrumb.vue"
 
 const router = useRouter()
 
-// 分页参数
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-
-// 搜索功能 - 筛选表单
-const searchForm = reactive({"username":""})
-
-// --------------功能1 ：扩展查询--------------
-// 表格数据
+const searchForm = reactive({ username: "", email: "", dept_id: null })
 const tableData = ref([])
+const deptOptions = ref([])
 
-// 加载页面数据
 const loadData = () => {
-    let searchData = searchForm
+    let searchData = { ...searchForm }
     searchData["page"] = currentPage.value
     searchData["pageSize"] = pageSize.value
 
-    queryByPage(searchData).then((res: { data: { data: never[]; total: number; msg: string }; }) => {
+    userApi.queryByPage(searchData).then((res) => {
         tableData.value = res.data.data
-        // 分页用到该数据
-        total.value = res.data.total  
-
-        console.log("当前查询出来的数据")
-        console.log(res.data.data)
-    })
-
-
-}
-loadData()
-// --------------END 功能1 ：扩展查询--------------
-
-
-// --------------功能2 ：数据回显--------------
-// 表格列 - 不同页面不同的列,注意要和对应的返回数据key一致
-const columnList = ref([
-    { prop: "id", label: '用户ID' },
-    { prop: "username", label: '用户名' },
-    // { prop: "password", label: '密码' },
-    { prop: "create_time", label: '创建时间' }
-])
-// --------------END 功能2 ：数据回显--------------
-
-
-// --------------功能3 ：删除数据--------------
-const onDelete = (index: number) => {
-    deleteData(tableData.value[index]["id"]).then((res: {}) => {
-        loadData()
+        total.value = res.data.total
     })
 }
-// --------------END 功能3 ：删除数据--------------
 
+const loadDeptOptions = async () => {
+    try {
+        const res = await deptApi.queryTree()
+        if (res.data.code === 200) {
+            // 确保数据是数组格式，用于 el-tree-select
+            const data = res.data.data
+            deptOptions.value = Array.isArray(data) ? data : (data ? [data] : [])
+        }
+    } catch (error) {
+        console.error('加载部门列表失败:', error)
+        deptOptions.value = []
+    }
+}
 
-// --------------功能4 ：页码功能--------------
-// 变更 页大小
-const handleSizeChange = (val: number) => {
-    console.log("页大小变化:" + val)
+onMounted(() => {
+    loadData()
+    loadDeptOptions()
+})
+
+const onDelete = (index) => {
+    ElMessageBox.confirm('确定要删除该用户吗?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+    }).then(() => {
+        userApi.deleteData(tableData.value[index]["id"]).then(() => {
+            ElMessage.success('删除成功')
+            loadData()
+        })
+    }).catch(() => {})
+}
+
+const handleStatusChange = async (row) => {
+    try {
+        const res = await userApi.updateData({
+            id: row.id,
+            username: row.username,
+            email: row.email,
+            is_active: row.is_active,
+            role_ids: row.roles?.map((r) => r.id) || [],
+            dept_id: row.dept?.id || null
+        })
+        if (res.data.code === 200) {
+            ElMessage.success(row.is_active ? '已启用' : '已禁用')
+        }
+    } catch (error) {
+        row.is_active = !row.is_active
+        console.error('更新状态失败:', error)
+    }
+}
+
+const onResetPassword = async (index) => {
+    try {
+        await ElMessageBox.confirm('确定要重置该用户密码为123456吗?', '提示', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+        })
+        const res = await userApi.resetPassword({ user_id: tableData.value[index]["id"] })
+        if (res.data.code === 200) {
+            ElMessage.success('密码已重置为123456')
+        }
+    } catch (error) {
+        if (error !== 'cancel') {
+            console.error('重置密码失败:', error)
+        }
+    }
+}
+
+const handleSizeChange = (val) => {
     pageSize.value = val
     loadData()
 }
-// 变更 页码
-const handleCurrentChange = (val: number) => {
-    console.log("页码变化:" + val)
+
+const handleCurrentChange = (val) => {
     currentPage.value = val
     loadData()
 }
-// --------------END 功能4 ：页码功能--------------
 
-
-// --------------功能5 ：打开表单 （编辑/新增）--------------
-const onDataForm = (index: number) => {
+const onDataForm = (index) => {
     let params_data = {}
     if (index >= 0) {
         params_data = {
@@ -135,11 +201,10 @@ const onDataForm = (index: number) => {
         }
     }
     router.push({
-        path: 'userForm', // 不同页面不同的表单路径
+        path: '/userForm',
         query: params_data
-    });
+    })
 }
-// --------------END 功能5 ：打开表单 （编辑/新增）--------------
 </script>
 
 <style scoped>

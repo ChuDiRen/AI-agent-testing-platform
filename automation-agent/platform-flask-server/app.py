@@ -29,16 +29,41 @@ if __name__ == '__main__':
     try:
         # 启动程序
         import sys
-        # 先执行 application.run() 启动应用，并等待它运行结束。
-        # 将 run() 的返回值（状态码）传递给 sys.exit()，确保程序以相同的状态码退出。
-        # sys.exit(application.run())
-
+        
+        # 数据库初始化（创建表结构 + 默认数据）
+        # 在导入路由之前先初始化数据库
+        from init_database import init_database, check_database_connection
+        print("\n" + "=" * 60)
+        print("🚀 正在启动应用...")
+        print("=" * 60)
+        if check_database_connection(application, database):
+            init_database(application, database)
+        else:
+            print("⚠ 数据库连接失败，请检查配置")
+            sys.exit(1)
+        
         # TODO 1: 导入对应的模块
         from login.api import LoginController
         application.register_blueprint(LoginController.module_route)
 
         from sysmanage.api import UserController
         application.register_blueprint(UserController.module_route)
+
+        # RBAC 权限管理
+        from sysmanage.api import RoleController
+        application.register_blueprint(RoleController.module_route)
+
+        from sysmanage.api import MenuController
+        application.register_blueprint(MenuController.module_route)
+
+        from sysmanage.api import DeptController
+        application.register_blueprint(DeptController.module_route)
+
+        from sysmanage.api import ApiController
+        application.register_blueprint(ApiController.module_route)
+
+        from sysmanage.api import AuditLogController
+        application.register_blueprint(AuditLogController.module_route)
 
         # 接口自动化导入的路由信息
         from apitest.api import ApiProjectContoller
@@ -84,6 +109,13 @@ if __name__ == '__main__':
         from msgmanage.api import RobotMsgConfigController
         application.register_blueprint(RobotMsgConfigController.module_route)
 
+        # 个人中心和系统设置
+        from userprofile.api import ProfileController
+        application.register_blueprint(ProfileController.module_route)
+
+        from systemsettings.api import SettingsController
+        application.register_blueprint(SettingsController.module_route)
+
         # 扩展-图标增加
         from apitest.api import  ApiTestPlanChartController
         application.register_blueprint(ApiTestPlanChartController.module_route)
@@ -91,6 +123,7 @@ if __name__ == '__main__':
         # TODO 2: 拦截器，所有请求先经过这里，可以获取请求头token进行拦截
         exclude_path_patterns_list = [
             "/login",
+            "/refresh",  # token 刷新接口不需要验证
             "/ApiReportViewer",
         ]
         @application.before_request
@@ -101,7 +134,9 @@ if __name__ == '__main__':
             # 获取路径
             url = request.path
             url = '/' + url.split('/')[1]
+            print(f"[拦截器] 请求路径: {request.path} -> 提取路径: {url}")
             if url in exclude_path_patterns_list or request.method == "OPTIONS":
+                print(f"[拦截器] 路径在白名单中，跳过验证")
                 return
             elif url.endswith("callback") or url.endswith("result"):  # 如果是回调 不检查是否登录，检查callback_key
                 callback_key = request.headers.get("Callbackkey", None)
@@ -111,16 +146,19 @@ if __name__ == '__main__':
                 return
             try:
                 login_token = request.headers.get("token", None)
+                print(f"[拦截器] Token: {login_token[:20] if login_token else 'None'}...")
                 if (login_token is None):
+                    print(f"[拦截器] Token 为空，返回 401")
                     return respModel.error_resp(f"当前用户未登录或者token失效"), 401
                     # abort(401)
                 # JWT 验证成功，解析 JWT 中的内容
                 from core.JwtUtil import JwtUtils
                 content = JwtUtils.verify_token(login_token)
+                print(f"[拦截器] Token 验证成功，用户: {content.get('username')}")
                 # 将获取到的信息保存到全局上下文中
                 setattr(g, "username", content.get('username'))
             except Exception as e:
-                print(e)
+                print(f"[拦截器] Token 验证失败: {e}")
                 return respModel.error_resp(f"当前用户未登录或者token失效"), 401
                 # abort(401)
 
@@ -131,9 +169,14 @@ if __name__ == '__main__':
             """
             return {"username": g.username}
 
-        # TODO 3: 启动MQ消费者
-        from core.RabbitMQ_Consumer import RabbitMQManager
-        RabbitMQManager().start_workers()
+        # TODO 3: 启动MQ消费者（可选，失败不影响主服务）
+        try:
+            from core.RabbitMQ_Consumer import RabbitMQManager
+            RabbitMQManager().start_workers()
+            print("✓ RabbitMQ 消费者启动成功")
+        except Exception as mq_error:
+            print(f"⚠ RabbitMQ 消费者启动失败（不影响主服务）: {mq_error}")
+            print("  提示：如需使用消息队列功能，请确保 RabbitMQ 服务已启动")
 
         sys.exit(application.run(debug=True, host='0.0.0.0', port=5000))
     except Exception as e:

@@ -10,8 +10,14 @@ const path = require('path');
 
 function getGitInfo() {
   try {
-    const branch = execSync('git branch --show-current', { encoding: 'utf8' }).trim();
-    const status = execSync('git status --porcelain', { encoding: 'utf8' });
+    const branch = execSync('git branch --show-current', { 
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'ignore']
+    }).trim();
+    const status = execSync('git status --porcelain', { 
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'ignore']
+    });
     const changedFiles = status.split('\n').filter(Boolean).length;
     return { branch, changedFiles };
   } catch {
@@ -20,12 +26,8 @@ function getGitInfo() {
 }
 
 function countFiles(dir, ext) {
-  try {
-    const result = execSync(`find ${dir} -name "*.${ext}" 2>/dev/null | wc -l`, { encoding: 'utf8' });
-    return parseInt(result.trim()) || 0;
-  } catch {
-    return 0;
-  }
+  // Windows 兼容性 - 暂时禁用文件统计
+  return 0;
 }
 
 function main() {
