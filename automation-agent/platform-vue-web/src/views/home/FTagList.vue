@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, onBeforeRouteUpdate, useRouter } from 'vue-router';
 import { useCookies } from '@vueuse/integrations/useCookies';
 import { useStore } from 'vuex';
@@ -43,13 +43,37 @@ const asideWidth = computed(() => store.state.asideWidth || '250px')
 // 定义好当前绑定的数据就是route中的path
 const activeTab = ref(route.path)
 
+// 从菜单数据生成初始标签列表
+const getInitialTabList = () => {
+  const menuData = store.state.userMenus
+  const tabs = []
+  
+  // 如果没有菜单数据，返回空数组，等待异步加载
+  if (!menuData || menuData.length === 0) {
+    return []
+  }
+  
+  // 递归提取所有有frontpath的菜单项
+  const extractMenuItems = (menus) => {
+    menus.forEach(menu => {
+      if (menu.frontpath && !menu.frontpath.endsWith("Form")) {
+        tabs.push({
+          title: menu.name,
+          path: menu.frontpath
+        })
+      }
+      if (menu.child && menu.child.length > 0) {
+        extractMenuItems(menu.child)
+      }
+    })
+  }
+  
+  extractMenuItems(menuData)
+  return tabs
+}
+
 //  修改js逻辑处理流程 --让它与PATH挂钩
-const tabList = ref([
-    {
-        title: '主页信息',
-        path:"/Statistics"
-    }
-])
+const tabList = ref(getInitialTabList())
 
 // 添加标签页 (addTab)
 function addTab(tab){
@@ -92,14 +116,77 @@ const changeTab = (t)=>{
 function initTabList(){
     // 从cookie读取标签列表
     let tbs = cookies.get("tabList")
-    if(tbs){
+    if(tbs && tbs.length > 0){
         tabList.value = tbs
+        // 如果有cookie数据，跳转到第一个标签
+        if(tabList.value.length > 0) {
+            changeTab(tabList.value[0].path)
+        }
     } else { 
-        // 初次打开，默认进入第一个tab
-        changeTab(tabList.value[0].path)
+        // 没有cookie数据，尝试从菜单生成标签
+        const initialTabs = getInitialTabList()
+        if(initialTabs.length > 0) {
+            tabList.value = initialTabs
+            changeTab(initialTabs[0].path)
+        } else {
+            // 如果菜单数据也还没有加载，等待菜单数据加载
+            console.log('等待菜单数据加载...')
+        }
     }
 }
 initTabList()
+
+// 监听菜单数据变化，动态更新标签列表
+watch(
+  () => store.state.userMenus,
+  (newMenus) => {
+    if (newMenus && newMenus.length > 0) {
+      // 当菜单数据更新时，重新生成标签列表
+      const newTabs = getInitialTabList()
+      
+      // 如果当前标签列表为空，说明是首次加载菜单数据
+      if (tabList.value.length === 0) {
+        tabList.value = newTabs
+        if (newTabs.length > 0) {
+          changeTab(newTabs[0].path)
+        }
+      } else {
+        // 保留当前已打开的标签（如果在新菜单中仍然存在）
+        const currentTabs = tabList.value
+        const mergedTabs = []
+        
+        // 首先添加新的菜单标签
+        newTabs.forEach(newTab => {
+          mergedTabs.push(newTab)
+        })
+        
+        // 然后添加当前标签中不在新菜单中的标签（用户手动打开的）
+        currentTabs.forEach(currentTab => {
+          const exists = mergedTabs.find(tab => tab.path === currentTab.path)
+          if (!exists) {
+            mergedTabs.push(currentTab)
+          }
+        })
+        
+        tabList.value = mergedTabs
+        cookies.set("tabList", tabList.value)
+      }
+    }
+  },
+  { deep: true }
+)
+
+// 组件挂载时确保菜单数据已加载
+onMounted(async () => {
+  try {
+    // 如果store中没有菜单数据，尝试加载
+    if (store.state.userMenus.length === 0) {
+      await store.dispatch('getUserMenu')
+    }
+  } catch (error) {
+    console.error('加载菜单数据失败:', error)
+  }
+})
 
 // 删除标签页 (removeTab)
 const removeTab = (t) => {
@@ -124,16 +211,18 @@ const removeTab = (t) => {
     cookies.set("tabList",tabList.value) // 更新cookie
 }
 
-// cookies全部清除但是要保留【主页信息】
+// cookies全部清除但是要保留第一个标签（从菜单动态获取）
 function clearAll(){
     cookies.remove("tabList")
-    tabList.value = [
-        {
-            title: '主页信息',
-            path:"/Statistics"
-        }
-    ]
-    changeTab("/Statistics")
+    const initialTabs = getInitialTabList()
+    if (initialTabs.length > 0) {
+        tabList.value = [initialTabs[0]]
+        changeTab(initialTabs[0].path)
+    } else {
+        // 如果没有菜单数据，清空标签列表并跳转到首页
+        tabList.value = []
+        router.push("/Statistics")
+    }
 }
 // cookies全部清除但是要保留【主页信息 和 当前路径】
 function clearOther() {
@@ -156,14 +245,18 @@ function clearOther() {
 </script>
 
 <style scoped>
-/* 使用 Tailwind CSS 和深度选择器自定义标签页样式：
+/* 使用 WindiCSS 和深度选择器自定义标签页样式：
 
 - 固定定位在顶部导航下方
 - 自定义标签页外观（圆角、间距等）
 - 设置合适的高度和层级
- */
+*/
 .f-tag-list{
-    @apply fixed bg-gray-100 flex items-center px-2;
+    position: fixed;
+    background-color: rgb(243 244 246);
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
     top: 65px;
     right: 0;
     height: 44px;
@@ -171,11 +264,17 @@ function clearOther() {
     z-index: 100;
 }
 .tag-btn{
-    @apply bg-white rounded ml-auto flex items-center justify-center px-2;
+    background-color: white;
+    border-radius: 0.375rem;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.5rem;
     height: 32px;
 }
 :deep(.el-tabs__header){
-    @apply mb-0;
+    margin-bottom: 0;
 }
 :deep(.el-tabs__nav){
     border: 0!important;
@@ -184,7 +283,9 @@ function clearOther() {
     border: 0!important;
     height: 32px;
     line-height: 32px;
-    @apply bg-white mx-1 rounded;
+    background-color: white;
+    margin: 0 0.25rem;
+    border-radius: 0.375rem;
 }
 :deep(.el-tabs__nav-next),:deep(.el-tabs__nav-prev){
     line-height: 32px;
@@ -192,6 +293,6 @@ function clearOther() {
 }
 :deep(.is-disabled){
     cursor: not-allowed;
-    @apply text-gray-300;
+    color: rgb(209 213 219);
 }
 </style>

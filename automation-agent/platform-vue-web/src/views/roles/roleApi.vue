@@ -1,4 +1,5 @@
 <template>
+  <div>
     <Breadcrumb />
     <el-card class="box-card">
         <template #header>
@@ -23,12 +24,14 @@
             </el-table-column>
         </el-table>
     </el-card>
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import roleApi from './roleApi'
+import Breadcrumb from "../Breadcrumb.vue"
 
 const router = useRouter()
 const apiList = ref([])

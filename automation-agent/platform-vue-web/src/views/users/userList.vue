@@ -22,7 +22,7 @@
     <!-- END 搜索表单 -->
 
       <!-- 数据表格 -->
-    <el-table :data="tableData" style="width: 100%;" max-height="500">
+    <el-table :data="tableData" style="width: 100%;" max-height="500" v-loading="loading" element-loading-text="加载中...">
         <!-- 数据列 -->
         <!-- 默认情况下，如果单元格内容过长，会占用多行显示。 若需要单行显示可以使用 show-overflow-tooltip -->
         <el-table-column prop="id" label="ID" width="80" />
@@ -89,12 +89,14 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue"
 import { useRouter } from "vue-router"
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { Message, Confirm } from '@/utils/message'
+import { useDeleteConfirm } from '@/composables/useDeleteConfirm'
 import userApi from './userApi'
 import deptApi from '../depts/deptApi'
 import Breadcrumb from "../Breadcrumb.vue"
 
 const router = useRouter()
+const { confirmDelete } = useDeleteConfirm()
 
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -102,8 +104,10 @@ const total = ref(0)
 const searchForm = reactive({ username: "", email: "", dept_id: null })
 const tableData = ref([])
 const deptOptions = ref([])
+const loading = ref(false)
 
 const loadData = () => {
+    loading.value = true
     let searchData = { ...searchForm }
     searchData["page"] = currentPage.value
     searchData["pageSize"] = pageSize.value
@@ -111,6 +115,8 @@ const loadData = () => {
     userApi.queryByPage(searchData).then((res) => {
         tableData.value = res.data.data
         total.value = res.data.total
+    }).finally(() => {
+        loading.value = false
     })
 }
 
@@ -133,17 +139,16 @@ onMounted(() => {
     loadDeptOptions()
 })
 
-const onDelete = (index) => {
-    ElMessageBox.confirm('确定要删除该用户吗?', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-    }).then(() => {
-        userApi.deleteData(tableData.value[index]["id"]).then(() => {
-            ElMessage.success('删除成功')
-            loadData()
-        })
-    }).catch(() => {})
+const onDelete = async (index) => {
+    const userId = tableData.value[index]["id"]
+    const username = tableData.value[index]["username"]
+    
+    await confirmDelete(
+        () => userApi.deleteData(userId),
+        `确定要删除用户 "${username}" 吗？此操作不可恢复！`,
+        '用户删除成功',
+        loadData
+    )
 }
 
 const handleStatusChange = async (row) => {
@@ -157,29 +162,32 @@ const handleStatusChange = async (row) => {
             dept_id: row.dept?.id || null
         })
         if (res.data.code === 200) {
-            ElMessage.success(row.is_active ? '已启用' : '已禁用')
+            Message.success(row.is_active ? '已启用' : '已禁用')
         }
     } catch (error) {
         row.is_active = !row.is_active
         console.error('更新状态失败:', error)
+        Message.error('更新状态失败')
     }
 }
 
 const onResetPassword = async (index) => {
     try {
-        await ElMessageBox.confirm('确定要重置该用户密码为123456吗?', '提示', {
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-            type: 'warning'
-        })
+        const confirmed = await Confirm.show(
+            '确定要重置该用户密码为123456吗？',
+            '重置密码确认',
+            'warning'
+        )
+        
+        if (!confirmed) return
+        
         const res = await userApi.resetPassword({ user_id: tableData.value[index]["id"] })
         if (res.data.code === 200) {
-            ElMessage.success('密码已重置为123456')
+            Message.success('密码已重置为123456')
         }
     } catch (error) {
-        if (error !== 'cancel') {
-            console.error('重置密码失败:', error)
-        }
+        console.error('重置密码失败:', error)
+        Message.error('重置密码失败')
     }
 }
 

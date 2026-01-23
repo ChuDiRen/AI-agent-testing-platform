@@ -1,8 +1,12 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, send_file, make_response
 from core.resp_model import respModel
 from app import database, application
 from apitest.model.ApiInfoCaseModel import ApiInfoCase  # 请替换为你的模型类
 from datetime import datetime
+import openpyxl
+from openpyxl.styles import Font, Alignment, PatternFill
+import os
+import tempfile
 
 # 模块信息
 module_name = "ApiInfoCase"  # 模块名称
@@ -423,5 +427,61 @@ def upload_file():
     except Exception as e:
         print(e)
         return respModel.error_resp(f"服务器错误,请联系管理员:{e}")
+
+
+@module_route.route(f"/{module_name}/downloadTemplate", methods=["GET"])
+def download_template():
+    """ 下载测试用例导入模板 """
+    try:
+        # 创建一个新的Excel工作簿
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "测试用例导入模板"
+
+        # 设置表头
+        headers = ["用例名称", "用例描述", "步骤描述", "关键字ID", "参数配置"]
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.value = header
+            # 设置表头样式
+            cell.font = Font(name='微软雅黑', size=11, bold=True, color="FFFFFF")
+            cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+
+        # 添加示例数据
+        example_data = [
+            ["登录功能测试", "验证用户登录功能", "步骤1：输入用户名", "1", "{\"username\":\"admin\"}"],
+            ["", "", "步骤2：输入密码", "2", "{\"password\":\"123456\"}"],
+            ["", "", "步骤3：点击登录", "3", "{}"],
+        ]
+
+        for row_num, row_data in enumerate(example_data, 2):
+            for col_num, value in enumerate(row_data, 1):
+                cell = ws.cell(row=row_num, column=col_num)
+                cell.value = value
+                cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+
+        # 设置列宽
+        ws.column_dimensions['A'].width = 30
+        ws.column_dimensions['B'].width = 40
+        ws.column_dimensions['C'].width = 30
+        ws.column_dimensions['D'].width = 12
+        ws.column_dimensions['E'].width = 50
+
+        # 创建临时文件保存Excel
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
+        wb.save(temp_file.name)
+        temp_file.close()
+
+        # 发送文件给客户端
+        return send_file(
+            temp_file.name,
+            as_attachment=True,
+            download_name='测试用例导入模板.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+    except Exception as e:
+        print(e)
+        return respModel.error_resp(f"下载模板失败：{e}")
 
 

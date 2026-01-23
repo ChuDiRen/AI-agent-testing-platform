@@ -1,16 +1,17 @@
 <template>
+  <div>
     <!-- 面包屑导航 -->
-  <Breadcrumb />
+    <Breadcrumb />
     <!-- 搜索表单 -->
     <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="demo-form-inline">
-    <el-form-item label="素材名称：">
-      <el-input v-model="searchForm.mate_name" placeholder="根据素材名称筛选" />
-    </el-form-item>
-    <el-form-item label="所属项目：">
-      <el-select v-model="searchForm.project_id" placeholder="选择所属项目" clearable >
-      <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id"/>     
-    </el-select>
-    </el-form-item>
+      <el-form-item label="素材名称：">
+        <el-input v-model="searchForm.mate_name" placeholder="根据素材名称筛选" />
+      </el-form-item>
+      <el-form-item label="所属项目：">
+        <el-select v-model="searchForm.project_id" placeholder="选择所属项目" clearable>
+          <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id" />     
+        </el-select>
+      </el-form-item>
 
       <el-row class="mb-4" type="flex" justify="end">
         <el-button type="primary" @click="loadData()">查询</el-button>
@@ -58,166 +59,118 @@
       />
     </div>
     <!-- END 分页 -->
-  </template>
+  </div>
+</template>
 
-<script lang="ts" setup>
-import { ref, reactive } from "vue";
-import { queryByPage, deleteData } from "./ApiMateManage.js"; // 不同页面不同的接口
-import { useRouter } from "vue-router";
-import Breadcrumb from "../../Breadcrumb.vue";
-const router = useRouter();
+<script setup>
+import { ref, reactive } from "vue"
+import { queryByPage, deleteData } from './ApiMateManage.js'
+import { useRouter } from "vue-router"
+import { Message } from '@/utils/message'
+import { useDeleteConfirm } from '@/composables/useDeleteConfirm'
+import Breadcrumb from "../../Breadcrumb.vue"
 
-// 分页参数
-const currentPage = ref(1);
-const pageSize = ref(10);
-const total = ref(0);
+const router = useRouter()
+const { confirmDelete } = useDeleteConfirm()
 
-// 搜索功能 - 筛选表单
-const searchForm = reactive({ "mate_name": "","project_id": ""});
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
-// 表格列 - 不同页面不同的列
+const searchForm = reactive({ "mate_name": "", "project_id": "" })
+
 const columnList = ref([
-  { prop: "id", label: "项目编号" },
-  { prop: "mate_name", label: "素材名称" },
-  { prop: "object_url", label: "素材路径" },
-  { prop: "file_type", label: "素材类型" },
-  { prop: "create_time", label: "上传时间" }
-]);
+  { prop: "id", label: '素材编号' },
+  { prop: "mate_name", label: '素材名称' },
+  { prop: "mate_url", label: '素材地址' },
+  { prop: "create_time", label: '创建时间' }
+])
 
-// 表格数据
-const tableData = ref([]);
-
-// 加载页面数据
-const loadData = () => {
-  let searchData = searchForm;
-  searchData["page"] = currentPage.value;
-  searchData["pageSize"] = pageSize.value;
-
-  queryByPage(searchData).then(
-    (res: { data: { data: never[]; total: number; msg: string } }) => {
-      tableData.value = res.data.data;
-      total.value = res.data.total;
-    }
-  );
-};
-loadData();
-
-// 变更页大小
-const handleSizeChange = (val: number) => {
-  console.log("页大小变化:" + val);
-  pageSize.value = val;
-  loadData();
-};
-
-// 变更页码
-const handleCurrentChange = (val: number) => {
-  console.log("页码变化:" + val);
-  currentPage.value = val;
-  loadData();
-};
-
-
-// 1. 加载项目
-import { queryAllProject } from "../project/ApiProject.js"; // 不同页面不同的接口
+const tableData = ref([])
 const projectList = ref([{
   id: 0,
   project_name: '',
   project_desc: ''
-}]);
-function getProjectList() {
-  queryAllProject().then((res) => {
-    projectList.value = res.data.data;
-  });
-}
-getProjectList();
+}])
 
-// 打开表单 （编辑/新增）
-const onDataForm = (index: number) => {
-  let params_data = {};
+const loadData = () => {
+  let searchData = searchForm
+  searchData["page"] = currentPage.value
+  searchData["pageSize"] = pageSize.value
+
+  queryByPage(searchData).then((res) => {
+    tableData.value = res.data.data
+    total.value = res.data.total
+  })
+}
+loadData()
+
+const handleSizeChange = (val) => {
+  console.log("页大小变化:" + val)
+  pageSize.value = val
+  loadData()
+}
+
+const handleCurrentChange = (val) => {
+  console.log("页码变化:" + val)
+  currentPage.value = val
+  loadData()
+}
+
+const onDataForm = (index) => {
+  let params_data = {}
   if (index >= 0) {
     params_data = {
-      id: tableData.value[index]["id"],
-    };
+      id: tableData.value[index]["id"]
+    }
   }
   router.push({
-    path: "/ApiMateManageForm", // 不同页面不同的表单路径
-    query: params_data,
-  });
-};
+    path: '/ApiMateManageForm',
+    query: params_data
+  })
+}
 
-// 删除项目
-const onDelete = (index: number) => {
-    deleteData(tableData.value[index]["id"]).then((res: {}) => {
-    loadData();
-  });
-};
+const onDelete = async (index) => {
+  const mateId = tableData.value[index]["id"]
+  const mateName = tableData.value[index]["mate_name"]
 
+  await confirmDelete(
+    () => deleteData(mateId),
+    `确定要删除素材 "${mateName}" 吗？此操作不可恢复！`,
+    '素材删除成功',
+    loadData
+  )
+}
 
+const onDownloadFile = (index) => {
+  const mateUrl = tableData.value[index]["mate_url"]
+  Message.info(`下载功能开发中... 素材地址: ${mateUrl}`)
+}
 
-// ====================================扩展： 下载/复制链接的功能========================================
-import { ElMessage } from "element-plus";
-import { downloadFile } from "./ApiMateManage.js"; // 不同页面不同的接口
-// 下载文件 - 获取地址 打开链接
-const onDownloadFile = (index: number) => {
-  const id = tableData.value[index]["id"];
-
-  // 调用接口获取下载地址
-  downloadFile(id).then((res) => {
-    if (res.data.code === 200) {
-      const downloadUrl = res.data.data.downloadUrl;
-
-      // 使用 window.open 打开下载链接
-      window.open(downloadUrl, '_blank');
-    } else {
-      ElMessage.error('获取下载地址失败，文件不存在');
-    }
-  }).catch((err) => {
-    ElMessage.error('请求失败：' + err.message);
-  });
-};
-
-// 下载文件 - 获取地址 复制数据
 const copyMaterialUrl = (index) => {
-    const id = tableData.value[index]["id"];
+  const mateUrl = tableData.value[index]["mate_url"]
+  navigator.clipboard.writeText(mateUrl).then(() => {
+    Message.success("素材链接已复制到剪贴板")
+  }).catch(() => {
+    Message.error("复制失败，请手动复制")
+  })
+}
 
-  // 调用接口获取下载地址
-  downloadFile(id).then((res) => {
-    if (res.data.code === 200) {
-      const downloadUrl = res.data.data.downloadUrl;
-
-      //复制downloadUrl 到剪贴板
-      navigator.clipboard.writeText(downloadUrl).then(() => {
-        ElMessage.success('链接已复制到剪贴板');
-      }).catch((err) => {
-        ElMessage.error('复制失败：' + err.message);
-      });
-
-    } else {
-      ElMessage.error('获取下载地址失败，文件不存在');
-    }
-  }).catch((err) => {
-    ElMessage.error('请求失败：' + err.message);
-  });
-};
-
-// ====================================END 扩展： 下载/复制链接的功能========================================
-
-
-
+import { queryAllProject } from "../project/ApiProject.js"
+function getProjectList() {
+  queryAllProject().then((res) => {
+    projectList.value = res.data.data
+  })
+}
+getProjectList()
 </script>
-  
+
 <style scoped>
-.demo-pagination-block + .demo-pagination-block {
-  margin-top: 10px;
+.demo-pagination-block+.demo-pagination-block {
+    margin-top: 10px;
 }
 
 .demo-pagination-block .demonstration {
-  margin-bottom: 16px;
+    margin-bottom: 16px;
 }
-
-/* 更改 el-select 的宽度 */  
-.el-select {  
-  width: 200px; /* 设置你想要的宽度 */  
-}  
 </style>
-  

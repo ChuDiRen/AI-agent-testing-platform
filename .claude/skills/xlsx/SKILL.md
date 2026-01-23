@@ -1,27 +1,32 @@
 ---
 name: xlsx
-description: "Comprehensive spreadsheet creation, editing, and analysis with support for formulas, formatting, data analysis, and visualization. When Claude needs to work with spreadsheets (.xlsx, .xlsm, .csv, .tsv, etc) for: (1) Creating new spreadsheets with formulas and formatting, (2) Reading or analyzing data, (3) Modify existing spreadsheets while preserving formulas, (4) Data analysis and visualization in spreadsheets, or (5) Recalculating formulas"
-license: Proprietary. LICENSE.txt has complete terms
+description: "全面的电子表格创建、编辑和分析，支持公式、格式化、数据分析和可视化。当Claude需要处理电子表格(.xlsx, .xlsm, .csv, .tsv, 等)时：(1)创建带有公式和格式化的新电子表格，(2)读取或分析数据，(3)修改现有电子表格同时保留公式，(4)电子表格中的数据分析和可视化，或(5)重新计算公式"
+license: 专有许可证。LICENSE.txt有完整条款
 ---
 
-# Requirements for Outputs
+# 输出要求
 
-## All Excel files
+## 所有Excel文件
 
-### Zero Formula Errors
-- Every Excel model MUST be delivered with ZERO formula errors (#REF!, #DIV/0!, #VALUE!, #N/A, #NAME?)
+### 零公式错误
+- 每个Excel模型必须交付时零公式错误（#REF!, #DIV/0!, #VALUE!, #N/A, #NAME?）
 
-### Preserve Existing Templates (when updating templates)
-- Study and EXACTLY match existing format, style, and conventions when modifying files
-- Never impose standardized formatting on files with established patterns
-- Existing template conventions ALWAYS override these guidelines
+### 保留现有模板（更新模板时）
+- 修改文件时研究并完全匹配现有格式、样式和约定
+- 绝不要对有既定模式的文件强加标准化格式
+- 现有模板约定始终覆盖这些指南
 
-## Financial models
+## 财务模型
 
-### Color Coding Standards
-Unless otherwise stated by the user or existing template
+### 颜色编码标准
+除非用户或现有模板另有规定
 
-#### Industry-Standard Color Conventions
+#### 行业标准颜色约定
+- **蓝色文本（RGB: 0,0,255）**：硬编码输入和用户将更改的场景中的数字
+- **黑色文本（RGB: 0,0,0）**：所有公式和计算
+- **绿色文本（RGB: 0,128,0）**：从同一工作簿中的其他工作表拉取的链接
+- **红色文本（RGB: 255,0,0）**：外部链接到其他文件
+- **黄色背景（RGB: 255,255,0）**：需要注意的关键假设或需要更新的单元格
 - **Blue text (RGB: 0,0,255)**: Hardcoded inputs, and numbers users will change for scenarios
 - **Black text (RGB: 0,0,0)**: ALL formulas and calculations
 - **Green text (RGB: 0,128,0)**: Links pulling from other worksheets within same workbook

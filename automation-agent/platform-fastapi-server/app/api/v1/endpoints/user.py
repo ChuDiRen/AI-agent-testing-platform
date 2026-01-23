@@ -156,3 +156,71 @@ async def delete(
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
+
+
+@router.post("/resetPassword", response_model=respModel)
+async def reset_password(
+    *,
+    data: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    """重置用户密码"""
+    try:
+        user_id = data.get('id')
+        new_password = data.get('password', '123456')  # 默认密码
+        
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalars().first()
+        if not user:
+            raise NotFoundException("用户不存在")
+        
+        # 重置密码
+        user.set_password(new_password)
+        await db.commit()
+        
+        return respModel().ok_resp(msg="密码重置成功")
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"密码重置失败: {str(e)}")
+
+
+@router.put("/profile", response_model=respModel)
+async def update_profile(
+    *,
+    data: dict,
+    db: AsyncSession = Depends(get_db),
+    token: str = Depends(get_db)
+):
+    """更新个人资料"""
+    try:
+        from app.core.security import verify_token
+        
+        # 从token中获取用户ID
+        user_id = token.get("user_id") if isinstance(token, dict) else token.get("sub")
+        
+        # 查询用户
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalars().first()
+        if not user:
+            raise NotFoundException("用户不存在")
+        
+        # 更新允许修改的字段
+        if 'alias' in data:
+            user.alias = data['alias']
+        if 'email' in data:
+            user.email = data['email']
+        if 'phone' in data:
+            user.phone = data['phone']
+        
+        await db.commit()
+        
+        return respModel().ok_resp(msg="个人资料更新成功")
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"个人资料更新失败: {str(e)}")

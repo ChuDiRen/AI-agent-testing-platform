@@ -2,7 +2,7 @@
   <div class="modern-sidebar">
     <!-- 菜单列表 -->
     <div class="menu-list">
-      <template v-for="(item, index) in asideMenus" :key="index">
+      <template v-for="(item, index) in filteredMenus" :key="index">
         <!-- 有子菜单的项 -->
         <div v-if="item.child && item.child.length > 0" class="menu-group">
           <div class="menu-group-title">
@@ -47,14 +47,15 @@
 
 <script setup>
 import { useRouter, useRoute } from 'vue-router';
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
+import { useStore } from 'vuex';
 
 const router = useRouter();
 const route = useRoute();
+const store = useStore();
 
-// 处理菜单选择 - 添加导航守卫
+// 处理菜单选择
 const handleSelect = (path) => {
-  // 检查是否已经在这个路径
   if (route.path === path) {
     return;
   }
@@ -67,7 +68,8 @@ const isActive = (path) => {
   return route.path === path;
 };
 
-const asideMenus = [{
+// 默认菜单数据（作为后备）
+const defaultMenus = [{
     "name":"数据统计",
     "icon":"DataAnalysis",
     "frontpath":"/Statistics"
@@ -155,6 +157,80 @@ const asideMenus = [{
       }
   ]
 }]
+
+/**
+ * 将后端菜单数据转换为前端菜单格式
+ */
+function transformBackendMenus(backendMenus) {
+  if (!backendMenus || !Array.isArray(backendMenus)) {
+    return [];
+  }
+
+  const transformed = [];
+  
+  for (const menu of backendMenus) {
+    // 如果是目录类型，转换为菜单组
+    if (menu.menu_type === 'catalog') {
+      const children = menu.children || [];
+      const transformedChildren = children.map(child => ({
+        name: child.name,
+        icon: child.icon,
+        frontpath: child.path
+      }));
+      
+      transformed.push({
+        name: menu.name,
+        icon: menu.icon,
+        child: transformedChildren
+      });
+    } else if (menu.menu_type === 'menu') {
+      // 单个菜单项，添加到顶级列表中
+      transformed.push({
+        name: menu.name,
+        icon: menu.icon,
+        frontpath: menu.path
+      });
+    }
+  }
+  
+  return transformed;
+}
+
+// 显示的菜单（使用 store 中的数据或默认菜单）
+const filteredMenus = computed(() => {
+  // 检查是否为超级管理员
+  const isSuperUser = store.getters.isSuperUser;
+  
+  // 获取后端菜单数据
+  const userMenus = store.state.userMenus || [];
+  
+  // 如果有后端菜单数据，使用转换后的数据
+  if (userMenus && userMenus.length > 0) {
+    console.log('使用后端返回的菜单数据:', userMenus);
+    const transformedMenus = transformBackendMenus(userMenus);
+    console.log('转换后的菜单数据:', transformedMenus);
+    return transformedMenus;
+  }
+  
+  // 超级管理员或没有后端数据时，使用默认菜单
+  console.log(isSuperUser ? '超级管理员，显示所有默认菜单' : '使用默认菜单');
+  return defaultMenus;
+});
+
+// 组件挂载时确保已加载权限
+onMounted(async () => {
+  try {
+    // 如果 store 中没有权限信息，加载它
+    if (!store.state.permissions || store.state.permissions.menus.length === 0) {
+      await store.dispatch('getUserPermissions');
+    }
+    
+    console.log('当前用户权限:', store.state.permissions);
+    console.log('是否为超级管理员:', store.getters.isSuperUser);
+  } catch (error) {
+    console.error('加载权限失败:', error);
+  }
+});
 </script>
 
 <style scoped>

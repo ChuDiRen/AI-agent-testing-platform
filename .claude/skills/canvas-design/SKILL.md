@@ -127,4 +127,4 @@ Take a second pass. Go back to the code and refine/polish further to make this a
 
 ## MULTI-PAGE OPTION
 
-To create additional pages when requested, create more creative pages along the same lines as the design philosophy but distinctly different as well. Bundle those pages in the same .pdf or many .pngs. Treat the first page as just a single page in a whole coffee table book waiting to be filled. Make the next pages unique twists and memories of the original. Have them almost tell a story in a very tasteful way. Exercise full creative freedom.
+当被要求创建额外页面时，按照设计哲学创建更多创意页面，但同时也要有明显的区别。将这些页面捆绑在同一个.pdf或多个.png中。将第一页视为整个咖啡桌书中等待填满的单页。让下一页成为原作的独特转折和记忆。让它们以一种非常优雅的方式几乎讲述一个故事。充分发挥创作自由。

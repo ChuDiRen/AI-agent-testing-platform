@@ -98,17 +98,35 @@ venv\Scripts\activate
 # Linux/Mac:
 source venv/bin/activate
 
-# 安装依赖
+# 安装依赖（包含SQLite和MySQL支持）
 pip install -r requirements.txt
 ```
 
 ### 2. 配置环境变量
 
-复制并编辑 `.env` 文件：
+**方式1：使用SQLite（推荐开发环境）**
 
+创建 `.env` 文件：
 ```env
 # 数据库配置
-DATABASE_URL=mysql+aiomysql://root:123456@192.168.1.111:3306/test_platfrom?charset=utf8
+DATABASE_TYPE=sqlite
+DATABASE_URL_SQLITE=sqlite+aiosqlite:///./data.db
+SQLALCHEMY_ECHO=True
+
+# JWT 配置
+SECRET_KEY=your-secret-key-here
+
+# 其他配置...
+```
+
+**方式2：使用MySQL（推荐生产环境）**
+
+创建 `.env` 文件：
+```env
+# 数据库配置
+DATABASE_TYPE=mysql
+DATABASE_URL_MYSQL=mysql+aiomysql://root:password@localhost:3306/testdb?charset=utf8mb4
+SQLALCHEMY_ECHO=False
 
 # JWT 配置
 SECRET_KEY=your-secret-key-here
@@ -124,6 +142,11 @@ REDIS_HOST=192.168.1.120
 REDIS_PORT=6379
 ```
 
+💡 **提示**：可以从 `.env.example` 复制模板：
+```bash
+cp .env.example .env
+```
+
 ### 3. 启动服务
 
 ```bash
@@ -134,11 +157,39 @@ python run.py
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+启动时会自动：
+- 创建数据库表
+- 初始化基础数据（角色、菜单、API、用户等）
+- 默认账号：`admin` / `admin123`
+
 ### 4. 访问 API 文档
 
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 - **OpenAPI JSON**: http://localhost:8000/openapi.json
+
+## 🗄️ 多数据库支持
+
+本项目支持 **SQLite** 和 **MySQL** 两种数据库：
+
+| 数据库 | 适用场景 | 配置方式 |
+|--------|---------|---------|
+| **SQLite** | 开发、测试、小型应用 | `DATABASE_TYPE=sqlite`（默认） |
+| **MySQL** | 生产环境、中大型应用 | `DATABASE_TYPE=mysql` |
+
+### 快速切换数据库
+
+在 `.env` 文件中修改：
+```env
+# 切换到SQLite
+DATABASE_TYPE=sqlite
+
+# 或切换到MySQL
+DATABASE_TYPE=mysql
+DATABASE_URL_MYSQL=mysql+aiomysql://root:password@localhost:3306/testdb?charset=utf8mb4
+```
+
+详细配置请查看：[多数据库支持文档](./docs/MULTI_DATABASE_SUPPORT.md)
 
 ## 📊 技术栈对比
 
@@ -210,8 +261,27 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ### 数据库配置
 
-- `DATABASE_URL`: MySQL 数据库连接字符串（使用 aiomysql 驱动）
-- `SQLALCHEMY_ECHO`: 是否打印 SQL 语句（开发环境建议开启）
+本项目支持 SQLite 和 MySQL 两种数据库：
+
+**SQLite 配置**（默认，推荐开发环境）：
+```env
+DATABASE_TYPE=sqlite
+DATABASE_URL_SQLITE=sqlite+aiosqlite:///./data.db
+SQLALCHEMY_ECHO=True
+```
+
+**MySQL 配置**（推荐生产环境）：
+```env
+DATABASE_TYPE=mysql
+DATABASE_URL_MYSQL=mysql+aiomysql://root:password@localhost:3306/testdb?charset=utf8mb4
+SQLALCHEMY_ECHO=False
+```
+
+**数据库特性对比**：
+- SQLite：零配置、单文件存储，适合开发和小型应用
+- MySQL：高并发、支持远程访问，适合生产环境
+
+详细配置请参考：[多数据库支持文档](./docs/MULTI_DATABASE_SUPPORT.md)
 
 ### JWT 配置
 
@@ -332,15 +402,21 @@ app.include_router(user.router, prefix="/api/v1")
 
 1. **数据库连接失败**
    - 检查 `DATABASE_URL` 配置
-   - 确认 MySQL 服务是否启动
-   - 检查是否安装了 aiomysql
+   - 如果使用MySQL，确认MySQL服务是否启动
+   - 如果使用SQLite，检查文件权限
+   - 确认安装了对应的数据库驱动（aiosqlite 或 aiomysql）
 
-2. **JWT Token 失效**
+2. **切换数据库后数据丢失**
+   - SQLite和MySQL使用不同的存储，切换不会自动迁移数据
+   - 切换前请备份数据
+   - 开发环境可以接受数据重置（会自动初始化）
+
+3. **JWT Token 失效**
    - 检查 `SECRET_KEY` 配置
    - 确认 Token 未过期
    - 检查请求头是否正确发送
 
-3. **CORS 错误**
+4. **CORS 错误**
    - 检查前端请求的 Origin
    - 确认 CORS 中间件已正确配置
 

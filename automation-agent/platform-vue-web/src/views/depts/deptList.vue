@@ -34,11 +34,13 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue"
 import { useRouter } from "vue-router"
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { Message } from '@/utils/message'
+import { useDeleteConfirm } from '@/composables/useDeleteConfirm'
 import deptApi from './deptApi'
 import Breadcrumb from "../Breadcrumb.vue"
 
 const router = useRouter()
+const { confirmDelete } = useDeleteConfirm()
 const searchForm = reactive({ "name": "" })
 const tableData = ref([])
 
@@ -61,19 +63,13 @@ onMounted(() => {
     loadData()
 })
 
-const onDelete = (row) => {
-    ElMessageBox.confirm('确定要删除该部门吗?', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-    }).then(() => {
-        deptApi.deleteData(row.id).then((res) => {
-            if (res.data.code === 200) {
-                ElMessage.success('删除成功')
-                loadData()
-            }
-        })
-    }).catch(() => {})
+const onDelete = async (row) => {
+    await confirmDelete(
+        () => deptApi.deleteData(row.id),
+        `确定要删除部门 "${row.name}" 吗？此操作不可恢复！`,
+        '部门删除成功',
+        loadData
+    )
 }
 
 const onDataForm = (index) => {

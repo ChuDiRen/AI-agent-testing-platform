@@ -61,6 +61,9 @@ alembic/versions/*.pyc
 *.db
 *.sqlite3
 
+# 初始化数据
+app/data/init_data.json
+
 # 系统文件
 .DS_Store
 Thumbs.db

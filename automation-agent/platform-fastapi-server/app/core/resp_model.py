@@ -16,9 +16,9 @@ class ResponseModel(BaseModel):
     timestamp: int = int(datetime.now().timestamp() * 1000)
 
 
-class RespModel:
-    """响应工具类"""
-    
+class RespModel(BaseModel):
+    """响应工具类（继承BaseModel以支持FastAPI的response_model）"""
+
     @staticmethod
     def ok_resp(obj: Any = None, msg: str = "success", dic_t: dict = None) -> ResponseModel:
         """
@@ -177,3 +177,7 @@ class RespModel:
                     value = datetime.strftime(value, '%Y-%m-%d %H:%M:%S')
                 custom_attributes[attribute] = value
         return custom_attributes
+
+
+# 向后兼容的别名
+respModel = RespModel

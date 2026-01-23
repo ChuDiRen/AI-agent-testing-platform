@@ -20,7 +20,7 @@
             </el-button>
           </div>
           <div class="user-info">
-            <h2 class="user-name">{{ userInfo.username }}</h2>
+            <h2 class="user-name">{{ userInfo.alias || userInfo.username }}</h2>
             <p class="user-role">{{ userInfo.role }}</p>
             <div class="user-stats">
               <div class="stat-item">
@@ -44,7 +44,11 @@
         <!-- 个人信息表单 -->
         <el-form :model="userInfo" label-width="120px" class="profile-form">
           <el-form-item label="用户名">
-            <el-input v-model="userInfo.username" :disabled="!isEditing" />
+            <el-input v-model="userInfo.username" disabled />
+          </el-form-item>
+          
+          <el-form-item label="姓名">
+            <el-input v-model="userInfo.alias" :disabled="!isEditing" placeholder="请输入真实姓名" />
           </el-form-item>
           
           <el-form-item label="邮箱">
@@ -55,22 +59,14 @@
             <el-input v-model="userInfo.phone" :disabled="!isEditing" />
           </el-form-item>
           
-          <el-form-item label="部门">
-            <el-input v-model="userInfo.department" :disabled="!isEditing" />
+          <el-form-item label="账户状态">
+            <el-tag :type="userInfo.isActive ? 'success' : 'danger'">
+              {{ userInfo.isActive ? '已激活' : '已禁用' }}
+            </el-tag>
           </el-form-item>
           
-          <el-form-item label="职位">
-            <el-input v-model="userInfo.position" :disabled="!isEditing" />
-          </el-form-item>
-          
-          <el-form-item label="个人简介">
-            <el-input 
-              v-model="userInfo.bio" 
-              type="textarea" 
-              :rows="4" 
-              :disabled="!isEditing"
-              placeholder="介绍一下自己..."
-            />
+          <el-form-item label="最后登录">
+            <el-input v-model="userInfo.lastLogin" disabled />
           </el-form-item>
 
           <el-form-item>
@@ -124,22 +120,27 @@
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import axios from '~/axios.js';
+import loginApi from '../login/loginApi';
 
 const isEditing = ref(false);
 const passwordFormRef = ref(null);
 
 const userInfo = reactive({
-  username: '管理员',
-  email: 'admin@example.com',
-  phone: '13800138000',
-  department: '技术部',
-  position: '测试工程师',
+  id: 0,
+  username: '',
+  alias: '',
+  email: '',
+  phone: '',
+  department: '',
+  position: '',
   bio: '',
-  role: 'Admin',
+  role: '',
   avatar: '',
   testCount: 0,
   caseCount: 0,
-  projectCount: 0
+  projectCount: 0,
+  isActive: true,
+  lastLogin: ''
 });
 
 const userInfoBackup = ref({});
@@ -200,13 +201,22 @@ const cancelEdit = () => {
 
 const saveProfile = async () => {
   try {
-    const response = await axios.put('/api/profile', userInfo);
+    // 只发送可修改的字段
+    const updateData = {
+      alias: userInfo.alias,
+      email: userInfo.email,
+      phone: userInfo.phone
+    };
+    
+    const response = await axios.put('/api/profile', updateData);
     if (response.data.code === 200) {
       ElMessage.success('个人信息更新成功');
       isEditing.value = false;
+      // 重新获取用户信息
+      await fetchUserProfile();
     }
   } catch (error) {
-    ElMessage.error('更新失败，请重试');
+    ElMessage.error(error.response?.data?.msg || '更新失败，请重试');
   }
 };
 
@@ -216,9 +226,9 @@ const changePassword = async () => {
   await passwordFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        const response = await axios.post('/api/profile/change-password', {
-          oldPassword: passwordForm.oldPassword,
-          newPassword: passwordForm.newPassword
+        const response = await loginApi.changePassword({
+          old_password: passwordForm.oldPassword,
+          new_password: passwordForm.newPassword
         });
         
         if (response.data.code === 200) {

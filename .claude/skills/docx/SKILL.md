@@ -1,28 +1,29 @@
 ---
 name: docx
-description: "Comprehensive document creation, editing, and analysis with support for tracked changes, comments, formatting preservation, and text extraction. When Claude needs to work with professional documents (.docx files) for: (1) Creating new documents, (2) Modifying or editing content, (3) Working with tracked changes, (4) Adding comments, or any other document tasks"
-license: Proprietary. LICENSE.txt has complete terms
+description: "全面的文档创建、编辑和分析，支持修订跟踪、注释、格式保留和文本提取。当Claude需要处理专业文档(.docx文件)时：(1)创建新文档，(2)修改或编辑内容，(3)处理修订跟踪，(4)添加注释，或任何其他文档任务"
+license: 专有许可证。LICENSE.txt有完整条款
 ---
 
-# DOCX creation, editing, and analysis
+# DOCX创建、编辑和分析
 
-## Overview
+## 概述
 
-A user may ask you to create, edit, or analyze the contents of a .docx file. A .docx file is essentially a ZIP archive containing XML files and other resources that you can read or edit. You have different tools and workflows available for different tasks.
+用户可能要求你创建、编辑或分析.docx文件的内容。.docx文件本质上是一个包含XML文件和其他资源的ZIP存档，你可以读取或编辑。对于不同的任务，你有不同的工具和工作流程可用。
 
-## Workflow Decision Tree
+## 工作流程决策树
 
-### Reading/Analyzing Content
-Use "Text extraction" or "Raw XML access" sections below
+### 读取/分析内容
+使用下面的"文本提取"或"原始XML访问"部分
 
-### Creating New Document
-Use "Creating a new Word document" workflow
+### 创建新文档
+使用"创建新Word文档"工作流程
 
-### Editing Existing Document
-- **Your own document + simple changes**
-  Use "Basic OOXML editing" workflow
+### 编辑现有文档
+- **自己的文档 + 简单修改**
+  使用"基本OOXML编辑"工作流程
 
-- **Someone else's document**
+- **他人的文档**
+  使用**"修订跟踪工作流程"**（推荐默认）
   Use **"Redlining workflow"** (recommended default)
 
 - **Legal, academic, business, or government docs**

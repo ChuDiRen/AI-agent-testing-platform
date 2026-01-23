@@ -1,23 +1,23 @@
 ---
 name: pdf
-description: Comprehensive PDF manipulation toolkit for extracting text and tables, creating new PDFs, merging/splitting documents, and handling forms. When Claude needs to fill in a PDF form or programmatically process, generate, or analyze PDF documents at scale.
-license: Proprietary. LICENSE.txt has complete terms
+description: 全面的PDF处理工具包，用于提取文本和表格、创建新PDF、合并/拆分文档以及处理表单。当Claude需要填写PDF表单或以编程方式处理、生成或大规模分析PDF文档时使用。
+license: 专有许可证。LICENSE.txt有完整条款
 ---
 
-# PDF Processing Guide
+# PDF处理指南
 
-## Overview
+## 概述
 
-This guide covers essential PDF processing operations using Python libraries and command-line tools. For advanced features, JavaScript libraries, and detailed examples, see reference.md. If you need to fill out a PDF form, read forms.md and follow its instructions.
+本指南涵盖使用Python库和命令行工具的基本PDF处理操作。对于高级功能、JavaScript库和详细示例，请参阅reference.md。如果需要填写PDF表单，请阅读forms.md并按照其说明操作。
 
-## Quick Start
+## 快速开始
 
 ```python
 from pypdf import PdfReader, PdfWriter
 
-# Read a PDF
+# 读取PDF
 reader = PdfReader("document.pdf")
-print(f"Pages: {len(reader.pages)}")
+print(f"页数: {len(reader.pages)}")
 
 # Extract text
 text = ""

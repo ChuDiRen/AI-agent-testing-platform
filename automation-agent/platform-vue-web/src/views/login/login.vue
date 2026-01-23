@@ -112,11 +112,14 @@
 import { ref,reactive } from "vue";
 // 导入route管理
 import { useRouter } from "vue-router";
+// 导入 store
+import { useStore } from "vuex";
 //  导入登录的脚本
 import loginApi from "./loginApi";
 import { ElMessage } from "element-plus";
 // 实例化对象
 const router = useRouter();
+const store = useStore();
 
 // 字段校验：script增加如下代码
 const rules = {
@@ -150,23 +153,37 @@ const onSubmit = () => {
     console.log("校验通过")
     // 验证通过之后进行开始发送请求
     loginApi.login({ username: form.username, password: form.password })
-    .then(res=>{
-      console.log("当前的响应数据：",res.data.data.token)
+    .then(async res=>{
+      console.log("当前的响应数据：",res.data.data?.token)
 
       // 前端进行判断并且跳转
-      if(res.data.code ==200 && res.data.data.token != null){
+      if(res.data.code ==200 && res.data.data?.token != null){
       // 写入token到请求头中
       // 存储令牌（加密后的字符串）
       localStorage.setItem('token', res.data.data.token);
       // 存储 refreshToken
       localStorage.setItem('refreshToken', res.data.data.refreshToken);
+      // 存储用户名
+      localStorage.setItem('username', form.username);
       console.log("登录成功，token 和 refreshToken 已保存")
-      router.push("/home")// 假设我们跳转到主页面
-      ElMessage.success(res.data.msg)
+      
+      // 加载用户信息和权限到 store
+      try {
+        await store.dispatch('getUserInfo')
+        await store.dispatch('getUserPermissions')
+        console.log("用户信息和权限已加载")
+      } catch (error) {
+        console.error("加载用户信息失败:", error)
+      }
+      
+      // 跳转到首页
+      router.push("/home");
+      ElMessage.success("登录成功！");
       }
     })
     .catch(err=>{
        console.log(err)
+       ElMessage.error('登录失败，请检查用户名和密码');
     })
     // router.push("/home")// 假设我们跳转到主页面
   })
@@ -358,6 +375,7 @@ const onSubmit = () => {
 
 .input-wrapper {
   margin-bottom: 0.5rem;
+  width: 100%;
 }
 
 .input-label {
@@ -366,6 +384,10 @@ const onSubmit = () => {
   font-weight: 500;
   color: #475569;
   margin-bottom: 0.5rem;
+}
+
+.modern-input {
+  width: 100%;
 }
 
 .login-button {

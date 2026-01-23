@@ -1,22 +1,22 @@
 ---
 name: mcp-builder
-description: Guide for creating high-quality MCP (Model Context Protocol) servers that enable LLMs to interact with external services through well-designed tools. Use when building MCP servers to integrate external APIs or services, whether in Python (FastMCP) or Node/TypeScript (MCP SDK).
-license: Complete terms in LICENSE.txt
+description: 创建高质量MCP（模型上下文协议）服务器的指南，使LLM能够通过精心设计的工具与外部服务交互。用于构建MCP服务器以集成外部API或服务，无论是Python（FastMCP）还是Node/TypeScript（MCP SDK）。
+license: 完整条款见LICENSE.txt
 ---
 
-# MCP Server Development Guide
+# MCP服务器开发指南
 
-## Overview
+## 概述
 
-Create MCP (Model Context Protocol) servers that enable LLMs to interact with external services through well-designed tools. The quality of an MCP server is measured by how well it enables LLMs to accomplish real-world tasks.
+创建MCP（模型上下文协议）服务器，使LLM能够通过精心设计的工具与外部服务交互。MCP服务器的质量取决于它如何使LLM能够完成现实世界的任务。
 
 ---
 
-# Process
+# 流程
 
-## 🚀 High-Level Workflow
+## 🚀 高级工作流程
 
-Creating a high-quality MCP server involves four main phases:
+创建高质量的MCP服务器涉及四个主要阶段：
 
 ### Phase 1: Deep Research and Planning
 

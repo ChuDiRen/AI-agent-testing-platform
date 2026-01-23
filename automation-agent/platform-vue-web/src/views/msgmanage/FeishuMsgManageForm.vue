@@ -80,7 +80,7 @@
   });
   
   // 3. 表单验证规则
-  const rules = reactive<any>({
+  const rules = reactive({
     robot_name: [
       { required: true, message: '必填项', trigger: 'blur' }
     ],

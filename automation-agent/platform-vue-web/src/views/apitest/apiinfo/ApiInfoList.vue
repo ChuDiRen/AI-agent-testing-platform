@@ -1,7 +1,8 @@
 <template>
-  <!-- 面包屑导航 -->
-  <Breadcrumb />
   <div>
+    <!-- 面包屑导航 -->
+    <Breadcrumb />
+    
     <!-- 搜索表单 -->
     <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="demo-form-inline">
       <el-form-item label="接口名称：">
@@ -19,7 +20,6 @@
         <el-button type="primary" @click="loadSwagger()">swagger导入<el-icon><Upload /></el-icon></el-button>
       </el-row>
     </el-form>
-    <!-- END 搜索表单 -->
 
     <!-- 数据表格 -->
     <el-table :data="tableData" style="width: 100%;" max-height="500">
@@ -38,7 +38,6 @@
         </template>
       </el-table-column>
     </el-table>
-    <!-- END 数据表格 -->
 
     <!-- 分页 -->
     <div class="demo-pagination-block">
@@ -47,14 +46,11 @@
         layout="total, sizes, prev, pager, next, jumper" :total="total" @size-change="handleSizeChange"
         @current-change="handleCurrentChange" />
     </div>
-    <!-- END 分页 -->
-  </div>
 
-
-      <!-- Swagger 导入弹窗 -->
+    <!-- Swagger 导入弹窗 -->
     <el-dialog v-model="swaggerDialogVisible" title="Swagger 导入" width="30%">
       <el-form :model="swaggerForm" label-width="120px">
-       <el-form-item label="所属项目">
+        <el-form-item label="所属项目">
           <el-select v-model="swaggerForm.project_id" placeholder="选择所属项目" clearable>
             <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id" />
           </el-select>
@@ -68,7 +64,6 @@
         <el-form-item label="Swagger 地址">
           <el-input v-model="swaggerForm.host" placeholder="请输入 Swagger地址" />
         </el-form-item>
-
       </el-form>
       <template #footer>
         <span class="dialog-footer">
@@ -77,135 +72,123 @@
         </span>
       </template>
     </el-dialog>
+  </div>
 </template>
 
-<script lang="ts" setup>
-import { ref, reactive } from "vue";
-import { queryByPage, deleteData } from './ApiInfo.js' // 不同页面不同的接口
-import { useRouter } from "vue-router";
-import Breadcrumb from "../../Breadcrumb.vue";
-const router = useRouter()
+<script setup>
+import { ref, reactive } from "vue"
+import { queryByPage, deleteData } from './ApiInfo.js'
+import { useRouter } from "vue-router"
+import { Message } from '@/utils/message'
+import { useDeleteConfirm } from '@/composables/useDeleteConfirm'
+import Breadcrumb from "../../Breadcrumb.vue"
 
-// 分页参数
+const router = useRouter()
+const { confirmDelete } = useDeleteConfirm()
+
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 
-// 搜索功能 - 筛选表单
-const searchStatus = ref(false) // 是否应用搜索表单
-const searchForm = reactive({ "api_name": "","project_id":"","module_id":"" })
+const searchForm = reactive({ "api_name": "", "project_id": "", "module_id": "" })
 
-
-// 表格列 - 不同页面不同的列
 const columnList = ref([
-    { prop: "id", label: '接口用例编号' },
-    { prop: "api_name", label: '接口名称' },
-    { prop: "request_method", label: '请求方法' },
-    { prop: "request_url", label: '请求地址' }
-    // ... 其他列 ...
+  { prop: "id", label: '接口用例编号' },
+  { prop: "api_name", label: '接口名称' },
+  { prop: "request_method", label: '请求方法' },
+  { prop: "request_url", label: '请求地址' }
 ])
 
-
-// 表格数据
 const tableData = ref([])
 
-// 加载页面数据
 const loadData = () => {
-    let searchData = searchForm
-    searchData["page"] = currentPage.value
-    searchData["pageSize"] = pageSize.value
+  let searchData = searchForm
+  searchData["page"] = currentPage.value
+  searchData["pageSize"] = pageSize.value
 
-    queryByPage(searchData).then((res: { data: { data: never[]; total: number; msg: string } }) => {
-        tableData.value = res.data.data
-        total.value = res.data.total
-    })
+  queryByPage(searchData).then((res) => {
+    tableData.value = res.data.data
+    total.value = res.data.total
+  })
 }
 loadData()
 
-// 变更 页大小
-const handleSizeChange = (val: number) => {
-    console.log("页大小变化:" + val)
-    pageSize.value = val
-    loadData()
+const handleSizeChange = (val) => {
+  console.log("页大小变化:" + val)
+  pageSize.value = val
+  loadData()
 }
 
-// 变更 页码
-const handleCurrentChange = (val: number) => {
-    console.log("页码变化:" + val)
-    currentPage.value = val
-    loadData()
+const handleCurrentChange = (val) => {
+  console.log("页码变化:" + val)
+  currentPage.value = val
+  loadData()
 }
 
-// 打开表单（编辑/新增）
-const onDataForm = (index: number) => {
-    let params_data = {};
+const onDataForm = (index) => {
+  let params_data = {}
   if (index >= 0) {
     params_data = {
       id: tableData.value[index]["id"]
-    };
+    }
   }
-    router.push({
-        path: 'ApiInfoForm', // 不同页面不同的表单路径
-        query: params_data
-    });
+  router.push({
+    path: 'ApiInfoForm',
+    query: params_data
+  })
 }
 
-// 删除数据
-const onDelete = (index: number) => {
-    deleteData(tableData.value[index]["id"]).then((res: {}) => {
-        loadData()
-    })
+const onDelete = async (index) => {
+  const apiId = tableData.value[index]["id"]
+  const apiName = tableData.value[index]["api_name"]
+
+  await confirmDelete(
+    () => deleteData(apiId),
+    `确定要删除API "${apiName}" 吗？此操作不可恢复！`,
+    'API删除成功',
+    loadData
+  )
 }
 
-// 其他功能拓展
-// 1. 加载项目
-import { queryAllProject } from "../project/ApiProject.js"; // 不同页面不同的接口
+import { queryAllProject } from "../project/ApiProject.js"
 const projectList = ref([{
   id: 0,
   project_name: '',
   project_desc: ''
-}]);
+}])
+
 function getProjectList() {
   queryAllProject().then((res) => {
-    projectList.value = res.data.data;
-  });
+    projectList.value = res.data.data
+  })
 }
-getProjectList();
+getProjectList()
 
-// 项目选择变化时的处理
 const projectChange = () => {
-  console.log("项目选择变化:", searchForm.project_id);
-  // 可以在这里添加额外的逻辑，比如清空模块选择等
-};
+  console.log("项目选择变化:", searchForm.project_id)
+}
 
-//------------------------------------------拓展功能-swagger导入----------------------------------------------------------------------------
-// Swagger 导入弹窗相关
-const swaggerDialogVisible = ref(false);
+const swaggerDialogVisible = ref(false)
 const swaggerForm = reactive({
   version: "",
   host: "",
-  // port: "",
-  project_id: "",
-  // module_id: "",
-});
+  project_id: ""
+})
 
 const loadSwagger = () => {
-  swaggerDialogVisible.value = true;
-};
+  swaggerDialogVisible.value = true
+}
 
-import { doImportSwagger } from './ApiInfo.js';
+import { doImportSwagger } from './ApiInfo.js'
 const confirmSwaggerImport = () => {
-  // 这里可以添加发送请求到后台的逻辑
-  console.log("Swagger 导入信息:", swaggerForm);
-  //  发送请求到后台
-  doImportSwagger(swaggerForm).then((res: { data: { msg: string } }) => {
-    console.log(res.data.msg);
-    loadData();
-  });
+  console.log("Swagger 导入信息:", swaggerForm)
+  doImportSwagger(swaggerForm).then((res) => {
+    console.log(res.data.msg)
+    loadData()
+  })
   
-  swaggerDialogVisible.value = false;
-};
-
+  swaggerDialogVisible.value = false
+}
 </script>
 
 <style scoped>
@@ -216,5 +199,4 @@ const confirmSwaggerImport = () => {
 .demo-pagination-block .demonstration {
     margin-bottom: 16px;
 }
-
 </style>

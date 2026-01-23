@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.rabbitmq import RabbitMQManager
 from app.core.deps import get_current_user
+from app.core.middleware.audit import create_audit_middleware
 from app.api.v1.endpoints import (
     login, 
     api_info, 
@@ -24,7 +25,13 @@ from app.api.v1.endpoints import (
     api_report_viewer,
     api_collection_detail,
     robot_msg_config,
-    api_test_plan_chart
+    api_test_plan_chart,
+    permission,
+    role_endpoint,
+    menu_endpoint,
+    dept_endpoint,
+    api_resource_endpoint,
+    audit_log_endpoint
 )
 from app.utils.third_party_messenger import get_messenger
 
@@ -46,13 +53,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 注册审计日志中间件
+create_audit_middleware(app)
+
 
 @app.middleware("http")
 async def verify_token_middleware(request: Request, call_next):
     """JWT Token 验证中间件"""
+    # 跳过 OPTIONS 预检请求
+    if request.method == "OPTIONS":
+        return await call_next(request)
+    
     # 白名单路径
     whitelist = [
-        "/api/v1/login",
+        "/login",
         "/docs",
         "/openapi.json",
         "/redoc",
@@ -84,6 +98,7 @@ async def verify_token_middleware(request: Request, call_next):
     
     # 保存到 request.state
     request.state.username = payload.get('username')
+    request.state.user_id = payload.get('user_id')
     request.state.payload = payload
     
     response = await call_next(request)
@@ -92,8 +107,7 @@ async def verify_token_middleware(request: Request, call_next):
 
 # 注册路由
 app.include_router(
-    login.router,
-    prefix="/api/v1"
+    login.router
 )
 
 app.include_router(
@@ -181,6 +195,36 @@ app.include_router(
     prefix="/api/v1"
 )
 
+app.include_router(
+    permission.router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    role_endpoint.router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    menu_endpoint.router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    dept_endpoint.router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    api_resource_endpoint.router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    audit_log_endpoint.router,
+    prefix="/api/v1"
+)
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -189,13 +233,68 @@ async def startup_event():
     print("FastAPI 应用启动中...")
     print("=" * 60)
     
-    # 启动 RabbitMQ 消费者
+    # 初始化统一缓存管理器（Redis→内存缓存自动降级）
     try:
-        from app.services.rabbitmq_consumer import rabbitmq_manager
-        await rabbitmq_manager.start_workers()
-        print("✅ RabbitMQ 消费者启动成功")
+        from app.core.unified_cache import cache_manager
+        await cache_manager.initialize()
+        cache_type = cache_manager.get_backend_type()
+        print(f"✅ 缓存管理器初始化成功: {cache_type}")
     except Exception as e:
-        print(f"❌ RabbitMQ 消费者启动失败: {e}")
+        print(f"❌ 缓存管理器初始化失败: {e}")
+    
+    # 初始化统一队列管理器（RabbitMQ→内存队列自动降级）
+    try:
+        from app.core.unified_queue import queue_manager
+        await queue_manager.initialize()
+        queue_type = queue_manager.get_backend_type()
+        print(f"✅ 队列管理器初始化成功: {queue_type}")
+        
+        # 定义队列消息处理回调
+        from app.core.logger import logger
+        
+        async def web_queue_callback(message):
+            """Web队列回调"""
+            logger.info(f"收到Web队列消息: {message}")
+        
+        async def app_queue_callback(message):
+            """App队列回调"""
+            logger.info(f"收到App队列消息: {message}")
+        
+        async def api_queue_callback(message):
+            """API队列回调"""
+            logger.info(f"收到API队列消息: {message}")
+        
+        # 构建队列配置
+        queue_configs = {}
+        callbacks = {
+            "web_queue": web_queue_callback,
+            "app_queue": app_queue_callback,
+            "api_queue": api_queue_callback
+        }
+        
+        for queue_name, worker_count in settings.QUEUE_LIST:
+            queue_configs[queue_name] = {
+                "worker_count": worker_count,
+                "callback": callbacks.get(queue_name)
+            }
+        
+        # 启动所有队列消费者
+        await queue_manager.start_all(queue_configs)
+        print("✅ 队列消费者已启动")
+    except Exception as e:
+        print(f"❌ 队列管理器初始化失败: {e}")
+    
+    # 初始化数据库（MySQL→SQLite自动降级）
+    try:
+        from app.db.session import create_database_engine, get_database_type
+        await create_database_engine()
+        from app.db.init_db import init_database
+        await init_database()
+        db_type = get_database_type()
+        print(f"✅ 数据库初始化成功: {db_type}")
+    except Exception as e:
+        print(f"❌ 数据库初始化失败: {e}")
+        # 数据库初始化失败不影响应用启动，继续启动
     
     print("=" * 60)
     print("FastAPI 应用启动完成!")
@@ -208,6 +307,22 @@ async def startup_event():
 async def shutdown_event():
     """应用关闭事件"""
     print("FastAPI 应用关闭中...")
+    
+    # 停止队列管理器
+    try:
+        from app.core.unified_queue import queue_manager
+        await queue_manager.stop_all()
+        print("✅ 队列管理器已停止")
+    except Exception as e:
+        print(f"❌ 停止队列管理器失败: {e}")
+    
+    # 关闭缓存管理器
+    try:
+        from app.core.unified_cache import cache_manager
+        await cache_manager.close()
+        print("✅ 缓存管理器已关闭")
+    except Exception as e:
+        print(f"❌ 关闭缓存管理器失败: {e}")
 
 
 @app.get("/")

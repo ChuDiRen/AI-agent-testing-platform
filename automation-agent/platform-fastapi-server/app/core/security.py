@@ -4,7 +4,40 @@ JWT 认证工具模块
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
+import bcrypt
 from app.core.config import settings
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    验证密码
+    
+    Args:
+        plain_password: 明文密码
+        hashed_password: 哈希后的密码
+    
+    Returns:
+        验证是否成功
+    """
+    return bcrypt.checkpw(
+        plain_password.encode('utf-8'),
+        hashed_password.encode('utf-8')
+    )
+
+
+def get_password_hash(password: str) -> str:
+    """
+    获取密码哈希值
+    
+    Args:
+        password: 明文密码
+    
+    Returns:
+        哈希后的密码
+    """
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:

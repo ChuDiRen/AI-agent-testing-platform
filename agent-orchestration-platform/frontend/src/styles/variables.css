@@ -1,0 +1,138 @@
+/* ============================================
+   Agent Orchestration Platform - CSS Variables
+   ============================================ */
+
+:root {
+  /* ===== Primary Colors (Electric Violet) ===== */
+  --color-primary: #8b5cf6;
+  --color-primary-light: #a78bfa;
+  --color-primary-dark: #7c3aed;
+  --color-primary-glow: rgba(139, 92, 246, 0.5);
+
+  /* ===== Accent Colors (Cyan & Pink) ===== */
+  --color-accent: #06b6d4;
+  --color-accent-light: #22d3ee;
+  --color-accent-glow: rgba(6, 182, 212, 0.5);
+  
+  --color-secondary: #ec4899;
+  --color-secondary-light: #f472b6;
+
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+
+  /* ===== Background Colors (Dark Theme) ===== */
+  --color-bg-primary: #0f172a; /* Slate 900 */
+  --color-bg-secondary: #1e293b; /* Slate 800 */
+  --color-bg-tertiary: #334155; /* Slate 700 */
+  --color-bg-glass: rgba(30, 41, 59, 0.7);
+  --color-bg-glass-heavy: rgba(15, 23, 42, 0.85);
+  --color-bg-overlay: rgba(0, 0, 0, 0.5);
+
+  /* ===== Text Colors ===== */
+  --color-text-primary: #f8fafc; /* Slate 50 */
+  --color-text-secondary: #cbd5e1; /* Slate 300 */
+  --color-text-muted: #94a3b8; /* Slate 400 */
+  --color-text-inverse: #0f172a;
+
+  /* ===== Borders ===== */
+  --color-border: #334155;
+  --color-border-light: #475569;
+  --color-border-glass: rgba(255, 255, 255, 0.1);
+
+  /* ===== Typography ===== */
+  --font-heading: 'Space Grotesk', 'Inter', sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+  --text-4xl: 2.5rem;
+  --text-5xl: 3.5rem;
+
+  /* ===== Spacing ===== */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+
+  /* ===== Radius ===== */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* ===== Shadows & Glows ===== */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+  --shadow-glow-primary: 0 0 20px var(--color-primary-glow);
+  --shadow-glow-accent: 0 0 20px var(--color-accent-glow);
+  
+  /* ===== Animations ===== */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+
+  /* ===== Layout ===== */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1536px;
+
+  /* ===== Z-Index ===== */
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-fixed: 30;
+  --z-modal-backdrop: 40;
+  --z-modal: 50;
+  --z-popover: 60;
+  --z-tooltip: 70;
+
+  /* ===== Animations ===== */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ===== Breakpoints ===== */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+}
+
+/* ===== Dark Mode ===== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-primary: #0A0A0B;
+    --color-bg-secondary: #1A1A1F;
+    --color-bg-tertiary: #1F1F25;
+    --color-bg-muted: #25252D;
+
+    --color-text-primary: #FAF5FF;
+    --color-text-secondary: #DDD6FE;
+    --color-text-muted: #A78BFA;
+    --color-text-disabled: #6D28D9;
+
+    --color-border-light: #2D2D35;
+    --color-border: #3D3D45;
+    --color-border-dark: #4D4D55;
+  }
+}

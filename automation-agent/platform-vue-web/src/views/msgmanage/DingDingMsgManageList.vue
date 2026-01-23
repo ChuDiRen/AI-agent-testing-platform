@@ -1,13 +1,14 @@
 <template>
-   <!-- 面包屑导航 -->
-   <Breadcrumb />
+  <div>
+    <!-- 面包屑导航 -->
+    <Breadcrumb />
     <!-- 搜索表单 -->
     <el-form ref="searchFormRef" :inline="true" :model="searchForm" class="demo-form-inline">
         <el-form-item label="机器人别名">
             <el-input v-model="searchForm.robot_name" placeholder="根据机器名筛选" />
         </el-form-item>
      
-        <el-row class="mb-4" type="flex" justify="end"> <!-- 居右 type="flex" justify="end" -->
+        <el-row class="mb-4" type="flex" justify="end">
             <el-button type="primary" @click="loadData()">查询</el-button>
             <el-button type="warning" @click="onDataForm(-1)">新增数据</el-button>
         </el-row>
@@ -16,7 +17,6 @@
     <!-- 数据表格 -->
     <el-table :data="tableData" style="width: 100%;" max-height="500">
         <!-- 数据列 -->
-        <!-- 默认情况下，如果单元格内容过长，会占用多行显示。 若需要单行显示可以使用 show-overflow-tooltip -->
         <el-table-column v-for="col in columnList" :prop="col.prop" :label="col.label" :key="col.prop"
             :show-overflow-tooltip="true" />
         <!-- 操作 -->
@@ -39,33 +39,34 @@
             @current-change="handleCurrentChange" />
     </div>
     <!-- END 分页 -->
+  </div>
 </template>
   
-<script lang="ts" setup>
+<script setup>
 import { ref, reactive } from "vue"
-import { queryByPage, deleteData } from './RobotConfig' // 不同页面不同的接口
-import { useRouter } from "vue-router";
-import Breadcrumb from "../Breadcrumb.vue";
-const router = useRouter()
+import { queryByPage, deleteData } from './RobotConfig'
+import { useRouter } from "vue-router"
+import { Message } from '@/utils/message'
+import { useDeleteConfirm } from '@/composables/useDeleteConfirm'
+import Breadcrumb from "../Breadcrumb.vue"
 
-// 分页参数
+const router = useRouter()
+const { confirmDelete } = useDeleteConfirm()
+
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 
-// 搜索功能 - 筛选表单
 const searchForm = reactive({"robot_name":""})
 
-// 表格列 - 不同页面不同的列
 const columnList = ref([
     { prop: "id", label: '机器人ID' },
     { prop: "robot_name", label: '机器人别名' },
     { prop: "create_time", label: '创建时间' }
 ])
-// 表格数据
+
 const tableData = ref([])
 
-// 加载页面数据
 const loadData = () => {
     let searchData = searchForm
     searchData["page"] = currentPage.value
@@ -80,21 +81,19 @@ const loadData = () => {
 }
 loadData()
 
-// 变更 页大小
-const handleSizeChange = (val: number) => {
+const handleSizeChange = (val) => {
     console.log("页大小变化:" + val)
     pageSize.value = val
     loadData()
 }
-// 变更 页码
-const handleCurrentChange = (val: number) => {
+
+const handleCurrentChange = (val) => {
     console.log("页码变化:" + val)
     currentPage.value = val
     loadData()
 }
 
-// 打开表单 （编辑/新增）
-const onDataForm = (index: number) => {
+const onDataForm = (index) => {
     let params_data = {}
     if (index >= 0) {
         params_data = {
@@ -102,20 +101,24 @@ const onDataForm = (index: number) => {
         }
     }
     router.push({
-        path: '/DingDingMsgManageForm', // 不同页面不同的表单路径
+        path: '/DingDingMsgManageForm',
         query: params_data
-    });
-}
-// 删除数据
-const onDelete = (index: number) => {
-    deleteData(tableData.value[index]["id"]).then((res: {}) => {
-        loadData()
     })
 }
 
-// 其他功能拓展
+const onDelete = async (index) => {
+    const robotId = tableData.value[index]["id"]
+    const robotName = tableData.value[index]["robot_name"]
 
+    await confirmDelete(
+        () => deleteData(robotId),
+        `确定要删除机器人 "${robotName}" 吗？此操作不可恢复！`,
+        '机器人删除成功',
+        loadData
+    )
+}
 </script>
+
 <style scoped>
 .demo-pagination-block+.demo-pagination-block {
     margin-top: 10px;

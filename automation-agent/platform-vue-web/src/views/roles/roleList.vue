@@ -44,10 +44,13 @@
 <script setup>
 import { ref, reactive } from "vue"
 import { useRouter } from "vue-router"
+import { Message } from '@/utils/message'
+import { useDeleteConfirm } from '@/composables/useDeleteConfirm'
 import roleApi from './roleApi'
 import Breadcrumb from "../Breadcrumb.vue"
 
 const router = useRouter()
+const { confirmDelete } = useDeleteConfirm()
 
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -74,10 +77,16 @@ const columnList = ref([
     { prop: "created_at", label: '创建时间' }
 ])
 
-const onDelete = (index) => {
-    roleApi.deleteData(tableData.value[index]["id"]).then(() => {
-        loadData()
-    })
+const onDelete = async (index) => {
+    const roleId = tableData.value[index]["id"]
+    const roleName = tableData.value[index]["name"]
+    
+    await confirmDelete(
+        () => roleApi.deleteData(roleId),
+        `确定要删除角色 "${roleName}" 吗？此操作不可恢复！`,
+        '角色删除成功',
+        loadData
+    )
 }
 
 const handleSizeChange = (val) => {

@@ -28,6 +28,22 @@ class RabbitMQManager:
     def start_workers(self):
         print("MQ初始化完成，准备启动消费者线程...")
         """ 根据 QUEUE_LIST 启动多个消费者线程 """
+        # 先测试连接
+        try:
+            credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
+            test_conn = pika.BlockingConnection(
+                pika.ConnectionParameters(
+                    host=RABBITMQ_HOST,
+                    port=RABBITMQ_PORT,
+                    credentials=credentials,
+                    connection_attempts=1,
+                    socket_timeout=3
+                )
+            )
+            test_conn.close()
+        except Exception as e:
+            raise Exception(f"RabbitMQ 连接测试失败: {e}")
+        
         for queue_name, thread_count in QUEUE_LIST:
             # print(f"\n正在启动 {thread_count} 个线程监听队列: {queue_name}")
             for i in range(thread_count):
@@ -54,7 +70,9 @@ class RabbitMQManager:
                         port=RABBITMQ_PORT,
                         credentials=credentials,
                         connection_attempts=3,
-                        retry_delay=2
+                        retry_delay=2,
+                        heartbeat=600,  # 心跳间隔10分钟
+                        blocked_connection_timeout=300  # 阻塞超时5分钟
                     )
                 )
                 channel = connection.channel()

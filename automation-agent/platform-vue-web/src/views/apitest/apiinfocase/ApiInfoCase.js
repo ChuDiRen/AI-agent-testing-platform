@@ -32,10 +32,17 @@ export function excuteTest(data){
 
 
 //文件上传处理
-export function uploadXmindFile(data) { 
+export function uploadXmindFile(data) {
     return axios.post(`/${module_name}/uploadFile`, data, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+    });
+  }
+
+// 下载模板
+export function downloadTemplate() {
+    return axios.get(`/${module_name}/downloadTemplate`, {
+      responseType: 'blob'
     });
   }

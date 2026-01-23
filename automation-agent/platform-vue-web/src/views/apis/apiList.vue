@@ -59,11 +59,13 @@
 <script setup>
 import { ref, reactive } from "vue"
 import { useRouter } from "vue-router"
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { Message } from '@/utils/message'
+import { useDeleteConfirm } from '@/composables/useDeleteConfirm'
 import apiApi from './apiApi'
 import Breadcrumb from "../Breadcrumb.vue"
 
 const router = useRouter()
+const { confirmDelete } = useDeleteConfirm()
 
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -82,8 +84,21 @@ const loadData = () => {
     searchData["pageSize"] = pageSize.value
 
     apiApi.queryByPage(searchData).then((res) => {
-        tableData.value = res.data.data
-        total.value = res.data.total
+        console.log("API查询响应:", res.data)
+        if (res.data.code === 200) {
+            tableData.value = res.data.data || []
+            total.value = res.data.total || 0
+            console.log("加载数据成功，共", total.value, "条")
+        } else {
+            Message.error(res.data.msg || "查询失败")
+            tableData.value = []
+            total.value = 0
+        }
+    }).catch((error) => {
+        console.error("查询失败:", error)
+        Message.error("查询失败")
+        tableData.value = []
+        total.value = 0
     })
 }
 loadData()
@@ -98,34 +113,36 @@ const columnList = ref([
 
 const handleRefresh = async () => {
     try {
-        await ElMessageBox.confirm('此操作会根据后端路由进行更新，确定继续刷新API操作？', '提示', {
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-            type: 'warning'
-        })
+        const { Confirm } = await import('@/utils/message')
+        const confirmed = await Confirm.show(
+            '此操作会根据后端路由进行更新，确定继续刷新API操作？',
+            '刷新API确认',
+            'warning'
+        )
+        
+        if (!confirmed) return
+        
         const res = await apiApi.refreshApi()
         if (res.data.code === 200) {
-            ElMessage.success('刷新成功')
+            Message.success('刷新成功')
             loadData()
         }
     } catch (error) {
-        if (error !== 'cancel') {
-            console.error('刷新失败:', error)
-        }
+        console.error('刷新失败:', error)
+        Message.error('刷新失败')
     }
 }
 
-const onDelete = (index) => {
-    ElMessageBox.confirm('确定要删除该API吗?', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-    }).then(() => {
-        apiApi.deleteData(tableData.value[index]["id"]).then(() => {
-            ElMessage.success('删除成功')
-            loadData()
-        })
-    }).catch(() => {})
+const onDelete = async (index) => {
+    const apiId = tableData.value[index]["id"]
+    const apiPath = tableData.value[index]["path"]
+    
+    await confirmDelete(
+        () => apiApi.deleteData(apiId),
+        `确定要删除API "${apiPath}" 吗？此操作不可恢复！`,
+        'API删除成功',
+        loadData
+    )
 }
 
 const handleSizeChange = (val) => {

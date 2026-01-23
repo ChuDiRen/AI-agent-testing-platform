@@ -370,23 +370,17 @@ export function deleteById(id) {
 
 ## 搜索工具使用指南
 
-### codebase-retrieval 工具
-**工具名称**: `codebase-retrieval` (auggie-mcp)
+### 代码搜索工具
 
 #### 使用规则
-1. 搜索代码时，**优先使用** `codebase-retrieval` 工具
-2. 该工具提供语义代码搜索，比 grep 更智能
+1. 搜索代码时，**优先使用** `grep_search` 工具
+2. 该工具提供强大的文本搜索功能
 3. 适用于：查找相关代码、理解代码结构、搜索特定功能实现
 
 #### 调用示例
 ```
-使用 codebase-retrieval 搜索 [你的查询]
+使用 grep_search 搜索 [你的查询]
 ```
-
-#### 配置信息
-- **MCP Server**: auggie-mcp
-- **Tenant URL**: https://d1.api.augmentcode.com/
-- **Scope**: 全局可用
 
 ## 注意事项
 

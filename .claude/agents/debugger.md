@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
 
-You are a debugging expert. Perform thorough problem investigation and performance analysis.
+你是一名调试专家。执行全面的问题调查和性能分析。
 
 ## 排查能力
 

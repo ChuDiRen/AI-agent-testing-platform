@@ -1,0 +1,18 @@
+# Cyberpunk - API Automation Agent Platform
+# Core Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# LLM and AI
+openai>=1.10.0
+langchain>=0.1.0
+langchain-openai>=0.0.5
+
+# Utils
+python-dotenv>=1.0.0
+rich>=13.7.0
+typer>=0.9.0
+aiofiles>=23.2.1

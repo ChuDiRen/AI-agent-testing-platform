@@ -305,3 +305,43 @@ def update_password():
     except Exception as e:
         print(e)
         return respModel().error_resp(msg=f"修改密码失败：{e}"), 500
+
+
+@module_route.route("/permission/user", methods=["GET"])
+def get_user_permissions():
+    """
+    获取当前用户的权限信息
+    返回菜单权限、API权限和角色信息
+    """
+    try:
+        token = request.headers.get("token")
+        if not token:
+            return respModel().error_resp(msg="未提供token"), 401
+        
+        # 验证token并获取用户信息
+        payload = JwtUtils.verify_token(token)
+        if not payload:
+            return respModel().error_resp(msg="token无效或已过期"), 401
+        
+        username = payload.get("username")
+        
+        # 导入权限中间件
+        from core.PermissionMiddleware import PermissionMiddleware
+        
+        # 获取用户权限
+        permissions = PermissionMiddleware.get_user_permissions(username)
+        
+        # 将 set 转换为 list，以便 JSON 序列化
+        result = {
+            "menus": list(permissions.get('menus', set())),
+            "apis": list(permissions.get('apis', set())),
+            "roles": permissions.get('roles', []),
+            "is_superuser": permissions.get('is_superuser', False)
+        }
+        
+        return respModel().ok_resp(obj=result, msg="获取成功")
+    except Exception as e:
+        print(e)
+        import traceback
+        traceback.print_exc()
+        return respModel().error_resp(msg=f"获取用户权限失败：{e}"), 500

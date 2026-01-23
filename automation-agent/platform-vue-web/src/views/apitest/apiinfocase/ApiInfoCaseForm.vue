@@ -434,7 +434,12 @@ function getKeyWordList() {
     keyWordList.value.push(...res.data.data);
     // 把关键字中的 参数描述由json内容转换为 js 对象
     keyWordList.value.forEach((keyword, index) => {
-      keyWordList.value[index]["keyword_desc"] = JSON.parse(keyWordList.value[index]["keyword_desc"])
+      try {
+        keyWordList.value[index]["keyword_desc"] = JSON.parse(keyWordList.value[index]["keyword_desc"])
+      } catch (e) {
+        console.warn("关键字描述解析失败:", keyWordList.value[index]["keyword_desc"], e);
+        keyWordList.value[index]["keyword_desc"] = []
+      }
     });
 
     console.log("关键字数据加载完毕")
@@ -449,8 +454,13 @@ function getKeyWordList() {
     // 遍历每一个 分类下的 children
       var children = keyWordAllList.value[index]["children"]
       children.forEach((keyword, i) => {
-        var data = JSON.parse(children[i]["keyword_desc"])
-        children[i]["keyword_desc"] = data
+        try {
+          var data = JSON.parse(children[i]["keyword_desc"])
+          children[i]["keyword_desc"] = data
+        } catch (e) {
+          console.warn("关键字描述解析失败:", children[i]["keyword_desc"], e);
+          children[i]["keyword_desc"] = []
+        }
       });
     });
     console.log("关键字类型+关键字-上下级树形数据加载完毕")

@@ -103,7 +103,14 @@ const commandRecommendations = {
   '部署': '/deploy',
   'Docker': '/deploy docker',
   '代码审查': '/review',
-  'Code Review': '/review'
+  'Code Review': '/review',
+  // SOP 相关触发
+  '完整流程': '/sop',
+  '全闭环': '/sop',
+  '端到端': '/sop',
+  '需求到部署': '/sop',
+  '一站式': '/sop',
+  '从零开发': '/sop'
 };
 
 // 评估技能相关性
@@ -213,7 +220,22 @@ async function main() {
     // 技能激活
     if (matchedSkills.length > 0) {
       const skillNames = matchedSkills.map(s => s.name).join(', ');
-      const skillFiles = matchedSkills.map(s => `- .claude/skills/${s.name}/SKILL.md`).join('\n');
+
+      // 技能路径映射（插件中的技能）
+      const pluginSkillsMap = {
+        'ui-pc': '.claude/plugins/fullstack/ui-pc-skill.md',
+        'bug-detective': '.claude/plugins/debugger/bug-detective-skill.md',
+        'performance': '.claude/plugins/debugger/performance-skill.md',
+        'security-guard': '.claude/plugins/security/security-guard-skill.md',
+        'code-review': '.claude/plugins/code-quality/code-review-skill.md',
+        'crud-development': '.claude/plugins/fullstack/crud-development-skill.md'
+      };
+
+      const skillFiles = matchedSkills.map(s => {
+        const path = pluginSkillsMap[s.name] || `.claude/skills/${s.name}/SKILL.md`;
+        return `- ${path}`;
+      }).join('\n');
+
       outputs.push(`[技能激活] 检测到 ${matchedSkills.length} 个相关技能：${skillNames}\n请读取以下技能文件获取规范：\n${skillFiles}`);
     }
     

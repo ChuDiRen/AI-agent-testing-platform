@@ -10,14 +10,14 @@ from datetime import datetime
 @as_declarative()
 class Base:
     """SQLAlchemy 模型基类"""
-    id: int
     __name__: str
-    
+    __allow_unmapped__ = True  # 允许使用旧式注解（不使用Mapped[]）
+
     @declared_attr
     def __tablename__(cls) -> str:
         """自动生成表名"""
         return cls.__name__.lower()
-    
+
     # 公共字段
     id = Column(Integer, primary_key=True, autoincrement=True, index=True, comment='主键ID')
     create_time = Column(DateTime, default=datetime.now, comment='创建时间')

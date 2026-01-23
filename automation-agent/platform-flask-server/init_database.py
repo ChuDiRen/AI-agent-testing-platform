@@ -127,6 +127,10 @@ def _init_default_user(database):
     admin_user.username = "admin"
     admin_user.password = admin_user.set_password("admin123456")
     admin_user.create_time = datetime.now()
+    admin_user.is_active = True
+    admin_user.is_superuser = True
+    admin_user.alias = "系统管理员"
+    admin_user.email = "admin@example.com"
 
     database.session.add(admin_user)
     database.session.commit()
@@ -181,18 +185,25 @@ def _init_rbac_data(database):
 
     # 3. 创建菜单
     menus = [
-        {"name": "首页", "menu_type": "catalog", "path": "/home", "icon": "home", "order": 1, "parent_id": 0, "component": "Layout"},
-        {"name": "系统管理", "menu_type": "catalog", "path": "/system", "icon": "setting", "order": 2, "parent_id": 0, "component": "Layout"},
-        {"name": "用户管理", "menu_type": "menu", "path": "/system/user", "icon": "user", "order": 1, "parent_id": 0, "component": "/system/user/index"},
-        {"name": "角色管理", "menu_type": "menu", "path": "/system/role", "icon": "peoples", "order": 2, "parent_id": 0, "component": "/system/role/index"},
-        {"name": "菜单管理", "menu_type": "menu", "path": "/system/menu", "icon": "tree-table", "order": 3, "parent_id": 0, "component": "/system/menu/index"},
-        {"name": "部门管理", "menu_type": "menu", "path": "/system/dept", "icon": "tree", "order": 4, "parent_id": 0, "component": "/system/dept/index"},
-        {"name": "API管理", "menu_type": "menu", "path": "/system/api", "icon": "api", "order": 5, "parent_id": 0, "component": "/system/api/index"},
-        {"name": "接口测试", "menu_type": "catalog", "path": "/apitest", "icon": "test", "order": 3, "parent_id": 0, "component": "Layout"},
-        {"name": "项目管理", "menu_type": "menu", "path": "/apitest/project", "icon": "project", "order": 1, "parent_id": 0, "component": "/apitest/project/index"},
-        {"name": "测试集合", "menu_type": "menu", "path": "/apitest/collection", "icon": "collection", "order": 2, "parent_id": 0, "component": "/apitest/collection/index"},
-        {"name": "测试用例", "menu_type": "menu", "path": "/apitest/case", "icon": "case", "order": 3, "parent_id": 0, "component": "/apitest/case/index"},
-        {"name": "执行历史", "menu_type": "menu", "path": "/apitest/history", "icon": "history", "order": 4, "parent_id": 0, "component": "/apitest/history/index"},
+        {"name": "数据统计", "menu_type": "menu", "path": "/Statistics", "icon": "DataAnalysis", "order": 1, "parent_id": 0, "component": "", "is_hidden": False},
+        {"name": "系统管理", "menu_type": "catalog", "path": "/system", "icon": "Tools", "order": 2, "parent_id": 0, "component": "", "is_hidden": False},
+        {"name": "用户管理", "menu_type": "menu", "path": "/userList", "icon": "User", "order": 1, "parent_id": 2, "component": "", "is_hidden": False},
+        {"name": "角色管理", "menu_type": "menu", "path": "/roleList", "icon": "UserFilled", "order": 2, "parent_id": 2, "component": "", "is_hidden": False},
+        {"name": "菜单管理", "menu_type": "menu", "path": "/menuList", "icon": "Menu", "order": 3, "parent_id": 2, "component": "", "is_hidden": False},
+        {"name": "部门管理", "menu_type": "menu", "path": "/deptList", "icon": "OfficeBuilding", "order": 4, "parent_id": 2, "component": "", "is_hidden": False},
+        {"name": "API管理", "menu_type": "menu", "path": "/apiList", "icon": "Connection", "order": 5, "parent_id": 2, "component": "", "is_hidden": False},
+        {"name": "审计日志", "menu_type": "menu", "path": "/auditLogList", "icon": "DocumentChecked", "order": 6, "parent_id": 2, "component": "", "is_hidden": False},
+        {"name": "API自动化", "menu_type": "catalog", "path": "/api", "icon": "Promotion", "order": 3, "parent_id": 0, "component": "", "is_hidden": False},
+        {"name": "项目管理", "menu_type": "menu", "path": "/ApiProjectList", "icon": "Tickets", "order": 1, "parent_id": 3, "component": "", "is_hidden": False},
+        {"name": "关键字方法管理", "menu_type": "menu", "path": "/ApiKeyWordList", "icon": "Key", "order": 2, "parent_id": 3, "component": "", "is_hidden": False},
+        {"name": "素材维护管理", "menu_type": "menu", "path": "/ApiMateManageList", "icon": "Document", "order": 3, "parent_id": 3, "component": "", "is_hidden": False},
+        {"name": "接口信息维护", "menu_type": "menu", "path": "/ApiInfoList", "icon": "Link", "order": 4, "parent_id": 3, "component": "", "is_hidden": False},
+        {"name": "API用例信息管理", "menu_type": "menu", "path": "/ApiInfoCaseList", "icon": "Reading", "order": 5, "parent_id": 3, "component": "", "is_hidden": False},
+        {"name": "API测试计划管理", "menu_type": "menu", "path": "/ApiCollectionInfoList", "icon": "Collection", "order": 6, "parent_id": 3, "component": "", "is_hidden": False},
+        {"name": "消息通知管理", "menu_type": "catalog", "path": "/msg", "icon": "Comment", "order": 4, "parent_id": 0, "component": "", "is_hidden": False},
+        {"name": "微信配置", "menu_type": "menu", "path": "/WeChartMsgManageList", "icon": "ChatSquare", "order": 1, "parent_id": 4, "component": "", "is_hidden": False},
+        {"name": "钉钉配置", "menu_type": "menu", "path": "/DingDingMsgManageList", "icon": "Coordinate", "order": 2, "parent_id": 4, "component": "", "is_hidden": False},
+        {"name": "飞书配置", "menu_type": "menu", "path": "/FeiShuMsgManageList", "icon": "Position", "order": 3, "parent_id": 4, "component": "", "is_hidden": False},
     ]
 
     for menu_data in menus:
@@ -210,29 +221,35 @@ def _init_rbac_data(database):
 
     # 4. 创建 API
     apis = [
-        {"path": "/api/auth/login", "method": "POST", "summary": "用户登录", "tags": "auth"},
-        {"path": "/api/auth/logout", "method": "POST", "summary": "用户登出", "tags": "auth"},
-        {"path": "/api/auth/info", "method": "GET", "summary": "获取用户信息", "tags": "auth"},
-        {"path": "/api/users", "method": "GET", "summary": "获取用户列表", "tags": "user"},
-        {"path": "/api/users", "method": "POST", "summary": "创建用户", "tags": "user"},
-        {"path": "/api/users/{id}", "method": "PUT", "summary": "更新用户", "tags": "user"},
-        {"path": "/api/users/{id}", "method": "DELETE", "summary": "删除用户", "tags": "user"},
-        {"path": "/api/roles", "method": "GET", "summary": "获取角色列表", "tags": "role"},
-        {"path": "/api/roles", "method": "POST", "summary": "创建角色", "tags": "role"},
-        {"path": "/api/roles/{id}", "method": "PUT", "summary": "更新角色", "tags": "role"},
-        {"path": "/api/roles/{id}", "method": "DELETE", "summary": "删除角色", "tags": "role"},
-        {"path": "/api/menus", "method": "GET", "summary": "获取菜单列表", "tags": "menu"},
-        {"path": "/api/menus", "method": "POST", "summary": "创建菜单", "tags": "menu"},
-        {"path": "/api/menus/{id}", "method": "PUT", "summary": "更新菜单", "tags": "menu"},
-        {"path": "/api/menus/{id}", "method": "DELETE", "summary": "删除菜单", "tags": "menu"},
-        {"path": "/api/depts", "method": "GET", "summary": "获取部门列表", "tags": "dept"},
-        {"path": "/api/depts", "method": "POST", "summary": "创建部门", "tags": "dept"},
-        {"path": "/api/depts/{id}", "method": "PUT", "summary": "更新部门", "tags": "dept"},
-        {"path": "/api/depts/{id}", "method": "DELETE", "summary": "删除部门", "tags": "dept"},
-        {"path": "/api/apis", "method": "GET", "summary": "获取API列表", "tags": "api"},
-        {"path": "/api/apis", "method": "POST", "summary": "创建API", "tags": "api"},
-        {"path": "/api/apis/{id}", "method": "PUT", "summary": "更新API", "tags": "api"},
-        {"path": "/api/apis/{id}", "method": "DELETE", "summary": "删除API", "tags": "api"},
+        {"path": "/login", "method": "POST", "summary": "用户登录", "tags": "auth"},
+        {"path": "/userinfo", "method": "GET", "summary": "获取用户信息", "tags": "auth"},
+        {"path": "/usermenu", "method": "GET", "summary": "获取用户菜单", "tags": "auth"},
+        {"path": "/userapi", "method": "GET", "summary": "获取用户API权限", "tags": "auth"},
+        {"path": "/permission/user", "method": "GET", "summary": "获取用户权限", "tags": "auth"},
+        {"path": "/user/queryByPage", "method": "POST", "summary": "获取用户列表", "tags": "user"},
+        {"path": "/user/insert", "method": "POST", "summary": "创建用户", "tags": "user"},
+        {"path": "/user/update", "method": "PUT", "summary": "更新用户", "tags": "user"},
+        {"path": "/user/delete", "method": "DELETE", "summary": "删除用户", "tags": "user"},
+        {"path": "/role/queryByPage", "method": "POST", "summary": "获取角色列表", "tags": "role"},
+        {"path": "/role/insert", "method": "POST", "summary": "创建角色", "tags": "role"},
+        {"path": "/role/update", "method": "PUT", "summary": "更新角色", "tags": "role"},
+        {"path": "/role/delete", "method": "DELETE", "summary": "删除角色", "tags": "role"},
+        {"path": "/role/queryMenus", "method": "GET", "summary": "查询角色菜单", "tags": "role"},
+        {"path": "/role/updateMenus", "method": "PUT", "summary": "更新角色菜单", "tags": "role"},
+        {"path": "/role/queryApis", "method": "GET", "summary": "查询角色API", "tags": "role"},
+        {"path": "/role/updateApis", "method": "PUT", "summary": "更新角色API", "tags": "role"},
+        {"path": "/menu/queryByPage", "method": "POST", "summary": "获取菜单列表", "tags": "menu"},
+        {"path": "/menu/insert", "method": "POST", "summary": "创建菜单", "tags": "menu"},
+        {"path": "/menu/update", "method": "PUT", "summary": "更新菜单", "tags": "menu"},
+        {"path": "/menu/delete", "method": "DELETE", "summary": "删除菜单", "tags": "menu"},
+        {"path": "/dept/queryByPage", "method": "POST", "summary": "获取部门列表", "tags": "dept"},
+        {"path": "/dept/insert", "method": "POST", "summary": "创建部门", "tags": "dept"},
+        {"path": "/dept/update", "method": "PUT", "summary": "更新部门", "tags": "dept"},
+        {"path": "/dept/delete", "method": "DELETE", "summary": "删除部门", "tags": "dept"},
+        {"path": "/api/queryByPage", "method": "POST", "summary": "获取API列表", "tags": "api"},
+        {"path": "/api/insert", "method": "POST", "summary": "创建API", "tags": "api"},
+        {"path": "/api/update", "method": "PUT", "summary": "更新API", "tags": "api"},
+        {"path": "/api/delete", "method": "DELETE", "summary": "删除API", "tags": "api"},
     ]
 
     for api_data in apis:
@@ -244,10 +261,51 @@ def _init_rbac_data(database):
         database.session.add(api)
 
     database.session.commit()
+    
+    # 5. 为超级管理员分配所有权限
+    print("✓ 正在为超级管理员分配权限...")
+    
+    # 获取超级管理员用户和角色
+    admin_user = database.session.query(User).filter_by(username='admin').first()
+    super_admin_role = database.session.query(Role).filter_by(name='超级管理员').first()
+    
+    if admin_user and super_admin_role:
+        # 建立用户-角色关联
+        from sysmanage.model.UserRoleModel import UserRole
+        existing_user_role = database.session.query(UserRole).filter_by(
+            user_id=admin_user.id, role_id=super_admin_role.id).first()
+        if not existing_user_role:
+            user_role = UserRole(user_id=admin_user.id, role_id=super_admin_role.id)
+            database.session.add(user_role)
+        
+        # 为超级管理员角色分配所有菜单
+        from sysmanage.model.RoleMenuModel import RoleMenu
+        all_menus = database.session.query(Menu).all()
+        for menu in all_menus:
+            existing_role_menu = database.session.query(RoleMenu).filter_by(
+                role_id=super_admin_role.id, menu_id=menu.id).first()
+            if not existing_role_menu:
+                role_menu = RoleMenu(role_id=super_admin_role.id, menu_id=menu.id)
+                database.session.add(role_menu)
+        
+        # 为超级管理员角色分配所有API
+        from sysmanage.model.RoleApiModel import RoleApi
+        all_apis = database.session.query(Api).all()
+        for api in all_apis:
+            existing_role_api = database.session.query(RoleApi).filter_by(
+                role_id=super_admin_role.id, api_id=api.id).first()
+            if not existing_role_api:
+                role_api = RoleApi(role_id=super_admin_role.id, api_id=api.id)
+                database.session.add(role_api)
+        
+        database.session.commit()
+        print("✓ 超级管理员权限分配完成")
+    
     print("✓ RBAC 默认数据创建成功")
     print(f"  - 角色: 超级管理员, 普通用户")
     print(f"  - 菜单: {len(menus)} 条")
     print(f"  - API: {len(apis)} 条")
+    print(f"  - 超级管理员已分配所有权限")
 
 
 def _init_operation_types(database):
@@ -420,4 +478,12 @@ def check_database_connection(app, database):
         except Exception as e:
             print(f"✗ 数据库连接失败: {e}")
             return False
+
+
+if __name__ == "__main__":
+    from app import application, database
+    
+    print("开始执行数据库初始化...")
+    init_database(application, database)
+    print("数据库初始化完成！")
 

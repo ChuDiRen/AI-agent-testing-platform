@@ -1,7 +1,7 @@
 <template>
   <div class="button-container">
     <!--返回按钮 不写一个button 而是一个超链接-->
-    <el-link type="primary" icon="el-icon-arrow-right" @click="goBack" :underline="false"><<返回主页面</el-link>
+    <el-link type="primary" icon="el-icon-arrow-right" @click="goBack" :underline="false">&lt;&lt;返回主页面</el-link>
   </div>
 
   <div class="web-plan-chart">
@@ -88,7 +88,7 @@ const testCaseCount = ref(0)
 const passRate = ref(0)
 
 //  报表1： 加载【测试计划执行次数】
-import { queryPlanCount } from "./ApiPlanChart";
+import { queryPlanCount } from "./apiPlanChart";
 let coll_id = router.currentRoute.value.query.id;
 function queryPlanCounts() {
   queryPlanCount(coll_id).then(response => {
@@ -98,7 +98,7 @@ function queryPlanCounts() {
 }
 
 //定义最近一次执行用例总数
-import { queryCaseCount } from "./ApiPlanChart";
+import { queryCaseCount } from "./apiPlanChart";
 function queryCaseCounts() {
   queryCaseCount(coll_id).then(response => {
     testCaseCount.value = response.data.data;
@@ -106,7 +106,7 @@ function queryCaseCounts() {
 }
 
 //定义通过率数据
-import { queryPassRate } from "./ApiPlanChart";
+import { queryPassRate } from "./apiPlanChart";
 function queryPassRates() {
   queryPassRate(coll_id).then(response => {
     passRate.value = response.data.data;
@@ -116,7 +116,7 @@ function queryPassRates() {
 
 // --------------------扩展： 添加图标--------------------
 import { onMounted } from "vue";
-import { queryPlanTrend } from "./ApiPlanChart";  // 引入查询计划趋势接口
+import { queryPlanTrend } from "./apiPlanChart";  // 引入查询计划趋势接口
 import * as echarts from 'echarts';
 // 柱状图
 const barChart = ref([]); // 引用的数据
@@ -234,7 +234,7 @@ function queryPlanTrends() {
 
 // 加载折线图
 //生成线图，x轴为时间 Y轴为执行时间
-import { queryPlanTime } from "./ApiPlanChart";  // 引入查询计划趋势接口
+import { queryPlanTime } from "./apiPlanChart";  // 引入查询计划趋势接口
 function queryPlanTimes() {
   queryPlanTime(coll_id).then(response => {
     const data = response.data.data;
@@ -293,7 +293,7 @@ function loadData(){
 
 
 // --------------------扩展： 添加显示失败的前五个用例--------------------
-import { queryFailTop5 } from "./ApiPlanChart";
+import { queryFailTop5 } from "./apiPlanChart";
 const failedCases = ref([]);
 // 完成失败率5个
 function queryFailTop5s() {

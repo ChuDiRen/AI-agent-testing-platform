@@ -1,22 +1,22 @@
 ---
 name: brand-guidelines
-description: Applies Anthropic's official brand colors and typography to any sort of artifact that may benefit from having Anthropic's look-and-feel. Use it when brand colors or style guidelines, visual formatting, or company design standards apply.
-license: Complete terms in LICENSE.txt
+description: 应用Anthropic官方品牌颜色和排版到任何可能受益于Anthropic外观和感觉的工件。当品牌颜色或风格指南、视觉格式化或公司设计标准适用时使用它。
+license: 完整条款见LICENSE.txt
 ---
 
-# Anthropic Brand Styling
+# Anthropic品牌样式
 
-## Overview
+## 概述
 
-To access Anthropic's official brand identity and style resources, use this skill.
+访问Anthropic官方品牌标识和样式资源，使用此技能。
 
-**Keywords**: branding, corporate identity, visual identity, post-processing, styling, brand colors, typography, Anthropic brand, visual formatting, visual design
+**关键词**: 品牌建设、企业标识、视觉标识、后期处理、样式、品牌颜色、排版、Anthropic品牌、视觉格式化、视觉设计
 
-## Brand Guidelines
+## 品牌指南
 
-### Colors
+### 颜色
 
-**Main Colors:**
+**主要颜色:**
 
 - Dark: `#141413` - Primary text and dark backgrounds
 - Light: `#faf9f5` - Light backgrounds and text on dark

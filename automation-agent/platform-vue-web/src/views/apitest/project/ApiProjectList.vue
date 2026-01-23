@@ -1,16 +1,17 @@
 <template>
-  <!-- 面包屑导航 -->
-  <Breadcrumb />
-  <!-- 搜索表单 -->
-  <el-form ref="searchFormRef"  :inline="true" :model="searchForm" class="demo-form-inline">
-    <el-row class="mb-4" type="flex" justify="end">
-      <el-button type="warning" @click="onDataForm(-1)">新增项目</el-button>
-    </el-row>
-  </el-form>
-  <!-- END搜索表单 -->
+  <div>
+    <!-- 面包屑导航 -->
+    <Breadcrumb />
+    <!-- 搜索表单 -->
+    <el-form ref="searchFormRef"  :inline="true" :model="searchForm" class="demo-form-inline">
+      <el-row class="mb-4" type="flex" justify="end">
+        <el-button type="warning" @click="onDataForm(-1)">新增项目</el-button>
+      </el-row>
+    </el-form>
+    <!-- END搜索表单 -->
 
-  <!-- 数据表格 -->
-  <el-table :data="tableData" style="width: 100%" max-height="500">
+    <!-- 数据表格 -->
+    <el-table :data="tableData" style="width: 100%" max-height="500">
     <!-- 数据列 -->
     <el-table-column v-for="col in columnList" :prop="col.prop" :label="col.label" :key="col.prop" :show-overflow-tooltip="true" />
     <!-- END数据列 -->
@@ -87,17 +88,20 @@
          </div> 
     </el-form-item>
   </el-dialog>
-
+  </div>
 </template>
   
-<script lang="ts" setup>
+<script setup>
 // 1. 其他功能拓展
 import { ref, reactive, compile } from "vue";
 import { queryByPage, deleteData } from "./ApiProject.js"; // 不同页面不同的接口
 import { useRouter } from "vue-router";
+import { Message } from '@/utils/message'
+import { useDeleteConfirm } from '@/composables/useDeleteConfirm'
 import Breadcrumb from "../../Breadcrumb.vue";
 
-const router = useRouter(); 
+const router = useRouter();
+const { confirmDelete } = useDeleteConfirm(); 
 
 // 2. 分页参数
 const currentPage = ref(1);
@@ -126,7 +130,7 @@ const loadData = () => {
   searchData["pageSize"] = pageSize.value;
 
   queryByPage(searchData).then(
-    (res: { data: { data: never[]; total: number; msg: string } }) => {
+    (res) => {
       tableData.value = res.data.data;
       total.value = res.data.total;
     }
@@ -135,21 +139,21 @@ const loadData = () => {
 loadData();
 
 // 7. 变更页大小
-const handleSizeChange = (val: number) => {
+const handleSizeChange = (val) => {
   console.log("页大小变化:" + val);
   pageSize.value = val;
   loadData();
 };
 
 // 8. 变更页码
-const handleCurrentChange = (val: number) => {
+const handleCurrentChange = (val) => {
   console.log("页码变化:" + val);
   currentPage.value = val;
   loadData();
 };
 
 // 9. 打开表单 （编辑/新增）
-const onDataForm = (index: number) => {
+const onDataForm = (index) => {
   let params_data = {};
   if (index >= 0) {
     params_data = {
@@ -163,10 +167,16 @@ const onDataForm = (index: number) => {
 };
 
 // 10. 删除项目
-const onDelete = (index: number) => {
-    deleteData(tableData.value[index]["id"]).then((res: {}) => {
-    loadData();
-  });
+const onDelete = async (index) => {
+  const projectId = tableData.value[index]["id"];
+  const projectName = tableData.value[index]["project_name"];
+  
+  await confirmDelete(
+    () => deleteData(projectId),
+    `确定要删除项目 "${projectName}" 吗？此操作不可恢复！`,
+    '项目删除成功',
+    loadData
+  );
 };
 
 
@@ -179,14 +189,14 @@ import { insertData } from "./DbBaseManage.js"; // 不同页面不同的接口
 import { deleteData as deleteDbData } from "./DbBaseManage.js"; // 不同页面不同的接口
 
 
-const DbBaseManageList = ref([] as any[]); // 数据库数据列表数据
+const DbBaseManageList = ref([]); // 数据库数据列表数据
 const currentApiHistoryPage = ref(1) // 页码
 const DbBaseManageDialogFormVisible = ref(false) // 是否展示弹窗
 const currentProjectId = ref(0) // 当前展示的执行记录关联的 ProjectId
 
 
 // 11-1 显示当前弹窗信息
-const showDbBaseManage = (index: number) => {
+const showDbBaseManage = (index) => {
     DbBaseManageDialogFormVisible.value = true
     currentProjectId.value = tableData.value[index]["id"]
     console.log("当前添加数据库的ID",currentProjectId.value)
@@ -194,12 +204,12 @@ const showDbBaseManage = (index: number) => {
 }
 
 // 11-2 加载当中项目的数据
-const loadDbBaseManage = (index: number) => {
+const loadDbBaseManage = (index) => {
     let searchData = {}
     searchData["project_id"] = index
     searchData["page"] = currentApiHistoryPage.value
     searchData["pageSize"] = 100
-    queryByPageList(searchData).then((res: { data: { data: never[]; total: number; msg: string } }) => {
+    queryByPageList(searchData).then((res) => {
         DbBaseManageList.value = res.data.data
     })
 }
@@ -241,11 +251,11 @@ const optionsDbType = [
 
 
 // 11-6  添加-数据库数据
-const onAddDbinfo = (index: number) => {
+const onAddDbinfo = (index) => {
      // 添加数据的时候，设置项目对应的值
       ruleForm.project_id = currentProjectId.value
 
-      insertData(ruleForm).then((res: { data: { code: number; msg: string; }; }) => {
+      insertData(ruleForm).then((res) => {
           if (res.data.code == 200) {
             loadDbBaseManage(currentProjectId.value);
 
@@ -272,7 +282,7 @@ const UpDataruleForm =reactive({
 }); 
 
 // 修改的方法
-const upDataDbinfo = (index: number) => {
+const upDataDbinfo = (index) => {
      // 添加数据的时候，设置项目对应的值
       // ruleForm.project_id = currentProjectId.value
 
@@ -284,7 +294,7 @@ const upDataDbinfo = (index: number) => {
       UpDataruleForm.db_type = DbBaseManageList.value[index].db_type
       UpDataruleForm.is_enabled = DbBaseManageList.value[index].is_enabled === '1' ? '0' : '1';
         
-        updateData(UpDataruleForm).then((res: { data: { code: number; msg: string; }; }) => {
+        updateData(UpDataruleForm).then((res) => {
           if (res.data.code == 200) {
             loadDbBaseManage(currentProjectId.value)
           }
@@ -292,10 +302,16 @@ const upDataDbinfo = (index: number) => {
 };
 
 // 11-8 删除数据库
-const onDeleteDb = (index: number) => {
-    deleteDbData(DbBaseManageList.value[index]["id"]).then((res: {}) => {
-    loadDbBaseManage(currentProjectId.value)
-  });
+const onDeleteDb = async (index) => {
+  const dbId = DbBaseManageList.value[index]["id"];
+  const dbName = DbBaseManageList.value[index]["name"];
+  
+  await confirmDelete(
+    () => deleteDbData(dbId),
+    `确定要删除数据库配置 "${dbName}" 吗？`,
+    '数据库配置删除成功',
+    () => loadDbBaseManage(currentProjectId.value)
+  );
 };
 
 // ---------------------  END扩展：数据库展示弹窗-------------------------------

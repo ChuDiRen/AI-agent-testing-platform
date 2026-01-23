@@ -1,2 +1,5 @@
 .idea/
 .idea/AugmentWebviewStateStore.xml
+__pycache__/
+*.pyc
+nul

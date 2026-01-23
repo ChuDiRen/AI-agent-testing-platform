@@ -1,27 +1,27 @@
 ---
 name: web-artifacts-builder
-description: Suite of tools for creating elaborate, multi-component claude.ai HTML artifacts using modern frontend web technologies (React, Tailwind CSS, shadcn/ui). Use for complex artifacts requiring state management, routing, or shadcn/ui components - not for simple single-file HTML/JSX artifacts.
-license: Complete terms in LICENSE.txt
+description: 使用现代前端Web技术（React、Tailwind CSS、shadcn/ui）创建复杂、多组件claude.ai HTML工件的工具套件。用于需要状态管理、路由或shadcn/ui组件的复杂工件 - 不适用于简单的单文件HTML/JSX工件。
+license: 完整条款见LICENSE.txt
 ---
 
-# Web Artifacts Builder
+# Web工件构建器
 
-To build powerful frontend claude.ai artifacts, follow these steps:
-1. Initialize the frontend repo using `scripts/init-artifact.sh`
-2. Develop your artifact by editing the generated code
-3. Bundle all code into a single HTML file using `scripts/bundle-artifact.sh`
-4. Display artifact to user
-5. (Optional) Test the artifact
+要构建强大的前端claude.ai工件，请按照以下步骤操作：
+1. 使用 `scripts/init-artifact.sh` 初始化前端仓库
+2. 通过编辑生成的代码来开发你的工件
+3. 使用 `scripts/bundle-artifact.sh` 将所有代码捆绑到单个HTML文件中
+4. 向用户显示工件
+5. （可选）测试工件
 
-**Stack**: React 18 + TypeScript + Vite + Parcel (bundling) + Tailwind CSS + shadcn/ui
+**技术栈**: React 18 + TypeScript + Vite + Parcel（捆绑）+ Tailwind CSS + shadcn/ui
 
-## Design & Style Guidelines
+## 设计和样式指南
 
-VERY IMPORTANT: To avoid what is often referred to as "AI slop", avoid using excessive centered layouts, purple gradients, uniform rounded corners, and Inter font.
+非常重要：为了避免通常被称为"AI垃圾"的内容，避免使用过度的居中布局、紫色渐变、统一的圆角和Inter字体。
 
-## Quick Start
+## 快速开始
 
-### Step 1: Initialize Project
+### Step 1: 初始化项目
 
 Run the initialization script to create a new React project:
 ```bash

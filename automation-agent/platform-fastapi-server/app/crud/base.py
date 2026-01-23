@@ -27,7 +27,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             select(self.model).filter(self.model.id == id)
         )
         return result.scalars().first()
-    
+
     async def get_multi(
         self,
         db: AsyncSession,
@@ -39,7 +39,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             select(self.model).offset(skip).limit(limit)
         )
         return result.scalars().all()
-    
+
     async def create(
         self,
         db: AsyncSession,
@@ -51,7 +51,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         await db.commit()
         await db.refresh(db_obj)
         return db_obj
-    
+
     async def update(
         self,
         db: AsyncSession,
@@ -62,7 +62,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         update_data = obj_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_obj, field, value)
-        db.add(db_obj)
+        await db.flush(db_obj)
         await db.commit()
         await db.refresh(db_obj)
         return db_obj

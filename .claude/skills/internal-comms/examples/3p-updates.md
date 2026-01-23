@@ -44,4 +44,4 @@ Progress: [1-3 sentences of content]
 Plans: [1-3 sentences of content]
 Problems: [1-3 sentences of content]
 
-Each section should be no more than 1-3 sentences: clear, to the point. It should be data-driven, and generally include metrics where possible. The tone should be very matter-of-fact, not super prose-heavy.
+每个部分不应超过1-3句话：清晰、切中要点。应该是数据驱动的，并且尽可能包含指标。语气应该非常实事求是，不要过于华丽。

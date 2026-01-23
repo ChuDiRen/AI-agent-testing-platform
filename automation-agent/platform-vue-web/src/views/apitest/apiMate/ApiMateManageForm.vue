@@ -1,7 +1,8 @@
 <template>
-  <!-- 面包屑导航 -->
-  <Breadcrumb />
-  <el-form ref="ruleFormRef" :model="apiMate.project_id" :rules="rules" label-width="120px" class="demo-ruleForm" status-icon>   
+  <div>
+    <!-- 面包屑导航 -->
+    <Breadcrumb />
+    <el-form ref="ruleFormRef" :model="apiMate" :rules="rules" label-width="120px" class="demo-ruleForm" status-icon>   
       <el-form-item label="所属项目ID">
         <el-select v-model="apiMate.project_id" placeholder="选择所属项目" @change="projectChange" filterable clearable>
           <el-option v-for="project in projectList" :key="project.id" :label="project.project_name" :value="project.id" />
@@ -23,9 +24,10 @@
          <el-button @click="onCancel">关闭</el-button>
       </el-form-item>
   </el-form>
+  </div>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus"; // 弹窗
@@ -49,7 +51,7 @@ const apiMate = reactive({
 });
 
 // 表单验证规则 - 不同的页面，不同的校验规则
-const rules = reactive<any>({
+const rules = reactive({
   project_id: [
     { required: true, message: '必填项', trigger: 'blur' }
   ],
@@ -74,11 +76,10 @@ function getProjectList() {
 }
 getProjectList();
 
-console.log("======================")
-console.log(projectList.value)
-console.log("======================")
-
-
+// 项目选择变化处理
+const projectChange = (value) => {
+  console.log('项目选择变化:', value);
+};
 
 // 提交表单
 const onSubmit = () => {
@@ -105,7 +106,7 @@ const onSubmit = () => {
 
 
     // 2.调用insertData方法提交表单数据，并且设置请求头
-    insertData(formData).then((res: { data: { code: number; msg: string; data: any } }) => {
+    insertData(formData).then((res) => {
       if (res.data.code === 200) {
         ElMessage.success('素材上传成功');
         router.push("/ApiMateManageList"); // 跳转回列表页面 - 不同的页面，不同的路径
@@ -129,7 +130,7 @@ const onCancel = () => {
 };
 
 // 加载表单数据
-const loadData = async (id: number) => {
+const loadData = async (id) => {
   const res = await queryById(id);
   // 不同的页面，不同的表单字段 (注意这里的res.data.data.xxx，xxx是接口返回的字段，不同的接口，字段不同)
   apiMate.id = res.data.data.id;
@@ -153,7 +154,7 @@ const onSelectMaterial = () => {
   const input = document.createElement('input');
   input.type = 'file';
   input.onchange = (event) => {
-    const file = (event.target as HTMLInputElement).files?.[0];
+    const file = event.target.files?.[0];
     if (file) {
       // 缓存选择的素材文件
       apiMate.material_file = file;

@@ -1,0 +1,30 @@
+# FastAPI框架
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# AutoGen框架
+autogen-agentchat>=0.2.0
+autogen-ext[openai]>=0.2.0
+
+# 数据库访问
+pandas>=2.0.0
+sqlalchemy>=2.0.0
+pymysql>=1.1.0
+psycopg2-binary>=2.9.0
+
+# 工具库
+python-multipart>=0.0.6
+python-dotenv>=1.0.0
+httpx>=0.24.0
+requests>=2.31.0
+
+# 日志和监控
+loguru>=0.7.0
+
+# WebSocket
+websockets>=12.0
+
+# 其他
+aiofiles>=23.0.0

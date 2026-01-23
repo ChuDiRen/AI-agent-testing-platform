@@ -1,23 +1,20 @@
 ---
 name: skill-creator
-description: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
-license: Complete terms in LICENSE.txt
+description: 创建有效技能的指南。当用户想要创建新技能（或更新现有技能）以通过专业知识、工作流程或工具集成扩展Claude能力时，应使用此技能。
+license: 完整条款见LICENSE.txt
 ---
 
-# Skill Creator
+# 技能创建器
 
-This skill provides guidance for creating effective skills.
+此技能为创建有效技能提供指导。
 
-## About Skills
+## 关于技能
 
-Skills are modular, self-contained packages that extend Claude's capabilities by providing
-specialized knowledge, workflows, and tools. Think of them as "onboarding guides" for specific
-domains or tasks—they transform Claude from a general-purpose agent into a specialized agent
-equipped with procedural knowledge that no model can fully possess.
+技能是模块化、自包含的包，通过提供专业知识、工作流程和工具来扩展Claude的能力。将它们视为特定领域或任务的"入职指南"——它们将Claude从通用代理转变为具备程序知识的专业代理，这些知识是任何模型都无法完全拥有的。
 
-### What Skills Provide
+### 技能提供的内容
 
-1. Specialized workflows - Multi-step procedures for specific domains
+1. 专业工作流程 - 特定领域的多步骤程序
 2. Tool integrations - Instructions for working with specific file formats or APIs
 3. Domain expertise - Company-specific knowledge, schemas, business logic
 4. Bundled resources - Scripts, references, and assets for complex and repetitive tasks

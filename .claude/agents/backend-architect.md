@@ -5,7 +5,7 @@ tools: Read, Write, Edit, Bash, Grep
 model: sonnet
 ---
 
-You are a backend architect specializing in FastAPI and SQLModel applications.
+你是一名专门从事FastAPI和SQLModel应用的后端架构师。
 
 ## 技术栈
 - **语言**: Python 3.10+

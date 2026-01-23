@@ -1,7 +1,8 @@
 <template>
-  <!-- 面包屑导航 -->
-  <Breadcrumb />
-  <el-form ref="ruleFormRef"  :inline="true"  :model="apiInfo" :rules="rules"  class="demo-form-inline">
+  <div>
+    <!-- 面包屑导航 -->
+    <Breadcrumb />
+    <el-form ref="ruleFormRef"  :inline="true"  :model="apiInfo" :rules="rules"  class="demo-form-inline">
     <!-- 模块 - 基础信息部分 - 按钮部分 -->
     <div class="form-wrapper">
       <div class="form-info">| 基础信息</div>
@@ -329,18 +330,19 @@
     </el-form-item>
     <!-- END 模块 - 接口信息部分 - 请求参数部分 -->
   </el-form>
+</div>
 </template>
   
-<script lang="ts" setup>
+<script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { queryById, insertData, updateData } from "./ApiInfo.js"; // 不同页面不同的接口
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import { useRouter } from "vue-router";
 import Breadcrumb from "../../Breadcrumb.vue";
 
 const router = useRouter();
 // 表单实例
-const ruleFormRef = ref<FormInstance>();
+const ruleFormRef = ref();
 const tabActiveName = ref("URL参数");
 
 const apiInfo = reactive({
@@ -349,13 +351,13 @@ const apiInfo = reactive({
   api_name: "",
   request_method: "",
   request_url: "",
-  request_params: [] as any[],
-  request_headers: [] as any[],
-  debug_vars: [] as any[],
-  request_form_datas: [] as any[], // 请求中的 form-data
-  request_www_form_datas: [] as any[], // 请求中的 x-www-form-data
-  requests_json_data: "", // 请求中的 json 数据
-  request_files: [] as any[], // 请求中的 x-www-form-data
+  request_params: [],
+  request_headers: [],
+  debug_vars: [],
+  request_form_datas: [],
+  request_www_form_datas: [],
+  requests_json_data: "",
+  request_files: [],
 });
 // 1. 加载项目
 import { queryAllProject } from "../project/ApiProject.js"; // 不同页面不同的接口
@@ -372,7 +374,7 @@ function getProjectList() {
 getProjectList();
 
 // 3. 如果有id参数，说明是编辑，需要获取数据
-const loadData = async (id: number) => {
+const loadData = async (id) => {
   const res = await queryById(id)
   // 不同的页面，不同的表单字段 (注意这里的res.data.data.xxx，xxx是接口返回的字段，不同的接口，字段不同)
   // 注意:此处将 后台的json字符串转变为对象
@@ -398,7 +400,7 @@ if (apiInfo.id > 0) {
 
 // 4. 表单操作
 // 表单验证规则 - 不同的页面，不同的校验规则
-const rules = reactive<any>({
+const rules = reactive({
   api_name: [
     { required: true, message: '必填项', trigger: 'blur' }
   ],
@@ -431,14 +433,14 @@ const onSubmit = () => {
     }
 
   if (apiInfo.id > 0) {
-    updateData(data).then((res: { data: { code: number; msg: string; }; }) => {
+    updateData(data).then((res) => {
         if (res.data.code == 200) {
         loadData(apiInfo.id)
           // router.push('/ApiInfoList') // 跳转回列表页面 - 不同的页面，不同的路径
         }
       })
   } else {
-    insertData(data).then((res: { data: { code: number; msg: string } }) => {
+    insertData(data).then((res) => {
       if (res.data.code == 200) {
       loadData(res.data.data.id)
         // router.push('/ApiInfoList') // 跳转回列表页面 - 不同的页面，不同的路径
@@ -457,7 +459,7 @@ const requestParams = reactive({
   value: "",
 });
 
-const deleteParams = (index: number) => {
+const deleteParams = (index) => {
   apiInfo.request_params.splice(index, 1);
 };
 
@@ -474,7 +476,7 @@ const onAddParams = () => {
 };
 
 // 修改
-const toggleEdit = (row: any) => {
+const toggleEdit = (row) => {
   if (row.editing) {
     // 调用 onSubmit 函数
     row.editing = false;
@@ -507,7 +509,7 @@ const requestHeaders = reactive({
   value: "",
 });
 
-const deleteHeaders = (index: number) => {
+const deleteHeaders = (index) => {
   apiInfo.request_headers.splice(index, 1);
 };
 
@@ -531,7 +533,7 @@ const debugVars = reactive({
   value: "",
 });
 
-const deleteVars = (index: number) => {
+const deleteVars = (index) => {
   apiInfo.debug_vars.splice(index, 1);
 };
 
@@ -556,7 +558,7 @@ const requestBodyFormDatas = reactive({
   value: "",
 });
 
-const deleteBodyFormDatas = (index: number) => {
+const deleteBodyFormDatas = (index) => {
   apiInfo.request_form_datas.splice(index, 1);
 };
 
@@ -577,7 +579,7 @@ const requestBodyWwwFormDatas = reactive({
   value: "",
 });
 
-const deleteBodyWwwFormDatas = (index: number) => {
+const deleteBodyWwwFormDatas = (index) => {
   apiInfo.request_www_form_datas.splice(index, 1);
 };
 
@@ -598,7 +600,7 @@ const requestFilesFormDatas = reactive({
   value: "",
 });
 
-const deleteBodyFilesFormDatas = (index: number) => {
+const deleteBodyFilesFormDatas = (index) => {
   apiInfo.request_files.splice(index, 1);
 };
 

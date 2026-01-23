@@ -1,0 +1,26 @@
+{
+  "name": "agent-orchestration-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "@vue-flow/core": "^1.36.0",
+    "axios": "^1.11.0",
+    "echarts": "^6.0.0",
+    "element-plus": "^2.10.5",
+    "pinia": "^2.2.8",
+    "pinia-plugin-persistedstate": "^3.2.0",
+    "vue": "^3.5.17",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.0",
+    "vite": "^7.0.4"
+  }
+}

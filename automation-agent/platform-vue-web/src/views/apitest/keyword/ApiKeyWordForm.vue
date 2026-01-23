@@ -1,4 +1,5 @@
 <template>
+  <div>
     <!-- 面包屑导航 -->
     <Breadcrumb />
     <el-form ref="ruleFormRef" :model="ruleForm" :rules="rules" label-width="120px" class="demo-ruleForm" status-icon>
@@ -71,28 +72,28 @@
         <el-button type="primary" @click="submitForm(ruleFormRef)">提交</el-button>
         <el-button type="primary" @click="keywordFile(ruleFormRef)">生成关键字文件</el-button>
         <el-button @click="resetForm(ruleFormRef)">清空</el-button>
-        <el-button @click="closeForm()">关闭</el-button>
+        <el-button type="primary" @click="closeForm(ruleFormRef)">关闭</el-button>
       </el-form-item>
     </el-form>
-  </template>
+  </div>
+</template>
   
-  <script lang="ts" setup>
+  <script setup>
   import { ref, reactive } from "vue";
   import { queryById, insertData, updateData } from './ApiKeyWord.js'; // 不同页面不同的接口
-  import type { FormInstance, FormRules } from 'element-plus';
   import { useRouter } from "vue-router";
   import Breadcrumb from "../../Breadcrumb.vue";
   const router = useRouter();
   
   
   // 表单实例
-  const ruleFormRef = ref<FormInstance>();
+  const ruleFormRef = ref();
   
   // 表单数据
   const ruleForm = reactive({
     id: 0,
     name: "",
-    keyword_desc: [] as any[],
+    keyword_desc: [],
     keyword_fun_name: '',
     keyword_value: '',
     operation_type_id: '',
@@ -115,7 +116,7 @@
   
   
   // 表单验证规则
-  const rules = reactive<any>({
+  const rules = reactive({
     name: [
       { required: true, message: '必填项', trigger: 'blur' }
     ],
@@ -128,7 +129,7 @@
   });
   
   // 提交表单
-  const submitForm = async (form: FormInstance | undefined) => {
+  const submitForm = async (form) => {
     if (!form) return;
     await form.validate((valid, fields) => {
       if (!valid) {
@@ -144,7 +145,7 @@
           keyword_value: ruleForm.keyword_value,
           operation_type_id: ruleForm.operation_type_id,
           is_enabled: ruleForm.is_enabled
-        }).then((res: { data: { code: number; msg: string; }; }) => {
+        }).then((res) => {
           if (res.data.code == 200) {
             router.push('/ApikeywordList'); // 跳转回列表页面
           }
@@ -158,7 +159,7 @@
           keyword_value: ruleForm.keyword_value,
           operation_type_id: ruleForm.operation_type_id,
           is_enabled: ruleForm.is_enabled
-        }).then((res: { data: { code: number; msg: string; }; }) => {
+        }).then((res) => {
           console.log(res)
           if (res.data.code == 200) {
             router.push('/ApikeywordList'); // 跳转回列表页面
@@ -169,18 +170,18 @@
   };
   
   // 重置表单
-  const resetForm = (form: FormInstance | undefined) => {
+  const resetForm = (form) => {
     if (!form) return;
     form.resetFields();
   };
   
   // 关闭表单 - 回到数据列表页
   const closeForm = () => {
-    router.push('/ApikeywordList');
+    router.back();
   };
   
   // 加载表单数据
-  const loadData = async (id: number) => {
+  const loadData = async (id) => {
     const res = await queryById(id);
     ruleForm.id = res.data.data.id;
     ruleForm.name = res.data.data.name;
@@ -232,7 +233,7 @@ name: "",
 placeholder: "",
 });
 
-const deleteVars = (index: number) => {
+const deleteVars = (index) => {
   // splice() 方法可以在任意位置修改数组,并返回被删除的元素 （下标,个数）
 ruleForm.keyword_desc.splice(index, 1);
 };
@@ -253,7 +254,7 @@ vars.placeholder = "";
 // ---------------------- 扩展功能：生成关键字文件方法---------------------------
 import {keywordFile as generateFile } from './ApiKeyWord.js'; // 不同页面不同的接口
 
-const keywordFile = async (form: FormInstance | undefined) => {
+const keywordFile = async (form) => {
   if (!form) return;
   await form.validate((valid, fields) => {
     if (!valid) {
@@ -261,7 +262,7 @@ const keywordFile = async (form: FormInstance | undefined) => {
     }
     // 有ID代表是则代表是直接生成
     if (ruleForm.id > 0) {
-      generateFile(ruleForm).then((res: { data: { code: number; msg: string; }; }) => { });
+      generateFile(ruleForm).then((res) => { });
     } else {
       //  先插入数据再生成文件
       insertData({
@@ -272,13 +273,9 @@ const keywordFile = async (form: FormInstance | undefined) => {
         keyword_value: ruleForm.keyword_value,
         operation_type_id: ruleForm.operation_type_id,
         is_enabled: ruleForm.is_enabled
-      }).then((res: { data: { code: number; msg: string; }; }) => {
+      }).then((res) => {
         if (res.data.code == 200) {
-          generateFile(ruleForm).then((res: { data: { code: number; msg: string; }; }) => { });
-          
-          if (res.data.code == 200) {
-          router.push('/ApikeywordList'); // 跳转回列表页面
-        }
+          generateFile(ruleForm).then((res) => { });
         }
       });
     }

@@ -59,7 +59,7 @@ const testCaseCount = ref(0)
 const passRate = ref(0)
 
 //  报表1： 加载【测试计划执行次数】
-import { queryPlanCount } from "./ApiPlanChart";
+import { queryPlanCount } from "./apiPlanChart";
 let coll_id = router.currentRoute.value.query.id;
 function queryPlanCounts() {
   queryPlanCount(coll_id).then(response => {
@@ -69,7 +69,7 @@ function queryPlanCounts() {
 }
 
 //定义最近一次执行用例总数
-import { queryCaseCount } from "./ApiPlanChart";
+import { queryCaseCount } from "./apiPlanChart";
 function queryCaseCounts() {
   queryCaseCount(coll_id).then(response => {
     testCaseCount.value = response.data.data;
@@ -77,7 +77,7 @@ function queryCaseCounts() {
 }
 
 //定义通过率数据
-import { queryPassRate } from "./ApiPlanChart";
+import { queryPassRate } from "./apiPlanChart";
 function queryPassRates() {
   queryPassRate(coll_id).then(response => {
     passRate.value = response.data.data;

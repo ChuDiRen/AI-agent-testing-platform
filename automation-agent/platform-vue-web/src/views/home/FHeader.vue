@@ -66,7 +66,7 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { ElMessageBox } from 'element-plus';
 import { reactive, toRefs } from 'vue'
 import { useStore } from 'vuex'
@@ -80,7 +80,7 @@ const state = reactive({
     'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
   squareUrl:
     'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png',
-  sizeList: ['small', '', 'large'] as const,
+  sizeList: ['small', '', 'large'],
 })
 
 const { circleUrl, squareUrl, sizeList } = toRefs(state)
@@ -98,8 +98,8 @@ function goToSettings() {
 // 退出功能
 function handleLogout() {
   showModal("是否要退出登录？", "warning", "").then((res) => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
+      // 调用store的logout方法，清除所有用户数据
+      store.dispatch('logout');
       window.location.href = '/login';
   });
 }

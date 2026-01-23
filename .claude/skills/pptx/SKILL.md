@@ -1,27 +1,27 @@
 ---
 name: pptx
-description: "Presentation creation, editing, and analysis. When Claude needs to work with presentations (.pptx files) for: (1) Creating new presentations, (2) Modifying or editing content, (3) Working with layouts, (4) Adding comments or speaker notes, or any other presentation tasks"
-license: Proprietary. LICENSE.txt has complete terms
+description: "演示文稿创建、编辑和分析。当Claude需要处理演示文稿(.pptx文件)时：(1)创建新演示文稿，(2)修改或编辑内容，(3)处理布局，(4)添加注释或演讲者备注，或任何其他演示文稿任务"
+license: 专有许可证。LICENSE.txt有完整条款
 ---
 
-# PPTX creation, editing, and analysis
+# PPTX创建、编辑和分析
 
-## Overview
+## 概述
 
-A user may ask you to create, edit, or analyze the contents of a .pptx file. A .pptx file is essentially a ZIP archive containing XML files and other resources that you can read or edit. You have different tools and workflows available for different tasks.
+用户可能要求你创建、编辑或分析.pptx文件的内容。.pptx文件本质上是一个包含XML文件和其他资源的ZIP存档，你可以读取或编辑。对于不同的任务，你有不同的工具和工作流程可用。
 
-## Reading and analyzing content
+## 读取和分析内容
 
-### Text extraction
-If you just need to read the text contents of a presentation, you should convert the document to markdown:
+### 文本提取
+如果你只需要读取演示文稿的文本内容，你应该将文档转换为markdown：
 
 ```bash
-# Convert document to markdown
+# 将文档转换为markdown
 python -m markitdown path-to-file.pptx
 ```
 
 ### Raw XML access
-You need raw XML access for: comments, speaker notes, slide layouts, animations, design elements, and complex formatting. For any of these features, you'll need to unpack a presentation and read its raw XML contents.
+如果你需要访问原始XML内容，例如注释、演讲者备注、幻灯片布局、动画、设计元素和复杂格式，你需要解包演示文稿并读取其原始XML内容。
 
 #### Unpacking a file
 `python ooxml/scripts/unpack.py <office_file> <output_dir>`

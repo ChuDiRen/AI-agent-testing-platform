@@ -70,11 +70,13 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue"
 import { useRouter } from "vue-router"
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { Message } from '@/utils/message'
+import { useDeleteConfirm } from '@/composables/useDeleteConfirm'
 import menuApi from './menuApi'
 import Breadcrumb from "../Breadcrumb.vue"
 
 const router = useRouter()
+const { confirmDelete } = useDeleteConfirm()
 const searchForm = reactive({ "name": "", "menu_type": "" })
 const tableData = ref([])
 
@@ -96,30 +98,25 @@ onMounted(() => {
     loadData()
 })
 
-const onDelete = (row) => {
-    ElMessageBox.confirm('确定要删除该菜单吗?', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-    }).then(() => {
-        menuApi.deleteData(row.id).then((res) => {
-            if (res.data.code === 200) {
-                ElMessage.success('删除成功')
-                loadData()
-            }
-        })
-    }).catch(() => {})
+const onDelete = async (row) => {
+    await confirmDelete(
+        () => menuApi.deleteData(row.id),
+        `确定要删除菜单 "${row.name}" 吗？此操作不可恢复！`,
+        '菜单删除成功',
+        loadData
+    )
 }
 
 const handleToggleHidden = async (row) => {
     try {
         const res = await menuApi.updateData(row)
         if (res.data.code === 200) {
-            ElMessage.success(row.is_hidden ? '已隐藏' : '已显示')
+            Message.success(row.is_hidden ? '已隐藏' : '已显示')
         }
     } catch (error) {
         row.is_hidden = !row.is_hidden
         console.error('更新失败:', error)
+        Message.error('更新失败')
     }
 }
 
@@ -127,11 +124,12 @@ const handleToggleKeepalive = async (row) => {
     try {
         const res = await menuApi.updateData(row)
         if (res.data.code === 200) {
-            ElMessage.success(row.keepalive ? '已开启保活' : '已关闭保活')
+            Message.success(row.keepalive ? '已开启保活' : '已关闭保活')
         }
     } catch (error) {
         row.keepalive = !row.keepalive
         console.error('更新失败:', error)
+        Message.error('更新失败')
     }
 }
 

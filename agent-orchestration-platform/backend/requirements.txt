@@ -1,0 +1,43 @@
+# FastAPI 核心依赖
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# 数据库相关
+sqlalchemy==2.0.23
+aiomysql==0.2.0
+aiosqlite==0.20.0
+alembic==1.13.0
+
+# 认证与安全
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# 跨域
+fastapi-cors==0.0.6
+
+# Redis
+redis==5.0.1
+
+# HTTP 客户端
+httpx==0.25.2
+
+# LangGraph & AI
+langgraph==0.2.0
+langchain==0.2.0
+langchain-openai==0.1.0
+
+# WebSocket & 实时
+websockets==12.0
+
+# 日志与监控
+prometheus-client==0.19.0
+
+# 测试
+pytest==8.1.1
+pytest-asyncio==0.21.1
+
+# 工具
+pyyaml==6.0.1

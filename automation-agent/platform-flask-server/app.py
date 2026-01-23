@@ -25,6 +25,102 @@ database.init_app(application)
 # jwt = JWTManager()
 # jwt.init_app(application)
 
+# 全局变量存储应用实例，供其他模块访问
+_application = None
+
+def get_application():
+    """获取应用实例，避免循环导入"""
+    global _application
+    return _application
+
+def register_blueprints():
+    """注册所有蓝图路由"""
+    global _application
+    _application = application
+    
+    # TODO 1: 导入对应的模块
+    from login.api import LoginController
+    application.register_blueprint(LoginController.module_route)
+
+    from sysmanage.api import UserController
+    application.register_blueprint(UserController.module_route)
+
+    # RBAC 权限管理
+    from sysmanage.api import RoleController
+    application.register_blueprint(RoleController.module_route)
+    
+    from sysmanage.api import PermissionController
+    application.register_blueprint(PermissionController.module_route)
+
+    from sysmanage.api import MenuController
+    application.register_blueprint(MenuController.module_route)
+
+    from sysmanage.api import DeptController
+    application.register_blueprint(DeptController.module_route)
+
+    from sysmanage.api import ApiController
+    application.register_blueprint(ApiController.module_route)
+
+    from sysmanage.api import AuditLogController
+    application.register_blueprint(AuditLogController.module_route)
+
+    # 接口自动化导入的路由信息
+    from apitest.api import ApiProjectContoller
+    application.register_blueprint(ApiProjectContoller.module_route)
+
+    from apitest.api import ApiDbBaseController
+    application.register_blueprint(ApiDbBaseController.module_route)
+
+    from apitest.api import ApiKeyWordController
+    application.register_blueprint(ApiKeyWordController.module_route)
+
+    from apitest.api import ApiOperationTypeController
+    application.register_blueprint(ApiOperationTypeController.module_route)
+
+    from apitest.api import ApiMetaController
+    application.register_blueprint(ApiMetaController.module_route)
+
+    from apitest.api import ApiInfoController
+    application.register_blueprint(ApiInfoController.module_route)
+
+    from apitest.api import ApiInfoCaseController
+    application.register_blueprint(ApiInfoCaseController.module_route)
+
+    from apitest.api import ApiInfoCaseStepContoller
+    application.register_blueprint(ApiInfoCaseStepContoller.module_route)
+
+    from apitest.api import ApiReportViewerContoller
+    application.register_blueprint(ApiReportViewerContoller.module_route)
+
+    from apitest.api import ApiCollectionInfoController
+    application.register_blueprint(ApiCollectionInfoController.module_route)
+
+    from apitest.api import ApiCollectionDetailController
+    application.register_blueprint(ApiCollectionDetailController.module_route)
+
+    from apitest.api import ApiHistoryController
+    application.register_blueprint(ApiHistoryController.module_route)
+
+    # 机器人管理
+    from msgmanage.api import RobotConfigController
+    application.register_blueprint(RobotConfigController.module_route)
+
+    from msgmanage.api import RobotMsgConfigController
+    application.register_blueprint(RobotMsgConfigController.module_route)
+
+    # 个人中心和系统设置
+    from userprofile.api import ProfileController
+    application.register_blueprint(ProfileController.module_route)
+
+    from systemsettings.api import SettingsController
+    application.register_blueprint(SettingsController.module_route)
+
+    # 扩展-图标增加
+    from apitest.api import  ApiTestPlanChartController
+    application.register_blueprint(ApiTestPlanChartController.module_route)
+    
+    print(f"✓ 已注册 {len(application.blueprints)} 个蓝图")
+
 if __name__ == '__main__':
     try:
         # 启动程序
@@ -42,90 +138,27 @@ if __name__ == '__main__':
             print("⚠ 数据库连接失败，请检查配置")
             sys.exit(1)
         
-        # TODO 1: 导入对应的模块
-        from login.api import LoginController
-        application.register_blueprint(LoginController.module_route)
-
-        from sysmanage.api import UserController
-        application.register_blueprint(UserController.module_route)
-
-        # RBAC 权限管理
-        from sysmanage.api import RoleController
-        application.register_blueprint(RoleController.module_route)
-
-        from sysmanage.api import MenuController
-        application.register_blueprint(MenuController.module_route)
-
-        from sysmanage.api import DeptController
-        application.register_blueprint(DeptController.module_route)
-
-        from sysmanage.api import ApiController
-        application.register_blueprint(ApiController.module_route)
-
-        from sysmanage.api import AuditLogController
-        application.register_blueprint(AuditLogController.module_route)
-
-        # 接口自动化导入的路由信息
-        from apitest.api import ApiProjectContoller
-        application.register_blueprint(ApiProjectContoller.module_route)
-
-        from apitest.api import ApiDbBaseController
-        application.register_blueprint(ApiDbBaseController.module_route)
-
-        from apitest.api import ApiKeyWordController
-        application.register_blueprint(ApiKeyWordController.module_route)
-
-        from apitest.api import ApiOperationTypeController
-        application.register_blueprint(ApiOperationTypeController.module_route)
-
-        from apitest.api import ApiMetaController
-        application.register_blueprint(ApiMetaController.module_route)
-
-        from apitest.api import ApiInfoController
-        application.register_blueprint(ApiInfoController.module_route)
-
-        from apitest.api import ApiInfoCaseController
-        application.register_blueprint(ApiInfoCaseController.module_route)
-
-        from apitest.api import ApiInfoCaseStepContoller
-        application.register_blueprint(ApiInfoCaseStepContoller.module_route)
-
-        from apitest.api import ApiReportViewerContoller
-        application.register_blueprint(ApiReportViewerContoller.module_route)
-
-        from apitest.api import ApiCollectionInfoController
-        application.register_blueprint(ApiCollectionInfoController.module_route)
-
-        from apitest.api import ApiCollectionDetailController
-        application.register_blueprint(ApiCollectionDetailController.module_route)
-
-        from apitest.api import ApiHistoryController
-        application.register_blueprint(ApiHistoryController.module_route)
-
-        # 机器人管理
-        from msgmanage.api import RobotConfigController
-        application.register_blueprint(RobotConfigController.module_route)
-
-        from msgmanage.api import RobotMsgConfigController
-        application.register_blueprint(RobotMsgConfigController.module_route)
-
-        # 个人中心和系统设置
-        from userprofile.api import ProfileController
-        application.register_blueprint(ProfileController.module_route)
-
-        from systemsettings.api import SettingsController
-        application.register_blueprint(SettingsController.module_route)
-
-        # 扩展-图标增加
-        from apitest.api import  ApiTestPlanChartController
-        application.register_blueprint(ApiTestPlanChartController.module_route)
-
+        # 注册所有蓝图
+        register_blueprints()
+        
         # TODO 2: 拦截器，所有请求先经过这里，可以获取请求头token进行拦截
         exclude_path_patterns_list = [
             "/login",
             "/refresh",  # token 刷新接口不需要验证
             "/ApiReportViewer",
         ]
+        
+        # 需要权限验证的路径模式
+        protected_path_patterns = [
+            "/user",
+            "/role", 
+            "/menu",
+            "/dept",
+            "/api",
+            "/audit",
+            "/system",
+        ]
+        
         @application.before_request
         def my_before_request():
             """
@@ -133,34 +166,62 @@ if __name__ == '__main__':
             """
             # 获取路径
             url = request.path
-            url = '/' + url.split('/')[1]
-            print(f"[拦截器] 请求路径: {request.path} -> 提取路径: {url}")
-            if url in exclude_path_patterns_list or request.method == "OPTIONS":
+            url_path = '/' + url.split('/')[1] if len(url.split('/')) > 1 else '/'
+            print(f"[拦截器] 请求路径: {request.path} -> 提取路径: {url_path}")
+            
+            if url_path in exclude_path_patterns_list or request.method == "OPTIONS":
                 print(f"[拦截器] 路径在白名单中，跳过验证")
                 return
             elif url.endswith("callback") or url.endswith("result"):  # 如果是回调 不检查是否登录，检查callback_key
                 callback_key = request.headers.get("Callbackkey", None)
                 if (callback_key is None or callback_key != application.config["SECRET_KEY"]):
                     return respModel.error_resp(f"当前用户未登录或者token失效"),401
-                    # abort(401)
                 return
+            
             try:
                 login_token = request.headers.get("token", None)
                 print(f"[拦截器] Token: {login_token[:20] if login_token else 'None'}...")
                 if (login_token is None):
                     print(f"[拦截器] Token 为空，返回 401")
                     return respModel.error_resp(f"当前用户未登录或者token失效"), 401
-                    # abort(401)
+                
                 # JWT 验证成功，解析 JWT 中的内容
                 from core.JwtUtil import JwtUtils
                 content = JwtUtils.verify_token(login_token)
-                print(f"[拦截器] Token 验证成功，用户: {content.get('username')}")
+                username = content.get('username')
+                print(f"[拦截器] Token 验证成功，用户: {username}")
+                
                 # 将获取到的信息保存到全局上下文中
-                setattr(g, "username", content.get('username'))
+                setattr(g, "username", username)
+                
+                # 权限验证 - 检查是否为受保护的路径
+                if any(url_path.startswith(pattern) for pattern in protected_path_patterns):
+                    from core.PermissionMiddleware import PermissionMiddleware
+                    user_permissions = PermissionMiddleware.get_user_permissions(username)
+                    
+                    # 检查是否为超级管理员
+                    if '超级管理员' in user_permissions.get('roles', []):
+                        print(f"[权限验证] 超级管理员 {username} 访问 {url_path} 通过")
+                        return
+                    
+                    # 检查菜单权限 (前端页面访问)
+                    if request.method == "GET" and not url_path.startswith('/api'):
+                        if url_path not in user_permissions.get('menus', set()):
+                            print(f"[权限验证] 用户 {username} 访问页面 {url_path} 权限不足")
+                            return respModel.error_resp("权限不足"), 401
+                    
+                    # 检查API权限
+                    permission_key = f"{url}:{request.method}"
+                    apis = user_permissions.get('apis', set())
+                    if permission_key not in apis and url_path not in apis:
+                        print(f"[权限验证] 用户 {username} 访问API {permission_key} 权限不足")
+                        return respModel.error_resp("权限不足"), 401
+                    
+                    print(f"[权限验证] 用户 {username} 访问 {url_path} 权限验证通过")
+                
             except Exception as e:
-                print(f"[拦截器] Token 验证失败: {e}")
+                print(f"[拦截器] 验证失败: {e}")
                 return respModel.error_resp(f"当前用户未登录或者token失效"), 401
-                # abort(401)
 
         @application.context_processor
         def my_context_processor():
@@ -178,7 +239,15 @@ if __name__ == '__main__':
             print(f"⚠ RabbitMQ 消费者启动失败（不影响主服务）: {mq_error}")
             print("  提示：如需使用消息队列功能，请确保 RabbitMQ 服务已启动")
 
-        sys.exit(application.run(debug=True, host='0.0.0.0', port=5000))
+        # 启用热加载和自动重载
+        application.run(
+            debug=True, 
+            host='0.0.0.0', 
+            port=5000,
+            use_reloader=False,  # 关闭自动重载，避免服务自动重启
+            use_debugger=True,   # 启用调试器
+            threaded=True        # 启用多线程
+        )
     except Exception as e:
         import traceback
         # 打印完整的错误信息

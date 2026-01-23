@@ -2,8 +2,7 @@ import axios from "axios"
 import {ElMessage, ElNotification } from 'element-plus'
 
 const service = axios.create({
-    // baseURL: "http://127.0.0.1:5000"
-    baseURL: "/api"
+    baseURL: "http://127.0.0.1:5000"
 })
 
 // token 刷新相关变量
@@ -30,11 +29,11 @@ async function refreshToken() {
   }
 
   try {
-    // 使用原始 axios 实例，避免触发拦截器导致循环
-    const response = await axios.create({
-      baseURL: '/api'
-    }).post('/refresh', {
+    // 使用 service 实例，但标记跳过拦截器
+    const response = await service.post('/refresh', {
       refreshToken: refreshToken
+    }, {
+      _skipInterceptor: true  // 自定义标记，跳过拦截器处理
     });
 
     console.log('刷新 token 响应:', response.data);
@@ -62,6 +61,12 @@ async function refreshToken() {
 // 请求拦截器：添加令牌到请求头
 service.interceptors.request.use(
   config => {
+    // 检查是否跳过拦截器
+    if (config._skipInterceptor) {
+      delete config._skipInterceptor;
+      return config;
+    }
+
     // 从localStorage获取令牌
     const token = localStorage.getItem('token');
     // 如果令牌存在，添加到请求头
@@ -79,10 +84,21 @@ service.interceptors.request.use(
 
 // 添加响应拦截器
 service.interceptors.response.use(response => {
+    // 跳过拦截器标记的请求，直接返回
+    if (response.config._skipInterceptor) {
+        return response;
+    }
+    
+    // 对于登录和刷新接口，不在拦截器中显示错误消息，让业务代码自己处理
+    const isLoginRequest = response.config.url && response.config.url.includes('/login');
+    const isRefreshRequest = response.config.url && response.config.url.includes('/refresh');
+    
     if(response.data.code != 200) {
-        ElMessage.error(response.data.msg + '，状态码:' + response.data.code)
+        if (!isLoginRequest && !isRefreshRequest) {
+            ElMessage.error(response.data.msg + '，状态码:' + response.data.code)
+        }
     } else {
-        if(response.data.msg != null) {
+        if(response.data.msg != null && !isLoginRequest && !isRefreshRequest) {
             ElNotification({
                 title: response.data.msg,
                 type: 'success',

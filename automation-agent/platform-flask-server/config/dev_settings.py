@@ -5,6 +5,14 @@ SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:admin123456@192.168.111.128:3306
 SQLALCHEMY_TRACK_MODIFICATIONS = True
 # 打印sql语句
 SQLALCHEMY_ECHO = True
+
+# 数据库连接池配置 - 防止连接断开
+SQLALCHEMY_POOL_SIZE = 10  # 连接池大小
+SQLALCHEMY_POOL_RECYCLE = 3600  # 连接回收时间(秒)，1小时回收一次，避免MySQL连接超时
+SQLALCHEMY_POOL_TIMEOUT = 30  # 连接超时时间
+SQLALCHEMY_MAX_OVERFLOW = 20  # 超过连接池大小后最多创建的连接数
+SQLALCHEMY_POOL_PRE_PING = True  # 每次从连接池取连接时先ping一下，确保连接有效
+
 # Token密钥
 SECRET_KEY = "1234567812345678"
 

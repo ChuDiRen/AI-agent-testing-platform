@@ -2,6 +2,7 @@ from flask import Blueprint, request
 from core.resp_model import respModel
 from app import database, application
 from datetime import datetime
+from core.PermissionMiddleware import api_permission_required
 
 # 这里我们引用对应的Model，因为我们登录和管理用的是同一个表，所以我么这个位置直接引用对应Model
 from login.model.UserModel import User
@@ -17,6 +18,7 @@ module_route = Blueprint(f"route_{module_name}", __name__)
 
 
 @module_route.route(f"/{module_name}/queryByPage", methods=["POST"])
+@api_permission_required()
 def queryByPage():
     """ 查询数据(支持模糊搜索) """
     try:
@@ -114,7 +116,41 @@ def queryById():
             # 数据库查询
             data = module_model.query.filter_by(id=data_id).first()
         if data:
-            return respModel().ok_resp(obj=data, msg="查询成功")
+            # 直接查询用户角色（避免lazy loading的上下文问题）
+            with application.app_context():
+                from sysmanage.model.UserRoleModel import UserRole
+                from sysmanage.model.RoleModel import Role
+                
+                user_roles = database.session.query(Role).join(UserRole, Role.id == UserRole.role_id).filter(UserRole.user_id == data_id).all()
+                roles = [{"id": role.id, "name": role.name, "desc": role.desc} for role in user_roles]
+                
+                # 获取部门信息
+                dept = None
+                if data.dept_id:
+                    dept = Dept.query.get(data.dept_id)
+            
+            # 构建返回数据,包含角色和部门信息（与queryByPage保持一致的格式）
+            user_dict = {
+                "id": data.id,
+                "username": data.username,
+                "alias": data.alias,
+                "email": data.email,
+                "phone": data.phone,
+                "is_active": data.is_active,
+                "is_superuser": data.is_superuser,
+                "last_login": data.last_login.strftime('%Y-%m-%d %H:%M:%S') if data.last_login else None,
+                "dept_id": data.dept_id,
+                "created_at": data.created_at.strftime('%Y-%m-%d %H:%M:%S') if data.created_at else None,
+                "updated_at": data.updated_at.strftime('%Y-%m-%d %H:%M:%S') if data.updated_at else None,
+                "roles": roles,
+                "dept": {
+                    "id": dept.id,
+                    "name": dept.name,
+                    "desc": dept.desc
+                } if dept else {}
+            }
+            
+            return respModel().ok_resp(obj=user_dict, msg="查询成功")
         else:
             return respModel.ok_resp(msg="查询成功,但是没有数据")
     except Exception as e:
@@ -185,6 +221,7 @@ def insert():
 
 
 @module_route.route(f"/{module_name}/update", methods=["PUT"])
+@api_permission_required()
 def update():
     """ 修改数据 """
     try:
@@ -249,6 +286,7 @@ def update():
 
 
 @module_route.route(f"/{module_name}/delete", methods=["DELETE"])
+@api_permission_required()
 def delete():
     """ 删除数据 """
     try:

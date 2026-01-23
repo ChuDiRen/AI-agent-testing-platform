@@ -6,18 +6,22 @@ export default {
     },
 
     getUserInfo() {
-        return request.get('/userinfo')
+        return request.get('/permission/userinfo')
     },
 
     getUserMenu() {
-        return request.get('/usermenu')
+        return request.get('/permission/usermenu')
     },
 
     getUserApi() {
-        return request.get('/userapi')
+        return request.get('/permission/userapi')
     },
 
-    updatePassword(data) {
-        return request.post('/updatePassword', data)
+    checkPermission(permission) {
+        return request.post('/permission/check', { permission })
+    },
+
+    changePassword(data) {
+        return request.post('/permission/change-password', data)
     }
 }
