@@ -2,10 +2,10 @@
 权限查询 API 端点
 提供用户信息、菜单、API权限等查询接口
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.crud.permission import permission
+from app.services.permission import permission
 from app.core.security import verify_token
 from app.models.user import User
 from app.schemas.permission import (
@@ -15,27 +15,40 @@ from app.schemas.permission import (
     PermissionCheckRequest,
     PermissionCheckResponse,
 )
-from app.core.resp_model import RespModel
+from app.core.resp_model import ResponseModel
 from app.core.exceptions import BadRequestException
 
 router = APIRouter(tags=["权限"])
 
 
-@router.get("/userinfo", response_model=RespModel)
+@router.get("/userinfo", response_model=ResponseModel)
 async def get_user_info(
-    db: AsyncSession = Depends(get_db),
-    token: str = Depends(verify_token)
+    request: Request,
+    db: AsyncSession = Depends(get_db)
 ):
     """
     获取当前登录用户信息
     
     返回用户基本信息和角色列表
     """
+    # 从请求头中获取 token
+    token = request.headers.get("token")
+    if not token:
+        from app.core.exceptions import UnauthorizedException
+        raise UnauthorizedException("未登录")
+    
+    # 验证 Token
+    from app.core.security import verify_token
+    payload = verify_token(token)
+    if not payload:
+        from app.core.exceptions import UnauthorizedException
+        raise UnauthorizedException("Token 失效")
+    
     # 从 token 中获取用户 ID
-    user_id = token.get("user_id") if isinstance(token, dict) else token.get("sub")
+    user_id = payload.get("user_id") if isinstance(payload, dict) else payload.get("sub")
     
     # 查询用户信息
-    from app.crud.user import user_crud
+    from app.services.user import user as user_crud
     db_user = await user_crud.get(db, user_id)
     
     if not db_user:
@@ -57,28 +70,42 @@ async def get_user_info(
         roles=[{"id": role.id, "name": role.name, "desc": role.desc} for role in roles]
     )
     
-    return RespModel(code=200, msg="获取成功", data=user_info)
+    return ResponseModel(code=200, msg="获取成功", data=user_info)
 
 
-@router.get("/usermenu", response_model=RespModel)
+@router.get("/usermenu", response_model=ResponseModel)
 async def get_user_menus(
-    db: AsyncSession = Depends(get_db),
-    token: str = Depends(verify_token)
+    request: Request,
+    db: AsyncSession = Depends(get_db)
 ):
     """
     获取当前用户的菜单树
 
     超级管理员返回所有菜单，普通用户返回角色关联的菜单
     """
+    # 从请求头中获取 token
+    token = request.headers.get("token")
+    if not token:
+        from app.core.exceptions import UnauthorizedException
+        raise UnauthorizedException("未登录")
+    
+    # 验证 Token
+    from app.core.security import verify_token
+    payload = verify_token(token)
+    if not payload:
+        from app.core.exceptions import UnauthorizedException
+        raise UnauthorizedException("Token 失效")
+    
     # 从 token 中获取用户 ID
-    user_id = token.get("user_id") if isinstance(token, dict) else token.get("sub")
+    user_id = payload.get("user_id") if isinstance(payload, dict) else payload.get("sub")
 
     # 查询用户菜单
     menus = await permission.get_user_menus(db, user_id, include_hidden=False)
 
     # 将Menu对象转换为字典（包含所有必要字段）
-    menu_list = [
-        {
+    def convert_menu_to_dict(menu):
+        """递归转换菜单对象为字典"""
+        menu_dict = {
             "id": menu.id,
             "name": menu.name,
             "menu_type": menu.menu_type,
@@ -90,64 +117,97 @@ async def get_user_menus(
             "is_hidden": menu.is_hidden,
             "keepalive": menu.keepalive,
             "redirect": menu.redirect,
-            "children": menu.children if hasattr(menu, 'children') else []
+            "children": []
         }
-        for menu in menus
-    ]
+        
+        # 递归处理子菜单
+        if hasattr(menu, 'children') and menu.children:
+            for child in menu.children:
+                menu_dict["children"].append(convert_menu_to_dict(child))
+        
+        return menu_dict
+    
+    menu_list = [convert_menu_to_dict(menu) for menu in menus]
 
-    return RespModel(code=200, msg="获取成功", data=menu_list)
+    return ResponseModel(code=200, msg="获取成功", data=menu_list)
 
 
-@router.get("/userapi", response_model=RespModel)
+@router.get("/userapi", response_model=ResponseModel)
 async def get_user_apis(
-    db: AsyncSession = Depends(get_db),
-    token: str = Depends(verify_token)
+    request: Request,
+    db: AsyncSession = Depends(get_db)
 ):
     """
     获取当前用户的API权限列表
     
     返回格式：["get/api/v1/user/list", "post/api/v1/user/create", ...]
     """
+    # 从请求头中获取 token
+    token = request.headers.get("token")
+    if not token:
+        from app.core.exceptions import UnauthorizedException
+        raise UnauthorizedException("未登录")
+    
+    # 验证 Token
+    from app.core.security import verify_token
+    payload = verify_token(token)
+    if not payload:
+        from app.core.exceptions import UnauthorizedException
+        raise UnauthorizedException("Token 失效")
+    
     # 从 token 中获取用户 ID
-    user_id = token.get("user_id") if isinstance(token, dict) else token.get("sub")
+    user_id = payload.get("user_id") if isinstance(payload, dict) else payload.get("sub")
     
     # 查询用户API权限
     api_permissions = await permission.get_user_api_permissions(db, user_id)
     
-    return RespModel(code=200, msg="获取成功", data=list(api_permissions))
+    return ResponseModel(code=200, msg="获取成功", data=list(api_permissions))
 
 
-@router.post("/check", response_model=RespModel)
+@router.post("/check", response_model=ResponseModel)
 async def check_permission(
-    request: PermissionCheckRequest,
-    db: AsyncSession = Depends(get_db),
-    token: str = Depends(verify_token)
+    request_data: PermissionCheckRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
 ):
     """
     检查用户是否有权限访问指定API
     
     用于前端按钮级权限控制
     """
+    # 从请求头中获取 token
+    token = request.headers.get("token")
+    if not token:
+        from app.core.exceptions import UnauthorizedException
+        raise UnauthorizedException("未登录")
+    
+    # 验证 Token
+    from app.core.security import verify_token
+    payload = verify_token(token)
+    if not payload:
+        from app.core.exceptions import UnauthorizedException
+        raise UnauthorizedException("Token 失效")
+    
     # 从 token 中获取用户 ID
-    user_id = token.get("user_id") if isinstance(token, dict) else token.get("sub")
+    user_id = payload.get("user_id") if isinstance(payload, dict) else payload.get("sub")
     
     # 检查API权限
     has_perm = await permission.check_api_permission(
-        db, user_id, request.api_path, request.method
+        db, user_id, request_data.api_path, request_data.method
     )
     
-    return RespModel(
+    return ResponseModel(
         code=200,
         msg="检查成功",
         data={"has_permission": has_perm}
     )
 
 
-@router.post("/change-password", response_model=RespModel)
+@router.post("/change-password", response_model=ResponseModel)
 async def change_password(
     *,
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    token: str = Depends(verify_token),
     old_password: str,
     new_password: str
 ):
@@ -156,10 +216,21 @@ async def change_password(
     
     需要验证旧密码
     """
-    from app.crud.user import user_crud
+    # 从请求头中获取 token
+    token = request.headers.get("token")
+    if not token:
+        from app.core.exceptions import UnauthorizedException
+        raise UnauthorizedException("未登录")
+    
+    # 验证 Token
+    from app.core.security import verify_token
+    payload = verify_token(token)
+    if not payload:
+        from app.core.exceptions import UnauthorizedException
+        raise UnauthorizedException("Token 失效")
     
     # 从 token 中获取用户 ID
-    user_id = token.get("user_id") if isinstance(token, dict) else token.get("sub")
+    user_id = payload.get("user_id") if isinstance(payload, dict) else payload.get("sub")
     
     # 查询用户
     db_user = await user_crud.get(db, user_id)
@@ -178,4 +249,4 @@ async def change_password(
     db_user.set_password(new_password)
     await db.commit()
     
-    return RespModel(code=200, msg="密码修改成功")
+    return ResponseModel(code=200, msg="密码修改成功")

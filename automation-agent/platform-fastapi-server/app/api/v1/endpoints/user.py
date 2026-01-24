@@ -2,7 +2,7 @@
 用户管理端点
 从 Flask 迁移到 FastAPI
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from app.core.deps import get_db
@@ -187,19 +187,80 @@ async def reset_password(
         raise HTTPException(status_code=500, detail=f"密码重置失败: {str(e)}")
 
 
+@router.get("/profile", response_model=respModel)
+async def get_profile(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """获取个人资料"""
+    try:
+        # 从请求头中获取 token
+        token = request.headers.get("token")
+        if not token:
+            from app.core.exceptions import UnauthorizedException
+            raise UnauthorizedException("未登录")
+        
+        # 验证 Token
+        from app.core.security import verify_token
+        payload = verify_token(token)
+        if not payload:
+            from app.core.exceptions import UnauthorizedException
+            raise UnauthorizedException("Token 失效")
+        
+        # 从 token 中获取用户 ID
+        user_id = payload.get("user_id") if isinstance(payload, dict) else payload.get("sub")
+        
+        # 查询用户
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalars().first()
+        if not user:
+            raise NotFoundException("用户不存在")
+        
+        # 构建返回数据
+        profile_data = {
+            "id": user.id,
+            "username": user.username,
+            "alias": user.alias,
+            "email": user.email,
+            "phone": user.phone,
+            "is_active": user.is_active,
+            "is_superuser": user.is_superuser,
+            "dept_id": user.dept_id,
+            "last_login": user.last_login,
+            "created_at": user.created_at,
+            "updated_at": user.updated_at
+        }
+        
+        return respModel().ok_resp(profile_data, msg="获取个人资料成功")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取个人资料失败: {str(e)}")
+
+
 @router.put("/profile", response_model=respModel)
 async def update_profile(
-    *,
+    request: Request,
     data: dict,
-    db: AsyncSession = Depends(get_db),
-    token: str = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """更新个人资料"""
     try:
-        from app.core.security import verify_token
+        # 从请求头中获取 token
+        token = request.headers.get("token")
+        if not token:
+            from app.core.exceptions import UnauthorizedException
+            raise UnauthorizedException("未登录")
         
-        # 从token中获取用户ID
-        user_id = token.get("user_id") if isinstance(token, dict) else token.get("sub")
+        # 验证 Token
+        from app.core.security import verify_token
+        payload = verify_token(token)
+        if not payload:
+            from app.core.exceptions import UnauthorizedException
+            raise UnauthorizedException("Token 失效")
+        
+        # 从 token 中获取用户 ID
+        user_id = payload.get("user_id") if isinstance(payload, dict) else payload.get("sub")
         
         # 查询用户
         result = await db.execute(select(User).where(User.id == user_id))

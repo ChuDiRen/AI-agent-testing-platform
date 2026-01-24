@@ -3,7 +3,7 @@
     <div class="error-code">404</div>
     <h2>页面未找到</h2>
     <p>抱歉，您访问的页面不存在或已被移除</p>
-    <router-link to="/Statistics" class="home-link">返回首页</router-link>
+    <router-link to="/home" class="home-link">返回首页</router-link>
   </div>
 </template>
 

@@ -27,7 +27,7 @@
   import Breadcrumb from "../../Breadcrumb.vue";
   
   // 不同页面不同的接口
-  import { queryById, insertData, updateData } from './ApiProject.js'; 
+  import { queryById, insertData, updateData } from '@/api/ApiProject'; 
   
   const router = useRouter();
   

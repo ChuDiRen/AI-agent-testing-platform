@@ -13,9 +13,9 @@ class RoleApi(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True, index=True, comment='主键ID')
     role_id = Column(Integer, ForeignKey('t_role.id'), nullable=False, comment='角色ID')
-    api_id = Column(Integer, ForeignKey('t_api_resource.id'), nullable=False, comment='API资源ID')
+    api_id = Column(Integer, ForeignKey('t_api.id'), nullable=False, comment='API权限ID')
     created_at = Column(DateTime, default=datetime.now, nullable=False, comment='创建时间')
     
     # 关系
     role = relationship("Role", back_populates="apis")
-    api = relationship("ApiResource", back_populates="roles")
+    api = relationship("Api", back_populates="roles")

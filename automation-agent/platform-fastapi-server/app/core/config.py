@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     
     # 数据库URL（根据DATABASE_TYPE自动选择）
     # SQLite默认值
-    DATABASE_URL_SQLITE: str = "sqlite+aiosqlite:///./data.db"
+    DATABASE_URL_SQLITE: str = "sqlite+aiosqlite:///./app/data/database.db"
     # MySQL默认值（如需使用，请在.env中配置）
     DATABASE_URL_MYSQL: str = "mysql+aiomysql://root:admin123456@192.168.111.128:3306/testdb?charset=utf8mb4"
     
@@ -84,6 +84,7 @@ class Settings(BaseSettings):
     MINIO_SECRET_KEY: str = "minioadmin"
     MINIO_BUCKET_NAME: str = "apitest"
     MINIO_CLIENT_URL: str = "http://localhost:9000"
+    MINIO_SECURE: bool = False
     
     class Config:
         env_file = ".env"

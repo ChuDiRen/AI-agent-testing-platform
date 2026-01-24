@@ -29,6 +29,7 @@ class User(Base):
     # 关系
     dept = relationship("Dept", back_populates="users", foreign_keys="User.dept_id")
     roles = relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
+    role_objects = relationship("Role", secondary="t_user_role", back_populates="user_objects", viewonly=True)
     
     def set_password(self, password: str):
         """设置密码（加密）"""

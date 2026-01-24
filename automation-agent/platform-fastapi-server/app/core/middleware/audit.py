@@ -7,7 +7,7 @@ import json
 from typing import Optional
 from fastapi import Request, Response
 from app.core.logger import logger
-from app.crud.audit_log import audit_log
+from app.services.audit_log import audit_log
 from app.db.session import get_db
 
 
@@ -74,17 +74,28 @@ async def create_audit_log(
         
         # 获取数据库会话
         db_gen = get_db()
-        db = next(db_gen)
+        db = await anext(db_gen)
         
         try:
             # 创建审计日志
-            audit_log.create(db, obj_in=audit_data)
-            db.commit()
+            await audit_log.create_audit(
+                db=db,
+                user_id=audit_data.get("user_id"),
+                username=audit_data.get("username"),
+                module=audit_data.get("module"),
+                summary=audit_data.get("summary"),
+                method=audit_data.get("method"),
+                path=audit_data.get("path"),
+                status=audit_data.get("status"),
+                response_time=audit_data.get("response_time"),
+                request_args=audit_data.get("request_args"),
+                response_body=audit_data.get("response_body")
+            )
         except Exception as e:
-            db.rollback()
+            await db.rollback()
             logger.error(f"保存审计日志失败: {e}")
         finally:
-            db.close()
+            await db.close()
             
     except Exception as e:
         logger.error(f"创建审计日志异常: {e}")

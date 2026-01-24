@@ -335,7 +335,7 @@
   
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
-import { queryById, insertData, updateData } from "./ApiInfo.js"; // 不同页面不同的接口
+import { queryById, insertData, updateData } from "@/api/ApiInfo"; // 不同页面不同的接口
 import { ElMessage } from 'element-plus';
 import { useRouter } from "vue-router";
 import Breadcrumb from "../../Breadcrumb.vue";
@@ -360,7 +360,7 @@ const apiInfo = reactive({
   request_files: [],
 });
 // 1. 加载项目
-import { queryAllProject } from "../project/ApiProject.js"; // 不同页面不同的接口
+import { queryAllProject } from "@/api/ApiProject"; // 不同页面不同的接口
 const projectList = ref([{
   id: 0,
   project_name: '',
@@ -618,7 +618,7 @@ const onAddBodyFilesFormDatas = () => {
 
 
 // ================== 扩展：调试请求==================
-import { doDebugRequest } from "./ApiInfo.js"
+import { doDebugRequest } from "@/api/ApiInfo"
 const debugRequest = () => {
   tabActiveName.value = "调试输出内容";
 

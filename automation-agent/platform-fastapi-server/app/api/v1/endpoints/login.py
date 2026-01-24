@@ -32,9 +32,8 @@ async def login(
         
         return LoginResponse(
             code=200,
-            msg="登录成功",
-            data=user_response,
-            token=token
+            token=token,
+            refreshToken=None  # 暂时不实现refresh token
         )
     except Exception as e:
         from app.core.exceptions import UnauthorizedException

@@ -5,7 +5,7 @@
     </el-header>
     <el-container>
       <el-aside :width="asideWidth">
-        <f-menu v-if="!isCollapsed"/> 
+        <f-menu/> 
       </el-aside>
       <el-main>
         <f-tag-list/>
@@ -21,16 +21,16 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useStore } from 'vuex';
+import { useAppStore } from '@/store/modules';
 import FHeader from './FHeader.vue'
-import FMenu from './FMenu.vue'; 
+import FMenu from './FMenu.vue';
 import FTagList from './FTagList.vue';
 
-const store = useStore();
+const appStore = useAppStore();
 
-// 使用计算属性避免响应式问题
-const asideWidth = computed(() => store.state.asideWidth || '250px');
-const isCollapsed = computed(() => store.state.asideWidth === '20px');
+// 使用Pinia store计算属性
+const asideWidth = computed(() => appStore.sidebarWidth || '250px');
+const isCollapsed = computed(() => appStore.collapsed);
 </script>
 
 <style scoped>

@@ -13,9 +13,9 @@
       </div>
 
       <!-- 菜单折叠按钮 -->
-      <button class="menu-toggle" @click="$store.commit('handleAsideWidth')">
+      <button class="menu-toggle" @click="appStore.toggleCollapse()">
         <el-icon>
-          <fold v-if="$store.state.asideWidth == '250px'"/>
+          <Fold v-if="!appStore.collapsed"/>
           <Expand v-else/>
         </el-icon>
       </button>
@@ -69,11 +69,12 @@
 <script setup>
 import { ElMessageBox } from 'element-plus';
 import { reactive, toRefs } from 'vue'
-import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import { useUserStore, useAppStore } from '@/store/modules'
 
-const store = useStore()
 const router = useRouter()
+const userStore = useUserStore()
+const appStore = useAppStore()
 
 const state = reactive({
   circleUrl:
@@ -98,8 +99,8 @@ function goToSettings() {
 // 退出功能
 function handleLogout() {
   showModal("是否要退出登录？", "warning", "").then((res) => {
-      // 调用store的logout方法，清除所有用户数据
-      store.dispatch('logout');
+      // 调用Pinia store的logout方法，清除所有用户数据
+      userStore.logout();
       window.location.href = '/login';
   });
 }

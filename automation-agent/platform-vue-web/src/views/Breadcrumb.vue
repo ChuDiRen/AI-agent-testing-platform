@@ -2,7 +2,7 @@
 <template>
   <div class="breadcrumb">
     <el-breadcrumb separator="/">
-      <el-breadcrumb-item to="/Statistics">首页</el-breadcrumb-item>
+      <el-breadcrumb-item to="/home">首页</el-breadcrumb-item>
       <el-breadcrumb-item v-for="(item, index) in breadcrumbs" :key="index">
         {{ item.meta?.title || item.title }}
       </el-breadcrumb-item>

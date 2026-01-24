@@ -1,6 +1,7 @@
 /**
  * 动态路由构建工具
  * 将后端返回的菜单数据转换为Vue Router路由配置
+ * 参考vue-fastapi-admin的实现
  */
 
 /**
@@ -8,49 +9,74 @@
  * 将菜单的component字段映射到实际的组件
  */
 const componentMap = {
-  // 系统管理
-  'userList': () => import('~/views/users/userList.vue'),
-  'userForm': () => import('~/views/users/userForm.vue'),
-  'roleList': () => import('~/views/roles/roleList.vue'),
-  'roleForm': () => import('~/views/roles/roleForm.vue'),
-  'roleMenu': () => import('~/views/roles/roleMenu.vue'),
-  'roleApi': () => import('~/views/roles/roleApi.vue'),
-  'rolePermission': () => import('~/views/roles/rolePermission.vue'),
-  'menuList': () => import('~/views/menus/menuList.vue'),
-  'menuForm': () => import('~/views/menus/menuForm.vue'),
-  'deptList': () => import('~/views/depts/deptList.vue'),
-  'deptForm': () => import('~/views/depts/deptForm.vue'),
-  'apiList': () => import('~/views/apis/apiList.vue'),
-  'apiForm': () => import('~/views/apis/apiForm.vue'),
-  'auditLogList': () => import('~/views/auditlogs/auditLogList.vue'),
-
-  // API测试
-  'apiProjectList': () => import('~/views/apitest/project/ApiProjectList.vue'),
-  'apiProjectForm': () => import('~/views/apitest/project/ApiProjectForm.vue'),
-  'apiKeyWordList': () => import('~/views/apitest/keyword/ApiKeyWordList.vue'),
-  'apiKeyWordForm': () => import('~/views/apitest/keyword/ApiKeyWordForm.vue'),
-  'apiMateManageList': () => import('~/views/apitest/apiMate/ApiMateManageList.vue'),
-  'apiMateManageForm': () => import('~/views/apitest/apiMate/ApiMateManageForm.vue'),
-  'apiInfoList': () => import('~/views/apitest/apiinfo/ApiInfoList.vue'),
-  'apiInfoForm': () => import('~/views/apitest/apiinfo/ApiInfoForm.vue'),
-  'apiInfoCaseList': () => import('~/views/apitest/apiinfocase/ApiInfoCaseList.vue'),
-  'apiInfoCaseForm': () => import('~/views/apitest/apiinfocase/ApiInfoCaseForm.vue'),
-  'apiCollectionInfoList': () => import('~/views/apitest/collection/ApiCollectionInfoList.vue'),
-  'apiCollectionInfoForm': () => import('~/views/apitest/collection/ApiCollectionInfoForm.vue'),
-  'apiPlanChartForm': () => import('~/views/apitest/collection/ApiPlanChartForm.vue'),
-
+  // 首页
+  'home/home': () => import('~/views/home/home.vue'),
+  
+  // 数据统计
+  'statistics/statistics': () => import('~/views/statistics/statistics.vue'),
+  
+  // API测试 - 项目管理
+  'apitest/project/ApiProjectList': () => import('~/views/apitest/project/ApiProjectList.vue'),
+  'apitest/project/ApiProjectForm': () => import('~/views/apitest/project/ApiProjectForm.vue'),
+  
+  // API测试 - 关键字管理
+  'apitest/keyword/ApiKeyWordList': () => import('~/views/apitest/keyword/ApiKeyWordList.vue'),
+  'apitest/keyword/ApiKeyWordForm': () => import('~/views/apitest/keyword/ApiKeyWordForm.vue'),
+  
+  // API测试 - 素材维护
+  'apitest/apiMate/ApiMateManageList': () => import('~/views/apitest/apiMate/ApiMateManageList.vue'),
+  'apitest/apiMate/ApiMateManageForm': () => import('~/views/apitest/apiMate/ApiMateManageForm.vue'),
+  
+  // API测试 - 接口信息
+  'apitest/apiinfo/ApiInfoList': () => import('~/views/apitest/apiinfo/ApiInfoList.vue'),
+  'apitest/apiinfo/ApiInfoForm': () => import('~/views/apitest/apiinfo/ApiInfoForm.vue'),
+  
+  // API测试 - 用例信息
+  'apitest/apiinfocase/ApiInfoCaseList': () => import('~/views/apitest/apiinfocase/ApiInfoCaseList.vue'),
+  'apitest/apiinfocase/ApiInfoCaseForm': () => import('~/views/apitest/apiinfocase/ApiInfoCaseForm.vue'),
+  
+  // API测试 - 测试计划
+  'apitest/collection/ApiCollectionInfoList': () => import('~/views/apitest/collection/ApiCollectionInfoList.vue'),
+  'apitest/collection/ApiCollectionInfoForm': () => import('~/views/apitest/collection/ApiCollectionInfoForm.vue'),
+  'apitest/collection/ApiPlanChartForm': () => import('~/views/apitest/collection/ApiPlanChartForm.vue'),
+  
   // 消息管理
-  'weChartMsgManageList': () => import('~/views/msgmanage/WeChartMsgManageList.vue'),
-  'weChartMsgManageForm': () => import('~/views/msgmanage/WeChartMsgManageForm.vue'),
-  'dingDingMsgManageList': () => import('~/views/msgmanage/DingDingMsgManageList.vue'),
-  'dingDingMsgManageForm': () => import('~/views/msgmanage/DingDingMsgManageForm.vue'),
-  'feiShuMsgManageList': () => import('~/views/msgmanage/FeiShuMsgManageList.vue'),
-  'feiShuMsgManageForm': () => import('~/views/msgmanage/FeiShuMsgManageForm.vue'),
-
+  'apitest/msgmanage/WeChartMsgManageList': () => import('~/views/apitest/msgmanage/WeChartMsgManageList.vue'),
+  'apitest/msgmanage/WeChartMsgManageForm': () => import('~/views/apitest/msgmanage/WeChartMsgManageForm.vue'),
+  'apitest/msgmanage/DingDingMsgManageList': () => import('~/views/apitest/msgmanage/DingDingMsgManageList.vue'),
+  'apitest/msgmanage/DingDingMsgManageForm': () => import('~/views/apitest/msgmanage/DingDingMsgManageForm.vue'),
+  'apitest/msgmanage/FeiShuMsgManageList': () => import('~/views/apitest/msgmanage/FeiShuMsgManageList.vue'),
+  'apitest/msgmanage/FeishuMsgManageForm': () => import('~/views/apitest/msgmanage/FeishuMsgManageForm.vue'),
+  
+  // 系统管理 - 用户管理
+  'users/userList': () => import('~/views/system/users/userList.vue'),
+  'users/userForm': () => import('~/views/system/users/userForm.vue'),
+  
+  // 系统管理 - 角色管理
+  'roles/roleList': () => import('~/views/system/roles/roleList.vue'),
+  'roles/roleForm': () => import('~/views/system/roles/roleForm.vue'),
+  'roles/roleMenu': () => import('~/views/system/roles/roleMenu.vue'),
+  'roles/roleApi': () => import('~/views/system/roles/roleApi.vue'),
+  'roles/rolePermission': () => import('~/views/system/roles/rolePermission.vue'),
+  
+  // 系统管理 - 菜单管理
+  'menus/menuList': () => import('~/views/system/menus/menuList.vue'),
+  'menus/menuForm': () => import('~/views/system/menus/menuForm.vue'),
+  
+  // 系统管理 - 部门管理
+  'depts/deptList': () => import('~/views/system/depts/deptList.vue'),
+  'depts/deptForm': () => import('~/views/system/depts/deptForm.vue'),
+  
+  // 系统管理 - API管理
+  'apis/apiList': () => import('~/views/system/apis/apiList.vue'),
+  'apis/apiForm': () => import('~/views/system/apis/apiForm.vue'),
+  
+  // 系统管理 - 审计日志
+  'auditlogs/auditLogList': () => import('~/views/system/auditlogs/auditLogList.vue'),
+  
   // 其他页面
-  'statistics': () => import('~/views/statistics/statistics.vue'),
-  'profile': () => import('~/views/profile/profile.vue'),
-  'settings': () => import('~/views/settings/settings.vue'),
+  'profile/profile': () => import('~/views/system/profile/profile.vue'),
+  'settings/settings': () => import('~/views/system/settings/settings.vue'),
   'about': () => import('~/views/pages/about.vue'),
   'notFound': () => import('~/views/NotFound.vue'),
 }
@@ -77,37 +103,54 @@ export function loadComponent(componentName) {
 
 /**
  * 将菜单项转换为路由配置
+ * 参考vue-fastapi-admin的buildRoutes函数
  * @param {Object} menu - 菜单项对象
  * @returns {Object} 路由配置对象
  */
 export function menuToRoute(menu) {
   const route = {
-    path: menu.path,
     name: menu.name || menu.id,
+    path: menu.path,
+    isHidden: menu.is_hidden || false,
+    redirect: menu.redirect,
     meta: {
       title: menu.name,
       icon: menu.icon,
-      isHidden: menu.is_hidden || false,
-      keepalive: menu.keepalive !== false, // 默认启用缓存
-      redirect: menu.redirect
-    }
+      order: menu.order,
+      keepAlive: menu.keepalive !== false, // 默认启用缓存
+    },
+    children: []
   }
 
-  // 处理组件
-  if (menu.component) {
-    route.component = loadComponent(menu.component)
-  }
-
-  // 处理重定向
-  if (menu.redirect) {
-    route.redirect = menu.redirect
-  }
-
-  // 处理子路由
+  // 处理子菜单
   if (menu.children && menu.children.length > 0) {
-    route.children = menu.children
-      .filter(child => child.menu_type === 'menu') // 只处理菜单类型
-      .map(child => menuToRoute(child))
+    // 有子菜单
+    route.children = menu.children.map(child => ({
+      name: child.name,
+      path: child.path,
+      component: loadComponent(child.component),
+      isHidden: child.is_hidden || false,
+      meta: {
+        title: child.name,
+        icon: child.icon,
+        order: child.order,
+        keepAlive: child.keepalive !== false,
+      },
+    }))
+  } else {
+    // 没有子菜单，创建一个默认的子路由
+    route.children.push({
+      name: `${menu.name}Default`,
+      path: '',
+      component: loadComponent(menu.component),
+      isHidden: true,
+      meta: {
+        title: menu.name,
+        icon: menu.icon,
+        order: menu.order,
+        keepAlive: menu.keepalive !== false,
+      },
+    })
   }
 
   return route
@@ -124,12 +167,10 @@ export function menusToRoutes(menus) {
     return []
   }
 
-  // 过滤掉隐藏的菜单和目录（只保留可见的菜单）
+  // 过滤掉隐藏的菜单
   const visibleMenus = menus.filter(menu => !menu.is_hidden)
 
-  return visibleMenus
-    .filter(menu => menu.menu_type === 'menu') // 只处理菜单类型
-    .map(menu => menuToRoute(menu))
+  return visibleMenus.map(menu => menuToRoute(menu))
 }
 
 /**
@@ -142,18 +183,12 @@ export function addRoutes(router, routes) {
     return
   }
 
-  // 将新路由添加到现有的home路由下
-  const homeRoute = router.getRoutes().find(route => route.path === '/home')
-  if (homeRoute) {
-    routes.forEach(route => {
-      router.addRoute('home', route)
-    })
-  } else {
-    // 如果找不到home路由，直接添加到根路由
-    routes.forEach(route => {
+  // 将新路由直接添加到根路由
+  routes.forEach(route => {
+    if (!router.hasRoute(route.name)) {
       router.addRoute(route)
-    })
-  }
+    }
+  })
 }
 
 /**

@@ -38,7 +38,8 @@ async def test_mysql_connection() -> bool:
             await test_engine.dispose()
             return True
     except Exception as e:
-        print(f"⚠️ MySQL连接测试失败: {e}")
+        from app.core.logger import logger
+        logger.warning(f"MySQL连接测试失败: {e}")
         return False
 
 
@@ -57,7 +58,8 @@ async def create_database_engine():
 
     # 尝试使用MySQL
     if settings.DATABASE_TYPE.lower() == "mysql":
-        print("🔄 尝试连接MySQL数据库...")
+        from app.core.logger import logger
+        logger.info("尝试连接MySQL数据库...")
         mysql_available = await test_mysql_connection()
 
         if mysql_available:
@@ -73,15 +75,16 @@ async def create_database_engine():
                 # 同时更新公共engine变量
                 engine = _engine
                 _current_database_type = "mysql"
-                print(f"✅ 成功使用MySQL数据库")
+                logger.info("成功使用MySQL数据库")
                 return _engine
             except Exception as e:
-                print(f"⚠️ MySQL引擎创建失败: {e}")
+                logger.warning(f"MySQL引擎创建失败: {e}")
         else:
-            print("⚠️ MySQL服务不可用，自动降级到SQLite")
+            logger.warning("MySQL服务不可用，自动降级到SQLite")
 
     # 降级到SQLite
-    print("🔄 使用SQLite数据库（降级模式）...")
+    from app.core.logger import logger
+    logger.info("使用SQLite数据库（降级模式）...")
 
     # 确保数据库目录存在
     db_path = settings.DATABASE_URL_SQLITE.replace("sqlite+aiosqlite:///", "")
@@ -96,7 +99,7 @@ async def create_database_engine():
     # 同时更新公共engine变量
     engine = _engine
     _current_database_type = "sqlite"
-    print(f"✅ 使用SQLite数据库: {settings.DATABASE_URL_SQLITE}")
+    logger.info(f"使用SQLite数据库: {settings.DATABASE_URL_SQLITE}")
 
     # 创建会话工厂
     AsyncSessionLocal = async_sessionmaker(

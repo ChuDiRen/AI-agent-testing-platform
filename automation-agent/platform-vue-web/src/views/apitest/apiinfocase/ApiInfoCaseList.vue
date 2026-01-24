@@ -61,7 +61,7 @@
 
 <script setup>
 import { ref, reactive } from "vue"
-import { queryByPage, deleteData, downloadTemplate } from './ApiInfoCase.js'
+import { queryByPage, deleteData, downloadTemplate } from '@/api/ApiInfoCase'
 import { useRouter } from "vue-router"
 import { Message } from '@/utils/message'
 import { useDeleteConfirm } from '@/composables/useDeleteConfirm'

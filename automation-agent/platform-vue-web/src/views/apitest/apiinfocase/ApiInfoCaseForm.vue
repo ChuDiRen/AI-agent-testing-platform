@@ -213,7 +213,7 @@
 
 <script lang="ts" setup>
 import { reactive, ref } from "vue";
-import { queryById, insertData, updateData } from "./ApiInfoCase.js"; // 不同页面不同的接口
+import { queryById, insertData, updateData } from "@/api/ApiInfoCase"; // 不同页面不同的接口
 import type { FormInstance, FormRules } from "element-plus";
 import { useRouter } from "vue-router";
 import { ElMessage } from 'element-plus';
@@ -261,7 +261,7 @@ const rules = reactive<any>({
 });
 
 // 加载对应的所有项目的数据
-import { queryAllProject as queryAllProject } from "../project/ApiProject.js"; // 不同页面不同的接口
+import { queryAllProject as queryAllProject } from "@/api/ApiProject"; // 不同页面不同的接口
 const projectList = ref([
   {
     id: 0,
@@ -388,7 +388,7 @@ const tmp_apiCaseStep = reactive({
 });
 
 // 2. 字段- 加载操作方法-关键字  
-import { queryAll as queryAllApiKey, queryAllKeyWordList as queryAllKeyWordList,} from "../keyword/ApiKeyWord.js"; // 不同页面不同的接口
+import { queryAll as queryAllApiKey, queryAllKeyWordList as queryAllKeyWordList,} from "@/api/ApiKeyWord"; // 不同页面不同的接口
   
 const keyWordAllList = ref([]); // 关键字类型+关键字-树形数据
 
@@ -442,8 +442,6 @@ function getKeyWordList() {
       }
     });
 
-    console.log("关键字数据加载完毕")
-    console.log(keyWordList.value)
   });
 
   // 请求接口2：加载对应的树状数据 
@@ -463,15 +461,13 @@ function getKeyWordList() {
         }
       });
     });
-    console.log("关键字类型+关键字-上下级树形数据加载完毕")
-    console.log(keyWordAllList.value)
   });
 }
 getKeyWordList();
 
 
 // 请求接口3：加载关键字类型
-import { queryAll } from "../keyword/ApiOperationType.js"; // 不同页面不同的接口
+import { queryAll } from "@/api/ApiOperationType"; // 不同页面不同的接口
 const operationTypeList = ref([
   {
     id: 0,
@@ -485,14 +481,11 @@ function getOperationTypeList() {
     operationTypeList.value = res.data.data;
   });
 
-  console.log("关键字类型-数据加载完毕")
-  console.log(operationTypeList.value)
 }
 getOperationTypeList();
 
 
 function findKeyWordById(key_word_id) { // 根据关键字ID查找关键字信息
-  console.log("根据ID查找关键字信息:" + key_word_id)
   var result = {}
   // 所以我们需要获取所有的关键字数据，可以添加到：getKeyWordList 方法中
   keyWordList.value.forEach((keyword, index) => {
@@ -503,23 +496,19 @@ function findKeyWordById(key_word_id) { // 根据关键字ID查找关键字信�
 
 //  当前用例步骤-添加事件
 const onStepAddKeyHandleChange = (value) => {
-  console.log("当前选择的数据是", value);
 
   //  选择对应的操作之后动态的修改提示信息 --  找到对应的关键字
   const foundItemKW = keyWordList.value.find(
     (item) => item.keyword_fun_name === value[1]
   );
-  console.log("当前需要查找的foundItemKW：",foundItemKW)
    
   //  选择对应的操作之后动态的修改提示信息 --  找到对应的操作类型
   const foundItemOP = operationTypeList.value.find(
     (item) => item.ex_fun_name === value[0]
   );
-  console.log("当前需要查找的foundItemOP：",foundItemOP)
 
   // 如果存在则赋值给 appCaseStep 对象 
   if (foundItemKW) {
-    console.log(foundItemKW.keyword_desc); // 输出找到的 keyword_desc
     tmp_apiCaseStep.keyword = foundItemKW;
   } else {
     console.log("没有找到 keyword_fun_name 对应的项");
@@ -544,7 +533,7 @@ const projectChange = (value: number) => {
 };
 
 
-import { queryByPage as queryApiInfoList } from "../apiinfo/ApiInfo.js"; // 不同页面不同的接口
+import { queryByPage as queryApiInfoList } from "@/api/ApiInfo"; // 不同页面不同的接口
 // TODO 拓展 加载接口信息
 const dataRequestList = ref([]);
 const loaddataRequestList = async () => {
@@ -555,7 +544,6 @@ const loaddataRequestList = async () => {
 
   queryApiInfoList(searchData).then(
       (res: { data: { data: never[]; total: number; msg: string } }) => {
-        console.log("-------接口信息查询返回值------", res.data.data);
         dataRequestList.value = [] // 清空已有的数据库信息
         dataRequestList.value.push(...res.data.data); // 重新放置新的接口数据库信息
       }
@@ -573,7 +561,7 @@ import {
   insertData as insertDataForStep,
   updateData as updateDataForStep,
   deleteData as deleteDataForStep,
-} from "./ApiInfoStep.js"; // 不同页面不同的接口
+} from "@/api/ApiInfoStep"; // 不同页面不同的接口
 
 
 function addApiInfoStep(data) {
@@ -621,7 +609,6 @@ function addApiInfoStep(data) {
             type: "info",
             callback: (action) => {
               // 用户点击“知道了”之后继续执行后续逻辑
-              console.log("用户已确认");
             }
           }
         );
@@ -632,7 +619,6 @@ function addApiInfoStep(data) {
         // 1. 获取 "_接口信息" 的值，例如 2
         const interfaceId = refVariable["_接口信息"];
 
-        console.log("=======接口ID：=======", interfaceId);
 
         // 2. 在 dataRequestList 中查找 id === interfaceId 的项
         const matchedRequest = dataRequestList.value.find(
@@ -642,11 +628,9 @@ function addApiInfoStep(data) {
         // 3. 如果找到了对应的接口数据，取出 debug_vars
         if (matchedRequest) {
           const debugVars = matchedRequest.debug_vars;
-          console.log("找到的 debug_vars:", debugVars);
 
           // 可以在这里进行后续操作，比如赋值给其他变量
           // apiInfo.param_data.push(...JSON.parse(debugVars));
-          console.log("======apiInfo.param_data:=======", apiInfo.param_data);
 
           JSON.parse(debugVars).forEach((data, index) => {
           apiInfo.param_data.push(data)
@@ -711,7 +695,6 @@ function loadCaseStep() {
 
 // 6-1 点击关联事件
 function findKeyWordByName(key_word_name) { // 根据关键字ID查找关键字信息
-  console.log("根据NAME查找关键字信息:" + key_word_name)
   var result = {}
   keyWordList.value.forEach((keyword, index) => {
     if (key_word_name == keyword.keyword_fun_name) result = keyword
@@ -724,10 +707,8 @@ const onStepKeyModifyChange = (index) => {
     (item) => item.keyword_fun_name === tableDataCaseStep.value[index].value[1]
   );
 
-  console.log("初始的关键字ID",tableDataCaseStep.value[index].key_word_id)
   // 当点击，则把对应的当前点击的ID 给当前值，方便后期修改数据
   tableDataCaseStep.value[index].key_word_id = foundItemKW.id
-  console.log("修改后的关键字ID",tableDataCaseStep.value[index].key_word_id)
 
   findKeyWordByName(tableDataCaseStep.value[index].value[1]).keyword_desc
 };
@@ -747,7 +728,6 @@ const onDelete = (id: number) => {
 
 // 当前用例步骤：修改
 function updateAppCaseStep(data) {
-  console.log("当前修改步骤的数据为",data)
   updateDataForStep({
     id: data.id,
     app_info_id: data.app_info_id,
@@ -768,7 +748,7 @@ function updateAppCaseStep(data) {
 
 
 // --------------------9.0 测试执行用例---------------------------
-import { excuteTest } from "./ApiInfoCase.js"; // 不同页面不同的接口
+import { excuteTest } from "@/api/ApiInfoCase"; // 不同页面不同的接口
 const okExecuteTest = () => {
   //  当没有数据则提示用户
   if (apiInfo.id < 1) {
@@ -792,7 +772,7 @@ const okExecuteTest = () => {
 // --------------------END 9.0 测试执行用例---------------------------
 
 
-import { queryByPage as queryByPageList } from "../project/DbBaseManage.js"; // 不同页面不同的接口
+import { queryByPage as queryByPageList } from "@/api/DbBaseManage"; // 不同页面不同的接口
 
 // TODO 拓展 加载数据库
 const databaseList = ref([]);
@@ -806,7 +786,6 @@ const loadDatabaseInfos = async () => {
   searchData["is_enabled"] = "1";
   queryByPageList(searchData).then(
       (res: { data: { data: never[]; total: number; msg: string } }) => {
-        console.log("-------数据库信息查询返回值------", res.data.data);
         databaseList.value = [] // 清空已有的数据库信息
         databaseList.value.push(...res.data.data); // 重新放置新的项目数据库信息
       }

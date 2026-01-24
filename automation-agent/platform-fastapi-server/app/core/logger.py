@@ -18,7 +18,7 @@ def setup_logger(name: str = "platform_fastapi", log_level: int = logging.INFO) 
         logging.Logger: 配置好的日志器
     """
     # 创建日志目录
-    log_dir = "logs"
+    log_dir = "app/data/logs"
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     

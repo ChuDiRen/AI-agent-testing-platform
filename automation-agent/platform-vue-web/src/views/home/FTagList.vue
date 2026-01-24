@@ -30,45 +30,52 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, onBeforeRouteUpdate, useRouter } from 'vue-router';
 import { useCookies } from '@vueuse/integrations/useCookies';
-import { useStore } from 'vuex';
+import { useAppStore, usePermissionStore } from '@/store/modules';
 
 const route = useRoute()
 const cookies = useCookies()
 const router = useRouter()
-const store = useStore()
+const appStore = useAppStore()
+const permissionStore = usePermissionStore()
 
 // 计算侧边栏宽度
-const asideWidth = computed(() => store.state.asideWidth || '250px')
+const asideWidth = computed(() => appStore.sidebarWidth || '250px')
 
 // 定义好当前绑定的数据就是route中的path
 const activeTab = ref(route.path)
 
-// 从菜单数据生成初始标签列表
+// 从Pinia store菜单数据生成初始标签列表
 const getInitialTabList = () => {
-  const menuData = store.state.userMenus
+  const menuRoutes = permissionStore.menus || []
   const tabs = []
-  
-  // 如果没有菜单数据，返回空数组，等待异步加载
-  if (!menuData || menuData.length === 0) {
+
+  // 如果没有菜单数据，返回空数组
+  if (!menuRoutes || menuRoutes.length === 0) {
     return []
   }
-  
-  // 递归提取所有有frontpath的菜单项
-  const extractMenuItems = (menus) => {
-    menus.forEach(menu => {
-      if (menu.frontpath && !menu.frontpath.endsWith("Form")) {
-        tabs.push({
-          title: menu.name,
-          path: menu.frontpath
+
+  // 从路由配置中提取菜单项
+  const extractMenuItems = (routes) => {
+    routes.forEach(route => {
+      if (route.children && route.children.length > 0) {
+        route.children.forEach(child => {
+          if (child.path && !child.isHidden && !child.path.endsWith("Form")) {
+            tabs.push({
+              title: child.meta?.title || child.name,
+              path: child.path
+            })
+          }
         })
-      }
-      if (menu.child && menu.child.length > 0) {
-        extractMenuItems(menu.child)
+      } else if (route.path && !route.isHidden && !route.path.endsWith("Form")) {
+        tabs.push({
+          title: route.meta?.title || route.name,
+          path: route.path
+        })
       }
     })
   }
-  
-  extractMenuItems(menuData)
+
+  extractMenuItems(menuRoutes)
   return tabs
 }
 
@@ -221,7 +228,7 @@ function clearAll(){
     } else {
         // 如果没有菜单数据，清空标签列表并跳转到首页
         tabList.value = []
-        router.push("/Statistics")
+        router.push("/home")
     }
 }
 // cookies全部清除但是要保留【主页信息 和 当前路径】

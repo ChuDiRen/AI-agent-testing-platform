@@ -106,7 +106,7 @@
 
 <script setup>
 import { ref, reactive } from "vue";
-import { queryById, insertData, updateData } from "./ApiCollectionInfo.js";
+import { queryById, insertData, updateData } from "@/api/ApiCollectionInfo";
 import { ElMessage } from "element-plus";
 import { useRouter } from "vue-router";
 
@@ -198,7 +198,7 @@ if (apicollection.id > 0) {
 }
 
 // 加载项目
-import { queryAllProject } from "../project/ApiProject.js";
+import { queryAllProject } from "@/api/ApiProject";
 const projectList = ref([{
   id: 0,
   project_name: '',
@@ -334,7 +334,7 @@ const onAddDdtParams = (case_scope_index, ddt_data_index) => {
 const robotsList = ref([]);
 const totalRobots = ref(0);
 
-import {queryByPage as querymsgrobots} from "./ApiRobotMsg.js";
+import {queryByPage as querymsgrobots} from "@/api/ApiRobotMsg";
 
 function loadMsgRobots() {
   const data = {
@@ -362,7 +362,7 @@ function getRobotTypeLabel(type) {
   }
 }
 
-import {deleteData as deleteRobotById} from './ApiRobotMsg.js';
+import {deleteData as deleteRobotById} from '@/api/ApiRobotMsg';
 const deleteRobot = (index) => {
   deleteRobotById(index).then((res) => { 
     loadMsgRobots()
@@ -408,7 +408,7 @@ function showAddRobotDialog() {
   }
 }
 
-import {queryByRobtPage} from "./ApiRobotMsg.js";
+import {queryByRobtPage} from "@/api/ApiRobotMsg";
 const availableRobotsList = ref([]);
 const searchRobotName = ref("");
 
@@ -426,7 +426,7 @@ const loadRobots = () => {
   });
 };
 
-import { insertData as insertRobot } from "./ApiRobotMsg.js";
+import { insertData as insertRobot } from "@/api/ApiRobotMsg";
 const addRobot = (index) => {
   const robotToAdd = availableRobotsList.value[index];
   let msgRobot = {
@@ -443,7 +443,7 @@ const addRobot = (index) => {
   availableRobotsList.value.splice(index, 1);
 };
 
-import { updateData as updateRobot } from "./ApiRobotMsg.js";
+import { updateData as updateRobot } from "@/api/ApiRobotMsg";
 const toggleRobotStatus = (row) => {
   updateRobot({
     "id": row.id,

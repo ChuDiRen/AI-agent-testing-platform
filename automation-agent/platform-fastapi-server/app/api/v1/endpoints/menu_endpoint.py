@@ -10,7 +10,7 @@ from app.models.menu import Menu
 from app.core.resp_model import respModel
 from app.core.exceptions import NotFoundException, BadRequestException
 from sqlalchemy import select, func
-from app.crud.menu import menu as menu_crud
+from app.services.menu import menu as menu_crud
 
 router = APIRouter(prefix="/menu", tags=["菜单管理"])
 

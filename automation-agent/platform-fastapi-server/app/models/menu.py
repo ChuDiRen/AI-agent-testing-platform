@@ -25,5 +25,7 @@ class Menu(Base):
     created_at = Column(DateTime, default=datetime.now, nullable=False, comment='创建时间')
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')
     
-    # 关系
+    # 关系 - RoleMenu关联对象
     roles = relationship("RoleMenu", back_populates="menu", cascade="all, delete-orphan")
+    # 直接获取Role对象（通过secondary关系）- 参考vue-fastapi-admin
+    role_objects = relationship("Role", secondary="t_role_menu", back_populates="menu_objects", viewonly=True)

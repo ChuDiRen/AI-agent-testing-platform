@@ -80,7 +80,7 @@
   
   <script setup>
   import { ref, reactive } from "vue";
-  import { queryById, insertData, updateData } from './ApiKeyWord.js'; // 不同页面不同的接口
+  import { queryById, insertData, updateData } from '@/api/ApiKeyWord'; // 不同页面不同的接口
   import { useRouter } from "vue-router";
   import Breadcrumb from "../../Breadcrumb.vue";
   const router = useRouter();
@@ -101,7 +101,7 @@
   });
   
   
-  import { queryAll } from "./ApiOperationType.js"; // 不同页面不同的接口
+  import { queryAll } from "@/api/ApiOperationType"; // 不同页面不同的接口
   const operationTypeList = ref([{
   id: 0,
   operation_type_name: '',
@@ -252,7 +252,7 @@ vars.placeholder = "";
 
 
 // ---------------------- 扩展功能：生成关键字文件方法---------------------------
-import {keywordFile as generateFile } from './ApiKeyWord.js'; // 不同页面不同的接口
+import {keywordFile as generateFile } from '@/api/ApiKeyWord'; // 不同页面不同的接口
 
 const keywordFile = async (form) => {
   if (!form) return;

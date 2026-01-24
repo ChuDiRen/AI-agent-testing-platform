@@ -11,9 +11,9 @@ from app.schemas.role import RoleCreate, RoleUpdate, RoleResponse, RoleAssignMen
 from app.core.resp_model import respModel
 from app.core.exceptions import NotFoundException, BadRequestException
 from sqlalchemy import select, func
-from app.crud.role import role as role_crud
-from app.crud.menu import menu as menu_crud
-from app.crud.api_resource import api_resource as api_crud
+from app.services.role import role as role_crud
+from app.services.menu import menu as menu_crud
+from app.services.api_resource import api_resource as api_crud
 from app.models.role_menu import RoleMenu
 from app.models.role_api import RoleApi
 

@@ -40,6 +40,5 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     """登录响应"""
     code: int
-    msg: str
-    data: UserResponse
     token: str
+    refreshToken: Optional[str] = None

@@ -5,6 +5,7 @@ from app.db.base import Base
 from app.models.user import User
 from app.models.role import Role
 from app.models.menu import Menu
+from app.models.api import Api
 from app.models.api_resource import ApiResource
 from app.models.dept import Dept
 from app.models.dept_closure import DeptClosure
@@ -36,6 +37,7 @@ __all__ = [
     "User",
     "Role",
     "Menu",
+    "Api",
     "ApiResource",
     "Dept",
     "DeptClosure",

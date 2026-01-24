@@ -10,7 +10,7 @@ from app.models.api_resource import ApiResource
 from app.core.resp_model import respModel
 from app.core.exceptions import NotFoundException
 from sqlalchemy import select, func
-from app.crud.api_resource import api_resource as api_crud
+from app.services.api_resource import api_resource as api_crud
 
 router = APIRouter(prefix="/api", tags=["API资源管理"])
 

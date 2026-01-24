@@ -77,7 +77,7 @@
 
 <script setup>
 import { ref, reactive } from "vue"
-import { queryByPage, deleteData } from './ApiInfo.js'
+import { queryByPage, deleteData } from '@/api/ApiInfo'
 import { useRouter } from "vue-router"
 import { Message } from '@/utils/message'
 import { useDeleteConfirm } from '@/composables/useDeleteConfirm'
@@ -150,7 +150,7 @@ const onDelete = async (index) => {
   )
 }
 
-import { queryAllProject } from "../project/ApiProject.js"
+import { queryAllProject } from "@/api/ApiProject"
 const projectList = ref([{
   id: 0,
   project_name: '',
@@ -179,7 +179,7 @@ const loadSwagger = () => {
   swaggerDialogVisible.value = true
 }
 
-import { doImportSwagger } from './ApiInfo.js'
+import { doImportSwagger } from '@/api/ApiInfo'
 const confirmSwaggerImport = () => {
   console.log("Swagger 导入信息:", swaggerForm)
   doImportSwagger(swaggerForm).then((res) => {

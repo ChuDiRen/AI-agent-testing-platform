@@ -10,7 +10,7 @@ from app.core.deps import get_db
 from app.models.audit_log import AuditLog
 from app.core.resp_model import respModel
 from sqlalchemy import select, func, and_, or_
-from app.crud.audit_log import audit_log as audit_log_crud
+from app.services.audit_log import audit_log as audit_log_crud
 
 router = APIRouter(prefix="/auditlog", tags=["审计日志管理"])
 

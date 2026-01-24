@@ -15,6 +15,7 @@ from app.api.v1.endpoints import (
     api_collection_info, 
     robot_config, 
     user, 
+    user_menu,
     swagger_import,
     api_project,
     api_db_base,
@@ -67,6 +68,7 @@ async def verify_token_middleware(request: Request, call_next):
     # 白名单路径
     whitelist = [
         "/login",
+        "/api/v1/login",
         "/docs",
         "/openapi.json",
         "/redoc",
@@ -107,7 +109,8 @@ async def verify_token_middleware(request: Request, call_next):
 
 # 注册路由
 app.include_router(
-    login.router
+    login.router,
+    prefix="/api/v1"
 )
 
 app.include_router(
@@ -137,6 +140,11 @@ app.include_router(
 
 app.include_router(
     user.router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    user_menu.router,
     prefix="/api/v1"
 )
 
@@ -229,25 +237,24 @@ app.include_router(
 @app.on_event("startup")
 async def startup_event():
     """应用启动事件"""
-    print("=" * 60)
-    print("FastAPI 应用启动中...")
-    print("=" * 60)
+    from app.core.logger import logger
+    logger.info("FastAPI 应用启动中...")
     
     # 初始化统一缓存管理器（Redis→内存缓存自动降级）
     try:
         from app.core.unified_cache import cache_manager
         await cache_manager.initialize()
         cache_type = cache_manager.get_backend_type()
-        print(f"✅ 缓存管理器初始化成功: {cache_type}")
+        logger.info(f"缓存管理器初始化成功: {cache_type}")
     except Exception as e:
-        print(f"❌ 缓存管理器初始化失败: {e}")
+        logger.error(f"缓存管理器初始化失败: {e}")
     
     # 初始化统一队列管理器（RabbitMQ→内存队列自动降级）
     try:
         from app.core.unified_queue import queue_manager
         await queue_manager.initialize()
         queue_type = queue_manager.get_backend_type()
-        print(f"✅ 队列管理器初始化成功: {queue_type}")
+        logger.info(f"队列管理器初始化成功: {queue_type}")
         
         # 定义队列消息处理回调
         from app.core.logger import logger
@@ -280,49 +287,50 @@ async def startup_event():
         
         # 启动所有队列消费者
         await queue_manager.start_all(queue_configs)
-        print("✅ 队列消费者已启动")
+        logger.info("队列消费者已启动")
     except Exception as e:
-        print(f"❌ 队列管理器初始化失败: {e}")
+        logger.error(f"队列管理器初始化失败: {e}")
     
     # 初始化数据库（MySQL→SQLite自动降级）
     try:
+        from app.core.logger import logger
         from app.db.session import create_database_engine, get_database_type
         await create_database_engine()
         from app.db.init_db import init_database
         await init_database()
         db_type = get_database_type()
-        print(f"✅ 数据库初始化成功: {db_type}")
+        logger.info(f"数据库初始化成功: {db_type}")
     except Exception as e:
-        print(f"❌ 数据库初始化失败: {e}")
+        from app.core.logger import logger
+        logger.error(f"数据库初始化失败: {e}")
         # 数据库初始化失败不影响应用启动，继续启动
     
-    print("=" * 60)
-    print("FastAPI 应用启动完成!")
-    print("=" * 60)
-    print(f"API 文档: http://localhost:8000/docs")
-    print(f"ReDoc 文档: http://localhost:8000/redoc")
+    logger.info("FastAPI 应用启动完成!")
+    logger.info(f"API 文档: http://localhost:8000/docs")
+    logger.info(f"ReDoc 文档: http://localhost:8000/redoc")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """应用关闭事件"""
-    print("FastAPI 应用关闭中...")
+    from app.core.logger import logger
+    logger.info("FastAPI 应用关闭中...")
     
     # 停止队列管理器
     try:
         from app.core.unified_queue import queue_manager
         await queue_manager.stop_all()
-        print("✅ 队列管理器已停止")
+        logger.info("队列管理器已停止")
     except Exception as e:
-        print(f"❌ 停止队列管理器失败: {e}")
+        logger.error(f"停止队列管理器失败: {e}")
     
     # 关闭缓存管理器
     try:
         from app.core.unified_cache import cache_manager
         await cache_manager.close()
-        print("✅ 缓存管理器已关闭")
+        logger.info("缓存管理器已关闭")
     except Exception as e:
-        print(f"❌ 关闭缓存管理器失败: {e}")
+        logger.error(f"关闭缓存管理器失败: {e}")
 
 
 @app.get("/")
@@ -335,4 +343,3 @@ async def root():
 async def health():
     """健康检查"""
     return {"status": "healthy", "framework": "FastAPI", "version": "1.0.0"}
-

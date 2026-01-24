@@ -2,7 +2,7 @@
 登录服务
 """
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.crud.user import user
+from app.services.user import user
 from app.core.security import create_access_token
 from app.core.exceptions import UnauthorizedException
 
@@ -39,9 +39,8 @@ class LoginService:
         if not db_user.check_password(password):
             raise UnauthorizedException("密码错误")
         
-        # 生成 Token
         access_token = create_access_token(
-            data={"username": username, "password": password}
+            data={"username": username, "user_id": db_user.id}
         )
         
         return db_user, access_token

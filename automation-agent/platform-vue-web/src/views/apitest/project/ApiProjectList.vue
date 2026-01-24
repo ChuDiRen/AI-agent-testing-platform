@@ -94,7 +94,7 @@
 <script setup>
 // 1. 其他功能拓展
 import { ref, reactive, compile } from "vue";
-import { queryByPage, deleteData } from "./ApiProject.js"; // 不同页面不同的接口
+import { queryByPage, deleteData } from "@/api/ApiProject"; // 不同页面不同的接口
 import { useRouter } from "vue-router";
 import { Message } from '@/utils/message'
 import { useDeleteConfirm } from '@/composables/useDeleteConfirm'

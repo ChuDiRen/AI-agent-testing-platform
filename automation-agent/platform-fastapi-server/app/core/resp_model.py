@@ -178,6 +178,5 @@ class RespModel(BaseModel):
                 custom_attributes[attribute] = value
         return custom_attributes
 
-
-# 向后兼容的别名
+# 别名
 respModel = RespModel

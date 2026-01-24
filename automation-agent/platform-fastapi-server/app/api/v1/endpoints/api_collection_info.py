@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from app.core.deps import get_db
-from app.crud.api_collection_info import api_collection_info_crud
+from app.services.api_collection_info import api_collection_info_crud
 from app.schemas.api_collection_info import ApiCollectionInfoCreate, ApiCollectionInfoUpdate, ApiCollectionInfoResponse
 from app.core.resp_model import respModel
 from app.core.exceptions import NotFoundException, BadRequestException

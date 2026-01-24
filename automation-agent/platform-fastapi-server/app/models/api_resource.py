@@ -2,7 +2,6 @@
 API资源模型
 """
 from sqlalchemy import Column, Integer, String, DateTime
-from sqlalchemy.orm import relationship
 from app.db.base import Base
 from datetime import datetime
 
@@ -18,6 +17,3 @@ class ApiResource(Base):
     tags = Column(String(200), nullable=True, comment='API标签（用逗号分隔）')
     created_at = Column(DateTime, default=datetime.now, nullable=False, comment='创建时间')
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False, comment='更新时间')
-    
-    # 关系
-    roles = relationship("RoleApi", back_populates="api", cascade="all, delete-orphan")

@@ -83,7 +83,7 @@
   
 <script setup>
 import { ref, reactive } from "vue"
-import { queryByPage, deleteData } from "./ApiKeyWord.js"
+import { queryByPage, deleteData } from "@/api/ApiKeyWord"
 import { useRouter } from "vue-router"
 import { Message } from '@/utils/message'
 import { useDeleteConfirm } from '@/composables/useDeleteConfirm'

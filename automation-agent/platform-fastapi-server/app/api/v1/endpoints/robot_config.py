@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from app.core.deps import get_db
-from app.crud.robot_config import robot_config_crud
+from app.services.robot_config import robot_config_crud
 from app.schemas.robot_config import RobotConfigCreate, RobotConfigUpdate, RobotConfigResponse
 from app.core.resp_model import respModel
 from app.core.exceptions import NotFoundException, BadRequestException

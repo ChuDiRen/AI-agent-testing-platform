@@ -64,7 +64,7 @@
 
 <script setup>
 import { ref, reactive } from "vue"
-import { queryByPage, deleteData } from './ApiMateManage.js'
+import { queryByPage, deleteData } from '@/api/ApiMateManage'
 import { useRouter } from "vue-router"
 import { Message } from '@/utils/message'
 import { useDeleteConfirm } from '@/composables/useDeleteConfirm'
@@ -156,7 +156,7 @@ const copyMaterialUrl = (index) => {
   })
 }
 
-import { queryAllProject } from "../project/ApiProject.js"
+import { queryAllProject } from "@/api/ApiProject"
 function getProjectList() {
   queryAllProject().then((res) => {
     projectList.value = res.data.data

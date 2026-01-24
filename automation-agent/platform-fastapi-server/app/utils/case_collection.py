@@ -84,7 +84,8 @@ class CaseCollection:
                 data = json.load(f)
                 return data
         except Exception as e:
-            print(f"解析结果文件失败: {e}")
+            from app.core.logger import logger
+            logger.error(f"解析结果文件失败: {e}")
             return {}
     
     @staticmethod
@@ -101,14 +102,15 @@ class CaseCollection:
         try:
             return os.listdir(report_dir)
         except Exception as e:
-            print(f"列出报告文件失败: {e}")
+            from app.core.logger import logger
+            logger.error(f"列出报告文件失败: {e}")
             return []
     
     @staticmethod
     def create_history_records(
         coll_type: str,
         case_collection_info: Dict[str, Any],
-        execution_data: Dict[str, Any]
+        execution_data: Dict[str, Any],
         report_dir: str
     ) -> Dict[str, Any]:
         """

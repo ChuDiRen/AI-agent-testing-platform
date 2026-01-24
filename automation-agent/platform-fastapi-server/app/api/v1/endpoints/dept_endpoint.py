@@ -10,7 +10,7 @@ from app.models.dept import Dept
 from app.core.resp_model import respModel
 from app.core.exceptions import NotFoundException, BadRequestException
 from sqlalchemy import select, func
-from app.crud.dept import dept as dept_crud
+from app.services.dept import dept as dept_crud
 
 router = APIRouter(prefix="/dept", tags=["部门管理"])
 
