@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from app.core.deps import get_db
 from app.models.api_resource import ApiResource
-from app.core.resp_model import respModel
+from app.core.resp_model import RespModel, ResponseModel
 from app.core.exceptions import NotFoundException
 from sqlalchemy import select, func
 from app.services.api_resource import api_resource as api_crud
@@ -15,18 +15,18 @@ from app.services.api_resource import api_resource as api_crud
 router = APIRouter(prefix="/api", tags=["API资源管理"])
 
 
-@router.get("/queryAll", response_model=respModel)
+@router.get("/queryAll", response_model=ResponseModel)
 async def query_all(db: AsyncSession = Depends(get_db)):
     """查询所有API资源"""
     try:
         result = await db.execute(select(ApiResource))
         items = result.scalars().all()
-        return respModel().ok_resp_list(lst=items, msg="查询成功")
+        return RespModel.success(data=items, msg="查询成功")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.post("/queryByPage", response_model=respModel)
+@router.post("/queryByPage", response_model=ResponseModel)
 async def query_by_page(
     *,
     page: int = Query(1, ge=1, description='页码'),
@@ -59,12 +59,12 @@ async def query_by_page(
         result = await db.execute(query)
         items = result.scalars().all()
         
-        return respModel().ok_resp_list(lst=items, total=total)
+        return RespModel.success(data=items, total=total)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.get("/queryById", response_model=respModel)
+@router.get("/queryById", response_model=ResponseModel)
 async def query_by_id(
     *,
     id: int = Query(..., ge=1, description='API资源ID'),
@@ -76,14 +76,14 @@ async def query_by_id(
         item = result.scalars().first()
         if not item:
             raise NotFoundException("API资源不存在")
-        return respModel().ok_resp(obj=item, msg="查询成功")
+        return RespModel.success(data=item, msg="查询成功")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.post("/insert", response_model=respModel)
+@router.post("/insert", response_model=ResponseModel)
 async def insert(
     *,
     api_data: dict,
@@ -103,13 +103,13 @@ async def insert(
         await db.flush()  # 获取ID
         await db.commit()
         
-        return respModel().ok_resp(dic_t={"id": api.id}, msg="添加成功")
+        return RespModel.success(data={"id": api.id}, msg="添加成功")
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"添加失败: {str(e)}")
 
 
-@router.post("/batchInsert", response_model=respModel)
+@router.post("/batchInsert", response_model=ResponseModel)
 async def batch_insert(
     *,
     api_list: List[dict],
@@ -130,13 +130,13 @@ async def batch_insert(
             api_ids.append(api.id)
         
         await db.commit()
-        return respModel().ok_resp(dic_t={"ids": api_ids, "count": len(api_ids)}, msg=f"成功添加{len(api_ids)}条记录")
+        return RespModel.success(data={"ids": api_ids, "count": len(api_ids)}, msg=f"成功添加{len(api_ids)}条记录")
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"批量添加失败: {str(e)}")
 
 
-@router.put("/update", response_model=respModel)
+@router.put("/update", response_model=ResponseModel)
 async def update(
     *,
     api_data: dict,
@@ -161,7 +161,7 @@ async def update(
             api.desc = api_data['desc']
         
         await db.commit()
-        return respModel().ok_resp(msg="修改成功")
+        return RespModel.success(msg="修改成功")
     except HTTPException:
         await db.rollback()
         raise
@@ -170,7 +170,7 @@ async def update(
         raise HTTPException(status_code=500, detail=f"修改失败: {str(e)}")
 
 
-@router.delete("/delete", response_model=respModel)
+@router.delete("/delete", response_model=ResponseModel)
 async def delete(
     *,
     id: int = Query(..., ge=1, description='API资源ID'),
@@ -185,7 +185,7 @@ async def delete(
         
         await db.delete(api)
         await db.commit()
-        return respModel().ok_resp(msg="删除成功")
+        return RespModel.success(msg="删除成功")
     except HTTPException:
         await db.rollback()
         raise
@@ -194,7 +194,7 @@ async def delete(
         raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
 
 
-@router.post("/refresh", response_model=respModel)
+@router.post("/refresh", response_model=ResponseModel)
 async def refresh(
     *,
     data: dict,
@@ -212,7 +212,7 @@ async def refresh(
         # 这里需要根据实际项目API结构来实现
         
         # 临时返回成功响应
-        return respModel().ok_resp(msg="刷新成功")
+        return RespModel.success(msg="刷新成功")
     except HTTPException:
         raise
     except Exception as e:

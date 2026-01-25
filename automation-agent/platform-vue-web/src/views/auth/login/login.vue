@@ -109,9 +109,9 @@
 
 <script setup>
 // 导入响应式模块
-import { ref,reactive } from "vue";
+import { ref,reactive, nextTick } from "vue";
 // 导入route管理
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 // 导入Pinia store
 import { useUserStore, usePermissionStore } from "@/store/modules";
 //  导入登录的脚本
@@ -119,6 +119,7 @@ import loginApi from "@/api/loginApi";
 import { ElMessage } from "element-plus";
 // 实例化对象
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 const permissionStore = usePermissionStore();
 
@@ -142,49 +143,45 @@ const formRef =ref(null)
 // 第二步：进行数据校验
 const onSubmit = () => {
   // 执行对应的数据校验
-  console.log(formRef.value.validate); // 回调函数...执行一遍之后结果可以当参数传递
-  // 函数即可调用
   formRef.value.validate((valid)=>{
-    console.log(valid) // 无数据返回：false；否则返回：true
-    // 接下来我们就可以在这个位置写逻辑
     if(!valid){
-      console.log("校验不通过")
-      return false // 如果是false ，则直接返回
+      return false
     }
-    console.log("校验通过")
+    
     // 验证通过之后进行开始发送请求
     loginApi.login({ username: form.username, password: form.password })
     .then(async res=>{
-      console.log("当前的响应数据：",res.data.token)
 
       if(res.data.code ==200 && res.data.token){
       localStorage.setItem('token', res.data.token);
-      if(res.data.refreshToken){
+
         localStorage.setItem('refreshToken', res.data.refreshToken);
       }
       localStorage.setItem('username', form.username);
-      console.log("登录成功，token 和 refreshToken 已保存")
       
-      // 加载用户信息和权限到 store
+      // 加载用户信息到 store（不生成路由，由路由守卫处理）
       try {
         await userStore.getUserInfo()
-        await permissionStore.generateRoutes()
-        await permissionStore.getAccessApis()
-        console.log("用户信息、菜单和权限已加载")
+        
+        // 等待下一个tick确保状态更新
+        await nextTick()
+        
+        // 跳转逻辑：如果有redirect参数则跳转到指定页面，否则跳转到根路径
+        const redirect = route.query.redirect
+        if (redirect) {
+          router.push(redirect)
+        } else {
+          router.push('/')
+        }
       } catch (error) {
-        console.error("加载用户信息失败:", error)
+        // 加载用户信息失败处理
       }
       
-      // 跳转到首页
-      router.push("/home");
       ElMessage.success("登录成功！");
-      }
     })
     .catch(err=>{
-       console.log(err)
        ElMessage.error('登录失败，请检查用户名和密码');
     })
-    // router.push("/home")// 假设我们跳转到主页面
   })
 };
 </script>

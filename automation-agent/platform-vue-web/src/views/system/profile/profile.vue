@@ -119,7 +119,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
-import axios from '~/axios.js';
+import axios from '@/axios.js';
 import loginApi from '@/api/loginApi';
 
 const isEditing = ref(false);
@@ -185,7 +185,7 @@ const fetchUserProfile = async () => {
       Object.assign(userInfo, response.data.data);
     }
   } catch (error) {
-    console.error('获取用户信息失败:', error);
+    // 获取用户信息失败处理
   }
 };
 

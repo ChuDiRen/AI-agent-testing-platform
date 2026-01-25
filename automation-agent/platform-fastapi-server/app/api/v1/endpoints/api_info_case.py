@@ -8,23 +8,23 @@ from typing import List, Optional
 from app.core.deps import get_db
 from app.services.api_info_case import api_info_case_crud
 from app.schemas.api_info_case import ApiInfoCaseCreate, ApiInfoCaseUpdate, ApiInfoCaseResponse
-from app.core.resp_model import respModel
+from app.core.resp_model import RespModel, ResponseModel
 from app.core.exceptions import NotFoundException, BadRequestException
 
 router = APIRouter(prefix="/ApiInfoCase", tags=["API测试用例"])
 
 
-@router.get("/queryAll", response_model=respModel)
+@router.get("/queryAll", response_model=ResponseModel)
 async def query_all(db: AsyncSession = Depends(get_db)):
     """查询所有测试用例"""
     try:
         items = await api_info_case_crud.get_multi(db)
-        return respModel().ok_resp_list(lst=items, msg="查询成功")
+        return RespModel.success(data=items, msg="查询成功")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.post("/queryByPage", response_model=respModel)
+@router.post("/queryByPage", response_model=ResponseModel)
 async def query_by_page(
     *,
     page: int = Query(1, ge=1, description='页码'),
@@ -42,12 +42,12 @@ async def query_by_page(
             project_id=project_id,
             case_name=case_name
         )
-        return respModel().ok_resp_list(lst=items, total=total)
+        return RespModel.success(data=items, total=total)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.get("/queryById", response_model=respModel)
+@router.get("/queryById", response_model=ResponseModel)
 async def query_by_id(
     *,
     id: int = Query(..., ge=1, description='测试用例ID'),
@@ -58,14 +58,14 @@ async def query_by_id(
         item = await api_info_case_crud.get(db, id=id)
         if not item:
             raise NotFoundException("测试用例不存在")
-        return respModel().ok_resp(obj=item, msg="查询成功")
+        return RespModel.success(data=item, msg="查询成功")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.post("/insert", response_model=respModel)
+@router.post("/insert", response_model=ResponseModel)
 async def insert(
     *,
     case_data: ApiInfoCaseCreate,
@@ -74,12 +74,12 @@ async def insert(
     """创建测试用例"""
     try:
         item = await api_info_case_crud.create(db, obj_in=case_data)
-        return respModel().ok_resp(dic_t={"id": item.id}, msg="添加成功")
+        return RespModel.success(data={"id": item.id}, msg="添加成功")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"添加失败: {str(e)}")
 
 
-@router.put("/update", response_model=respModel)
+@router.put("/update", response_model=ResponseModel)
 async def update(
     *,
     id: int = Query(..., ge=1, description='测试用例ID'),
@@ -93,14 +93,14 @@ async def update(
             raise NotFoundException("测试用例不存在")
         
         updated_item = await api_info_case_crud.update(db, db_obj=item, obj_in=case_data)
-        return respModel().ok_resp(msg="修改成功")
+        return RespModel.success(msg="修改成功")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"修改失败: {str(e)}")
 
 
-@router.delete("/delete", response_model=respModel)
+@router.delete("/delete", response_model=ResponseModel)
 async def delete(
     *,
     id: int = Query(..., ge=1, description='测试用例ID'),
@@ -113,14 +113,14 @@ async def delete(
             raise NotFoundException("测试用例不存在")
         
         await api_info_case_crud.remove(db, id=id)
-        return respModel().ok_resp(msg="删除成功")
+        return RespModel.success(msg="删除成功")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
 
 
-@router.post("/debugTest", response_model=respModel)
+@router.post("/debugTest", response_model=ResponseModel)
 async def debug_test(
     *,
     id: int = Query(..., ge=1, description='测试用例ID'),
@@ -282,12 +282,12 @@ async def debug_test(
                 "report_path": f"/report/{execute_uuid}/"
             }
             
-            return respModel().ok_resp(
-                dic_t=execution_result,
+            return RespModel.success(
+                data=execution_result,
                 msg="测试用例调试执行成功"
             )
         except Exception as exec_error:
-            return respModel().error_resp(f"测试用例执行失败: {str(exec_error)}")
+            return RespModel.error(f"测试用例执行失败: {str(exec_error)}")
             
     except HTTPException:
         raise
@@ -295,7 +295,7 @@ async def debug_test(
         raise HTTPException(status_code=500, detail=f"调试测试失败: {str(e)}")
 
 
-@router.post("/uploadFile", response_model=respModel)
+@router.post("/uploadFile", response_model=ResponseModel)
 async def upload_file(
     *,
     file: UploadFile = File(..., description='XMind文件'),
@@ -391,8 +391,8 @@ async def upload_file(
                         await db.rollback()
                         continue
             
-            return respModel().ok_resp(
-                lst=created_cases,
+            return RespModel.success(
+                data=created_cases,
                 msg=f"成功解析并创建{len(created_cases)}个测试用例"
             )
             

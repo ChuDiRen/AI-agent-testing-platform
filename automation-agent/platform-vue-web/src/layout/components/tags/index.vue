@@ -50,7 +50,7 @@ const getInitialTabList = () => {
 
 // 添加标签
 const addTab = (tab) => {
-  if (!tab.path.endsWith('Form') && !tabList.value.find(t => t.path === tab.path)) {
+  if (!tabList.value.find(t => t.path === tab.path)) {
     tabList.value.push(tab)
     localStorage.setItem('tabList', JSON.stringify(tabList.value))
   }
@@ -58,10 +58,8 @@ const addTab = (tab) => {
 
 // 切换标签
 const changeTab = (path) => {
-  if (!path.endsWith('Form')) {
-    activeTab.value = path
-    router.push(path).catch(() => {})
-  }
+  activeTab.value = path
+  router.push(path).catch(() => {})
 }
 
 // 删除标签
@@ -94,10 +92,8 @@ const clearOther = () => {
 
 // 路由更新时添加标签
 onBeforeRouteUpdate((to) => {
-  if (!to.path.endsWith('Form')) {
-    activeTab.value = to.path
-    addTab({ title: to.meta?.title || to.name, path: to.path })
-  }
+  activeTab.value = to.path
+  addTab({ title: to.meta?.title || to.name, path: to.path })
 })
 
 // 初始化

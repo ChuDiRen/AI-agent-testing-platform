@@ -87,7 +87,7 @@ const goToProfile = () => {
 }
 
 const goToSettings = () => {
-  router.push('/settings')
+  router.push('/system/settings')
 }
 
 const handleLogout = () => {

@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from app.core.deps import get_db
-from app.core.resp_model import respModel
+from app.core.resp_model import RespModel, ResponseModel
 from app.core.exceptions import NotFoundException, BadRequestException
 from sqlalchemy import select
 from datetime import datetime
@@ -17,7 +17,7 @@ import os
 router = APIRouter(prefix="/ApiReportViewer", tags=["API报告查看器"])
 
 
-@router.get("/queryAll", response_model=respModel)
+@router.get("/queryAll", response_model=ResponseModel)
 async def query_all(db: AsyncSession = Depends(get_db)):
     """查询所有报告"""
     try:
@@ -46,12 +46,12 @@ async def query_all(db: AsyncSession = Depends(get_db)):
                 "status": "completed"
             }
         ]
-        return respModel().ok_resp_list(lst=reports, msg="查询成功")
+        return RespModel.success(data=reports, msg="查询成功")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.post("/queryByPage", response_model=respModel)
+@router.post("/queryByPage", response_model=ResponseModel)
 async def query_by_page(
     *,
     page: int = Query(1, ge=1, description='页码'),
@@ -77,12 +77,12 @@ async def query_by_page(
             }
         ]
         total = 1
-        return respModel().ok_resp_list(lst=reports, total=total)
+        return RespModel.success(data=reports, total=total)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.get("/queryById", response_model=respModel)
+@router.get("/queryById", response_model=ResponseModel)
 async def query_by_id(
     *,
     id: int = Query(..., ge=1, description='报告ID'),
@@ -118,12 +118,12 @@ async def query_by_id(
                 }
             ]
         }
-        return respModel().ok_resp(obj=report_detail, msg="查询成功")
+        return RespModel.success(data=report_detail, msg="查询成功")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.get("/generate_report", response_model=respModel)
+@router.get("/generate_report", response_model=ResponseModel)
 async def generate_report(
     *,
     project_id: Optional[int] = Query(None, description='项目ID'),
@@ -141,12 +141,12 @@ async def generate_report(
             "status": "generating",
             "message": "报告生成中，请稍后查看"
         }
-        return respModel().ok_resp(dic_t=report_data, msg="报告生成请求已提交")
+        return RespModel.success(data=report_data, msg="报告生成请求已提交")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"报告生成失败: {str(e)}")
 
 
-@router.get("/download_report", response_model=respModel)
+@router.get("/download_report", response_model=ResponseModel)
 async def download_report(
     *,
     id: int = Query(..., ge=1, description='报告ID'),
@@ -163,7 +163,7 @@ async def download_report(
             "format": format,
             "expires": "2024-01-15 23:59:59"
         }
-        return respModel().ok_resp(dic_t=report_data, msg="报告下载链接已生成")
+        return RespModel.success(data=report_data, msg="报告下载链接已生成")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"报告下载失败: {str(e)}")
 

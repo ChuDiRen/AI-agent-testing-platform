@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from app.core.deps import get_db
 from app.models.dept import Dept
-from app.core.resp_model import respModel
+from app.core.resp_model import RespModel, ResponseModel
 from app.core.exceptions import NotFoundException, BadRequestException
 from sqlalchemy import select, func
 from app.services.dept import dept as dept_crud
@@ -15,17 +15,17 @@ from app.services.dept import dept as dept_crud
 router = APIRouter(prefix="/dept", tags=["部门管理"])
 
 
-@router.get("/queryAll", response_model=respModel)
+@router.get("/queryAll", response_model=ResponseModel)
 async def query_all(db: AsyncSession = Depends(get_db)):
     """查询所有部门（树形结构）"""
     try:
         depts = await dept_crud.get_tree(db, parent_id=0)
-        return respModel().ok_resp_tree(treeData=depts, msg="查询成功")
+        return RespModel.success(data=depts, msg="查询成功")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.post("/queryByPage", response_model=respModel)
+@router.post("/queryByPage", response_model=ResponseModel)
 async def query_by_page(
     *,
     page: int = Query(1, ge=1, description='页码'),
@@ -52,12 +52,12 @@ async def query_by_page(
         result = await db.execute(query)
         items = result.scalars().all()
         
-        return respModel().ok_resp_list(lst=items, total=total)
+        return RespModel.success(data=items, total=total)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.get("/queryById", response_model=respModel)
+@router.get("/queryById", response_model=ResponseModel)
 async def query_by_id(
     *,
     id: int = Query(..., ge=1, description='部门ID'),
@@ -69,14 +69,14 @@ async def query_by_id(
         item = result.scalars().first()
         if not item:
             raise NotFoundException("部门不存在")
-        return respModel().ok_resp(obj=item, msg="查询成功")
+        return RespModel.success(data=item, msg="查询成功")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.get("/tree", response_model=respModel)
+@router.get("/tree", response_model=ResponseModel)
 async def get_tree(
     *,
     parentId: int = Query(0, description='父部门ID'),
@@ -85,12 +85,12 @@ async def get_tree(
     """获取部门树"""
     try:
         depts = await dept_crud.get_tree(db, parent_id=parentId)
-        return respModel().ok_resp_tree(treeData=depts, msg="查询成功")
+        return RespModel.success(data=depts, msg="查询成功")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.get("/queryTree", response_model=respModel)
+@router.get("/queryTree", response_model=ResponseModel)
 async def query_tree(
     *,
     parentId: int = Query(0, description='父部门ID'),
@@ -100,7 +100,7 @@ async def query_tree(
     return await get_tree(parentId=parentId, db=db)
 
 
-@router.post("/insert", response_model=respModel)
+@router.post("/insert", response_model=ResponseModel)
 async def insert(
     *,
     dept_data: dict,
@@ -123,13 +123,13 @@ async def insert(
         await db.flush()  # 获取ID
         await db.commit()
         
-        return respModel().ok_resp(dic_t={"id": dept.id}, msg="添加成功")
+        return RespModel.success(data={"id": dept.id}, msg="添加成功")
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"添加失败: {str(e)}")
 
 
-@router.put("/update", response_model=respModel)
+@router.put("/update", response_model=ResponseModel)
 async def update(
     *,
     dept_data: dict,
@@ -160,7 +160,7 @@ async def update(
             dept.order = dept_data['order']
         
         await db.commit()
-        return respModel().ok_resp(msg="修改成功")
+        return RespModel.success(msg="修改成功")
     except HTTPException:
         await db.rollback()
         raise
@@ -169,7 +169,7 @@ async def update(
         raise HTTPException(status_code=500, detail=f"修改失败: {str(e)}")
 
 
-@router.delete("/delete", response_model=respModel)
+@router.delete("/delete", response_model=ResponseModel)
 async def delete(
     *,
     id: int = Query(..., ge=1, description='部门ID'),
@@ -189,7 +189,7 @@ async def delete(
         
         await db.delete(dept)
         await db.commit()
-        return respModel().ok_resp(msg="删除成功")
+        return RespModel.success(msg="删除成功")
     except HTTPException:
         await db.rollback()
         raise

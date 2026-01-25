@@ -4,19 +4,19 @@
     <el-menu
       :default-active="activeMenu"
       :collapse="appStore.collapsed"
-      :unique-opened="true"
-      :collapse-transition="false"
+      :unique-opened="menuConfig.behavior.uniqueOpened"
+      :collapse-transition="menuConfig.behavior.collapseTransition"
       class="sidebar-menu"
     >
       <template v-for="menu in permissionStore.menus" :key="menu.path">
         <!-- 有子菜单 -->
-        <el-sub-menu v-if="menu.children && menu.children.length > 0" :index="menu.path">
+        <el-sub-menu v-if="hasVisibleChildren(menu)" :index="menu.path">
           <template #title>
             <el-icon v-if="menu.meta?.icon"><component :is="menu.meta.icon" /></el-icon>
             <span>{{ menu.meta?.title || menu.name }}</span>
           </template>
           <el-menu-item
-            v-for="child in menu.children.filter(c => !c.isHidden)"
+            v-for="child in getVisibleChildren(menu)"
             :key="child.path"
             :index="child.path"
             @click="handleMenuClick(menu.path, child.path)"
@@ -40,6 +40,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/store/modules/app'
 import { usePermissionStore } from '@/store/modules/permission'
+import { menuConfig } from '@/config/menu-config'
 
 const route = useRoute()
 const router = useRouter()
@@ -47,14 +48,39 @@ const appStore = useAppStore()
 const permissionStore = usePermissionStore()
 
 // 当前激活的菜单
-const activeMenu = computed(() => route.path)
+const activeMenu = computed(() => {
+  return route.path
+})
 
 // 菜单点击处理
 const handleMenuClick = (parentPath, childPath) => {
-  const path = childPath ? `${parentPath}/${childPath}`.replace('//', '/') : parentPath
+  // 如果有子路径，构建完整路径；否则使用父路径
+  let path
+  if (childPath) {
+    // 子路径是相对路径，需要与父路径拼接
+    path = `${parentPath}/${childPath}`.replace('//', '/')
+  } else {
+    path = parentPath
+  }
   if (route.path !== path) {
     router.push(path)
   }
+}
+
+// 检查是否有可见的子菜单
+const hasVisibleChildren = (menu) => {
+  if (!menu.children || menu.children.length === 0) {
+    return false
+  }
+  return menu.children.some(child => !child.isHidden)
+}
+
+// 获取可见的子菜单
+const getVisibleChildren = (menu) => {
+  if (!menu.children) {
+    return []
+  }
+  return menu.children.filter(child => !child.isHidden)
 }
 </script>
 

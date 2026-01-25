@@ -8,25 +8,25 @@ from typing import List, Optional
 from app.core.deps import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate, UserResponse
-from app.core.resp_model import respModel
+from app.core.resp_model import RespModel, ResponseModel
 from app.core.exceptions import NotFoundException, BadRequestException
 from sqlalchemy import select, func
 
 router = APIRouter(prefix="/user", tags=["用户管理"])
 
 
-@router.get("/queryAll", response_model=respModel)
+@router.get("/queryAll", response_model=ResponseModel)
 async def query_all(db: AsyncSession = Depends(get_db)):
     """查询所有用户"""
     try:
         result = await db.execute(select(User))
         items = result.scalars().all()
-        return respModel().ok_resp_list(lst=items, msg="查询成功")
+        return RespModel.success(data=items, msg="查询成功")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.post("/queryByPage", response_model=respModel)
+@router.post("/queryByPage", response_model=ResponseModel)
 async def query_by_page(
     *,
     page: int = Query(1, ge=1, description='页码'),
@@ -52,12 +52,12 @@ async def query_by_page(
         result = await db.execute(query)
         items = result.scalars().all()
         
-        return respModel().ok_resp_list(lst=items, total=total)
+        return RespModel.success(data=items, total=total)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.get("/queryById", response_model=respModel)
+@router.get("/queryById", response_model=ResponseModel)
 async def query_by_id(
     *,
     id: int = Query(..., ge=1, description='用户ID'),
@@ -69,14 +69,14 @@ async def query_by_id(
         item = result.scalars().first()
         if not item:
             raise NotFoundException("用户不存在")
-        return respModel().ok_resp(obj=item, msg="查询成功")
+        return RespModel.success(data=item, msg="查询成功")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.post("/insert", response_model=respModel)
+@router.post("/insert", response_model=ResponseModel)
 async def insert(
     *,
     user_data: UserCreate,
@@ -98,7 +98,7 @@ async def insert(
         await db.flush()  # 获取ID
         await db.commit()
         
-        return respModel().ok_resp(dic_t={"id": user.id}, msg="添加成功")
+        return RespModel.success(data={"id": user.id}, msg="添加成功")
     except HTTPException:
         raise
     except Exception as e:
@@ -106,7 +106,7 @@ async def insert(
         raise HTTPException(status_code=500, detail=f"添加失败: {str(e)}")
 
 
-@router.put("/update", response_model=respModel)
+@router.put("/update", response_model=ResponseModel)
 async def update(
     *,
     id: int = Query(..., ge=1, description='用户ID'),
@@ -125,7 +125,7 @@ async def update(
             user.set_password(user_data.password)
         
         await db.commit()
-        return respModel().ok_resp(msg="修改成功")
+        return RespModel.success(msg="修改成功")
     except HTTPException:
         await db.rollback()
         raise
@@ -134,7 +134,7 @@ async def update(
         raise HTTPException(status_code=500, detail=f"修改失败: {str(e)}")
 
 
-@router.delete("/delete", response_model=respModel)
+@router.delete("/delete", response_model=ResponseModel)
 async def delete(
     *,
     id: int = Query(..., ge=1, description='用户ID'),
@@ -149,7 +149,7 @@ async def delete(
         
         await db.delete(user)
         await db.commit()
-        return respModel().ok_resp(msg="删除成功")
+        return RespModel.success(msg="删除成功")
     except HTTPException:
         await db.rollback()
         raise
@@ -158,7 +158,7 @@ async def delete(
         raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
 
 
-@router.post("/resetPassword", response_model=respModel)
+@router.post("/resetPassword", response_model=ResponseModel)
 async def reset_password(
     *,
     data: dict,
@@ -178,7 +178,7 @@ async def reset_password(
         user.set_password(new_password)
         await db.commit()
         
-        return respModel().ok_resp(msg="密码重置成功")
+        return RespModel.success(msg="密码重置成功")
     except HTTPException:
         await db.rollback()
         raise
@@ -187,7 +187,7 @@ async def reset_password(
         raise HTTPException(status_code=500, detail=f"密码重置失败: {str(e)}")
 
 
-@router.get("/profile", response_model=respModel)
+@router.get("/profile", response_model=ResponseModel)
 async def get_profile(
     request: Request,
     db: AsyncSession = Depends(get_db)
@@ -231,14 +231,14 @@ async def get_profile(
             "updated_at": user.updated_at
         }
         
-        return respModel().ok_resp(profile_data, msg="获取个人资料成功")
+        return RespModel.success(data=profile_data, msg="获取个人资料成功")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取个人资料失败: {str(e)}")
 
 
-@router.put("/profile", response_model=respModel)
+@router.put("/profile", response_model=ResponseModel)
 async def update_profile(
     request: Request,
     data: dict,
@@ -278,7 +278,7 @@ async def update_profile(
         
         await db.commit()
         
-        return respModel().ok_resp(msg="个人资料更新成功")
+        return RespModel.success(msg="个人资料更新成功")
     except HTTPException:
         await db.rollback()
         raise

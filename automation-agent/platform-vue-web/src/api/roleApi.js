@@ -1,4 +1,4 @@
-import request from '~/axios'
+import request from '@/axios'
 
 export default {
     queryByPage(data) {
@@ -43,5 +43,9 @@ export default {
 
     updateRoleAuthorized(data) {
         return request.post('/api/v1/role/updateAuthorized', data)
+    },
+
+    queryAll() {
+        return request.get('/api/v1/role/queryAll')
     }
 }

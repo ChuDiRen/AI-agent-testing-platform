@@ -11,7 +11,6 @@ export default defineConfig(( {mode} )=>{
   return {
   resolve:{
     alias:{
-      "~": path.resolve(__dirname,"src"),
       "@": path.resolve(__dirname,"src")
     }
   },

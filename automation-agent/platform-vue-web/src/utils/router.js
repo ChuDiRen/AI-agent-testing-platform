@@ -12,9 +12,6 @@ const componentMap = {
   // 首页
   'home/home': () => import('~/views/home/home.vue'),
   
-  // 数据统计
-  'statistics/statistics': () => import('~/views/statistics/statistics.vue'),
-  
   // API测试 - 项目管理
   'apitest/project/ApiProjectList': () => import('~/views/apitest/project/ApiProjectList.vue'),
   'apitest/project/ApiProjectForm': () => import('~/views/apitest/project/ApiProjectForm.vue'),
@@ -66,6 +63,7 @@ const componentMap = {
   // 系统管理 - 部门管理
   'depts/deptList': () => import('~/views/system/depts/deptList.vue'),
   'depts/deptForm': () => import('~/views/system/depts/deptForm.vue'),
+  'depts/index': () => import('~/views/system/depts/index.vue'),
   
   // 系统管理 - API管理
   'apis/apiList': () => import('~/views/system/apis/apiList.vue'),
@@ -88,7 +86,6 @@ const componentMap = {
  */
 export function loadComponent(componentName) {
   if (!componentName) {
-    console.warn(`组件名称为空: ${componentName}`)
     return componentMap['notFound'] || (() => import('~/views/NotFound.vue'))
   }
 
@@ -97,7 +94,6 @@ export function loadComponent(componentName) {
     return component
   }
 
-  console.warn(`未找到组件: ${componentName}`)
   return componentMap['notFound'] || (() => import('~/views/NotFound.vue'))
 }
 
@@ -163,7 +159,6 @@ export function menuToRoute(menu) {
  */
 export function menusToRoutes(menus) {
   if (!menus || !Array.isArray(menus)) {
-    console.warn('菜单数据格式错误', menus)
     return []
   }
 

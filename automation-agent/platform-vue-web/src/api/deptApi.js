@@ -1,4 +1,4 @@
-import request from '~/axios'
+import request from '@/axios'
 
 export default {
     queryByPage(data) {
@@ -23,5 +23,9 @@ export default {
 
     queryTree(params) {
         return request.get('/api/v1/dept/queryTree', { params })
+    },
+
+    queryAll() {
+        return request.get('/api/v1/dept/queryAll')
     }
 }

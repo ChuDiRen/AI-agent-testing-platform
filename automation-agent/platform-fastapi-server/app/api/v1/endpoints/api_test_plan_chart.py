@@ -7,25 +7,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from app.core.deps import get_db
 from app.models.api_test_plan_chart import ApiTestPlanChart
-from app.core.resp_model import respModel
+from app.core.resp_model import RespModel, ResponseModel
 from app.core.exceptions import NotFoundException, BadRequestException
 from sqlalchemy import select, func
 
 router = APIRouter(prefix="/ApiTestPlanChart", tags=["API测试计划图表"])
 
 
-@router.get("/queryAll", response_model=respModel)
+@router.get("/queryAll", response_model=ResponseModel)
 async def query_all(db: AsyncSession = Depends(get_db)):
     """查询所有测试计划图表"""
     try:
         result = await db.execute(select(ApiTestPlanChart))
         items = result.scalars().all()
-        return respModel().ok_resp_list(lst=items, msg="查询成功")
+        return RespModel.success(data=items, msg="查询成功")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.post("/queryByPage", response_model=respModel)
+@router.post("/queryByPage", response_model=ResponseModel)
 async def query_by_page(
     *,
     page: int = Query(1, ge=1, description='页码'),
@@ -55,12 +55,12 @@ async def query_by_page(
         result = await db.execute(query)
         items = result.scalars().all()
         
-        return respModel().ok_resp_list(lst=items, total=total)
+        return RespModel.success(data=items, total=total)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.get("/queryById", response_model=respModel)
+@router.get("/queryById", response_model=ResponseModel)
 async def query_by_id(
     *,
     id: int = Query(..., ge=1, description='测试计划图表ID'),
@@ -72,14 +72,14 @@ async def query_by_id(
         item = result.scalars().first()
         if not item:
             raise NotFoundException("测试计划图表不存在")
-        return respModel().ok_resp(obj=item, msg="查询成功")
+        return RespModel.success(data=item, msg="查询成功")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.post("/insert", response_model=respModel)
+@router.post("/insert", response_model=ResponseModel)
 async def insert(
     *,
     chart_data: dict,
@@ -91,13 +91,13 @@ async def insert(
         db.add(chart)
         await db.flush()
         await db.commit()
-        return respModel().ok_resp(dic_t={"id": chart.id}, msg="添加成功")
+        return RespModel.success(data={"id": chart.id}, msg="添加成功")
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"添加失败: {str(e)}")
 
 
-@router.put("/update", response_model=respModel)
+@router.put("/update", response_model=ResponseModel)
 async def update(
     *,
     id: int = Query(..., ge=1, description='测试计划图表ID'),
@@ -117,7 +117,7 @@ async def update(
                 setattr(chart, field, value)
         
         await db.commit()
-        return respModel().ok_resp(msg="修改成功")
+        return RespModel.success(msg="修改成功")
     except HTTPException:
         await db.rollback()
         raise
@@ -126,7 +126,7 @@ async def update(
         raise HTTPException(status_code=500, detail=f"修改失败: {str(e)}")
 
 
-@router.delete("/delete", response_model=respModel)
+@router.delete("/delete", response_model=ResponseModel)
 async def delete(
     *,
     id: int = Query(..., ge=1, description='测试计划图表ID'),
@@ -141,7 +141,7 @@ async def delete(
         
         await db.delete(chart)
         await db.commit()
-        return respModel().ok_resp(msg="删除成功")
+        return RespModel.success(msg="删除成功")
     except HTTPException:
         await db.rollback()
         raise
@@ -150,7 +150,7 @@ async def delete(
         raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
 
 
-@router.get("/queryPlanCount", response_model=respModel)
+@router.get("/queryPlanCount", response_model=ResponseModel)
 async def query_plan_count(
     *,
     coll_id: str = Query(..., description='测试计划ID'),
@@ -166,13 +166,13 @@ async def query_plan_count(
         )
         count = len(result.scalars().all())
         
-        return respModel().ok_resp_text(msg="查询成功", data=count)
+        return RespModel.success(msg="查询成功", data=count)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"查询失败: {str(e)}")
 
 
-@router.get("/queryCaseCount", response_model=respModel)
+@router.get("/queryCaseCount", response_model=ResponseModel)
 async def query_case_count(
     *,
     coll_id: str = Query(..., description='测试计划ID'),
@@ -189,18 +189,18 @@ async def query_case_count(
         last_data = result.scalars().first()
         
         if not last_data:
-            return respModel().ok_resp_text(msg="未找到测试计划执行记录", data=0)
+            return RespModel.success(msg="未找到测试计划执行记录", data=0)
         
         # 模拟用例数量计算
         case_count = 10  # 这里可以根据实际业务逻辑计算
         
-        return respModel().ok_resp_text(msg="查询成功", data=case_count)
+        return RespModel.success(msg="查询成功", data=case_count)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"查询失败: {str(e)}")
 
 
-@router.get("/queryPassRate", response_model=respModel)
+@router.get("/queryPassRate", response_model=ResponseModel)
 async def query_pass_rate(
     *,
     coll_id: str = Query(..., description='测试计划ID'),
@@ -217,13 +217,13 @@ async def query_pass_rate(
         if total_count > 0:
             pass_rate = round((pass_count / total_count) * 100, 2)
         
-        return respModel().ok_resp_text(msg="查询成功", data=pass_rate)
+        return RespModel.success(msg="查询成功", data=pass_rate)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"查询失败: {str(e)}")
 
 
-@router.get("/queryPlanTrend", response_model=respModel)
+@router.get("/queryPlanTrend", response_model=ResponseModel)
 async def query_plan_trend(
     *,
     coll_id: str = Query(..., description='测试计划ID'),
@@ -246,13 +246,13 @@ async def query_plan_trend(
                 "unknown": 0
             })
         
-        return respModel().ok_resp_list(msg="查询成功", lst=trend_data)
+        return RespModel.success(msg="查询成功", data=trend_data)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"查询失败: {str(e)}")
 
 
-@router.get("/queryPlanTime", response_model=respModel)
+@router.get("/queryPlanTime", response_model=ResponseModel)
 async def query_plan_time(
     *,
     coll_id: str = Query(..., description='测试计划ID'),
@@ -270,13 +270,13 @@ async def query_plan_time(
                 "duration": 120 + (i * 10)  # 模拟执行时间（秒）
             })
         
-        return respModel().ok_resp_list(msg="查询成功", lst=time_data)
+        return RespModel.success(msg="查询成功", data=time_data)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"查询失败: {str(e)}")
 
 
-@router.get("/queryFailTop5", response_model=respModel)
+@router.get("/queryFailTop5", response_model=ResponseModel)
 async def query_fail_top5(
     *,
     coll_id: str = Query(..., description='测试计划ID'),
@@ -293,7 +293,7 @@ async def query_fail_top5(
             {"name": "权限验证测试", "fail_count": 1}
         ]
         
-        return respModel().ok_resp_list(msg="查询成功", lst=result)
+        return RespModel.success(msg="查询成功", data=result)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"查询失败: {str(e)}")

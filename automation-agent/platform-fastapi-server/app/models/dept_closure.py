@@ -34,10 +34,10 @@ class DeptClosure(_Base):
     __tablename__ = "t_dept_closure"
     
     # 祖先部门ID
-    ancestor_id = Column(BigInteger, ForeignKey("t_dept.id", ondelete="CASCADE"), primary_key=True, comment="祖先部门ID")
+    ancestor_id = Column(BigInteger, primary_key=True, comment="祖先部门ID")
     
     # 后代部门ID
-    descendant_id = Column(BigInteger, ForeignKey("t_dept.id", ondelete="CASCADE"), primary_key=True, comment="后代部门ID")
+    descendant_id = Column(BigInteger, primary_key=True, comment="后代部门ID")
     
     # 层级（距离：0表示自己，1表示父子，2表示祖孙）
     level = Column(BigInteger, nullable=False, comment="层级距离")

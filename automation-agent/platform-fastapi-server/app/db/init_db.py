@@ -47,26 +47,15 @@ INIT_ROLES = [
     }
 ]
 
-# 菜单初始化数据（与前端实际路由/组件对齐）
+# 菜单初始化数据（基于前端静态菜单配置）
 INIT_MENUS = [
     {
-        "name": "首页",
+        "name": "工作台",
         "menu_type": "menu",
-        "icon": "HomeFilled",
-        "path": "/home",
-        "component": "home/home",
+        "icon": "Monitor",
+        "path": "/workbench",
+        "component": "workbench",
         "order": 1,
-        "parent_id": 0,
-        "is_hidden": False,
-        "keepalive": True
-    },
-    {
-        "name": "数据统计",
-        "menu_type": "menu",
-        "icon": "DataAnalysis",
-        "path": "/Statistics",
-        "component": "statistics/statistics",
-        "order": 2,
         "parent_id": 0,
         "is_hidden": False,
         "keepalive": True
@@ -76,7 +65,7 @@ INIT_MENUS = [
         "menu_type": "catalog",
         "icon": "Connection",
         "path": "/apitest",
-        "order": 3,
+        "order": 2,
         "parent_id": 0,
         "is_hidden": False,
         "keepalive": False
@@ -84,118 +73,118 @@ INIT_MENUS = [
     {
         "name": "项目管理",
         "menu_type": "menu",
-        "icon": "Collection",
-        "path": "/ApiProjectList",
-        "component": "apitest/project/ApiProjectList",
+        "icon": "Folder",
+        "path": "project",
+        "component": "apitest/project",
         "order": 1,
-        "parent_id": "API测试",
-        "is_hidden": False,
-        "keepalive": True
-    },
-    {
-        "name": "用例管理",
-        "menu_type": "menu",
-        "icon": "List",
-        "path": "/ApiInfoCaseList",
-        "component": "apitest/apiinfocase/ApiInfoCaseList",
-        "order": 2,
-        "parent_id": "API测试",
-        "is_hidden": False,
-        "keepalive": True
-    },
-    {
-        "name": "接口信息",
-        "menu_type": "menu",
-        "icon": "Document",
-        "path": "/ApiInfoList",
-        "component": "apitest/apiinfo/ApiInfoList",
-        "order": 3,
-        "parent_id": "API测试",
-        "is_hidden": False,
-        "keepalive": True
-    },
-    {
-        "name": "关键字管理",
-        "menu_type": "menu",
-        "icon": "Key",
-        "path": "/ApikeywordList",
-        "component": "apitest/keyword/ApiKeyWordList",
-        "order": 4,
-        "parent_id": "API测试",
-        "is_hidden": False,
-        "keepalive": True
-    },
-    {
-        "name": "素材维护",
-        "menu_type": "menu",
-        "icon": "Box",
-        "path": "/ApiMateManageList",
-        "component": "apitest/apiMate/ApiMateManageList",
-        "order": 5,
-        "parent_id": "API测试",
-        "is_hidden": False,
-        "keepalive": True
-    },
-    {
-        "name": "测试计划",
-        "menu_type": "menu",
-        "icon": "TrendCharts",
-        "path": "/ApiCollectionInfoList",
-        "component": "apitest/collection/ApiCollectionInfoList",
-        "order": 6,
-        "parent_id": "API测试",
-        "is_hidden": False,
-        "keepalive": True
-    },
-    {
-        "name": "消息配置",
-        "menu_type": "catalog",
-        "icon": "Message",
-        "path": "/msgmanage",
-        "order": 7,
         "parent_id": "API测试",
         "is_hidden": False,
         "keepalive": False
     },
     {
-        "name": "企业微信",
+        "name": "API信息",
+        "menu_type": "menu",
+        "icon": "Document",
+        "path": "apiinfo",
+        "component": "apitest/apiinfo",
+        "order": 2,
+        "parent_id": "API测试",
+        "is_hidden": False,
+        "keepalive": False
+    },
+    {
+        "name": "用例管理",
+        "menu_type": "menu",
+        "icon": "Operation",
+        "path": "apiinfocase",
+        "component": "apitest/apiinfocase",
+        "order": 3,
+        "parent_id": "API测试",
+        "is_hidden": False,
+        "keepalive": False
+    },
+    {
+        "name": "用例集合",
+        "menu_type": "menu",
+        "icon": "Collection",
+        "path": "collection",
+        "component": "apitest/collection",
+        "order": 4,
+        "parent_id": "API测试",
+        "is_hidden": False,
+        "keepalive": False
+    },
+    {
+        "name": "关键字管理",
+        "menu_type": "menu",
+        "icon": "Key",
+        "path": "keyword",
+        "component": "apitest/keyword",
+        "order": 5,
+        "parent_id": "API测试",
+        "is_hidden": False,
+        "keepalive": False
+    },
+    {
+        "name": "素材管理",
+        "menu_type": "menu",
+        "icon": "Picture",
+        "path": "apiMate",
+        "component": "apitest/apiMate",
+        "order": 6,
+        "parent_id": "API测试",
+        "is_hidden": False,
+        "keepalive": False
+    },
+    {
+        "name": "消息管理",
+        "menu_type": "catalog",
+        "icon": "Message",
+        "path": "/msgmanage",
+        "order": 3,
+        "parent_id": 0,
+        "is_hidden": False,
+        "keepalive": False
+    },
+    {
+        "name": "飞书消息",
+        "menu_type": "menu",
+        "icon": "ChatDotRound",
+        "path": "feishu",
+        "component": "msgmanage/feishu",
+        "order": 1,
+        "parent_id": "消息管理",
+        "is_hidden": False,
+        "keepalive": False
+    },
+    {
+        "name": "钉钉消息",
         "menu_type": "menu",
         "icon": "ChatDotSquare",
-        "path": "/WeChartMsgManageList",
-        "component": "apitest/msgmanage/WeChartMsgManageList",
-        "order": 1,
-        "parent_id": "消息配置",
-        "is_hidden": False,
-        "keepalive": True
-    },
-    {
-        "name": "钉钉",
-        "menu_type": "menu",
-        "icon": "Bell",
-        "path": "/DingDingMsgManageList",
-        "component": "apitest/msgmanage/DingDingMsgManageList",
+        "path": "dingding",
+        "component": "msgmanage/dingding",
         "order": 2,
-        "parent_id": "消息配置",
+        "parent_id": "消息管理",
         "is_hidden": False,
-        "keepalive": True
+        "keepalive": False
     },
     {
-        "name": "飞书",
+        "name": "微信消息",
         "menu_type": "menu",
-        "icon": "MessageBox",
-        "path": "/FeiShuMsgManageList",
-        "component": "apitest/msgmanage/FeiShuMsgManageList",
+        "icon": "ChatLineRound",
+        "path": "wechat",
+        "component": "msgmanage/wechat",
         "order": 3,
-        "parent_id": "消息配置",
+        "parent_id": "消息管理",
         "is_hidden": False,
-        "keepalive": True
+        "keepalive": False
     },
     {
         "name": "系统管理",
         "menu_type": "catalog",
         "icon": "Setting",
         "path": "/system",
-        "order": 8,
+        "order": 4,
         "parent_id": 0,
         "is_hidden": False,
         "keepalive": False
@@ -203,100 +192,89 @@ INIT_MENUS = [
     {
         "name": "用户管理",
         "menu_type": "menu",
-        "icon": "User",
-        "path": "/userList",
-        "component": "users/userList",
+        "icon": "UserFilled",
+        "path": "users",
+        "component": "system/users",
         "order": 1,
         "parent_id": "系统管理",
         "is_hidden": False,
-        "keepalive": True
+        "keepalive": False
     },
     {
         "name": "角色管理",
         "menu_type": "menu",
-        "icon": "UserFilled",
-        "path": "/roleList",
-        "component": "roles/roleList",
+        "icon": "Avatar",
+        "path": "roles",
+        "component": "system/roles",
         "order": 2,
         "parent_id": "系统管理",
         "is_hidden": False,
-        "keepalive": True
+        "keepalive": False
     },
     {
         "name": "菜单管理",
         "menu_type": "menu",
         "icon": "Menu",
-        "path": "/menuList",
-        "component": "menus/menuList",
+        "path": "menus",
+        "component": "system/menus",
         "order": 3,
         "parent_id": "系统管理",
         "is_hidden": False,
-        "keepalive": True
+        "keepalive": False
     },
     {
         "name": "部门管理",
         "menu_type": "menu",
         "icon": "OfficeBuilding",
-        "path": "/deptList",
-        "component": "depts/deptList",
+        "path": "depts",
+        "component": "system/depts",
         "order": 4,
         "parent_id": "系统管理",
         "is_hidden": False,
-        "keepalive": True
+        "keepalive": False
     },
     {
-        "name": "API资源",
+        "name": "API权限",
         "menu_type": "menu",
-        "icon": "Cpu",
-        "path": "/apiList",
-        "component": "apis/apiList",
+        "icon": "Key",
+        "path": "apis",
+        "component": "system/apis",
         "order": 5,
         "parent_id": "系统管理",
         "is_hidden": False,
-        "keepalive": True
+        "keepalive": False
     },
     {
         "name": "审计日志",
         "menu_type": "menu",
         "icon": "Document",
-        "path": "/auditLogList",
-        "component": "auditlogs/auditLogList",
+        "path": "auditlogs",
+        "component": "system/auditlogs",
         "order": 6,
         "parent_id": "系统管理",
         "is_hidden": False,
-        "keepalive": True
+        "keepalive": False
+    },
+    {
+        "name": "系统设置",
+        "menu_type": "menu",
+        "icon": "Tools",
+        "path": "settings",
+        "component": "system/settings",
+        "order": 7,
+        "parent_id": "系统管理",
+        "is_hidden": True,
+        "keepalive": False
     },
     {
         "name": "个人中心",
         "menu_type": "menu",
         "icon": "User",
         "path": "/profile",
-        "component": "profile/profile",
-        "order": 9,
+        "component": "profile",
+        "order": 99,
         "parent_id": 0,
-        "is_hidden": False,
-        "keepalive": True
-    },
-    {
-        "name": "系统设置",
-        "menu_type": "menu",
-        "icon": "Tools",
-        "path": "/settings",
-        "component": "settings/settings",
-        "order": 10,
-        "parent_id": 0,
-        "is_hidden": False,
-        "keepalive": True
-    },
-    {
-        "name": "关于",
-        "menu_type": "menu",
-        "icon": "InfoFilled",
-        "path": "/about",
-        "component": "about",
-        "order": 11,
-        "parent_id": 0,
-        "is_hidden": False,
+        "is_hidden": True,
         "keepalive": True
     }
 ]
@@ -435,6 +413,7 @@ INIT_API_RESOURCES = [
         "summary": "删除部门",
         "tags": "部门管理"
     },
+    # API测试模块
     {
         "path": "/api/v1/ApiProject",
         "method": "GET",
@@ -466,34 +445,34 @@ INIT_API_RESOURCES = [
         "tags": "项目管理"
     },
     {
-        "path": "/api/v1/api",
+        "path": "/api/v1/ApiInfo",
         "method": "GET",
         "summary": "获取API列表",
-        "tags": "API管理"
+        "tags": "API信息"
     },
     {
-        "path": "/api/v1/api",
+        "path": "/api/v1/ApiInfo",
         "method": "POST",
         "summary": "创建API",
-        "tags": "API管理"
+        "tags": "API信息"
     },
     {
-        "path": "/api/v1/api/{api_id}",
+        "path": "/api/v1/ApiInfo/{api_id}",
         "method": "GET",
         "summary": "获取API详情",
-        "tags": "API管理"
+        "tags": "API信息"
     },
     {
-        "path": "/api/v1/api/{api_id}",
+        "path": "/api/v1/ApiInfo/{api_id}",
         "method": "PUT",
         "summary": "更新API",
-        "tags": "API管理"
+        "tags": "API信息"
     },
     {
-        "path": "/api/v1/api/{api_id}",
+        "path": "/api/v1/ApiInfo/{api_id}",
         "method": "DELETE",
         "summary": "删除API",
-        "tags": "API管理"
+        "tags": "API信息"
     },
     {
         "path": "/api/v1/ApiInfoCase",
@@ -526,6 +505,36 @@ INIT_API_RESOURCES = [
         "tags": "用例管理"
     },
     {
+        "path": "/api/v1/ApiCollectionInfo",
+        "method": "GET",
+        "summary": "获取集合列表",
+        "tags": "用例集合"
+    },
+    {
+        "path": "/api/v1/ApiCollectionInfo",
+        "method": "POST",
+        "summary": "创建集合",
+        "tags": "用例集合"
+    },
+    {
+        "path": "/api/v1/ApiCollectionInfo/{collection_id}",
+        "method": "GET",
+        "summary": "获取集合详情",
+        "tags": "用例集合"
+    },
+    {
+        "path": "/api/v1/ApiCollectionInfo/{collection_id}",
+        "method": "PUT",
+        "summary": "更新集合",
+        "tags": "用例集合"
+    },
+    {
+        "path": "/api/v1/ApiCollectionInfo/{collection_id}",
+        "method": "DELETE",
+        "summary": "删除集合",
+        "tags": "用例集合"
+    },
+    {
         "path": "/api/v1/ApiKeyWord",
         "method": "GET",
         "summary": "获取关键字列表",
@@ -556,40 +565,108 @@ INIT_API_RESOURCES = [
         "tags": "关键字管理"
     },
     {
-        "path": "/api/v1/ApiCollectionInfo",
+        "path": "/api/v1/ApiMateManage",
         "method": "GET",
-        "summary": "获取集合列表",
-        "tags": "集合管理"
+        "summary": "获取素材列表",
+        "tags": "素材管理"
     },
     {
-        "path": "/api/v1/ApiCollectionInfo",
+        "path": "/api/v1/ApiMateManage",
         "method": "POST",
-        "summary": "创建集合",
-        "tags": "集合管理"
+        "summary": "创建素材",
+        "tags": "素材管理"
     },
     {
-        "path": "/api/v1/ApiCollectionInfo/{collection_id}",
+        "path": "/api/v1/ApiMateManage/{material_id}",
         "method": "GET",
-        "summary": "获取集合详情",
-        "tags": "集合管理"
+        "summary": "获取素材详情",
+        "tags": "素材管理"
     },
     {
-        "path": "/api/v1/ApiCollectionInfo/{collection_id}",
+        "path": "/api/v1/ApiMateManage/{material_id}",
         "method": "PUT",
-        "summary": "更新集合",
-        "tags": "集合管理"
+        "summary": "更新素材",
+        "tags": "素材管理"
     },
     {
-        "path": "/api/v1/ApiCollectionInfo/{collection_id}",
+        "path": "/api/v1/ApiMateManage/{material_id}",
         "method": "DELETE",
-        "summary": "删除集合",
-        "tags": "集合管理"
+        "summary": "删除素材",
+        "tags": "素材管理"
+    },
+    # 消息管理模块
+    {
+        "path": "/api/v1/RobotConfig",
+        "method": "GET",
+        "summary": "获取机器人配置列表",
+        "tags": "消息管理"
     },
     {
-        "path": "/api/v1/ApiCollectionInfo/{collection_id}/execute",
+        "path": "/api/v1/RobotConfig",
         "method": "POST",
-        "summary": "执行集合测试",
-        "tags": "测试执行"
+        "summary": "创建机器人配置",
+        "tags": "消息管理"
+    },
+    {
+        "path": "/api/v1/RobotConfig/{config_id}",
+        "method": "GET",
+        "summary": "获取机器人配置详情",
+        "tags": "消息管理"
+    },
+    {
+        "path": "/api/v1/RobotConfig/{config_id}",
+        "method": "PUT",
+        "summary": "更新机器人配置",
+        "tags": "消息管理"
+    },
+    {
+        "path": "/api/v1/RobotConfig/{config_id}",
+        "method": "DELETE",
+        "summary": "删除机器人配置",
+        "tags": "消息管理"
+    },
+    # 系统管理模块
+    {
+        "path": "/api/v1/apis",
+        "method": "GET",
+        "summary": "获取API权限列表",
+        "tags": "API权限"
+    },
+    {
+        "path": "/api/v1/apis",
+        "method": "POST",
+        "summary": "创建API权限",
+        "tags": "API权限"
+    },
+    {
+        "path": "/api/v1/apis/{api_id}",
+        "method": "GET",
+        "summary": "获取API权限详情",
+        "tags": "API权限"
+    },
+    {
+        "path": "/api/v1/apis/{api_id}",
+        "method": "PUT",
+        "summary": "更新API权限",
+        "tags": "API权限"
+    },
+    {
+        "path": "/api/v1/apis/{api_id}",
+        "method": "DELETE",
+        "summary": "删除API权限",
+        "tags": "API权限"
+    },
+    {
+        "path": "/api/v1/settings",
+        "method": "GET",
+        "summary": "获取系统设置",
+        "tags": "系统设置"
+    },
+    {
+        "path": "/api/v1/settings",
+        "method": "POST",
+        "summary": "更新系统设置",
+        "tags": "系统设置"
     },
     {
         "path": "/api/v1/auditlog",
@@ -825,71 +902,62 @@ INIT_ROLE_MENUS = [
     {
         "role_name": "管理员",
         "menu_names": [
-            "首页",
-            "数据统计",
+            "工作台",
             "API测试",
             "项目管理",
+            "API信息",
             "用例管理",
-            "接口信息",
+            "用例集合",
             "关键字管理",
-            "素材维护",
-            "测试计划",
-            "消息配置",
-            "企业微信",
-            "钉钉",
-            "飞书",
+            "素材管理",
+            "消息管理",
+            "飞书消息",
+            "钉钉消息",
+            "微信消息",
             "系统管理",
             "用户管理",
             "角色管理",
             "菜单管理",
             "部门管理",
-            "API资源",
+            "API权限",
             "审计日志",
-            "个人中心",
             "系统设置",
-            "关于"
+            "个人中心"
         ]
     },
     {
         "role_name": "测试工程师",
         "menu_names": [
-            "首页",
-            "数据统计",
+            "工作台",
             "API测试",
             "项目管理",
+            "API信息",
             "用例管理",
-            "接口信息",
+            "用例集合",
             "关键字管理",
-            "素材维护",
-            "测试计划",
-            "消息配置",
-            "企业微信",
-            "钉钉",
-            "飞书",
-            "个人中心",
-            "关于"
+            "素材管理",
+            "消息管理",
+            "飞书消息",
+            "钉钉消息",
+            "微信消息",
+            "个人中心"
         ]
     },
     {
         "role_name": "开发人员",
         "menu_names": [
-            "首页",
-            "数据统计",
+            "工作台",
             "API测试",
             "项目管理",
-            "接口信息",
-            "测试计划",
-            "个人中心",
-            "关于"
+            "API信息",
+            "个人中心"
         ]
     },
     {
         "role_name": "普通用户",
         "menu_names": [
-            "首页",
-            "数据统计",
-            "个人中心",
-            "关于"
+            "工作台",
+            "个人中心"
         ]
     }
 ]
@@ -906,15 +974,119 @@ INIT_ROLE_APIS = [
     },
     {
         "role_name": "测试工程师",
-        "api_filter": "api"
+        "api_tags": [
+            "项目管理",
+            "API信息",
+            "用例管理",
+            "用例集合",
+            "关键字管理",
+            "素材管理",
+            "消息管理"
+        ]
     },
     {
         "role_name": "开发人员",
-        "api_filter": "project"
+        "api_tags": [
+            "项目管理",
+            "API信息"
+        ]
     },
     {
         "role_name": "普通用户",
-        "api_filter": "dashboard"
+        "api_tags": []
+    }
+]
+
+# API测试模块 - 项目初始化数据（基于 api-engine 测试场景）
+INIT_API_PROJECTS = [
+    {
+        "project_name": "用户管理系统API",
+        "project_desc": "用户管理系统的完整API接口测试项目"
+    },
+    {
+        "project_name": "电商平台API",
+        "project_desc": "电商平台后端API接口测试项目"
+    },
+    {
+        "project_name": "支付网关API",
+        "project_desc": "支付网关相关接口测试"
+    },
+    {
+        "project_name": "消息推送API",
+        "project_desc": "消息推送服务接口测试"
+    },
+    {
+        "project_name": "文件服务API",
+        "project_desc": "文件上传下载服务接口测试"
+    }
+]
+
+# API测试模块 - 操作类型初始化数据（基于 api-engine）
+INIT_API_OPERATION_TYPES = [
+    {
+        "operation_type_name": "GET请求",
+        "operation_type_desc": "HTTP GET请求，用于获取数据"
+    },
+    {
+        "operation_type_name": "POST请求",
+        "operation_type_desc": "HTTP POST请求，用于创建数据"
+    },
+    {
+        "operation_type_name": "PUT请求",
+        "operation_type_desc": "HTTP PUT请求，用于更新数据"
+    },
+    {
+        "operation_type_name": "DELETE请求",
+        "operation_type_desc": "HTTP DELETE请求，用于删除数据"
+    },
+    {
+        "operation_type_name": "PATCH请求",
+        "operation_type_desc": "HTTP PATCH请求，用于部分更新数据"
+    }
+]
+
+# API测试模块 - 关键字初始化数据（基于 api-engine）
+INIT_API_KEYWORDS = [
+    {
+        "name": "HTTP请求",
+        "keyword_desc": "统一的HTTP请求关键字，支持各种HTTP方法"
+    },
+    {
+        "name": "数据提取",
+        "keyword_desc": "从响应数据中提取所需信息的关键字"
+    },
+    {
+        "name": "断言验证",
+        "keyword_desc": "测试结果验证和断言关键字"
+    },
+    {
+        "name": "脚本执行",
+        "keyword_desc": "Python脚本和代码执行关键字"
+    }
+]
+
+# API测试模块 - 数据库配置初始化数据（基于 api-engine 测试需求）
+INIT_API_DB_BASES = [
+    {
+        "name": "用户数据库",
+        "ref_name": "user_db",
+        "db_type": "mysql",
+        "db_info": '{"host": "localhost", "port": 3306, "database": "user_management"}',
+        "is_enabled": "true"
+    },
+    {
+        "name": "业务数据库",
+        "ref_name": "business_db", 
+        "db_type": "mysql",
+        "db_info": '{"host": "localhost", "port": 3306, "database": "ecommerce_platform"}',
+        "is_enabled": "true"
+    },
+    {
+        "name": "Redis缓存",
+        "ref_name": "redis_cache",
+        "db_type": "redis",
+        "db_info": '{"host": "localhost", "port": 6379}',
+        "is_enabled": "true"
     }
 ]
 
@@ -930,6 +1102,9 @@ async def create_tables():
     # 确保引擎已初始化
     if engine is None:
         await create_database_engine()
+    
+    # 重新获取引擎引用
+    from app.db.session import engine
 
     from app.core.logger import logger
     logger.info("正在创建数据库表...")
@@ -1123,7 +1298,7 @@ async def init_depts():
 
         # 为每个部门插入自身记录（level=0）
         for dept in all_depts:
-            closures.append(DeptClosure(ancestor=dept.id, descendant=dept.id, level=0))
+            closures.append(DeptClosure(ancestor_id=dept.id, descendant_id=dept.id, level=0))
 
         # 为每个非根部门插入父部门关系
         for dept in all_depts:
@@ -1136,7 +1311,7 @@ async def init_depts():
                     # 查找父部门对象
                     for pd in all_depts:
                         if pd.id == current_dept.parent_id:
-                            closures.append(DeptClosure(ancestor=pd.id, descendant=dept.id, level=level))
+                            closures.append(DeptClosure(ancestor_id=pd.id, descendant_id=dept.id, level=level))
                             current_dept = pd
                             break
 
@@ -1351,6 +1526,133 @@ async def init_role_apis():
         logger.info(f"角色API关联初始化完成，共 {len(role_apis)} 条")
 
 
+async def init_api_projects():
+    """
+    初始化API项目数据
+    """
+    from sqlalchemy import select
+    from app.db.session import AsyncSessionLocal
+    from app.models.api_project import ApiProject
+    
+    async with AsyncSessionLocal() as session:
+        # 检查是否已初始化
+        result = await session.execute(select(ApiProject))
+        if result.scalars().first():
+            logger.info("API项目数据已存在，跳过初始化")
+            return
+        
+        logger.info("正在初始化API项目数据...")
+        
+        projects = [
+            ApiProject(
+                project_name=project["project_name"],
+                project_desc=project["project_desc"],
+                create_time=datetime.now()
+            )
+            for project in INIT_API_PROJECTS
+        ]
+        
+        session.add_all(projects)
+        await session.commit()
+        logger.info(f"API项目数据初始化完成，共 {len(projects)} 条")
+
+
+async def init_api_operation_types():
+    """
+    初始化API操作类型数据
+    """
+    from sqlalchemy import select
+    from app.db.session import AsyncSessionLocal
+    from app.models.api_operation_type import ApiOperationType
+    
+    async with AsyncSessionLocal() as session:
+        # 检查是否已初始化
+        result = await session.execute(select(ApiOperationType))
+        if result.scalars().first():
+            logger.info("API操作类型数据已存在，跳过初始化")
+            return
+        
+        logger.info("正在初始化API操作类型数据...")
+        
+        operation_types = [
+            ApiOperationType(
+                operation_type_name=op_type["operation_type_name"],
+                operation_type_desc=op_type["operation_type_desc"],
+                create_time=datetime.now()
+            )
+            for op_type in INIT_API_OPERATION_TYPES
+        ]
+        
+        session.add_all(operation_types)
+        await session.commit()
+        logger.info(f"API操作类型数据初始化完成，共 {len(operation_types)} 条")
+
+
+async def init_api_keywords():
+    """
+    初始化API关键字数据
+    """
+    from sqlalchemy import select
+    from app.db.session import AsyncSessionLocal
+    from app.models.api_keyword import ApiKeyword
+    
+    async with AsyncSessionLocal() as session:
+        # 检查是否已初始化
+        result = await session.execute(select(ApiKeyword))
+        if result.scalars().first():
+            logger.info("API关键字数据已存在，跳过初始化")
+            return
+        
+        logger.info("正在初始化API关键字数据...")
+        
+        keywords = [
+            ApiKeyword(
+                name=keyword["name"],
+                keyword_desc=keyword["keyword_desc"],
+                create_time=datetime.now()
+            )
+            for keyword in INIT_API_KEYWORDS
+        ]
+        
+        session.add_all(keywords)
+        await session.commit()
+        logger.info(f"API关键字数据初始化完成，共 {len(keywords)} 条")
+
+
+async def init_api_db_bases():
+    """
+    初始化API数据库配置数据
+    """
+    from sqlalchemy import select
+    from app.db.session import AsyncSessionLocal
+    from app.models.api_db_base import ApiDbBase
+    
+    async with AsyncSessionLocal() as session:
+        # 检查是否已初始化
+        result = await session.execute(select(ApiDbBase))
+        if result.scalars().first():
+            logger.info("API数据库配置数据已存在，跳过初始化")
+            return
+        
+        logger.info("正在初始化API数据库配置数据...")
+        
+        db_bases = [
+            ApiDbBase(
+                name=db_base["name"],
+                ref_name=db_base["ref_name"],
+                db_type=db_base["db_type"],
+                db_info=db_base["db_info"],
+                is_enabled=db_base["is_enabled"],
+                create_time=datetime.now()
+            )
+            for db_base in INIT_API_DB_BASES
+        ]
+        
+        session.add_all(db_bases)
+        await session.commit()
+        logger.info(f"API数据库配置数据初始化完成，共 {len(db_bases)} 条")
+
+
 async def init_database():
     """
     初始化数据库（创建表和初始化数据）
@@ -1368,10 +1670,16 @@ async def init_database():
         await init_api_resources()
         await init_depts()
         
-        # 3. 初始化用户数据
+        # 3. 初始化API测试模块数据
+        await init_api_projects()
+        await init_api_operation_types()
+        await init_api_keywords()
+        await init_api_db_bases()
+        
+        # 4. 初始化用户数据
         await init_users()
         
-        # 4. 初始化关联数据
+        # 5. 初始化关联数据
         await init_user_roles()
         await init_role_menus()
         await init_role_apis()

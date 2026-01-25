@@ -5,6 +5,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { setupRouterGuard } from './guard'
 import { basicRoutes, NOT_FOUND_ROUTE } from './routes'
 import { useUserStore, usePermissionStore } from '@/store/modules'
+import { getMenuModeParam } from '@/config/menu-config'
 
 // 创建路由实例
 export const router = createRouter({
@@ -56,8 +57,9 @@ export async function addDynamicRoutes() {
   }
 
   try {
-    // 生成动态路由
-    const accessRoutes = await permissionStore.generateRoutes()
+    // 生成动态路由 - 根据配置决定使用静态还是动态菜单
+    const useStatic = getMenuModeParam()
+    const accessRoutes = await permissionStore.generateRoutes(useStatic)
     await permissionStore.getAccessApis()
 
     // 添加路由
@@ -72,7 +74,6 @@ export async function addDynamicRoutes() {
       router.addRoute(NOT_FOUND_ROUTE)
     }
   } catch (error) {
-    console.error('加载动态路由失败:', error)
     await userStore.logout()
   }
 }

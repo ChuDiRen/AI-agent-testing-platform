@@ -66,7 +66,7 @@ async def query_by_page(
             }
             data_list.append(data_dict)
         
-        return RespModel.ok_resp_list(data_list, total=total)
+        return RespModel.success(data_list, total=total)
     except Exception as e:
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=f"查询失败: {str(e)}")
@@ -101,9 +101,9 @@ async def query_by_id(
                 "request_files": data.request_files,
                 "create_time": data.create_time.strftime('%Y-%m-%d %H:%M:%S') if data.create_time else ''
             }
-            return RespModel.ok_resp(data_dict)
+            return RespModel.success(data_dict)
         else:
-            return RespModel.ok_resp(msg="查询成功,但是没有数据")
+            return RespModel.success(msg="查询成功,但是没有数据")
     except Exception as e:
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=f"查询失败: {str(e)}")
@@ -120,7 +120,7 @@ async def insert(
         db.add(db_obj)
         await db.commit()
         await db.refresh(db_obj)
-        return RespModel.ok_resp(msg="添加成功", dic_t={"id": db_obj.id})
+        return RespModel.success(msg="添加成功", data={"id": db_obj.id})
     except Exception as e:
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=f"添加失败: {str(e)}")
@@ -151,7 +151,7 @@ async def update(
         
         db.add(db_obj)
         await db.commit()
-        return RespModel.ok_resp(msg="修改成功")
+        return RespModel.success(msg="修改成功")
     except Exception as e:
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=f"修改失败: {str(e)}")
@@ -173,7 +173,7 @@ async def delete(
             await db.delete(db_obj)
             await db.commit()
         
-        return RespModel.ok_resp(msg="删除成功")
+        return RespModel.success(msg="删除成功")
     except Exception as e:
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")

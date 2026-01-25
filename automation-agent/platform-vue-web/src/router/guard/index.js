@@ -11,50 +11,71 @@ export function setupRouterGuard(router) {
     const token = localStorage.getItem('token')
     const isWhiteList = WHITE_LIST.includes(to.path)
 
-    // 白名单路由直接放行
-    if (isWhiteList) {
-      if (to.path === '/login' && token) {
-        next('/home')
-      } else {
+    // 没有token的情况
+    if (!token) {
+      if (isWhiteList) {
         next()
+      } else {
+        next({ path: '/login', query: { redirect: to.fullPath } })
       }
       return
     }
 
-    // 未登录跳转登录页
-    if (!token) {
-      next({ path: '/login', query: { redirect: to.fullPath } })
+    // 有token的情况
+    if (to.path === '/login') {
+      next('/')
       return
     }
 
-    // 已登录，检查用户信息和路由
+    // 检查用户信息和路由
     const userStore = useUserStore()
     const permissionStore = usePermissionStore()
 
     // 如果没有用户信息，获取用户信息
     if (!userStore.userId) {
-      await userStore.getUserInfo()
+      try {
+        const userInfo = await userStore.getUserInfo()
+        if (!userInfo) {
+          userStore.logout()
+          next({ path: '/login', query: { redirect: to.fullPath } })
+          return
+        }
+      } catch (error) {
+        userStore.logout()
+        next({ path: '/login', query: { redirect: to.fullPath } })
+        return
+      }
     }
 
-    // 如果没有动态路由，生成路由
+    // 如果没有动态路由，生成路由（只生成一次）
     if (permissionStore.accessRoutes.length === 0) {
       try {
         const accessRoutes = await permissionStore.generateRoutes()
         await permissionStore.getAccessApis()
         // 动态添加路由
-        accessRoutes.forEach((route) => {
-          if (!router.hasRoute(route.name)) {
-            router.addRoute(route)
-          }
+        accessRoutes.forEach((route, index) => {
+          router.addRoute(route)
         })
-        // 重新导航
+        // 重新导航到目标路由
         next({ ...to, replace: true })
       } catch (error) {
-        console.error('加载动态路由失败:', error)
         await userStore.logout()
         next('/login')
       }
     } else {
+      // 检查workbench路由是否存在
+      const workbenchRoute = router.getRoutes().find(r => r.path === '/workbench')
+      if (!workbenchRoute && to.path === '/workbench') {
+        try {
+          // 重新生成并添加路由
+          const accessRoutes = await permissionStore.generateRoutes(true) // 强制使用静态菜单
+          accessRoutes.forEach((route) => {
+            router.addRoute(route)
+          })
+        } catch (error) {
+          // 重新添加路由失败处理
+        }
+      }
       next()
     }
   })

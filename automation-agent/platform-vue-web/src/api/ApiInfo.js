@@ -1,4 +1,4 @@
-import axios from "~/axios"
+import axios from "@/axios"
 
 // 模块名 - 和后台对应
 const module_name = "ApiInfo"
@@ -33,4 +33,11 @@ export function doDebugRequest(data){
 //2.导入swagger方法
 export function doImportSwagger(data){
     return axios.post(`/api/v1/${module_name}/importSwagger`,data)
+}
+
+//3.下载响应数据方法
+export function downloadResponse(data){
+    return axios.post(`/api/v1/${module_name}/downloadResponse`, data, {
+        responseType: 'blob'
+    })
 }

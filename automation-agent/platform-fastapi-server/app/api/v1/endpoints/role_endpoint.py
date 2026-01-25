@@ -8,7 +8,7 @@ from typing import List, Optional
 from app.core.deps import get_db
 from app.models.role import Role
 from app.schemas.role import RoleCreate, RoleUpdate, RoleResponse, RoleAssignMenus, RoleAssignApis
-from app.core.resp_model import respModel
+from app.core.resp_model import RespModel, ResponseModel
 from app.core.exceptions import NotFoundException, BadRequestException
 from sqlalchemy import select, func
 from app.services.role import role as role_crud
@@ -20,18 +20,18 @@ from app.models.role_api import RoleApi
 router = APIRouter(prefix="/role", tags=["角色管理"])
 
 
-@router.get("/queryAll", response_model=respModel)
+@router.get("/queryAll", response_model=ResponseModel)
 async def query_all(db: AsyncSession = Depends(get_db)):
     """查询所有角色"""
     try:
         result = await db.execute(select(Role))
         items = result.scalars().all()
-        return respModel().ok_resp_list(lst=items, msg="查询成功")
+        return RespModel.success(data=items, msg="查询成功")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.post("/queryByPage", response_model=respModel)
+@router.post("/queryByPage", response_model=ResponseModel)
 async def query_by_page(
     *,
     page: int = Query(1, ge=1, description='页码'),
@@ -58,12 +58,12 @@ async def query_by_page(
         result = await db.execute(query)
         items = result.scalars().all()
         
-        return respModel().ok_resp_list(lst=items, total=total)
+        return RespModel.success(data=items, total=total)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.get("/queryById", response_model=respModel)
+@router.get("/queryById", response_model=ResponseModel)
 async def query_by_id(
     *,
     id: int = Query(..., ge=1, description='角色ID'),
@@ -75,14 +75,14 @@ async def query_by_id(
         item = result.scalars().first()
         if not item:
             raise NotFoundException("角色不存在")
-        return respModel().ok_resp(obj=item, msg="查询成功")
+        return RespModel.success(data=item, msg="查询成功")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.post("/insert", response_model=respModel)
+@router.post("/insert", response_model=ResponseModel)
 async def insert(
     *,
     role_data: dict,
@@ -107,7 +107,7 @@ async def insert(
         await db.flush()  # 获取ID
         await db.commit()
         
-        return respModel().ok_resp(dic_t={"id": role.id}, msg="添加成功")
+        return RespModel.success(data={"id": role.id}, msg="添加成功")
     except HTTPException:
         raise
     except Exception as e:
@@ -115,7 +115,7 @@ async def insert(
         raise HTTPException(status_code=500, detail=f"添加失败: {str(e)}")
 
 
-@router.put("/update", response_model=respModel)
+@router.put("/update", response_model=ResponseModel)
 async def update(
     *,
     role_data: dict,
@@ -136,7 +136,7 @@ async def update(
             role.desc = role_data['desc']
         
         await db.commit()
-        return respModel().ok_resp(msg="修改成功")
+        return RespModel.success(msg="修改成功")
     except HTTPException:
         await db.rollback()
         raise
@@ -145,7 +145,7 @@ async def update(
         raise HTTPException(status_code=500, detail=f"修改失败: {str(e)}")
 
 
-@router.delete("/delete", response_model=respModel)
+@router.delete("/delete", response_model=ResponseModel)
 async def delete(
     *,
     id: int = Query(..., ge=1, description='角色ID'),
@@ -160,7 +160,7 @@ async def delete(
         
         await db.delete(role)
         await db.commit()
-        return respModel().ok_resp(msg="删除成功")
+        return RespModel.success(msg="删除成功")
     except HTTPException:
         await db.rollback()
         raise
@@ -169,7 +169,7 @@ async def delete(
         raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
 
 
-@router.get("/queryMenus", response_model=respModel)
+@router.get("/queryMenus", response_model=ResponseModel)
 async def query_menus(
     *,
     id: int = Query(..., ge=1, description='角色ID'),
@@ -202,14 +202,14 @@ async def query_menus(
         
         marked_menus = mark_selected(menus)
         
-        return respModel().ok_resp_simple_list(lst=marked_menus, msg="查询成功")
+        return RespModel.success(data=marked_menus, msg="查询成功")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.put("/updateMenus", response_model=respModel)
+@router.put("/updateMenus", response_model=ResponseModel)
 async def update_menus(
     *,
     data: dict,
@@ -238,7 +238,7 @@ async def update_menus(
                 db.add(role_menu)
         
         await db.commit()
-        return respModel().ok_resp(msg="分配成功")
+        return RespModel.success(msg="分配成功")
     except HTTPException:
         await db.rollback()
         raise
@@ -247,7 +247,7 @@ async def update_menus(
         raise HTTPException(status_code=500, detail=f"分配失败: {str(e)}")
 
 
-@router.get("/queryApis", response_model=respModel)
+@router.get("/queryApis", response_model=ResponseModel)
 async def query_apis(
     *,
     id: int = Query(..., ge=1, description='角色ID'),
@@ -275,14 +275,14 @@ async def query_apis(
         for api in apis:
             api.selected = api.id in api_ids
         
-        return respModel().ok_resp_list(lst=apis, msg="查询成功")
+        return RespModel.success(data=apis, msg="查询成功")
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.put("/updateApis", response_model=respModel)
+@router.put("/updateApis", response_model=ResponseModel)
 async def update_apis(
     *,
     data: dict,
@@ -311,7 +311,7 @@ async def update_apis(
                 db.add(role_api)
         
         await db.commit()
-        return respModel().ok_resp(msg="分配成功")
+        return RespModel.success(msg="分配成功")
     except HTTPException:
         await db.rollback()
         raise
@@ -320,7 +320,7 @@ async def update_apis(
         raise HTTPException(status_code=500, detail=f"分配失败: {str(e)}")
 
 
-@router.get("/authorized", response_model=respModel)
+@router.get("/authorized", response_model=ResponseModel)
 async def get_authorized(
     *,
     id: int = Query(..., ge=1, description='角色ID'),
@@ -344,7 +344,7 @@ async def get_authorized(
         )
         api_ids = [row[0] for row in result.all()]
         
-        return respModel().ok_resp_simple(
+        return RespModel.success(
             data={
                 "role_id": role.id,
                 "role_name": role.name,
@@ -359,7 +359,7 @@ async def get_authorized(
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.post("/updateAuthorized", response_model=respModel)
+@router.post("/updateAuthorized", response_model=ResponseModel)
 async def update_authorized(
     *,
     data: dict,
@@ -400,7 +400,7 @@ async def update_authorized(
                 db.add(role_api)
         
         await db.commit()
-        return respModel().ok_resp(msg="授权更新成功")
+        return RespModel.success(msg="授权更新成功")
     except HTTPException:
         await db.rollback()
         raise

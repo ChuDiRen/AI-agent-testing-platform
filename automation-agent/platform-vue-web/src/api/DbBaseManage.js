@@ -1,4 +1,4 @@
-import axios from "~/axios"
+import axios from "@/axios"
 
 // 模块名 - 和后台对应
 const module_name = "ApiDbBase"
@@ -27,3 +27,6 @@ export function deleteData(id){
 }
 
 // 拓展其他方法
+export function queryAll(){
+    return axios.get(`/api/v1/${module_name}/queryAll`)
+}

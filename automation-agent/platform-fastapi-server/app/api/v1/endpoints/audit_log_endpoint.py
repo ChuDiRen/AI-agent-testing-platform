@@ -8,25 +8,25 @@ from typing import List, Optional
 from datetime import datetime
 from app.core.deps import get_db
 from app.models.audit_log import AuditLog
-from app.core.resp_model import respModel
+from app.core.resp_model import RespModel, ResponseModel
 from sqlalchemy import select, func, and_, or_
 from app.services.audit_log import audit_log as audit_log_crud
 
 router = APIRouter(prefix="/auditlog", tags=["审计日志管理"])
 
 
-@router.get("/queryAll", response_model=respModel)
+@router.get("/queryAll", response_model=ResponseModel)
 async def query_all(db: AsyncSession = Depends(get_db)):
     """查询所有审计日志"""
     try:
         result = await db.execute(select(AuditLog).order_by(AuditLog.created_at.desc()))
         items = result.scalars().all()
-        return respModel().ok_resp_list(lst=items, msg="查询成功")
+        return RespModel.success(data=items, msg="查询成功")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.post("/queryByPage", response_model=respModel)
+@router.post("/queryByPage", response_model=ResponseModel)
 async def query_by_page(
     *,
     page: int = Query(1, ge=1, description='页码'),
@@ -73,12 +73,12 @@ async def query_by_page(
         result = await db.execute(query)
         items = result.scalars().all()
         
-        return respModel().ok_resp_list(lst=items, total=total)
+        return RespModel.success(data=items, total=total)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.get("/queryById", response_model=respModel)
+@router.get("/queryById", response_model=ResponseModel)
 async def query_by_id(
     *,
     id: int = Query(..., ge=1, description='日志ID'),
@@ -90,12 +90,12 @@ async def query_by_id(
         item = result.scalars().first()
         if not item:
             raise NotFoundException("审计日志不存在")
-        return respModel().ok_resp(obj=item, msg="查询成功")
+        return RespModel.success(data=item, msg="查询成功")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-@router.delete("/delete", response_model=respModel)
+@router.delete("/delete", response_model=ResponseModel)
 async def delete(
     *,
     id: int = Query(..., ge=1, description='日志ID'),
@@ -110,7 +110,7 @@ async def delete(
         
         await db.delete(log)
         await db.commit()
-        return respModel().ok_resp(msg="删除成功")
+        return RespModel.success(msg="删除成功")
     except HTTPException:
         await db.rollback()
         raise
@@ -119,7 +119,7 @@ async def delete(
         raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
 
 
-@router.delete("/batchDelete", response_model=respModel)
+@router.delete("/batchDelete", response_model=ResponseModel)
 async def batch_delete(
     *,
     ids: List[int] = Query(..., description='日志ID列表'),
@@ -131,13 +131,13 @@ async def batch_delete(
             AuditLog.__table__.delete().where(AuditLog.id.in_(ids))
         )
         await db.commit()
-        return respModel().ok_resp(msg=f"成功删除{result.rowcount}条记录")
+        return RespModel.success(msg=f"成功删除{result.rowcount}条记录")
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"批量删除失败: {str(e)}")
 
 
-@router.delete("/clearBefore", response_model=respModel)
+@router.delete("/clearBefore", response_model=ResponseModel)
 async def clear_before(
     *,
     date: str = Query(..., description='日期(YYYY-MM-DD)'),
@@ -150,13 +150,13 @@ async def clear_before(
             AuditLog.__table__.delete().where(AuditLog.created_at < target_date)
         )
         await db.commit()
-        return respModel().ok_resp(msg=f"成功清除{result.rowcount}条记录")
+        return RespModel.success(msg=f"成功清除{result.rowcount}条记录")
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"清除失败: {str(e)}")
 
 
-@router.post("/clear", response_model=respModel)
+@router.post("/clear", response_model=ResponseModel)
 async def clear(
     *,
     data: dict = None,
@@ -166,13 +166,13 @@ async def clear(
     try:
         result = await db.execute(AuditLog.__table__.delete())
         await db.commit()
-        return respModel().ok_resp(msg=f"成功清除{result.rowcount}条记录")
+        return RespModel.success(msg=f"成功清除{result.rowcount}条记录")
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"清除失败: {str(e)}")
 
 
-@router.get("/statistics", response_model=respModel)
+@router.get("/statistics", response_model=ResponseModel)
 async def statistics(
     *,
     startTime: Optional[str] = Query(None, description='开始时间'),
@@ -208,7 +208,7 @@ async def statistics(
         )
         status_stats = [{"status_code": row[0], "count": row[1]} for row in result.all()]
         
-        return respModel().ok_resp_simple(
+        return RespModel.success(
             data={
                 "total": total,
                 "action_stats": action_stats,

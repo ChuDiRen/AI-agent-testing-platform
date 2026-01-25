@@ -42,7 +42,7 @@ const appStore = useAppStore()
 const permissionStore = usePermissionStore()
 
 // 侧边栏宽度
-const sidebarWidth = computed(() => appStore.collapsed ? '64px' : '250px')
+const sidebarWidth = computed(() => appStore.sidebarWidth)
 
 // 需要缓存的路由名称
 const keepAliveRoutes = computed(() => {

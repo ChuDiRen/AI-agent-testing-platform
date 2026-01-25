@@ -12,14 +12,14 @@ import yaml
 import subprocess
 from app.core.deps import get_db
 from app.models.api_info import ApiInfo
-from app.core.resp_model import respModel
+from app.core.resp_model import RespModel, ResponseModel
 from app.core.exceptions import NotFoundException, BadRequestException
 from sqlalchemy import select
 
 router = APIRouter(prefix="/ApiInfo", tags=["Swagger导入和Debug执行"])
 
 
-@router.post("/debug", response_model=respModel)
+@router.post("/debug", response_model=ResponseModel)
 async def debug_execute(
     *,
     id: int = Query(..., ge=1, description='API信息ID'),
@@ -104,7 +104,7 @@ async def debug_execute(
             "message": "测试用例创建成功，等待执行"
         }
         
-        return respModel().ok_resp(obj=execution_result, msg="调试执行创建成功")
+        return RespModel.success(data=execution_result, msg="调试执行创建成功")
         
     except HTTPException:
         raise
@@ -112,7 +112,7 @@ async def debug_execute(
         raise HTTPException(status_code=500, detail=f"调试执行失败: {str(e)}")
 
 
-@router.post("/swagger_import", response_model=respModel)
+@router.post("/swagger_import", response_model=ResponseModel)
 async def swagger_import(
     *,
     file: UploadFile = File(..., description='Swagger JSON/YAML文件'),
@@ -153,8 +153,8 @@ async def swagger_import(
             
             await db.commit()
         
-        return respModel().ok_resp(
-            dic_t={"imported_count": imported_count}, 
+        return RespModel.success(
+            data={"imported_count": imported_count}, 
             msg=f"成功导入 {imported_count} 个 API 接口"
         )
         

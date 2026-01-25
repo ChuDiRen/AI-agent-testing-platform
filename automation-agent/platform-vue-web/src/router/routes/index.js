@@ -8,22 +8,8 @@ const Layout = () => import('@/layout/index.vue')
 export const basicRoutes = [
   {
     path: '/',
-    redirect: '/home',
+    redirect: '/workbench', // 默认跳转到工作台
     meta: { order: 0 },
-  },
-  {
-    name: '首页',
-    path: '/home',
-    component: Layout,
-    children: [
-      {
-        path: '',
-        component: () => import('@/views/home/dashboard.vue'),
-        name: '首页Default',
-        meta: { title: '首页', icon: 'HomeFilled', affix: true },
-      },
-    ],
-    meta: { order: 1 },
   },
   {
     name: '个人中心',
@@ -35,7 +21,11 @@ export const basicRoutes = [
         path: '',
         component: () => import('@/views/profile/index.vue'),
         name: '个人中心Default',
-        meta: { title: '个人中心', icon: 'User' },
+        meta: {
+          title: '个人中心',
+          icon: 'User',
+          affix: true,
+        },
       },
     ],
     meta: { order: 99 },
@@ -45,14 +35,13 @@ export const basicRoutes = [
     path: '/login',
     component: () => import('@/views/auth/login/login.vue'),
     isHidden: true,
-    meta: { title: '登录' },
+    meta: { title: '登录页' },
   },
   {
-    name: '关于',
-    path: '/about',
-    component: () => import('@/views/pages/about.vue'),
+    name: '404',
+    path: '/404',
+    component: () => import('@/views/NotFound.vue'),
     isHidden: true,
-    meta: { title: '关于' },
   },
 ]
 
@@ -66,5 +55,7 @@ export const NOT_FOUND_ROUTE = {
 }
 
 // 动态加载views下所有index.vue组件
-export const vueModules = import.meta.glob('@/views/**/index.vue')
+// 注意：import.meta.glob 返回的键格式取决于 Vite 配置
+// 通常是相对于项目根目录的绝对路径，如 /src/views/xxx/index.vue
+export const vueModules = import.meta.glob('/src/views/**/index.vue')
 

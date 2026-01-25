@@ -39,7 +39,6 @@ export function useDeleteConfirm() {
       
       return true
     } catch (error) {
-      console.error('删除操作失败:', error)
       Message.error('删除失败：' + (error.message || '未知错误'))
       return false
     }

@@ -11,6 +11,11 @@ import { pinia } from './store'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { permissionDirective } from './utils/permission'
 
+// 开发环境导入调试工具
+if (process.env.NODE_ENV === 'development') {
+  // 调试工具已清理
+}
+
 const app = createApp(App)
 
 // 使用Pinia状态管理

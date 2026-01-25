@@ -50,7 +50,7 @@ async def get_user_info(
             "roles": [{"id": role.id, "name": role.name, "desc": role.desc} for role in user.role_objects]
         }
 
-        return RespModel.ok_resp_simple(data=user_info, msg="获取用户信息成功")
+        return RespModel.success(data=user_info, msg="获取用户信息成功")
     except HTTPException:
         raise
     except Exception as e:
@@ -123,7 +123,7 @@ async def get_user_menu(
 
             menu_tree.append(parent_dict)
 
-        return RespModel.ok_resp_simple_list(lst=menu_tree, msg="获取用户菜单成功")
+        return RespModel.success(data=menu_tree, msg="获取用户菜单成功")
     except HTTPException:
         raise
     except Exception as e:
@@ -159,7 +159,7 @@ async def get_user_api(
                     if api_str not in apis:
                         apis.append(api_str)
 
-        return RespModel.ok_resp_simple_list(lst=apis, msg="获取用户API权限成功")
+        return RespModel.success(data=apis, msg="获取用户API权限成功")
     except HTTPException:
         raise
     except Exception as e:

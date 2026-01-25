@@ -32,7 +32,8 @@ from app.api.v1.endpoints import (
     menu_endpoint,
     dept_endpoint,
     api_resource_endpoint,
-    audit_log_endpoint
+    audit_log_endpoint,
+    settings,
 )
 from app.utils.third_party_messenger import get_messenger
 
@@ -48,10 +49,11 @@ app = FastAPI(
 # 配置 CORS 中间件
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # 允许所有来源
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # 允许所有HTTP方法
+    allow_headers=["*"],  # 允许所有请求头
+    expose_headers=["*"]
 )
 
 # 注册审计日志中间件
@@ -61,6 +63,8 @@ create_audit_middleware(app)
 @app.middleware("http")
 async def verify_token_middleware(request: Request, call_next):
     """JWT Token 验证中间件"""
+    from app.core.logger import logger
+    
     # 跳过 OPTIONS 预检请求
     if request.method == "OPTIONS":
         return await call_next(request)
@@ -68,43 +72,61 @@ async def verify_token_middleware(request: Request, call_next):
     # 白名单路径
     whitelist = [
         "/login",
-        "/api/v1/login",
+        "/api/v1/login", 
         "/docs",
         "/openapi.json",
         "/redoc",
         "/health",
-        "/"
+        "/",
+        "/api/settings",
+        "/api/settings/"
     ]
     
-    if request.url.path in whitelist:
+    if request.url.path in whitelist or request.url.path.startswith("/api/settings"):
         return await call_next(request)
     
-    # 获取 Token
-    token = request.headers.get("token")
-    if not token:
-        from fastapi import HTTPException, status
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="未登录"
+    try:
+        # 获取 Token
+        token = request.headers.get("token")
+        if not token:
+            from fastapi import status
+            from fastapi.responses import JSONResponse
+            logger.warning(f"请求 {request.url.path} 缺少 token")
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"code": 401, "message": "未登录", "data": None}
+            )
+        
+        # 验证 Token
+        from app.core.security import verify_token
+        payload = verify_token(token)
+        if not payload:
+            from fastapi import status
+            from fastapi.responses import JSONResponse
+            logger.warning(f"请求 {request.url.path} 的 token 验证失败")
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"code": 401, "message": "Token 失效", "data": None}
+            )
+        
+        # 保存到 request.state
+        request.state.username = payload.get('username')
+        request.state.user_id = payload.get('user_id')
+        request.state.payload = payload
+        
+        response = await call_next(request)
+        return response
+    except HTTPException as e:
+        # HTTPException直接抛出，让FastAPI处理
+        raise
+    except Exception as e:
+        logger.error(f"Token 验证中间件异常: {str(e)}", exc_info=True)
+        from fastapi import status
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"code": 500, "message": f"服务器内部错误: {str(e)}", "data": None}
         )
-    
-    # 验证 Token
-    from app.core.security import verify_token
-    payload = verify_token(token)
-    if not payload:
-        from fastapi import HTTPException, status
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token 失效"
-        )
-    
-    # 保存到 request.state
-    request.state.username = payload.get('username')
-    request.state.user_id = payload.get('user_id')
-    request.state.payload = payload
-    
-    response = await call_next(request)
-    return response
 
 
 # 注册路由
@@ -231,6 +253,11 @@ app.include_router(
 app.include_router(
     audit_log_endpoint.router,
     prefix="/api/v1"
+)
+
+app.include_router(
+    settings.router,
+    prefix="/api"
 )
 
 

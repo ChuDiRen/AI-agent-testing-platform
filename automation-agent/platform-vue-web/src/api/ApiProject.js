@@ -1,4 +1,4 @@
-import axios from "~/axios"
+import axios from "@/axios"
 
 // 模块名 - 和后台对应
 const module_name = "ApiProject"
@@ -13,7 +13,6 @@ export function queryById(id) {
 }
 
 export function insertData(data) {
-    console.log(data)
     return axios.post(`/api/v1/${module_name}/insert`, data)
 }
 

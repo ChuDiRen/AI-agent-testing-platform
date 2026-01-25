@@ -24,7 +24,6 @@ function onTokenRefreshed(newToken) {
 async function refreshToken() {
   const refreshToken = localStorage.getItem('refreshToken');
   if (!refreshToken) {
-    console.log('没有 refreshToken，无法刷新');
     return null;
   }
 
@@ -36,8 +35,6 @@ async function refreshToken() {
       _skipInterceptor: true  // 自定义标记，跳过拦截器处理
     });
 
-    console.log('刷新 token 响应:', response.data);
-
     if (response.data.code === 200) {
       const responseData = response.data.data || response.data;
       const { token, refreshToken: newRefreshToken } = responseData;
@@ -46,14 +43,11 @@ async function refreshToken() {
         // 保存新的 token
         localStorage.setItem('token', token);
         localStorage.setItem('refreshToken', newRefreshToken);
-        console.log('Token 刷新成功');
         return token;
       }
     }
-    console.log('Token 刷新失败: 响应格式不正确');
     return null;
   } catch (error) {
-    console.error('刷新 token 失败:', error);
     return null;
   }
 }
@@ -114,7 +108,6 @@ service.interceptors.response.use(response => {
     if (error.response && error.response.status === 401) {
       // 防止无限重试 - 如果已经重试过，直接跳转登录
       if (originalRequest._retry) {
-        console.log('Token 刷新后仍然失败，跳转登录');
         ElMessage.error('登录已过期，请重新登录');
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
@@ -125,7 +118,6 @@ service.interceptors.response.use(response => {
 
       // 如果是刷新 token 接口返回 401，直接跳转登录
       if (originalRequest.url.includes('/refresh')) {
-        console.log('刷新接口返回401，跳转登录');
         ElMessage.error('登录已过期，请重新登录');
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
@@ -139,7 +131,6 @@ service.interceptors.response.use(response => {
 
       // 如果正在刷新 token，将请求加入队列
       if (isRefreshing) {
-        console.log('正在刷新 token，将请求加入队列');
         return new Promise(resolve => {
           subscribeTokenRefresh(newToken => {
             originalRequest.headers.token = newToken;
@@ -149,14 +140,12 @@ service.interceptors.response.use(response => {
       }
 
       // 开始刷新 token
-      console.log('开始刷新 token');
       isRefreshing = true;
       
       try {
         const newToken = await refreshToken();
         
         if (newToken) {
-          console.log('Token 刷新成功，重试原请求');
           // token 刷新成功，更新请求头并重试原请求
           originalRequest.headers.token = newToken;
           // 通知所有等待的请求
@@ -165,7 +154,6 @@ service.interceptors.response.use(response => {
           return service(originalRequest);
         } else {
           // token 刷新失败，跳转到登录页
-          console.log('Token 刷新失败，跳转登录');
           ElMessage.error('登录已过期，请重新登录');
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
@@ -175,7 +163,6 @@ service.interceptors.response.use(response => {
           return Promise.reject(error);
         }
       } catch (refreshError) {
-        console.error('Token 刷新异常:', refreshError);
         ElMessage.error('登录已过期，请重新登录');
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');

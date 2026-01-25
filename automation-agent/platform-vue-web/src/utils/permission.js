@@ -43,7 +43,7 @@ export async function getUserPermissions() {
       }
     }
   } catch (error) {
-    console.error('获取用户权限失败:', error)
+    // 获取用户权限失败处理
   }
   
   return { menus: new Set(), apis: new Set(), roles: [] }
@@ -127,7 +127,6 @@ export async function checkRoutePermission(to) {
   
   // 检查页面权限
   if (!permissions.menus.has(path)) {
-    console.warn(`用户无权限访问页面: ${path}`)
     return false
   }
   

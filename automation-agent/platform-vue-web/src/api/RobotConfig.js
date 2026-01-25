@@ -1,4 +1,4 @@
-import axios from "~/axios"
+import axios from "@/axios"
 
 // 模块名 - 和后台对应
 const module_name = "RobotConfig"

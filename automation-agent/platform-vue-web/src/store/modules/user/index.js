@@ -36,7 +36,6 @@ export const useUserStore = defineStore('user', {
         }
         return null
       } catch (error) {
-        console.error('获取用户信息失败:', error)
         return null
       }
     },
