@@ -1,0 +1,8 @@
+{
+  "name": "commit-commands",
+  "version": "1.0.0",
+  "description": "Git workflow automation for committing, pushing, and creating pull requests",
+  "components": {
+    "commands": "commands"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "code-review",
+  "version": "1.0.0",
+  "description": "Automated PR code review using multiple specialized agents with confidence-based scoring to filter false positives",
+  "components": {
+    "commands": "commands",
+    "agents": "agents"
+  }
+}

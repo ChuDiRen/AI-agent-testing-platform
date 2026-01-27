@@ -1,0 +1,9 @@
+{
+  "name": "feature-dev",
+  "version": "1.0.0",
+  "description": "Comprehensive feature development workflow with a structured 7-phase approach",
+  "components": {
+    "commands": "commands",
+    "agents": "agents"
+  }
+}
