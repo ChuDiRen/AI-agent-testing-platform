@@ -1,0 +1,3 @@
+[submodule "agent-backend/langgraph-source"]
+	path = agent-backend/langgraph-source
+	url = https://github.com/langchain-ai/langgraph.git
