@@ -40,8 +40,8 @@
       <div class="demo-pagination-block">
         <div class="demonstration"></div>
         <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
+          :current-page="currentPage"
+          :page-size="pageSize"
           :page-sizes="[10, 20, 30, 50]"
           layout="total, sizes, prev, pager, next, jumper"
           :total="total"
@@ -61,7 +61,7 @@
             <el-table-column prop="db_info" label="数据库连接信息" style="width: 40%" :show-overflow-tooltip="true" />
             <el-table-column prop="is_enabled" label="是否启用" style="width: 10%" :show-overflow-tooltip="true">
               <template #default="scope">
-                {{ scope.row.is_enabled === "0"?'否' : scope.row.is_enabled === "1"?'是':'-' }}
+                {{ scope.row.is_enabled === true ? '是' : scope.row.is_enabled === false ? '否' : '-' }}
               </template>
             </el-table-column>
             <el-table-column prop="db_type" label="数据库类型" style="width: 10%" :show-overflow-tooltip="true" />
@@ -140,7 +140,8 @@ const columnList = ref([
   { prop: "id", label: "项目编号" },
   { prop: "project_name", label: "项目名称" },
   { prop: "project_desc", label: "项目描述" },
-  { prop: "create_time", label: "创建时间" },
+  { prop: "created_at", label: "创建时间" },
+  { prop: "updated_at", label: "更新时间" },
 ]);
 
 const tableData = ref([]);
@@ -281,12 +282,12 @@ const dbRuleForm = reactive({
   db_info: "",
   ref_name: "",
   db_type: "",
-  is_enabled: "1",
+  is_enabled: true,
 });
 
 const options = [
-  { value: '1', label: '是' },
-  { value: '0', label: '否' }
+  { value: true, label: '是' },
+  { value: false, label: '否' }
 ]
 
 const optionsDbType = [
@@ -302,7 +303,7 @@ const onAddDbinfo = () => {
       dbRuleForm.name = ""
       dbRuleForm.ref_name = ""
       dbRuleForm.db_info = ""
-      dbRuleForm.is_enabled = "1"
+      dbRuleForm.is_enabled = true
       dbRuleForm.db_type = ""
     }
   });
@@ -316,7 +317,7 @@ const upDataDbinfo = (index) => {
     ref_name: DbBaseManageList.value[index].ref_name,
     db_info: DbBaseManageList.value[index].db_info,
     db_type: DbBaseManageList.value[index].db_type,
-    is_enabled: DbBaseManageList.value[index].is_enabled === '1' ? '0' : '1',
+    is_enabled: !DbBaseManageList.value[index].is_enabled,
   }
   
   updateDbData(updateData).then((res) => {

@@ -1,20 +1,25 @@
 """
 API 测试计划图表模型
-从 Flask-SQLAlchemy 迁移到 SQLAlchemy 2.0
 """
-from sqlalchemy import Column, Integer, String, DateTime, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, Index, JSON
+from sqlalchemy.orm import relationship
 from app.db.base import Base
-from datetime import datetime
 
 
 class ApiTestPlanChart(Base):
     """API 测试计划图表表"""
     __tablename__ = "t_api_test_plan_chart"
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    project_id = Column(Integer, comment='项目ID')
-    chart_name = Column(String(255), comment='图表名称')
-    chart_type = Column(String(255), comment='图表类型')
-    chart_data = Column(Text, comment='图表数据')
-    chart_config = Column(Text, comment='图表配置')
-    create_time = Column(DateTime, default=datetime.utcnow, comment='创建时间')
+    project_id = Column(Integer, ForeignKey('t_api_project.id', ondelete='CASCADE'), nullable=False, index=True, comment='项目ID')
+    chart_name = Column(String(100), nullable=False, comment='图表名称')
+    chart_type = Column(String(50), nullable=False, index=True, comment='图表类型(line/bar/pie等)')
+    chart_data = Column(JSON, nullable=True, comment='图表数据(JSON格式)')
+    chart_config = Column(JSON, nullable=True, comment='图表配置(JSON格式)')
+    
+    # 关系
+    project = relationship("ApiProject", backref="charts")
+    
+    __table_args__ = (
+        Index('idx_chart_project_type', 'project_id', 'chart_type'),
+        {'comment': 'API测试计划图表表'}
+    )

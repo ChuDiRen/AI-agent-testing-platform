@@ -40,10 +40,16 @@ class SimpleBaseMiddleware:
 
 class BackGroundTaskMiddleware(SimpleBaseMiddleware):
     async def before_request(self, request):
-        await BgTasks.init_bg_tasks_obj()
+        try:
+            await BgTasks.init_bg_tasks_obj()
+        except Exception:
+            pass
 
     async def after_request(self, request):
-        await BgTasks.execute_tasks()
+        try:
+            await BgTasks.execute_tasks()
+        except Exception:
+            pass
 
 
 class HttpAuditLogMiddleware(BaseHTTPMiddleware):

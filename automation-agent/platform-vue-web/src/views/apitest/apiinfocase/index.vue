@@ -54,7 +54,7 @@
       <!-- 分页 -->
       <div class="demo-pagination-block">
         <div class="demonstration"></div>
-        <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :page-sizes="[10, 20, 30, 50]"
+        <el-pagination :current-page="currentPage" :page-size="pageSize" :page-sizes="[10, 20, 30, 50]"
           layout="total, sizes, prev, pager, next, jumper" :total="total" @size-change="handleSizeChange"
           @current-change="handleCurrentChange" />
       </div>
@@ -113,9 +113,9 @@
                   </template>
                 </el-table-column>
 
-                <el-table-column prop="run_order" label="执行顺序" width="120">
+                <el-table-column prop="step_order" label="执行顺序" width="120">
                   <template #default="scope">
-                    <el-input-number v-model="scope.row.run_order" :min="1" style="width: 107px" controls-position="right" placeholder="顺序"/>
+                    <el-input-number v-model="scope.row.step_order" :min="1" style="width: 107px" controls-position="right" placeholder="顺序"/>
                   </template>
                 </el-table-column>
                 
@@ -133,7 +133,7 @@
                 
                 <el-table-column prop="ref_variable" label="关键字参数" type="expand" width="120">
                   <template #default="scope">
-                    <span style="margin-left: 10px;" v-for="variable in findKeyWordByName(scope.row.value[1]).keyword_desc">
+                    <span style="margin-left: 10px;" v-for="(variable, index) in findKeyWordByName(scope.row.value[1]).keyword_desc" :key="index">
                       <span style="margin-right: 10px;">{{ variable.name }}</span>
                       <!-- 如果是接口信息对象 -->
                       <el-select v-if="variable.name.endsWith('_接口信息')"
@@ -220,7 +220,8 @@ const columnList = ref([
   { prop: "id", label: '用例编号' },
   { prop: "case_name", label: '用例名称' },
   { prop: "api_info_id", label: '所属接口' },
-  { prop: "create_time", label: '创建时间' }
+  { prop: "created_at", label: '创建时间' },
+  { prop: "updated_at", label: '更新时间' }
 ])
 
 const tableData = ref([])
@@ -385,7 +386,7 @@ const projectChange = () => {
 const onAddStep = () => {
   const newStep = {
     id: Date.now(),
-    run_order: tableDataCaseStep.value.length + 1,
+    step_order: tableDataCaseStep.value.length + 1,
     step_desc: "",
     value: [],
     ref_variable: {}

@@ -32,7 +32,7 @@
 
       <div class="demo-pagination-block">
         <div class="demonstration"></div>
-        <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :page-sizes="[10, 20, 30, 50]"
+        <el-pagination :current-page="currentPage" :page-size="pageSize" :page-sizes="[10, 20, 30, 50]"
           layout="total, sizes, prev, pager, next, jumper" :total="total" @size-change="handleSizeChange"
           @current-change="handleCurrentChange" />
       </div>
@@ -86,7 +86,8 @@ const columnList = ref([
   { prop: "id", label: '管理编号' },
   { prop: "name", label: '管理名称' },
   { prop: "desc", label: '管理描述' },
-  { prop: "create_time", label: '创建时间' }
+  { prop: "created_at", label: '创建时间' },
+  { prop: "updated_at", label: '更新时间' }
 ])
 
 const tableData = ref([])

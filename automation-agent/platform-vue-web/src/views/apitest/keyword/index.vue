@@ -24,7 +24,7 @@
       <el-table :data="tableData" style="width: 100%" max-height="500">
         <el-table-column v-for="col in columnList" :prop="col.prop" :label="col.label" :key="col.prop" :show-overflow-tooltip="true">
           <template #default="scope" v-if="col.prop === 'is_enabled'">
-            {{ scope.row.is_enabled === "false" ? "否" : scope.row.is_enabled === "true" ? "是" : "-" }}
+            {{ scope.row.is_enabled === true ? "是" : scope.row.is_enabled === false ? "否" : "-" }}
           </template>
         </el-table-column>
         
@@ -42,7 +42,7 @@
 
       <div class="demo-pagination-block">
         <div class="demonstration"></div>
-        <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :page-sizes="[10, 20, 30, 50]"
+        <el-pagination :current-page="currentPage" :page-size="pageSize" :page-sizes="[10, 20, 30, 50]"
           layout="total, sizes, prev, pager, next, jumper" :total="total" @size-change="handleSizeChange"
           @current-change="handleCurrentChange" />
       </div>
@@ -69,8 +69,8 @@
         </el-form-item>
         <el-form-item label="是否启用" prop="is_enabled">
           <el-select v-model="ruleForm.is_enabled" placeholder="选择是否启用">
-            <el-option label="是" value="true" />
-            <el-option label="否" value="false" />
+            <el-option label="是" :value="true" />
+            <el-option label="否" :value="false" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -109,7 +109,9 @@ const columnList = ref([
   { prop: "name", label: '关键字名称' },
   { prop: "keyword_desc", label: '关键字描述' },
   { prop: "operation_type_id", label: '操作类型' },
-  { prop: "is_enabled", label: '是否启用' }
+  { prop: "is_enabled", label: '是否启用' },
+  { prop: "created_at", label: '创建时间' },
+  { prop: "updated_at", label: '更新时间' }
 ])
 
 const tableData = ref([])
@@ -164,7 +166,7 @@ const ruleForm = reactive({
   name: '',
   keyword_desc: '',
   operation_type_id: '',
-  is_enabled: 'true'
+  is_enabled: true
 })
 
 const rules = reactive({
@@ -190,7 +192,7 @@ const resetForm = () => {
   ruleForm.name = ''
   ruleForm.keyword_desc = ''
   ruleForm.operation_type_id = ''
-  ruleForm.is_enabled = 'true'
+  ruleForm.is_enabled = true
 }
 
 const submitForm = () => {

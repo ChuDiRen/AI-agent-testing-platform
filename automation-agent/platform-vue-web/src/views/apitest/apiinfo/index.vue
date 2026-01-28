@@ -44,7 +44,7 @@
       <!-- 分页 -->
       <div class="demo-pagination-block">
         <div class="demonstration"></div>
-        <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :page-sizes="[10, 20, 30, 50]"
+        <el-pagination :current-page="currentPage" :page-size="pageSize" :page-sizes="[10, 20, 30, 50]"
           layout="total, sizes, prev, pager, next, jumper" :total="total" @size-change="handleSizeChange"
           @current-change="handleCurrentChange" />
       </div>
@@ -389,7 +389,9 @@ const columnList = ref([
   { prop: "id", label: '接口用例编号' },
   { prop: "api_name", label: '接口名称' },
   { prop: "request_method", label: '请求方法' },
-  { prop: "request_url", label: '请求地址' }
+  { prop: "request_url", label: '请求地址' },
+  { prop: "created_at", label: '创建时间' },
+  { prop: "updated_at", label: '更新时间' }
 ])
 
 const tableData = ref([])

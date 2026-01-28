@@ -1,20 +1,21 @@
 """
 API 操作类型模型
-从 Flask-SQLAlchemy 迁移到 SQLAlchemy 2.0
 """
-from sqlalchemy import Column, Integer, String, DateTime, Text
+from sqlalchemy import Column, String, Boolean, Text, Index
 from app.db.base import Base
-from datetime import datetime
 
 
 class ApiOperationType(Base):
     """API 操作类型表"""
     __tablename__ = "t_api_operation_type"
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    operation_type_name = Column(String(255), comment='操作类型名称')
-    operation_type_desc = Column(String(255), comment='操作类型描述')
-    operation_type_fun_name = Column(String(255), comment='方法名')
-    operation_type_value = Column(Text, comment='方法体')
-    is_enabled = Column(String(255), comment='是否启用')
-    create_time = Column(DateTime, default=datetime.utcnow, comment='创建时间')
+    operation_type_name = Column(String(50), nullable=False, unique=True, comment='操作类型名称')
+    operation_type_desc = Column(String(255), nullable=True, comment='操作类型描述')
+    operation_type_fun_name = Column(String(100), nullable=True, comment='方法名')
+    operation_type_value = Column(Text, nullable=True, comment='方法体')
+    is_enabled = Column(Boolean, nullable=False, default=True, index=True, comment='是否启用')
+    
+    __table_args__ = (
+        Index('idx_operation_type_enabled', 'is_enabled'),
+        {'comment': 'API操作类型表'}
+    )

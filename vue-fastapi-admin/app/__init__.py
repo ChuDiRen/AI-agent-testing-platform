@@ -10,6 +10,7 @@ from app.core.init_app import (
     register_exceptions,
     register_routers,
 )
+from app.log import logger
 
 try:
     from app.settings.config import settings
@@ -19,9 +20,24 @@ except ImportError:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_data()
+    """应用生命周期管理"""
+    # 启动时初始化数据
+    try:
+        await init_data(app)
+        logger.info("Application initialized successfully")
+    except Exception as e:
+        logger.error(f"Error during application initialization: {e}")
+        raise
+
     yield
-    await Tortoise.close_connections()
+
+    # 关闭时清理数据库连接
+    try:
+        await Tortoise.close_connections()
+        logger.info("Database connections closed successfully")
+    except BaseException:
+        # 捕获所有异常包括 CancelledError，避免 reload 时输出错误堆栈
+        pass
 
 
 def create_app() -> FastAPI:

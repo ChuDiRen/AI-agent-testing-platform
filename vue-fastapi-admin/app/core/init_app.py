@@ -22,7 +22,7 @@ from app.core.exceptions import (
     ResponseValidationHandle,
 )
 from app.log import logger
-from app.models.admin import Api, Menu, Role
+from app.models.admin import Api, Dept, Menu, Role
 from app.schemas.menus import MenuType
 from app.settings.config import settings
 
@@ -67,15 +67,39 @@ def register_routers(app: FastAPI, prefix: str = "/api"):
 async def init_superuser():
     user = await user_controller.model.exists()
     if not user:
-        await user_controller.create_user(
+        # 获取部门
+        top_dept = await Dept.filter(name="总公司").first()
+        tech_dept = await Dept.filter(name="技术部").first()
+        admin_role = await Role.filter(name="管理员").first()
+        user_role = await Role.filter(name="普通用户").first()
+
+        # 创建超级用户并关联部门和角色
+        admin_user = await user_controller.create_user(
             UserCreate(
                 username="admin",
                 email="admin@admin.com",
                 password="123456",
                 is_active=True,
                 is_superuser=True,
+                dept_id=top_dept.id if top_dept else None,
             )
         )
+        if admin_role:
+            await admin_user.roles.add(admin_role)
+
+        # 创建测试用户
+        test_user = await user_controller.create_user(
+            UserCreate(
+                username="user",
+                email="user@admin.com",
+                password="123456",
+                is_active=True,
+                is_superuser=False,
+                dept_id=tech_dept.id if tech_dept else (top_dept.id if top_dept else None),
+            )
+        )
+        if user_role:
+            await test_user.roles.add(user_role)
 
 
 async def init_menus():
@@ -176,10 +200,47 @@ async def init_menus():
         )
 
 
-async def init_apis():
+async def init_apis(app):
     apis = await api_controller.model.exists()
     if not apis:
-        await api_controller.refresh_api()
+        await api_controller.refresh_api(app)
+
+
+async def init_depts():
+    depts = await Dept.exists()
+    if not depts:
+        # 创建顶级部门
+        top_dept = await Dept.create(
+            name="总公司",
+            desc="顶级部门",
+            order=1,
+            parent_id=0,
+        )
+        # 创建子部门
+        await Dept.create(
+            name="技术部",
+            desc="负责技术研发",
+            order=1,
+            parent_id=top_dept.id,
+        )
+        await Dept.create(
+            name="市场部",
+            desc="负责市场推广",
+            order=2,
+            parent_id=top_dept.id,
+        )
+        await Dept.create(
+            name="人事部",
+            desc="负责人力资源",
+            order=3,
+            parent_id=top_dept.id,
+        )
+        await Dept.create(
+            name="财务部",
+            desc="负责财务管理",
+            order=4,
+            parent_id=top_dept.id,
+        )
 
 
 async def init_db():
@@ -225,9 +286,10 @@ async def init_roles():
         await user_role.apis.add(*basic_apis)
 
 
-async def init_data():
+async def init_data(app):
     await init_db()
-    await init_superuser()
-    await init_menus()
-    await init_apis()
-    await init_roles()
+    await init_depts()
+    await init_apis(app)   # 先创建API
+    await init_menus()      # 再创建菜单
+    await init_roles()      # 然后创建角色并分配API/菜单
+    await init_superuser()  # 最后创建用户并分配角色/部门

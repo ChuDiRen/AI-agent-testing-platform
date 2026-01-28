@@ -10,9 +10,8 @@ class ApiController(CRUDBase[Api, ApiCreate, ApiUpdate]):
     def __init__(self):
         super().__init__(model=Api)
 
-    async def refresh_api(self):
-        from app import app
-
+    async def refresh_api(self, app):
+        # 通过参数传递 app 实例，避免循环导入问题
         # 删除废弃API数据
         all_api_list = []
         for route in app.routes:
@@ -33,7 +32,7 @@ class ApiController(CRUDBase[Api, ApiCreate, ApiUpdate]):
                 method = list(route.methods)[0]
                 path = route.path_format
                 summary = route.summary
-                tags = list(route.tags)[0]
+                tags = list(route.tags)[0] if route.tags else "default"
                 api_obj = await Api.filter(method=method, path=path).first()
                 if api_obj:
                     await api_obj.update_from_dict(dict(method=method, path=path, summary=summary, tags=tags)).save()
